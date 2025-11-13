@@ -354,326 +354,144 @@ def test_read_write_info(tmp_path):
         write_info(fname, info, overwrite=True)
 
 
-def test_info_serialization_basic(tmp_path):
-    """Test basic Info.to_dict() and from_dict() methods."""
-    ch_names = ["MEG1", "MEG2", "EEG1", "EOG1"]
-    ch_types = ["mag", "grad", "eeg", "eog"]
-    sfreq = 1000.0
+@testing.requires_testing_data
+def test_info_serialization_roundtrip(tmp_path):
+    """Test Info JSON serialization with real MEG data."""
+    # Test with real MEG/FIF file
+    raw = read_raw_fif(raw_fname, preload=False, verbose=False)
+    info = raw.info.copy()
 
-    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-    info["description"] = "Test recording"
-    info["bads"] = ["MEG2"]
+    # Add some additional fields for comprehensive testing
+    info["subject_info"] = {
+        "id": 1,
+        "his_id": "SUBJ001",
+        "birthday": date(1990, 5, 15),
+        "sex": 1,
+    }
+    info["bads"] = [info["ch_names"][0]]
 
-    # Convert to dict
-    info_dict = info.to_dict()
-
-    # Check it's JSON-serializable
-    json_str = json.dumps(info_dict)
-    assert isinstance(json_str, str)
-    assert len(json_str) > 0
-
-    # Check metadata
-    assert "_mne_version" in info_dict
-    assert isinstance(info_dict["_mne_version"], str)
-
-    # Test roundtrip
-    info_restored = Info.from_dict(info_dict)
-    assert info_restored["sfreq"] == sfreq
-    assert info_restored["ch_names"] == ch_names
-    assert info_restored["nchan"] == len(ch_names)
-    assert info_restored["description"] == "Test recording"
-    assert list(info_restored["bads"]) == ["MEG2"]
-
-    # Test JSON roundtrip
-    json_str = json.dumps(info.to_dict())
-    info_from_json = Info.from_dict(json.loads(json_str))
-    assert info_from_json["sfreq"] == info["sfreq"]
-    assert info_from_json["ch_names"] == info["ch_names"]
-    assert info_from_json["description"] == info["description"]
-
-    # Test file roundtrip
+    # Save to JSON
     json_path = tmp_path / "info.json"
     with open(json_path, "w") as f:
         json.dump(info.to_dict(), f)
 
+    # Read back from JSON
     with open(json_path) as f:
-        loaded_dict = json.load(f)
-
-    info_from_file = Info.from_dict(loaded_dict)
-    assert info_from_file["sfreq"] == info["sfreq"]
-    assert info_from_file["description"] == info["description"]
-    assert list(info_from_file["bads"]) == list(info["bads"])
-
-
-def test_info_serialization_with_transform():
-    """Test Info serialization with Transform objects."""
-    info = create_info(ch_names=["MEG1"], sfreq=1000.0, ch_types="mag")
-
-    trans = Transform("meg", "head", np.eye(4))
-    with info._unlock():
-        info["dev_head_t"] = trans
-
-    # Serialize and restore
-    info_dict = info.to_dict()
+        info_dict = json.load(f)
     info_restored = Info.from_dict(info_dict)
 
-    # Verify transform
-    assert info_restored["dev_head_t"] is not None
-    assert isinstance(info_restored["dev_head_t"], Transform)
-    assert info_restored["dev_head_t"]["from"] == info["dev_head_t"]["from"]
-    assert info_restored["dev_head_t"]["to"] == info["dev_head_t"]["to"]
-    assert_allclose(info_restored["dev_head_t"]["trans"], info["dev_head_t"]["trans"])
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
 
-    # Test numpy arrays are converted to lists
-    trans_array = np.random.RandomState(42).randn(4, 4)
-    trans2 = Transform("meg", "head", trans_array)
-    with info._unlock():
-        info["dev_head_t"] = trans2
 
-    info_dict = info.to_dict()
-    assert isinstance(info_dict["dev_head_t"]["trans"], list)
-    assert isinstance(info_dict["dev_head_t"]["trans"][0], list)
+def test_info_serialization_edf(tmp_path):
+    """Test Info JSON serialization with EDF data."""
+    from mne.io import read_raw_edf
 
+    edf_path = root_dir / "io" / "edf" / "tests" / "data" / "test.edf"
+    raw = read_raw_edf(edf_path, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info_edf.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
     info_restored = Info.from_dict(info_dict)
-    assert_allclose(info_restored["dev_head_t"]["trans"], trans_array)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
 
 
-def test_info_serialization_with_montage():
-    """Test Info serialization with digitization points."""
-    montage = make_standard_montage("standard_1020")
-    ch_names = ["Fp1", "Fp2", "F3", "F4"]
-    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types="eeg")
-    info.set_montage(montage)
+def test_info_serialization_special_types():
+    """Test that special types (NamedInt, dates, etc.) are preserved correctly."""
+    from mne.utils._bunch import NamedInt
 
-    # Serialize and restore
-    info_dict = info.to_dict()
-    json_str = json.dumps(info_dict)
-    info_restored = Info.from_dict(json.loads(json_str))
-
-    # Verify digitization
-    assert info_restored["dig"] is not None
-    assert len(info_restored["dig"]) == len(info["dig"])
-
-    # Check dig points are DigPoint instances
-    assert isinstance(info_restored["dig"][0], DigPoint)
-
-    # Check a few dig points
-    for orig_dig, restored_dig in zip(info["dig"][:3], info_restored["dig"][:3]):
-        assert orig_dig["kind"] == restored_dig["kind"]
-        assert_allclose(orig_dig["r"], restored_dig["r"])
-
-    # Verify channel locations
-    for i, ch in enumerate(info["chs"]):
-        orig_loc = ch["loc"]
-        restored_loc = info_restored["chs"][i]["loc"]
-        assert_allclose(orig_loc, restored_loc, rtol=1e-6)
-
-
-def test_info_serialization_with_dates():
-    """Test Info serialization with meas_date and subject_info dates."""
+    # Create info with various special types
     info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
 
-    # Test meas_date
+    # Test meas_date (datetime)
     meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=timezone.utc)
     with info._unlock():
         info["meas_date"] = meas_date
 
-    info_dict = info.to_dict()
-    info_restored = Info.from_dict(info_dict)
-
-    assert info_restored["meas_date"] == meas_date
-    assert isinstance(info_restored["meas_date"], datetime)
-
-    # Test subject_info with birthday
+    # Test subject_info with birthday (date)
     info["subject_info"] = {
         "id": 1,
         "his_id": "SUBJ001",
-        "first_name": "John",
-        "last_name": "Doe",
-        "sex": 1,
         "birthday": date(1990, 1, 15),
-    }
-
-    info_dict = info.to_dict()
-    json_str = json.dumps(info_dict)
-    info_restored = Info.from_dict(json.loads(json_str))
-
-    assert info_restored["subject_info"]["id"] == 1
-    assert info_restored["subject_info"]["his_id"] == "SUBJ001"
-    assert info_restored["subject_info"]["birthday"] == date(1990, 1, 15)
-    assert isinstance(info_restored["subject_info"]["birthday"], date)
-
-    # Test that date-like strings are NOT converted
-    from mne._fiff.meas_info import _restore_objects
-
-    date_like_strings = [
-        "2023-01-01-my-file-name",
-        "2024-05-15-experiment",
-        "1990-12-31",  # Plain string, not tagged
-    ]
-    for s in date_like_strings:
-        assert _restore_objects(s) == s
-        assert isinstance(_restore_objects(s), str)
-
-
-def test_info_serialization_named_int():
-    """Test that NamedInt types are preserved with their names."""
-    from mne.utils._bunch import NamedInt
-
-    info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
-
-    # custom_ref_applied is a NamedInt field
-    assert isinstance(info["custom_ref_applied"], NamedInt)
-    original_repr = repr(info["custom_ref_applied"])
-
-    # Serialize and restore
-    info_dict = info.to_dict()
-    json_str = json.dumps(info_dict)
-    info_restored = Info.from_dict(json.loads(json_str))
-
-    # Verify NamedInt is preserved
-    assert isinstance(info_restored["custom_ref_applied"], NamedInt)
-    assert isinstance(
-        info["custom_ref_applied"], type(info_restored["custom_ref_applied"])
-    )
-    assert repr(info_restored["custom_ref_applied"]) == original_repr
-    assert info["custom_ref_applied"] == info_restored["custom_ref_applied"]
-
-
-def test_info_serialization_empty_fields():
-    """Test serialization with empty/None fields."""
-    info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
-
-    # These should be None or empty
-    assert info["dig"] is None
-    assert info["dev_head_t"] is None
-    assert len(info["projs"]) == 0
-
-    # Serialize and restore
-    info_dict = info.to_dict()
-    json_str = json.dumps(info_dict)
-    info_restored = Info.from_dict(json.loads(json_str))
-
-    # Verify empty fields are preserved
-    assert info_restored["dig"] is None
-    assert info_restored["dev_head_t"] is None
-    assert len(info_restored["projs"]) == 0
-
-
-@testing.requires_testing_data
-def test_info_serialization_with_projections():
-    """Test Info serialization with SSP projections."""
-    raw = read_raw_fif(raw_fname, preload=False, verbose=False)
-    info = raw.info
-
-    # Verify we have projections
-    assert len(info["projs"]) > 0
-
-    # Serialize and restore
-    info_dict = info.to_dict()
-    json_str = json.dumps(info_dict)
-    info_restored = Info.from_dict(json.loads(json_str))
-
-    # Verify projections
-    assert len(info_restored["projs"]) == len(info["projs"])
-    assert isinstance(info_restored["projs"][0], Projection)
-    for orig_proj, restored_proj in zip(info["projs"], info_restored["projs"]):
-        assert orig_proj["desc"] == restored_proj["desc"]
-        assert orig_proj["active"] == restored_proj["active"]
-        assert_allclose(orig_proj["data"]["data"], restored_proj["data"]["data"])
-
-
-@testing.requires_testing_data
-def test_info_serialization_comprehensive():
-    """Comprehensive test ensuring all Info field types serialize correctly."""
-    data_path = testing.data_path(download=False)
-    raw_fname_full = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
-
-    if not raw_fname_full.exists():
-        pytest.skip("Sample data not available")
-
-    raw = read_raw_fif(raw_fname_full, preload=False, verbose=False)
-    info = raw.info
-
-    # Add additional fields to maximize coverage
-    info["subject_info"] = {
-        "id": 1,
-        "his_id": "SUBJ001",
-        "first_name": "Test",
-        "last_name": "Subject",
-        "birthday": date(1990, 5, 15),
         "sex": 1,
-        "hand": 1,
     }
 
-    # Serialize and restore
+    # Roundtrip through JSON
     info_dict = info.to_dict()
     json_str = json.dumps(info_dict)
     info_restored = Info.from_dict(json.loads(json_str))
 
-    # Test critical field types
-    assert info_restored["sfreq"] == info["sfreq"]
-    assert info_restored["nchan"] == info["nchan"]
-    assert info_restored["ch_names"] == info["ch_names"]
-    assert list(info_restored["bads"]) == list(info["bads"])
-
-    # Check Transform preservation
-    if info["dev_head_t"] is not None:
-        assert isinstance(info_restored["dev_head_t"], Transform)
-        assert_allclose(
-            info["dev_head_t"]["trans"], info_restored["dev_head_t"]["trans"]
-        )
-
-    # Check Projection preservation
-    if len(info["projs"]) > 0:
-        assert isinstance(info_restored["projs"][0], Projection)
-        assert info["projs"][0]["desc"] == info_restored["projs"][0]["desc"]
-
-    # Check DigPoint preservation
-    if info["dig"] is not None and len(info["dig"]) > 0:
-        assert isinstance(info_restored["dig"][0], DigPoint)
-        assert info["dig"][0]["kind"] == info_restored["dig"][0]["kind"]
-
-    # Check NamedInt preservation
-    from mne.utils._bunch import NamedInt
-
+    # Verify special types are preserved
+    assert isinstance(info_restored["meas_date"], datetime)
+    assert info_restored["meas_date"] == meas_date
+    assert isinstance(info_restored["subject_info"]["birthday"], date)
+    assert info_restored["subject_info"]["birthday"] == date(1990, 1, 15)
     assert isinstance(info_restored["custom_ref_applied"], NamedInt)
     assert repr(info["custom_ref_applied"]) == repr(info_restored["custom_ref_applied"])
 
-    # Check subject_info with date
-    assert info_restored["subject_info"]["birthday"] == date(1990, 5, 15)
-    assert isinstance(info_restored["subject_info"]["birthday"], date)
 
-    # Check datetime
-    assert isinstance(info_restored["meas_date"], datetime)
-    assert info_restored["meas_date"] == info["meas_date"]
+@testing.requires_testing_data
+def test_info_serialization_numpy_arrays(tmp_path):
+    """Test that numpy arrays (e.g., compensation matrices) serialize correctly."""
+    # Use CTF data which has compensation matrices
+    raw = read_raw_ctf(ctf_fname, preload=False, verbose=False)
+    info = raw.info.copy()
 
-    # Check hpi_meas and hpi_results
-    assert len(info_restored["hpi_meas"]) == len(info["hpi_meas"])
-    assert len(info_restored["hpi_results"]) == len(info["hpi_results"])
+    # Verify we have compensation data with matrices
+    assert len(info["comps"]) > 0, "CTF data should have compensation matrices"
 
-    if len(info["hpi_meas"]) > 0:
-        orig_hpi = info["hpi_meas"][0]
-        rest_hpi = info_restored["hpi_meas"][0]
-        assert orig_hpi["creator"] == rest_hpi["creator"]
-        assert orig_hpi["sfreq"] == rest_hpi["sfreq"]
-        assert orig_hpi["ncoil"] == rest_hpi["ncoil"]
+    # Check the structure of compensation matrices before serialization
+    for comp in info["comps"]:
+        assert "data" in comp
+        assert "data" in comp["data"]
+        comp_matrix = comp["data"]["data"]
+        assert isinstance(comp_matrix, np.ndarray), (
+            "Compensation matrix should be numpy array"
+        )
+        assert comp_matrix.ndim == 2, "Compensation matrix should be 2D"
+        assert comp_matrix.shape[0] > 0 and comp_matrix.shape[1] > 0
 
-        if len(orig_hpi["hpi_coils"]) > 0:
-            orig_coil = orig_hpi["hpi_coils"][0]
-            rest_coil = rest_hpi["hpi_coils"][0]
-            assert_allclose(orig_coil["epoch"], rest_coil["epoch"])
+    # Save to JSON
+    json_path = tmp_path / "info_with_comps.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_dict(), f)
 
-    if (
-        len(info["hpi_results"]) > 0
-        and info["hpi_results"][0]["coord_trans"] is not None
-    ):
-        orig_trans = info["hpi_results"][0]["coord_trans"]
-        rest_trans = info_restored["hpi_results"][0]["coord_trans"]
-        assert isinstance(rest_trans, Transform)
-        assert orig_trans["from"] == rest_trans["from"]
-        assert orig_trans["to"] == rest_trans["to"]
-        assert_allclose(orig_trans["trans"], rest_trans["trans"])
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_dict(info_dict)
+
+    # Verify compensation matrices are preserved correctly
+    assert len(info_restored["comps"]) == len(info["comps"])
+
+    for orig_comp, rest_comp in zip(info["comps"], info_restored["comps"]):
+        orig_matrix = orig_comp["data"]["data"]
+        rest_matrix = rest_comp["data"]["data"]
+
+        # Verify it's a numpy array with correct shape
+        assert isinstance(rest_matrix, np.ndarray)
+        assert rest_matrix.shape == orig_matrix.shape
+        assert rest_matrix.ndim == 2
+
+        # Verify the actual values are preserved
+        assert_allclose(rest_matrix, orig_matrix, rtol=1e-10)
+
+        # Verify row and column names are preserved
+        assert orig_comp["data"]["row_names"] == rest_comp["data"]["row_names"]
+        assert orig_comp["data"]["col_names"] == rest_comp["data"]["col_names"]
+
+    # Use assert_object_equal for comprehensive check
+    assert_object_equal(info, info_restored)
 
 
 @testing.requires_testing_data
