@@ -38,7 +38,8 @@ def test_basic_info_to_dict():
     assert len(json_str) > 0
 
     # Check metadata
-    assert info_dict["_mne_info_version"] == 1
+    assert "_mne_version" in info_dict
+    assert isinstance(info_dict["_mne_version"], str)
 
 
 def test_basic_info_from_dict():
