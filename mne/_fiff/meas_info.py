@@ -16,6 +16,7 @@ from textwrap import shorten
 
 import numpy as np
 
+from .. import __version__
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
 from ..utils import (
@@ -35,6 +36,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils._bunch import NamedFloat, NamedInt
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -946,11 +948,19 @@ class ValidatedDict(dict):
 
     def __getstate__(self):
         """Get state (for pickling)."""
-        return {"_unlocked": self._unlocked}
+        # Return both the dict data and the _unlocked attribute
+        state = dict(self)  # Get the dictionary data
+        state["_unlocked"] = self._unlocked
+        return state
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
-        self._unlocked = state["_unlocked"]
+        # Extract _unlocked before updating dict
+        unlocked = state.pop("_unlocked", True)
+        self._unlocked = True  # Unlock to allow setting
+        self.clear()
+        self.update(state)
+        self._unlocked = unlocked
 
     def __setitem__(self, key, val):
         """Attribute setter."""
@@ -1102,6 +1112,38 @@ def _format_trans(obj, key):
     else:
         if t is not None:
             obj[key] = Transform(t["from"], t["to"], t["trans"])
+
+
+def _restore_mne_types(info):
+    """Restore MNE-specific types after unpickling/deserialization.
+
+    This function handles the restoration of MNE-specific object types
+    that need to be reconstructed from their serialized representations.
+
+    Parameters
+    ----------
+    info : Info
+        The Info object whose types need to be restored. Modified in-place.
+
+    Notes
+    -----
+    This function restores:
+    - MNEBadsList for the bads field
+    - DigPoint objects for digitization points
+    - Projection objects for SSP projectors
+    """
+    # Restore MNEBadsList
+    info["bads"] = MNEBadsList(bads=info["bads"], info=info)
+
+    # Restore DigPoint objects
+    if info.get("dig", None) is not None and len(info["dig"]):
+        if not isinstance(info["dig"][0], DigPoint):
+            info["dig"] = _format_dig_points(info["dig"])
+
+    # Restore Projection objects
+    for pi, proj in enumerate(info.get("projs", [])):
+        if not isinstance(proj, Projection):
+            info["projs"][pi] = Projection(**proj)
 
 
 def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
@@ -1704,8 +1746,26 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
+        # Format Transform objects BEFORE calling super().__setstate__
+        # because ValidatedDict.__setitem__ will validate the types
+        for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
+            _format_trans(state, key)
+        # Also handle Transform in hpi_results
+        for res in state.get("hpi_results", []):
+            _format_trans(res, "coord_trans")
+
+        # Call parent __setstate__ which will validate types
         super().__setstate__(state)
-        self["bads"] = MNEBadsList(bads=self["bads"], info=self)
+
+        # Restore MNE-specific types (requires unlocked state)
+        was_locked = not self._unlocked
+        if was_locked:
+            self._unlocked = True
+
+        _restore_mne_types(self)
+
+        if was_locked:
+            self._unlocked = False
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
@@ -1970,6 +2030,173 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         mne.io.write_info
         """
         write_info(fname, self, overwrite=overwrite)
+
+    def to_dict(self):
+        """Convert Info to a JSON-serializable dictionary.
+
+        This method converts the Info object to a standard Python dictionary
+        containing only JSON-serializable types (dict, list, str, int, float,
+        bool, None). Numpy arrays are converted to nested lists, and datetime
+        objects to ISO format strings.
+
+        Returns
+        -------
+        dict
+            A JSON-serializable dictionary representation of the Info object.
+
+        See Also
+        --------
+        from_dict : Reconstruct Info object from dictionary.
+
+        Notes
+        -----
+        This method is useful for serializing Info objects to JSON or other
+        formats that don't support numpy arrays or custom objects. It uses
+        the Info's ``__getstate__`` method internally to get all data.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_dict()
+        >>> import json
+        >>> json_str = json.dumps(info_dict)  # Save to JSON
+        """
+        # Get state using existing __getstate__ infrastructure
+        state = self.__getstate__()
+
+        # Convert to JSON-serializable format
+        serializable = _make_serializable(state)
+
+        # Add version marker
+        serializable["_mne_version"] = __version__
+
+        return serializable
+
+    @classmethod
+    def from_dict(cls, data_dict):
+        """Reconstruct Info object from a dictionary.
+
+        Parameters
+        ----------
+        data_dict : dict
+            A dictionary representation of an Info object, typically
+            created by the :meth:`to_dict` method.
+
+        Returns
+        -------
+        Info
+            The reconstructed Info object.
+
+        See Also
+        --------
+        to_dict : Convert Info to dictionary.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_dict()
+        >>> info_restored = mne.Info.from_dict(info_dict)
+        """
+        # Remove version marker
+        data_dict = data_dict.copy()
+        data_dict.pop("_mne_version", None)
+
+        # Restore numpy arrays and other objects
+        # (datetime conversion happens automatically)
+        state = _restore_objects(data_dict)
+
+        # Create Info and use __setstate__ to populate
+        info = cls()
+        info.__setstate__(state)
+
+        return info
+
+
+def _make_serializable(obj):
+    """Recursively convert objects to JSON-serializable types."""
+    from ..transforms import Transform
+
+    if obj is None:
+        return None
+    elif isinstance(obj, bool):
+        return obj
+    elif isinstance(obj, NamedInt):
+        # Preserve NamedInt with its name
+        return {"_mne_type": "NamedInt", "value": int(obj), "name": obj._name}
+    elif isinstance(obj, NamedFloat):
+        # Preserve NamedFloat with its name
+        return {"_mne_type": "NamedFloat", "value": float(obj), "name": obj._name}
+    elif isinstance(obj, (str, int, float)):
+        return obj
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, datetime.datetime):
+        # Tag datetime objects for proper reconstruction
+        return {"_mne_type": "datetime", "value": obj.isoformat()}
+    elif isinstance(obj, datetime.date):
+        # Tag date objects for proper reconstruction
+        return {"_mne_type": "date", "value": obj.isoformat()}
+    elif isinstance(obj, Transform):
+        # Tag Transform objects for proper reconstruction
+        return {
+            "_mne_type": "Transform",
+            "from": obj["from"],
+            "to": obj["to"],
+            "trans": obj["trans"].tolist(),
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [_make_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: _make_serializable(val) for key, val in obj.items()}
+    else:
+        # Try to convert to string as fallback
+        return str(obj)
+
+
+def _restore_objects(obj):
+    """Recursively restore objects from JSON-serializable types."""
+    if obj is None:
+        return None
+    elif isinstance(obj, (bool, int, float)):
+        return obj
+    elif isinstance(obj, str):
+        # Regular strings are returned as-is
+        return obj
+    elif isinstance(obj, list):
+        # Check if all elements are numbers (likely numpy array)
+        if len(obj) > 0 and all(isinstance(x, (int, float, list)) for x in obj):
+            return np.array(obj)
+        else:
+            return [_restore_objects(item) for item in obj]
+    elif isinstance(obj, dict):
+        # Check if this is a tagged MNE type
+        if "_mne_type" in obj:
+            if obj["_mne_type"] == "Transform":
+                # Return as plain dict - _format_trans in __setstate__ will convert it
+                return {
+                    "from": obj["from"],
+                    "to": obj["to"],
+                    "trans": np.array(obj["trans"]),
+                }
+            elif obj["_mne_type"] == "NamedInt":
+                return NamedInt(obj["name"], obj["value"])
+            elif obj["_mne_type"] == "NamedFloat":
+                return NamedFloat(obj["name"], obj["value"])
+            elif obj["_mne_type"] == "datetime":
+                # Restore datetime object from ISO format string
+                return datetime.datetime.fromisoformat(obj["value"])
+            elif obj["_mne_type"] == "date":
+                # Restore date object from ISO format string
+                return datetime.date.fromisoformat(obj["value"])
+            # Add more types here if needed in the future
+        else:
+            return {key: _restore_objects(val) for key, val in obj.items()}
+    else:
+        return obj
 
 
 def _simplify_info(info, *, keep=()):
