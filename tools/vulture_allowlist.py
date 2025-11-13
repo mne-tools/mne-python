@@ -82,6 +82,7 @@ _download_all_example_data  # CIs
 _cleanup_agg
 _notebook_vtk_works
 _.drop_inds_
+_.required
 
 # mne/io/ant/tests/test_ant.py
 andy_101
