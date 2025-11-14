@@ -27,6 +27,8 @@ if [ ! -z "$CONDA_ENV" ]; then
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
 	fi
+# TODO add a conditional branch here, that uses uv/pixi to recreate the "old" env
+#      from its lockfile, activate the env, and exit the bash script
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"

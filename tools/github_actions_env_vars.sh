@@ -15,6 +15,8 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
     fi
 else  # conda-like
     echo "Setting conda env vars for $MNE_CI_KIND"
+    # TODO pull this ↓↓↓ conditional branch out of its parent "else" clause, and
+    #      adjust so it no longer sets a CONDA_ENV environment variable
     if [[ "$MNE_CI_KIND" == "old" ]]; then
         echo "CONDA_ENV=tools/environment_old.yml" | tee -a $GITHUB_ENV
         echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" | tee -a $GITHUB_ENV
