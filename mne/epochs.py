@@ -690,7 +690,7 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def drop_bad_epochs(self, reject_mask=None):
+    def drop_bad_epochs_by_channel(self, reject_mask=None):
         """Drop bad epochs for individual channels.
 
         Parameters
@@ -1325,8 +1325,6 @@ class BaseEpochs(
         picks_idx = _picks_to_idx(info, picks, "data_or_ica", ())
         ch_names = [evoked.ch_names[p] for p in picks_idx]
         evoked.pick(ch_names)
-
-        # Attach per-channel nave for picked channels only (match by ch names)
 
         if len(evoked.info["ch_names"]) == 0:
             raise ValueError("No data channel found when averaging.")
