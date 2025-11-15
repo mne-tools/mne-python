@@ -1298,13 +1298,15 @@ class BaseEpochs(
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind, comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
+        # don't apply baseline correction; we'll set evoked.baseline manually
 
-        # Default behavior
-        nave = n_events
-        # how many epochs per channel
+        # does the epoch object have a attribute nave_per_channel?
         nave_per_channel = getattr(self, "nave_per_channel", None)
 
-        if nave_per_channel is not None:
+        if nave_per_channel is None:
+            # Default behavior
+            nave = n_events
+        else:
             # reset nave to minimum of epochs of all channel
             nave = int(nave_per_channel.min())
 
@@ -1315,10 +1317,12 @@ class BaseEpochs(
             comment=comment,
             nave=nave,
             kind=kind,
-            baseline=self.baseline,
+            baseline=None,
         )
+        evoked.baseline = self.baseline
 
-        # Restore precise times
+        # the above constructor doesn't recreate the times object precisely
+        # due to numerical precision issues
         evoked._set_times(self.times.copy())
 
         # Apply picks
