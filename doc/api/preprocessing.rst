@@ -42,6 +42,7 @@ Projections:
    read_dig_polhemus_isotrak
    read_dig_captrak
    read_dig_dat
+   read_dig_curry
    read_dig_egi
    read_dig_fif
    read_dig_hpts

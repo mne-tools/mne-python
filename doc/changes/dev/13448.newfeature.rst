@@ -1,0 +1,1 @@
+Add support for Nihon Kohden EEG-1200A V01.00, by `Eric Larson`_.

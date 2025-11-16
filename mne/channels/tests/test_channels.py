@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import hashlib
+from contextlib import nullcontext
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -10,7 +11,6 @@ from pathlib import Path
 import numpy as np
 import pooch
 import pytest
-from flaky import flaky
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.io import savemat
 
@@ -100,7 +100,12 @@ def test_rename_channels():
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {"EEG 160": "EEG060"}
+    ch_names_orig = info.ch_names[::]
     pytest.raises(ValueError, rename_channels, info, mapping)
+    rename_channels(info, mapping, on_missing="ignore")
+    assert info.ch_names == ch_names_orig
+    with pytest.warns(RuntimeWarning, match="Channel rename map contains keys that *"):
+        rename_channels(info, mapping, on_missing="warn")
     # Test improper mapping configuration
     mapping = {"MEG 2641": 1.0}
     pytest.raises(TypeError, rename_channels, info, mapping)
@@ -353,7 +358,7 @@ _CHECK_ADJ = [adj for adj in _BUILTIN_CHANNEL_ADJACENCIES if adj.source_url is n
 
 # This test is ~15s long across all montages, and we shouldn't need to check super
 # often for mismatches. So let's mark it ultraslowtest so only one CI runs it.
-@flaky
+@pytest.mark.flaky
 @pytest.mark.ultraslowtest
 @requires_good_network
 @pytest.mark.parametrize("adj", _CHECK_ADJ)
@@ -667,6 +672,16 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
+
+    # Test on_missing
+    event_id = [1, 100]  # 100 does not exist
+    epochs1 = Epochs(raw, read_events(eve_fname), event_id, on_missing="ignore")
+    with pytest.raises(ValueError, match="No matching events found"):
+        combine_channels(epochs1, groups={"foo": [0, 1]})
+    with pytest.warns(RuntimeWarning, match="No matching events found"):
+        combine_channels(epochs1, groups={"foo": [0, 1]}, on_missing="warn")
+    with nullcontext():
+        combine_channels(epochs1, groups={"foo": [0, 1]}, on_missing="ignore")
 
 
 def test_combine_channels_metadata():

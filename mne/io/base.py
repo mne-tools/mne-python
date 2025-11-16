@@ -1755,6 +1755,7 @@ class BaseRaw(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
+
             .. versionadded:: 1.9
 
         Notes
@@ -1911,6 +1912,8 @@ class BaseRaw(
         color=None,
         bad_color="lightgray",
         event_color="cyan",
+        *,
+        annotation_regex=".*",
         scalings=None,
         remove_dc=True,
         order=None,
@@ -1934,7 +1937,6 @@ class BaseRaw(
         time_format="float",
         precompute=None,
         use_opengl=None,
-        *,
         picks=None,
         theme=None,
         overview_mode=None,
@@ -1951,22 +1953,23 @@ class BaseRaw(
             color,
             bad_color,
             event_color,
-            scalings,
-            remove_dc,
-            order,
-            show_options,
-            title,
-            show,
-            block,
-            highpass,
-            lowpass,
-            filtorder,
-            clipping,
-            show_first_samp,
-            proj,
-            group_by,
-            butterfly,
-            decim,
+            annotation_regex=annotation_regex,
+            scalings=scalings,
+            remove_dc=remove_dc,
+            order=order,
+            show_options=show_options,
+            title=title,
+            show=show,
+            block=block,
+            highpass=highpass,
+            lowpass=lowpass,
+            filtorder=filtorder,
+            clipping=clipping,
+            show_first_samp=show_first_samp,
+            proj=proj,
+            group_by=group_by,
+            butterfly=butterfly,
+            decim=decim,
             noise_cov=noise_cov,
             event_id=event_id,
             show_scrollbars=show_scrollbars,
@@ -2469,7 +2472,10 @@ class BaseRaw(
         # prepare extra columns / multiindex
         mindex = list()
         times = _convert_times(
-            times, time_format, self.info["meas_date"], self.first_time
+            times,
+            time_format,
+            meas_date=self.info["meas_date"],
+            first_time=self.first_time,
         )
         mindex.append(("time", times))
         # build DataFrame
