@@ -93,7 +93,7 @@ def test_plot_digmontage():
 def test_plot_montage_scale():
     """Test montage.plot with non-default scale using subplot axes."""
     montage = make_standard_montage("GSN-HydroCel-129")
-    _, ax = plt.subplots(2, 1)[1][1]
+    ax = plt.subplots(2, 1)[1][1]
     picks = montage.ch_names
     info = create_info(montage.ch_names, sfreq=256, ch_types="eeg")
     raw = RawArray(
