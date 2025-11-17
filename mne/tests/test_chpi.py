@@ -54,7 +54,7 @@ from mne.utils import (
     object_diff,
     verbose,
 )
-from mne.utils._testing import assert_trans
+from mne.utils._testing import assert_trans_allclose
 from mne.viz import plot_head_positions
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
@@ -898,7 +898,7 @@ def test_refit_hpi_locs_basic():
     refit_hpi(info_new, amplitudes=False, locs=False, use=3)
     assert len(info_new["hpi_results"]) == len(info["hpi_results"]) == 1
     assert len(info_new["hpi_meas"]) == len(info["hpi_meas"]) == 1
-    assert_trans(
+    assert_trans_allclose(
         info_new["dev_head_t"],
         info["dev_head_t"],
         dist_tol=0.1e-3,
@@ -907,7 +907,7 @@ def test_refit_hpi_locs_basic():
     # Refit with more coils than hpifit (our default is use=None)
     refit_hpi(info_new, amplitudes=False, locs=False)
     assert len(info_new["hpi_results"][-1]["used"]) == 5
-    assert_trans(
+    assert_trans_allclose(
         info_new["dev_head_t"],
         info["dev_head_t"],
         dist_tol=3e-3,
@@ -915,7 +915,7 @@ def test_refit_hpi_locs_basic():
     )
     # Refit locations
     refit_hpi(info_new, amplitudes=False)  # default: locs=True
-    assert_trans(
+    assert_trans_allclose(
         info_new["dev_head_t"],
         info["dev_head_t"],
         dist_tol=2e-3,
@@ -933,7 +933,7 @@ def test_refit_hpi_locs_basic():
         refit_hpi(info_new, locs=False)
     # Refit locations and amplitudes (with ext_order=0 just to make sure it works)
     refit_hpi(info_new, ext_order=0)
-    assert_trans(
+    assert_trans_allclose(
         info_new["dev_head_t"],
         info["dev_head_t"],
         dist_tol=2e-3,
@@ -972,7 +972,7 @@ def test_refit_hpi_locs_problematic():
         )
     assert_array_equal(info_new["hpi_results"][-1]["order"], orig_order)
     assert_array_equal(info_new["hpi_results"][-1]["used"], orig_use)
-    assert_trans(
+    assert_trans_allclose(
         info_new["dev_head_t"],
         info_bad["dev_head_t"],
         dist_tol=1e-3,

@@ -359,7 +359,7 @@ def _get_suptitle(fig):
         return fig.texts[0].get_text()
 
 
-def assert_trans(actual, desired, dist_tol=0.0, angle_tol=0.0):
+def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
     __tracebackhide__ = True
 
     from ..transforms import Transform, angle_distance_between_rigid

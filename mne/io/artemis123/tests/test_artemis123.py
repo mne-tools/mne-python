@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.io import read_raw_artemis123
 from mne.io.artemis123.utils import _generate_mne_locs_file, _load_mne_locs
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils._testing import assert_trans
+from mne.utils._testing import assert_trans_allclose
 
 artemis123_dir = testing.data_path(download=False) / "ARTEMIS123"
 short_HPI_dip_fname = (
@@ -28,7 +28,7 @@ short_hpi_1kz_fname = (
 # (old or new)
 def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.0):
     __tracebackhide__ = True
-    assert_trans(actual, desired, dist_tol=dist_tol, angle_tol=angle_tol)
+    assert_trans_allclose(actual, desired, dist_tol=dist_tol, angle_tol=angle_tol)
 
 
 @testing.requires_testing_data
