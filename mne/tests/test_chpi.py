@@ -957,7 +957,7 @@ def test_refit_hpi_locs_problematic():
     assert_array_equal(info_bad["hpi_results"][-1]["order"], orig_order)
     orig_use = info_bad["hpi_results"][-1]["used"]
     assert_array_equal(orig_use, [2, 3, 5])
-    with pytest.warns(RuntimeWarning, match="may be unstable"):
+    with pytest.warns(RuntimeWarning, match="colinear"):
         info_new = refit_hpi(
             info_bad.copy(),
             amplitudes=False,

@@ -1638,6 +1638,7 @@ def refit_hpi(
     gof_limit=0.98,
     dist_limit=0.005,
     use=None,
+    linearity_limit=0.03,
     verbose=None,
 ):
     """Refit HPI coil order.
@@ -1667,6 +1668,10 @@ def refit_hpi(
     dist_limit : float
         The distance limit (in meters) to use when choosing which coils to use for
         refitting.
+    warn_limit : float
+        The RMS limit (in meters; default 0.04 for 4 cm) to use when checking for
+        colinearity of coils. Can be ``np.inf`` to avoid colinearity warnings
+        altogether.
     use : int | None
         The maximum number of coils to use when testing different coil orderings.
         The default for ``hpifit`` in MEGIN software is 3. Default (None) means to
@@ -1735,6 +1740,7 @@ def refit_hpi(
     _validate_type(locs, bool, "locs")
     _validate_type(order, bool, "order")
     _validate_type(dist_limit, "numeric", "dist_limit")
+    _validate_type(linearity_limit, "numeric", "linearity_limit")
     if amplitudes and not locs:
         raise ValueError(
             "If amplitudes is True, locs must also be True (otherwise "
@@ -1843,26 +1849,34 @@ def refit_hpi(
     logger.info(f"  Using coils {used_str} to compute final dev_head_t")
 
     # Sanity check linearity of points
+    # The threshold of 3cm was empirically determined by looking at a known problematic
+    # dataset and seeing when it was fixed.
+    limit_cm = linearity_limit * 1e2
+    min_kind, min_cm = "", np.inf
     for kind, pts in [
         ("digitized", hpi_head[fit_order][used]),
         ("fitted", hpi_dev[used]),
     ]:
-        s = np.linalg.svd(
-            np.c_[pts, 1e-3 * np.ones((pts.shape[0], 1))], full_matrices=False
-        )[1]
-        ratio = s[0] / max(s[2], s[0] * 1e-10)
-        if ratio > 2:
-            extra = ""
-            if len(used) < n_coils:
-                extra += (
-                    ", consider including more coils by adjusting the gof_limit, "
-                    "dist_limit, amplitudes, locs, or manually setting order"
-                )
-            warn(
-                f"The {kind} coil locations {used_str} are nearly colinear "
-                f"(SVD ratio {ratio:.1f}). The fit may be unstable and be fit as "
-                f"an incorrect rotation about a line{extra}"
+        centered = pts - pts.mean(axis=0)
+        v = np.linalg.svd(centered, full_matrices=False)[2]
+        resid = pts - (pts @ v[0])[:, np.newaxis] * v[0]
+        # check if RMS error is less than 5 mm
+        rms_cm = 1e2 * np.sqrt(np.mean(resid * resid))
+        if rms_cm < min_cm:
+            min_cm = rms_cm
+            min_kind = kind
+    if min_cm < limit_cm:
+        extra = ""
+        if len(used) < n_coils:
+            extra += (
+                ", consider including more coils by adjusting the gof_limit, "
+                "dist_limit, amplitudes, locs, or manually setting order"
             )
+        warn(
+            f"The {len(used)} {min_kind} coil locations {used_str} are approximately "
+            f"colinear (RMS error {min_cm:.1f} cm from a linear fit). The fit may be "
+            f"unstable and be fit as an incorrect rotation about a line{extra}"
+        )
     quat, _g = _fit_chpi_quat(hpi_dev[used], hpi_head[fit_order][used])
     assert np.linalg.det(quat_to_rot(quat[:3])) > 0.9999
     fit_dev_head_t = _quat_to_affine(quat)
