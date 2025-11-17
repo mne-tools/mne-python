@@ -1114,38 +1114,6 @@ def _format_trans(obj, key):
             obj[key] = Transform(t["from"], t["to"], t["trans"])
 
 
-def _restore_mne_types(info):
-    """Restore MNE-specific types after unpickling/deserialization.
-
-    This function handles the restoration of MNE-specific object types
-    that need to be reconstructed from their serialized representations.
-
-    Parameters
-    ----------
-    info : Info
-        The Info object whose types need to be restored. Modified in-place.
-
-    Notes
-    -----
-    This function restores:
-    - MNEBadsList for the bads field
-    - DigPoint objects for digitization points
-    - Projection objects for SSP projectors
-    """
-    # Restore MNEBadsList
-    info["bads"] = MNEBadsList(bads=info["bads"], info=info)
-
-    # Restore DigPoint objects
-    if info.get("dig", None) is not None and len(info["dig"]):
-        if not isinstance(info["dig"][0], DigPoint):
-            info["dig"] = _format_dig_points(info["dig"])
-
-    # Restore Projection objects
-    for pi, proj in enumerate(info.get("projs", [])):
-        if not isinstance(proj, Projection):
-            info["projs"][pi] = Projection(**proj)
-
-
 def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
     ch_keys = set(ch)
     bad = sorted(ch_keys.difference(_ALL_CH_KEYS_SET))
@@ -1212,6 +1180,81 @@ def _check_dev_head_t(dev_head_t, *, info):
     if dev_head_t is not None:
         dev_head_t = _ensure_trans(dev_head_t, "meg", "head")
     return dev_head_t
+
+
+def _restore_mne_types(info):
+    """Restore MNE-specific types after unpickling/deserialization.
+
+    This function handles the restoration of MNE-specific object types
+    that need to be reconstructed from their serialized representations.
+    These correspond to the "cast" entries in Info._attributes: bads,
+    dev_head_t, dig, helium_info, line_freq, proj_id, projs, and
+    subject_info. However, this function is specifically for types that
+    need restoration because h5io and other serialization formats cast
+    them to native Python types (e.g., MNEBadsList -> list, Projection
+    -> dict, DigPoint -> dict).
+
+    This function should be called in Info.__init__ and Info.__setstate__.
+    If new MNE-specific types are added to Info._attributes, they
+    should be handled here if they need type restoration after
+    deserialization.
+
+    Parameters
+    ----------
+    info : Info
+        The Info object whose types need to be restored. Modified in-place.
+
+    Notes
+    -----
+    This function restores:
+    - MNEBadsList for the bads field (see Info._attributes["bads"])
+    - DigPoint objects for digitization points (see Info._attributes["dig"])
+    - Projection objects for SSP projectors (see Info._attributes["projs"])
+    - Transform objects for device/head transformations
+    - meas_date from tuple to datetime
+    - helium_info and subject_info with proper casting
+    """
+    # Restore MNEBadsList (corresponds to Info._attributes["bads"])
+    if "bads" in info:
+        info["bads"] = MNEBadsList(bads=info["bads"], info=info)
+
+    # Format Transform objects
+    for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
+        _format_trans(info, key)
+    for res in info.get("hpi_results", []):
+        _format_trans(res, "coord_trans")
+
+    # Restore DigPoint objects (corresponds to Info._attributes["dig"])
+    if info.get("dig", None) is not None and len(info["dig"]):
+        if isinstance(info["dig"], dict):  # needs to be unpacked
+            info["dig"] = _dict_unpack(info["dig"], _DIG_CAST)
+        if not isinstance(info["dig"][0], DigPoint):
+            info["dig"] = _format_dig_points(info["dig"])
+
+    # Unpack chs if needed
+    if isinstance(info.get("chs", None), dict):
+        info["chs"]["ch_name"] = [
+            str(x) for x in np.char.decode(info["chs"]["ch_name"], encoding="utf8")
+        ]
+        info["chs"] = _dict_unpack(info["chs"], _CH_CAST)
+
+    # Restore Projection objects (corresponds to Info._attributes["projs"])
+    for pi, proj in enumerate(info.get("projs", [])):
+        if not isinstance(proj, Projection):
+            info["projs"][pi] = Projection(**proj)
+
+    # Old files could have meas_date as tuple instead of datetime
+    try:
+        meas_date = info["meas_date"]
+    except KeyError:
+        pass
+    else:
+        info["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
+
+    # with validation and casting
+    for key in ("helium_info", "subject_info"):
+        if key in info:
+            info[key] = info[key]
 
 
 # TODO: Add fNIRS convention to loc
@@ -1711,38 +1754,9 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._unlocked = True
-        # Deal with h5io writing things as dict
-        if "bads" in self:
-            self["bads"] = MNEBadsList(bads=self["bads"], info=self)
-        for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
-            _format_trans(self, key)
-        for res in self.get("hpi_results", []):
-            _format_trans(res, "coord_trans")
-        if self.get("dig", None) is not None and len(self["dig"]):
-            if isinstance(self["dig"], dict):  # needs to be unpacked
-                self["dig"] = _dict_unpack(self["dig"], _DIG_CAST)
-            if not isinstance(self["dig"][0], DigPoint):
-                self["dig"] = _format_dig_points(self["dig"])
-        if isinstance(self.get("chs", None), dict):
-            self["chs"]["ch_name"] = [
-                str(x) for x in np.char.decode(self["chs"]["ch_name"], encoding="utf8")
-            ]
-            self["chs"] = _dict_unpack(self["chs"], _CH_CAST)
-        for pi, proj in enumerate(self.get("projs", [])):
-            if not isinstance(proj, Projection):
-                self["projs"][pi] = Projection(**proj)
-        # Old files could have meas_date as tuple instead of datetime
-        try:
-            meas_date = self["meas_date"]
-        except KeyError:
-            pass
-        else:
-            self["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
+        # Deal with h5io writing things as dict and restore MNE-specific types
+        _restore_mne_types(self)
         self._unlocked = False
-        # with validation and casting
-        for key in ("helium_info", "subject_info"):
-            if key in self:
-                self[key] = self[key]
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
@@ -1758,6 +1772,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         super().__setstate__(state)
 
         # Restore MNE-specific types (requires unlocked state)
+        # This mirrors the logic in Info.__init__
         was_locked = not self._unlocked
         if was_locked:
             self._unlocked = True

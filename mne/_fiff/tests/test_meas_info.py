@@ -62,7 +62,7 @@ from mne.channels import (
 )
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_fif
+from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_edf, read_raw_fif
 from mne.minimum_norm import (
     apply_inverse,
     make_inverse_operator,
@@ -359,16 +359,8 @@ def test_info_serialization_roundtrip(tmp_path):
     """Test Info JSON serialization with real MEG data."""
     # Test with real MEG/FIF file
     raw = read_raw_fif(raw_fname, preload=False, verbose=False)
+    _complete_info(raw.info)
     info = raw.info.copy()
-
-    # Add some additional fields for comprehensive testing
-    info["subject_info"] = {
-        "id": 1,
-        "his_id": "SUBJ001",
-        "birthday": date(1990, 5, 15),
-        "sex": 1,
-    }
-    info["bads"] = [info["ch_names"][0]]
 
     # Save to JSON
     json_path = tmp_path / "info.json"
@@ -386,8 +378,6 @@ def test_info_serialization_roundtrip(tmp_path):
 
 def test_info_serialization_edf(tmp_path):
     """Test Info JSON serialization with EDF data."""
-    from mne.io import read_raw_edf
-
     edf_path = root_dir / "io" / "edf" / "tests" / "data" / "test.edf"
     raw = read_raw_edf(edf_path, preload=False, verbose=False)
     info = raw.info.copy()
