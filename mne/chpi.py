@@ -1638,7 +1638,7 @@ def refit_hpi(
     gof_limit=0.98,
     dist_limit=0.005,
     use=None,
-    linearity_limit=0.03,
+    linearity_limit=np.inf,
     verbose=None,
 ):
     """Refit HPI coil order.
@@ -1674,9 +1674,10 @@ def refit_hpi(
         use all coils above ``gof_limit``. Can also be an ndarray of coil indices
         (0-indexed!) to use, e.g., ``[2, 3, 5]``.
     linearity_limit : float
-        The RMS limit (in meters; default 0.03 for 3 cm) to use when checking for
-        colinearity of coils. Can be ``np.inf`` to avoid colinearity warnings
-        altogether.
+        The RMS limit (in meters) to use when checking for colinearity of coils.
+        The default (``np.inf``) avoids colinearity warnings altogether.
+        The appropriate value here is dataset dependent, but for one problematic
+        dataset the value of 0.03 worked well.
     %(verbose)s
 
     Returns

@@ -969,6 +969,7 @@ def test_refit_hpi_locs_problematic():
             order=False,
             use=orig_use - 1,
             dist_limit=np.inf,
+            linearity_limit=0.03,
         )
     assert_array_equal(info_new["hpi_results"][-1]["order"], orig_order)
     assert_array_equal(info_new["hpi_results"][-1]["used"], orig_use)
@@ -981,7 +982,13 @@ def test_refit_hpi_locs_problematic():
     # Even just allowing our permutation checker to run helps
     with pytest.raises(RuntimeError, match="need at least 3"):
         refit_hpi(info_bad.copy(), amplitudes=False, locs=False, order=False)
-    info_new = refit_hpi(info_bad.copy(), amplitudes=False, locs=False, dist_limit=0.02)
+    info_new = refit_hpi(
+        info_bad.copy(),
+        amplitudes=False,
+        locs=False,
+        dist_limit=0.02,
+        linearity_limit=0.03,
+    )
     assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
     ang, dist = angle_distance_between_rigid(
         info_new["dev_head_t"]["trans"],
@@ -993,7 +1000,9 @@ def test_refit_hpi_locs_problematic():
     with pytest.warns(RuntimeWarning, match="Discrepancy"):
         # We can run this with amplitudes=True, but it's much faster not to
         # (and the result is very similar)
-        info_new = refit_hpi(info_bad.copy(), amplitudes=False, dist_limit=0.01)
+        info_new = refit_hpi(
+            info_bad.copy(), amplitudes=False, dist_limit=0.01, linearity_limit=0.03
+        )
     assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
     ang, dist = angle_distance_between_rigid(
         info_new["dev_head_t"]["trans"],
