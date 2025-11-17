@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from mne import create_info
 from mne.channels import make_dig_montage, make_standard_montage, read_dig_fif
-from mne.io import RawArray, create_info
+from mne.io import RawArray
 
 p_dir = Path(__file__).parents[2] / "io" / "kit" / "tests" / "data"
 elp = p_dir / "test_elp.txt"
