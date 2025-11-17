@@ -28,6 +28,7 @@ short_hpi_1kz_fname = (
 # (old or new)
 def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.0):
     __tracebackhide__ = True
+    # To minimize diff, keep this trivial wrapper
     assert_trans_allclose(actual, desired, dist_tol=dist_tol, angle_tol=angle_tol)
 
 
