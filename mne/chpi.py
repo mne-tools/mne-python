@@ -1638,7 +1638,7 @@ def refit_hpi(
     gof_limit=0.98,
     dist_limit=0.005,
     use=None,
-    linearity_limit=np.inf,
+    linearity_limit=0,
     verbose=None,
 ):
     """Refit HPI coil order.
@@ -1675,7 +1675,9 @@ def refit_hpi(
         (0-indexed!) to use, e.g., ``[2, 3, 5]``.
     linearity_limit : float
         The RMS limit (in meters) to use when checking for colinearity of coils.
-        The default (``np.inf``) avoids colinearity warnings altogether.
+        If the RMS difference between the used points and a best-fit linear
+        approximation is less than this limit, a warning is emitted.
+        The default (``0``) avoids colinearity warnings altogether.
         The appropriate value here is dataset dependent, but for one problematic
         dataset the value of 0.03 worked well.
     %(verbose)s
