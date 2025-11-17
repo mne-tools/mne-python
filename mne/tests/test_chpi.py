@@ -42,7 +42,11 @@ from mne.io import (
     read_raw_kit,
 )
 from mne.simulation import add_chpi
-from mne.transforms import _angle_between_quats, _angle_dist_between_rigid, rot_to_quat
+from mne.transforms import (
+    _angle_between_quats,
+    angle_distance_between_rigid,
+    rot_to_quat,
+)
 from mne.utils import (
     _record_warnings,
     assert_meg_snr,
@@ -947,7 +951,7 @@ def test_refit_hpi_locs_basic():
 def test_refit_hpi_locs_problematic():
     """Test that we can fix problematic HPI fits."""
     info_bad = read_info(chpi_problem_fname)
-    ang, dist = _angle_dist_between_rigid(
+    ang, dist = angle_distance_between_rigid(
         info_bad["dev_head_t"]["trans"], angle_units="deg", distance_units="mm"
     )
     assert_allclose(ang, 177, atol=1)  # upside-down!
@@ -979,7 +983,7 @@ def test_refit_hpi_locs_problematic():
         refit_hpi(info_bad.copy(), amplitudes=False, locs=False, order=False)
     info_new = refit_hpi(info_bad.copy(), amplitudes=False, locs=False, dist_limit=0.02)
     assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
-    ang, dist = _angle_dist_between_rigid(
+    ang, dist = angle_distance_between_rigid(
         info_new["dev_head_t"]["trans"],
         angle_units="deg",
         distance_units="mm",
@@ -991,7 +995,7 @@ def test_refit_hpi_locs_problematic():
         # (and the result is very similar)
         info_new = refit_hpi(info_bad.copy(), amplitudes=False, dist_limit=0.01)
     assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
-    ang, dist = _angle_dist_between_rigid(
+    ang, dist = angle_distance_between_rigid(
         info_new["dev_head_t"]["trans"],
         angle_units="deg",
         distance_units="mm",

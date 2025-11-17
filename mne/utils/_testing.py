@@ -362,7 +362,7 @@ def _get_suptitle(fig):
 def assert_trans(actual, desired, dist_tol=0.0, angle_tol=0.0):
     __tracebackhide__ = True
 
-    from ..transforms import Transform, _angle_dist_between_rigid
+    from ..transforms import Transform, angle_distance_between_rigid
 
     if isinstance(actual, Transform):
         assert isinstance(desired, Transform), "Both must be Transform or ndarray"
@@ -374,7 +374,7 @@ def assert_trans(actual, desired, dist_tol=0.0, angle_tol=0.0):
     assert isinstance(desired, np.ndarray)
     assert actual.shape == (4, 4)
     assert desired.shape == (4, 4)
-    angle, dist = _angle_dist_between_rigid(
+    angle, dist = angle_distance_between_rigid(
         actual, desired, angle_units="deg", distance_units="m"
     )
     assert dist <= dist_tol, (

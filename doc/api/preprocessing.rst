@@ -236,6 +236,7 @@ EEG referencing:
    :toctree: ../generated/
 
    Transform
+   angle_distance_between_rigid
    quat_to_rot
    rot_to_quat
    read_ras_mni_t

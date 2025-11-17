@@ -41,6 +41,7 @@ from mne.transforms import (
     _topo_to_sph,
     _validate_pipeline,
     _write_fs_xfm,
+    angle_distance_between_rigid,
     apply_trans,
     combine_transforms,
     get_ras_to_neuromag_trans,
@@ -563,6 +564,12 @@ def test_fit_matched_points(quats, scaling, do_scale):
             dist = np.linalg.norm(est[3:] - translation)
             assert_array_less(dist_bounds[0], dist)
             assert_array_less(dist, dist_bounds[1])
+            # check our public function as well
+            a = _quat_to_affine(est)
+            b = _quat_to_affine(np.r_[quat, translation])
+            angle_, dist_ = angle_distance_between_rigid(a, b, angle_units="deg")
+            assert_allclose(angle, angle_)
+            assert_allclose(dist, dist_)
 
 
 def test_euler(quats):

@@ -17,7 +17,7 @@ from mne.preprocessing import (
     compute_average_dev_head_t,
 )
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.transforms import _angle_dist_between_rigid, quat_to_rot, rot_to_quat
+from mne.transforms import angle_distance_between_rigid, quat_to_rot, rot_to_quat
 
 data_path = testing.data_path(download=False)
 sss_path = data_path / "SSS"
@@ -119,22 +119,22 @@ def test_movement_annotation_head_correction(meas_date):
         "trans"
     ]
     unit_kw = dict(distance_units="mm", angle_units="deg")
-    deg_annot_combo, mm_annot_combo = _angle_dist_between_rigid(
+    deg_annot_combo, mm_annot_combo = angle_distance_between_rigid(
         dev_head_t,
         dev_head_t_combo,
         **unit_kw,
     )
-    deg_unannot_combo, mm_unannot_combo = _angle_dist_between_rigid(
+    deg_unannot_combo, mm_unannot_combo = angle_distance_between_rigid(
         dev_head_t_unannot,
         dev_head_t_combo,
         **unit_kw,
     )
-    deg_annot_unannot, mm_annot_unannot = _angle_dist_between_rigid(
+    deg_annot_unannot, mm_annot_unannot = angle_distance_between_rigid(
         dev_head_t,
         dev_head_t_unannot,
         **unit_kw,
     )
-    deg_combo_naive, mm_combo_naive = _angle_dist_between_rigid(
+    deg_combo_naive, mm_combo_naive = angle_distance_between_rigid(
         dev_head_t_combo,
         dev_head_t_naive,
         **unit_kw,

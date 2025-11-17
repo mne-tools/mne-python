@@ -58,10 +58,10 @@ from .preprocessing.maxwell import (
 from .transforms import (
     Transform,
     _angle_between_quats,
-    _angle_dist_between_rigid,
     _fit_matched_points,
     _quat_to_affine,
     als_ras_trans,
+    angle_distance_between_rigid,
     apply_trans,
     invert_transform,
     quat_to_rot,
@@ -617,7 +617,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, *, bias=True, prefix="")
 
     # Convert Quaterion to transform
     dev_head_t = _quat_to_affine(best_quat)
-    ang, dist = _angle_dist_between_rigid(
+    ang, dist = angle_distance_between_rigid(
         dev_head_t, angle_units="deg", distance_units="mm"
     )
     logger.info(
@@ -1668,8 +1668,8 @@ def refit_hpi(
     dist_limit : float
         The distance limit (in meters) to use when choosing which coils to use for
         refitting.
-    warn_limit : float
-        The RMS limit (in meters; default 0.04 for 4 cm) to use when checking for
+    linearity_limit : float
+        The RMS limit (in meters; default 0.03 for 3 cm) to use when checking for
         colinearity of coils. Can be ``np.inf`` to avoid colinearity warnings
         altogether.
     use : int | None
