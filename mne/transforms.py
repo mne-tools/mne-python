@@ -1385,6 +1385,13 @@ def angle_distance_between_rigid(a, b=None, *, angle_units="rad", distance_units
     distance_units : str
         Units for the distance output, either "m" or "mm".
 
+    Returns
+    -------
+    angles : array, shape (...)
+        The angles between the two transforms.
+    distances : array, shape (...)
+        The distances between the two transforms.
+
     Notes
     -----
     .. versionadded:: 1.11

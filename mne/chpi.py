@@ -1668,15 +1668,15 @@ def refit_hpi(
     dist_limit : float
         The distance limit (in meters) to use when choosing which coils to use for
         refitting.
-    linearity_limit : float
-        The RMS limit (in meters; default 0.03 for 3 cm) to use when checking for
-        colinearity of coils. Can be ``np.inf`` to avoid colinearity warnings
-        altogether.
     use : int | None
         The maximum number of coils to use when testing different coil orderings.
         The default for ``hpifit`` in MEGIN software is 3. Default (None) means to
         use all coils above ``gof_limit``. Can also be an ndarray of coil indices
         (0-indexed!) to use, e.g., ``[2, 3, 5]``.
+    linearity_limit : float
+        The RMS limit (in meters; default 0.03 for 3 cm) to use when checking for
+        colinearity of coils. Can be ``np.inf`` to avoid colinearity warnings
+        altogether.
     %(verbose)s
 
     Returns
