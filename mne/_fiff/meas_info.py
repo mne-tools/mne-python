@@ -1213,6 +1213,7 @@ def _restore_mne_types(info):
     - Transform objects for device/head transformations
     - meas_date from tuple to datetime
     - helium_info and subject_info with proper casting
+    - proc_history date field from numpy array to tuple (JSON limitation)
     """
     # Restore MNEBadsList (corresponds to Info._attributes["bads"])
     if "bads" in info:
@@ -1255,6 +1256,13 @@ def _restore_mne_types(info):
     for key in ("helium_info", "subject_info"):
         if key in info:
             info[key] = info[key]
+
+    # Restore proc_history[*]['date'] as tuple
+    # JSON converts tuples to lists, so we need to convert back
+    for entry in info.get("proc_history", []):
+        if "date" in entry and isinstance(entry["date"], np.ndarray):
+            # Convert numpy array back to tuple with Python types
+            entry["date"] = tuple(int(x) for x in entry["date"])
 
 
 # TODO: Add fNIRS convention to loc
@@ -2182,10 +2190,18 @@ def _restore_objects(obj):
         # Regular strings are returned as-is
         return obj
     elif isinstance(obj, list):
-        # Check if all elements are numbers (likely numpy array)
-        if len(obj) > 0 and all(isinstance(x, (int, float, list)) for x in obj):
+        # Check if all elements are numbers - convert to numpy array
+        # (JSON doesn't distinguish between tuples and lists, so 1D numeric
+        # lists that came from numpy arrays should be restored as numpy arrays,
+        # while tuple fields like proc_history[date] are handled separately)
+        if len(obj) > 0 and all(isinstance(x, (int, float)) for x in obj):
+            # 1D numeric arrays should be converted to numpy arrays
+            return np.array(obj)
+        elif len(obj) > 0 and all(isinstance(x, list) for x in obj):
+            # 2D or higher dimensional arrays
             return np.array(obj)
         else:
+            # Mixed types - recursively restore elements
             return [_restore_objects(item) for item in obj]
     elif isinstance(obj, dict):
         # Check if this is a tagged MNE type
