@@ -947,14 +947,27 @@ class ValidatedDict(dict):
         self._unlocked = False
 
     def __getstate__(self):
-        """Get state (for pickling)."""
-        # Return both the dict data and the _unlocked attribute
-        state = dict(self)  # Get the dictionary data
+        """Get state (for pickling and JSON serialization).
+
+        Converts all data to JSON-safe primitives so it can be used for both
+        pickle and JSON serialization. Pickle will preserve the primitive types,
+        and JSON can consume them directly.
+        """
+        # Get the dictionary data
+        state = dict(self)
         state["_unlocked"] = self._unlocked
-        return state
+
+        # Convert to JSON-safe format (works for both pickle and JSON)
+        return _make_serializable(state)
 
     def __setstate__(self, state):
-        """Set state (for pickling)."""
+        """Set state (for unpickling and JSON deserialization).
+
+        Restores state from JSON-safe primitives back to native Python/MNE types.
+        """
+        # Restore from JSON-safe format (works for both pickle and JSON)
+        state = _restore_objects(state)
+
         # Extract _unlocked before updating dict
         unlocked = state.pop("_unlocked", True)
         self._unlocked = True  # Unlock to allow setting
@@ -1767,20 +1780,13 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         self._unlocked = False
 
     def __setstate__(self, state):
-        """Set state (for pickling)."""
-        # Format Transform objects BEFORE calling super().__setstate__
-        # because ValidatedDict.__setitem__ will validate the types
-        for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
-            _format_trans(state, key)
-        # Also handle Transform in hpi_results
-        for res in state.get("hpi_results", []):
-            _format_trans(res, "coord_trans")
-
-        # Call parent __setstate__ which will validate types
+        """Set state (for unpickling and JSON deserialization)."""
+        # Call parent __setstate__ which will call _restore_objects
+        # to convert JSON primitives and transform dicts to native types
         super().__setstate__(state)
 
         # Restore MNE-specific types (requires unlocked state)
-        # This mirrors the logic in Info.__init__
+        # This reconstructs MNEBadsList, DigPoint, Projection, etc.
         was_locked = not self._unlocked
         if was_locked:
             self._unlocked = True
@@ -2074,8 +2080,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         Notes
         -----
         This method is useful for serializing Info objects to JSON or other
-        formats that don't support numpy arrays or custom objects. It uses
-        the Info's ``__getstate__`` method internally to get all data.
+        formats that don't support numpy arrays or custom objects.
 
         Examples
         --------
@@ -2084,16 +2089,13 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         >>> import json
         >>> json_str = json.dumps(info_dict)  # Save to JSON
         """
-        # Get state using existing __getstate__ infrastructure
+        # Get JSON-safe state from __getstate__
         state = self.__getstate__()
 
-        # Convert to JSON-serializable format
-        serializable = _make_serializable(state)
-
         # Add version marker
-        serializable["_mne_version"] = __version__
+        state["_mne_version"] = __version__
 
-        return serializable
+        return state
 
     @classmethod
     def from_dict(cls, data_dict):
@@ -2124,13 +2126,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         data_dict = data_dict.copy()
         data_dict.pop("_mne_version", None)
 
-        # Restore numpy arrays and other objects
-        # (datetime conversion happens automatically)
-        state = _restore_objects(data_dict)
-
-        # Create Info and use __setstate__ to populate
+        # Create empty Info and restore state via __setstate__
+        # which will handle JSON-safe to native type conversion
         info = cls()
-        info.__setstate__(state)
+        info.__setstate__(data_dict)
 
         return info
 
@@ -2207,12 +2206,10 @@ def _restore_objects(obj):
         # Check if this is a tagged MNE type
         if "_mne_type" in obj:
             if obj["_mne_type"] == "Transform":
-                # Return as plain dict - _format_trans in __setstate__ will convert it
-                return {
-                    "from": obj["from"],
-                    "to": obj["to"],
-                    "trans": np.array(obj["trans"]),
-                }
+                # Actually create the Transform object now
+                from ..transforms import Transform
+
+                return Transform(obj["from"], obj["to"], np.array(obj["trans"]))
             elif obj["_mne_type"] == "NamedInt":
                 return NamedInt(obj["name"], obj["value"])
             elif obj["_mne_type"] == "NamedFloat":
