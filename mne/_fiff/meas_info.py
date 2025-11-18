@@ -1787,14 +1787,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         # Restore MNE-specific types (requires unlocked state)
         # This reconstructs MNEBadsList, DigPoint, Projection, etc.
-        was_locked = not self._unlocked
-        if was_locked:
-            self._unlocked = True
-
-        _restore_mne_types(self)
-
-        if was_locked:
-            self._unlocked = False
+        with self._unlock():
+            _restore_mne_types(self)
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
