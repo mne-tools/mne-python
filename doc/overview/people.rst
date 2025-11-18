@@ -5,6 +5,8 @@
 Current Project Leadership and Institutional Partners
 =====================================================
 
+.. _maintainer-team-people:
+
 Maintainer Team
 ---------------
 
@@ -24,12 +26,16 @@ Maintainer Team
 * `Robert Luke`_
 * `Stefan Appelhoff`_
 
+.. _steering-council-people:
+
 Steering Council
 ----------------
 
 * `Britta Westner`_
 * `Daniel McCloy`_ (chair)
 * `Eric Larson`_
+
+.. _advisory-board-people:
 
 Advisory Board
 --------------
