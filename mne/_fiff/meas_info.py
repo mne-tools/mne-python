@@ -16,7 +16,6 @@ from textwrap import shorten
 
 import numpy as np
 
-from .. import __version__
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
 from ..utils import (
@@ -2084,9 +2083,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         # Get JSON-safe state from __getstate__
         state = self.__getstate__()
 
-        # Add version marker
-        state["_mne_version"] = __version__
-
         return state
 
     @classmethod
@@ -2116,8 +2112,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         # Remove version marker
         data_dict = data_dict.copy()
-        data_dict.pop("_mne_version", None)
-
         # Create empty Info and restore state via __setstate__
         # which will handle JSON-safe to native type conversion
         info = cls()
