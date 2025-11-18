@@ -1774,10 +1774,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._unlocked = True
-        # Deal with h5io writing things as dict and restore MNE-specific types
-        _restore_mne_types(self)
-        self._unlocked = False
+        with self._unlock():
+            _restore_mne_types(self)
 
     def __setstate__(self, state):
         """Set state (for unpickling and JSON deserialization)."""
