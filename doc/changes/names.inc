@@ -67,6 +67,7 @@
 .. _David Sabbagh: https://github.com/DavidSabbagh
 .. _Demetres Kostas: https://github.com/kostasde
 .. _Denis Engemann: https://denis-engemann.de
+.. _Dev Parikh: https://github.com/devparikh0506
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 .. _Diptyajit Das: https://github.com/dasdiptyajit
 .. _Dirk Gütlin: https://github.com/DiGyt

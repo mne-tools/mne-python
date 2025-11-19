@@ -1734,9 +1734,9 @@ def _read_gdf_header(fname, exclude, include=None):
                 edf_info["data_offset"] + edf_info["n_records"] * edf_info["bytes_tot"]
             )
             fid.seek(etp)  # skip data to go to event table
-            etmode = fid.read(1).decode()
-            if etmode != "":
-                etmode = np.fromstring(etmode, UINT8).tolist()[0]
+            etmode = fid.read(1)
+            if isinstance(etmode, (bytes, bytearray)) and len(etmode) == 1:
+                etmode = np.frombuffer(etmode, dtype=UINT8).tolist()[0]
 
                 if edf_info["number"] < 1.94:
                     sr = read_from_file_or_buffer(fid, UINT8, 3)
