@@ -1736,12 +1736,12 @@ def read_meg_montage(system, *, verbose=None):
     # Read sensor definitions manually
     ch_names = []
     rows = []
-    with open(csv_file, "r") as fid:
+    with open(csv_file) as fid:
         # Read header to get column names
         header = fid.readline().strip().split(",")
         # Create a mapping from column name to index
         col_idx = {name: i for i, name in enumerate(header)}
-        
+
         # Read data rows
         for line in fid:
             values = line.strip().split(",")
