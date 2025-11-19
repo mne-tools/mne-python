@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pooch
 import pytest
-from flaky import flaky
 
 import mne.datasets._fsaverage.base
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
@@ -174,10 +173,11 @@ def test_downloads(tmp_path, monkeypatch, capsys):
         datasets._fake.data_path(download=True, force_update=True, **kwargs)
 
 
-@flaky(max_runs=3)
+# Okay to xfail this one because CircleCI downloads + uses the parcellations,
+# so we'll know if they break
+@pytest.mark.xfail(reason="Figshare blocks access from CIs sometimes")
 @pytest.mark.ultraslowtest  # not really ultraslow, but flakes out a lot
 @testing.requires_testing_data
-@requires_good_network
 def test_fetch_parcellations(tmp_path):
     """Test fetching parcellations."""
     pytest.importorskip("nibabel")

@@ -14,7 +14,7 @@ This section describes the mathematical formulation and application of
 Generalized Eigendecomposition (GED), often used in spatial filtering
 and source separation algorithms, such as :class:`mne.decoding.CSP`, 
 :class:`mne.decoding.SPoC`, :class:`mne.decoding.SSD` and 
-:class:`mne.preprocessing.Xdawn`.
+:class:`mne.decoding.XdawnTransformer`.
 
 The core principle of GED is to find a set of channel weights (spatial filter) 
 that maximizes the ratio of signal power between two data features. 

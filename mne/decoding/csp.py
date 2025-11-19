@@ -3,22 +3,17 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc as abc
-import copy as cp
 from functools import partial
 
 import numpy as np
 
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..evoked import EvokedArray
-from ..utils import (
-    _check_option,
-    _validate_type,
-    fill_doc,
-)
+from ..utils import _check_option, _validate_type, fill_doc, legacy
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
 from .base import _GEDTransformer
+from .spatial_filter import get_spatial_filter_from_estimator
 
 
 @fill_doc
@@ -165,6 +160,13 @@ class CSP(_GEDTransformer):
             R_func=sum,
         )
 
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = True
+        tags.target_tags.multi_output = True
+        return tags
+
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
         if hasattr(self, "cov_est"):
@@ -192,7 +194,10 @@ class CSP(_GEDTransformer):
         self.classes_ = np.unique(y)
         n_classes = len(self.classes_)
         if n_classes < 2:
-            raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
+            raise ValueError(
+                "y should be a 1d array with more than two classes, "
+                f"but got {n_classes} class from {y}"
+            )
         elif n_classes > 2 and self.component_order == "alternate":
             raise ValueError(
                 "component_order='alternate' requires two classes, but data contains "
@@ -316,6 +321,7 @@ class CSP(_GEDTransformer):
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_patterns()")
     @fill_doc
     def plot_patterns(
         self,
@@ -402,20 +408,9 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        patterns = EvokedArray(self.patterns_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = patterns.plot_topomap(
-            times=components,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_patterns(
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -437,13 +432,13 @@ class CSP(_GEDTransformer):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
         )
-        return fig
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_filters()")
     @fill_doc
     def plot_filters(
         self,
@@ -530,20 +525,9 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        filters = EvokedArray(self.filters_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = filters.plot_topomap(
-            times=components,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_filters(
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -565,12 +549,11 @@ class CSP(_GEDTransformer):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
         )
-        return fig
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
@@ -782,6 +765,12 @@ class SPoC(CSP):
         # concatenation of all epochs from the same class.
         delattr(self, "cov_est")
         delattr(self, "norm_trace")
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.multi_output = False
+        return tags
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.

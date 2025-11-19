@@ -130,3 +130,44 @@ except ImportError:
             out = X, y
 
         return out
+
+
+def _check_n_features_3d(estimator, X, reset):
+    """Set the `n_features_in_` attribute, or check against it on an estimator.
+
+    Sklearn takes n_features from X.shape[1], but we need X.shape[-1]
+
+    Parameters
+    ----------
+    estimator : estimator instance
+        The estimator to validate the input for.
+
+    X : {ndarray, sparse matrix} of shape ([n_epochs], n_samples, n_features)
+        The input samples.
+
+    reset : bool
+        If True, the `n_features_in_` attribute is set to `X.shape[1]`.
+        If False and the attribute exists, then check that it is equal to
+        `X.shape[1]`. If False and the attribute does *not* exist, then
+        the check is skipped.
+        .. note::
+        It is recommended to call reset=True in `fit` and in the first
+        call to `partial_fit`. All other methods that validate `X`
+        should set `reset=False`.
+    """
+    n_features = X.shape[-1]
+    if reset:
+        estimator.n_features_in_ = n_features
+        return
+
+    if not hasattr(estimator, "n_features_in_"):
+        # Skip this check if the expected number of expected input features
+        # was not recorded by calling fit first. This is typically the case
+        # for stateless transformers.
+        return
+
+    if n_features != estimator.n_features_in_:
+        raise ValueError(
+            f"X has {n_features} features, but {estimator.__class__.__name__} "
+            f"is expecting {estimator.n_features_in_} features as input."
+        )

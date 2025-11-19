@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.preprocessing.ICA.apply` not working when the ICA instance was fitted including marked bad channels, by `Michael Straube`_.

@@ -18,7 +18,7 @@ python -m pip install $STD_ARGS pip setuptools packaging \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr \
 	"$QT_BINDING!=6.9.1" \
 	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
-	pyarrow
+	matplotlib
 python -m pip uninstall -yq numpy
 echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
@@ -27,14 +27,14 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"numpy>=2.1.0.dev0" \
 	"scipy>=1.15.0.dev0" \
 	"scikit-learn>=1.6.dev0" \
-	"matplotlib>=3.11.0.dev0" \
 	"pandas>=3.0.0.dev0" \
 	"dipy>=1.10.0.dev0" \
 	"tables>=3.10.3.dev0" \
 	"statsmodels>=0.15.0.dev697" \
+	"pyarrow>=22.0.0.dev0" \
+	"matplotlib>=3.11.0.dev0" \
 	"h5py>=3.13.0"
 echo "::endgroup::"
-# No "pyarrow>=22.0.0.dev0" because of https://github.com/apache/arrow/issues/47308
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
@@ -44,20 +44,24 @@ echo "::endgroup::"
 
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
-    "git+https://github.com/pyvista/pyvista" \
+	"git+https://github.com/pyvista/pyvista" \
 	"git+https://github.com/pyvista/pyvistaqt" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
+	"git+https://github.com/the-siesta-group/edfio" \
 	https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip \
-    git+https://github.com/mne-tools/mne-qt-browser \
-    git+https://github.com/mne-tools/mne-bids \
-    git+https://github.com/nipy/nibabel \
-    git+https://github.com/joblib/joblib \
+	git+https://github.com/mne-tools/mne-qt-browser \
+	git+https://github.com/pyqtgraph/pyqtgraph \
+	git+https://github.com/mne-tools/mne-bids \
+	git+https://github.com/nipy/nibabel \
+	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
+	git+https://github.com/python-quantities/python-quantities \
 	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
-	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
+	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
+	antio curryreader
 echo "::endgroup::"
 
 echo "::group::Make sure we're on a NumPy 2.0 variant"

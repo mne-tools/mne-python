@@ -21,12 +21,13 @@ from .._fiff.tag import _loc_to_coil_trans, _loc_to_eeg_loc
 from ..bem import ConductorModel, _bem_find_surface, read_bem_solution
 from ..source_estimate import VolSourceEstimate
 from ..source_space._source_space import (
+    SourceSpaces,
     _complete_vol_src,
     _ensure_src,
     _filter_source_spaces,
     _make_discrete_source_space,
 )
-from ..surface import _CheckInside, _normalize_vectors
+from ..surface import _CheckInside, _CheckInsideSphere, _normalize_vectors
 from ..transforms import (
     Transform,
     _coord_frame_name,
@@ -35,10 +36,21 @@ from ..transforms import (
     _print_coord_trans,
     apply_trans,
     invert_transform,
-    transform_surface_to,
 )
-from ..utils import _check_fname, _pl, _validate_type, logger, verbose, warn
-from ._compute_forward import _compute_forwards
+from ..utils import (
+    _check_fname,
+    _on_missing,
+    _pl,
+    _validate_type,
+    logger,
+    verbose,
+    warn,
+)
+from ._compute_forward import (
+    _compute_forwards,
+    _compute_forwards_meeg,
+    _prep_field_computation,
+)
 from .forward import _FWD_ORDER, Forward, _merge_fwds, convert_forward_solution
 
 _accuracy_dict = dict(
@@ -433,6 +445,7 @@ def _prepare_for_forward(
     bem,
     mindist,
     n_jobs,
+    *,
     bem_extra="",
     trans="",
     info_extra="",
@@ -440,6 +453,7 @@ def _prepare_for_forward(
     eeg=True,
     ignore_ref=False,
     allow_bem_none=False,
+    on_inside="raise",
     verbose=None,
 ):
     """Prepare for forward computation.
@@ -459,7 +473,7 @@ def _prepare_for_forward(
     # let's make a copy in case we modify something
     src = _ensure_src(src).copy()
     nsource = sum(s["nuse"] for s in src)
-    if nsource == 0:
+    if len(src) and nsource == 0:
         raise RuntimeError(
             "No sources are active in these source spaces. "
             '"do_all" option should be used.'
@@ -517,11 +531,12 @@ def _prepare_for_forward(
 
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)
-    for s in src:
-        transform_surface_to(s, "head", mri_head_t)
-    logger.info(
-        f"Source spaces are now in {_coord_frame_name(s['coord_frame'])} coordinates."
-    )
+    src._transform_to("head", mri_head_t)
+    if len(src):
+        logger.info(
+            f"Source spaces are now in {_coord_frame_name(src[0]['coord_frame'])} "
+            "coordinates."
+        )
 
     # Prepare the BEM model
     eegnames = sensors.get("eeg", dict()).get("ch_names", [])
@@ -533,48 +548,51 @@ def _prepare_for_forward(
     # Circumvent numerical problems by excluding points too close to the skull,
     # and check that sensors are not inside any BEM surface
     if bem is not None:
+        kwargs = dict(limit=mindist, mri_head_t=mri_head_t, src=src)
         if not bem["is_sphere"]:
             check_surface = "inner skull surface"
-            inner_skull = _bem_find_surface(bem, "inner_skull")
-            check_inside = _filter_source_spaces(
-                inner_skull, mindist, mri_head_t, src, n_jobs
-            )
+            check_inside_brain = _CheckInside(_bem_find_surface(bem, "inner_skull"))
             logger.info("")
             if len(bem["surfs"]) == 3:
                 check_surface = "scalp surface"
-                check_inside = _CheckInside(_bem_find_surface(bem, "head"))
+                check_inside_head = _CheckInside(_bem_find_surface(bem, "head"))
+            else:
+                check_inside_head = check_inside_brain
         else:
             check_surface = "outermost sphere shell"
-            if len(bem["layers"]) == 0:
-
-                def check_inside(x):
-                    return np.zeros(len(x), bool)
-
+            check_inside_brain = _CheckInsideSphere(bem)
+            if bem.radius is not None:
+                check_inside_head = _CheckInsideSphere(bem, check="outer")
             else:
 
-                def check_inside(x):
-                    r0 = apply_trans(invert_transform(mri_head_t), bem["r0"])
-                    return np.linalg.norm(x - r0, axis=1) < bem["layers"][-1]["rad"]
+                def check_inside_head(x):
+                    return np.zeros(len(x), bool)
+
+        if len(src):
+            _filter_source_spaces(check_inside_brain, **kwargs)
 
         if "meg" in sensors:
-            meg_loc = apply_trans(
-                invert_transform(mri_head_t),
-                np.array([coil["r0"] for coil in sensors["meg"]["defs"]]),
-            )
-            n_inside = check_inside(meg_loc).sum()
+            meg_loc = np.array([coil["r0"] for coil in sensors["meg"]["defs"]])
+            if not bem["is_sphere"]:
+                meg_loc = apply_trans(invert_transform(mri_head_t), meg_loc)
+            n_inside = check_inside_head(meg_loc).sum()
             if n_inside:
-                raise RuntimeError(
+                msg = (
                     f"Found {n_inside} MEG sensor{_pl(n_inside)} inside the "
                     f"{check_surface}, perhaps coordinate frames and/or "
-                    "coregistration must be incorrect"
+                    "coregistration are incorrect"
                 )
+                _on_missing(on_inside, msg, name="on_inside", error_klass=RuntimeError)
 
-    rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
-    if len(rr) < 1:
-        raise RuntimeError(
-            "No points left in source space after excluding "
-            "points close to inner skull."
-        )
+    if len(src):
+        rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
+        if len(rr) < 1:
+            raise RuntimeError(
+                "No points left in source space after excluding "
+                "points close to inner skull."
+            )
+    else:
+        rr = np.zeros((0, 3))
 
     # deal with free orientations:
     source_nn = np.tile(np.eye(3), (len(rr), 1))
@@ -603,6 +621,7 @@ def make_forward_solution(
     mindist=0.0,
     ignore_ref=False,
     n_jobs=None,
+    on_inside="raise",
     verbose=None,
 ):
     """Calculate a forward solution for a subject.
@@ -633,6 +652,13 @@ def make_forward_solution(
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
     %(n_jobs)s
+    on_inside : 'raise' | 'warn' | 'ignore'
+        What to do if MEG sensors are inside the outer skin surface. If 'raise'
+        (default), an error is raised. If 'warn' or 'ignore', the forward
+        solution is computed anyway and a warning is or isn't emitted,
+        respectively.
+
+        .. versionadded:: 1.10
     %(verbose)s
 
     Returns
@@ -703,12 +729,13 @@ def make_forward_solution(
         bem,
         mindist,
         n_jobs,
-        bem_extra,
-        trans,
-        info_extra,
-        meg,
-        eeg,
-        ignore_ref,
+        bem_extra=bem_extra,
+        trans=trans,
+        info_extra=info_extra,
+        meg=meg,
+        eeg=eeg,
+        ignore_ref=ignore_ref,
+        on_inside=on_inside,
     )
     del (src, mri_head_t, trans, info_extra, bem_extra, mindist, meg, eeg, ignore_ref)
 
@@ -734,7 +761,9 @@ def make_forward_solution(
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=None):
+def make_forward_dipole(
+    dipole, bem, info, trans=None, n_jobs=None, *, on_inside="raise", verbose=None
+):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,
@@ -760,6 +789,13 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
     %(n_jobs)s
+    on_inside : 'raise' | 'warn' | 'ignore'
+        What to do if MEG sensors are inside the outer skin surface. If 'raise'
+        (default), an error is raised. If 'warn' or 'ignore', the forward
+        solution is computed anyway and a warning is or isn't emitted,
+        respectively.
+
+        .. versionadded:: 1.10
     %(verbose)s
 
     Returns
@@ -798,7 +834,9 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
 
     # Forward operator created for channels in info (use pick_info to restrict)
     # Use defaults for most params, including min_dist
-    fwd = make_forward_solution(info, trans, src, bem, n_jobs=n_jobs, verbose=verbose)
+    fwd = make_forward_solution(
+        info, trans, src, bem, n_jobs=n_jobs, on_inside=on_inside, verbose=verbose
+    )
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(
         fwd, surf_ori=False, force_fixed=True, copy=False, use_cps=False, verbose=None
@@ -934,3 +972,91 @@ def use_coil_def(fname):
         yield
     finally:
         _extra_coil_def_fname = None
+
+
+class _ForwardModeler:
+    """Optimized incremental fitting using the same sensors and BEM."""
+
+    @verbose
+    def __init__(
+        self,
+        info,
+        trans,
+        bem,
+        *,
+        mindist=0.0,
+        n_jobs=1,
+        verbose=None,
+    ):
+        self.mri_head_t, _ = _get_trans(trans)
+        self.mindist = mindist
+        self.n_jobs = n_jobs
+        src = SourceSpaces([])
+        self.sensors, _, _, self.update_kwargs, self.bem = _prepare_for_forward(
+            src,
+            self.mri_head_t,
+            info,
+            bem,
+            mindist,
+            n_jobs,
+            bem_extra="",
+            trans="",
+            info_extra="",
+            meg=True,
+            eeg=True,
+            ignore_ref=False,
+        )
+        self.fwd_data = _prep_field_computation(
+            sensors=self.sensors,
+            bem=self.bem,
+            n_jobs=self.n_jobs,
+        )
+        if self.bem["is_sphere"]:
+            self.check_inside = _CheckInsideSphere(self.bem)
+        else:
+            self.check_inside = _CheckInside(_bem_find_surface(self.bem, "inner_skull"))
+
+    def compute(self, src):
+        src = _ensure_src(src).copy()
+        src._transform_to("head", self.mri_head_t)
+        _filter_source_spaces(
+            self.check_inside,
+            n_jobs=self.n_jobs,
+            limit=self.mindist,
+            mri_head_t=self.mri_head_t,
+            src=src,
+        )
+        rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
+        if len(rr) < 1:
+            raise RuntimeError(
+                "No points left in source space after excluding "
+                "points close to inner skull."
+            )
+
+        sensors = deepcopy(self.sensors)
+        fwd_data = deepcopy(self.fwd_data)
+        fwds = _compute_forwards_meeg(
+            rr,
+            sensors=sensors,
+            fwd_data=fwd_data,
+            n_jobs=self.n_jobs,
+        )
+        fwds = {
+            key: _to_forward_dict(fwds[key], sensors[key]["ch_names"])
+            for key in _FWD_ORDER
+            if key in fwds
+        }
+        fwd = _merge_fwds(fwds, verbose=False)
+        del fwds
+
+        fwd.update(**self.update_kwargs)
+        # Delete some keys to clean up the source space:
+        for key in ["working_dir", "command_line"]:
+            if key in src.info:
+                del src.info[key]
+        # our `update_kwargs` set these, but they need to be updated for this src
+        fwd["src"] = src
+        fwd["nsource"] = sum(s["nuse"] for s in src)
+        fwd["source_rr"] = np.vstack([s["rr"][s["inuse"] == 1] for s in src])
+        fwd["source_nn"] = np.tile(np.eye(3), (fwd["nsource"], 1))
+        return fwd

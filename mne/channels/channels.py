@@ -120,8 +120,11 @@ def equalize_channels(instances, copy=True, verbose=None):
     ----------
     instances : list
         A list of MNE-Python objects to equalize the channels for. Objects can
-        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
+        be of type Raw, Epochs, Evoked, Spectrum, AverageTFR, Forward, Covariance,
         CrossSpectralDensity or Info.
+
+        .. versionchanged:: 1.11
+            Added support for :class:`mne.time_frequency.Spectrum` objects.
     copy : bool
         When dropping and/or re-ordering channels, an object will be copied
         when this parameter is set to ``True``. When set to ``False`` (the
@@ -148,6 +151,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..forward import Forward
     from ..io import BaseRaw
     from ..time_frequency import BaseTFR, CrossSpectralDensity
+    from ..time_frequency.spectrum import BaseSpectrum
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -155,6 +159,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
+        BaseSpectrum,
         BaseTFR,
         Forward,
         Covariance,
@@ -162,7 +167,8 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, Spectrum, TFR, Forward, Covariance, CrossSpectralDensity "
+        "or Info"
     )
     for inst in instances:
         _validate_type(
@@ -928,7 +934,7 @@ class InterpolationMixin:
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
-                _interpolate_bads_nan(self, ch_type, exclude=exclude)
+                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
         meg_mne = method.get("meg", "") == "MNE"
@@ -1120,13 +1126,18 @@ class InterpolationMixin:
 
 
 @verbose
-def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
+def rename_channels(
+    info, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+):
     """Rename channels.
 
     Parameters
     ----------
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
+    %(on_missing_ch_names)s
+
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     See Also
@@ -1142,14 +1153,30 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
+        if on_missing in ["warn", "ignore"]:
+            new_mapping = {
+                ch_old: ch_new
+                for ch_old, ch_new in mapping.items()
+                if ch_old in ch_names
+            }
+        else:
+            new_mapping = mapping
+
+        if new_mapping != mapping and on_missing == "warn":
+            warn(
+                "Channel rename map contains keys that are not present in the object "
+                "to be renamed. These will be ignored."
+            )
+
         _check_dict_keys(
-            mapping,
+            new_mapping,
             ch_names,
             key_description="channel name(s)",
             valid_key_source="info",
         )
         new_names = [
-            (ch_names.index(ch_name), new_name) for ch_name, new_name in mapping.items()
+            (ch_names.index(ch_name), new_name)
+            for ch_name, new_name in new_mapping.items()
         ]
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
@@ -1993,7 +2020,14 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
 
 @verbose
 def combine_channels(
-    inst, groups, method="mean", keep_stim=False, drop_bad=False, verbose=None
+    inst,
+    groups,
+    method="mean",
+    keep_stim=False,
+    drop_bad=False,
+    *,
+    on_missing="raise",
+    verbose=None,
 ):
     """Combine channels based on specified channel grouping.
 
@@ -2032,6 +2066,8 @@ def combine_channels(
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(on_missing_epochs)s
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     Returns
@@ -2147,6 +2183,7 @@ def combine_channels(
             event_id=inst.event_id,
             tmin=inst.times[0],
             baseline=inst.baseline,
+            on_missing=on_missing,
         )
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()

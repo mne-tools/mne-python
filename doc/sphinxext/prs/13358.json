@@ -1,0 +1,135 @@
+{
+  "merge_commit_sha": "bbd67f15deceeda6c3a8aedd2ac8d0da14bb370c",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/mne_c.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/13112.json": {
+      "a": 67,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13259.json": {
+      "a": 91,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13317.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13318.json": {
+      "a": 63,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13319.json": {
+      "a": 283,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13320.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13321.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13322.json": {
+      "a": 79,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13327.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13330.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13331.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13333.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13334.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13335.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13336.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13337.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13338.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13340.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13341.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13343.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13344.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13345.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13346.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13349.json": {
+      "a": 75,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13351.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13354.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13355.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13356.json": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

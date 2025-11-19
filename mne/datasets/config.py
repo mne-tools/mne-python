@@ -87,7 +87,7 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
-    testing="0.161",
+    testing="0.168",
     misc="0.27",
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
@@ -115,7 +115,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:a32cfb9e098dec39a5f3ed6c0833580d",
+    hash="md5:7782a64f170b9435b0fd126862b0cf63",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f"tar.gz/{RELEASES['testing']}"
@@ -123,7 +123,7 @@ MNE_DATASETS["testing"] = dict(
     # In case we ever have to resort to osf.io again...
     # archive_name='mne-testing-data.tar.gz',
     # hash='md5:c805a5fed8ca46f723e7eec828d90824',
-    # url='https://osf.io/dqfgy/download?version=1',  # 0.136
+    # url='https://osf.io/download/dqfgy?version=1',  # 0.136
     folder_name="MNE-testing-data",
     config_key="MNE_DATASETS_TESTING_PATH",
 )
@@ -140,7 +140,7 @@ MNE_DATASETS["misc"] = dict(
 MNE_DATASETS["fnirs_motor"] = dict(
     archive_name="MNE-fNIRS-motor-data.tgz",
     hash="md5:c4935d19ddab35422a69f3326a01fef8",
-    url="https://osf.io/dj3eh/download?version=1",
+    url="https://osf.io/download/dj3eh?version=1",
     folder_name="MNE-fNIRS-motor-data",
     config_key="MNE_DATASETS_FNIRS_MOTOR_PATH",
 )
@@ -148,7 +148,7 @@ MNE_DATASETS["fnirs_motor"] = dict(
 MNE_DATASETS["ucl_opm_auditory"] = dict(
     archive_name="auditory_OPM_stationary.zip",
     hash="md5:b2d69aa2d656b960bd0c18968dc1a14d",
-    url="https://osf.io/download/tp324/?version=1",  # original is mwrt3
+    url="https://osf.io/download/tp324?version=1",  # original is mwrt3
     folder_name="auditory_OPM_stationary",
     config_key="MNE_DATASETS_UCL_OPM_AUDITORY_PATH",
 )
@@ -156,7 +156,7 @@ MNE_DATASETS["ucl_opm_auditory"] = dict(
 MNE_DATASETS["kiloword"] = dict(
     archive_name="MNE-kiloword-data.tar.gz",
     hash="md5:3a124170795abbd2e48aae8727e719a8",
-    url="https://osf.io/qkvf9/download?version=1",
+    url="https://osf.io/download/qkvf9?version=1",
     folder_name="MNE-kiloword-data",
     config_key="MNE_DATASETS_KILOWORD_PATH",
 )
@@ -172,7 +172,7 @@ MNE_DATASETS["multimodal"] = dict(
 MNE_DATASETS["opm"] = dict(
     archive_name="MNE-OPM-data.tar.gz",
     hash="md5:370ad1dcfd5c47e029e692c85358a374",
-    url="https://osf.io/p6ae7/download?version=2",
+    url="https://osf.io/download/p6ae7?version=2",
     folder_name="MNE-OPM-data",
     config_key="MNE_DATASETS_OPM_PATH",
 )
@@ -180,7 +180,7 @@ MNE_DATASETS["opm"] = dict(
 MNE_DATASETS["phantom_kit"] = dict(
     archive_name="MNE-phantom-KIT-data.tar.gz",
     hash="md5:7bfdf40bbeaf17a66c99c695640e0740",
-    url="https://osf.io/fb6ya/download?version=1",
+    url="https://osf.io/download/fb6ya?version=1",
     folder_name="MNE-phantom-KIT-data",
     config_key="MNE_DATASETS_PHANTOM_KIT_PATH",
 )
@@ -188,7 +188,7 @@ MNE_DATASETS["phantom_kit"] = dict(
 MNE_DATASETS["phantom_4dbti"] = dict(
     archive_name="MNE-phantom-4DBTi.zip",
     hash="md5:938a601440f3ffa780d20a17bae039ff",
-    url="https://osf.io/v2brw/download?version=2",
+    url="https://osf.io/download/v2brw?version=2",
     folder_name="MNE-phantom-4DBTi",
     config_key="MNE_DATASETS_PHANTOM_4DBTI_PATH",
 )
@@ -196,7 +196,7 @@ MNE_DATASETS["phantom_4dbti"] = dict(
 MNE_DATASETS["phantom_kernel"] = dict(
     archive_name="MNE-phantom-kernel.tar.gz",
     hash="md5:4e2ad987dac1a20f95bae8ffeb2d41d6",
-    url="https://osf.io/dj7wz/download?version=1",
+    url="https://osf.io/download/dj7wz?version=1",
     folder_name="MNE-phantom-kernel-data",
     config_key="MNE_DATASETS_PHANTOM_KERNEL_PATH",
 )
@@ -204,7 +204,7 @@ MNE_DATASETS["phantom_kernel"] = dict(
 MNE_DATASETS["sample"] = dict(
     archive_name="MNE-sample-data-processed.tar.gz",
     hash="md5:e8f30c4516abdc12a0c08e6bae57409c",
-    url="https://osf.io/86qa2/download?version=6",
+    url="https://osf.io/download/86qa2?version=6",
     folder_name="MNE-sample-data",
     config_key="MNE_DATASETS_SAMPLE_PATH",
 )
@@ -212,7 +212,7 @@ MNE_DATASETS["sample"] = dict(
 MNE_DATASETS["somato"] = dict(
     archive_name="MNE-somato-data.tar.gz",
     hash="md5:32fd2f6c8c7eb0784a1de6435273c48b",
-    url="https://osf.io/tp4sg/download?version=7",
+    url="https://osf.io/download/tp4sg?version=7",
     folder_name="MNE-somato-data",
     config_key="MNE_DATASETS_SOMATO_PATH",
 )
@@ -220,7 +220,7 @@ MNE_DATASETS["somato"] = dict(
 MNE_DATASETS["spm"] = dict(
     archive_name="MNE-spm-face.tar.gz",
     hash="md5:9f43f67150e3b694b523a21eb929ea75",
-    url="https://osf.io/je4s8/download?version=2",
+    url="https://osf.io/download/je4s8?version=2",
     folder_name="MNE-spm-face",
     config_key="MNE_DATASETS_SPM_FACE_PATH",
 )
@@ -235,14 +235,14 @@ MNE_DATASETS["visual_92_categories"] = dict(
 MNE_DATASETS["visual_92_categories_1"] = dict(
     archive_name="MNE-visual_92_categories-data-part1.tar.gz",
     hash="md5:74f50bbeb65740903eadc229c9fa759f",
-    url="https://osf.io/8ejrs/download?version=1",
+    url="https://osf.io/download/8ejrs?version=1",
     folder_name="MNE-visual_92_categories-data",
     config_key="MNE_DATASETS_VISUAL_92_CATEGORIES_PATH",
 )
 MNE_DATASETS["visual_92_categories_2"] = dict(
     archive_name="MNE-visual_92_categories-data-part2.tar.gz",
     hash="md5:203410a98afc9df9ae8ba9f933370e20",
-    url="https://osf.io/t4yjp/download?version=1",
+    url="https://osf.io/download/t4yjp?version=1",
     folder_name="MNE-visual_92_categories-data",
     config_key="MNE_DATASETS_VISUAL_92_CATEGORIES_PATH",
 )
@@ -250,14 +250,14 @@ MNE_DATASETS["visual_92_categories_2"] = dict(
 MNE_DATASETS["mtrf"] = dict(
     archive_name="mTRF_1.5.zip",
     hash="md5:273a390ebbc48da2c3184b01a82e4636",
-    url="https://osf.io/h85s2/download?version=1",
+    url="https://osf.io/download/h85s2?version=1",
     folder_name="mTRF_1.5",
     config_key="MNE_DATASETS_MTRF_PATH",
 )
 MNE_DATASETS["refmeg_noise"] = dict(
     archive_name="sample_reference_MEG_noise-raw.zip",
     hash="md5:779fecd890d98b73a4832e717d7c7c45",
-    url="https://osf.io/drt6v/download?version=1",
+    url="https://osf.io/download/drt6v?version=1",
     folder_name="MNE-refmeg-noise-data",
     config_key="MNE_DATASETS_REFMEG_NOISE_PATH",
 )
@@ -265,7 +265,7 @@ MNE_DATASETS["refmeg_noise"] = dict(
 MNE_DATASETS["ssvep"] = dict(
     archive_name="ssvep_example_data.zip",
     hash="md5:af866bbc0f921114ac9d683494fe87d6",
-    url="https://osf.io/z8h6k/download?version=5",
+    url="https://osf.io/download/z8h6k?version=5",
     folder_name="ssvep-example-data",
     config_key="MNE_DATASETS_SSVEP_PATH",
 )
@@ -273,7 +273,7 @@ MNE_DATASETS["ssvep"] = dict(
 MNE_DATASETS["erp_core"] = dict(
     archive_name="MNE-ERP-CORE-data.tar.gz",
     hash="md5:5866c0d6213bd7ac97f254c776f6c4b1",
-    url="https://osf.io/rzgba/download?version=1",
+    url="https://osf.io/download/rzgba?version=1",
     folder_name="MNE-ERP-CORE-data",
     config_key="MNE_DATASETS_ERP_CORE_PATH",
 )
@@ -281,7 +281,7 @@ MNE_DATASETS["erp_core"] = dict(
 MNE_DATASETS["epilepsy_ecog"] = dict(
     archive_name="MNE-epilepsy-ecog-data.tar.gz",
     hash="md5:ffb139174afa0f71ec98adbbb1729dea",
-    url="https://osf.io/z4epq/download?version=1",
+    url="https://osf.io/download/z4epq?version=1",
     folder_name="MNE-epilepsy-ecog-data",
     config_key="MNE_DATASETS_EPILEPSY_ECOG_PATH",
 )
@@ -290,7 +290,7 @@ MNE_DATASETS["epilepsy_ecog"] = dict(
 MNE_DATASETS["fieldtrip_cmc"] = dict(
     archive_name="SubjectCMC.zip",
     hash="md5:6f9fd6520f9a66e20994423808d2528c",
-    url="https://osf.io/j9b6s/download?version=1",
+    url="https://osf.io/download/j9b6s?version=1",
     folder_name="MNE-fieldtrip_cmc-data",
     config_key="MNE_DATASETS_FIELDTRIP_CMC_PATH",
 )
@@ -299,35 +299,35 @@ MNE_DATASETS["fieldtrip_cmc"] = dict(
 MNE_DATASETS["bst_auditory"] = dict(
     archive_name="bst_auditory.tar.gz",
     hash="md5:fa371a889a5688258896bfa29dd1700b",
-    url="https://osf.io/5t9n8/download?version=1",
+    url="https://osf.io/download/5t9n8?version=1",
     folder_name="MNE-brainstorm-data",
     config_key="MNE_DATASETS_BRAINSTORM_PATH",
 )
 MNE_DATASETS["bst_phantom_ctf"] = dict(
     archive_name="bst_phantom_ctf.tar.gz",
     hash="md5:80819cb7f5b92d1a5289db3fb6acb33c",
-    url="https://osf.io/sxr8y/download?version=1",
+    url="https://osf.io/download/sxr8y?version=1",
     folder_name="MNE-brainstorm-data",
     config_key="MNE_DATASETS_BRAINSTORM_PATH",
 )
 MNE_DATASETS["bst_phantom_elekta"] = dict(
     archive_name="bst_phantom_elekta.tar.gz",
     hash="md5:1badccbe17998d18cc373526e86a7aaf",
-    url="https://osf.io/dpcku/download?version=1",
+    url="https://osf.io/download/dpcku?version=1",
     folder_name="MNE-brainstorm-data",
     config_key="MNE_DATASETS_BRAINSTORM_PATH",
 )
 MNE_DATASETS["bst_raw"] = dict(
     archive_name="bst_raw.tar.gz",
     hash="md5:fa2efaaec3f3d462b319bc24898f440c",
-    url="https://osf.io/9675n/download?version=2",
+    url="https://osf.io/download/9675n?version=2",
     folder_name="MNE-brainstorm-data",
     config_key="MNE_DATASETS_BRAINSTORM_PATH",
 )
 MNE_DATASETS["bst_resting"] = dict(
     archive_name="bst_resting.tar.gz",
     hash="md5:70fc7bf9c3b97c4f2eab6260ee4a0430",
-    url="https://osf.io/m7bd3/download?version=3",
+    url="https://osf.io/download/m7bd3?version=3",
     folder_name="MNE-brainstorm-data",
     config_key="MNE_DATASETS_BRAINSTORM_PATH",
 )
@@ -346,7 +346,7 @@ MNE_DATASETS["hf_sef_evoked"] = dict(
     # Zenodo can be slow, so we use the OSF mirror
     # url=('https://zenodo.org/record/3523071/files/'
     #      'hf_sef_evoked.tar.gz'),
-    url="https://osf.io/25f8d/download?version=2",
+    url="https://osf.io/download/25f8d?version=2",
     folder_name="hf_sef",
     config_key="MNE_DATASETS_HF_SEF_PATH",
 )
@@ -364,7 +364,7 @@ MNE_DATASETS["fake"] = dict(
 MNE_DATASETS["eyelink"] = dict(
     archive_name="MNE-eyelink-data.zip",
     hash="md5:68a6323ef17d655f1a659c3290ee1c3f",
-    url=("https://osf.io/xsu4g/download?version=1"),
+    url=("https://osf.io/download/xsu4g?version=1"),
     folder_name="MNE-eyelink-data",
     config_key="MNE_DATASETS_EYELINK_PATH",
 )

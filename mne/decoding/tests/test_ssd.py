@@ -623,8 +623,14 @@ def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
     pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        "check_methods_sample_order_invariance",
-        # Shape stuff
+        # Checks below fail because what sklearn passes as (n_samples, n_features)
+        # is considered (n_channels, n_times) by SSD and creates problems
+        # when n_channels change between fit and transform.
+        # Could potentially be fixed by if X.ndim == 2: X = np.expand_dims(X, axis=2)
+        # in fit and transform instead of axis=0.
+        # But this will require to drop support for 2D inputs and expect
+        # user to provide 3D array even if it's a continuous signal.
+        "check_methods_sample_order_invariance",  # SSD is not time-invariant
         "check_fit_idempotent",
         "check_methods_subset_invariance",
         "check_transformer_general",

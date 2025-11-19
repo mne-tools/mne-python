@@ -14,6 +14,7 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 The dataset is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 """
+
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD-3-Clause
@@ -30,7 +31,7 @@ from sklearn.pipeline import Pipeline
 from mne import Epochs, pick_types
 from mne.channels import make_standard_montage
 from mne.datasets import eegbci
-from mne.decoding import CSP
+from mne.decoding import CSP, get_spatial_filter_from_estimator
 from mne.io import concatenate_raws, read_raw_edf
 
 print(__doc__)
@@ -95,10 +96,11 @@ class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1.0 - class_balance)
 print(f"Classification accuracy: {np.mean(scores)} / Chance level: {class_balance}")
 
-# plot CSP patterns estimated on full data for visualization
+# plot eigenvalues and patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
-
-csp.plot_patterns(epochs.info, ch_type="eeg", units="Patterns (AU)", size=1.5)
+spf = get_spatial_filter_from_estimator(csp, info=epochs.info)
+spf.plot_scree()
+spf.plot_patterns(components=np.arange(4))
 
 # %%
 # Look at performance over time

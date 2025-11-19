@@ -1029,17 +1029,24 @@ def _parse_calibration(
 
             n_points = int(regex.search(model).group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
+
             # The next n_point lines contain the validation data
             points = []
-            for validation_index in range(n_points):
-                subline = lines[line_number + validation_index + 1]
-                if "!CAL VALIDATION" in subline:
+            line_idx = line_number + 1
+            read_points = 0
+            while read_points < n_points and line_idx < len(lines):
+                subline = lines[line_idx].strip()
+                line_idx += 1
+
+                if not subline or "!CAL VALIDATION" in subline:
                     continue  # for bino mode, skip the second eye's validation summary
+
                 subline_eye = subline.split("at")[0].split()[-1].lower()  # e.g. 'left'
                 if subline_eye != this_eye:
                     continue  # skip the validation lines for the other eye
                 point_info = _parse_validation_line(subline)
                 points.append(point_info)
+                read_points += 1
             # Convert the list of validation data into a numpy array
             positions = np.array([point[:2] for point in points])
             offsets = np.array([point[2] for point in points])

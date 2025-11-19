@@ -75,7 +75,7 @@ from mne.minimum_norm import (
 from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
 from mne.source_space._source_space import _get_src_nn
-from mne.transforms import apply_trans, invert_transform, transform_surface_to
+from mne.transforms import apply_trans, invert_transform
 from mne.utils import (
     _record_warnings,
     catch_logging,
@@ -1709,8 +1709,7 @@ def test_stc_near_sensors(tmp_path):
     assert np.isclose(dists, 0.0, atol=1e-6).any(0).all()
 
     src = read_source_spaces(fname_src)  # uses "white" but should be okay
-    for s in src:
-        transform_surface_to(s, "head", trans, copy=False)
+    src._transform_to("head", trans)
     assert src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
     stc_src = stc_near_sensors(evoked, src=src, **kwargs)
     assert len(stc_src.data) == 7928

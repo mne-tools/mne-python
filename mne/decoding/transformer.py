@@ -447,6 +447,13 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         self.n_jobs = n_jobs
         self.normalization = normalization
 
+    def __sklearn_tags__(self):
+        """..."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = False
+        tags.requires_fit = False
+        return tags
+
     def fit(self, epochs_data, y=None):
         """Compute power spectral density (PSD) using a multi-taper method.
 
@@ -873,6 +880,13 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
         self.iir_params = iir_params
         self.fir_window = fir_window
         self.fir_design = fir_design
+
+    def __sklearn_tags__(self):
+        """..."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = False
+        tags.requires_fit = False
+        return tags
 
     def fit(self, X, y=None):
         """Do nothing (for scikit-learn compatibility purposes).

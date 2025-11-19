@@ -36,6 +36,7 @@ maps = mne.make_field_map(
     subject="sample",
     subjects_dir=subjects_dir,
     upsampling=2,
+    origin="auto",
 )
 time = 0.083
 fig = mne.viz.create_3d_figure((512, 512), bgcolor="w", title="MNE helmet")

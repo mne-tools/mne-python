@@ -304,11 +304,11 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -e ".[test]"
+    $ pip install --group=test
 
 And for building our documentation::
 
-    $ pip install -e ".[doc]"
+    $ pip install --group=doc
     $ conda install graphviz
 
 .. note::
@@ -614,8 +614,8 @@ other
     For changes that don't fit into any of the above categories, e.g.,
     internal refactorings.
 
-For example, for an enhancement PR with number 12345, the changelog entry should be
-added as a new file :file:`doc/changes/dev/12345.enhancement.rst`. The file should
+For example, for a new feature PR with number 12345, the changelog entry should be
+added as a new file :file:`doc/changes/dev/12345.newfeature.rst`. The file should
 contain:
 
 1. A brief description of the change, typically in a single line of one or two

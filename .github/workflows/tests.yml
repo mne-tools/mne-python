@@ -25,10 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
       - uses: pre-commit/action@v3.0.1
@@ -50,7 +50,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 90
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -59,6 +59,7 @@ jobs:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -75,23 +76,23 @@ jobs:
           - os: ubuntu-latest
             python: '3.13'
             kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon)
+          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
             python: '3.13'
             kind: mamba
-          - os: macos-13  # latest Intel release
+          - os: macos-15-intel  # intel: Sequoia
             python: '3.13'
             kind: mamba
           - os: windows-latest
-            python: '3.10'
+            python: '3.11'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.10'
+            python: '3.12'
             kind: minimal
           - os: ubuntu-22.04
             python: '3.10'
             kind: old
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -118,7 +119,7 @@ jobs:
           pyvista: false
           wm: false
       # Python (if pip)
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
@@ -128,17 +129,30 @@ jobs:
           # For some reason on Linux we get crashes
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sed -i "/numba/d" environment.yml
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i "" "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
+          fi
+          # And on Windows and macOS PySide6.9.0 segfaults
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
+            sed -i "" "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+
+          else
+            sed -i "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
+            sed -i "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
+            fi
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
+          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
+            -v
         if: ${{ !startswith(matrix.kind, 'pip') }}
+        timeout-minutes: 20
       - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh

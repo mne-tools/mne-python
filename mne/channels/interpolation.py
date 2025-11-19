@@ -172,25 +172,25 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
 
 
 @verbose
-def _interpolate_bads_ecog(inst, origin, exclude=None, verbose=None):
+def _interpolate_bads_ecog(inst, *, origin, exclude=None, verbose=None):
     _interpolate_bads_eeg(inst, origin, exclude=exclude, ecog=True, verbose=verbose)
 
 
 def _interpolate_bads_meg(
-    inst, mode="accurate", origin=(0.0, 0.0, 0.04), verbose=None, ref_meg=False
+    inst, mode="accurate", *, origin, verbose=None, ref_meg=False
 ):
     return _interpolate_bads_meeg(
-        inst, mode, origin, ref_meg=ref_meg, eeg=False, verbose=verbose
+        inst, mode, ref_meg=ref_meg, eeg=False, origin=origin, verbose=verbose
     )
 
 
 @verbose
 def _interpolate_bads_nan(
     inst,
+    *,
     ch_type,
     ref_meg=False,
     exclude=(),
-    *,
     verbose=None,
 ):
     info = _simplify_info(inst.info)
@@ -208,12 +208,12 @@ def _interpolate_bads_nan(
 def _interpolate_bads_meeg(
     inst,
     mode="accurate",
-    origin=(0.0, 0.0, 0.04),
+    *,
     meg=True,
     eeg=True,
     ref_meg=False,
     exclude=(),
-    *,
+    origin,
     method=None,
     verbose=None,
 ):

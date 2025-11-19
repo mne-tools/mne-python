@@ -8,6 +8,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 import platform
 import re
 import warnings
@@ -211,7 +212,8 @@ class _PyVistaRenderer(_AbstractRenderer):
     ):
         from .._3d import _get_3d_option
 
-        _require_version("pyvista", "use 3D rendering", "0.32")
+        # TODO VERSION change whenever PyVista min gets updated:
+        _require_version("pyvista", "use 3D rendering", "0.42")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         if platform.system() == "Darwin":
@@ -1331,6 +1333,8 @@ def _is_osmesa(plotter):
     # and a working Nouveau is: "Mesa 24.2.3-1ubuntu1 via NVE6"
     if platform.system() == "Darwin":  # segfaults on macOS sometimes
         return False
+    if os.getenv("MNE_IS_OSMESA", "").lower() == "true":
+        return True
     gpu_info_full = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",

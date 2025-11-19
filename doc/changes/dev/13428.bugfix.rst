@@ -1,0 +1,1 @@
+Preserve event-to-epoch mapping when exporting EEGLAB .set files by `Scott Huberty`_
