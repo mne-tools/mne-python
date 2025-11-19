@@ -208,7 +208,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             for pick in group_picks
         ]
 
-        # Separate the parsed components: source IDs, detector IDs, and values (freq/chromophore)
+        # Separate the parsed components:
+        # source IDs, detector IDs, and values (freq/chromophore)
         s_group, d_group, val_group = zip(*group_info)
 
         # For wavelength data, convert string frequencies to float for comparison
@@ -223,7 +224,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             picks = _throw_or_return_empty(
                 "NIRS channels not ordered correctly. Channels must be "
                 "grouped by source-detector pairs with alternating {error_word} "
-                f"values {pair_vals}, but got mismatching names {[info['ch_names'][pick] for pick in group_picks]}.",
+                f"values {pair_vals}, but got mismatching names "
+                f"{[info['ch_names'][pick] for pick in group_picks]}.",
                 throw_errors,
             )
             break
