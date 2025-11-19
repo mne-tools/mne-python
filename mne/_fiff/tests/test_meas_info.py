@@ -365,12 +365,12 @@ def test_info_serialization_roundtrip(tmp_path):
     # Save to JSON
     json_path = tmp_path / "info.json"
     with open(json_path, "w") as f:
-        json.dump(info.to_dict(), f)
+        json.dump(info.to_json_dict(), f)
 
     # Read back from JSON
     with open(json_path) as f:
         info_dict = json.load(f)
-    info_restored = Info.from_dict(info_dict)
+    info_restored = Info.from_json_dict(info_dict)
 
     # Verify everything is exactly the same
     assert_object_equal(info, info_restored)
@@ -385,12 +385,12 @@ def test_info_serialization_edf(tmp_path):
     # Save to JSON
     json_path = tmp_path / "info_edf.json"
     with open(json_path, "w") as f:
-        json.dump(info.to_dict(), f)
+        json.dump(info.to_json_dict(), f)
 
     # Read back from JSON
     with open(json_path) as f:
         info_dict = json.load(f)
-    info_restored = Info.from_dict(info_dict)
+    info_restored = Info.from_json_dict(info_dict)
 
     # Verify everything is exactly the same
     assert_object_equal(info, info_restored)
@@ -417,9 +417,9 @@ def test_info_serialization_special_types():
     }
 
     # Roundtrip through JSON
-    info_dict = info.to_dict()
+    info_dict = info.to_json_dict()
     json_str = json.dumps(info_dict)
-    info_restored = Info.from_dict(json.loads(json_str))
+    info_restored = Info.from_json_dict(json.loads(json_str))
 
     # Verify special types are preserved
     assert isinstance(info_restored["meas_date"], datetime)
@@ -454,12 +454,12 @@ def test_info_serialization_numpy_arrays(tmp_path):
     # Save to JSON
     json_path = tmp_path / "info_with_comps.json"
     with open(json_path, "w") as f:
-        json.dump(info.to_dict(), f)
+        json.dump(info.to_json_dict(), f)
 
     # Read back from JSON
     with open(json_path) as f:
         info_dict = json.load(f)
-    info_restored = Info.from_dict(info_dict)
+    info_restored = Info.from_json_dict(info_dict)
 
     # Verify compensation matrices are preserved correctly
     assert len(info_restored["comps"]) == len(info["comps"])

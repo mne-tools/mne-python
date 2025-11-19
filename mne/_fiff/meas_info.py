@@ -2081,7 +2081,15 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         >>> info_restored = mne.Info.from_json_dict(info_dict)
         """
         data_dict = data_dict.copy()
-        return _restore_objects(data_dict)
+        # Restore all nested objects (Transform, NamedInt, etc.)
+        restored_dict = _restore_objects(data_dict)
+
+        info = cls()
+        with info._unlock():
+            info.update(restored_dict)
+            _restore_mne_types(info)
+
+        return info
 
 
 def _make_serializable(obj):
