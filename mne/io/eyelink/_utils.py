@@ -893,7 +893,6 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
                 descriptions = "BAD_" + descriptions
 
             ch_names = df["eye"].map(eye_ch_map).tolist()
-            # breakpoint()  # debug
             this_annot = Annotations(
                 onset=onsets,
                 duration=durations,
@@ -915,16 +914,14 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             required_cols = {"time", "button_id", "button_pressed"}
             if not required_cols.issubset(df.columns):
                 raise ValueError(f"Missing column: {required_cols - set(df.columns)}")
-
-            def get_button_description(row):
-                button_id = int(row["button_id"])
-                action = "press" if row["button_pressed"] == 1 else "release"
-                return f"button_{button_id}_{action}"
+            # Give user a hint
+            n_presses = df["button_pressed"].sum()
+            logger.info("Found %d button press events.", n_presses)
 
             df = df.sort_values("time")
             onsets = df["time"]
             durations = np.zeros_like(onsets)
-            descriptions = df.apply(get_button_description, axis=1)
+            descriptions = df.apply(_get_button_description, axis=1)
 
             this_annot = Annotations(
                 onset=onsets, duration=durations, description=descriptions
@@ -940,6 +937,12 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
         return
 
     return annots
+
+
+def _get_button_description(row):
+    button_id = int(row["button_id"])
+    action = "press" if row["button_pressed"] == 1 else "release"
+    return f"button_{button_id}_{action}"
 
 
 def _make_gap_annots(raw_extras, key="recording_blocks"):
