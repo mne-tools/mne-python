@@ -65,42 +65,25 @@ def scalp_coupling_index(
 
     sci = np.zeros(picks.shape)
 
-    if n_wavelengths == 2:
-        # Use pairwise correlation for 2 wavelengths (backward compatibility)
-        for ii in range(0, len(picks), 2):
+    # Calculate all pairwise correlations within each group and use the minimum as SCI
+    pair_indices = np.triu_indices(n_wavelengths, k=1)
+    for gg in range(0, len(picks), n_wavelengths):
+        group_data = filtered_data[gg : gg + n_wavelengths]
+
+        # Calculate pairwise correlations within the group
+        correlations = np.zeros(pair_indices[0].shape[0])
+
+        for n, (ii, jj) in enumerate(zip(*pair_indices)):
             with np.errstate(invalid="ignore"):
-                c = np.corrcoef(filtered_data[ii], filtered_data[ii + 1])[0][1]
-            if not np.isfinite(c):  # someone had std=0
-                c = 0
-            sci[ii] = c
-            sci[ii + 1] = c
-    else:
-        # For multiple wavelengths: calculate all pairwise correlations within each group
-        # and use the minimum as the quality metric
+                c = np.corrcoef(group_data[ii], group_data[jj])[0][1]
+            if np.isfinite(c):
+                correlations[n] = c
 
-        # Group picks by number of wavelengths
-        # Drops last incomplete group, but we're assuming valid data
-        pick_iter = iter(picks)
-        pick_groups = zip(*[pick_iter] * n_wavelengths)
+        # Use minimum correlation as SCI
+        group_sci = correlations.min()
 
-        for group_picks in pick_groups:
-            group_data = filtered_data[group_picks]
-
-            # Calculate pairwise correlations within the group
-            pair_indices = np.triu_indices(len(group_picks), k=1)
-            correlations = np.zeros(pair_indices[0].shape[0])
-
-            for n, (ii, jj) in enumerate(zip(*pair_indices)):
-                with np.errstate(invalid="ignore"):
-                    c = np.corrcoef(group_data[ii], group_data[jj])[0][1]
-                if np.isfinite(c):
-                    correlations[n] = c
-
-            # Use minimum correlation as the quality metric
-            group_sci = correlations.min()
-
-            # Assign the same SCI value to all channels in the group
-            sci[group_picks] = group_sci
+        # Assign the same SCI value to all channels in the group
+        sci[gg : gg + n_wavelengths] = group_sci
 
     sci[zero_mask] = 0
     sci = sci[np.argsort(picks)]  # restore original order

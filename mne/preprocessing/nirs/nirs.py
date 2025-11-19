@@ -149,11 +149,12 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # (e.g., for 2 wavelengths, we need even number of channels)
     if len(picks) % len(pair_vals) != 0:
         picks = _throw_or_return_empty(
-            f"NIRS channels not ordered correctly. The number of channels "
+            "NIRS channels not ordered correctly. The number of channels "
             f"must be a multiple of {len(pair_vals)} values, but "
             f"{len(picks)} channels were provided.",
             throw_errors,
         )
+
     # Ensure wavelength info exists for waveform data
     all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
     if len(pair_vals) != len(set(all_freqs)):
@@ -197,9 +198,9 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     picks = picks[np.argsort([info["ch_names"][pick] for pick in picks])]
 
     # Validate channel grouping (same source-detector pairs, all pair_vals match)
-    for i in range(0, len(picks), len(pair_vals)):
+    for ii in range(0, len(picks), len(pair_vals)):
         # Extract a group of channels (e.g., all wavelengths for one S-D pair)
-        group_picks = picks[i : i + len(pair_vals)]
+        group_picks = picks[ii : ii + len(pair_vals)]
 
         # Parse channel names using regex to extract source, detector, and value info
         group_info = [
@@ -228,8 +229,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             break
 
     if check_bads:
-        for i in range(0, len(picks), len(pair_vals)):
-            group_picks = picks[i : i + len(pair_vals)]
+        for ii in range(0, len(picks), len(pair_vals)):
+            group_picks = picks[ii : ii + len(pair_vals)]
 
             want = [info.ch_names[pick] for pick in group_picks]
             got = list(set(info["bads"]).intersection(want))
