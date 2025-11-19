@@ -2024,7 +2024,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         write_info(fname, self, overwrite=overwrite)
 
-    def to_json_dict(self):
+    def to_json_dict(self) -> dict:
         """Convert Info to a JSON-serializable dictionary.
 
         This method converts the Info object to a standard Python dictionary
@@ -2056,7 +2056,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return _make_serializable(self)
 
     @classmethod
-    def from_json_dict(cls, data_dict):
+    def from_json_dict(cls, data_dict) -> "Info":
         """Reconstruct Info object from a dictionary.
 
         Parameters
@@ -2081,8 +2081,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         >>> info_restored = mne.Info.from_json_dict(info_dict)
         """
         data_dict = data_dict.copy()
-        info = _restore_objects(data_dict)
-        return info
+        return _restore_objects(data_dict)
 
 
 def _make_serializable(obj):
