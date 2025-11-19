@@ -188,6 +188,18 @@ _BUILTIN_STANDARD_MONTAGES = [
         name="brainproducts-RNP-BA-128",
         description="Brain Products with 10-10 electrode names (128 channels)",
     ),
+    _BuiltinStandardMontage(
+        name="ctf151",
+        description="CTF 151-channel MEG system",
+    ),
+    _BuiltinStandardMontage(
+        name="ctf275",
+        description="CTF 275-channel MEG system",
+    ),
+    _BuiltinStandardMontage(
+        name="neuromag306",
+        description="Neuromag 306-channel MEG system",
+    ),
 ]
 
 
