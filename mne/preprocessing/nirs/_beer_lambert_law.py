@@ -119,7 +119,7 @@ def beer_lambert_law(raw, ppf=6.0):
 
 
 def _load_absorption(freqs):
-    """Load molar extinction coefficients"""
+    """Load molar extinction coefficients."""
     # Data from https://omlc.org/spectra/hemoglobin/summary.html
     # The text was copied to a text file. The text before and
     # after the table was deleted. The the following was run in
