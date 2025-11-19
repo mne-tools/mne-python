@@ -1703,6 +1703,7 @@ def read_meg_montage(system, *, verbose=None):
     system : str
         The MEG system name. Currently supported: 'neuromag', 'ctf151' or
         'ctf275'.
+    %(verbose)s
 
     Returns
     -------
