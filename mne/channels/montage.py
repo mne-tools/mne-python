@@ -46,7 +46,6 @@ from ..utils import (
     _check_option,
     _on_missing,
     _pl,
-    _soft_import,
     _validate_type,
     check_fname,
     copy_function_doc_to_method_doc,
@@ -1717,8 +1716,6 @@ def read_meg_montage(system, *, verbose=None):
 
     .. versionadded:: 1.11
     """
-    pd = _soft_import("pandas")
-
     # Validate system input
     _check_option("system", system, ["neuromag", "ctf151", "ctf275"])
 
@@ -1736,36 +1733,62 @@ def read_meg_montage(system, *, verbose=None):
     if not csv_file.exists():
         raise FileNotFoundError(f"Canonical sensor file not found: {csv_file}. ")
 
-    # Read sensor definitions
-    # TODO: Refactor not to use Pandas (should be able to parse without it)
-    df = pd.read_csv(csv_file)
-
-    # Build channel info list
-    ch_names = df["name"].tolist()
+    # Read sensor definitions manually
+    ch_names = []
+    rows = []
+    with open(csv_file, "r") as fid:
+        # Read header to get column names
+        header = fid.readline().strip().split(",")
+        # Create a mapping from column name to index
+        col_idx = {name: i for i, name in enumerate(header)}
+        
+        # Read data rows
+        for line in fid:
+            values = line.strip().split(",")
+            if not values[0]:  # skip empty lines
+                continue
+            rows.append(values)
+            ch_names.append(values[col_idx["name"]])
 
     # Create base info structure
     # Use a dummy sample rate; it won't matter for field interpolation
     info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types="mag")
 
     # Update each channel with full coil information
-    for idx, row in df.iterrows():
+    for idx, row in enumerate(rows):
         ch = info["chs"][idx]
 
         # Set coil type
-        ch["coil_type"] = int(row["coil_type"])
+        ch["coil_type"] = int(row[col_idx["coil_type"]])
 
         # Set position and orientation in loc field
         # loc[0:3] = position
-        ch["loc"][:3] = [row["x"], row["y"], row["z"]]
+        ch["loc"][:3] = [
+            float(row[col_idx["x"]]),
+            float(row[col_idx["y"]]),
+            float(row[col_idx["z"]]),
+        ]
 
         # loc[3:6] = ex (first orientation vector)
-        ch["loc"][3:6] = [row["ex_x"], row["ex_y"], row["ex_z"]]
+        ch["loc"][3:6] = [
+            float(row[col_idx["ex_x"]]),
+            float(row[col_idx["ex_y"]]),
+            float(row[col_idx["ex_z"]]),
+        ]
 
         # loc[6:9] = ey (second orientation vector)
-        ch["loc"][6:9] = [row["ey_x"], row["ey_y"], row["ey_z"]]
+        ch["loc"][6:9] = [
+            float(row[col_idx["ey_x"]]),
+            float(row[col_idx["ey_y"]]),
+            float(row[col_idx["ey_z"]]),
+        ]
 
         # loc[9:12] = ez (third orientation vector / normal)
-        ch["loc"][9:12] = [row["ez_x"], row["ez_y"], row["ez_z"]]
+        ch["loc"][9:12] = [
+            float(row[col_idx["ez_x"]]),
+            float(row[col_idx["ez_y"]]),
+            float(row[col_idx["ez_z"]]),
+        ]
 
         # Set coordinate frame to device coordinates
         ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
