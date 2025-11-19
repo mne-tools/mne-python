@@ -1735,7 +1735,7 @@ def _read_gdf_header(fname, exclude, include=None):
             )
             fid.seek(etp)  # skip data to go to event table
             etmode = fid.read(1)
-            if etmode != "":
+            if isinstance(etmode, (bytes, bytearray)) and len(etmode) == 1:
                 etmode = np.frombuffer(etmode, dtype=UINT8).tolist()[0]
 
                 if edf_info["number"] < 1.94:
