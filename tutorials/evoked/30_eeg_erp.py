@@ -286,8 +286,8 @@ for evk in (l_aud, l_vis):
     evk.plot(gfp=True, spatial_colors=True, ylim=dict(eeg=[-12, 12]))
 
 # %%
-# To plot the GFP by itself, you can pass ``gfp='only'`` (this makes it easier
-# to read off the GFP data values, because the scale is aligned):
+# To plot the GFP by itself, you can pass ``gfp='only'`` (this makes it easier to
+# read off the GFP data values, because the scale is aligned):
 
 l_aud.plot(gfp="only")
 
