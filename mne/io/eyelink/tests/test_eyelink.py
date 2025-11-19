@@ -426,17 +426,6 @@ def test_multi_block_misc_channels(fname, tmp_path):
     assert raw.ch_names == chs_in_file
     assert raw.annotations.description[1] == "SYNCTIME"
 
-    print("\n=== Annotations ===")
-    for onset, duration, desc in zip(
-        raw.annotations.onset, raw.annotations.duration, raw.annotations.description
-    ):
-        print(f"{onset:.3f}s  dur={duration:.3f}s  {desc}")
-
-    print("\n=== Recording block markers ===")
-    for onset, desc in zip(raw.annotations.onset, raw.annotations.description):
-        if desc == "BAD_ACQ_SKIP":
-            print(f"BAD_ACQ_SKIP at {onset:.3f}s")
-
     assert raw.annotations.description[-7] == "BAD_ACQ_SKIP"
     assert np.isclose(raw.annotations.onset[-7], 1.001)
     assert np.isclose(raw.annotations.duration[-7], 0.1)
@@ -522,8 +511,6 @@ def test_href_eye_events(tmp_path):
         if line.startswith("ESACC"):
             href_sacc_vals = ["9999", "9999", "9999", "9999", "99.99", "999"]
             tokens[5:5] = href_sacc_vals  # add href saccade values
-            # print(f"\nLine {li}: {line}")
-            # print(f"Tokens ({len(tokens)}): {tokens}")
         elif line.startswith("EFIX"):
             tokens = line.split()
             href_fix_vals = ["9999.9", "9999.9", "999"]
