@@ -946,33 +946,12 @@ class ValidatedDict(dict):
         self._unlocked = False
 
     def __getstate__(self):
-        """Get state (for pickling and JSON serialization).
-
-        Converts all data to JSON-safe primitives so it can be used for both
-        pickle and JSON serialization. Pickle will preserve the primitive types,
-        and JSON can consume them directly.
-        """
-        # Get the dictionary data
-        state = dict(self)
-        state["_unlocked"] = self._unlocked
-
-        # Convert to JSON-safe format (works for both pickle and JSON)
-        return _make_serializable(state)
+        """Get state (for pickling)."""
+        return {"_unlocked": self._unlocked}
 
     def __setstate__(self, state):
-        """Set state (for unpickling and JSON deserialization).
-
-        Restores state from JSON-safe primitives back to native Python/MNE types.
-        """
-        # Restore from JSON-safe format (works for both pickle and JSON)
-        state = _restore_objects(state)
-
-        # Extract _unlocked before updating dict
-        unlocked = state.pop("_unlocked", True)
-        self._unlocked = True  # Unlock to allow setting
-        self.clear()
-        self.update(state)
-        self._unlocked = unlocked
+        """Set state (for pickling)."""
+        self._unlocked = state["_unlocked"]
 
     def __setitem__(self, key, val):
         """Attribute setter."""
@@ -1777,15 +1756,9 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             _restore_mne_types(self)
 
     def __setstate__(self, state):
-        """Set state (for unpickling and JSON deserialization)."""
-        # Call parent __setstate__ which will call _restore_objects
-        # to convert JSON primitives and transform dicts to native types
+        """Set state (for pickling)."""
         super().__setstate__(state)
-
-        # Restore MNE-specific types (requires unlocked state)
-        # This reconstructs MNEBadsList, DigPoint, Projection, etc.
-        with self._unlock():
-            _restore_mne_types(self)
+        self["bads"] = MNEBadsList(bads=self["bads"], info=self)
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
@@ -2051,7 +2024,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         write_info(fname, self, overwrite=overwrite)
 
-    def to_dict(self):
+    def to_json_dict(self):
         """Convert Info to a JSON-serializable dictionary.
 
         This method converts the Info object to a standard Python dictionary
@@ -2066,7 +2039,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         See Also
         --------
-        from_dict : Reconstruct Info object from dictionary.
+        from_json_dict : Reconstruct Info object from dictionary.
 
         Notes
         -----
@@ -2076,24 +2049,21 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         Examples
         --------
         >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
-        >>> info_dict = info.to_dict()
+        >>> info_dict = info.to_json_dict()
         >>> import json
         >>> json_str = json.dumps(info_dict)  # Save to JSON
         """
-        # Get JSON-safe state from __getstate__
-        state = self.__getstate__()
-
-        return state
+        return _make_serializable(self)
 
     @classmethod
-    def from_dict(cls, data_dict):
+    def from_json_dict(cls, data_dict):
         """Reconstruct Info object from a dictionary.
 
         Parameters
         ----------
         data_dict : dict
             A dictionary representation of an Info object, typically
-            created by the :meth:`to_dict` method.
+            created by the :meth:`to_json_dict` method.
 
         Returns
         -------
@@ -2102,21 +2072,16 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         See Also
         --------
-        to_dict : Convert Info to dictionary.
+        to_json_dict : Convert Info to dictionary.
 
         Examples
         --------
         >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
-        >>> info_dict = info.to_dict()
-        >>> info_restored = mne.Info.from_dict(info_dict)
+        >>> info_dict = info.to_json_dict()
+        >>> info_restored = mne.Info.from_json_dict(info_dict)
         """
-        # Remove version marker
         data_dict = data_dict.copy()
-        # Create empty Info and restore state via __setstate__
-        # which will handle JSON-safe to native type conversion
-        info = cls()
-        info.__setstate__(data_dict)
-
+        info = _restore_objects(data_dict)
         return info
 
 
@@ -2165,7 +2130,7 @@ def _make_serializable(obj):
         return str(obj)
 
 
-def _restore_objects(obj):
+def _restore_objects(obj) -> object:
     """Recursively restore objects from JSON-serializable types."""
     if obj is None:
         return None
