@@ -832,17 +832,17 @@ def test_plot_alignment_bem(renderer, evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_src(renderer):
+@pytest.mark.parametrize(
+    "src_name",
+    [src_fname, vsrc_fname],
+)
+def test_plot_alignment_src(renderer, src_name):
     """Test plotting surface and volumetric src alignment."""
-    sample_src = read_source_spaces(src_fname)
-    sample_vsrc = read_source_spaces(vsrc_fname)
+    sample_src = read_source_spaces(src_name)
+    sample_src[0]["subject_his_id"] = "sample"
 
-    # test surface src
+    # test src plot
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True, brain="white")
-    renderer.backend._close_all()
-
-    # test volumetric src
-    sample_vsrc.plot(subjects_dir=subjects_dir, head=False, skull=False, brain=False)
     renderer.backend._close_all()
 
 
