@@ -1,1 +1,1 @@
-Fixed a bug where ``mne.io.read_raw_gdf`` failed with NumPy ≥1.24 due to the removal of ``np.fromstring`` binary mode. Replaced with ``np.frombuffer`` for compatibility. (:newcontrib:`Dev Parikh`)
+Fixed a bug where ``mne.io.read_raw_gdf`` failed with NumPy ≥1.24 due to the removal of ``np.fromstring`` binary mode. Replaced with ``np.frombuffer`` for compatibility, by :newcontrib:`Dev Parikh`.
