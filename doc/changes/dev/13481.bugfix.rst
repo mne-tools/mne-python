@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.viz.plot_evoked` when using ``gfp="only"`` or ``gfp=True``, by `Michael Straube`_.
