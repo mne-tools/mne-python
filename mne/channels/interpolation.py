@@ -438,12 +438,12 @@ def _interpolate_to_eeg(inst, sensors, origin, method, reg):
     inst : instance of Raw, Epochs, or Evoked
         A new instance with interpolated data.
     """
+    from .._fiff.meas_info import create_info
+    from .._fiff.proj import _has_eeg_average_ref_proj
     from ..bem import _check_origin
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import Evoked, EvokedArray
     from ..forward._field_interpolation import _map_meg_or_eeg_channels
-    from .._fiff.meas_info import create_info
-    from .._fiff.proj import _has_eeg_average_ref_proj
     from ..io import RawArray
     from ..io.base import BaseRaw
     from ..utils import warn
