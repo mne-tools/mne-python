@@ -1,0 +1,1 @@
+Added support for parsing Eyelink ``BUTTON`` events (i.e. external controller button presses) to :func:`~mne.io.read_raw_eyelink` by :newcontrib:`Wouter Kroot`
