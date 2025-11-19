@@ -1,0 +1,1 @@
+New reader for Neuroscan Curry files, using the curry-python-reader module, by `Dominik Welke`_.

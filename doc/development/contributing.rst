@@ -304,11 +304,11 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -e ".[test]"
+    $ pip install --group=test
 
 And for building our documentation::
 
-    $ pip install -e ".[doc]"
+    $ pip install --group=doc
     $ conda install graphviz
 
 .. note::

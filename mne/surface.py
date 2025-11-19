@@ -7,7 +7,6 @@
 
 import json
 import time
-import warnings
 from collections import OrderedDict
 from copy import deepcopy
 from functools import lru_cache, partial
@@ -1472,16 +1471,12 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
         )
     src = vtkPolyData()
     vtkpoints = vtkPoints()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
     src.SetPoints(vtkpoints)
     vtkcells = vtkCellArray()
     triangles_ = np.pad(triangles, ((0, 0), (1, 0)), "constant", constant_values=3)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
-    vtkcells.SetCells(triangles.shape[0], idarr)
+    idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.ImportLegacyFormat(idarr)
     src.SetPolys(vtkcells)
     # vtkDecimatePro was not very good, even with SplittingOff and
     # PreserveTopologyOn

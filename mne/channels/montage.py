@@ -50,12 +50,17 @@ from ..utils import (
     check_fname,
     copy_function_doc_to_method_doc,
     fill_doc,
+    legacy,
     verbose,
     warn,
 )
 from ..utils.docs import docdict
 from ..viz import plot_montage
-from ._dig_montage_utils import _parse_brainvision_dig_montage, _read_dig_montage_egi
+from ._dig_montage_utils import (
+    _parse_brainvision_dig_montage,
+    _read_dig_montage_curry,
+    _read_dig_montage_egi,
+)
 
 
 @dataclass
@@ -335,7 +340,6 @@ class DigMontage:
     See Also
     --------
     read_dig_captrak
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -392,13 +396,19 @@ class DigMontage:
             axes=axes,
         )
 
-    @fill_doc
-    def rename_channels(self, mapping, allow_duplicates=False):
+    @verbose
+    def rename_channels(
+        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+    ):
         """Rename the channels.
 
         Parameters
         ----------
         %(mapping_rename_channels_duplicates)s
+        %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
+        %(verbose)s
 
         Returns
         -------
@@ -408,7 +418,7 @@ class DigMontage:
         from .channels import rename_channels
 
         temp_info = create_info(list(self._get_ch_pos()), 1000.0, "eeg")
-        rename_channels(temp_info, mapping, allow_duplicates)
+        rename_channels(temp_info, mapping, allow_duplicates, on_missing=on_missing)
         self.ch_names = temp_info["ch_names"]
         return self
 
@@ -764,6 +774,7 @@ def transform_to_head(montage):
     return montage
 
 
+@legacy(alt="read_dig_curry()")
 def read_dig_dat(fname):
     r"""Read electrode positions from a ``*.dat`` file.
 
@@ -786,7 +797,7 @@ def read_dig_dat(fname):
     See Also
     --------
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -852,9 +863,9 @@ def read_dig_fif(fname, *, verbose=None):
     See Also
     --------
     DigMontage
-    read_dig_dat
     read_dig_egi
     read_dig_captrak
+    read_dig_curry
     read_dig_polhemus_isotrak
     read_dig_hpts
     read_dig_localite
@@ -905,7 +916,7 @@ def read_dig_hpts(fname, unit="mm"):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_localite
@@ -998,7 +1009,7 @@ def read_dig_egi(fname):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_fif
     read_dig_hpts
     read_dig_localite
@@ -1030,7 +1041,7 @@ def read_dig_captrak(fname):
     See Also
     --------
     DigMontage
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1042,6 +1053,51 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
+
+
+def read_dig_curry(fname):
+    """Read electrode locations from Neuroscan Curry files.
+
+    Parameters
+    ----------
+    fname : path-like
+        A valid Curry file.
+
+    Returns
+    -------
+    montage : instance of DigMontage | None
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrak
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_localite
+    read_dig_polhemus_isotrak
+    make_dig_montage
+
+    Notes
+    -----
+    .. versionadded:: 1.11
+    """
+    from ..io.curry.curry import (
+        _check_curry_filename,
+        _extract_curry_info,
+    )
+
+    # TODO - REVIEW NEEDED
+    fname = _check_curry_filename(fname)
+    (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _, _) = (
+        _extract_curry_info(fname)
+    )
+    data = _read_dig_montage_curry(
+        ch_names, ch_types, ch_pos, landmarks, landmarkslabels
+    )
+    mont = make_dig_montage(**data) if data else None
+    return mont
 
 
 def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
@@ -1067,7 +1123,7 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1468,7 +1524,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
     make_dig_montage
     read_polhemus_fastscan
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_localite
@@ -1946,8 +2002,8 @@ def make_standard_montage(kind, head_size="auto"):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
-    :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
+    :func:`read_dig_captrak`, :func:`read_dig_curry`,
+    :func:`read_dig_egi`, :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts`, or manually made with :func:`make_dig_montage`.
 
     .. versionadded:: 0.19.0
