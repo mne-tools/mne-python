@@ -9,7 +9,7 @@ import numpy as np
 from scipy.signal import spectrogram
 
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, logger, verbose
+from ..utils import _check_option, _ensure_int, logger, verbose, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
@@ -227,10 +227,9 @@ def psd_array_welch(
         bad_ch = np.zeros(x.shape[0], dtype=bool)
 
     if bad_ch.any():
-        warnings.warn(
+        warn(
             "Non-finite values (NaN/Inf) detected in some channels; PSD for "
             "those channels will be NaN.",
-            RuntimeWarning,
         )
         # avoid downstream NumPy warnings by zeroing bad channels;
         # will overwrite their PSD rows with NaN at the end
