@@ -132,9 +132,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # (hbo, hbr) or (lowest_freq, higher_freq, ...) pairings, both of which will
     # work with a naive string sort, so let's just enforce sorted-ness here
     is_str = pair_vals.dtype.kind == "U"
-    pair_vals = list(pair_vals)
     if is_str:
-        if pair_vals != ["hbo", "hbr"]:
+        if pair_vals.tolist() != ["hbo", "hbr"]:
             raise ValueError(
                 f'The {error_word} in info must be ["hbo", "hbr"], but got '
                 f"{pair_vals} instead"
@@ -156,19 +155,22 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         )
 
     # Ensure wavelength info exists for waveform data
-    all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
-    if len(pair_vals) != len(set(all_freqs)):
-        picks = _throw_or_return_empty(
-            f"The {error_word} in info must match the number of wavelengths, "
-            f"but the data contains {len(set(all_freqs))} wavelengths instead.",
-            throw_errors,
-        )
-    if np.any(np.isnan(all_freqs)):
-        picks = _throw_or_return_empty(
-            f"NIRS channels is missing wavelength information in the "
-            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
-            throw_errors,
-        )
+    if len(picks_wave) > 0:
+        all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
+        # test for nan values first as those mess up the output of set()
+        if np.any(np.isnan(all_freqs)):
+            picks = _throw_or_return_empty(
+                f"NIRS channels is missing wavelength information in the "
+                f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
+                throw_errors,
+            )
+        # test if the info structure has the same number of freqs as pair_vals
+        if len(pair_vals) != len(set(all_freqs)):
+            picks = _throw_or_return_empty(
+                f"The {error_word} in info must match the number of wavelengths, "
+                f"but the data contains {len(set(all_freqs))} wavelengths instead.",
+                throw_errors,
+            )
 
     # Validate the channel naming scheme
     for pick in picks:
@@ -182,8 +184,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             )
             break
         value = ch_name_info.groups()[2]
-        if len(picks_wave):
-            value = value
+        if len(picks_wave) > 0:
+            pass
         else:  # picks_chroma
             if value not in ["hbo", "hbr"]:
                 picks = _throw_or_return_empty(
@@ -214,16 +216,18 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
 
         # For wavelength data, convert string frequencies to float for comparison
         if len(picks_wave) > 0:
-            val_group = [float(v) for v in val_group]
+            val_group = np.array([float(v) for v in val_group])
 
         # Verify that all channels in this group have the same source-detector pair
         # and that the values match the expected pair_vals sequence
         if not (
-            len(set(s_group)) == 1 and len(set(d_group)) == 1 and val_group == pair_vals
+            len(set(s_group)) == 1
+            and len(set(d_group)) == 1
+            and np.array_equal(val_group, pair_vals)
         ):
             picks = _throw_or_return_empty(
                 "NIRS channels not ordered correctly. Channels must be "
-                "grouped by source-detector pairs with alternating {error_word} "
+                f"grouped by source-detector pairs with alternating {error_word} "
                 f"values {pair_vals}, but got mismatching names "
                 f"{[info['ch_names'][pick] for pick in group_picks]}.",
                 throw_errors,
