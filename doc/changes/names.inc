@@ -67,6 +67,7 @@
 .. _David Sabbagh: https://github.com/DavidSabbagh
 .. _Demetres Kostas: https://github.com/kostasde
 .. _Denis Engemann: https://denis-engemann.de
+.. _Dev Parikh: https://github.com/devparikh0506
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 .. _Diptyajit Das: https://github.com/dasdiptyajit
 .. _Dirk Gütlin: https://github.com/DiGyt
@@ -339,6 +340,7 @@
 .. _Victoria Peterson: https://github.com/vpeterson
 .. _Wei Xu: https://github.com/psyxw
 .. _Will Turner: https://bootstrapbill.github.io
+.. _Wouter Kroot: https://github.com/WouterKroot
 .. _Xabier de Zuazo: https://github.com/zuazo
 .. _Xiaokai Xia: https://github.com/dddd1007
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
