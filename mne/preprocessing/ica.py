@@ -891,6 +891,9 @@ class ICA(ContainsMixin):
 
     def _fit(self, data, fit_type):
         """Aux function."""
+        if not np.isfinite(data).all():
+            raise ValueError("Input data contains non-finite values (NaN/Inf). ")
+
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
         self._compute_pre_whitener(data)

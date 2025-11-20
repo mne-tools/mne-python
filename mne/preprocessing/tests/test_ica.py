@@ -1746,3 +1746,30 @@ def test_ica_get_sources_concatenated():
     # get sources
     raw_sources = ica.get_sources(raw_concat)  # but this only has 3 seconds of data
     assert raw_concat.n_times == raw_sources.n_times  # this will fail
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The data has not been high-pass filtered.:RuntimeWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:invalid value encountered in subtract:RuntimeWarning"
+)
+def test_ica_rejects_nonfinite():
+    """ICA.fit should fail early on NaN/Inf in the input data."""
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], sfreq=100.0, ch_types="eeg")
+    rng = np.random.RandomState(1)
+    data = rng.standard_normal(size=(4, 1000))
+
+    # Case 1: NaN
+    raw = RawArray(data.copy(), info)
+    raw._data[0, 25] = np.nan
+    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
+        ica.fit(raw)
+
+    # Case 2: Inf
+    raw = RawArray(data.copy(), info)
+    raw._data[1, 50] = np.inf
+    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
+        ica.fit(raw)
