@@ -1,1 +1,3 @@
-Correctly set the calibration factor in Nihon Kohden reader (which affects channel amplitudes), by `Tom Ma`_.
+Improved error message when non-finite values (NaN/Inf) are detected in calls to
+:meth:`inst.compute_psd(method="welch") <mne.io.Raw.compute_psd>` or
+:meth:`ICA.fit() <mne.preprocessing.ICA.fit>`, by :newcontrib:`Emma Zhang`.
