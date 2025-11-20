@@ -1999,6 +1999,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         return ch_names
 
+    @property
+    def _cals(self):
+        return np.array([ch["range"] * ch["cal"] for ch in self["chs"]], float)
+
     @repr_html
     def _repr_html_(self):
         """Summarize info for HTML representation."""

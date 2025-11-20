@@ -19,8 +19,12 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from pytest import StashKey
+from pytest import StashKey, register_assert_rewrite
 
+# Any `assert` statements in our testing functions should be verbose versions
+register_assert_rewrite("mne.utils._testing")
+
+# ruff: noqa: E402
 import mne
 from mne import Epochs, pick_types, read_events
 from mne.channels import read_layout
@@ -39,11 +43,10 @@ from mne.utils import (
     check_version,
     numerics,
 )
-
-# data from sample dataset
 from mne.viz._figure import use_browser_backend
 from mne.viz.backends._utils import _init_mne_qtapp
 
+# data from sample dataset
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, "MEG", "sample")
 fname_evoked = op.join(s_path, "sample_audvis_trunc-ave.fif")

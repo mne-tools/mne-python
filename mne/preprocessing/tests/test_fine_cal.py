@@ -19,7 +19,7 @@ from mne.preprocessing import (
     write_fine_calibration,
 )
 from mne.preprocessing.tests.test_maxwell import _assert_shielding
-from mne.transforms import _angle_dist_between_rigid
+from mne.transforms import angle_distance_between_rigid
 from mne.utils import catch_logging, object_diff
 
 # Define fine calibration filepaths
@@ -127,19 +127,19 @@ def test_compute_fine_cal(kind):
     orig_trans = _loc_to_coil_trans(orig_locs)
     want_trans = _loc_to_coil_trans(want_locs)
     got_trans = _loc_to_coil_trans(got_locs)
-    want_orig_angles, want_orig_dist = _angle_dist_between_rigid(
+    want_orig_angles, want_orig_dist = angle_distance_between_rigid(
         want_trans,
         orig_trans,
         angle_units="deg",
         distance_units="mm",
     )
-    got_want_angles, got_want_dist = _angle_dist_between_rigid(
+    got_want_angles, got_want_dist = angle_distance_between_rigid(
         got_trans,
         want_trans,
         angle_units="deg",
         distance_units="mm",
     )
-    got_orig_angles, got_orig_dist = _angle_dist_between_rigid(
+    got_orig_angles, got_orig_dist = angle_distance_between_rigid(
         got_trans,
         orig_trans,
         angle_units="deg",
