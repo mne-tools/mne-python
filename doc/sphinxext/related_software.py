@@ -64,10 +64,6 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/mind-inria/picard",
         "Summary": "Preconditioned ICA for Real Data",
     },
-    "mne-features": {
-        "Home-page": "https://mne.tools/mne-features",
-        "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
-    },
     "mffpy": {
         "Home-page": "https://github.com/BEL-Public/mffpy",
         "Summary": "Reader and Writer for Philips' MFF file format.",
