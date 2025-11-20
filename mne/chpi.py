@@ -1638,7 +1638,7 @@ def refit_hpi(
     gof_limit=0.98,
     dist_limit=0.005,
     use=None,
-    linearity_limit=0,
+    colinearity_limit=0,
     verbose=None,
 ):
     """Refit HPI coil order.
@@ -1654,10 +1654,12 @@ def refit_hpi(
         Whether to recompute the HPI amplitudes (slopes) from the raw data obtained
         during the original fit using :func:`~mne.chpi.compute_chpi_amplitudes`,
         or used the already-computed ones stored in ``info['hpi_meas']``.
+        If this is True, ``locs`` and ``order`` must also be True.
     locs : bool
         Whether to recompute the HPI coil locations using
         :func:`~mne.chpi.compute_chpi_locs`, or use the already-computed ones stored in
         ``info['hpi_results']``.
+        If this is True, ``order`` must also be True.
     order : bool
         Whether to refit the coil order by testing all permutations for the best
         goodness of fit between digitized coil locations and (rigid-transformed)
@@ -1672,10 +1674,10 @@ def refit_hpi(
         The maximum number of coils to use when testing different coil orderings.
         The default for ``hpifit`` in MEGIN software is 3. Default (None) means to
         use all coils above ``gof_limit``. Can also be an ndarray of coil indices
-        (0-indexed!) to use, e.g., ``[2, 3, 5]``.
-    linearity_limit : float
-        The RMS limit (in meters) to use when checking for colinearity of coils.
-        If the RMS difference between the used points and a best-fit linear
+        (0-indexed!) to use, e.g., ``[1, 2, 4]``.
+    colinearity_limit : float
+        The RMS limit (in meters) to use when checking for colinearity of coil
+        locations. If the RMS difference between the used points and a best-fit linear
         approximation is less than this limit, a warning is emitted.
         The default (``0``) avoids colinearity warnings altogether.
         The appropriate value here is dataset dependent, but for one problematic
@@ -1703,7 +1705,7 @@ def refit_hpi(
        for the best goodness of fit between digitized coil locations and
        (rigid-transformed) fitted coil locations.
     4. Subselect coils to use for fitting ``dev_head_t`` based on ``gof_limit``,
-       ``dist_limit``, and ``max_use``.
+       ``dist_limit``, and ``use``.
     5. Update info inplace by modifying ``info["dev_head_t"]`` and appending new entries
        to ``info["hpi_meas"]`` and ``info["hpi_results"]``.
 
@@ -1743,7 +1745,7 @@ def refit_hpi(
     _validate_type(locs, bool, "locs")
     _validate_type(order, bool, "order")
     _validate_type(dist_limit, "numeric", "dist_limit")
-    _validate_type(linearity_limit, "numeric", "linearity_limit")
+    _validate_type(colinearity_limit, "numeric", "colinearity_limit")
     if amplitudes and not locs:
         raise ValueError(
             "If amplitudes is True, locs must also be True (otherwise "
@@ -1854,7 +1856,7 @@ def refit_hpi(
     # Sanity check linearity of points
     # The threshold of 3cm was empirically determined by looking at a known problematic
     # dataset and seeing when it was fixed.
-    limit_cm = linearity_limit * 1e2
+    limit_cm = colinearity_limit * 1e2
     min_kind, min_cm = "", np.inf
     for kind, pts in [
         ("digitized", hpi_head[fit_order][used]),
@@ -1893,12 +1895,11 @@ def refit_hpi(
     results["order"][:] = fit_order + 1  # make 1-indexed
     results["goodness"][:] = hpi_gofs
     results["good_limit"] = gof_limit
-    results["moments"][:] = fit_locs["moments"][0]
+    results["moments"][:] = fit_locs["moments"][0]  # ndarray, shape (n_coils, 3)
     results["dist_limit"] = dist_limit
     del fit_locs
     for ci, loc in enumerate(hpi_dev):
         results["dig_points"][ci]["r"][:] = loc.astype(float)
-    # result["moments"] = ndarray, shape (n_coils, 3)
     del hpi_dev, fit_dev_head_t, fit_order
     meas = copy.deepcopy(old_meas)
     meas["used"] = np.arange(1, n_coils + 1)  # we use all of them
