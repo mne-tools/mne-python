@@ -1,2 +1,0 @@
-Fail early with a clear error when non-finite values (NaN/Inf) are present
-in PSD (Welch) and in ICA.fit, avoiding deep assertion failures by :newcontrib: `Emma Zhang`

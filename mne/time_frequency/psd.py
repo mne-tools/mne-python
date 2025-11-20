@@ -200,15 +200,42 @@ def psd_array_welch(
     del freq_mask
     freqs = freqs[freq_sl]
 
-    # Hard error on Inf inside analyzed samples
-    step = max(n_per_seg - n_overlap, 1)
-    n_segments = 1 + (n_times - n_per_seg) // step if n_times >= n_per_seg else 0
-    analyzed_end = step * (n_segments - 1) + n_per_seg if n_segments > 0 else 0
-    if analyzed_end > 0 and np.isinf(x[..., :analyzed_end]).any():
-        raise ValueError(
-            "Input data contains non-finite values (Inf) in the analyzed time span. "
-            "Clean or drop bad segments before computing the PSD."
+    step = max(int(n_per_seg) - int(n_overlap), 1)
+    if n_times >= n_per_seg:
+        n_segments = 1 + (n_times - n_per_seg) // step
+        analyzed_end = step * (n_segments - 1) + n_per_seg
+    else:
+        n_segments = 0
+        analyzed_end = 0
+
+    nan_mask_full = np.isnan(x)
+    nan_present = nan_mask_full.any()
+    if nan_present:
+        good_mask_full = ~nan_mask_full
+        aligned_nan = np.allclose(good_mask_full, good_mask_full[[0]], equal_nan=True)
+    else:
+        aligned_nan = False
+
+    if analyzed_end > 0:
+        # Inf always counts as non-finite per-channel
+        nonfinite_mask = np.isinf(x[..., :analyzed_end])
+        # NaNs count per-channel only if NOT aligned (i.e., not annotations)
+        if nan_present and not aligned_nan:
+            nonfinite_mask |= nan_mask_full[..., :analyzed_end]
+        bad_ch = nonfinite_mask.any(axis=-1)
+    else:
+        bad_ch = np.zeros(x.shape[0], dtype=bool)
+
+    if bad_ch.any():
+        warnings.warn(
+            "Non-finite values (NaN/Inf) detected in some channels; PSD for "
+            "those channels will be NaN.",
+            RuntimeWarning,
         )
+        # avoid downstream NumPy warnings by zeroing bad channels;
+        # will overwrite their PSD rows with NaN at the end
+        x = x.copy()
+        x[bad_ch] = 0.0
 
     # Parallelize across first N-1 dimensions
     logger.debug(
@@ -227,16 +254,9 @@ def psd_array_welch(
         window=window,
         mode=mode,
     )
-    if np.any(np.isnan(x)):
-        good_mask = ~np.isnan(x)
-        # NaNs originate from annot, so must match for all channels. Note that we CANNOT
-        # use np.testing.assert_allclose() here; it is strict about shapes/broadcasting
-        if not np.allclose(good_mask, good_mask[[0]], equal_nan=True):
-            raise ValueError(
-                "Input data contains NaN masks that are not aligned across channels; "
-                "make NaN spans consistent across channels or clean/drop bad segments."
-            )
-        # assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
+    if nan_present and aligned_nan:
+        # Aligned NaNs across channels → treat as bad annotations.
+        good_mask = ~nan_mask_full
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
         # weights reflect the number of samples used from each span. For spans longer
@@ -272,6 +292,12 @@ def psd_array_welch(
                 return _func(*args, **kwargs)
 
     else:
+        # Either no NaNs, or NaNs are not aligned across channels.
+        if nan_present and not aligned_nan:
+            logger.info(
+                "NaN masks are not aligned across channels; treating NaNs as "
+                "per-channel contamination."
+            )
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
         func = _func
@@ -283,5 +309,9 @@ def psd_array_welch(
     shape = dshape + (len(freqs),)
     if average is None:
         shape = shape + (-1,)
+
+    if bad_ch.any():
+        psds[bad_ch] = np.nan
+
     psds.shape = shape
     return psds, freqs

@@ -1758,18 +1758,18 @@ def test_ica_rejects_nonfinite():
     """ICA.fit should fail early on NaN/Inf in the input data."""
     info = create_info(["Fz", "Cz", "Pz", "Oz"], sfreq=100.0, ch_types="eeg")
     rng = np.random.RandomState(1)
-    data = rng.randn(4, 1000)
+    data = rng.standard_normal(size=(4, 1000))
 
     # Case 1: NaN
     raw = RawArray(data.copy(), info)
     raw._data[0, 25] = np.nan
     ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
-    with pytest.raises(ValueError, match=r"Input data contains non[- ]?finite values"):
+    with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)
 
     # Case 2: Inf
     raw = RawArray(data.copy(), info)
     raw._data[1, 50] = np.inf
     ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
-    with pytest.raises(ValueError, match=r"Input data contains non[- ]?finite values"):
+    with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)

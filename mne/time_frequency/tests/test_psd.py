@@ -228,23 +228,34 @@ def test_psd_array_welch_n_jobs():
     psd_array_welch(data, 1024, n_jobs=2)
 
 
-def test_psd_raises_on_inf_in_analyzed_window_array():
+def test_psd_nan_in_data():
     """psd_array_welch should fail if +Inf lies inside analyzed samples."""
     n_samples, n_fft, n_overlap = 2048, 256, 128
     rng = np.random.RandomState(0)
-    x = rng.randn(1, n_samples)
+    x = rng.standard_normal(size=(2, n_samples))
     # Put +Inf inside the series; this falls within Welch windows
-    x[0, 800] = np.inf
-    with pytest.raises(ValueError, match="non[- ]?finite|NaN|Inf"):
-        psd_array_welch(x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    x[0, 800] = np.inf  # Channel 0 has Inf → bad channel
+    with pytest.warns(RuntimeWarning, match="Non-finite values"):
+        psds, freqs = psd_array_welch(x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+
+    # Channel 0 is contaminated → NaN PSD
+    assert np.isnan(psds[0]).all()
+
+    # Channel 1 is clean → has finite PSD values
+    assert np.isfinite(psds[1]).any()
 
 
-def test_psd_raises_on_misaligned_nan_across_channels():
-    """If NaNs are present but masks are NOT aligned across channels, raise."""
+def test_psd_misaligned_nan_across_channels():
+    """If NaNs are present but masks are NOT aligned across channels."""
     n_samples, n_fft, n_overlap = 2048, 256, 128
     rng = np.random.RandomState(42)
-    x = rng.randn(2, n_samples)
+    x = rng.standard_normal(size=(2, n_samples))
     # NaN only in ch0; ch1 has no NaN => masks not aligned -> should raise
     x[0, 500] = np.nan
-    with pytest.raises(ValueError, match="aligned|not aligned|non[- ]?finite|NaN|Inf"):
-        psd_array_welch(x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    with pytest.warns(RuntimeWarning, match="Non-finite values"):
+        psds, freqs = psd_array_welch(x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    # Bad channel gets NaN PSD
+    assert np.isnan(psds[0]).all()
+
+    # Good channel retains finite values
+    assert np.isfinite(psds[1]).any()
