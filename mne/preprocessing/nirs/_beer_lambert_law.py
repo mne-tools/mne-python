@@ -80,8 +80,8 @@ def beer_lambert_law(raw, ppf=6.0):
     channels_to_drop_all = []  # Accumulate all channels to drop
 
     # Iterate over channel groups ([Si_Di all wavelengths, Sj_Dj all wavelengths, ...])
-    pick_groups = zip(*[iter(picks)] * n_wavelengths)
-    for group_picks in pick_groups:
+    for ii in range(0, len(picks), n_wavelengths):
+        group_picks = picks[ii : ii + n_wavelengths]
         # Calculate Δc based on the system: ΔOD = E * L * PPF * Δc
         # where E is (n_wavelengths, 2), Δc is (2, n_timepoints)
         # using pseudo-inverse
