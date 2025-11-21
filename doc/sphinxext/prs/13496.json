@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dc61256b5b13c9c0e5f743f2f9f905ddd53402ed",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/development/governance.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/overview/people.rst": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

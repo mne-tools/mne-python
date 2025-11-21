@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "0a06818fc780ce2a344b7fe70c7acdb8ac90ca9f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/api/preprocessing.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/dev/13484.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 334,
+      "d": 16
+    },
+    "mne/conftest.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 154,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 35,
+      "d": 7
+    },
+    "mne/utils/_testing.py": {
+      "a": 78,
+      "d": 18
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

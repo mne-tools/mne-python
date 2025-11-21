@@ -1,1 +1,0 @@
-Add ability to refit HPI order and device-to-head transform via :func:`mne.chpi.refit_hpi` and compute distances between transforms with :func:`mne.transforms.angle_distance_between_rigid` by `Eric Larson`_.

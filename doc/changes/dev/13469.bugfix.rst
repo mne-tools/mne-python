@@ -1,1 +1,0 @@
-Make :func:`mne.preprocessing.eyetracking.read_eyelink_calibration` robust to files with blank lines, by `Scott Huberty`_.

@@ -1,1 +1,0 @@
-Added the ``annotation_regex`` parameter to :func:`mne.viz.plot_raw` and :func:`mne.viz.plot_ica_sources`, allowing automatic hiding of annotations that do not match the specified regular expression. The same functionality is available via :meth:`mne.io.Raw.plot` and :meth:`mne.preprocessing.ICA.plot_sources`. Contributed by `Johannes Herforth`_.

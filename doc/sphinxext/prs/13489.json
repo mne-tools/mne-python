@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ff3e0d509dc755593ae8cc89ddcfa90313ce9d1a",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13489.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 246,
+      "d": 33
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 132,
+      "d": 1
+    }
+  }
+}

@@ -1,1 +1,0 @@
-Fix bug where :meth:`mne.channels.DigMontage.plot` would error when ``axes`` was passed by `Christian O'Reilly`_.

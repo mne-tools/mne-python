@@ -1,1 +1,0 @@
-Fix loading problems caused by attempting to iterate floats in :func:`~mne.read_epochs_eeglab` for specific EEGLab data, by :newcontrib:`Emrecan Çelik`.

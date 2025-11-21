@@ -1,1 +1,0 @@
-Support for preloading=False when reading .set files, by `Bruno Aristimunha`_.

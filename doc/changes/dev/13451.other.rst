@@ -1,1 +1,0 @@
-Add a SPEC0-like policy in which minimum-supported versions for select dependencies are set to the latest minor release that was available 2 years prior, by `Thomas Binns`_
