@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
+
 import numpy as np
 
 from ..utils import Bunch, _check_fname, _soft_import, warn
@@ -94,3 +96,46 @@ def _parse_brainvision_dig_montage(fname, scale):
         ch_pos=dig_ch_pos,
         coord_frame="unknown",
     )
+
+
+def _read_dig_montage_curry(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
+    # scale ch_pos to m?!
+    ch_pos /= 1000.0
+    landmarks /= 1000.0
+    # channel locations
+    # what about misc without pos? can they mess things up if unordered?
+    assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
+    assert len(ch_pos) == (ch_types.count("mag") + ch_types.count("eeg"))
+    ch_pos_eeg = {
+        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "eeg"
+    }
+    # landmarks and headshape
+    landmark_dict = dict(zip(landmarkslabels, landmarks))
+    for k in ["Nas", "RPA", "LPA"]:
+        if k not in landmark_dict.keys():
+            landmark_dict[k] = None
+    if len(landmarkslabels) > 0:
+        hpi_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)], :
+        ]
+    else:
+        hpi_pos = None
+    if len(landmarkslabels) > 0:
+        hsp_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
+        ]
+    else:
+        hsp_pos = None
+    # compile dig montage positions for eeg
+    if len(ch_pos_eeg) > 0:
+        return dict(
+            ch_pos=ch_pos_eeg,
+            nasion=landmark_dict["Nas"],
+            lpa=landmark_dict["LPA"],
+            rpa=landmark_dict["RPA"],
+            hsp=hsp_pos,
+            hpi=hpi_pos,
+            coord_frame="unknown",
+        )
+    else:  # not recorded?
+        raise ValueError("No eeg sensor locations found in header file.")

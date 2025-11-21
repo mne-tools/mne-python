@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import json
 import pickle
 import string
 from datetime import date, datetime, timedelta, timezone
@@ -61,7 +62,7 @@ from mne.channels import (
 )
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_fif
+from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_edf, read_raw_fif
 from mne.minimum_norm import (
     apply_inverse,
     make_inverse_operator,
@@ -351,6 +352,136 @@ def test_read_write_info(tmp_path):
     fname = tmp_path / "test.fif"
     with pytest.raises(RuntimeError, match="must be between "):
         write_info(fname, info, overwrite=True)
+
+
+@testing.requires_testing_data
+def test_info_serialization_roundtrip(tmp_path):
+    """Test Info JSON serialization with real MEG data."""
+    # Test with real MEG/FIF file
+    raw = read_raw_fif(raw_fname, preload=False, verbose=False)
+    _complete_info(raw.info)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
+
+
+def test_info_serialization_edf(tmp_path):
+    """Test Info JSON serialization with EDF data."""
+    edf_path = root_dir / "io" / "edf" / "tests" / "data" / "test.edf"
+    raw = read_raw_edf(edf_path, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info_edf.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
+
+
+def test_info_serialization_special_types():
+    """Test that special types (NamedInt, dates, etc.) are preserved correctly."""
+    from mne.utils._bunch import NamedInt
+
+    # Create info with various special types
+    info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
+
+    # Test meas_date (datetime)
+    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=timezone.utc)
+    with info._unlock():
+        info["meas_date"] = meas_date
+
+    # Test subject_info with birthday (date)
+    info["subject_info"] = {
+        "id": 1,
+        "his_id": "SUBJ001",
+        "birthday": date(1990, 1, 15),
+        "sex": 1,
+    }
+
+    # Roundtrip through JSON
+    info_dict = info.to_json_dict()
+    json_str = json.dumps(info_dict)
+    info_restored = Info.from_json_dict(json.loads(json_str))
+
+    # Verify special types are preserved
+    assert isinstance(info_restored["meas_date"], datetime)
+    assert info_restored["meas_date"] == meas_date
+    assert isinstance(info_restored["subject_info"]["birthday"], date)
+    assert info_restored["subject_info"]["birthday"] == date(1990, 1, 15)
+    assert isinstance(info_restored["custom_ref_applied"], NamedInt)
+    assert repr(info["custom_ref_applied"]) == repr(info_restored["custom_ref_applied"])
+
+
+@testing.requires_testing_data
+def test_info_serialization_numpy_arrays(tmp_path):
+    """Test that numpy arrays (e.g., compensation matrices) serialize correctly."""
+    # Use CTF data which has compensation matrices
+    raw = read_raw_ctf(ctf_fname, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Verify we have compensation data with matrices
+    assert len(info["comps"]) > 0, "CTF data should have compensation matrices"
+
+    # Check the structure of compensation matrices before serialization
+    for comp in info["comps"]:
+        assert "data" in comp
+        assert "data" in comp["data"]
+        comp_matrix = comp["data"]["data"]
+        assert isinstance(comp_matrix, np.ndarray), (
+            "Compensation matrix should be numpy array"
+        )
+        assert comp_matrix.ndim == 2, "Compensation matrix should be 2D"
+        assert comp_matrix.shape[0] > 0 and comp_matrix.shape[1] > 0
+
+    # Save to JSON
+    json_path = tmp_path / "info_with_comps.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify compensation matrices are preserved correctly
+    assert len(info_restored["comps"]) == len(info["comps"])
+
+    for orig_comp, rest_comp in zip(info["comps"], info_restored["comps"]):
+        orig_matrix = orig_comp["data"]["data"]
+        rest_matrix = rest_comp["data"]["data"]
+
+        # Verify it's a numpy array with correct shape
+        assert isinstance(rest_matrix, np.ndarray)
+        assert rest_matrix.shape == orig_matrix.shape
+        assert rest_matrix.ndim == 2
+
+        # Verify the actual values are preserved
+        assert_allclose(rest_matrix, orig_matrix, rtol=1e-10)
+
+        # Verify row and column names are preserved
+        assert orig_comp["data"]["row_names"] == rest_comp["data"]["row_names"]
+        assert orig_comp["data"]["col_names"] == rest_comp["data"]["col_names"]
+
+    # Use assert_object_equal for comprehensive check
+    assert_object_equal(info, info_restored)
 
 
 @testing.requires_testing_data

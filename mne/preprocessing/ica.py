@@ -891,6 +891,9 @@ class ICA(ContainsMixin):
 
     def _fit(self, data, fit_type):
         """Aux function."""
+        if not np.isfinite(data).all():
+            raise ValueError("Input data contains non-finite values (NaN/Inf). ")
+
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
         self._compute_pre_whitener(data)
@@ -1295,8 +1298,10 @@ class ICA(ContainsMixin):
             picks = pick_channels(raw.ch_names, add_channels)
             data_ = np.concatenate([data_, raw.get_data(picks, start=start, stop=stop)])
         out._data = data_
-        out._first_samps = [out.first_samp]
-        out._last_samps = [out.last_samp]
+        out_first_samp = out.first_samp
+        out_last_samp = out.last_samp
+        out._first_samps = [out_first_samp]
+        out._last_samps = [out_last_samp]
         out.filenames = [None]
         out.preload = True
         out._projector = None

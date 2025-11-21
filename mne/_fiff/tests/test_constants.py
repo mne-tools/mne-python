@@ -10,7 +10,6 @@ import zipfile
 import numpy as np
 import pooch
 import pytest
-from flaky import flaky
 
 from mne._fiff.constants import (
     FIFF,
@@ -118,7 +117,7 @@ _aliases = dict(
 )
 
 
-@flaky
+@pytest.mark.flaky
 @requires_good_network
 @pytest.mark.ultraslowtest  # not that slow, just doesn't need to run very often
 def test_constants(tmp_path):

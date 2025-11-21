@@ -3035,6 +3035,13 @@ offset : int
     .. versionadded:: 0.12
 """
 
+docdict["on_bad_hpi_match"] = """
+on_bad_hpi_match : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when there is poor matching of HPI coordinates
+    (>10mm difference) for device - head transform.
+"""
+
 docdict["on_baseline_ica"] = """
 on_baseline : str
     How to handle baseline-corrected epochs or evoked data.

@@ -9,7 +9,6 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
-from flaky import flaky
 from numpy.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -769,7 +768,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
         raw = read_raw_eeglab(file_path, preload=True)
 
 
-@flaky
+@pytest.mark.flaky
 @testing.requires_testing_data
 @pytest.mark.timeout(10)
 @pytest.mark.slowtest  # has the advantage of not running on macOS where it errs a lot

@@ -36,7 +36,6 @@ doc = [
 ]
 test = [
   "codespell",
-  "flaky",
   "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy",
   "numpydoc",
@@ -44,6 +43,7 @@ test = [
   "pytest >= 8.0",
   "pytest-cov",
   "pytest-qt",
+  "pytest-rerunfailures",
   "pytest-timeout",
   "ruff",
   "toml-sort",
@@ -130,6 +130,7 @@ full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # and mne[full-pyside6], which will install PySide6 instead of PyQt6.
 full-no-qt = [
   "antio >= 0.5.0",
+  "curryreader >= 0.1.2",
   "darkdetect",
   "defusedxml",
   "dipy",

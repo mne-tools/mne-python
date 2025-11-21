@@ -46,6 +46,7 @@ from ..utils import (
     _check_preload,
     _pl,
     _validate_type,
+    _verbose_safe_false,
     check_random_state,
     logger,
     verbose,
@@ -793,7 +794,14 @@ def _iter_forward_solutions(
         info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     mri_head_t, trans = _get_trans(trans)
     sensors, rr, info, update_kwargs, bem = _prepare_for_forward(
-        src, mri_head_t, info, bem, mindist, n_jobs, allow_bem_none=True, verbose=False
+        src,
+        mri_head_t,
+        info,
+        bem,
+        mindist,
+        n_jobs,
+        allow_bem_none=True,
+        verbose=_verbose_safe_false(),
     )
     del (src, mindist)
 
