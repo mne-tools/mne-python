@@ -29,6 +29,7 @@ dependencies:
   - matplotlib >=3.8
   - mffpy >=0.5.7
   - mne-qt-browser
+  - nest-asyncio2
   - nibabel
   - nilearn
   - nomkl

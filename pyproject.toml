@@ -150,6 +150,7 @@ full-no-qt = [
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
+  "nest-asyncio2",
   "nibabel",
   "nilearn",
   "numba",
