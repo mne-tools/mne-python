@@ -1,1 +1,0 @@
-Added :meth:`mne.Info.to_json_dict` and :meth:`mne.Info.from_json_dict` methods to enable JSON serialization and deserialization of :class:`mne.Info` objects, preserving all data types including numpy arrays, datetime objects, and special MNE types, by `Bruno Aristimunha`_.

@@ -60,10 +60,6 @@ MANUAL_PACKAGES = {
         "Summary": "Open-source Python toolkit for MEG and EEG data analysis.",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
-    "python-picard": {  # https://github.com/mind-inria/picard/issues/60
-        "Home-page": "https://github.com/mind-inria/picard",
-        "Summary": "Preconditioned ICA for Real Data",
-    },
     "mffpy": {
         "Home-page": "https://github.com/BEL-Public/mffpy",
         "Summary": "Reader and Writer for Philips' MFF file format.",

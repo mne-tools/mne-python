@@ -1,1 +1,0 @@
-Fix reading annotations with :func:`mne.read_annotations` from .csv files containing nanoseconds in times, and drop nanoseconds from times returned from :meth:`mne.Annotations.to_data_frame` and saved in .csv files by :meth:`mne.Annotations.save`, by `Thomas Binns`_.
