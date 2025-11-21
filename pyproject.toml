@@ -101,7 +101,6 @@ dependencies = [
   "tqdm",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
-dynamic = ["version"]
 keywords = [
   "brain",
   "ECoG",
@@ -118,6 +117,7 @@ name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
 scripts = {mne = "mne.commands.utils:main"}
+version = "1.11.0"
 
 [project.optional-dependencies]
 # Leave this one here for backward-compat
