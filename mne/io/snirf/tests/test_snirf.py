@@ -58,7 +58,14 @@ snirf_nirsport2_20219 = (
 )
 
 # Kernel
-kernel_hb = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11" / "hb.snirf"
+kernel_flow1_path = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11"
+kernel_hb_old = kernel_flow1_path / "hb.snirf"
+kernel_td_moments_old = kernel_flow1_path / "td_moments.snirf"
+kernel_flow2_path = testing_path / "SNIRF" / "Kernel" / "Flow2" / "Portal_2024_10_23"
+kernel_td_gated = kernel_flow2_path / "c345d04_2.snirf"  # Type 201 (TD Gated, 201)
+kernel_td_moments = kernel_flow2_path / "c345d04_3.snirf"  # Type 202 (TD Moments, 301)
+kernel_hb = kernel_flow2_path / "c345d04_5.snirf"  # Type 203 (Hb, 99999)
+
 
 h5py = pytest.importorskip("h5py")  # module-level
 
@@ -86,7 +93,13 @@ def _get_loc(raw, ch_name):
             nirx_nirsport2_103,
             nirx_nirsport2_103_2,
             nirx_nirsport2_103_2,
-            kernel_hb,
+            pytest.param(kernel_hb_old, id=f"kernel: {kernel_hb_old.stem}"),
+            pytest.param(
+                kernel_td_moments_old, id=f"kernel: {kernel_td_moments_old.stem}"
+            ),
+            pytest.param(kernel_td_gated, id=f"kernel: {kernel_td_gated.stem}"),
+            pytest.param(kernel_td_moments, id=f"kernel: {kernel_td_moments.stem}"),
+            pytest.param(kernel_hb, id=f"kernel: {kernel_hb.stem}"),
             lumo110,
         ]
     ),
@@ -95,12 +108,29 @@ def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
     raw = read_raw_snirf(fname, preload=True)
     # SNIRF data can contain several types, so only apply appropriate functions
+    kinds = [
+        "fnirs_cw_amplitude",
+        "fnirs_od",
+        "fnirs_td_gated_amplitude",
+        "fnirs_td_moments_intensity",
+        "hbo",
+        # TODO: add fd_*
+    ]
+    ch_types = raw.get_channel_types(unique=True)
+    got_kinds = [kind for kind in kinds if kind in raw]
+    assert len(got_kinds) == 1, f"Need one data type, {got_kinds=} and {ch_types=}"
     if "fnirs_cw_amplitude" in raw:
         raw = optical_density(raw)
-    if "fnirs_od" in raw:
+    elif "fnirs_od" in raw:
         raw = beer_lambert_law(raw, ppf=6)
-    assert "hbo" in raw
-    assert "hbr" in raw
+    elif "fnirs_td_gated_amplitude" in raw:
+        pass
+    elif "fnirs_td_moments_intensity" in raw:
+        assert "fnirs_td_moments_mean" in raw
+        assert "fnirs_td_moments_variance" in raw
+    else:
+        assert "hbo" in raw
+        assert "hbr" in raw
 
 
 @requires_testing_data
@@ -414,25 +444,83 @@ def test_snirf_fieldtrip_od():
 
 
 @requires_testing_data
-def test_snirf_kernel_hb():
-    """Test reading Kernel SNIRF files with haemoglobin data."""
-    raw = read_raw_snirf(kernel_hb, preload=True)
+@pytest.mark.parametrize(
+    "kind, ver, shape, n_nan, fname",
+    [
+        pytest.param("hb", "new", (4, 38), 0, kernel_hb, id="hb"),
+        pytest.param("hb", "old", (180 * 2, 14), 20, kernel_hb_old, id="hb old"),
+        pytest.param(
+            "td moments", "new", (12, 38), 0, kernel_td_moments, id="td moments"
+        ),
+        pytest.param("td gated", "new", (100, 38), 0, kernel_td_gated, id="td gated"),
+        pytest.param(
+            "td moments",
+            "old",
+            (1080, 14),
+            60,
+            kernel_td_moments_old,
+            id="td moments old",
+        ),
+    ],
+)
+def test_snirf_kernel_basic(kind, ver, shape, n_nan, fname):
+    """Test reading Kernel SNIRF files with haemoglobin or TD data."""
+    raw = read_raw_snirf(fname, preload=True)
+    if kind == "hb":
+        # Test data import
+        assert raw._data.shape == shape
+        hbo_data = raw.get_data("hbo")
+        hbr_data = raw.get_data("hbr")
+        assert hbo_data.shape == hbr_data.shape == (shape[0] // 2, shape[1])
+        hbo_norm = np.nanmedian(np.linalg.norm(hbo_data, axis=-1))
+        hbr_norm = np.nanmedian(np.linalg.norm(hbr_data, axis=-1))
+        # TODO: Old file vs new file scaling, old one is wrong most likely!
+        if ver == "new":
+            assert 1e-5 < hbr_norm < hbo_norm < 1e-4
+        else:
+            assert 1 < hbr_norm < 3
+    elif kind == "td moments":
+        assert raw._data.shape == shape
+        n_ch = 0
+        lims = dict(intensity=(1e4, 1e7), mean=(1e-9, 1e-8), variance=(1e-19, 1e-16))
+        for key, val in lims.items():
+            data = raw.get_data(f"fnirs_td_moments_{key}")
+            assert data.shape[1] == len(raw.times)
+            norm = np.nanmedian(np.linalg.norm(data, axis=-1))
+            min_, max_ = val
+            assert min_ < norm < max_, key
+            n_ch += data.shape[0]
+        assert raw._data.shape[0] == len(raw.ch_names) == n_ch
+        mean_ch = raw.copy().pick("fnirs_td_moments_mean").info["chs"][0]
+        assert mean_ch["unit"] == FIFF.FIFF_UNIT_SEC
+        var_ch = raw.copy().pick("fnirs_td_moments_variance").info["chs"][0]
+        assert var_ch["unit"] == FIFF.FIFF_UNIT_SEC2
+    else:
+        pass  # TODO: add some gated tests
+    if ver == "old":
+        sfreq = 8.256495
+        n_annot = 2
+    else:
+        sfreq = 3.759351
+        n_annot = 8
 
-    # Test data import
-    assert raw._data.shape == (180 * 2, 14)
-    assert raw.copy().pick("hbo")._data.shape == (180, 14)
-    assert raw.copy().pick("hbr")._data.shape == (180, 14)
-
-    assert_allclose(raw.info["sfreq"], 8.256495)
+    assert_allclose(raw.info["sfreq"], sfreq, atol=1e-5)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
-    assert np.sum(bad_nans) == 20
+    assert np.sum(bad_nans) == n_nan
 
-    assert len(raw.annotations.description) == 2
-    assert raw.annotations.onset[0] == 0.036939
-    assert raw.annotations.onset[1] == 0.874633
-    assert raw.annotations.description[0] == "StartTrial"
-    assert raw.annotations.description[1] == "StartIti"
+    if n_annot == 2:
+        assert len(raw.annotations.description) == n_annot
+        assert raw.annotations.onset[0] == 0.036939
+        assert raw.annotations.onset[1] == 0.874633
+        assert raw.annotations.description[0] == "StartTrial"
+        assert raw.annotations.description[1] == "StartIti"
+    else:
+        assert len(raw.annotations.description) == n_annot
+        assert raw.annotations.onset[0] == 4.988107
+        assert raw.annotations.onset[1] == 5.988107
+        assert raw.annotations.description[0] == "StartBlock"
+        assert raw.annotations.description[1] == "StartTrial"
 
 
 @requires_testing_data
@@ -448,7 +536,7 @@ def test_user_set_sfreq(sfreq, context):
     with context:
         # both sfreqs are far enough from true rate to yield >1% jitter
         with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
-            raw = read_raw_snirf(kernel_hb, preload=False, sfreq=sfreq)
+            raw = read_raw_snirf(kernel_hb_old, preload=False, sfreq=sfreq)
     assert raw.info["sfreq"] == sfreq
 
 
