@@ -1586,7 +1586,7 @@ class _Renderer(
             self._display_default_tool_bar()
         # viewer
         viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
-        if _JUPYTER_BACKEND == "trame":
+        if _JUPYTER_BACKEND == "trame" and hasattr(viewer, "value"):
             # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
             # which adds this to the iframe PyVista creates. Once that's merged, this
             # workaround just becomes a redundant but is still safe. And in a worst
