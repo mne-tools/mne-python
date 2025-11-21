@@ -29,7 +29,6 @@ dependencies:
   - matplotlib >=3.8
   - mffpy >=0.5.7
   - mne-qt-browser
-  - nest-asyncio2
   - nibabel
   - nilearn
   - nomkl
@@ -65,4 +64,5 @@ dependencies:
   - vtk >=9.2
   - xlrd
   - pip:
+      - nest-asyncio2
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'
