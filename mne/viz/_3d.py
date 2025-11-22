@@ -1,4 +1,4 @@
-"""Functions to make 3D plots with M/EEG data."""
+z"""Functions to make 3D plots with M/EEG data."""
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
@@ -554,6 +554,7 @@ def plot_alignment(
     sensor_colors=None,
     *,
     sensor_scales=None,
+    show_names=False,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -621,6 +622,13 @@ def plot_alignment(
     %(seeg)s
     %(fnirs)s
         .. versionadded:: 0.20
+    
+    show_names : bool
+        If True (default False), plot the name of each channel near its 
+        location in the 3D scene.
+
+        .. versionadded:: 1.x (The maintainer will finalize the version number)
+        
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
@@ -941,6 +949,30 @@ def plot_alignment(
             sensor_colors=sensor_colors,
             sensor_scales=sensor_scales,
         )
+    
+    if show_names is True and info is not None:
+        for ch_type in ['mag', 'grad', 'eeg', 'ecog', 'seeg', 'dbs']:
+            picks = pick_types(info, **{ch_type: True, 'ref_meg': ch_type == 'meg'})
+
+            if len(picks) > 0:
+                ch_pos = np.array([info['chs'][k]['loc'][:3] for k in picks])
+                ch_names = [info['ch_names'][k] for k in picks]
+                ch_coord_frame = info['chs'][picks[0]]['coord_frame']
+                trans = to_cf_t[_frame_to_str[ch_coord_frame]] 
+                
+                ch_pos = apply_trans(trans, ch_pos) 
+                
+                scale = 0.003
+                
+                for pos, name in zip(ch_pos, ch_names):
+                    renderer.text3d(
+                        x=pos[0], 
+                        y=pos[1], 
+                        z=pos[2], 
+                        text=name, 
+                        scale=scale, 
+                        color='gray'
+                    )
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
