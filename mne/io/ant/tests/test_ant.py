@@ -294,6 +294,7 @@ def test_io_info_parse_misc(ca_208: TypeDataset):
     assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
 
 
+@testing.requires_testing_data
 def test_io_info_parse_non_standard_misc(na_271_bips: TypeDataset):
     """Test parsing misc channels with modified names from a .cnt file."""
     with pytest.warns(
