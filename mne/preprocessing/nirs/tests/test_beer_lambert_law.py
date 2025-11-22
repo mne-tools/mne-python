@@ -52,20 +52,28 @@ def test_beer_lambert_unordered_errors():
     raw = read_raw_nirx(fname_nirx_15_0)
     raw_od = optical_density(raw)
     raw_od.pick([0, 1, 2])
-    with pytest.raises(ValueError, match="ordered"):
+    with pytest.raises(ValueError, match="NIRS channels not ordered correctly."):
         beer_lambert_law(raw_od)
 
     # Test that an error is thrown if channel naming frequency doesn't match
     # what is stored in loc[9], which should hold the light frequency too.
+    # Introduce 2 new frequencies to make it 4 in total vs 2 stored in loc[9].
+    # This way the bad data will have 20 channels and 4 wavelengths, so as not
+    # to get caught by the check for divisibility (channel % wavelength == 0).
     raw_od = optical_density(raw)
-    ch_name = raw.ch_names[0]
-    assert ch_name == "S1_D1 760"
-    idx = raw_od.ch_names.index(ch_name)
-    assert idx == 0
-    raw_od.info["chs"][idx]["loc"][9] = 770
-    raw_od.rename_channels({ch_name: ch_name.replace("760", "770")})
-    assert raw_od.ch_names[0] == "S1_D1 770"
-    with pytest.raises(ValueError, match="Exactly two frequencies"):
+    assert raw.ch_names[0] == "S1_D1 760" and raw.ch_names[1] == "S1_D1 850"
+    assert (
+        raw_od.ch_names.index(raw.ch_names[0]) == 0
+        and raw_od.ch_names.index(raw.ch_names[1]) == 1
+    )
+    raw_od.rename_channels(
+        {
+            raw.ch_names[0]: raw.ch_names[0].replace("760", "770"),
+            raw.ch_names[1]: raw.ch_names[1].replace("850", "840"),
+        }
+    )
+    assert raw_od.ch_names[0] == "S1_D1 770" and raw_od.ch_names[1] == "S1_D1 840"
+    with pytest.raises(ValueError, match="must match the number of wavelengths"):
         beer_lambert_law(raw_od)
 
 
