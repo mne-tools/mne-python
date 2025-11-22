@@ -78,7 +78,7 @@ repos:
         language: python
         entry: ./tools/hooks/sync_dependencies.py
         files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
-        additional_dependencies: ["mne==1.10.0"]
+        additional_dependencies: ["mne==1.11.0"]
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
