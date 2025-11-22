@@ -54,6 +54,7 @@ from ..utils import (
     _import_nibabel,
     _path_like,
     _pl,
+    _record_warnings,
     _safe_input,
     _validate_type,
     _verbose_safe_false,
@@ -3501,9 +3502,8 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
-            with warnings.catch_warnings():
+            with _record_warnings():
                 # SciPy warning about too short a data segment given the window size
-                warnings.simplefilter(action="ignore", category=FutureWarning)
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             self._add_figure(
                 fig=fig,

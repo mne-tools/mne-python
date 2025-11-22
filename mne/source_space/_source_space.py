@@ -2824,7 +2824,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-# XXX this should probably be deprecated because it returns surface Labels,
+# XXX this should probably be removed because it returns surface Labels,
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
 # checking, which might not be the case (could be all volumes)
