@@ -112,7 +112,7 @@ keywords = [
   "neuroscience",
 ]
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE.txt"]
 maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
@@ -150,6 +150,7 @@ full-no-qt = [
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
+  "nest-asyncio2",
   "nibabel",
   "nilearn",
   "numba",
