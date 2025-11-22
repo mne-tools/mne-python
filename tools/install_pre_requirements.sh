@@ -59,7 +59,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
 	git+https://github.com/python-quantities/python-quantities \
-	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
+	trame trame-vtk trame-vuetify nest-asyncio2 jupyter ipyevents ipympl openmeeg \
 	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
 	antio curryreader
 echo "::endgroup::"

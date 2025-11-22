@@ -23,6 +23,7 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "nomkl"}
+deps -= {"nest-asyncio2"}  # not on CF yet
 
 
 def remove_spaces(version_spec):
@@ -46,7 +47,7 @@ req_python = remove_spaces(pyproj["project"]["requires-python"])
 
 # split package name from version spec
 translations = dict(neo="python-neo")
-pip_deps = set()
+pip_deps = {"      - nest-asyncio2"}
 conda_deps = set()
 for dep in deps:
     package_name, version_spec = split_dep(dep)
