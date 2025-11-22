@@ -439,29 +439,31 @@ def test_plot_alignment_ieeg(
         assert isinstance(fig, Figure3D)
         renderer.backend._close_all()
 
+
 @testing.requires_testing_data
 def test_plot_alignment_show_names(raw):
     """Test that channel names are correctly added in plot_alignment (#13502)."""
-    info = raw.info 
-    
+    info = raw.info
+
     fig = plot_alignment(
         info,
-        eeg='sensors', 
-        show_names=True, 
+        eeg="sensors",
+        show_names=True,
         show=False,
-        trans='fsaverage',
-        subject='fsaverage',
-        subjects_dir=testing.data_path() / "subjects" 
+        trans="fsaverage",
+        subject="fsaverage",
+        subjects_dir=testing.data_path() / "subjects",
     )
-    
+
     n_text_actors = sum(
-        1 for actor in fig.plotter.actors.values() if 'Label' in actor.name
+        1 for actor in fig.plotter.actors.values() if "Label" in actor.name
     )
-    
+
     # Assert presence of labels (e.g., more than 10)
-    assert n_text_actors > 10 
-    
+    assert n_text_actors > 10
+
     fig.close()
+
 
 @pytest.mark.slowtest  # Slow on Azure
 @testing.requires_testing_data  # all use trans + head surf
