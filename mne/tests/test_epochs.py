@@ -5319,9 +5319,13 @@ def test_drop_bad_epochs_by_channel():
     assert np.all(np.isnan(data[1, 0, :])) and np.all(np.isnan(data[3, 2, :]))
     assert np.all(np.isnan(data[1:, 1, :]))
 
+    # now we should have a nave per channel attribute
+    # now self.nave_per_channel should be assigned
+    assert hasattr(ep, "nave_per_channel")
+
     # sum over good epochs per channel
-    nave_per_channel = np.sum(~np.all(np.isnan(data), axis=2), axis=0)
-    assert np.all(ep.nave_per_channel == nave_per_channel)
+    true_nave_per_channel = np.sum(~np.all(np.isnan(data), axis=2), axis=0)
+    assert np.all(ep.nave_per_channel == true_nave_per_channel)
 
     # channel length must match
     assert len(ep.nave_per_channel) == len(ep.ch_names)
