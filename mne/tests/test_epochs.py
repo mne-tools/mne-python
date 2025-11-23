@@ -5282,61 +5282,63 @@ def test_drop_bad_epochs_by_channel():
     """Test channel-specific epoch rejection."""
     # load raw and events data without loading data to disk
     raw, ev, _ = _get_data(preload=False)
-    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0))
-    print(ep.get_data().shape)
+    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0), preload=False)
+
+    # extract shape to set up reject mask (can't use shape as it loads the data)
+    n_epochs = len(ep.events)  # number of epochs
+    n_channels = len(ep.ch_names)  # number of channels
 
     # create a dummy reject mask with correct shape
-    n_epochs_dummy = len(ep.events)  # use events because len(ep) fails without preload
-    n_channels_dummy = ep.info["nchan"]
-    reject_mask_dummy = np.zeros((n_epochs_dummy, n_channels_dummy))
+    reject_mask_dummy = np.zeros((n_epochs, n_channels))
 
+    # should throw an error
     with pytest.raises(ValueError, match="must be preloaded"):
         ep.drop_bad_epochs_by_channel(reject_mask_dummy)
 
     # load data
     ep.load_data()
-    n_epochs, n_channels = len(ep), ep.info["nchan"]
 
-    # Reject mask: all epochs good
-    # drop bad epochs handles boolean conversion
+    # test if reject_mask == None returns epochs
+    assert ep == ep.drop_bad_epochs_by_channel(None)
+
+    # set epochs to bad in reject mask
     reject_mask = np.zeros((n_epochs, n_channels), dtype=bool)  # all epochs are good
     reject_mask[1, 0] = True  # second epoch, first channel -> bad
-    # this is a edge case, averaging throws an error because of empty channel
-    # reject_mask[:, 1] = True # all epochs from channel two are bad
     reject_mask[1:, 1] = True  # all epochs from channel two are bad
     reject_mask[3, 2] = True  # fourth epoch, third channel -> bad
+
+    # this is a edge case, averaging throws an error because of empty channel
+    # realistically the user will drop the channel if all epochs are bad
+    # reject_mask[:, 1] = True # all epochs from channel two are bad
 
     # drop bad epochs
     ep.drop_bad_epochs_by_channel(reject_mask)
 
-    # Verify bad epochs are NaN
+    # verify bad epochs are NaN after dropping them
     data = ep.get_data()
     assert np.all(np.isnan(data[1, 0, :])) and np.all(np.isnan(data[3, 2, :]))
     assert np.all(np.isnan(data[1:, 1, :]))
 
-    # verify nave_per_channel = number of non-NaN epochs per channel
-    # count epochs that are NOT fully NaN for each channel
-    expected_nave_per_channel = np.sum(~np.all(np.isnan(data), axis=2), axis=0)
-    assert np.all(ep.nave_per_channel == expected_nave_per_channel)
+    # sum over good epochs per channel
+    nave_per_channel = np.sum(~np.all(np.isnan(data), axis=2), axis=0)
+    assert np.all(ep.nave_per_channel == nave_per_channel)
 
-    # channel length must match (averaging drops non data channels)
+    # channel length must match
     assert len(ep.nave_per_channel) == len(ep.ch_names)
 
     # make sure averaging works (allowing for NaNs)
     ev = ep.average()
 
-    # check nave attribute of evoked data
-    # tests sum over epochs where reject mask is not True (good channels per epoch)
-    expected_per_channel = np.sum(~reject_mask, axis=0)
-    assert ev.nave == expected_per_channel.min()  #  nave is minimum over all epochs
+    # check if nave of evoked data is minimum of nave_per_channel of epoched data
+    assert ev.nave == ep.nave_per_channel.min()
 
-    # test mask that contains floats
-    float_mask = reject_mask.astype(float)  # same mask, but float
+    # test mask that contains floats instead of bool
+    float_mask = reject_mask.astype(float)
     ep.drop_bad_epochs_by_channel(float_mask)
     data = ep.get_data()
     assert np.all(np.isnan(data[1, 0, :])) and np.all(np.isnan(data[3, 2, :]))
 
     # test wrong shape of rejection mask
-    bad_mask = np.zeros((len(ep), ep.info["nchan"] - 1), dtype=bool)
+    bad_mask = np.zeros((n_epochs, n_channels - 1), dtype=bool)
     with pytest.raises(ValueError, match="reject_mask must have shape"):
         ep.drop_bad_epochs_by_channel(bad_mask)
