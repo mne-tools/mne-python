@@ -62,12 +62,24 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (  # noqa: A001
-    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
-    '<script type="text/javascript">function formatTimestamp() {document.querySelectorAll("time.localized").forEach(el => el.textContent = new Date(el.getAttribute("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"}));};if (document.readyState != "loading") formatTimestamp();else document.addEventListener("DOMContentLoaded", formatTimestamp);</script>'  # noqa: E501
+project_copyright = (
+    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>.\n'  # noqa: E501
+    """<script type="text/javascript">
+function formatTimestamp() {
+    document.querySelectorAll("time.localized").forEach(el => {
+        const d = new Date(el.getAttribute("datetime"));
+        el.textContent = d.toLocaleString("sv-SE", { "timeZoneName": "short" });
+    });
+}
+if (document.readyState !== "loading") {
+    formatTimestamp();
+} else {
+    document.addEventListener("DOMContentLoaded", formatTimestamp);
+}
+</script>"""
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
+    project_copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -116,6 +128,7 @@ extensions = [
     "newcontrib_substitutions",
     "unit_role",
     "related_software",
+    "directive_formatting",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -644,6 +657,7 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1017/",  # cambridge.org
     "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
     "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
@@ -669,6 +683,9 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://blender.org",
+    "https://home.alexk101.dev",
+    "https://www.mq.edu.au/",
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
@@ -733,13 +750,10 @@ nitpicky = True
 show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
-    ("py:class", "a set-like object providing a view on D's items"),
-    ("py:class", "a set-like object providing a view on D's keys"),
     (
         "py:class",
         "v, remove specified key and return the corresponding value.",
     ),  # noqa: E501
-    ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
@@ -748,6 +762,8 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
+    ("py:class", "a set-like object providing a view on D's (items|keys)"),
+    ("py:class", r"None\.  Update D from (dict|mapping)/iterable E and F\."),
     # Classes whose methods we purposefully do not document
     ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
     ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs

@@ -333,6 +333,7 @@ def test_voxel_neighbors():
     assert true_volume.difference(volume) == set()
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("ret_nn", (False, True))
 @pytest.mark.parametrize("method", ("accurate", "nearest"))

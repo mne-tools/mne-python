@@ -1285,6 +1285,11 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
+docdict["encoding_nihon"] = """
+encoding : str
+    Text encoding of Nihon Kohden annotations. See :ref:`standard-encodings`.
+"""
+
 docdict["encoding_nirx"] = """
 encoding : str
     Text encoding of the NIRX header file. See :ref:`standard-encodings`.
@@ -3028,6 +3033,13 @@ offset : int
     current sampling rate.
 
     .. versionadded:: 0.12
+"""
+
+docdict["on_bad_hpi_match"] = """
+on_bad_hpi_match : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when there is poor matching of HPI coordinates
+    (>10mm difference) for device - head transform.
 """
 
 docdict["on_baseline_ica"] = """

@@ -2,10 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os.path as op
+import os
 
-from ..utils import _check_fname, _validate_type, logger, verbose, warn
-from ._egimff import export_evokeds_mff
+from mne.export._egimff import export_evokeds_mff
+from mne.utils import _check_fname, _validate_type, logger, verbose, warn
 
 
 @verbose
@@ -56,13 +56,14 @@ def export_raw(
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {  # format : (extensions,)
-        "eeglab": ("set",),
-        "edf": ("edf",),
+        "bdf": ("bdf",),
         "brainvision": (
             "eeg",
             "vmrk",
             "vhdr",
         ),
+        "edf": ("edf",),
+        "eeglab": ("set",),
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
@@ -73,18 +74,23 @@ def export_raw(
             "them before exporting with raw.apply_proj()."
         )
 
-    if fmt == "eeglab":
-        from ._eeglab import _export_raw
+    match fmt:
+        case "bdf":
+            from mne.export._edf_bdf import _export_raw_bdf
 
-        _export_raw(fname, raw)
-    elif fmt == "edf":
-        from ._edf import _export_raw
+            _export_raw_bdf(fname, raw, physical_range, add_ch_type)
+        case "brainvision":
+            from mne.export._brainvision import _export_raw
 
-        _export_raw(fname, raw, physical_range, add_ch_type)
-    elif fmt == "brainvision":
-        from ._brainvision import _export_raw
+            _export_raw(fname, raw, overwrite)
+        case "edf":
+            from mne.export._edf_bdf import _export_raw_edf
 
-        _export_raw(fname, raw, overwrite)
+            _export_raw_edf(fname, raw, physical_range, add_ch_type)
+        case "eeglab":
+            from mne.export._eeglab import _export_raw
+
+            _export_raw(fname, raw)
 
 
 @verbose
@@ -127,7 +133,7 @@ def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
         )
 
     if fmt == "eeglab":
-        from ._eeglab import _export_epochs
+        from mne.export._eeglab import _export_epochs
 
         _export_epochs(fname, epochs)
 
@@ -204,7 +210,7 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
     _validate_type(fmt, str, "fmt")
     fmt = fmt.lower()
     if fmt == "auto":
-        fmt = op.splitext(fname)[1]
+        fmt = os.path.splitext(fname)[1]
         if fmt:
             fmt = fmt[1:].lower()
             # find fmt in supported formats dict's tuples

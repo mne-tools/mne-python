@@ -5,6 +5,8 @@
 Current Project Leadership and Institutional Partners
 =====================================================
 
+.. _maintainer-team-people:
+
 Maintainer Team
 ---------------
 
@@ -24,6 +26,8 @@ Maintainer Team
 * `Robert Luke`_
 * `Stefan Appelhoff`_
 
+.. _steering-council-people:
+
 Steering Council
 ----------------
 
@@ -31,10 +35,17 @@ Steering Council
 * `Daniel McCloy`_ (chair)
 * `Eric Larson`_
 
+.. _advisory-board-people:
+
 Advisory Board
 --------------
 
-The advisory board is currently unfilled.
+* `Alex Gramfort`_
+* `Bradley Voytek`_
+* `Jan-Mathijs Schoeffelen`_
+* `Liberty Hamilton`_
+* `Matti Hämäläinen`_
+* `Ole Jensen`_
 
 
 .. _governance-cpgrl:

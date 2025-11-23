@@ -400,7 +400,24 @@ def _create_dataframes_for_block(block, apply_offsets):
             msgs.append([ts, offset, msg])
         df_dict["messages"] = pd.DataFrame(msgs)
 
-        # TODO: Make dataframes for other eyelink events (Buttons)
+    # make dataframes for other button events
+    if block["events"]["BUTTON"]:
+        button_events = block["events"]["BUTTON"]
+        parsed = []
+        for entry in button_events:
+            parsed.append(
+                {
+                    "time": float(entry[0]),  # onset
+                    "button_id": int(entry[1]),
+                    "button_pressed": int(entry[2]),  # 1 = press, 0 = release
+                }
+            )
+        df_dict["buttons"] = pd.DataFrame(parsed)
+        n_button = len(df_dict.get("buttons", []))
+        logger.info(f"Found {n_button} button event(s) in this file.")
+    else:
+        logger.info("No button events found in this file.")
+
     return df_dict
 
 
@@ -499,7 +516,6 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
 
     for df_type in all_df_types:
         block_dfs = []
-
         for block in processed_blocks:
             if df_type in block["dfs"]:
                 # We will update the dfs in-place to conserve memory
@@ -849,7 +865,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             "pupil_right",
         ),
     }
-    valid_descs = ["blinks", "saccades", "fixations", "messages"]
+    valid_descs = ["blinks", "saccades", "fixations", "buttons", "messages"]
     msg = (
         "create_annotations must be True or a list containing one or"
         f" more of {valid_descs}."
@@ -875,6 +891,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             descriptions = key[:-1]  # i.e "blink", "fixation", "saccade"
             if key == "blinks":
                 descriptions = "BAD_" + descriptions
+
             ch_names = df["eye"].map(eye_ch_map).tolist()
             this_annot = Annotations(
                 onset=onsets,
@@ -893,8 +910,24 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             this_annot = Annotations(
                 onset=onsets, duration=durations, description=descriptions
             )
+        elif (key == "buttons") and (key in descs):
+            required_cols = {"time", "button_id", "button_pressed"}
+            if not required_cols.issubset(df.columns):
+                raise ValueError(f"Missing column: {required_cols - set(df.columns)}")
+            # Give user a hint
+            n_presses = df["button_pressed"].sum()
+            logger.info("Found %d button press events.", n_presses)
+
+            df = df.sort_values("time")
+            onsets = df["time"]
+            durations = np.zeros_like(onsets)
+            descriptions = df.apply(_get_button_description, axis=1)
+
+            this_annot = Annotations(
+                onset=onsets, duration=durations, description=descriptions
+            )
         else:
-            continue  # TODO make df and annotations for Buttons
+            continue
         if not annots:
             annots = this_annot
         elif annots:
@@ -902,7 +935,14 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
     if not annots:
         warn(f"Annotations for {descs} were requested but none could be made.")
         return
+
     return annots
+
+
+def _get_button_description(row):
+    button_id = int(row["button_id"])
+    action = "press" if row["button_pressed"] == 1 else "release"
+    return f"button_{button_id}_{action}"
 
 
 def _make_gap_annots(raw_extras, key="recording_blocks"):
@@ -992,17 +1032,24 @@ def _parse_calibration(
 
             n_points = int(regex.search(model).group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
+
             # The next n_point lines contain the validation data
             points = []
-            for validation_index in range(n_points):
-                subline = lines[line_number + validation_index + 1]
-                if "!CAL VALIDATION" in subline:
+            line_idx = line_number + 1
+            read_points = 0
+            while read_points < n_points and line_idx < len(lines):
+                subline = lines[line_idx].strip()
+                line_idx += 1
+
+                if not subline or "!CAL VALIDATION" in subline:
                     continue  # for bino mode, skip the second eye's validation summary
+
                 subline_eye = subline.split("at")[0].split()[-1].lower()  # e.g. 'left'
                 if subline_eye != this_eye:
                     continue  # skip the validation lines for the other eye
                 point_info = _parse_validation_line(subline)
                 points.append(point_info)
+                read_points += 1
             # Convert the list of validation data into a numpy array
             positions = np.array([point[:2] for point in points])
             offsets = np.array([point[2] for point in points])

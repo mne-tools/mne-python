@@ -50,7 +50,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 90
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -59,6 +59,7 @@ jobs:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -78,7 +79,7 @@ jobs:
           - os: macos-latest  # arm64 (Apple Silicon): Sequoia
             python: '3.13'
             kind: mamba
-          - os: macos-14  # arm64 (Apple Silicon): Sonoma
+          - os: macos-15-intel  # intel: Sequoia
             python: '3.13'
             kind: mamba
           - os: windows-latest
@@ -128,12 +129,18 @@ jobs:
           # For some reason on Linux we get crashes
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sed -i "/numba/d" environment.yml
+          fi
           # And on Windows and macOS PySide6.9.0 segfaults
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.7.3/g" environment.yml
-            sed -i "" "s/  - vtk .*/  - vtk =9.3.1/g" environment.yml
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            sed -i "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
+            sed -i "" "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+
+          else
+            sed -i "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
+            sed -i "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
+            fi
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v2

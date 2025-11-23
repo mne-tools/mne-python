@@ -318,13 +318,16 @@ def test_scale_bar(browser_backend):
         assert_allclose(y_lims, bar_lims, atol=1e-4)
 
 
-def test_plot_raw_selection(raw, browser_backend):
+def test_plot_raw_selection(raw, browser_backend, monkeypatch):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
     assert browser_backend._get_n_figs() == 0
+    # https://github.com/matplotlib/matplotlib/issues/30575
+    monkeypatch.setattr(mne.viz.utils, "_BLIT_KWARGS", dict(useblit=False))
+    monkeypatch.setattr(mne.viz._mpl_figure, "_BLIT_KWARGS", dict(useblit=False))
     fig = raw.plot(group_by="selection", proj=False)
     assert browser_backend._get_n_figs() == 2
     sel_fig = fig.mne.fig_selection
@@ -493,10 +496,13 @@ def test_plot_raw_child_figures(raw, browser_backend):
     fig._resize_by_factor(0.5)
 
 
-def test_orphaned_annot_fig(raw, browser_backend):
+def test_orphaned_annot_fig(raw, browser_backend, monkeypatch):
     """Test that annotation window is not orphaned (GH #10454)."""
     if browser_backend.name != "matplotlib":
         return
+    # https://github.com/matplotlib/matplotlib/issues/30575
+    monkeypatch.setattr(mne.viz.utils, "_BLIT_KWARGS", dict(useblit=False))
+    monkeypatch.setattr(mne.viz._mpl_figure, "_BLIT_KWARGS", dict(useblit=False))
     assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
     _spawn_child_fig(fig, "fig_annotation", browser_backend, "a")
@@ -802,6 +808,23 @@ def test_plot_annotations(raw, browser_backend):
     ch_pick = fig.mne.inst.ch_names[0]
     fig._toggle_single_channel_annotation(ch_pick, 0)
     assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
+
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([42, 50], [1, 1], ["test", "test2"], raw.info["meas_date"])
+    with pytest.warns(RuntimeWarning, match="expanding outside"):
+        raw.set_annotations(annot)
+
+    fig = raw.plot()
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = raw.plot(annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
 
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))

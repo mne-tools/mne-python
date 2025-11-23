@@ -244,6 +244,7 @@ def _compare_io(inv_op, *, out_file_ext=".fif", tmp_path):
     _compare(inv_init, inv_op)
 
 
+@pytest.mark.slowtest
 def test_warn_inverse_operator(evoked, noise_cov):
     """Test MNE inverse warning without average EEG projection."""
     bad_info = evoked.info
@@ -390,12 +391,22 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
 @pytest.mark.parametrize(
     "method, lower, upper, depth",
     [
-        ("MNE", 54, 57, dict(limit=None, combine_xyz=False, exp=1.0)),  # DICS def
-        ("MNE", 75, 80, dict(limit_depth_chs=False)),  # ancient MNE default
+        pytest.param(
+            "MNE",
+            54,
+            57,
+            dict(limit=None, combine_xyz=False, exp=1.0),
+            marks=pytest.mark.slowtest,
+        ),  # DICS default
+        pytest.param(
+            "MNE", 75, 80, dict(limit_depth_chs=False), marks=pytest.mark.slowtest
+        ),  # ancient MNE default
         ("MNE", 83, 87, 0.8),  # MNE default
-        ("MNE", 89, 92, dict(limit_depth_chs="whiten")),  # sparse default
-        ("dSPM", 96, 98, 0.8),
-        ("sLORETA", 100, 100, 0.8),
+        pytest.param(
+            "MNE", 89, 92, dict(limit_depth_chs="whiten"), marks=pytest.mark.slowtest
+        ),  # sparse default
+        pytest.param("dSPM", 96, 98, 0.8, marks=pytest.mark.slowtest),
+        pytest.param("sLORETA", 100, 100, 0.8, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 100, 100, None, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 100, 100, 0.8, marks=pytest.mark.slowtest),
     ],
@@ -418,11 +429,25 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper, depth)
 @pytest.mark.parametrize(
     "method, lower, upper, depth, loose",
     [
-        ("MNE", 32, 37, dict(limit=None, combine_xyz=False, exp=1.0), 0.2),  # DICS
+        pytest.param(
+            "MNE",
+            32,
+            37,
+            dict(limit=None, combine_xyz=False, exp=1.0),
+            0.2,
+            marks=pytest.mark.slowtest,
+        ),  # DICS
         ("MNE", 78, 81, 0.8, 0.2),  # MNE default
-        ("MNE", 89, 92, dict(limit_depth_chs="whiten"), 0.2),  # sparse default
-        ("dSPM", 85, 87, 0.8, 0.2),
-        ("sLORETA", 100, 100, 0.8, 0.2),
+        pytest.param(
+            "MNE",
+            89,
+            92,
+            dict(limit_depth_chs="whiten"),
+            0.2,
+            marks=pytest.mark.slowtest,
+        ),  # sparse default
+        pytest.param("dSPM", 85, 87, 0.8, 0.2, marks=pytest.mark.slowtest),
+        pytest.param("sLORETA", 100, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 99, 100, None, 0.2, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
@@ -461,7 +486,7 @@ def test_localization_bias_loose(
 @pytest.mark.parametrize(
     "method, lower, upper, lower_ori, upper_ori, kwargs, depth, loose",
     [
-        (
+        pytest.param(
             "MNE",
             21,
             24,
@@ -470,8 +495,9 @@ def test_localization_bias_loose(
             {},
             dict(limit=None, combine_xyz=False, exp=1.0),
             1,
+            marks=pytest.mark.slowtest,
         ),
-        (
+        pytest.param(
             "MNE",
             35,
             40,
@@ -480,6 +506,7 @@ def test_localization_bias_loose(
             {},
             dict(limit_depth_chs=False),
             1,
+            marks=pytest.mark.slowtest,
         ),  # ancient default
         ("MNE", 45, 55, 0.94, 0.95, {}, 0.8, 1),  # MNE default
         (
@@ -493,7 +520,9 @@ def test_localization_bias_loose(
             1,
         ),  # sparse default
         ("dSPM", 40, 45, 0.96, 0.97, {}, 0.8, 1),
-        ("sLORETA", 93, 95, 0.95, 0.96, {}, 0.8, 1),
+        pytest.param(
+            "sLORETA", 93, 95, 0.95, 0.96, {}, 0.8, 1, marks=pytest.mark.slowtest
+        ),
         pytest.param(
             "eLORETA",
             93,
@@ -567,6 +596,7 @@ def test_apply_inverse_sphere(evoked, tmp_path):
     assert_array_equal(np.argmax(stc.data, axis=0), np.repeat(np.arange(101), 3))
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize("loose", [0.0, 0.2, 1.0])
 @pytest.mark.parametrize("lambda2", [1.0 / 9.0, 0.0])
 def test_apply_inverse_eLORETA_MNE_equiv(bias_params_free, loose, lambda2):
@@ -764,6 +794,7 @@ def assert_var_exp_log(log, lower, upper):
     return exp_var
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize("method", INVERSE_METHODS)
 @pytest.mark.parametrize("pick_ori", (None, "vector"))
 def test_inverse_residual(evoked, method, pick_ori):
@@ -936,6 +967,7 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
     assert_allclose(stc_diff.data, (stc_vec0 - stc_vec1).magnitude().data, atol=1e-20)
 
 
+@pytest.mark.slowtest
 def test_make_inverse_operator_diag(evoked, noise_cov, tmp_path, azure_windows):
     """Test MNE inverse computation with diagonal noise cov."""
     noise_cov = noise_cov.as_diag()
@@ -1056,6 +1088,7 @@ _fast_methods = list(INVERSE_METHODS)
 _fast_methods.pop(_fast_methods.index("eLORETA"))
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("method", _fast_methods)
 @pytest.mark.parametrize("pick_ori", ["normal", None])
@@ -1118,6 +1151,7 @@ def test_apply_inverse_cov(method, pick_ori):
         )
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_mne_inverse_raw():
     """Test MNE with precomputed inverse operator on Raw."""

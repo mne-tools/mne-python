@@ -33,12 +33,11 @@ PYPI_PACKAGES = {
     "meggie",
     "niseq",
     "sesameeg",
-    "invertmeeg",
 }
 
 # If it's not available on PyPI, add it to this dict:
 MANUAL_PACKAGES = {
-    # TODO: These packages are not pip-installable as of 2024/07/17, so we have to
+    # TODO: These packages are not pip-installable as of 2025/11/19, so we have to
     # manually populate them -- should open issues on their package repos.
     "best-python": {
         "Home-page": "https://github.com/multifunkim/best-python",
@@ -55,58 +54,15 @@ MANUAL_PACKAGES = {
     # This package does not provide wheels, so don't force CircleCI to build it.
     # If it eventually provides binary wheels we could add it to
     # `tools/circleci_dependencies.sh` and remove from here.
+    # https://github.com/Eelbrain/Eelbrain/issues/130
     "eelbrain": {
         "Home-page": "https://eelbrain.readthedocs.io/en/stable/",
         "Summary": "Open-source Python toolkit for MEG and EEG data analysis.",
     },
-    # mne-kit-gui requires mayavi (ugh)
-    "mne-kit-gui": {
-        "Home-page": "https://github.com/mne-tools/mne-kit-gui",
-        "Summary": "A module for KIT MEG coregistration.",
-    },
-    # fsleyes requires wxpython, which needs to build
-    "fsleyes": {
-        "Home-page": "https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLeyes",
-        "Summary": "FSLeyes is the FSL image viewer.",
-    },
-    # dcm2niix must be built from source
-    "dcm2niix": {
-        "Home-page": "https://github.com/rordenlab/dcm2niix",
-        "Summary": "DICOM to NIfTI converter",
-    },
     # TODO: these do not set a valid homepage or documentation page on PyPI
-    "python-picard": {  # https://github.com/mind-inria/picard/issues/60
-        "Home-page": "https://github.com/mind-inria/picard",
-        "Summary": "Preconditioned ICA for Real Data",
-    },
-    "eeg_positions": {
-        "Home-page": "https://eeg-positions.readthedocs.io",
-        "Summary": "Compute and plot standard EEG electrode positions.",
-    },
-    "mne-faster": {
-        "Home-page": "https://github.com/wmvanvliet/mne-faster",
-        "Summary": "MNE-FASTER: automatic bad channel/epoch/component detection.",  # noqa: E501
-    },
-    "mne-features": {
-        "Home-page": "https://mne.tools/mne-features",
-        "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
-    },
-    "mne-rsa": {
-        "Home-page": "https://users.aalto.fi/~vanvlm1/mne-rsa",
-        "Summary": "Code for performing Representational Similarity Analysis on MNE-Python data structures.",  # noqa: E501
-    },
     "mffpy": {
         "Home-page": "https://github.com/BEL-Public/mffpy",
         "Summary": "Reader and Writer for Philips' MFF file format.",
-    },
-    "emd": {
-        "Home-page": "https://emd.readthedocs.io/en/stable",
-        "Summary": "Empirical Mode Decomposition in Python.",
-    },
-    # Needs a release with homepage set properly
-    "meegkit": {
-        "Home-page": "https://nbara.github.io/python-meegkit",
-        "Summary": "Denoising tools for M/EEG processing.",
     },
     # not on PyPI
     "conpy": {
@@ -115,8 +71,9 @@ MANUAL_PACKAGES = {
     },
 }
 
-REQUIRE_METADATA = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
-REQUIRE_METADATA = REQUIRE_METADATA in ("true", "1")
+REQUIRE_INSTALLED = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
+REQUIRE_INSTALLED = REQUIRE_INSTALLED in ("true", "1")
+REQUIRE_METADATA = REQUIRE_INSTALLED
 
 # These packages pip-install with a different name than the package name
 RENAMES = {
@@ -202,7 +159,7 @@ def _get_packages() -> dict[str, str]:
             if "Home-page" in md:
                 url = md["Home-page"]
             else:
-                for prefix in ("homepage", "documentation"):
+                for prefix in ("homepage", "documentation", "user documentation"):
                     for key, val in md.items():
                         if key == "Project-URL" and val.lower().startswith(
                             f"{prefix}, "
@@ -218,6 +175,12 @@ def _get_packages() -> dict[str, str]:
                     continue
             out[package]["url"] = url
             out[package]["description"] = md["Summary"].replace("\n", "")
+    if not REQUIRE_INSTALLED:
+        reasons = [
+            reason
+            for reason in reasons
+            if "not found, needs to be installed" not in reason
+        ]
     reason_str = "\n".join(reasons)
     if reason_str and REQUIRE_METADATA:
         raise ExtensionError(
@@ -264,6 +227,9 @@ def setup(app):
 
 
 if __name__ == "__main__":  # pragma: no cover
+    # running `python doc/sphinxext/related_software.py` for testing
+    # require metadata for any installed packages (for debugging)
+    REQUIRE_METADATA = True
     items = list(RelatedSoftwareDirective.run(None)[0].children)
     print(f"Got {len(items)} related software packages:")
     for item in items:

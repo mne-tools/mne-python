@@ -60,6 +60,8 @@ from ..utils import (
 from ..utils.misc import _identity_function
 from .ui_events import ChannelsSelect, ColormapRange, publish, subscribe
 
+_BLIT_KWARGS = dict(useblit=True)
+
 _channel_type_prettyprint = {
     "eeg": "EEG channel",
     "grad": "Gradiometer",
@@ -1691,7 +1693,10 @@ class SelectFromCollection:
 
         # Initialize the lasso selector
         self.lasso = LassoSelector(
-            ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
+            ax,
+            onselect=self.on_select,
+            props=dict(color="red", linewidth=0.5),
+            **_BLIT_KWARGS,
         )
         self.selection = list()
         self.selection_inds = np.array([], dtype="int")

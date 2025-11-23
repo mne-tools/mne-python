@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "bb8d7609ceca60154a77ad43d29f121e08e2585e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13407.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/simulation/simulate_raw_data.py": {
+      "a": 0,
+      "d": 2
+    },
+    "examples/simulation/simulated_raw_data_using_subject_anatomy.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/_ola.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/chpi.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/dipole.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 111,
+      "d": 32
+    },
+    "mne/forward/forward.py": {
+      "a": 6,
+      "d": 21
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 79,
+      "d": 5
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 11
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/simulation/raw.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 42,
+      "d": 24
+    },
+    "mne/surface.py": {
+      "a": 53,
+      "d": 5
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/tests/test_morph.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}
