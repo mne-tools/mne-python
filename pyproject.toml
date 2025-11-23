@@ -112,7 +112,7 @@ keywords = [
   "neuroscience",
 ]
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE.txt"]
 maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
@@ -150,6 +150,7 @@ full-no-qt = [
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
+  "nest-asyncio2",
   "nibabel",
   "nilearn",
   "numba",
@@ -399,7 +400,7 @@ directory = "doc/changes/dev/"
 filename = "doc/changes/dev.rst"
 issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 package = "mne"
-title_format = "{version} ({project_date})"
+title_format = "Version {version} ({project_date})"
 
 [[tool.towncrier.type]]
 directory = "notable"

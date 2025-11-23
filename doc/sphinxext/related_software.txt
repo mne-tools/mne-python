@@ -5,6 +5,7 @@ autoreject
 bycycle
 conpy
 curryreader
+dcm2niix
 eeg_positions
 emd
 fooof

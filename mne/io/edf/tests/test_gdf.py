@@ -199,3 +199,13 @@ def test_gdf_read_from_file_like():
 
     with pytest.raises(Exception, match="Bad GDF file provided."):
         read_raw_gdf(BytesIO(), preload=True)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:Highpass cutoff frequency")
+def test_gh_13414():
+    """Test handling bytes objects when reading GDF events."""
+    fpath = data_path / "GDF" / "test_gdf_1.99.gdf"
+    raw = read_raw_gdf(fpath)
+    # Should be 1 event in this GDF file.
+    assert len(raw.annotations) == 1

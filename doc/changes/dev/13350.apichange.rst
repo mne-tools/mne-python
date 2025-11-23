@@ -1,1 +1,0 @@
-Add ``on_few_samples`` parameter to :func:`mne.compute_covariance` and :func:`mne.compute_raw_covariance` for controlling behavior when there are fewer samples than channels, which can lead to inaccurate covariance estimates, by :newcontrib:`Emmanuel Ferdman`.

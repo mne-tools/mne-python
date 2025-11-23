@@ -727,10 +727,12 @@ def _plot_lines(
                 )
                 if gfp_only:
                     y_offset = 0.0
+                    this_ylim = (0, 1.1 * np.max(this_gfp) or 1)
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
                 ax.autoscale(False)
+                ax.set_ylim(this_ylim)
                 ax.fill_between(
                     times,
                     y_offset,

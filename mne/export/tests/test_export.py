@@ -536,7 +536,9 @@ def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
     raw.export(tmp_path / "test.edf", add_ch_type=True)
 
 
-@pytest.mark.skipif(not check_version("eeglabio", "0.1.2"), reason="fixed by 0.1.2")
+@pytest.mark.skipif(
+    not check_version("eeglabio", "0.1.2"), reason="fixed by eeglabio 0.1.2"
+)
 @pytest.mark.parametrize("preload", (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
@@ -581,7 +583,6 @@ def test_export_epochs_eeglab(tmp_path, preload):
         epochs.export(Path(temp_fname), overwrite=True)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @testing.requires_testing_data
 @pytest.mark.parametrize("fmt", ("auto", "mff"))
 @pytest.mark.parametrize("do_history", (True, False))
@@ -640,7 +641,6 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     evoked[0].export(export_fname, overwrite=True)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @testing.requires_testing_data
 def test_export_to_mff_no_device():
     """Test no device type throws ValueError."""
@@ -652,7 +652,6 @@ def test_export_to_mff_no_device():
         export_evokeds("output.mff", evoked)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
