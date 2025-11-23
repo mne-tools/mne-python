@@ -807,7 +807,7 @@ def _plot_lines(
                     )
                 # Put back the y limits as fill_betweenx messes them up
                 ax.set_ylim(this_ylim)
-        
+
         ax.spines[:].set_zorder(max(l.get_zorder() for l in ax.get_lines()) + 1)
 
         lines.append(line_list)
