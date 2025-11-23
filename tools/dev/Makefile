@@ -27,4 +27,4 @@ clean:
 	@rm bug-reports-12-to-2-months-old.json || true
 
 dep:
-	cd ../../ && git grep -iI "\(deprecat\|futurewarning\)" -- ':!*.js' ':!*/conftest.py' ':!*/docs.py' ':!*/test_docs.py' ':!*/utils/__init__.pyi' mne/
+	cd ../../ && git grep -iI "\(deprecat\|futurewarning\|TODO VERSION\)" -- ':!*.js' ':!*/conftest.py' ':!*/docs.py' ':!*/test_docs.py' ':!*/utils/__init__.pyi' mne/
