@@ -11,6 +11,10 @@ jobs:
     # TODO: Remove larsoner
     if: (github.event.pull_request.user.login == 'larsoner' || github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'pre-commit-ci[bot]' || github.event.pull_request.user.login == 'mne-bot') && github.repository == 'mne-tools/mne-python'
     steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - name: Get commit message
         run: echo "COMMIT_MESSAGE=$(git show -s --format=%s ${{ github.event.pull_request.head.sha || github.sha }})" | tee -a ${GITHUB_ENV}
       - name: Enable auto-merge for bot PRs
