@@ -1,0 +1,39 @@
+name: Bot auto-push
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - dependabot/*
+      - pre-commit-ci/*
+      - credit/*
+      # TODO: REMOVE THIS
+      - autopush
+
+jobs:
+  autobot:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+          token: ${{ secrets.MNE_BOT_TOKEN }}
+          ssh-user: mne-bot
+          fetch-depth: 0
+      - name: Push a commit for bot PRs to run CircleCI
+        run: |
+          set -xeo pipefail
+          git config --global user.name "mne[bot]"
+          git config --global user.email "mne-bot@noreply.github.com"
+          COMMIT_MESSAGE=$(git show -s --format=%s)
+          # Detect dependabot and pre-commit.ci commit messages
+          # mne-bot PRs (SPEC0, credit) shouldn't need it since we commit with mne-bot user
+          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] || [[ "$COMMIT_MESSAGE" == "TST: Ping [skip azp]" ]]; then
+            echo "Pushed commit to run CircleCI for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
+            git commit --allow-empty -m "mne[bot] Push commit to run CircleCI"
+            gh push
+          else:
+            echo "No need to push a commit for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
