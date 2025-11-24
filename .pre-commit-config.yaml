@@ -86,6 +86,8 @@ repos:
     hooks:
       - id: zizmor
         args: [--fix]
+        # We correctly use pull_request_trigger, and need Zizmor 2.0+ to configure the ignore
+        exclude: ^.github/workflows/automerge.yml
 
 # these should *not* be run on CIs:
 ci:

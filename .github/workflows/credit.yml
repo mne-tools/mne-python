@@ -14,8 +14,8 @@ jobs:
     name: Update
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
-      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
     steps:
       - uses: actions/checkout@v5
         with:

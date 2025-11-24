@@ -2,8 +2,8 @@ name: Bot auto-push
 on:  # yamllint disable-line rule:truthy
   push:
     branches:
-      - dependabot/*
-      - pre-commit-ci/*
+      - dependabot/**
+      - pre-commit-ci*
 
 jobs:
   autobot:
@@ -24,8 +24,7 @@ jobs:
           git config --global user.email "50266005+mne-bot@users.noreply.github.com"
           COMMIT_MESSAGE=$(git show -s --format=%s)
           # Detect dependabot and pre-commit.ci commit messages
-          # mne-bot PRs (SPEC0, credit) shouldn't need it since we commit with mne-bot user
-          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] ; then
+          if [[ "$COMMIT_MESSAGE" == '[dependabot]'* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] ; then
             echo "Pushed commit to run CircleCI for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
             git commit --allow-empty -m "mne[bot] Push commit to run CircleCI"
             git push
