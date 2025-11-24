@@ -8,10 +8,25 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     # Names can be found with gh api /repos/mne-tools/mne-python/pulls/12998 -q .user.login for example
-    if: (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'pre-commit-ci[bot]' || github.event.pull_request.user.login == 'github-actions[bot]') && github.repository == 'mne-tools/mne-python'
+    # TODO: Remove larsoner
+    if: (github.event.pull_request.user.login == 'larsoner' || github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'pre-commit-ci[bot]' || github.event.pull_request.user.login == 'github-actions[bot]') && github.repository == 'mne-tools/mne-python'
     steps:
       - name: Enable auto-merge for bot PRs
-        run: gh pr merge --auto --squash "$PR_URL"
+        shell: bash
+        run: |
+          set -xeo pipefail
+          gh pr checkout "$PR_URL"
+          COMMITTER=$(git show -s ${{github.event.pull_request.head.sha}} --pretty=format:'%an')
+          echo "Current commit email: $COMMIT_EMAIL"
+          # TODO: UPDATE THIS TO [bot]
+          if [[ "$COMMITTER" == *'a'* ]] && [[ "$COMMITTER" != "mne[bot]" ]]; then
+            git config --global user.name "mne[bot]"
+            git config --global user.email "mne-bot@noreply.github.com"
+            git commit --allow-empty -m "Push commit as mne-bot to enable auto-merge"
+            git push
+          fi
+          # TODO: Restore this!
+          # gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{secrets.MNE_BOT_TOKEN}}
