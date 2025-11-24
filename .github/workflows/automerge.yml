@@ -25,7 +25,7 @@ jobs:
           git config --global user.name "mne[bot]"
           git config --global user.email "mne-bot@noreply.github.com"
           # Dependabot, pre-commit.ci, mne-bot credit, TODO REMOVE PING
-          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] || [[ "$COMMIT_MESSAGE" == "MAINT: Update code credit" ]] || [[ "$COMMIT_MESSAGE" == "TST: Ping [skip azp]"]]; then
+          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] || [[ "$COMMIT_MESSAGE" == "MAINT: Update code credit" ]] || [[ "$COMMIT_MESSAGE" == "TST: Ping [skip azp]" ]]; then
             git commit --allow-empty -m "Push commit as mne-bot to enable auto-merge"
             git push
           fi
