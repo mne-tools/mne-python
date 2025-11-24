@@ -4,9 +4,6 @@ on:  # yamllint disable-line rule:truthy
     branches:
       - dependabot/*
       - pre-commit-ci/*
-      - credit/*
-      # TODO: REMOVE THIS
-      - autopush
 
 jobs:
   autobot:
@@ -28,7 +25,7 @@ jobs:
           COMMIT_MESSAGE=$(git show -s --format=%s)
           # Detect dependabot and pre-commit.ci commit messages
           # mne-bot PRs (SPEC0, credit) shouldn't need it since we commit with mne-bot user
-          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] || [[ "$COMMIT_MESSAGE" == "TST: Ping [skip azp]" ]]; then
+          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] ; then
             echo "Pushed commit to run CircleCI for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
             git commit --allow-empty -m "mne[bot] Push commit to run CircleCI"
             git push
