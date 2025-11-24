@@ -35,8 +35,8 @@ jobs:
       - name: Create PR
         run: |
           set -xeo pipefail
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
+          git config --global user.email "mne-bot@users.noreply.github.com"
+          git config --global user.name "mne[bot]"
           git checkout -b credit
           git commit -am "MAINT: Update code credit"
           git push origin credit

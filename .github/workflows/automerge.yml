@@ -9,24 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     # Names can be found with gh api /repos/mne-tools/mne-python/pulls/12998 -q .user.login for example
     # TODO: Remove larsoner
-    if: (github.event.pull_request.user.login == 'larsoner' || github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'pre-commit-ci[bot]' || github.event.pull_request.user.login == 'github-actions[bot]') && github.repository == 'mne-tools/mne-python'
+    if: (github.event.pull_request.user.login == 'larsoner' || github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'pre-commit-ci[bot]' || github.event.pull_request.user.login == 'mne-bot') && github.repository == 'mne-tools/mne-python'
     steps:
+      - name: Get commit message
+        run: echo "COMMIT_MESSAGE=$(git show -s --format=%s ${{ github.event.pull_request.head.sha || github.sha }})" | tee -a ${GITHUB_ENV}
       - name: Enable auto-merge for bot PRs
-        shell: bash
+        shell: bash -el {0}
         run: |
           set -xeo pipefail
           gh pr checkout "$PR_URL"
-          COMMITTER=$(git show -s ${{github.event.pull_request.head.sha}} --pretty=format:'%an')
-          echo "Current commit email: $COMMIT_EMAIL"
-          # TODO: UPDATE THIS TO [bot]
-          if [[ "$COMMITTER" == *'a'* ]] && [[ "$COMMITTER" != "mne[bot]" ]]; then
-            git config --global user.name "mne[bot]"
-            git config --global user.email "mne-bot@noreply.github.com"
+          git config --global user.name "mne[bot]"
+          git config --global user.email "mne-bot@noreply.github.com"
+          # Dependabot, pre-commit.ci, mne-bot credit, TODO REMOVE PING
+          if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] || [[ "$COMMIT_MESSAGE" == "MAINT: Update code credit" ]] || [[ "$COMMIT_MESSAGE" == "TST: Ping [skip azp]"]]; then
             git commit --allow-empty -m "Push commit as mne-bot to enable auto-merge"
             git push
           fi
-          # TODO: Restore this!
-          # gh pr merge --auto --squash "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{secrets.MNE_BOT_TOKEN}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
