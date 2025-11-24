@@ -32,7 +32,7 @@ jobs:
             echo "Pushed commit to run CircleCI for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
             git commit --allow-empty -m "mne[bot] Push commit to run CircleCI"
             gh push
-          else:
+          else
             echo "No need to push a commit for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
           fi
         env:
