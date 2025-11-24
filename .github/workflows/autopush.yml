@@ -31,7 +31,7 @@ jobs:
           if [[ "$COMMIT_MESSAGE" == 'Bump '* ]] || [[ "$COMMIT_MESSAGE" == '[pre-commit.ci]'* ]] || [[ "$COMMIT_MESSAGE" == "TST: Ping [skip azp]" ]]; then
             echo "Pushed commit to run CircleCI for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
             git commit --allow-empty -m "mne[bot] Push commit to run CircleCI"
-            gh push
+            git push
           else
             echo "No need to push a commit for: $COMMIT_MESSAGE" | tee -a $GITHUB_STEP_SUMMARY
           fi
