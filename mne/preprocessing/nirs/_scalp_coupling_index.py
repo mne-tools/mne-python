@@ -6,7 +6,7 @@ import numpy as np
 
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
-from ..nirs import _validate_nirs_info
+from ..nirs import _channel_frequencies, _validate_nirs_info
 
 
 @verbose
@@ -57,8 +57,9 @@ def scalp_coupling_index(
     ).get_data()
 
     # Determine number of wavelengths per source-detector pair
-    ch_wavelengths = [c["loc"][9] for c in raw.info["chs"]]
-    n_wavelengths = len(set(ch_wavelengths))
+    # We use nominal wavelengths as the info structure may contain arbitrary data.
+    freqs = _channel_frequencies(raw.info)
+    n_wavelengths = len(np.unique(freqs))
 
     # freqs = np.array([raw.info["chs"][pick]["loc"][9] for pick in picks], float)
     # n_wavelengths = len(set(unique_freqs))
@@ -67,6 +68,7 @@ def scalp_coupling_index(
 
     # Calculate all pairwise correlations within each group and use the minimum as SCI
     pair_indices = np.triu_indices(n_wavelengths, k=1)
+
     for gg in range(0, len(picks), n_wavelengths):
         group_data = filtered_data[gg : gg + n_wavelengths]
 

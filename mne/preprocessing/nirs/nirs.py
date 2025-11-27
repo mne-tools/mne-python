@@ -155,6 +155,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         )
 
     # Ensure wavelength info exists for waveform data
+    # Note: currently, the only requirement for the wavelength field in info is
+    # that it cannot be NaN. It depends on the data readers what is stored in it.
     if len(picks_wave) > 0:
         all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
         # test for nan values first as those mess up the output of set()
@@ -162,13 +164,6 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             picks = _throw_or_return_empty(
                 f"NIRS channels is missing wavelength information in the "
                 f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
-                throw_errors,
-            )
-        # test if the info structure has the same number of freqs as pair_vals
-        if len(pair_vals) != len(set(all_freqs)):
-            picks = _throw_or_return_empty(
-                f"The {error_word} in info must match the number of wavelengths, "
-                f"but the data contains {len(set(all_freqs))} wavelengths instead.",
                 throw_errors,
             )
 

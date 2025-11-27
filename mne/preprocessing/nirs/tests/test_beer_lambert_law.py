@@ -73,7 +73,7 @@ def test_beer_lambert_unordered_errors():
         }
     )
     assert raw_od.ch_names[0] == "S1_D1 770" and raw_od.ch_names[1] == "S1_D1 840"
-    with pytest.raises(ValueError, match="must match the number of wavelengths"):
+    with pytest.raises(ValueError, match="NIRS channels not ordered correctly."):
         beer_lambert_law(raw_od)
 
 

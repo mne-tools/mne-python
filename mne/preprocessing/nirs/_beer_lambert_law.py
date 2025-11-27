@@ -11,7 +11,7 @@ from scipy.io import loadmat
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
 from ...utils import _validate_type, pinv, warn
-from ..nirs import _validate_nirs_info, source_detector_distances
+from ..nirs import _channel_frequencies, _validate_nirs_info, source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=6.0):
@@ -37,8 +37,20 @@ def beer_lambert_law(raw, ppf=6.0):
     _validate_type(ppf, ("numeric", "array-like"), "ppf")
     ppf = np.array(ppf, float)
     picks = _validate_nirs_info(raw.info, fnirs="od", which="Beer-lambert")
-    # This is the one place we *really* need the actual/accurate frequencies
-    freqs = np.array([raw.info["chs"][pick]["loc"][9] for pick in picks], float)
+
+    # Use nominal channel frequencies
+    #
+    # Notes on implementation:
+    # 1. Frequencies are calculated the same way as in nirs._validate_nirs_info().
+    # 2. Wavelength values in the info structure may contain actual frequencies,
+    #    which may be used for more accurate calculation in the future.
+    # 3. nirs._channel_frequencies uses both cw_amplitude and OD data to determine
+    #    frequencies, whereas we only need those from OD here. Is there any chance
+    #    that they're different?
+    # 4. If actual frequencies were used, using np.unique() like below will lead to
+    #    errors. Instead, absorption coefficients will need to be calculated for
+    #    each individual frequency.
+    freqs = _channel_frequencies(raw.info)
 
     # Get unique wavelengths and determine number of wavelengths
     unique_freqs = np.unique(freqs)
