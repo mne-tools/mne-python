@@ -98,7 +98,7 @@ def beer_lambert_law(raw, ppf=6.0):
         # where E is (n_wavelengths, 2), Δc is (2, n_timepoints)
         # using pseudo-inverse
         EL = abs_coef * distances[group_picks[0]] * ppf
-        iEL = pinv(EL)  # Pseudo-inverse for numerical stability
+        iEL = pinv(EL)
         conc_data = iEL @ raw._data[group_picks] * 1e-3
 
         # Replace the first two channels with HbO and HbR
@@ -119,7 +119,6 @@ def beer_lambert_law(raw, ppf=6.0):
             channels_to_drop_all.extend(channel_names_to_drop)
 
     # Drop all accumulated extra wavelength channels after processing all groups
-    # This preserves channel indexing during the loop iterations
     if channels_to_drop_all:
         raw.drop_channels(channels_to_drop_all)
 

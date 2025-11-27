@@ -61,9 +61,6 @@ def scalp_coupling_index(
     freqs = _channel_frequencies(raw.info)
     n_wavelengths = len(np.unique(freqs))
 
-    # freqs = np.array([raw.info["chs"][pick]["loc"][9] for pick in picks], float)
-    # n_wavelengths = len(set(unique_freqs))
-
     sci = np.zeros(picks.shape)
 
     # Calculate all pairwise correlations within each group and use the minimum as SCI
