@@ -67,15 +67,14 @@ class SSD(_GEDTransformer):
     cov_method_params : dict | None (default None)
         As in :class:`mne.decoding.SPoC`
         The default is None.
-    restr_type : "restricting" | "whitening" | "ssd" | None
+    restr_type : "restricting" | "whitening" | None
         Restricting transformation for covariance matrices before performing
         generalized eigendecomposition.
         If "restricting" only restriction to the principal subspace of signal_cov
         will be performed.
         If "whitening", covariance matrices will be additionally rescaled according
         to the whitening for the signal_cov.
-        If "ssd", simplified version of "whitening" is performed.
-        If None, no restriction will be applied. Defaults to "ssd".
+        If None, no restriction will be applied. Defaults to "whitening".
 
         .. versionadded:: 1.11
     rank : None | dict | ‘info’ | ‘full’
