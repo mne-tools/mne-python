@@ -4,3 +4,5 @@ changelog:
       - dependabot
       - pre-commit-ci
       - github-actions
+      - mne-bot
+      - mne[bot]

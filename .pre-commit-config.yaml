@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
+    rev: v0.14.6
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -86,6 +86,8 @@ repos:
     hooks:
       - id: zizmor
         args: [--fix]
+        # We correctly use pull_request_trigger, and need Zizmor 2.0+ to configure the ignore
+        exclude: ^.github/workflows/automerge.yml
 
 # these should *not* be run on CIs:
 ci:

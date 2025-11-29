@@ -19,8 +19,8 @@ jobs:
     name: Update dependency versions
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
-      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -52,10 +52,10 @@ jobs:
       - name: Create PR
         run: |
           set -xeo pipefail
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
+          git config --global user.email "50266005+mne-bot@users.noreply.github.com"
+          git config --global user.name "mne[bot]"
           git checkout -b spec_zero
-          git commit -am "MAINT: Update dependency specifiers"
+          git commit -am "mne[bot]: Update dependency specifiers"
           git push origin spec_zero
           PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` in this or another PR. \`git grep TODO VERSION\` is a good starting point for finding potential updates.*" --label "no-changelog-entry-needed")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
