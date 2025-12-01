@@ -11,7 +11,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: true
           token: ${{ secrets.MNE_BOT_TOKEN }}
