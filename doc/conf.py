@@ -709,6 +709,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
     "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize",
     "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
