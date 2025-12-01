@@ -714,7 +714,6 @@ class UpdateChannelsMixin:
 
         _validate_type(add_list, (list, tuple), "Input")
 
-        
         # Object-specific checks
         for inst in add_list + [self]:
             _check_preload(inst, "adding channels")
@@ -829,7 +828,7 @@ class InterpolationMixin:
         method=None,
         exclude=(),
         verbose=None,
-        **kwargs
+        **kwargs,
     ):
         """Interpolate bad MEG and EEG channels.
 
@@ -898,12 +897,14 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
-        bads_to_check = self.info['bads']
+        bads_to_check = self.info["bads"]
         for ch_name in bads_to_check:
             try:
                 ch_idx = self.ch_names.index(ch_name)
-                ch_loc = self.info['chs'][ch_idx]['loc']
-                is_loc_invalid = np.allclose(ch_loc, 0.0, atol=1e-16) or np.any(np.isnan(ch_loc))
+                ch_loc = self.info["chs"][ch_idx]["loc"]
+                is_loc_invalid = np.allclose(ch_loc, 0.0, atol=1e-16) or np.any(
+                    np.isnan(ch_loc)
+                )
             except ValueError:
                 continue
 
@@ -914,8 +915,7 @@ class InterpolationMixin:
                 )
                 _on_missing(
                     kwargs.get("on_no_position", "error"),
-                    msg
-                    + " If you want to continue despite missing positions, set "
+                    msg + " If you want to continue despite missing positions, set "
                     "on_no_position='warn' or 'ignore'.",
                 )
 
