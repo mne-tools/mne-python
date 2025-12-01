@@ -1,0 +1,351 @@
+{
+  "merge_commit_sha": "6f6802c54b85c38effb0b3cca7f3f96ea4a1e109",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 2,
+      "d": 0
+    },
+    "CITATION.cff": {
+      "a": 41,
+      "d": 17
+    },
+    "SECURITY.md": {
+      "a": 3,
+      "d": 3
+    },
+    "codemeta.json": {
+      "a": 119,
+      "d": 47
+    },
+    "doc/_static/versions.json": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/changes/dev.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/changes/dev/12847.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13068.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13096.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13109.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13112.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13156.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13176.dependency.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13176.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13251.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13259.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/dev/13307.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13332.newfeature.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/dev/13341.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13350.apichange.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13354.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13357.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13361.bugfix.rst": {
+      "a": 0,
+      "d": 8
+    },
+    "doc/changes/dev/13371.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13373.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13375.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13376.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13391.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13393.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13395.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13398.apichange.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13400.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13407.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13428.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13435.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13440.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13445.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13448.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13451.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13452.other.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/dev/13456.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13458.apichange.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13460.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13463.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13466.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13468.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13469.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13470.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13478.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13481.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13484.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13486.bugfix.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/dev/13489.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13494.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13497.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13499.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/v1.11.rst": {
+      "a": 122,
+      "d": 0
+    },
+    "doc/development/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/cited.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/sphinxext/prs/13068.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13109.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13156.json": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13176.json": {
+      "a": 103,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13307.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13468.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13471.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13477.json": {
+      "a": 163,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13478.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13479.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13480.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13481.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13482.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13484.json": {
+      "a": 79,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13486.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13489.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13494.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13495.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13496.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13497.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13498.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13499.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 0,
+      "d": 4
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

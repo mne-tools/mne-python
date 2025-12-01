@@ -264,6 +264,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "pre-commit-ci[bot]" not in email
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
+        and "50266005+mne-bot" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
