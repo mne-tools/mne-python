@@ -1014,6 +1014,7 @@ def test_refit_hpi_locs_problematic():
     assert 82 < dist < 87
 
 
+@testing.requires_testing_data
 def test_refit_hpi_locs_bad_gof():
     """Test that we can handle bad GOF HPI fits."""
     # gh-13524
