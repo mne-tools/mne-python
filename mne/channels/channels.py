@@ -827,8 +827,8 @@ class InterpolationMixin:
         origin="auto",
         method=None,
         exclude=(),
+        on_no_position="raise",
         verbose=None,
-        **kwargs,
     ):
         """Interpolate bad MEG and EEG channels.
 
@@ -897,27 +897,20 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
-        bads_to_check = self.info["bads"]
-        for ch_name in bads_to_check:
-            try:
-                ch_idx = self.ch_names.index(ch_name)
-                ch_loc = self.info["chs"][ch_idx]["loc"]
-                is_loc_invalid = np.allclose(ch_loc, 0.0, atol=1e-16) or np.any(
-                    np.isnan(ch_loc)
-                )
-            except ValueError:
-                continue
+        
+        invalid_chs = []
+        for ch in self.info['bads']:
+            loc = self.info['chs'][self.ch_names.index(ch)]['loc']
+            if np.allclose(loc, 0.0, atol=1e-16) or np.isnan(loc).any():
+                invalid_chs.append(ch)
 
-            if is_loc_invalid:
-                msg = (
-                    f"Bad channel '{ch_name}' is missing valid sensor position (loc) information. "
-                    "Interpolation cannot proceed correctly."
-                )
-                _on_missing(
-                    kwargs.get("on_no_position", "error"),
-                    msg + " If you want to continue despite missing positions, set "
-                    "on_no_position='warn' or 'ignore'.",
-                )
+        if invalid_chs:
+            msg = (
+                f"Bad channel(s) '{invalid_chs}' have missing valid sensor position (loc) information."
+                "\nInterpolation cannot proceed correctly. If you want to continue despite missing positions, set "
+                "on_no_position='warn' or 'ignore', which outputs all NaN values(np.nan) for the interpolated channel(s)."
+            )
+            _on_missing(on_no_position, msg)
 
         method = _handle_default("interpolation_method", method)
         ch_types = self.get_channel_types(unique=True)
