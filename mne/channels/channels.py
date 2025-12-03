@@ -897,10 +897,10 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
-        
+
         invalid_chs = []
-        for ch in self.info['bads']:
-            loc = self.info['chs'][self.ch_names.index(ch)]['loc']
+        for ch in self.info["bads"]:
+            loc = self.info["chs"][self.ch_names.index(ch)]["loc"]
             if np.allclose(loc, 0.0, atol=1e-16) or np.isnan(loc).any():
                 invalid_chs.append(ch)
 
