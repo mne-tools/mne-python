@@ -906,9 +906,12 @@ class InterpolationMixin:
 
         if invalid_chs:
             msg = (
-                f"Bad channel(s) '{invalid_chs}' have missing valid sensor position (loc) information."
-                "\nInterpolation cannot proceed correctly. If you want to continue despite missing positions, set "
-                "on_no_position='warn' or 'ignore', which outputs all NaN values(np.nan) for the interpolated channel(s)."
+                f"Bad channel(s) {invalid_chs} have missing valid sensor position "
+                "(loc) information.\n"
+                "Interpolation cannot proceed correctly. If you want to continue "
+                "despite missing positions, set on_no_position='warn' or 'ignore', "
+                "which outputs all NaN values (np.nan) for the interpolated "
+                "channel(s)."
             )
             _on_missing(on_no_position, msg)
 
