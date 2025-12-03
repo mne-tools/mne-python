@@ -1,3 +1,0 @@
-Fixed almost-white (barely visible) channel traces when using
-``spatial_colors=True`` in :meth:`mne.io.Raw.plot_psd`,
-:meth:`mne.Epochs.plot_psd`, and related PSD-plot helpers, by :newcontrib:`Mojackhak`.

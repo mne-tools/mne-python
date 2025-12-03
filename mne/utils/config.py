@@ -687,7 +687,12 @@ def _get_total_memory():
                 "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ]
         ).decode()
-        total_memory = int(o)
+        # Can get for example a "running scripts is disabled on this system"
+        # error where "o" will be a long string rather than an int
+        try:
+            total_memory = int(o)
+        except Exception:  # pragma: no cover
+            total_memory = 0
     elif platform.system() == "Linux":
         o = subprocess.check_output(["free", "-b"]).decode()
         total_memory = int(o.splitlines()[1].split()[1])
@@ -832,8 +837,11 @@ def sys_info(
         "neo",
         "eeglabio",
         "edfio",
+        "curryreader",
         "mffpy",
         "pybv",
+        "antio",
+        "defusedxml",
         "",
     )
     if dependencies == "developer":
@@ -842,11 +850,9 @@ def sys_info(
             "pytest",
             "statsmodels",
             "numpydoc",
-            "flake8",
             "jupyter_client",
             "nbclient",
             "nbformat",
-            "pydocstyle",
             "nitime",
             "imageio",
             "imageio-ffmpeg",
@@ -978,7 +984,7 @@ def _check_mne_version(timeout):
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:
-        return True, f"devel, latest release is {rel_ver}"
+        return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:
         return True, "latest release"
     else:

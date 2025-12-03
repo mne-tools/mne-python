@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "4b6004a90a1210f852210898df5504b029dbedf0",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/prs/12847.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13332.json": {
+      "a": 79,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13357.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13358.json": {
+      "a": 135,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13360.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13361.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13365.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13367.json": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13368.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13369.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13371.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13373.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13376.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13378.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13380.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13381.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13385.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13387.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13389.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13391.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13393.json": {
+      "a": 79,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13394.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13396.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13400.json": {
+      "a": 43,
+      "d": 0
+    }
+  }
+}

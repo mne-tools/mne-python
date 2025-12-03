@@ -2,6 +2,76 @@
 build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling"]
 
+[dependency-groups]
+dev = ["pip >= 25.1", "rcssmin", {include-group = "doc"}, {include-group = "test_extra"}]
+# Dependencies for building the documentation
+doc = [
+  "graphviz",
+  "intersphinx_registry >= 0.2405.27",
+  "ipython != 8.7.0",  # also in "full-no-qt" and "test"
+  "memory_profiler",
+  "mne-bids",
+  "mne-connectivity",
+  "mne-gui-addons",
+  "neo",
+  "numpydoc",
+  "openneuro-py",
+  "psutil",
+  "pydata_sphinx_theme >= 0.15.2",
+  "pygments >= 2.13",
+  "pytest",
+  "pyvistaqt",
+  "pyxdf",
+  "pyzmq != 24.0.0",
+  "scikit-learn",
+  "seaborn != 0.11.2",
+  "selenium >= 4.27.1",
+  "sphinx >= 6",
+  "sphinx-design",
+  "sphinx-gallery >= 0.16",
+  "sphinx_copybutton",
+  "sphinxcontrib-bibtex >= 2.5",
+  "sphinxcontrib-towncrier >=0.5.0a0",
+  "sphinxcontrib-youtube",
+]
+test = [
+  "codespell",
+  "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
+  "mypy",
+  "numpydoc",
+  "pre-commit",
+  "pytest >= 8.0",
+  "pytest-cov",
+  "pytest-qt",
+  "pytest-rerunfailures",
+  "pytest-timeout",
+  "ruff",
+  "toml-sort",
+  "tomli; python_version<'3.11'",
+  "twine",
+  "vulture",
+  "wheel",
+]
+# Dependencies for being able to run additional tests (rare/CIs/advanced devs)
+# Changes here should be reflected in the mne/utils/config.py dev dependencies section
+test_extra = [
+  "edfio >= 0.4.10",
+  "eeglabio",
+  "imageio >= 2.6.1",
+  "imageio-ffmpeg >= 0.4.1",
+  "jupyter_client",
+  "mne-bids",
+  "nbclient",
+  "nbformat",
+  "neo",
+  "nitime",
+  "pybv",
+  "snirf",
+  "sphinx-gallery",
+  "statsmodels",
+  {include-group = "test"},
+]
+
 [project]
 authors = [
   {email = "alexandre.gramfort@inria.fr", name = "Alexandre Gramfort"},
@@ -23,11 +93,11 @@ dependencies = [
   "decorator",
   "jinja2",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.7",  # 2023/02/13
-  "numpy >= 1.25,<3",  # 2023/06/17
+  "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
+  "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.11",  # 2023/06/25
+  "scipy >= 1.11",  # released 2023-06-28, will become 1.12 on 2026-01-19
   "tqdm",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -41,7 +111,8 @@ keywords = [
   "neuroimaging",
   "neuroscience",
 ]
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
 maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
@@ -51,35 +122,6 @@ scripts = {mne = "mne.commands.utils:main"}
 [project.optional-dependencies]
 # Leave this one here for backward-compat
 data = []
-dev = ["mne[doc,test]", "rcssmin"]
-# Dependencies for building the documentation
-doc = [
-  "graphviz",
-  "intersphinx_registry >= 0.2405.27",
-  "ipython != 8.7.0",  # also in "full-no-qt" and "test"
-  "memory_profiler",
-  "mne-bids",
-  "mne-connectivity",
-  "mne-gui-addons",
-  "neo",
-  "numpydoc",
-  "openneuro-py",
-  "psutil",
-  "pydata_sphinx_theme >= 0.15.2",
-  "pygments >= 2.13",
-  "pytest",
-  "pyxdf",
-  "pyzmq != 24.0.0",
-  "seaborn != 0.11.2",
-  "selenium >= 4.27.1",
-  "sphinx >= 6",
-  "sphinx-design",
-  "sphinx-gallery >= 0.16",
-  "sphinx_copybutton",
-  "sphinxcontrib-bibtex >= 2.5",
-  "sphinxcontrib-towncrier >=0.5.0a0",
-  "sphinxcontrib-youtube",
-]
 full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # Dependencies for full MNE-Python functionality (other than raw/epochs export)
 # We first define a variant without any Qt bindings. The "complete" variant, mne[full],
@@ -88,12 +130,13 @@ full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # and mne[full-pyside6], which will install PySide6 instead of PyQt6.
 full-no-qt = [
   "antio >= 0.5.0",
+  "curryreader >= 0.1.2",
   "darkdetect",
   "defusedxml",
   "dipy",
-  "edfio >= 0.2.1",
+  "edfio >= 0.4.10",
   "eeglabio",
-  "filelock>=3.18.0",
+  "filelock >= 3.18.0",
   "h5py",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
@@ -107,21 +150,22 @@ full-no-qt = [
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
+  "nest-asyncio2",
   "nibabel",
   "nilearn",
   "numba",
-  "openmeeg >= 2.5.5",
-  "pandas >= 2.0",  # 2023/04/03
+  "openmeeg >= 2.5.7",
+  "pandas >= 2.1",  # released 2023-08-30, will become 2.2 on 2026-01-19
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard",
-  "pyvista >= 0.32, != 0.35.2, != 0.38.0, != 0.38.1, != 0.38.2, != 0.38.3, != 0.38.4, != 0.38.5, != 0.38.6, != 0.42.0",
-  "pyvistaqt >= 0.4",
+  "pyvista >= 0.42.1",  # released 2023-09-06, will become 0.43 on 2025-12-06
+  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn",
+  "scikit-learn >= 1.3",  # released 2023-06-30, will become 1.4 on 2026-01-17
   "sip",
   "snirf",
   "statsmodels",
@@ -137,44 +181,6 @@ full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
-# Dependencies for running the test infrastructure
-test = [
-  "codespell",
-  "flaky",
-  "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
-  "mypy",
-  "numpydoc",
-  "pre-commit",
-  "pytest >= 8.0",
-  "pytest-cov",
-  "pytest-qt",
-  "pytest-timeout",
-  "ruff",
-  "toml-sort",
-  "tomli; python_version<'3.11'",
-  "twine",
-  "vulture",
-  "wheel",
-]
-# Dependencies for being able to run additional tests (rare/CIs/advanced devs)
-# Changes here should be reflected in the mne/utils/config.py dev dependencies section
-test_extra = [
-  "edfio >= 0.2.1",
-  "eeglabio",
-  "imageio >= 2.6.1",
-  "imageio-ffmpeg >= 0.4.1",
-  "jupyter_client",
-  "mne-bids",
-  "mne[test]",
-  "nbclient",
-  "nbformat",
-  "neo",
-  "nitime",
-  "pybv",
-  "snirf",
-  "sphinx-gallery",
-  "statsmodels",
-]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
@@ -264,12 +270,24 @@ module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 # -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
 # don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
 # which look like real errors
-addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
-    --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
-    --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
-    --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
-    --ignore=mne/report/js_and_css \
-    --color=yes --capture=sys"""
+addopts = [
+  "--capture=sys",
+  "--color=yes",
+  "--cov-branch",
+  "--cov-report=",
+  "--doctest-ignore-import-errors",
+  "--doctest-modules",
+  "--durations=20",
+  "--ignore=mne/gui/_*.py",
+  "--ignore=mne/icons",
+  "--ignore=mne/report/js_and_css",
+  "--junit-xml=junit-results.xml",
+  "--tb=short",
+  "-rfEXs",
+]
+testpaths = [
+  "mne",
+]
 
 [tool.rstcheck]
 ignore_directives = [
@@ -378,8 +396,8 @@ spaces_before_inline_comment = 2
 trailing_comma_inline_array = true
 
 [tool.towncrier]
-directory = "doc/changes/devel/"
-filename = "doc/changes/devel.rst"
+directory = "doc/changes/dev/"
+filename = "doc/changes/dev.rst"
 issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 package = "mne"
 title_format = "{version} ({project_date})"

@@ -744,6 +744,10 @@ def test_add_reference():
     ref_data, _ = raw[[ref_idx, ref_idy]]
     assert_array_equal(ref_data, 0)
 
+    loc1 = raw.info["chs"][ref_idx]["loc"]
+    loc2 = raw.info["chs"][ref_idy]["loc"]
+    assert loc1 is not loc2
+
     # add reference channel to epochs
     raw = read_raw_fif(fif_fname, preload=True)
     events = read_events(eve_fname)

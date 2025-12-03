@@ -7,7 +7,6 @@
 
 import json
 import time
-import warnings
 from collections import OrderedDict
 from copy import deepcopy
 from functools import lru_cache, partial
@@ -760,14 +759,14 @@ class _CheckInside:
 
     def _init_old(self):
         self.inner_r = None
-        self.cm = self.surf["rr"].mean(0)
+        self.center = self.surf["rr"].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
         # to construct but faster to evaluate
         # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
         self.del_tri = Delaunay(self.surf["rr"])
-        if self.del_tri.find_simplex(self.cm) >= 0:
+        if self.del_tri.find_simplex(self.center) >= 0:
             # Immediately cull some points from the checks
-            dists = np.linalg.norm(self.surf["rr"] - self.cm, axis=-1)
+            dists = np.linalg.norm(self.surf["rr"] - self.center, axis=-1)
             self.inner_r = dists.min()
             self.outer_r = dists.max()
 
@@ -779,7 +778,7 @@ class _CheckInside:
             self.pdata = _surface_to_polydata(self.surf).clean()
 
     @verbose
-    def __call__(self, rr, n_jobs=None, verbose=None):
+    def __call__(self, rr, *, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
             f"Checking surface interior status for {n_orig} point{_pl(n_orig, ' ')}..."
@@ -794,6 +793,14 @@ class _CheckInside:
         logger.info(f"Interior check completed in {(time.time() - t0) * 1000:0.1f} ms")
         return inside
 
+    def query(self, rr):
+        """Get the distance to the nearest point."""
+        if not hasattr(self, "_tree"):  # compute on the fly only when needed
+            from scipy.spatial import KDTree
+
+            self._tree = KDTree(self.surf["rr"])
+        return self._tree.query(rr)
+
     def _call_pyvista(self, rr):
         pdata = _surface_to_polydata(dict(rr=rr))
         out = pdata.select_enclosed_points(self.pdata, check_surface=False)
@@ -807,7 +814,7 @@ class _CheckInside:
         # Limit to indices that can plausibly be outside the surf
         # but are not definitely outside it
         if self.inner_r is not None:
-            dists = np.linalg.norm(rr - self.cm, axis=-1)
+            dists = np.linalg.norm(rr - self.center, axis=-1)
             in_mask = dists < self.inner_r
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
@@ -853,6 +860,46 @@ class _CheckInside:
         )
         inside[idx[solid_outside]] = False
         return inside
+
+
+class _CheckInsideSphere:
+    def __init__(self, sphere, *, check="inner"):
+        from .bem import ConductorModel
+
+        assert isinstance(sphere, ConductorModel) and sphere["is_sphere"]
+        self.center = sphere["r0"]
+        assert isinstance(check, str) and check in ("inner", "outer"), check
+        self.check = check
+        # for a sphere, our closest point and farthest are the same
+        if len(sphere["layers"]):
+            self.inner_r = sphere["layers"][0]["rad"]
+            self.outer_r = sphere["layers"][-1]["rad"]
+        else:
+            self.inner_r = self.outer_r = None
+
+    # No need for verbose dec here because no MNE code is called that would log
+    def __call__(self, rr, *, n_jobs=None, verbose=None):
+        assert isinstance(rr, np.ndarray), type(rr)
+        assert rr.ndim == 2 and rr.shape[1] == 3
+        if self.inner_r is None:
+            return np.ones(rr.shape[0], bool)
+        else:
+            return np.linalg.norm(rr - self.center, axis=-1) <= self._check_r
+
+    @property
+    def _check_r(self):
+        return self.inner_r if self.check == "inner" else self.outer_r
+
+    def query(self, rr):
+        """Return the distance to the sphere surface for each point."""
+        assert isinstance(rr, np.ndarray), type(rr)
+        assert rr.ndim == 2 and rr.shape[1] == 3, rr.shape
+        idx = np.zeros(rr.shape[0], int)
+        if self.inner_r is None:
+            dists = np.full(rr.shape[0], np.inf)
+        else:
+            dists = np.abs(np.linalg.norm(rr - self.center, axis=-1) - self._check_r)
+        return dists, idx
 
 
 ###############################################################################
@@ -1424,16 +1471,12 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
         )
     src = vtkPolyData()
     vtkpoints = vtkPoints()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
     src.SetPoints(vtkpoints)
     vtkcells = vtkCellArray()
     triangles_ = np.pad(triangles, ((0, 0), (1, 0)), "constant", constant_values=3)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
-    vtkcells.SetCells(triangles.shape[0], idarr)
+    idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.ImportLegacyFormat(idarr)
     src.SetPolys(vtkcells)
     # vtkDecimatePro was not very good, even with SplittingOff and
     # PreserveTopologyOn

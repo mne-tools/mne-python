@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "715784fb3f4276ee977f6bf12c67b57dd9e47843",
+  "authors": [
+    {
+      "n": "Victor Férat",
+      "e": "victor.ferat@live.Fr"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12848.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 134,
+      "d": 5
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 25,
+      "d": 1
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/utils/check.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 35,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 18,
+      "d": 8
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

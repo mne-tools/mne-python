@@ -1,1 +1,0 @@
-Fixed bug where saving FIFF files failed when ``info["subject_info"]["birthday"]`` was a :class:`pandas.Timestamp` instead of :class:`datetime.date`, by :newcontrib:`Laurent Le Mentec`.

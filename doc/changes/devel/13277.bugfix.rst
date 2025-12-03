@@ -1,1 +1,0 @@
-Update :func:`mne.viz.plot_alignment` and related functions to support PyVista deprecation of positional arguments by :newcontrib:`user27182`.

@@ -1,1 +1,0 @@
-Add test analytics functionality to track and analyze test performance, by :newcontrib:`Katia Al-Amir`. 

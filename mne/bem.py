@@ -1019,7 +1019,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
     .. versionadded:: 0.14
     """
     _validate_type(info, "info")
-    if info["dig"] is None:
+    if info.get("dig", None) is None:  # "dig" can be missing for fwd/inv
         raise RuntimeError(
             'Cannot fit headshape without digitization, info["dig"] is None'
         )

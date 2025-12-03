@@ -1,13 +1,23 @@
 [
     {
-        "name": "1.10 (devel)",
+        "name": "1.12 (dev)",
         "version": "dev",
         "url": "https://mne.tools/dev/"
     },
     {
-        "name": "1.9 (stable)",
+        "name": "1.11 (stable)",
         "version": "stable",
         "url": "https://mne.tools/stable/"
+    },
+    {
+        "name": "1.10",
+        "version": "1.10",
+        "url": "https://mne.tools/1.10/"
+    },
+    {
+        "name": "1.9",
+        "version": "1.9",
+        "url": "https://mne.tools/1.9/"
     },
     {
         "name": "1.8",

@@ -1,1 +1,0 @@
-The :meth:`mne.Info.save` method now has an ``overwrite`` and a ``verbose`` parameter, by `Stefan Appelhoff`_.

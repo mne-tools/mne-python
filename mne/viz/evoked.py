@@ -727,10 +727,12 @@ def _plot_lines(
                 )
                 if gfp_only:
                     y_offset = 0.0
+                    this_ylim = (0, 1.1 * np.max(this_gfp) or 1)
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
                 ax.autoscale(False)
+                ax.set_ylim(this_ylim)
                 ax.fill_between(
                     times,
                     y_offset,
@@ -1799,7 +1801,7 @@ def plot_evoked_joint(
     times="peaks",
     title="",
     picks=None,
-    exclude=None,
+    exclude="bads",
     show=True,
     ts_args=None,
     topomap_args=None,
@@ -1826,9 +1828,9 @@ def plot_evoked_joint(
         axes are passed make sure to set ``title=None``, otherwise some of your
         axes may be removed during placement of the title axis.
     %(picks_all)s
-    exclude : None | list of str | 'bads'
+    exclude : list of str | 'bads'
         Channels names to exclude from being shown. If ``'bads'``, the
-        bad channels are excluded. Defaults to ``None``.
+        bad channels are excluded. Defaults to ``'bads'``.
     show : bool
         Show figure if ``True``. Defaults to ``True``.
     ts_args : None | dict

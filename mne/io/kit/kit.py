@@ -21,7 +21,7 @@ from ..._fiff.pick import pick_types
 from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ...event import read_events
-from ...transforms import als_ras_trans, apply_trans
+from ...transforms import Transform, als_ras_trans, apply_trans
 from ...utils import (
     _check_fname,
     _check_option,
@@ -831,6 +831,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         highpass=sqd["highpass"],
         kit_system_id=sysid,
         description=description,
+        dev_head_t=Transform("meg", "head"),
     )
 
     # Creates a list of dicts of meg channels for raw.info

@@ -242,7 +242,8 @@ class Annotations:
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
-        the ISO8601 format where the delimiter between date and time is ' '.
+        the ISO8601 format where the delimiter between date and time is ' ' and at most
+        microsecond precision (nanoseconds are not supported).
     %(ch_names_annot)s
 
         .. versionadded:: 0.23
@@ -390,6 +391,20 @@ class Annotations:
         extras=None,
     ):
         self._orig_time = _handle_meas_date(orig_time)
+        if isinstance(orig_time, str) and self._orig_time is None:
+            try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
+                if _handle_meas_date(0) == datetime.strptime(
+                    orig_time, "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=timezone.utc):
+                    pass
+            except ValueError:  # error if incorrect datetime format AND not the default
+                warn(
+                    "The format of the `orig_time` string is not recognised. It "
+                    "must conform to the ISO8601 format with at most microsecond "
+                    "precision and where the delimiter between date and time is "
+                    f"' '. Got: {orig_time}. Defaulting `orig_time` to None.",
+                    RuntimeWarning,
+                )
         self.onset, self.duration, self.description, self.ch_names, self._extras = (
             _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
@@ -597,6 +612,7 @@ class Annotations:
         Parameters
         ----------
         %(time_format_df_raw)s
+            Default is ``datetime``.
 
             .. versionadded:: 1.7
 
@@ -614,7 +630,7 @@ class Annotations:
             dt = _handle_meas_date(0)
         time_format = _check_time_format(time_format, valid_time_formats, dt)
         dt = dt.replace(tzinfo=None)
-        times = _convert_times(self.onset, time_format, dt)
+        times = _convert_times(self.onset, time_format, meas_date=dt, drop_nano=True)
         df = dict(onset=times, duration=self.duration, description=self.description)
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
@@ -1414,6 +1430,8 @@ def read_annotations(
         ".csv": _read_annotations_csv,
         ".cnt": _read_annotations_cnt,
         ".ds": _read_annotations_ctf,
+        ".dat": _read_annotations_curry,
+        ".cdt": _read_annotations_curry,
         ".cef": _read_annotations_curry,
         ".set": _read_annotations_eeglab,
         ".edf": _read_annotations_edf,
@@ -1426,6 +1444,8 @@ def read_annotations(
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
         ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".dat": {"sfreq": sfreq},
+        ".cdt": {"sfreq": sfreq},
         ".cef": {"sfreq": sfreq},
         ".set": {"uint16_codec": uint16_codec},
         ".edf": {"encoding": encoding},
@@ -1481,7 +1501,13 @@ def _read_annotations_csv(fname):
             "onsets in seconds."
         )
     except ValueError:
-        pass
+        # remove nanoseconds for ISO8601 (microsecond) compliance
+        timestamp = pd.Timestamp(orig_time)
+        timespec = "microseconds"
+        if timestamp == pd.Timestamp(_handle_meas_date(0)).astimezone(None):
+            timespec = "auto"  # use default timespec for `orig_time=None`
+        orig_time = timestamp.isoformat(sep=" ", timespec=timespec)
+
     onset_dt = pd.to_datetime(df["onset"])
     onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df["duration"].values.astype(float)

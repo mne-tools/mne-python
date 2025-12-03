@@ -13,10 +13,13 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
+from sphinx.errors import ExtensionError
 
 import mne
 from mne.utils import (
-    _assert_no_instances,
+    _assert_no_instances as _assert_no_instances_mne,
+)
+from mne.utils import (
     _get_extra_data_path,
     sizeof_fmt,
 )
@@ -102,6 +105,14 @@ def reset_warnings(gallery_conf, fname):
 
 
 t0 = time.time()
+
+
+def _assert_no_instances(cls, when):
+    """Wrap our internal one but make the traceback nicer when it fails."""
+    try:
+        _assert_no_instances_mne(cls, when)
+    except Exception as exc:
+        raise ExtensionError(str(exc)) from None
 
 
 def reset_modules(gallery_conf, fname, when):

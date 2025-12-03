@@ -1,0 +1,4 @@
+# deps with onerous requirements (tensorflow, wxPython, mayavi)
+cross-domain-saliency-maps
+fsleyes
+mne-kit-gui

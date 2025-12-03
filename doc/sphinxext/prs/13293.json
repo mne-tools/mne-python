@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bb34f369ada8b27299a74118b858118cbcbf346a",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13293.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

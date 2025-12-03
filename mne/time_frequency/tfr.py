@@ -1960,7 +1960,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
             How baseline is computed is determined by the ``mode`` parameter.
         %(mode_tfr_plot)s
-        %(dB_spectrum_plot)s
+        %(dB_tfr_plot)s
         %(combine_tfr_plot)s
 
             .. versionchanged:: 1.3
@@ -2215,7 +2215,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
             How baseline is computed is determined by the ``mode`` parameter.
         %(mode_tfr_plot)s
-        %(dB_tfr_plot_topo)s
+        %(dB_tfr_plot)s
         %(yscale_tfr_plot)s
         %(vlim_tfr_plot_joint)s
         %(cnorm)s
@@ -2508,7 +2508,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(layout_spectrum_plot_topo)s
         %(cmap_tfr_plot_topo)s
         %(title_none)s
-        %(dB_tfr_plot_topo)s
+        %(dB_tfr_plot)s
         %(colorbar)s
         %(layout_scale)s
         %(show)s
@@ -2753,7 +2753,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         # prepare extra columns / multiindex
         mindex = list()
         default_index = list()
-        times = _convert_times(times, time_format, self.info["meas_date"])
+        times = _convert_times(times, time_format, meas_date=self.info["meas_date"])
         times = np.tile(times, n_epochs * n_freqs * n_tapers)
         freqs = np.tile(np.repeat(freqs, n_times), n_epochs * n_tapers)
         mindex.append(("time", times))

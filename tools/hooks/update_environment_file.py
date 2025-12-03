@@ -15,7 +15,7 @@ with open(repo_root / "pyproject.toml", "rb") as fid:
 
 # Get our "full" dependences from `pyproject.toml`, but actually ignore the
 # "full" section as it's just "full-noqt" plus PyQt6, and for conda we need PySide
-ignore = ("dev", "doc", "test", "test_extra", "full", "full-pyqt6")
+ignore = ("full", "full-pyqt6")
 deps = set(pyproj["project"]["dependencies"])
 for section, section_deps in pyproj["project"]["optional-dependencies"].items():
     if section not in ignore:
@@ -23,6 +23,7 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "nomkl"}
+deps -= {"nest-asyncio2"}  # not on CF yet
 
 
 def remove_spaces(version_spec):
@@ -46,21 +47,17 @@ req_python = remove_spaces(pyproj["project"]["requires-python"])
 
 # split package name from version spec
 translations = dict(neo="python-neo")
-pip_deps = set()
+pip_deps = {"      - nest-asyncio2"}
 conda_deps = set()
 for dep in deps:
     package_name, version_spec = split_dep(dep)
     # handle package name differences
     package_name = translations.get(package_name, package_name)
     # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
-    # `environment.yaml` breaks the solver
+    # `environment.yaml` breaks the solver. 6.9.1 has a bug, and 6.9.2 needs newer
+    # C deps that mean we need to upgrade VTK etc.
     if package_name == "PySide6":
-        version_spec = version_spec.replace("!=6.7.0,", "")
-        # not on CF yet either
-        version_spec = version_spec.replace(",!=6.9.1", "")
-    elif package_name == "vtk":
-        # TODO VERSION remove once we support VTK 9.4
-        version_spec = "=9.3.1=qt_*"
+        version_spec = "!=6.9.1"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
@@ -68,10 +65,6 @@ for dep in deps:
         pip_deps.add(f"    {line}")
     else:
         conda_deps.add(line)
-
-# TODO: temporary workaround while we wait for a release containing the fix for
-# https://github.com/mamba-org/mamba/issues/3467
-pip_deps.remove("      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'")
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string

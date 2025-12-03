@@ -1,1 +1,0 @@
-Fixed bug where :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` would not reliably identify meg channel types for matching bads across emptyroom and task, by `Harrison Ritz`_.

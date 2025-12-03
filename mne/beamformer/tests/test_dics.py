@@ -705,6 +705,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
         apply_dics_epochs(epochs, filters_vol)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("return_generator", (True, False))
 def test_apply_dics_tfr(return_generator):
@@ -849,6 +850,7 @@ def test_localization_bias_free(
     assert lower <= perc <= upper
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "weight_norm, lower, upper, lower_ori, upper_ori, real_filter",
     [

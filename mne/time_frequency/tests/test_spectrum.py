@@ -10,7 +10,14 @@ import pytest
 from matplotlib.colors import same_color
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations, BaseEpochs, create_info, make_fixed_length_epochs
+from mne import (
+    Annotations,
+    BaseEpochs,
+    create_info,
+    grand_average,
+    make_fixed_length_epochs,
+)
+from mne.channels import equalize_channels
 from mne.io import RawArray
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
@@ -200,8 +207,8 @@ def test_combine_spectrum(raw_spectrum, weights):
     spectrum1 = raw_spectrum.copy()
     spectrum2 = raw_spectrum.copy()
     if weights == "nave":
-        spectrum1._nave = 1
-        spectrum2._nave = 2
+        spectrum1.nave = 1
+        spectrum2.nave = 2
         spectrum2._data *= 2
         new_spectrum = combine_spectrum([spectrum1, spectrum2], weights=weights)
         assert_allclose(new_spectrum.data, spectrum1.data * (5 / 3))
@@ -241,6 +248,25 @@ def test_combine_spectrum_error_catch(raw_spectrum):
     raw_spectrum2._freqs = raw_spectrum2._freqs + 1
     with pytest.raises(AssertionError, match=".* do not contain the same frequencies"):
         combine_spectrum([raw_spectrum, raw_spectrum2], weights="equal")
+
+
+def test_grand_average(raw_spectrum):
+    """Test `grand_average()` works for instances of `BaseSpectrum`."""
+    spectrum1 = raw_spectrum.copy()
+    spectrum2 = raw_spectrum.copy()
+    spectrum2._data *= 2
+    new_spectrum = grand_average([spectrum1, spectrum2])
+    assert_allclose(new_spectrum.data, spectrum1.data * 1.5)
+
+
+def test_equalize_channels(raw_spectrum):
+    """Test equalization of channels for instances of `BaseSpectrum`."""
+    spect1 = raw_spectrum.copy()
+    spect2 = spect1.copy().pick(["MEG 0122", "MEG 0111"])
+    spect1, spect2 = equalize_channels([spect1, spect2])
+
+    assert spect1.ch_names == ["MEG 0111", "MEG 0122"]
+    assert spect2.ch_names == ["MEG 0111", "MEG 0122"]
 
 
 def test_spectrum_reject_by_annot(raw):

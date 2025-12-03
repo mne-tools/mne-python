@@ -236,8 +236,8 @@ def maxwell_filter(
     mag_scale=100.0,
     skip_by_annotation=("edge", "bad_acq_skip"),
     extended_proj=(),
-    st_overlap=None,
-    mc_interp=None,
+    st_overlap=True,
+    mc_interp="hann",
     verbose=None,
 ):
     """Maxwell filter data using multipole moments.
@@ -287,8 +287,7 @@ def maxwell_filter(
     %(extended_proj_maxwell)s
     st_overlap : bool
         If True (default in 1.11), tSSS processing will use a constant
-        overlap-add method. If False (default in 1.10), then
-        non-overlapping windows will be used.
+        overlap-add method. If False, then non-overlapping windows will be used.
 
         .. versionadded:: 1.10
     %(maxwell_mc_interp)s
@@ -456,8 +455,8 @@ def _prep_maxwell_filter(
     skip_by_annotation=("edge", "bad_acq_skip"),
     extended_proj=(),
     reconstruct="in",
-    st_overlap=False,
-    mc_interp="zero",
+    st_overlap=True,
+    mc_interp="hann",
     verbose=None,
 ):
     # There are an absurd number of different possible notations for spherical
@@ -494,25 +493,7 @@ def _prep_maxwell_filter(
         )
     if st_only and st_duration is None:
         raise ValueError("st_duration must not be None if st_only is True")
-    if st_overlap is None:
-        if st_duration is not None:
-            # TODO VERSION 1.10/1.11 deprecation
-            warn(
-                "st_overlap defaults to False in 1.10 but will change to "
-                "True in 1.11. Set it explicitly to avoid this warning.",
-                DeprecationWarning,
-            )
-        st_overlap = False
-    add_channels = head_pos is not None and not st_only
-    if mc_interp is None:
-        if head_pos is not None:
-            # TODO VERSION 1.10/1.11 deprecation
-            warn(
-                'mc_interp defaults to "zero" in 1.10 but will change '
-                'to "hann" in 1.11, set it explicitly to avoid this '
-                "message.",
-                DeprecationWarning,
-            )
+    if head_pos is None and mc_interp:
         mc_interp = "zero"
     add_channels = (head_pos is not None) and (not st_only)
     head_pos = _check_pos(head_pos, coord_frame, raw, st_fixed)
@@ -776,7 +757,7 @@ def _run_maxwell_filter(
         n = end - onset
         assert n > 0
         tsss_valid = n >= st_duration
-        if st_overlap and tsss_valid:
+        if st_overlap and tsss_valid and st_correlation is not None:
             n_overlap = st_duration // 2
             window = "hann"
         else:
@@ -2555,7 +2536,7 @@ def find_bad_channels_maxwell(
     skip_by_annotation=("edge", "bad_acq_skip"),
     h_freq=40.0,
     extended_proj=(),
-    mc_interp=None,
+    mc_interp="hann",
     verbose=None,
 ):
     r"""Find bad channels using Maxwell filtering.
@@ -2754,6 +2735,7 @@ def find_bad_channels_maxwell(
         extended_proj=extended_proj,
         reconstruct="orig",
     )
+    assert params["st_correlation"] is None
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
     good_meg_picks = params["meg_picks"][params["good_mask"]]

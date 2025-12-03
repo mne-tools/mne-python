@@ -10,6 +10,7 @@ type, a set of spatial Xdawn filters are trained and applied on the signal.
 Channels are concatenated and rescaled to create features vectors that will be
 fed into a logistic regression.
 """
+
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD-3-Clause
@@ -26,10 +27,9 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import MinMaxScaler
 
-from mne import Epochs, EvokedArray, create_info, io, pick_types, read_events
+from mne import Epochs, io, pick_types, read_events
 from mne.datasets import sample
-from mne.decoding import Vectorizer
-from mne.preprocessing import Xdawn
+from mne.decoding import Vectorizer, XdawnTransformer, get_spatial_filter_from_estimator
 
 print(__doc__)
 
@@ -71,31 +71,33 @@ epochs = Epochs(
 
 # Create classification pipeline
 clf = make_pipeline(
-    Xdawn(n_components=n_filter),
+    XdawnTransformer(n_components=n_filter),
     Vectorizer(),
     MinMaxScaler(),
     OneVsRestClassifier(LogisticRegression(penalty="l1", solver="liblinear")),
 )
 
-# Get the labels
-labels = epochs.events[:, -1]
+# Get the data and labels
+# X is of shape (n_epochs, n_channels, n_times)
+X = epochs.get_data(copy=False)
+y = epochs.events[:, -1]
 
 # Cross validator
 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
 # Do cross-validation
-preds = np.empty(len(labels))
-for train, test in cv.split(epochs, labels):
-    clf.fit(epochs[train], labels[train])
-    preds[test] = clf.predict(epochs[test])
+preds = np.empty(len(y))
+for train, test in cv.split(epochs, y):
+    clf.fit(X[train], y[train])
+    preds[test] = clf.predict(X[test])
 
 # Classification report
 target_names = ["aud_l", "aud_r", "vis_l", "vis_r"]
-report = classification_report(labels, preds, target_names=target_names)
+report = classification_report(y, preds, target_names=target_names)
 print(report)
 
 # Normalized confusion matrix
-cm = confusion_matrix(labels, preds)
+cm = confusion_matrix(y, preds)
 cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix
@@ -109,30 +111,35 @@ plt.yticks(tick_marks, target_names)
 ax.set(ylabel="True label", xlabel="Predicted label")
 
 # %%
-# The ``patterns_`` attribute of a fitted Xdawn instance (here from the last
-# cross-validation fold) can be used for visualization.
+# Patterns of a fitted XdawnTransformer instance (here from the last
+# cross-validation fold) can be visualized using SpatialFilter container.
 
-fig, axes = plt.subplots(
-    nrows=len(event_id),
-    ncols=n_filter,
-    figsize=(n_filter, len(event_id) * 2),
-    layout="constrained",
+# Instantiate SpatialFilter
+spf = get_spatial_filter_from_estimator(
+    clf, info=epochs.info, step_name="xdawntransformer"
 )
-fitted_xdawn = clf.steps[0][1]
-info = create_info(epochs.ch_names, 1, epochs.get_channel_types())
-info.set_montage(epochs.get_montage())
-for ii, cur_class in enumerate(sorted(event_id)):
-    cur_patterns = fitted_xdawn.patterns_[cur_class]
-    pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, info, tmin=0)
-    pattern_evoked.plot_topomap(
-        times=np.arange(n_filter),
-        time_format="Component %d" if ii == 0 else "",
-        colorbar=False,
-        show_names=False,
-        axes=axes[ii],
-        show=False,
-    )
-    axes[ii, 0].set(ylabel=cur_class)
+
+# Let's first examine the scree plot of generalized eigenvalues
+# for each class.
+spf.plot_scree(title="")
+
+# We can see that for all four classes ~five largest components
+# capture most of the variance, let's plot their patterns.
+# Each class will now return its own figure
+components_to_plot = np.arange(5)
+figs = spf.plot_patterns(
+    # Indices of patterns to plot,
+    # we will plot the first three for each class
+    components=components_to_plot,
+    show=False,  # to set the titles below
+)
+
+# Set the class titles
+event_id_reversed = {v: k for k, v in event_id.items()}
+for fig, class_idx in zip(figs, clf[0].classes_):
+    class_name = event_id_reversed[class_idx]
+    fig.suptitle(class_name, fontsize=16)
+
 
 # %%
 # References

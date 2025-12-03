@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin, check_array, clone
 from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.utils import check_X_y
-from sklearn.utils.validation import check_is_fitted, validate_data
+from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.pick import (
     _pick_data_channels,
@@ -18,7 +18,8 @@ from ..cov import _check_scalings_user
 from ..epochs import BaseEpochs
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
-from ..utils import _check_option, _validate_type, fill_doc
+from ..utils import _check_option, _validate_type, check_version, fill_doc
+from ._fixes import validate_data  # TODO VERSION remove with sklearn 1.4+
 
 
 class MNETransformerMixin(TransformerMixin):
@@ -41,7 +42,9 @@ class MNETransformerMixin(TransformerMixin):
         # array to make everyone happy.
         if isinstance(epochs_data, BaseEpochs):
             epochs_data = epochs_data.get_data(copy=False)
-        kwargs = dict(dtype=np.float64, allow_nd=True, order="C", force_writeable=True)
+        kwargs = dict(dtype=np.float64, allow_nd=True, order="C")
+        if check_version("sklearn", "1.4"):  # TODO VERSION sklearn 1.4+
+            kwargs["force_writeable"] = True
         if hasattr(self, "n_features_in_") and check_n_features:
             if y is None:
                 epochs_data = validate_data(
@@ -443,6 +446,13 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         self.low_bias = low_bias
         self.n_jobs = n_jobs
         self.normalization = normalization
+
+    def __sklearn_tags__(self):
+        """..."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = False
+        tags.requires_fit = False
+        return tags
 
     def fit(self, epochs_data, y=None):
         """Compute power spectral density (PSD) using a multi-taper method.
@@ -870,6 +880,13 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
         self.iir_params = iir_params
         self.fir_window = fir_window
         self.fir_design = fir_design
+
+    def __sklearn_tags__(self):
+        """..."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = False
+        tags.requires_fit = False
+        return tags
 
     def fit(self, X, y=None):
         """Do nothing (for scikit-learn compatibility purposes).
