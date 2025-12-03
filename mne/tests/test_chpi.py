@@ -73,6 +73,7 @@ chpi5_pos_fname = data_path / "SSS" / "chpi5_raw_mc.pos"
 ctf_chpi_fname = data_path / "CTF" / "testdata_ctf_mc.ds"
 ctf_chpi_pos_fname = data_path / "CTF" / "testdata_ctf_mc.pos"
 chpi_problem_fname = data_path / "SSS" / "chpi_problematic-info.fif"
+chpi_bad_gof_fname = data_path / "SSS" / "chpi_bad_gof-info.fif"
 
 art_fname = (
     data_path
@@ -1011,3 +1012,18 @@ def test_refit_hpi_locs_problematic():
     )
     assert 3 < ang < 6
     assert 82 < dist < 87
+
+
+def test_refit_hpi_locs_bad_gof():
+    """Test that we can handle bad GOF HPI fits."""
+    # gh-13524
+    info = read_info(chpi_bad_gof_fname)
+    assert_array_equal(info["hpi_results"][-1]["used"], [2, 3, 4])
+    info_new = refit_hpi(info.copy(), amplitudes=False, locs=False)
+    assert_array_equal(info_new["hpi_results"][-1]["used"], [1, 2, 3, 4])
+    assert_trans_allclose(
+        info["dev_head_t"],
+        info_new["dev_head_t"],
+        dist_tol=1e-3,
+        angle_tol=1,
+    )
