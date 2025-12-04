@@ -833,6 +833,10 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..annotations import _handle_meas_date
 
+        _validate_type(
+            meas_date, (datetime.datetime, float, tuple, type(None)), "meas_date"
+        )
+
         info = self if isinstance(self, Info) else self.info
 
         meas_date = _handle_meas_date(meas_date)
