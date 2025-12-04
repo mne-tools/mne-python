@@ -5,6 +5,7 @@
 import re
 from functools import partial
 
+import h5py
 import numpy as np
 import pytest
 from matplotlib.colors import same_color
@@ -26,7 +27,7 @@ from mne.time_frequency.spectrum import (
     SpectrumArray,
     combine_spectrum,
 )
-from mne.utils import _record_warnings
+from mne.utils import _import_h5io_funcs, _record_warnings
 
 
 def test_compute_psd_errors(raw):
@@ -190,6 +191,19 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     orig.save(fname)
     loaded = read_spectrum(fname)
     assert orig == loaded
+    # Only check following for one type
+    if not isinstance(inst, BaseEpochs):
+        return
+    # Test loading with old-style birthday format
+    fname_subject_info = tmp_path / "subject-info.h5"
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname_subject_info, dict(birthday=(2000, 1, 1)), title="subject_info")
+    with h5py.File(fname, "r+") as f:
+        del f["mnepython/key_info/key_subject_info"]
+        f["mnepython/key_info/key_subject_info"] = h5py.ExternalLink(
+            fname_subject_info, "subject_info"
+        )
+    loaded = read_spectrum(fname)
 
 
 def test_spectrum_copy(raw_spectrum):
