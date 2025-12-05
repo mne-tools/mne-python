@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import re
 from functools import partial
 
@@ -204,6 +205,7 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
             fname_subject_info, "subject_info"
         )
     loaded = read_spectrum(fname)
+    assert isinstance(loaded.info["subject_info"]["birthday"], datetime.date)
 
 
 def test_spectrum_copy(raw_spectrum):

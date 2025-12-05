@@ -676,18 +676,21 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
         tfr.info["meas_date"] = want
     assert tfr_loaded == tfr
     # test loading with old-style birthday format
-    fname_multi = tmp_path / "temp_tfr_multi.hdf5"
+    fname_multi = tmp_path / "temp_multi_tfr.hdf5"
     write_tfrs(fname_multi, tfr)  # also check for multiple files from write_tfrs
-    fname_subject_info = tmp_path / "subject-info.h5"
+    fname_subject_info = tmp_path / "subject-info.hdf5"
     _, write_hdf5 = _import_h5io_funcs()
     write_hdf5(fname_subject_info, dict(birthday=(2000, 1, 1)), title="subject_info")
     for this_fname in (fname, fname_multi):
         with h5py.File(this_fname, "r+") as f:
-            del f["mnepython/key_info/key_subject_info"]
-            f["mnepython/key_info/key_subject_info"] = h5py.ExternalLink(
-                fname_subject_info, "subject_info"
-            )
+            if f.get("mnepython/key_info/key_subject_info"):
+                path = "mnepython/key_info/key_subject_info"
+            else:  # multi-files on linux have different path to attrs
+                path = "mnepython/idx_0/idx_1/key_info/key_subject_info"
+            del f[path]
+            f[path] = h5py.ExternalLink(fname_subject_info, "subject_info")
         tfr_loaded = read_tfrs(this_fname)
+        assert isinstance(tfr_loaded.info["subject_info"]["birthday"], datetime.date)
     # test with taper dimension and weights
     n_tapers = 3  # anything >= 1 should do
     weights = np.ones((n_tapers, tfr.shape[2]))  # tapers x freqs
