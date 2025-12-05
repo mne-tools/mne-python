@@ -2298,7 +2298,7 @@ def compute_whitener(
     n_nzero = nzero.sum()
     logger.info(
         f"    Created the whitener using a noise covariance matrix "
-        f"with rank {n_nzero} ({noise_cov["dim"] - n_nzero} small eigenvalues omitted)"
+        f"with rank {n_nzero} ({noise_cov['dim'] - n_nzero} small eigenvalues omitted)"
     )
 
     # Do the requested projection
@@ -2446,7 +2446,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data = tag.data
                     logger.info(
                         f"    {dim} x {dim} sparse covariance (kind = {cov_kind}) found."
-                        )
+                    )
 
             #   Read the possibly precomputed decomposition
             tag1 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVALUES)

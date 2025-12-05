@@ -3222,9 +3222,7 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn(
-    "`data_path` not provided. Using %s instead" % (self.data_path,)
-)
+                warn("`data_path` not provided. Using %s instead" % (self.data_path,))
             fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))

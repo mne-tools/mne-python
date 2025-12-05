@@ -2201,10 +2201,7 @@ def _prep_fine_cal(info, fine_cal, *, ignore_ref):
             f"Not all MEG channels found in fine calibration file, missing:\n{bad}"
         )
     if len(missing):
-        warn(
-    "Found cal channel%s not in data: %s"
-    % (_pl(missing), missing)
-)
+        warn("Found cal channel%s not in data: %s" % (_pl(missing), missing))
     return info_to_cal, fine_cal, ch_names
 
 

@@ -845,8 +845,9 @@ class Annotations:
             omitted = np.array(out_of_bounds).sum()
             if omitted > 0:
                 warn(
-    "Omitted %s annotation(s) that were outside data range." % (omitted,)
-)
+                    "Omitted %s annotation(s) that were outside data range."
+                    % (omitted,)
+                )
             limited = (np.array(clip_left_elem) | np.array(clip_right_elem)).sum()
             if limited > 0:
                 warn(

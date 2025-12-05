@@ -317,10 +317,7 @@ def read_events(
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn(
-    "%d of %d events masked"
-    % (unmasked_len - masked_len, unmasked_len)
-)
+            warn("%d of %d events masked" % (unmasked_len - masked_len, unmasked_len))
     out = event_list
     if return_event_id:
         if event_id is None:

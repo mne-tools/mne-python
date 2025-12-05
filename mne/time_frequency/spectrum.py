@@ -443,10 +443,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             chs = np.array(self.ch_names)[bad_value].tolist()
             s = _pl(bad_value.sum())
             warn(
-    "Zero value in spectrum for channel%s %s"
-    % (s, ", ".join(chs)),
-    UserWarning,
-)
+                "Zero value in spectrum for channel%s %s" % (s, ", ".join(chs)),
+                UserWarning,
+            )
 
     def _returns_complex_tapers(self, **method_kw):
         return self.method == "multitaper" and method_kw.get("output") == "complex"
