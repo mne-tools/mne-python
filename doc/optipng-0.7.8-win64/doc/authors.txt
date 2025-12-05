@@ -1,0 +1,31 @@
+# OptiPNG version 0.7.8
+# Copyright (C) 2001-2023 Cosmin Truta and the Contributing Authors.
+# See the accompanying LICENSE file for details.
+#
+# A Contributing Author is a person or company who contributed code that
+# is now part of OptiPNG.
+#
+# For the purpose of copyright and licensing, this is the official list
+# of Contributing Authors, in alphabetic order.
+
+Adam Ciarcinski
+Brian McQuade
+Elias Pipping
+Fabien Barbier
+Friedrich Preuss
+Maciej Pilichowski
+Matthew Fearnley
+Nelson A. de Oliveira
+Niels de Koning
+Oliver Schneider
+Petr Gajdos
+Piotr Bandurski
+Priit Laes
+Ramona C. Truta
+Sebastian Pipping
+Stefan Brüns
+Thomas Hurst
+Till Maas
+Ville Skyttä
+Vincent Lefèvre
+Yuen Ho Wong
