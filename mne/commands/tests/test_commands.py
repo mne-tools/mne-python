@@ -177,7 +177,8 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     pytest.importorskip("nibabel")
     pytest.importorskip("pyvista")
     check_usage(mne_make_scalp_surfaces)
-
+    has = "SUBJECTS_DIR" in os.environ
+    
     tempdir = str(tmp_path)
     t1_path = op.join(subjects_dir, "sample", "mri", "T1.mgz")
     t1_path_new = op.join(tempdir, "sample", "mri", "T1.mgz")
@@ -237,6 +238,17 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         with pytest.raises(RuntimeError, match="Trying to generate new scalp surfaces"):
             mne_make_scalp_surfaces.run()
+
+    # actually check the outputs
+    head_py = read_bem_surfaces(dense_fname)
+    assert_equal(len(head_py), 1)
+    head_py = head_py[0]
+    head_c = read_bem_surfaces(
+        op.join(subjects_dir, "sample", "bem", "sample-head-dense.fif")
+    )[0]
+    assert_allclose(head_py["rr"], head_c["rr"])
+    if not has:
+        assert "SUBJECTS_DIR" not in os.environ
 
 
 @pytest.mark.slowtest
