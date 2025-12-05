@@ -178,7 +178,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     pytest.importorskip("pyvista")
     check_usage(mne_make_scalp_surfaces)
     has = "SUBJECTS_DIR" in os.environ
-    
+
     tempdir = str(tmp_path)
     t1_path = op.join(subjects_dir, "sample", "mri", "T1.mgz")
     t1_path_new = op.join(tempdir, "sample", "mri", "T1.mgz")
