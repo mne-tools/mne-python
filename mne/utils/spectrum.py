@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from datetime import datetime
 from inspect import currentframe, getargvalues, signature
 
 from ..utils import warn
@@ -102,3 +103,13 @@ def _split_psd_kwargs(*, plot_fun=None, kwargs=None):
     for k in plot_kwargs:
         del kwargs[k]
     return kwargs, plot_kwargs
+
+
+def _convert_old_birthday_format(info):
+    """Convert deprecated birthday tuple to datetime."""
+    subject_info = info.get("subject_info")
+    if subject_info is not None:
+        birthday = subject_info.get("birthday")
+        if isinstance(birthday, tuple):
+            info["subject_info"]["birthday"] = datetime(*birthday)
+    return info
