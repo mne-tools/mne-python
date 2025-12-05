@@ -346,7 +346,7 @@ ignore = [
   "D104",  # Missing docstring in public package
   "D413",  # Missing blank line after last section
 ]
-select = ["A", "B006", "D", "E", "F", "G004" "I", "UP", "UP031", "W"]
+select = ["A", "B006", "D", "E", "F", "G004", "I", "UP", "UP031", "W"]
 
 [tool.ruff.lint.per-file-ignores]
 "examples/*/*.py" = [
