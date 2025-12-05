@@ -842,7 +842,7 @@ def plot_events(
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
-                warn("event %s missing from event_id will be ignored" % (this_event,))
+                warn(f"event {this_event} missing from event_id will be ignored")
 
     else:
         unique_events_id = unique_events

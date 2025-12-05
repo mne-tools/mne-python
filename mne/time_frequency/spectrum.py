@@ -443,7 +443,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             chs = np.array(self.ch_names)[bad_value].tolist()
             s = _pl(bad_value.sum())
             warn(
-                "Zero value in spectrum for channel%s %s" % (s, ", ".join(chs)),
+                "Zero value in spectrum for channel{} {}".format(s, ", ".join(chs)),
                 UserWarning,
             )
 

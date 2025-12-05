@@ -1111,7 +1111,7 @@ def _read_edf_header(
                                     logger.debug(err)
                                     continue
                             else:
-                                warn("Invalid patient information %s" % (key,))
+                                warn(f"Invalid patient information {key}")
 
         # Recording ID
         rec_info = fid.read(80).decode("latin-1").rstrip().split(" ")

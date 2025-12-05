@@ -618,7 +618,7 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
             )
         except BaseException as e:
             caption = "Distances could not be calculated from digitized points"
-            warn("%s: %s" % (caption, e))
+            warn(f"{caption}: {e}")
     else:
         caption = None
     img = _fig_to_img(images, image_format="png", max_width=max_width, max_res=max_res)
@@ -3222,7 +3222,7 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn("`data_path` not provided. Using %s instead" % (self.data_path,))
+                warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))

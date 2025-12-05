@@ -1065,7 +1065,7 @@ class _ReuseCycle:
         try:
             idx = self.popped.pop(val)
         except KeyError:
-            warn("Could not find value: %s" % (val,))
+            warn(f"Could not find value: {val}")
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)

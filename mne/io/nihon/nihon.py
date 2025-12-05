@@ -361,7 +361,7 @@ def _read_nihon_annotations(fname, encoding="utf-8"):
                 try:
                     t_desc = t_desc.decode(encoding)
                 except UnicodeDecodeError:
-                    warn("Could not decode log as %s" % (encoding,))
+                    warn(f"Could not decode log as {encoding}")
                     continue
 
                 all_onsets.append(t_onset)

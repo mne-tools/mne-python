@@ -1100,7 +1100,7 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
                 ch_coord, triangles = _sensor_shape(coil)
                 ch_coord = apply_trans(coil_trans, ch_coord)
                 if len(ch_coord) == 0 and warn_meg:
-                    warn("MEG sensor %s not found." % (info.ch_names[idx],))
+                    warn(f"MEG sensor {info.ch_names[idx]} not found.")
             else:
                 ch_coord = info["chs"][idx]["loc"][type_slice]
             ch_coord_frame = info["chs"][idx]["coord_frame"]

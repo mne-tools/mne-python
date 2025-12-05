@@ -933,7 +933,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
         elif annots:
             annots += this_annot
     if not annots:
-        warn("Annotations for %s were requested but none could be made." % (descs,))
+        warn(f"Annotations for {descs} were requested but none could be made.")
         return
 
     return annots

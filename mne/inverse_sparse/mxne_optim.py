@@ -540,7 +540,7 @@ def mixed_norm_solver(
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
                 X_init[idx] = X
         else:
-            warn("Did NOT converge ! (gap: %s > %s)" % (gap, tol))
+            warn(f"Did NOT converge ! (gap: {gap} > {tol})")
     else:
         X, active_set, E = l21_solver(
             M, G, alpha, lc, maxit=maxit, tol=tol, n_orient=n_orient, init=None

@@ -88,7 +88,7 @@ def _parse_xml(xml_file: str) -> list[dict[str, str]] | None:
     try:
         xml = defusedxml.ElementTree.parse(xml_file)
     except defusedxml.ElementTree.ParseError as e:
-        warn("Could not parse the XML file %s: %s" % (xml_file, e))
+        warn(f"Could not parse the XML file {xml_file}: {e}")
         return
     root = xml.getroot()
     return _xml2list(root)

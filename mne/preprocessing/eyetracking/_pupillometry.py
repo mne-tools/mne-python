@@ -61,7 +61,7 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     # get the blink annotations
     blink_annots = [annot for annot in raw.annotations if annot["description"] in match]
     if not blink_annots:
-        warn("No annotations matching %s found. Aborting." % (match,))
+        warn(f"No annotations matching {match} found. Aborting.")
         return raw
     _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze)
 

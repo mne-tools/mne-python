@@ -138,8 +138,7 @@ def _read_tag_header(fid, pos):
         where = fid.tell() - len(s)
         extra = f" in file {fid.name}" if hasattr(fid, "name") else ""
         warn(
-            "Invalid tag with only %s/16 bytes at position %s%s"
-            % (len(s), where, extra)
+            f"Invalid tag with only {len(s)}/16 bytes at position {where}{extra}"
         )
         return None
     # struct.unpack faster than np.frombuffer, saves ~10% of time some places

@@ -538,7 +538,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             version_string = f"V{version}R{revision:03d}"
             if allow_unknown_format:
                 unsupported_format = True
-                warn("Force loading KIT format %s" % (version_string,))
+                warn(f"Force loading KIT format {version_string}")
             else:
                 raise UnsupportedKITFormat(
                     version_string,

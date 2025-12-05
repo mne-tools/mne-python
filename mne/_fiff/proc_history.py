@@ -118,7 +118,7 @@ def _read_proc_history(fid, tree):
                         record[key] = cast(tag.data)
                         break
                 else:
-                    warn("Unknown processing history item %s" % (kind,))
+                    warn(f"Unknown processing history item {kind}")
             record["max_info"] = _read_maxfilter_record(fid, proc_record)
             iass = dir_tree_find(proc_record, FIFF.FIFFB_IAS)
             if len(iass) > 0:
