@@ -132,7 +132,9 @@ def _check_before_dict_reference(inst, ref_dict):
     if any(self_ref):
         which = np.array(list(_refdict))[np.nonzero(self_ref)]
         for ch in which:
-            warn(f"Channel {ch} is self-referenced, which will nullify the channel.")
+            warn(
+    "Channel %s is self-referenced, which will nullify the channel." % (ch,)
+)
 
     # Check that channel types match. First unpack list-like vals into separate items:
     pairs = [(k, v) for k in _refdict for v in _refdict[k]]

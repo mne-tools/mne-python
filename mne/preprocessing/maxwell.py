@@ -2201,7 +2201,10 @@ def _prep_fine_cal(info, fine_cal, *, ignore_ref):
             f"Not all MEG channels found in fine calibration file, missing:\n{bad}"
         )
     if len(missing):
-        warn(f"Found cal channel{_pl(missing)} not in data: {missing}")
+        warn(
+    "Found cal channel%s not in data: %s"
+    % (_pl(missing), missing)
+)
     return info_to_cal, fine_cal, ch_names
 
 
@@ -2912,7 +2915,7 @@ def _read_cross_talk(cross_talk, ch_names):
             raise RuntimeError(f"Missing MEG channels in cross-talk matrix:\n{missing}")
         missing = sorted(list(set(ctc_chs) - set(ch_names)))
         if len(missing) > 0:
-            warn(f"Not all cross-talk channels in raw:\n{missing}")
+            warn("Not all cross-talk channels in raw:\n%s" % (missing,))
         ctc_picks = [ctc_chs.index(name) for name in ch_names]
         ctc = sss_ctc["decoupler"][ctc_picks][:, ctc_picks]
         # I have no idea why, but MF transposes this for storage..

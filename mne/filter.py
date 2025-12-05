@@ -1861,7 +1861,9 @@ def resample(
     if axis < 0:
         axis = x.ndim + axis
     if x.shape[axis] == 0:
-        warn(f"x has zero length along axis={axis}, returning a copy of x")
+        warn(
+    "x has zero length along axis=%s, returning a copy of x" % (axis,)
+)
         return x.copy()
 
     # prep for resampling along the last axis (swap axis with last then reshape)

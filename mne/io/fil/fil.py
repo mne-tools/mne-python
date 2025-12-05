@@ -142,7 +142,7 @@ class RawFIL(BaseRaw):
                 elif key.lower().startswith("nas"):
                     nas = np.asarray(hc[key])
                 else:
-                    warn(f"{key} is not a valid fiducial name!")
+                    warn("%s is not a valid fiducial name!" % (key,))
 
             size = np.linalg.norm(nas - rpa)
             unit, sf = _size2units(size)

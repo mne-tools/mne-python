@@ -353,7 +353,10 @@ def compute_average_dev_head_t(raw, pos, *, verbose=None):
     trans[:3, 3] = dt @ hp[:, 4:7]
     dist = np.linalg.norm(trans[:3, 3])
     if dist > 1:  # less than 1 meter is sane
-        warn(f"Implausible head position detected: {dist} meters from device origin")
+        warn(
+    "Implausible head position detected: %s meters from device origin"
+    % (dist,)
+)
     dev_head_t = Transform("meg", "head", trans)
     return dev_head_t
 

@@ -2834,7 +2834,7 @@ def _read_extended_ch_info(chs, parent, fid):
             except KeyError:
                 # This shouldn't happen if we're up to date with the FIFF
                 # spec
-                warn(f"Discarding extra channel information kind {kind}")
+                warn("Discarding extra channel information kind %s" % (kind,))
                 continue
             assert key in ch
             data = read_tag(fid, new["directory"][k].pos).data

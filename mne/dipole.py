@@ -764,7 +764,7 @@ def _read_dipole_text(fname):
     assert len(handled_fields) == len(required_fields) + len(optional_fields)
     ignored_fields = sorted(set(fields) - set(handled_fields) - {"end/ms"})
     if len(ignored_fields) > 0:
-        warn(f"Ignoring extra fields in dipole file: {ignored_fields}")
+        warn("Ignoring extra fields in dipole file: %s" % (ignored_fields,))
     if len(fields) != data.shape[1]:
         raise OSError(
             f"More data fields ({len(fields)}) found than data columns ({data.shape[1]}"
@@ -1322,7 +1322,7 @@ def _fit_dipole(
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
     if B2 == 0:
-        warn(f"Zero field found for time {t}")
+        warn("Zero field found for time %s" % (t,))
         return np.zeros(3), 0, np.zeros(3), 0, B
 
     idx = np.argmin(
@@ -1387,12 +1387,12 @@ def _fit_dipole(
         sensors=sensors, rd=rd_final, Q=Q, ori=ori, whitener=whitener, fwd_data=fwd_data
     )
 
-    msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
+    msg = f"---- Fitted : {1000.0 * t:7.1f} ms"
     if surf is not None:
         dist_to_inner_skull = _compute_nearest(
             surf["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
-        msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
+        msg += f", distance to inner skull : {dist_to_inner_skull * 1000.0:2.4f} mm"
 
     logger.info(msg)
     return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj
@@ -1417,7 +1417,7 @@ def _fit_dipole_fixed(
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     if B2 == 0:
-        warn(f"Zero field found for time {t}")
+        warn("Zero field found for time %s" % (t,))
         return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
     Q, gof, residual_noproj = _fit_Q(

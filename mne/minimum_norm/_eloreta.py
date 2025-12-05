@@ -127,7 +127,7 @@ def _compute_eloreta(inv, lambda2, options):
             )
             break
     else:
-        warn(f"eLORETA weight fitting did not converge (>= {eps})")
+        warn("eLORETA weight fitting did not converge (>= %s)" % (eps,))
     del G_R_Gt
     logger.info("        Updating inverse with weighted eigen leads")
     G /= source_std  # undo our biasing

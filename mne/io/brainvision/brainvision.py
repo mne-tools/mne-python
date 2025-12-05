@@ -386,7 +386,7 @@ def _check_bv_version(header, kind):
             return version
     else:
         if header == "":
-            warn(f"Missing header in {kind} file.")
+            warn("Missing header in %s file." % (kind,))
         else:
             warn(_data_err % (kind, header))
 

@@ -141,7 +141,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         "Spatial Filter Active?",
     ]:
         if header_info[k] != "FALSE":
-            warn(f"{k} - set to but is not supported")
+            warn("%s - set to but is not supported" % (k,))
     if header_info["filter_hist"]:
         warn("Non-Empty Filter history found, BUT is not supported")
 

@@ -116,7 +116,7 @@ def _get_packages() -> dict[str, str]:
         packages = _get_installer_packages()
     except urllib.error.URLError as exc:  # e.g., bad internet connection
         if not REQUIRE_METADATA:
-            sphinx_logger.warning(f"Could not fetch package list, got: {exc}")
+            sphinx_logger.warning("Could not fetch package list, got: %s", exc)
             return dict()
         raise
     # There can be duplicates in manual and installer packages because some of the

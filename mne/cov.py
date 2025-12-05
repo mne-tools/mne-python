@@ -748,7 +748,7 @@ def compute_raw_covariance(
         _check_n_samples(n_samples, len(picks), on_few_samples)
         data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= n_samples - 1.0
-        logger.info("Number of samples used : %d", n_samples)
+        logger.info(f"Number of samples used : {n_samples}")
         logger.info("[done]")
         ch_names = [raw.info["ch_names"][k] for k in picks]
         bads = [b for b in raw.info["bads"] if b in ch_names]
@@ -1196,7 +1196,7 @@ def compute_covariance(
         # add extra info
         cov.update(method=this_method, **data)
         covs.append(cov)
-    logger.info("Number of samples used : %d", n_samples_tot)
+    logger.info(f"Number of samples used : {n_samples_tot}")
     covs.sort(key=lambda c: c["loglik"], reverse=True)
 
     if len(covs) > 1:
@@ -1849,7 +1849,7 @@ def _smart_eigh(
     if isinstance(C, Covariance):
         C = C["data"]
     if ncomp > 0:
-        logger.info("    Created an SSP operator (subspace dimension = %d)", ncomp)
+        logger.info(f"    Created an SSP operator (subspace dimension = {ncomp})")
         C = np.dot(proj, np.dot(C, proj.T))
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
@@ -2297,10 +2297,8 @@ def compute_whitener(
     C = np.sqrt(eig) * noise_cov["eigvec"].conj().T  # C ** 0.5
     n_nzero = nzero.sum()
     logger.info(
-        "    Created the whitener using a noise covariance matrix "
-        "with rank %d (%d small eigenvalues omitted)",
-        n_nzero,
-        noise_cov["dim"] - n_nzero,
+        f"    Created the whitener using a noise covariance matrix "
+        f"with rank {n_nzero} ({noise_cov["dim"] - n_nzero} small eigenvalues omitted)"
     )
 
     # Do the requested projection
@@ -2428,10 +2426,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data = tag.data
                     diag = True
                     logger.info(
-                        "    %d x %d diagonal covariance (kind = %d) found.",
-                        dim,
-                        dim,
-                        cov_kind,
+                        f"    {dim} x {dim} diagonal covariance (kind = {cov_kind}) found."
                     )
 
             else:
@@ -2444,20 +2439,14 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data.flat[:: dim + 1] /= 2.0
                     diag = False
                     logger.info(
-                        "    %d x %d full covariance (kind = %d) found.",
-                        dim,
-                        dim,
-                        cov_kind,
+                        f"    {dim} x {dim} full covariance (kind = {cov_kind}) found."
                     )
                 else:
                     diag = False
                     data = tag.data
                     logger.info(
-                        "    %d x %d sparse covariance (kind = %d) found.",
-                        dim,
-                        dim,
-                        cov_kind,
-                    )
+                        f"    {dim} x {dim} sparse covariance (kind = {cov_kind}) found."
+                        )
 
             #   Read the possibly precomputed decomposition
             tag1 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVALUES)
@@ -2499,7 +2488,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
 
             return cov
 
-    logger.info("    Did not find the desired covariance matrix (kind = %d)", cov_kind)
+    logger.info(f"    Did not find the desired covariance matrix (kind = {cov_kind})")
 
     return None
 

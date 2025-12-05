@@ -101,7 +101,7 @@ def _compute_exg_proj(
 
     # Check to make sure we actually got at least one usable event
     if events.shape[0] < 1:
-        warn(f"No {mode} events found")
+        warn("No %s events found" % (mode,))
         return ([], events) + (([],) if return_drop_log else ())
 
     logger.info("Computing projector")
