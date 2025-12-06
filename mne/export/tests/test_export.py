@@ -198,7 +198,7 @@ edfio_mark = pytest.mark.skipif(
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
-    raw.info.set_meas_date("2023-09-04 14:53:09.000")
+    raw.info.set_meas_date(datetime(2023, 9, 4, 14, 53, 9, tzinfo=timezone.utc))
     raw.set_annotations(Annotations(onset=[1], duration=[0], description=["test"]))
 
     # include subject info and measurement date
