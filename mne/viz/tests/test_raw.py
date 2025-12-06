@@ -719,7 +719,7 @@ def test_plot_raw_groupby(raw, browser_backend, group_by):
 
 def test_plot_raw_meas_date(raw, browser_backend):
     """Test effect of mismatched meas_date in raw.plot()."""
-    raw.set_meas_date(_dt_to_stamp(raw.info["meas_date"])[0])
+    raw.set_meas_date(float(_dt_to_stamp(raw.info["meas_date"])[0]))
     annot = Annotations([1 + raw.first_samp / raw.info["sfreq"]], [5], ["bad"])
     with pytest.warns(RuntimeWarning, match="outside data range"):
         raw.set_annotations(annot)

@@ -671,7 +671,7 @@ def test_time_as_index_ref(offset, origin):
     """Test indexing of raw times."""
     info = create_info(ch_names=10, sfreq=10.0)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.set_meas_date(1)
+    raw.set_meas_date(1.0)
 
     relative_times = raw.times
     inds = raw.time_as_index(relative_times + offset, use_rounding=True, origin=origin)
