@@ -193,7 +193,7 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     # Test Spectrum from EpochsSpectrum.average() can be read (gh-13521)
     if isinstance(inst, BaseEpochs):
         origavg = orig.average()
-        origavg.save(fname)
+        origavg.save(fname, overwrite=True)
         loadedavg = read_spectrum(fname)
         assert origavg == loadedavg
 
