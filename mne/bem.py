@@ -2406,10 +2406,11 @@ def make_scalp_surfaces(
     dense_fname = str(fname_template).format("dense")
     _check_file(dense_fname, overwrite)
 
-    for level in _tri_levels.items():
+    for level in _tri_levels:
         dec_fname = str(fname_template).format(level)
         if overwrite:
-            os.remove(dec_fname)
+            if os.path.exists(dec_fname):
+                os.remove(dec_fname)
         else:
             if no_decimate:
                 if os.path.exists(dec_fname):
