@@ -178,6 +178,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     pytest.importorskip("pyvista")
     check_usage(mne_make_scalp_surfaces)
     has = "SUBJECTS_DIR" in os.environ
+    freesurfer_home = os.environ.get("FREESURFER_HOME")
 
     tempdir = str(tmp_path)
     t1_path = op.join(subjects_dir, "sample", "mri", "T1.mgz")
@@ -199,7 +200,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         with pytest.raises(RuntimeError, match="The FreeSurfer environ"):
             mne_make_scalp_surfaces.run()
 
-        monkeypatch.setenv("FREESURFER_HOME", tempdir)
+        monkeypatch.setenv("FREESURFER_HOME", freesurfer_home)
         mne_make_scalp_surfaces.run()
 
         assert op.isfile(headseg_path)
@@ -210,7 +211,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
 
     cmd = ("-s", "sample", "--subjects-dir", tempdir)
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-        with pytest.raises(RuntimeError, match="use --overwrite to overwrite it"):
+        with pytest.raises(OSError, match="use --overwrite to overwrite it"):
             mne_make_scalp_surfaces.run()
 
     cmd = ("-s", "sample", "--subjects-dir", tempdir, "--overwrite")
