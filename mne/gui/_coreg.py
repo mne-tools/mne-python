@@ -1505,6 +1505,7 @@ class CoregistrationUI(HasTraits):
                 labels=True,
                 annot=True,
                 on_defects="ignore",
+                mri_fiducials=self.coreg.fiducials,
             )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
