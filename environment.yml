@@ -46,7 +46,7 @@ dependencies:
   - PySide6 !=6.9.1
   - python-neo
   - python-picard
-  - pyvista >=0.42.1
+  - pyvista >=0.43
   - pyvistaqt >=0.11
   - qdarkstyle !=3.2.2
   - qtpy
