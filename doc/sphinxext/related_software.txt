@@ -20,6 +20,7 @@ mne-lsl
 mne-microstates
 mne-nirs
 mne-rsa
+mne-videobrowser
 mnelab
 neurodsp
 neurokit2
