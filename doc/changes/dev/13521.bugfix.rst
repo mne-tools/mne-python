@@ -1,0 +1,1 @@
+Fix bug preventing :func:`mne.time_frequency.read_spectrum` from reading saved :class:`mne.time_frequency.Spectrum` objects created from :meth:`mne.time_frequency.EpochsSpectrum.average`, by `Thomas Binns`_.
