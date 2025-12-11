@@ -3313,7 +3313,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         state["freqs"] = freqs
         state["times"] = times
         if dim == "epochs":
-            state["inst_type_str"] = "Evoked"
             state["nave"] = n_epochs
             state["comment"] = f"{method} of {n_epochs} EpochsTFR{_pl(n_epochs)}"
             out = AverageTFR(inst=state)

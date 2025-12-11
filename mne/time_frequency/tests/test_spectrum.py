@@ -206,6 +206,11 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
         )
     loaded = read_spectrum(fname)
     assert isinstance(loaded.info["subject_info"]["birthday"], datetime.date)
+    # Test Spectrum from EpochsSpectrum.average() can be read (gh-13521)
+    origavg = orig.average()
+    origavg.save(fname, overwrite=True)
+    loadedavg = read_spectrum(fname)
+    assert origavg == loadedavg
 
 
 def test_spectrum_copy(raw_spectrum):
@@ -336,6 +341,7 @@ def test_epochs_spectrum_average(epochs_spectrum, method):
     avg_spect = epochs_spectrum.average(method=method)
     assert avg_spect.shape == epochs_spectrum.shape[1:]
     assert avg_spect._dims == ("channel", "freq")  # no 'epoch'
+    assert repr(avg_spect).startswith("<Averaged Power Spectrum (from Epochs")
 
 
 @pytest.mark.parametrize("inst", ("raw_spectrum", "epochs_spectrum", "evoked"))

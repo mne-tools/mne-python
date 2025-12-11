@@ -1756,7 +1756,7 @@ def read_spectrum(fname):
         n_jobs=None,
         verbose=None,
     )
-    Klass = EpochsSpectrum if hdf5_dict["inst_type_str"] == "Epochs" else Spectrum
+    Klass = EpochsSpectrum if "epoch" in hdf5_dict["dims"] else Spectrum
     return Klass(hdf5_dict, **defaults)
 
 

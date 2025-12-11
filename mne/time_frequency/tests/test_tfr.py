@@ -675,6 +675,11 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
     with tfr.info._unlock():
         tfr.info["meas_date"] = want
     assert tfr_loaded == tfr
+    # test AverageTFR from EpochsTFR.average() can be read (gh-13521)
+    tfravg = tfr.average()
+    tfravg.save(fname, overwrite=True)
+    tfravg_loaded = read_tfrs(fname)
+    assert tfravg == tfravg_loaded
     # test loading with old-style birthday format
     fname_multi = tmp_path / "temp_multi_tfr.hdf5"
     write_tfrs(fname_multi, tfr)  # also check for multiple files from write_tfrs
@@ -1233,6 +1238,10 @@ def test_averaging_epochsTFR():
         NotImplementedError, match=r"Averaging multitaper tapers .* is not supported."
     ):
         tapered.average()
+
+    # Test repr from original instance info is preserved
+    avgpower = power.average()
+    assert repr(avgpower).startswith("<Average Power from Epochs")
 
 
 def test_averaging_freqsandtimes_epochsTFR():
