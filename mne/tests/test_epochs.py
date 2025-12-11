@@ -3654,7 +3654,7 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     assert not epochs_meg.times.flags["WRITEABLE"]
     assert not epochs_meg2.times.flags["WRITEABLE"]
-    epochs_meg2.set_meas_date(0.0)
+    epochs_meg2.set_meas_date(0)
     epochs_meg2.copy().add_channels([epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

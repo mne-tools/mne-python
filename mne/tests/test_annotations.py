@@ -894,7 +894,7 @@ def _create_annotation_based_on_descr(
         info=create_info(ch_names=10, sfreq=1000.0),
         first_samp=0,
     )
-    raw.set_meas_date(0.0)
+    raw.set_meas_date(0)
 
     # create dummy annotations based on the descriptions
     onset = raw.times[annotation_start_sampl]
@@ -1468,7 +1468,7 @@ def test_allow_nan_durations():
         info=create_info(ch_names=2, sfreq=1.0),
         first_samp=0,
     )
-    raw.set_meas_date(0.0)
+    raw.set_meas_date(0)
 
     ons = [1, 2.0, 15.0, 17.0]
     dus = [np.nan, 1.0, 0.5, np.nan]
@@ -1749,7 +1749,7 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa", 2.2})
 
 
-@pytest.mark.parametrize("meas_date", (None, 1.0))
+@pytest.mark.parametrize("meas_date", (None, 1))
 @pytest.mark.parametrize("set_meas_date", ("before", "after"))
 @pytest.mark.parametrize("first_samp", (0, 100, 3000))
 def test_annot_noop(meas_date, first_samp, set_meas_date):
@@ -1898,7 +1898,7 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
 
 
 @pytest.mark.parametrize("first_samp", (0, 10000))
-@pytest.mark.parametrize("meas_date", (None, 24.0 * 60 * 60))
+@pytest.mark.parametrize("meas_date", (None, 24 * 60 * 60))
 def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     """Test yet another meas_date / first_samp issue."""
     sfreq = 1000.0
