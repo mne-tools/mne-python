@@ -7,7 +7,6 @@ import re
 from itertools import product
 from pathlib import Path
 
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -621,6 +620,7 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
     pytest.importorskip("h5io")
     pd = pytest.importorskip("pandas")
+    h5py = pytest.importorskip("h5py")
 
     tfr = _get_inst(inst, request, average_tfr=average_tfr)
     fname = tmp_path / "temp_tfr.hdf5"

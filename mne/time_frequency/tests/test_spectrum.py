@@ -6,7 +6,6 @@ import datetime
 import re
 from functools import partial
 
-import h5py
 import numpy as np
 import pytest
 from matplotlib.colors import same_color
@@ -180,6 +179,7 @@ def _get_inst(inst, request, *, evoked=None, average_tfr=None):
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked=evoked)
     if isinstance(inst, BaseEpochs):
