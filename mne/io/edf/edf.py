@@ -1802,8 +1802,11 @@ def read_raw_bdf(
         >>> events[:, 2] &= (2**16 - 1)  # doctest:+SKIP
 
     The above operation can be carried out directly in :func:`mne.find_events`
-    using the ``mask`` and ``mask_type`` parameters (see
-    :func:`mne.find_events` for more details).
+    using the ``mask`` parameter as follows:
+
+        >>> events = mne.find_events(..., mask=2**16 - 1)  # doctest:+SKIP
+
+    See :func:`mne.find_events` for more details.
 
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE. In case it is necessary, for instance to
