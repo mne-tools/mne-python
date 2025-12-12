@@ -84,5 +84,5 @@ def check_directive_formatting(*args):
                 if bad:
                     sphinx_logger.warning(
                         f"{source_type} '{name}' is missing a blank line before the "
-                        f"directive '{directive.group()}'"
+                        f"directive '{directive.group()}' on line {idx + 1}"
                     )
