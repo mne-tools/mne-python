@@ -60,7 +60,7 @@ def check_directive_formatting(*args):
         # another directive/another directive's content)
         if idx == 0:
             continue
-        dir_pattern = r"\.\. [a-zA-Z]+::"
+        dir_pattern = r"^\s*\.\. \w+::"  # line might start with whitespace
         head_pattern = r"^[-|=|\^]+$"
         directive = re.search(dir_pattern, line)
         if directive is not None:
