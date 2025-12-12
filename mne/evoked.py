@@ -2006,6 +2006,8 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
 
     if not isinstance(evoked, list | tuple):
         evoked = [evoked]
+    if not len(evoked):
+        raise ValueError("No evoked data to write")
 
     warned = False
     # Create the file and save the essentials
