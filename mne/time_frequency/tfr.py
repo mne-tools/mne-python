@@ -59,7 +59,7 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..utils.spectrum import _get_instance_type_string
+from ..utils.spectrum import _convert_old_birthday_format, _get_instance_type_string
 from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
 from ..viz.topomap import (
     _add_colorbar,
@@ -1433,7 +1433,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._dims = defaults["dims"]
         self._raw_times = np.asarray(defaults["times"], dtype=np.float64)
         self._baseline = defaults["baseline"]
-        self.info = Info(**defaults["info"])
+        self.info = Info(**_convert_old_birthday_format(defaults["info"]))
         self._data_type = defaults["data_type"]
         self._decim = defaults["decim"]
         self.preload = True
@@ -4141,7 +4141,7 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
             if key != condition:
                 continue
         tfr = dict(tfr)
-        tfr["info"] = Info(tfr["info"])
+        tfr["info"] = Info(_convert_old_birthday_format(tfr["info"]))
         tfr["info"]._check_consistency()
         if "metadata" in tfr:
             tfr["metadata"] = _prepare_read_metadata(tfr["metadata"])
