@@ -904,35 +904,44 @@ def test_plot_alignment_hpi_colors_and_labels(renderer):
     """Test hpi_colors and hpi_labels parameters."""
     import mne
 
-    raw = mne.io.read_raw_fif(data_dir / "MEG" / "sample" / "sample_audvis_raw.fif")
+    raw_path = (
+        mne.datasets.testing.data_path(download=False)
+        / "MEG"
+        / "sample"
+        / "sample_audvis_raw.fif"
+    )
+    raw = mne.io.read_raw_fif(raw_path, preload=False)
     info = raw.info
 
-    for hpi_colors in [
-        "auto",
-        ["red", "red", "blue", "green", "yellow"],
-        {1: "purple", 4: "orange"},
-        "pink",
-    ]:
-        for hpi_labels in [False, True]:
-            fig = plot_alignment(
-                info=info,
-                dig=True,
-                surfaces=[],
-                coord_frame="head",
-                hpi_colors=hpi_colors,
-                hpi_labels=hpi_labels,
-            )
-            assert len(fig.plotter.renderer.actors) > 0
+    cases = [
+        ("auto", False),
+        ("auto", True),
+        (["red", "red", "blue", "green", "yellow"], False),
+        (["red", "red", "blue", "green", "yellow"], True),
+        ({1: "purple", 4: "orange"}, False),
+        ({1: "purple", 4: "orange"}, True),
+        ("pink", False),
+        ("pink", True),
+    ]
 
-    fig_no_label = plot_alignment(
-        info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=False
+    for hpi_colors, hpi_labels in cases:
+        fig = plot_alignment(
+            info=info,
+            dig=True,
+            surfaces=[],
+            coord_frame="head",
+            hpi_colors=hpi_colors,
+            hpi_labels=hpi_labels,
+        )
+        assert len(fig.plotter.renderer.actors) > 0
+
+    fig1 = plot_alignment(
+        info=info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=False
     )
-    fig_with_label = plot_alignment(
-        info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=True
+    fig2 = plot_alignment(
+        info=info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=True
     )
-    assert len(fig_with_label.plotter.renderer.actors) > len(
-        fig_no_label.plotter.renderer.actors
-    )
+    assert len(fig2.plotter.renderer.actors) > len(fig1.plotter.renderer.actors)
 
 
 @testing.requires_testing_data

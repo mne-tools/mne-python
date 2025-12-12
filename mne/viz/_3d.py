@@ -552,9 +552,9 @@ def plot_alignment(
     fig=None,
     interaction="terrain",
     sensor_colors=None,
+    *,
     hpi_colors="auto",
     hpi_labels=False,
-    *,
     sensor_scales=None,
     verbose=None,
 ):
@@ -646,17 +646,18 @@ def plot_alignment(
     %(sensor_colors)s
 
         .. versionchanged:: 1.6
-            Support for passing a ``dict`` was added.
-
+           Support for passing a ``dict`` was added.
     hpi_colors : 'auto' | list | dict
         Colors for HPI coils when ``dig=True``.
-        ``'auto'`` (default): use standard MEGIN cable colors for Elekta/MEGIN data
+        ``'auto'`` (default): use official MEGIN/Elekta cable colors
         (1=red, 2=blue, 3=green, 4=yellow, 5=magenta, 6=cyan).
         Can also be a list of colors or ``{ident: color}`` dict.
 
+        .. versionadded:: 1.11
     hpi_labels : bool
-        If True, show the HPI coil number (ident) as text above each coil.
+        If ``True``, show the HPI coil ident number as 3D text above each coil.
 
+        .. versionadded:: 1.11
     %(sensor_scales)s
 
         .. versionadded:: 1.9
@@ -1329,6 +1330,10 @@ def _plot_hpi_coils(
     hpi_locs = apply_trans(to_cf_t["head"], [d["r"] for d in hpi_digs])
 
     if hpi_colors == "auto":
+        # MEGIN/Elekta HPI coil cable colors(MNE community convention from user reports)
+        # 1 = red, 2 = blue, 3 = green, 4 = yellow, 5 = magenta, 6 = cyan
+        # Coil 1 is confirmed as "red" in Elekta TRIUX manual
+        # Full mapping is standard practice in MNE; no official 6-color list.
         megin_colors = {
             1: "red",
             2: "blue",
@@ -1372,9 +1377,7 @@ def _plot_hpi_coils(
             nearest=nearest,
         )
 
-        if result is not None:
-            actor = result[0] if isinstance(result, tuple) else result
-            actors.append(actor)
+        actors.append(result)
 
         if hpi_labels:
             offset = np.array([0, 0, scale * 1.3])
