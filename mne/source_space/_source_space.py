@@ -2037,7 +2037,7 @@ def _make_discrete_source_space(pos, coord_frame="mri"):
     _normalize_vectors(nn)
     nz = np.sum(np.sum(nn * nn, axis=1) == 0)
     if nz != 0:
-        raise RuntimeError("%d sources have zero length normal", nz)
+        raise RuntimeError(f"{nz} sources have zero length normal")
     logger.info("Positions (in meters) and orientations")
     logger.info("%d sources", npts)
 
