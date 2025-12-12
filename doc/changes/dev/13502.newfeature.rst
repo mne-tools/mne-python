@@ -1,0 +1,1 @@
+Add ``show_names`` parameter to :func:`mne.viz.plot_alignment` to display channel names in the 3D scene.
