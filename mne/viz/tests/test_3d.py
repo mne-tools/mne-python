@@ -900,6 +900,51 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
 
 
 @testing.requires_testing_data
+def test_plot_alignment_hpi_colors_and_labels(renderer):
+    """Test hpi_colors and hpi_labels parameters."""
+    import mne
+
+    raw_path = (
+        mne.datasets.testing.data_path(download=False)
+        / "MEG"
+        / "sample"
+        / "sample_audvis_raw.fif"
+    )
+    raw = mne.io.read_raw_fif(raw_path, preload=False)
+    info = raw.info
+
+    cases = [
+        ("auto", False),
+        ("auto", True),
+        (["red", "red", "blue", "green", "yellow"], False),
+        (["red", "red", "blue", "green", "yellow"], True),
+        ({1: "purple", 4: "orange"}, False),
+        ({1: "purple", 4: "orange"}, True),
+        ("pink", False),
+        ("pink", True),
+    ]
+
+    for hpi_colors, hpi_labels in cases:
+        fig = plot_alignment(
+            info=info,
+            dig=True,
+            surfaces=[],
+            coord_frame="head",
+            hpi_colors=hpi_colors,
+            hpi_labels=hpi_labels,
+        )
+        assert len(fig.plotter.renderer.actors) > 0
+
+    fig1 = plot_alignment(
+        info=info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=False
+    )
+    fig2 = plot_alignment(
+        info=info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=True
+    )
+    assert len(fig2.plotter.renderer.actors) > len(fig1.plotter.renderer.actors)
+
+
+@testing.requires_testing_data
 def test_plot_alignment_fnirs(renderer, tmp_path):
     """Test fNIRS plotting."""
     # Here we use subjects_dir=tmp_path, since no surfaces should actually
