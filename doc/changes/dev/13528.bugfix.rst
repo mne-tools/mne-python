@@ -1,0 +1,1 @@
+Fix bug where invalid date formats passed to :meth:`mne.Info.set_meas_date` were not caught, by `Thomas Binns`_.
