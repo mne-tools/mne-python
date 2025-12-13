@@ -1,0 +1,2 @@
+Add support for multi-wavelength NIRS processing to :func:`mne.preprocessing.nirs.beer_lambert_law`, :func:`mne.preprocessing.nirs.scalp_coupling_index`, :mod:`mne.preprocessing.nirs.nirs`, and SNIRF reader :class:`mne.io.snirf._snirf.RawSNIRF`, by :newcontrib:`Tamas Fehervari`.
+`
