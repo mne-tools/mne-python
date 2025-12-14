@@ -3437,7 +3437,9 @@ _picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will
 _picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels."""
 _picks_str_values = """Can also be the string values ``'all'`` to pick
-    all channels, or ``'data'`` to pick :term:`data channels`."""
+all channels, or ``'data'`` to pick data channels. None (default) will
+pick all channels. Note that channels in ``info['bads']`` *will be
+included* by default."""
 _picks_str = f"""In lists, {_picks_str_types} {_picks_str_names}
     {_picks_str_values}
     None (default) will pick"""
