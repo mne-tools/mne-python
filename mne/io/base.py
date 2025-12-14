@@ -908,7 +908,14 @@ class BaseRaw(
 
         Parameters
         ----------
-        %(picks_all)s
+        picks : str | array_like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel type strings (e.g., ['meg', 'eeg'])
+            will pick channels of those types, channel name strings (e.g.,
+            ['MEG0111', 'MEG2623']) will pick the given channels. Can also be the
+            string values "all" to pick all channels, or "data" to pick data
+            channels. None (default) will pick all channels. Note that channels in
+            ``info['bads']`` *will be included* by default.
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
