@@ -30,6 +30,7 @@ from sklearn.preprocessing import MinMaxScaler
 from mne import Epochs, io, pick_types, read_events
 from mne.datasets import sample
 from mne.decoding import Vectorizer, XdawnTransformer, get_spatial_filter_from_estimator
+from mne.utils import check_version
 
 print(__doc__)
 
@@ -70,11 +71,16 @@ epochs = Epochs(
 )
 
 # Create classification pipeline
+kwargs = dict()
+if check_version("sklearn", "1.8"):
+    kwargs["l1_ratio"] = 1
+else:
+    kwargs["penalty"] = "l1"
 clf = make_pipeline(
     XdawnTransformer(n_components=n_filter),
     Vectorizer(),
     MinMaxScaler(),
-    OneVsRestClassifier(LogisticRegression(penalty="l1", solver="liblinear")),
+    OneVsRestClassifier(LogisticRegression(solver="liblinear", **kwargs)),
 )
 
 # Get the data and labels
