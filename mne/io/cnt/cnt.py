@@ -4,8 +4,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from os import path
-
 import numpy as np
 
 from ..._fiff._digitization import _make_dig_points
@@ -14,7 +12,14 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, _explain_exception, _validate_type, fill_doc, warn
+from ...utils import (
+    _check_fname,
+    _check_option,
+    _explain_exception,
+    _validate_type,
+    fill_doc,
+    warn,
+)
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
@@ -310,31 +315,35 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
-        n_channels = np.fromfile(fid, dtype="<u2", count=1).astype(np.int64).item()
+        n_channels = np.fromfile(fid, dtype="<u2", count=1).astype(int).item()
         fid.seek(376)
-        sfreq = np.fromfile(fid, dtype="<u2", count=1).item()
+        sfreq = np.fromfile(fid, dtype="<u2", count=1).astype(float).item()
         if eog == "header":
             fid.seek(402)
             eog = [idx for idx in np.fromfile(fid, dtype="i2", count=2) if idx >= 0]
         fid.seek(438)
-        lowpass_toggle = np.fromfile(fid, "i1", count=1).item()
-        highpass_toggle = np.fromfile(fid, "i1", count=1).item()
+        lowpass_toggle = bool(np.fromfile(fid, "i1", count=1).item())
+        highpass_toggle = bool(np.fromfile(fid, "i1", count=1).item())
 
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
-        n_samples = np.fromfile(fid, dtype="<u4", count=1).astype(np.int64).item()
+        n_samples = np.fromfile(fid, dtype="<u4", count=1).astype(int).item()
+        # TODO: REMOVE THIS!!! Just to make debugging tolerable
+        n_samples = min(n_samples, 1000000)
         n_samples_header = n_samples
         fid.seek(869)
-        lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
+        lowcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
         fid.seek(2, 1)
-        highcutoff = np.fromfile(fid, dtype="f4", count=1).item()
+        highcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
 
         event_offset = _compute_robust_event_table_position(
             fid=fid, data_format=data_format
-        ).astype(np.int64)
+        )
         fid.seek(890)
-        cnt_info["continuous_seconds"] = np.fromfile(fid, dtype="<f4", count=1).item()
+        cnt_info["continuous_seconds"] = float(
+            np.fromfile(fid, dtype="<f4", count=1).item()
+        )
 
         if event_offset < data_offset:  # no events
             data_size = n_samples * n_channels
@@ -345,7 +354,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         if data_format == "auto":
             if n_samples == 0 or data_size // (n_samples * n_channels) not in [2, 4]:
                 warn(
-                    "Could not define the number of bytes automatically. "
+                    f"Could not define the number of bytes automatically ({data_size=} "
+                    f"but {n_samples=} and {n_channels=}). "
                     "Defaulting to 2."
                 )
                 n_bytes = 2
@@ -410,9 +420,9 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
     info = _empty_info(sfreq)
-    if lowpass_toggle == 1:
+    if lowpass_toggle and highcutoff > 0:
         info["lowpass"] = highcutoff
-    if highpass_toggle == 1:
+    if highpass_toggle and lowcutoff > 0:
         info["highpass"] = lowcutoff
     subject_info = {
         "hand": hand,
@@ -540,7 +550,9 @@ class RawCNT(BaseRaw):
         else:
             _date_format = "%m/%d/%y %H:%M:%S"
 
-        input_fname = path.abspath(input_fname)
+        input_fname = _check_fname(
+            input_fname, overwrite="read", must_exist=True, name="input_fname"
+        )
         try:
             info, cnt_info = _get_cnt_info(
                 input_fname, eog, ecg, emg, misc, data_format, _date_format, header
