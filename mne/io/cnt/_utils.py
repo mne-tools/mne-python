@@ -124,7 +124,7 @@ def _compute_robust_event_table_position(fid, data_format="int32"):
 
     if fid.seek(0, SEEK_END) < 2e9:
         fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
-        (event_table_pos,) = np.frombuffer(fid.read(4), dtype="<i4")
+        event_table_pos = int(np.frombuffer(fid.read(4), dtype="<i4").item())
 
     else:
         if data_format == "auto":
@@ -137,10 +137,10 @@ def _compute_robust_event_table_position(fid, data_format="int32"):
         n_bytes = 2 if data_format == "int16" else 4
 
         fid.seek(SETUP_NSAMPLES_OFFSET)
-        (n_samples,) = np.frombuffer(fid.read(4), dtype="<i4")
+        n_samples = int(np.frombuffer(fid.read(4), dtype="<i4").item())
 
         fid.seek(SETUP_NCHANNELS_OFFSET)
-        (n_channels,) = np.frombuffer(fid.read(2), dtype="<u2")
+        n_channels = int(np.frombuffer(fid.read(2), dtype="<u2").item())
 
         event_table_pos = (
             900 + 75 * int(n_channels) + n_bytes * int(n_channels) * int(n_samples)
