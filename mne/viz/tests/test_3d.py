@@ -900,18 +900,12 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_hpi_colors_and_labels(renderer):
+def test_plot_alignment_hpi_colors_and_labels(renderer, tmp_path):
     """Test hpi_colors and hpi_labels parameters."""
-    import mne
+    info = read_info(evoked_fname)
 
-    raw_path = (
-        mne.datasets.testing.data_path(download=False)
-        / "MEG"
-        / "sample"
-        / "sample_audvis_raw.fif"
-    )
-    raw = mne.io.read_raw_fif(raw_path, preload=False)
-    info = raw.info
+    hpi_points = [d for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_HPI]
+    assert len(hpi_points) == 4
 
     cases = [
         ("auto", False),
@@ -933,15 +927,31 @@ def test_plot_alignment_hpi_colors_and_labels(renderer):
             hpi_colors=hpi_colors,
             hpi_labels=hpi_labels,
         )
-        assert len(fig.plotter.renderer.actors) > 0
+        _assert_n_actors(fig, renderer, 4)
 
-    fig1 = plot_alignment(
-        info=info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=False
+    fig_no_labels = plot_alignment(
+        info=info,
+        dig=True,
+        surfaces=(),
+        hpi_colors="auto",
+        hpi_labels=False,
+        subjects_dir=tmp_path,
     )
-    fig2 = plot_alignment(
-        info=info, dig=True, surfaces=[], hpi_colors="auto", hpi_labels=True
+    fig_with_labels = plot_alignment(
+        info=info,
+        dig=True,
+        surfaces=(),
+        hpi_colors="auto",
+        hpi_labels=True,
+        subjects_dir=tmp_path,
     )
-    assert len(fig2.plotter.renderer.actors) > len(fig1.plotter.renderer.actors)
+
+    base_count = len(fig_no_labels.renderer._actors)
+    labeled_count = len(fig_with_labels.renderer._actors)
+
+    assert labeled_count == base_count + len(hpi_points)
+    _assert_n_actors(fig_no_labels, renderer, base_count)
+    _assert_n_actors(fig_with_labels, renderer, base_count + 4)
 
 
 @testing.requires_testing_data
