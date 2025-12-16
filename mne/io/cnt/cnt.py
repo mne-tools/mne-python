@@ -310,7 +310,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
-        n_channels = np.fromfile(fid, dtype="<u2", count=1).item()
+        n_channels = np.fromfile(fid, dtype="<u2", count=1).astype(np.int64).item()
         fid.seek(376)
         sfreq = np.fromfile(fid, dtype="<u2", count=1).item()
         if eog == "header":
@@ -323,7 +323,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
-        n_samples = np.fromfile(fid, dtype="<u4", count=1).item()
+        n_samples = np.fromfile(fid, dtype="<u4", count=1).astype(np.int64).item()
         n_samples_header = n_samples
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
@@ -332,7 +332,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
 
         event_offset = _compute_robust_event_table_position(
             fid=fid, data_format=data_format
-        )
+        ).astype(np.int64)
         fid.seek(890)
         cnt_info["continuous_seconds"] = np.fromfile(fid, dtype="<f4", count=1).item()
 
