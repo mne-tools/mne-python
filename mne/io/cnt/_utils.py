@@ -12,6 +12,12 @@ import numpy as np
 
 from ...utils import warn
 
+_NCHANNELS_OFFSET = 370
+_NSAMPLES_OFFSET = 864
+_EVENTTABLEPOS_OFFSET = 886
+_DATA_OFFSET = 900  # Size of the 'SETUP' header.
+_CH_SIZE = 75  # Size of each channel in bytes
+
 
 def _read_teeg(f, teeg_offset):
     """
@@ -116,14 +122,10 @@ def _compute_robust_event_table_position(fid, data_format="int32"):
     Otherwise, the address of the table position is computed from:
     n_samples, n_channels, and the bytes size.
     """
-    SETUP_NCHANNELS_OFFSET = 370
-    SETUP_NSAMPLES_OFFSET = 864
-    SETUP_EVENTTABLEPOS_OFFSET = 886
-
     fid_origin = fid.tell()  # save the state
 
     if fid.seek(0, SEEK_END) < 2e9:
-        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
+        fid.seek(_EVENTTABLEPOS_OFFSET)
         event_table_pos = int(np.frombuffer(fid.read(4), dtype="<i4").item())
 
     else:
@@ -136,14 +138,16 @@ def _compute_robust_event_table_position(fid, data_format="int32"):
 
         n_bytes = 2 if data_format == "int16" else 4
 
-        fid.seek(SETUP_NSAMPLES_OFFSET)
-        n_samples = int(np.frombuffer(fid.read(4), dtype="<i4").item())
+        fid.seek(_NSAMPLES_OFFSET)
+        n_samples = int(np.frombuffer(fid.read(4), dtype="<u4").item())
+        assert n_samples > 0
 
-        fid.seek(SETUP_NCHANNELS_OFFSET)
+        fid.seek(_NCHANNELS_OFFSET)
         n_channels = int(np.frombuffer(fid.read(2), dtype="<u2").item())
+        assert n_channels > 0
 
         event_table_pos = (
-            900 + 75 * int(n_channels) + n_bytes * int(n_channels) * int(n_samples)
+            _DATA_OFFSET + _CH_SIZE * n_channels + n_bytes * n_channels * n_samples
         )
 
     fid.seek(fid_origin)  # restore the state
