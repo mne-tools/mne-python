@@ -22,6 +22,10 @@ from ...utils import (
 )
 from ..base import BaseRaw
 from ._utils import (
+    _CH_SIZE,
+    _DATA_OFFSET,
+    _NCHANNELS_OFFSET,
+    _NSAMPLES_OFFSET,
     CNTEventType3,
     _compute_robust_event_table_position,
     _get_event_parser,
@@ -69,7 +73,7 @@ def _read_annotations_cnt(fname, data_format="int16"):
         n_bytes = 2 if data_format == "int16" else 4
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
-        event_time = offset - 900 - (75 * n_channels)
+        event_time = offset - _DATA_OFFSET - (_CH_SIZE * n_channels)
         event_time //= n_channels * n_bytes
         event_time = event_time - 1
         # Prevent negative event times
@@ -281,7 +285,6 @@ def read_raw_cnt(
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
-    data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
     # http://paulbourke.net/dataformats/eeg/
@@ -314,7 +317,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         session_date = f"{read_str(fid, 10)} {read_str(fid, 12)}"
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
-        fid.seek(370)
+        fid.seek(_NCHANNELS_OFFSET)
         n_channels = np.fromfile(fid, dtype="<u2", count=1).astype(int).item()
         fid.seek(376)
         sfreq = np.fromfile(fid, dtype="<u2", count=1).astype(float).item()
@@ -327,7 +330,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
 
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
-        fid.seek(864)
+        fid.seek(_NSAMPLES_OFFSET)
         n_samples = np.fromfile(fid, dtype="<u4", count=1).astype(int).item()
         # TODO: REMOVE THIS!!! Just to make debugging tolerable
         n_samples = min(n_samples, 1000000)
@@ -336,7 +339,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         lowcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
         fid.seek(2, 1)
         highcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
-
+        # _EVENTTABLEPOS_OFFSET = 886
         event_offset = _compute_robust_event_table_position(
             fid=fid, data_format=data_format
         )
@@ -345,10 +348,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             np.fromfile(fid, dtype="<f4", count=1).item()
         )
 
-        if event_offset < data_offset:  # no events
+        if event_offset < _DATA_OFFSET:  # no events
             data_size = n_samples * n_channels
         else:
-            data_size = event_offset - (data_offset + 75 * n_channels)
+            data_size = event_offset - (_DATA_OFFSET + _CH_SIZE * n_channels)
 
         _check_option("data_format", data_format, ["auto", "int16", "int32"])
         if data_format == "auto":
@@ -392,30 +395,30 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         _validate_type(header, str, "header")
         _check_option("header", header, ("auto", "new", "old"))
         for ch_idx in range(n_channels):  # ELECTLOC fields
-            fid.seek(data_offset + 75 * ch_idx)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
 
             # Some files have bad channels marked differently in the header.
             if header in ("new", "auto"):
-                fid.seek(data_offset + 75 * ch_idx + 14)
+                fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 14)
                 if np.fromfile(fid, dtype="u1", count=1).item():
                     bads.append(ch_name)
             if header in ("old", "auto"):
-                fid.seek(data_offset + 75 * ch_idx + 4)
+                fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 4)
                 if np.fromfile(fid, dtype="u1", count=1).item():
                     bads.append(ch_name)
 
-            fid.seek(data_offset + 75 * ch_idx + 19)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 19)
             xy = np.fromfile(fid, dtype="f4", count=2)
             xy[1] *= -1  # invert y-axis
             pos.append(xy)
-            fid.seek(data_offset + 75 * ch_idx + 47)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 47)
             # Baselines are subtracted before scaling the data.
             baselines.append(np.fromfile(fid, dtype="i2", count=1).item())
-            fid.seek(data_offset + 75 * ch_idx + 59)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype="f4", count=1).item()
-            fid.seek(data_offset + 75 * ch_idx + 71)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 71)
             cal = np.fromfile(fid, dtype="f4", count=1).item()
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
@@ -606,7 +609,9 @@ class RawCNT(BaseRaw):
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
         with open(self.filenames[fi], "rb", buffering=0) as fid:
-            fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
+            fid.seek(
+                _DATA_OFFSET + f_channels * (_CH_SIZE + (start - s_offset) * n_bytes)
+            )
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
                 # Earlier comment says n_samples is unreliable, but I think it
                 # is because it needed to be changed to unsigned int
