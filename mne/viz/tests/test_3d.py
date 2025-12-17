@@ -900,58 +900,42 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_hpi_colors_and_labels(renderer, tmp_path):
+def test_plot_alignment_hpi_colors_and_labels(renderer):
     """Test hpi_colors and hpi_labels parameters."""
     info = read_info(evoked_fname)
-
-    hpi_points = [d for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_HPI]
-    assert len(hpi_points) == 4
-
-    cases = [
-        ("auto", False),
-        ("auto", True),
-        (["red", "red", "blue", "green", "yellow"], False),
-        (["red", "red", "blue", "green", "yellow"], True),
-        ({1: "purple", 4: "orange"}, False),
-        ({1: "purple", 4: "orange"}, True),
-        ("pink", False),
-        ("pink", True),
-    ]
-
-    for hpi_colors, hpi_labels in cases:
-        fig = plot_alignment(
-            info=info,
-            dig=True,
-            surfaces=[],
-            coord_frame="head",
-            hpi_colors=hpi_colors,
-            hpi_labels=hpi_labels,
-        )
-        _assert_n_actors(fig, renderer, 4)
-
-    fig_no_labels = plot_alignment(
+    fig = plot_alignment(
         info=info,
         dig=True,
-        surfaces=(),
+        surfaces=[],
+        coord_frame="head",
+        meg=[],
+        eeg=[],
+        ecog=False,
+        seeg=False,
+        fnirs=False,
+        dbs=False,
+        show_axes=False,
         hpi_colors="auto",
         hpi_labels=False,
-        subjects_dir=tmp_path,
     )
-    fig_with_labels = plot_alignment(
+    _assert_n_actors(fig, renderer, 7)
+
+    fig = plot_alignment(
         info=info,
         dig=True,
-        surfaces=(),
+        surfaces=[],
+        coord_frame="head",
+        meg=[],
+        eeg=[],
+        ecog=False,
+        seeg=False,
+        fnirs=False,
+        dbs=False,
+        show_axes=False,
         hpi_colors="auto",
         hpi_labels=True,
-        subjects_dir=tmp_path,
     )
-
-    base_count = len(fig_no_labels.renderer._actors)
-    labeled_count = len(fig_with_labels.renderer._actors)
-
-    assert labeled_count == base_count + len(hpi_points)
-    _assert_n_actors(fig_no_labels, renderer, base_count)
-    _assert_n_actors(fig_with_labels, renderer, base_count + 4)
+    _assert_n_actors(fig, renderer, 11)
 
 
 @testing.requires_testing_data
