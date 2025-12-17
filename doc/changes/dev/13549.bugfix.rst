@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.viz.plot_evoked` where channels were plotted above axis spines, by `Michael Straube`_.
