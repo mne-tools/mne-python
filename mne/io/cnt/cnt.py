@@ -332,8 +332,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(_NSAMPLES_OFFSET)
         n_samples = np.fromfile(fid, dtype="<u4", count=1).astype(int).item()
-        # TODO: REMOVE THIS!!! Just to make debugging tolerable
-        n_samples = min(n_samples, 1000000)
         n_samples_header = n_samples
         fid.seek(869)
         lowcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
