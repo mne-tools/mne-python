@@ -918,7 +918,7 @@ def test_plot_alignment_hpi_colors_and_labels(renderer):
         hpi_colors="auto",
         hpi_labels=False,
     )
-    _assert_n_actors(fig, renderer, 7)
+    _assert_n_actors(fig, renderer, 8)
 
     fig = plot_alignment(
         info=info,
@@ -935,7 +935,7 @@ def test_plot_alignment_hpi_colors_and_labels(renderer):
         hpi_colors="auto",
         hpi_labels=True,
     )
-    _assert_n_actors(fig, renderer, 11)
+    _assert_n_actors(fig, renderer, 12)
 
 
 @testing.requires_testing_data
