@@ -1994,7 +1994,8 @@ def annotations_from_events(
 
     Notes
     -----
-    Annotations returned by this function will all have zero (null) duration.
+    Annotations returned by this function will have duration as specified by
+    the second column (index=1) of the passed events array.
 
     Creating events from annotations via the function
     `mne.events_from_annotations` takes in event mappings with
@@ -2009,7 +2010,7 @@ def annotations_from_events(
     events_sel = events[event_sel]
     onsets = (events_sel[:, 0] - first_samp) / sfreq
     descriptions = [event_desc_[e[2]] for e in events_sel]
-    durations = np.zeros(len(events_sel))  # dummy durations
+    durations = events_sel[:, 1]
 
     # Create annotations
     annots = Annotations(
