@@ -7,7 +7,7 @@ dependencies:
   - antio >=0.5.0
   - curryreader >=0.1.2
   - darkdetect
-  - decorator
+  - decorator >=3.4
   - defusedxml
   - dipy
   - edfio >=0.4.10
@@ -21,7 +21,7 @@ dependencies:
   - ipympl
   - ipython !=8.7.0
   - ipywidgets
-  - jinja2
+  - jinja2 >=2.1
   - joblib
   - jupyter
   - lazy_loader >=0.3

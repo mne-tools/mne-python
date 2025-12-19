@@ -90,8 +90,8 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
-  "decorator",
-  "jinja2",
+  "decorator >= 3.4",
+  "jinja2 >= 2.1",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
@@ -117,6 +117,8 @@ maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
+# ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
+# ↑↑↑↑↑↑↑↑↑↑↑ command in `.github/workflows/spec_zero.yaml` (astral-sh/uv/#16333)
 scripts = {mne = "mne.commands.utils:main"}
 
 [project.optional-dependencies]

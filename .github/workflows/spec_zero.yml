@@ -43,7 +43,10 @@ jobs:
           python-version: '3.12'
       - run: pip install packaging requests tomlkit
       - run: python tools/dev/spec_zero_update_versions.py
-      - run: |
+      - name: Create lockfile for old CI
+        run: uv pip compile pyproject.toml --python-version 3.10 --resolution lowest-direct --output-file tools/pylock.ci-old.toml
+      - name: check if files changed
+        run: |
           git diff && git status --porcelain
           if [[ $(git status --porcelain) ]]; then
             echo "dirty=true" >> $GITHUB_OUTPUT
@@ -60,9 +63,3 @@ jobs:
           PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` in this or another PR. \`git grep TODO VERSION\` is a good starting point for finding potential updates.*" --label "no-changelog-entry-needed")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'
-        # TODO add one or more steps here to (re)create the lockfile based on the pins
-        #      found in pyproject.toml. For now, any dependency that has a >= pin should
-        #      become an == pin, and all other pins should be unchanged. Don't forget to
-        #      pin Python version based on the `requires-python` field. Ideally, this step
-        #      should only run if the pins in pyproject.toml have changed (e.g., see how
-        #      we use "dirty" above to make the "Create PR" step conditional).
