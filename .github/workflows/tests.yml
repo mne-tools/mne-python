@@ -151,11 +151,10 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: ${{ !startswith(matrix.kind, 'pip') }}
-        # TODO this ↑↑↑ will include matrix.kind == 'old' but we no longer want it to
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
         timeout-minutes: 20
-      # TODO add a step here to install uv or pixi using their provided action
-      #      it should only happen for matrix.kind == 'old'
+      - uses: astral-sh/setup-uv@v1
+        if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
