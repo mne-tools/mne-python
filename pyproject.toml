@@ -118,7 +118,8 @@ name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
 # ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
-# ↑↑↑↑↑↑↑↑↑↑↑ command in `.github/workflows/spec_zero.yaml` (astral-sh/uv/#16333)
+# command in `.github/workflows/spec_zero.yaml` (astral-sh/uv/#16333), and also the
+# `--python` version in the `uv venv` command in `tools/github_actions_dependencies.sh`
 scripts = {mne = "mne.commands.utils:main"}
 
 [project.optional-dependencies]
