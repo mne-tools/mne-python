@@ -19,7 +19,7 @@ elif [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "MNE_QT_BACKEND=PyQt5" | tee -a $GITHUB_ENV
 else  # conda-like
     echo "Setting conda env vars for $MNE_CI_KIND"
-    elif [[ "$MNE_CI_KIND" == "minimal" ]]; then
+    if [[ "$MNE_CI_KIND" == "minimal" ]]; then
         echo "CONDA_ENV=tools/environment_minimal.yml" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     else  # conda, mamba (use warning level for completeness)
