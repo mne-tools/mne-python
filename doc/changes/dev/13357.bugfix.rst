@@ -1,1 +1,0 @@
-Make :func:`~mne.io.read_raw_eyelink` work with ASCII files collected with Eye Event Mode set to "HREF" by `Scott Huberty`_.

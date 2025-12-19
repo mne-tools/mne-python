@@ -112,7 +112,7 @@ keywords = [
   "neuroscience",
 ]
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE.txt"]
 maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
@@ -153,6 +153,7 @@ full-no-qt = [
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
+  "nest-asyncio2",
   "nibabel",
   "nilearn",
   "numba",
@@ -163,7 +164,7 @@ full-no-qt = [
   "pybv",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard",
-  "pyvista >= 0.42.1",  # released 2023-09-06, will become 0.43 on 2025-12-06
+  "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
   "qtpy",

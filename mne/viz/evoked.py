@@ -727,10 +727,12 @@ def _plot_lines(
                 )
                 if gfp_only:
                     y_offset = 0.0
+                    this_ylim = (0, 1.1 * np.max(this_gfp) or 1)
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
                 ax.autoscale(False)
+                ax.set_ylim(this_ylim)
                 ax.fill_between(
                     times,
                     y_offset,
@@ -805,6 +807,10 @@ def _plot_lines(
                     )
                 # Put back the y limits as fill_betweenx messes them up
                 ax.set_ylim(this_ylim)
+
+        # Ensure the axis spines are drawn above all Line2D artists
+        max_zorder = max((line.get_zorder() for line in ax.get_lines()), default=0) + 1
+        ax.spines[:].set_zorder(max_zorder)
 
         lines.append(line_list)
 
