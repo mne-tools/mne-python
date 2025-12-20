@@ -1,0 +1,1 @@
+- Refactor f-strings in ``mne/tests/test_import_nesting.py`` (:gh:`13551` by :newcontrib:`shruti423`).
