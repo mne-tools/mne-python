@@ -335,7 +335,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # nsamples = SETUP.EventTablePos - (900 + 75 * nchannels) / (2 * nchannels)
         # where 2 likely refers to the data format with default 2 bytes.
         fid.seek(_NSAMPLES_OFFSET)
-        n_samples = np.fromfile(fid, dtype="<u4", count=1).astype(int).item()
+        n_samples = np.fromfile(fid, dtype="<i4", count=1).astype(int).item()
         n_samples_header = n_samples
         fid.seek(869)
         lowcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
