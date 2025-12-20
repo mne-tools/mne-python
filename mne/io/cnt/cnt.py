@@ -331,7 +331,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # Reference: https://paulbourke.net/dataformats/eeg/
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
-        # According to link above, the number of samples should be calculated as follows:
+        # According to link above, the number of samples should be
+        # calculated as follows:
         # nsamples = SETUP.EventTablePos - (900 + 75 * nchannels) / (2 * nchannels)
         # where 2 likely refers to the data format with default 2 bytes.
         fid.seek(_NSAMPLES_OFFSET)
