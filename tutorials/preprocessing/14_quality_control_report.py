@@ -6,27 +6,44 @@ Quality control (QC) reports with mne.Report
 ============================================
 
 Quality control (QC) is the process of systematically inspecting M/EEG data
-before any serious preprocessing, modeling, or source analysis is attempted.
-Poor data quality at this stage will *always* propagate downstream and can
-invalidate results, no matter how sophisticated later analyses may be.
+**throughout all stages of an analysis pipeline**, including raw data,
+intermediate preprocessing steps, and derived results.
+
+While QC often begins with an initial inspection of the raw recording,
+it is equally important to verify that signals continue to "look reasonable"
+after operations such as filtering, artifact correction, epoching, and
+averaging. Issues introduced or missed at any stage can propagate downstream
+and invalidate later analyses.
 
 This tutorial demonstrates how to create a **single, narrative QC report**
 using :class:`mne.Report`, focusing on **what should be inspected and how the
 results should be interpreted**, rather than exhaustively covering the API.
 
+For clarity and reproducibility, the examples below focus on common QC checks
+applied at representative stages of an analysis pipeline. The same reporting
+approach can—and should—be reused whenever new processing steps are applied.
+
 We use the MNE sample dataset for demonstration. Not all QC sections are
 applicable to every dataset (e.g., continuous head-position tracking), and
 this tutorial explicitly handles such cases.
 
-Authors: The MNE-Python contributors
-License: BSD-3-Clause
+Note:
+The generated HTML report is intended to be opened directly in a browser.
+Some interactive elements (e.g., sliders) may not function correctly
+when the file is served via a local HTTP server.
+
+
 """
+
+# Authors: The MNE-Python contributors
+# License: BSD-3-Clause
 
 # %%
 
 from pathlib import Path
 
 import mne
+from mne.preprocessing import ICA, create_eog_epochs
 
 # %%
 # Load the sample dataset
@@ -39,12 +56,15 @@ sample_dir = data_path / "MEG" / "sample"
 subjects_dir = data_path / "subjects"
 
 raw_path = sample_dir / "sample_audvis_filt-0-40_raw.fif"
-events_path = sample_dir / "sample_audvis_filt-0-40_raw-eve.fif"
+
 
 raw = mne.io.read_raw(raw_path, preload=True)
+
+# Retain only channels relevant for QC to simplify visualization and
+# focus inspection on signals typically reviewed during data quality checks.
 raw.pick(["meg", "eeg", "eog", "stim"])
 
-sfreq = raw.info["sfreq"]
+sfreq = raw.info["sfreq"]  # Sampling Frequency (Hz)
 
 # %%
 # Create the QC report
@@ -179,48 +199,45 @@ report.add_evokeds(
 # - Absence of clear evoked structure may indicate poor data quality or
 # incorrect event definitions.
 
+
 # %%
 # ICA for artifact inspection
 # ---------------------------
-# Independent Component Analysis (ICA) helps identify stereotypical artifacts
-# such as eye blinks and eye movements.
+# Independent Component Analysis (ICA) can be used during QC to identify
+# stereotypical artifacts such as eye blinks and eye movements.
+#
+# For QC purposes, ICA is typically run with a lightweight configuration
+# (e.g., fewer components or temporal decimation) to provide rapid feedback
+# on data quality, rather than an optimized decomposition for final analysis.
 
-report.add_html(
-    title="ICA for artifact inspection (run locally)",
-    html="""
-<p>
-ICA fitting is computationally expensive and therefore <b>not executed
-during documentation builds</b>. To inspect ICA components locally,
-copy and run the following code in your own Python session:
-</p>
-
-<pre><code class="python">
-import mne
-
-ica = mne.preprocessing.ICA(
+ica = ICA(
     n_components=15,
     random_state=97,
     max_iter="auto",
 )
-ica.fit(raw)
 
-eog_epochs = mne.preprocessing.create_eog_epochs(raw)
+# Fit ICA using a decimated signal for speed
+ica.fit(raw, picks=("meg", "eeg"), decim=3)
+
+
+# Identify EOG-related components
+eog_epochs = create_eog_epochs(raw)
 eog_inds, eog_scores = ica.find_bads_eog(eog_epochs)
 ica.exclude = eog_inds
 
 report.add_ica(
     ica=ica,
-    inst=raw,
-    title="ICA components (EOG-related artifacts)",
+    inst=epochs,
+    title="ICA components (artifact inspection)",
     tags=("qc", "ica"),
 )
-</code></pre>
-""",
-    tags=("qc", "ica"),
-)
-
 
 # Interpretation:
+# - Use the topographic maps to identify spatial patterns characteristic
+#   of artifacts (e.g., frontal patterns for eye blinks).
+# - The component property viewer is intended for detailed inspection of
+#   individual components and is most informative when combined with
+# qe epoched data or explicit artifact scoring.
 # - Components correlated with EOG should show frontal topographies and
 # stereotyped time courses.
 # - Only components clearly associated with artifacts should be excluded.
@@ -236,8 +253,9 @@ report.add_html(
     title="Head position / HPI (run locally)",
     html="""
 <p>
-Continuous head-position tracking (cHPI) estimation is not executed in the
-documentation build environment. If your dataset contains cHPI information,
+Continuous head-position tracking (cHPI) estimation can be computationally
+expensive and is therefore typically run selectively during QC.
+If your dataset contains cHPI information,
 you can run the following code locally:
 </p>
 
@@ -274,7 +292,7 @@ report.add_html(
     html="""
 <p>
 Coregistration visualization requires access to MRI surfaces and interactive
-rendering, which are unavailable in documentation builds.
+rendering, which require MRI surfaces and interactive 3D visualization.
 Run the following code locally to inspect coregistration quality:
 </p>
 
@@ -306,7 +324,8 @@ report.add_html(
     title="MRI and BEM surfaces (run locally)",
     html="""
 <p>
-BEM surface visualization is not executed during documentation builds.
+BEM surface visualization is typically performed interactively when preparing
+source-space analyses.
 To inspect BEM surfaces locally, run:
 </p>
 
@@ -359,10 +378,11 @@ report.add_html(
 # -----------
 
 # %%
-# Save report (local use only)
+# Save report
 # ----------------------------
-# Writing files is disabled during documentation builds.
 # Run this script locally to generate the HTML report.
-
-if __name__ == "__main__":
-    report.save("qc_report.html", overwrite=True)
+report.save(
+    "qc_report.html",
+    overwrite=True,
+    open_browser=False,
+)
