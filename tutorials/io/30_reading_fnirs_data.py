@@ -90,24 +90,6 @@ MNE-Python only supports NIRx files recorded with NIRStar
 version 15.0 and above and Aurora version 2021 and above.
 MNE-Python supports reading data from NIRScout and NIRSport devices.
 
-.. important::
-    The :func:`~mne.io.read_raw_nirx` function expects a **directory path**
-    (the folder containing all NIRx data files), not a path to a single file.
-    For example::
-
-        # Correct: pass the directory path
-        raw = mne.io.read_raw_nirx("/path/to/nirx_recording_folder/")
-
-        # Incorrect: passing a single file will cause an error
-        raw = mne.io.read_raw_nirx("/path/to/file.nirs")  # OSError!
-
-    If you receive an ``OSError: Need a directory for fname but found a
-    file...`` error, ensure you are passing the parent directory that
-    contains the NIRx files, not a single file path.
-
-    If your data is in SNIRF format (``.snirf``), use
-    :func:`mne.io.read_raw_snirf` instead.
-
 
 .. _import-hitachi:
 

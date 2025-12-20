@@ -38,13 +38,6 @@ def read_raw_nirx(
 ) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
-    .. note::
-        This function expects a **directory path** containing all NIRx data
-        files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.), not a path to a
-        single file. Passing a file path (e.g., ``"data.nirs"``) will result
-        in an error. If you have a ``.snirf`` file, use
-        :func:`mne.io.read_raw_snirf` instead.
-
     Parameters
     ----------
     fname : path-like
@@ -70,6 +63,12 @@ def read_raw_nirx(
     Notes
     -----
     %(nirx_notes)s
+
+    This function expects a **directory path** containing all NIRx data
+    files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.), not a path to a
+    single file. Passing a file path (e.g., ``"data.nirs"``) will result
+    in an error. If you have a ``.snirf`` file, use
+    :func:`mne.io.read_raw_snirf` instead.
     """
     return RawNIRX(
         fname, saturated, preload=preload, encoding=encoding, verbose=verbose
