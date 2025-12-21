@@ -69,7 +69,7 @@ def read_raw_eyelink(
 
 @fill_doc
 class RawEyelink(BaseRaw):
-    """Raw object from an XXX file.
+    """Raw object from an Eyelink file.
 
     Parameters
     ----------
@@ -123,7 +123,9 @@ class RawEyelink(BaseRaw):
             eye_annots = _make_eyelink_annots(
                 self._raw_extras[0]["dfs"], create_annotations, apply_offsets
             )
-        if gap_annots and eye_annots:  # set both
+        if self.n_times == 0:
+            logger.info("No samples found in recording, skipping annotation creation.")
+        elif gap_annots and eye_annots:  # set both
             self.set_annotations(gap_annots + eye_annots)
         elif gap_annots:
             self.set_annotations(gap_annots)

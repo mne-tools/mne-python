@@ -90,7 +90,14 @@ def _parse_eyelink_ascii(
                 raw_extras["dfs"][key], max_time=overlap_threshold
             )
     # ======================== Info for BaseRaw ========================
-    eye_ch_data = raw_extras["dfs"]["samples"][ch_names].to_numpy().T
+    dfs = raw_extras["dfs"]
+
+    if "samples" not in dfs or dfs["samples"].empty:
+        logger.info("No sample data found, creating empty Raw object.")
+        eye_ch_data = np.empty((len(ch_names), 0))
+    else:
+        eye_ch_data = dfs["samples"][ch_names].to_numpy().T
+
     info = _create_info(ch_names, raw_extras)
 
     return eye_ch_data, info, raw_extras
@@ -103,7 +110,7 @@ def _parse_recording_blocks(fname):
     samples lines start with a posix-like string,
     and contain eyetracking sample info. Event Lines
     start with an upper case string and contain info
-    about occular events (i.e. blink/saccade), or experiment
+    about ocular events (i.e. blink/saccade), or experiment
     messages sent by the stimulus presentation software.
     """
     with fname.open() as file:
@@ -182,7 +189,7 @@ def _validate_data(data_blocks: list):
         pupil_units.append(block["info"]["pupil_unit"])
     if "GAZE" in units:
         logger.info(
-            "Pixel coordinate data detected."
+            "Pixel coordinate data detected. "
             "Pass `scalings=dict(eyegaze=1e3)` when using plot"
             " method to make traces more legible."
         )
@@ -369,7 +376,7 @@ def _create_dataframes_for_block(block, apply_offsets):
         df_dict["samples"] = pd.DataFrame(block["samples"])
         df_dict["samples"] = _drop_status_col(df_dict["samples"])  # drop STATUS col
 
-    # dataframe for each type of occular event in this block
+    # dataframe for each type of ocular event in this block
     for event, label in zip(
         ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
     ):
@@ -697,7 +704,7 @@ def _adjust_times(
     -----
     After _parse_recording_blocks, Files with multiple recording blocks will
     have missing timestamps for the duration of the period between the blocks.
-    This would cause the occular annotations (i.e. blinks) to not line up with
+    This would cause the ocular annotations (i.e. blinks) to not line up with
     the signal.
     """
     pd = _check_pandas_installed()
@@ -723,7 +730,7 @@ def _find_overlaps(df, max_time=0.05):
     Parameters
     ----------
     df : pandas.DataFrame
-        Pandas DataFrame with occular events (fixations, saccades, blinks)
+        Pandas DataFrame with ocular events (fixations, saccades, blinks)
     max_time : float (default 0.05)
         Time in seconds. Defaults to .05 (50 ms)
 
