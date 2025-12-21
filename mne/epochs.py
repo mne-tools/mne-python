@@ -1515,7 +1515,7 @@ class BaseEpochs(
         )
 
     @verbose
-    def drop(self, indices, reason="USER", verbose=None):
+    def drop(self, indices, reason="USER", verbose=None, on_drop_all="warn"):
         """Drop epochs based on indices or boolean mask.
 
         .. note:: The indices refer to the current set of undropped epochs
@@ -1568,6 +1568,16 @@ class BaseEpochs(
             _pl(count),
             ", ".join(map(str, np.sort(try_idx))),
         )
+        
+        if len(self) == 0:
+            msg = "All epochs dropped"
+            if on_drop_all == 'raise':
+                raise ValueError(msg)
+            elif on_drop_all == 'warn':
+                warn(msg)
+            elif on_drop_all != 'ignore':
+                raise ValueError('on_drop_all must be "warn", "raise" or "ignore", '
+                                    f'got {on_drop_all}')
 
         return self
 
