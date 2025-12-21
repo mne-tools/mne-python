@@ -1568,16 +1568,18 @@ class BaseEpochs(
             _pl(count),
             ", ".join(map(str, np.sort(try_idx))),
         )
-        
+
         if len(self) == 0:
             msg = "All epochs dropped"
-            if on_drop_all == 'raise':
+            if on_drop_all == "raise":
                 raise ValueError(msg)
-            elif on_drop_all == 'warn':
+            elif on_drop_all == "warn":
                 warn(msg)
-            elif on_drop_all != 'ignore':
-                raise ValueError('on_drop_all must be "warn", "raise" or "ignore", '
-                                    f'got {on_drop_all}')
+            elif on_drop_all != "ignore":
+                raise ValueError(
+                    'on_drop_all must be "warn", "raise" or "ignore", '
+                    f"got {on_drop_all}"
+                )
 
         return self
 
