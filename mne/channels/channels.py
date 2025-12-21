@@ -873,7 +873,7 @@ class InterpolationMixin:
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
-        on_no_position : 'raise' | 'warn' | 'ignore'
+        on_no_position : "raise" | "warn" | "ignore"
             Decides how to handle the case when sensor positions of input
             channel(s) is invalid.
         %(verbose)s
