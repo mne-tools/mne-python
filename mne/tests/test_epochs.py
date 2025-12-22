@@ -5273,3 +5273,29 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+def test_drop_all_epochs():
+    """Test on_drop_all parameter in Epochs.drop."""
+    # Create tiny dummy data (3 epochs)
+    data = np.random.randn(3, 1, 10)
+    info = create_info(['ch1'], 1000., 'eeg')
+    epochs = EpochsArray(data, info)
+
+    # 1. Test 'warn' (default)
+    # We expect a warning when dropping all epochs
+    with pytest.warns(RuntimeWarning, match='All epochs dropped'):
+        epochs.copy().drop([0, 1, 2])
+
+    # 2. Test 'raise'
+    # We expect a ValueError when dropping all epochs
+    with pytest.raises(ValueError, match='All epochs dropped'):
+        epochs.copy().drop([0, 1, 2], on_drop_all='raise')
+
+    # 3. Test 'ignore'
+    # Should run silently (no warning, no error)
+    epochs.copy().drop([0, 1, 2], on_drop_all='ignore')
+
+    # 4. Test Typo
+    # We expect a ValueError because 'wrn' is not valid
+    with pytest.raises(ValueError, match='on_drop_all must be'):
+        epochs.copy().drop([0, 1, 2], on_drop_all='wrn')
