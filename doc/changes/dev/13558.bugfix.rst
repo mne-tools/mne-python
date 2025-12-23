@@ -1,0 +1,1 @@
+Fix axis limits in :func:`mne.preprocessing.eyetracking.calibration.Calibration.plot` to use screen resolution if available, by :newcontrib:`Gnaneswar Lopinti`.
