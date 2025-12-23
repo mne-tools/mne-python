@@ -5274,6 +5274,7 @@ def test_empty_error(method, epochs_empty):
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
 
+
 def test_drop_all_epochs():
     """Test on_drop_all parameter in Epochs.drop."""
     # Create tiny dummy data (3 epochs)
