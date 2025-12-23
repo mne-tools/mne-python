@@ -805,11 +805,11 @@ class _CheckInside:
         pdata = _surface_to_polydata(dict(rr=rr))
         # PyVista 0.47+
         meth = (
-            self.pdata.select_interior_points
-            if hasattr(self.pdata, "select_interior_points")
-            else self.pdata.select_enclosed_points
+            pdata.select_interior_points
+            if hasattr(pdata, "select_interior_points")
+            else pdata.select_enclosed_points
         )
-        out = meth(pdata, check_surface=False)
+        out = meth(self.pdata, check_surface=False)
         return out["SelectedPoints"].astype(bool)
 
     def _call_old(self, rr, n_jobs):
