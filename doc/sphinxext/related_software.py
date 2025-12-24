@@ -51,6 +51,11 @@ MANUAL_PACKAGES = {
         "Home-page": "https://users.aalto.fi/~vanvlm1/posthoc/python",
         "Summary": "post-hoc modification of linear models",
     },
+    # https://github.com/freesurfer/surfa/pull/66
+    "surfa": {
+        "Home-page": "https://github.com/freesurfer/surfa",
+        "Summary": "Utilities for medical image and surface processing.",
+    },
     # This package does not provide wheels, so don't force CircleCI to build it.
     # If it eventually provides binary wheels we could add it to
     # `tools/circleci_dependencies.sh` and remove from here.
