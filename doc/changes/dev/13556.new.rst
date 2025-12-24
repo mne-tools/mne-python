@@ -1,0 +1,1 @@
+Add :param:`on_drop_all` parameter to :meth:`mne.Epochs.drop` to control behavior when all epochs are dropped.
