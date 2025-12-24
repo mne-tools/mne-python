@@ -19,7 +19,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _eye_array, _safe_svd
+from .fixes import _eye_array
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -3375,13 +3375,29 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico
 
 
-def _pca_flip(flip, data):
-    U, s, V = _safe_svd(data, full_matrices=False)
-    # determine sign-flip
-    sign = np.sign(np.dot(U[:, 0], flip))
-    # use average power in label for scaling
-    scale = np.linalg.norm(s) / np.sqrt(len(data))
-    return sign * scale * V[0]
+def _compute_pca_quantities(U, s, V, flip):
+    if flip is None:  # Case of volumetric data: flip is meaningless
+        flip = 1
+    if isinstance(flip, int):
+        sign = np.sign((flip * U[:, 0]).sum())
+    else:
+        sign = np.sign(np.dot(U[:, 0], flip))
+    scale = np.linalg.norm(s) / np.sqrt(len(U))
+    result = sign * scale * V[0]
+    return result
+
+
+def _pca_flip(flip, data, max_rank):
+    result = None
+    if data.shape[0] < 2:
+        result = data.mean(axis=0)  # Trivial accumulator
+    else:
+        from sklearn.utils.extmath import randomized_svd
+
+        U, s, V = randomized_svd(data, n_components=max_rank)
+        # determine sign-flip.
+        result = _compute_pca_quantities(U, s, V, flip)
+    return result
 
 
 _label_funcs = {
@@ -3432,6 +3448,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
     from .label import BiHemiLabel, Label, label_sign_flip
+
+    logger.debug(f"Selected mode: {mode}")
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
@@ -3644,8 +3662,10 @@ def _get_default_label_modes():
 
 
 def _get_allowed_label_modes(stc):
-    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
+    if isinstance(stc, _BaseVectorSourceEstimate):
         return ("mean", "max", "auto")
+    elif isinstance(stc, _BaseVolSourceEstimate):
+        return ("mean", "pca_flip", "max", "auto")
     else:
         return _get_default_label_modes()
 
@@ -3659,6 +3679,7 @@ def _gen_extract_label_time_course(
     allow_empty=False,
     mri_resolution=True,
     verbose=None,
+    max_channels=400,
 ):
     # loop through source estimates and extract time series
     if src is None and mode in ["mean", "max"]:
@@ -3722,18 +3743,48 @@ def _gen_extract_label_time_course(
         else:
             # For other modes, initialize the label_tc array
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
+
+        pca_volume = mode == "pca_flip" and kind == "volume"
+        if pca_volume:
+            from sklearn.utils.extmath import randomized_svd
+
+            logger.debug("First SVD for PCA volume on stc data")
+            u_b, s_b, vh_b = randomized_svd(stc.data, max_channels)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                if isinstance(vertidx, sparse.csr_array):
-                    assert mri_resolution
-                    assert vertidx.shape[1] == stc.data.shape[0]
-                    this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
-                    this_data = vertidx @ this_data
-                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                if pca_volume:
+                    # Use a trick for efficiency:
+                    # stc = Ub Sb VhB
+                    # full_data = vertidx @ stc
+                    #           = vertidx @ Ub @ Sb @ Vhb
+                    # Consider U_f, s_f, Vh_f = SVD(vertidx @ Ub @ Sb)
+                    # Then U,S,V = svd(full_data) is such that
+                    # U_f = U, S = s_f and V = Vh_f @ Vhb
+                    # This trick is more efficient, because:
+                    #  - We compute a first SVD once on stc, restricted to
+                    #    only first max_channels singular vals/vecs (quite fast)
+                    #  - We project vertidx to be from Nvertex x Nsources
+                    #    to Nvertex x rank.
+                    #  - We compute SVD on Nvertex x rank
+                    # As rank << Nsources, we end up saving a lot of computations.
+                    tmp_array = vertidx @ u_b @ np.diag(s_b)
+                    U, S, v_tmp = np.linalg.svd(tmp_array, full_matrices=False)
+                    V = v_tmp @ vh_b
+                    label_tc[i] = _compute_pca_quantities(U, S, V, flip)
                 else:
-                    this_data = stc.data[vertidx]
-                label_tc[i] = func(flip, this_data)
-
+                    if isinstance(vertidx, sparse.csr_array):
+                        assert mri_resolution
+                        assert vertidx.shape[1] == stc.data.shape[0]
+                        this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
+                        this_data = vertidx @ this_data
+                        this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                    else:
+                        this_data = stc.data[vertidx]
+                    if mode == "pca_flip":
+                        label_tc[i] = func(flip, this_data, max_channels)
+                    else:
+                        label_tc[i] = func(flip, this_data)
+                logger.debug(f"Done with label {i}")
         if mode is not None:
             offset = nvert[:-n_mean].sum()  # effectively :2 or :0
             for i, nv in enumerate(nvert[2:]):
