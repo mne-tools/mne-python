@@ -900,6 +900,45 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
 
 
 @testing.requires_testing_data
+def test_plot_alignment_hpi_colors_and_labels(renderer):
+    """Test hpi_colors and hpi_labels parameters."""
+    info = read_info(evoked_fname)
+    fig = plot_alignment(
+        info=info,
+        dig=True,
+        surfaces=[],
+        coord_frame="head",
+        meg=[],
+        eeg=[],
+        ecog=False,
+        seeg=False,
+        fnirs=False,
+        dbs=False,
+        show_axes=False,
+        hpi_colors="auto",
+        hpi_labels=False,
+    )
+    _assert_n_actors(fig, renderer, 8)
+
+    fig = plot_alignment(
+        info=info,
+        dig=True,
+        surfaces=[],
+        coord_frame="head",
+        meg=[],
+        eeg=[],
+        ecog=False,
+        seeg=False,
+        fnirs=False,
+        dbs=False,
+        show_axes=False,
+        hpi_colors="auto",
+        hpi_labels=True,
+    )
+    _assert_n_actors(fig, renderer, 12)
+
+
+@testing.requires_testing_data
 def test_plot_alignment_fnirs(renderer, tmp_path):
     """Test fNIRS plotting."""
     # Here we use subjects_dir=tmp_path, since no surfaces should actually
