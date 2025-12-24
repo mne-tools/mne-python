@@ -195,7 +195,7 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
         # and handle the 'data' field specially
 
         # the files in eeglab are always the same field names
-        # the the fields were taken from the eeglab sample reference
+        # the fields were taken from the eeglab sample reference
         # available at the eeglab github:
         # https://github.com/sccn/eeglab/blob/develop/sample_data/eeglab_data.set
         # The sample reference is the big reference for the field names

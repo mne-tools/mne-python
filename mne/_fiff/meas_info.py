@@ -1461,7 +1461,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Eyetrack
                 Element ``[3]`` contains information about which eye was tracked
                 (-1 for left, 1 for right), and element ``[4]`` contains information
-                about the the axis of coordinate data (-1 for x-coordinate data, 1 for
+                about the axis of coordinate data (-1 for x-coordinate data, 1 for
                 y-coordinate data).
             Dipole
                 Elements ``[3:6]`` contain dipole orientation information.
