@@ -1232,7 +1232,7 @@ eeg : bool | str | list | dict
 
 docdict["elevation"] = """
 elevation : float
-    The The zenith angle of the camera rendering the view in degrees.
+    The zenith angle of the camera rendering the view in degrees.
 """
 
 docdict["eltc_mode_notes"] = """
@@ -3991,7 +3991,7 @@ scoring : callable | str | None
 
 docdict["sdr_morph"] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
-    The class that applies the the symmetric diffeomorphic registration
+    The class that applies the symmetric diffeomorphic registration
     (SDR) morph.
 """
 
