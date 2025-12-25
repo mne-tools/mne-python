@@ -41,9 +41,9 @@ def read_raw_nirx(
     Parameters
     ----------
     fname : path-like
-        Path to the NIRX data folder (directory containing NIRx files) or
+        Path to the NIRX data folder (directory containing NIRX files) or
         the ``.hdr`` header file within that folder. The function will
-        automatically find and read all required NIRx files from the
+        automatically find and read all required NIRX files from the
         directory.
     %(saturated)s
     %(preload)s
