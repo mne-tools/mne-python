@@ -2885,11 +2885,10 @@ called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
 mathematical functions the default behaviour is to return the
 saturated data.
 
-This function expects a **directory path** containing all NIRx data
-files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.), not a path to a
-single file. Passing a file path (e.g., ``"data.nirs"``) will result
-in an error. If you have a ``.snirf`` file, use
-:func:`mne.io.read_raw_snirf` instead.
+.. note::
+    This function expects ``fname`` to be a path to a directory containing the
+    NIRX data files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.). If you have a
+    ``.snirf`` file, use :func:`mne.io.read_raw_snirf` instead.
 """
 
 docdict["niter"] = """
