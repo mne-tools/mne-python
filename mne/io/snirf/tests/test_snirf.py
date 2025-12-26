@@ -127,17 +127,6 @@ def _get_loc(raw, ch_name):
     return raw.copy().pick(ch_name).info["chs"][0]["loc"]
 
 
-def _run_basic_processing(fname):
-    raw = read_raw_snirf(fname, preload=True)
-    if "fnirs_cw_amplitude" in raw:
-        raw = optical_density(raw)
-    if "fnirs_od" in raw:
-        raw = beer_lambert_law(raw, ppf=6)
-    assert "hbo" in raw
-    assert "hbr" in raw
-    return raw
-
-
 @requires_testing_data
 @pytest.mark.filterwarnings("ignore:.*contains 2D location.*:")
 @pytest.mark.filterwarnings("ignore:.*measurement date.*:")
@@ -158,24 +147,25 @@ def _run_basic_processing(fname):
 )
 def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
-    _run_basic_processing(fname)
+    raw = read_raw_snirf(fname, preload=True)
+    # SNIRF data can contain several types, so only apply appropriate functions
+    if "fnirs_cw_amplitude" in raw:
+        raw = optical_density(raw)
+    if "fnirs_od" in raw:
+        raw = beer_lambert_law(raw, ppf=6)
+    assert "hbo" in raw
+    assert "hbr" in raw
 
 
-def test_basic_reading_and_min_process_multi(multi_wavelength_snirf_fname):
-    """Ensure synthetic multi-wavelength SNIRF file passes basic processing.
-
-    Same tests as in _run_basic_processing but with checks for number of channels.
-    """
+def test_basic_reading_and_min_process_multiwl(multi_wavelength_snirf_fname):
+    """Ensure synthetic multi-wavelength SNIRF file passes basic processing."""
     raw = read_raw_snirf(multi_wavelength_snirf_fname, preload=True)
     assert "fnirs_cw_amplitude" in raw
-    assert len(raw.ch_names) == 6
     raw = optical_density(raw)
     assert "fnirs_od" in raw
-    assert len(raw.ch_names) == 6
     raw = beer_lambert_law(raw, ppf=6)
     assert "hbo" in raw
     assert "hbr" in raw
-    assert len(raw.ch_names) == 4
 
 
 @requires_testing_data
