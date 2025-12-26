@@ -103,3 +103,26 @@ def test_beer_lambert_v_matlab():
             + matlab_data["type"][idx]
         )
         assert raw.info["ch_names"][idx] == matlab_name
+
+
+@pytest.mark.parametrize("multi_wavelength_raw", [2], indirect=True)
+def test_beer_lambert_multi_wavelength(multi_wavelength_raw):
+    """Ensure Beer-Lambert can process >=3 wavelengths and reduces to 2 channels."""
+    # Verify original CW data
+    raw = multi_wavelength_raw.copy()
+    assert len(raw.ch_names) == 2 * 3
+    assert raw.ch_names[0] == "S1_D1 700"
+    assert raw.ch_names[5] == "S2_D2 850"
+    assert set(raw.get_channel_types()) == {"fnirs_cw_amplitude"}
+
+    # Convert to OD (tested elsewhere)
+    raw = optical_density(raw)
+
+    # Verify data after conversion to Hb; channel numbers reduced to 2 per pair
+    raw = beer_lambert_law(raw)
+    _validate_type(raw, BaseRaw, "raw")
+    assert len(raw.ch_names) == 2 * 2
+    assert all(name.endswith(" hbo") or name.endswith(" hbr") for name in raw.ch_names)
+    assert raw.ch_names[0] == "S1_D1 hbo"
+    assert raw.ch_names[3] == "S2_D2 hbr"
+    assert set(raw.get_channel_types()) == {"hbo", "hbr"}

@@ -5,16 +5,23 @@
 import datetime
 import shutil
 from contextlib import nullcontext
+from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
+from numpy.testing import (
+    assert_allclose,
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 
 from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
+    _channel_frequencies,
     _reorder_nirx,
     beer_lambert_law,
     optical_density,
@@ -69,8 +76,66 @@ ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
 
 
+@pytest.fixture(name="multi_wavelength_snirf_fname", scope="module")
+def fixture_multi_wavelength_snirf_fname(tmp_path_factory):
+    """Return path to a tiny 3-wavelength SNIRF file for io tests."""
+    try:
+        snirf = pytest.importorskip("snirf")
+    except AttributeError as exc:
+        # Until https://github.com/BUNPC/pysnirf2/pull/43 is released
+        pytest.skip(f"snirf import error: {exc}")
+    out_dir = Path(tmp_path_factory.mktemp("snirf_multi"))
+    fname = out_dir / "test_multiwl.snirf"
+    if fname.exists():
+        return fname
+
+    # 32 mwasurements with 2 source-detector pairs, each with 3 wavelengths
+    n_times = 32
+    n_freq = 3
+    n_channels = 2 * n_freq
+
+    with snirf.Snirf(str(fname), "w") as f:
+        f.nirs.appendGroup()
+        f.nirs[0].data.appendGroup()
+        f.nirs[0].data[0].dataTimeSeries = np.ones((n_times, n_channels))
+        f.nirs[0].data[0].time = range(n_times)
+        for ii in range(n_channels):
+            f.nirs[0].data[0].measurementList.appendGroup()
+            f.nirs[0].data[0].measurementList[ii].sourceIndex = ii // n_freq + 1
+            f.nirs[0].data[0].measurementList[ii].detectorIndex = ii // n_freq + 1
+            f.nirs[0].data[0].measurementList[ii].wavelengthIndex = (ii % 3) + 1
+            f.nirs[0].data[0].measurementList[ii].dataType = 1
+            f.nirs[0].data[0].measurementList[ii].dataTypeIndex = 0
+        f.nirs[0].metaDataTags.SubjectID = "multi"
+        f.nirs[0].metaDataTags.MeasurementDate = "2000-01-01"
+        f.nirs[0].metaDataTags.MeasurementTime = "00:00:00"
+        f.nirs[0].metaDataTags.LengthUnit = "m"
+        f.nirs[0].metaDataTags.TimeUnit = "s"
+        f.nirs[0].metaDataTags.FrequencyUnit = "Hz"
+        f.nirs[0].probe.wavelengths = [700 + x * 30 for x in range(n_freq)]
+        f.nirs[0].probe.sourcePos3D = [[0.01 * x, 0.0, 0.0] for x in range(n_channels)]
+        f.nirs[0].probe.detectorPos3D = [
+            [0.01 * x, 0.02, 0.0] for x in range(n_channels)
+        ]
+        f.save()
+
+    assert fname.exists()
+    return fname
+
+
 def _get_loc(raw, ch_name):
     return raw.copy().pick(ch_name).info["chs"][0]["loc"]
+
+
+def _run_basic_processing(fname):
+    raw = read_raw_snirf(fname, preload=True)
+    if "fnirs_cw_amplitude" in raw:
+        raw = optical_density(raw)
+    if "fnirs_od" in raw:
+        raw = beer_lambert_law(raw, ppf=6)
+    assert "hbo" in raw
+    assert "hbr" in raw
+    return raw
 
 
 @requires_testing_data
@@ -93,14 +158,24 @@ def _get_loc(raw, ch_name):
 )
 def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
-    raw = read_raw_snirf(fname, preload=True)
-    # SNIRF data can contain several types, so only apply appropriate functions
-    if "fnirs_cw_amplitude" in raw:
-        raw = optical_density(raw)
-    if "fnirs_od" in raw:
-        raw = beer_lambert_law(raw, ppf=6)
+    _run_basic_processing(fname)
+
+
+def test_basic_reading_and_min_process_multi(multi_wavelength_snirf_fname):
+    """Ensure synthetic multi-wavelength SNIRF file passes basic processing.
+
+    Same tests as in _run_basic_processing but with checks for number of channels.
+    """
+    raw = read_raw_snirf(multi_wavelength_snirf_fname, preload=True)
+    assert "fnirs_cw_amplitude" in raw
+    assert len(raw.ch_names) == 6
+    raw = optical_density(raw)
+    assert "fnirs_od" in raw
+    assert len(raw.ch_names) == 6
+    raw = beer_lambert_law(raw, ppf=6)
     assert "hbo" in raw
     assert "hbr" in raw
+    assert len(raw.ch_names) == 4
 
 
 @requires_testing_data
@@ -574,3 +649,16 @@ def test_sample_rate_jitter(tmp_path):
         f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
     with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
         read_raw_snirf(new_file, verbose=True)
+
+
+def test_snirf_multiple_wavelengths(multi_wavelength_snirf_fname):
+    """Test importing synthetic SNIRF files with >=3 wavelengths."""
+    raw = read_raw_snirf(multi_wavelength_snirf_fname, preload=True)
+    assert raw._data.shape == (6, 32)
+    assert raw.info["sfreq"] == pytest.approx(1.0)
+    assert raw.info["ch_names"][:3] == ["S1_D1 700", "S1_D1 730", "S1_D1 760"]
+    assert len(raw.ch_names) == 6
+    freqs = np.unique(_channel_frequencies(raw.info))
+    assert_array_equal(freqs, [700, 730, 760])
+    distances = source_detector_distances(raw.info)
+    assert len(distances) == len(raw.ch_names)
