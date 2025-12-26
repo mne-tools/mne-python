@@ -28,7 +28,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 		EXTRAS="[hdf5]"
 	fi
 elif [[ ${MNE_CI_KIND} == "old" ]]; then
-	GROUP="test"
+	GROUP=""  # group "test" already included when pylock file generated
 	EXTRAS=""
 	STD_ARGS="--progress-bar off"
 	uv venv --python 3.10
