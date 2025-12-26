@@ -697,7 +697,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         Parameters
         ----------
         %(baseline_stc)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
