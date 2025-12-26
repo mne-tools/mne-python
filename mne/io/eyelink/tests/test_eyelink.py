@@ -523,3 +523,24 @@ def test_href_eye_events(tmp_path):
     # Just check that we actually parsed the Saccade and Fixation events
     assert "saccade" in raw.annotations.description
     assert "fixation" in raw.annotations.description
+
+
+@requires_testing_data
+def test_empty_first_trial(tmp_path):
+    """Test reading a file with an empty first trial."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    # Use a real eyelink file as base
+    lines = fname.read_text("utf-8").splitlines()
+    # Find first START and END
+    end_idx = next(i for i, line in enumerate(lines) if line.startswith("END"))
+    # Keep headers + START..END but REMOVE all numeric sample lines
+    first_block = []
+    for line in lines[: end_idx + 1]:
+        tokens = line.split()
+        if line.startswith("START") or not tokens or not tokens[0].isdigit():
+            first_block.append(line)
+
+    # Append rest of file (second trial onwards)
+    rest = lines[end_idx + 1 :]
+    out_file.write_text("\n".join(first_block + rest), encoding="utf-8")
+    read_raw_eyelink(out_file)
