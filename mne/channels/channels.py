@@ -827,6 +827,7 @@ class InterpolationMixin:
         origin="auto",
         method=None,
         exclude=(),
+        on_no_position="warn",
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -872,6 +873,9 @@ class InterpolationMixin:
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
+        on_no_position : "raise" | "warn" | "ignore"
+            Decides how to handle the case when sensor positions of input
+            channel(s) is invalid.
         %(verbose)s
 
         Returns
@@ -896,6 +900,24 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
+
+        invalid_chs = []
+        for ch in self.info["bads"]:
+            loc = self.info["chs"][self.ch_names.index(ch)]["loc"]
+            if np.allclose(loc, 0.0, atol=1e-16) or np.isnan(loc).any():
+                invalid_chs.append(ch)
+
+        if invalid_chs:
+            msg = (
+                f"Bad channel(s) {invalid_chs} have missing valid sensor position "
+                "(loc) information.\n"
+                "Interpolation cannot proceed correctly. If you want to continue "
+                "despite missing positions, set on_no_position='warn' or 'ignore', "
+                "which outputs all NaN values (np.nan) for the interpolated "
+                "channel(s)."
+            )
+            _on_missing(on_no_position, msg)
+
         method = _handle_default("interpolation_method", method)
         ch_types = self.get_channel_types(unique=True)
         # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
