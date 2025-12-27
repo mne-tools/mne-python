@@ -566,10 +566,20 @@ def _drop_status_col(samples_df):
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
     for col in samples_df.columns[3:]:
-        if samples_df[col][0][0].isnumeric():
-            # if the value is numeric, it's not a status column
+        first_valid_index = samples_df[col].first_valid_index()
+        if first_valid_index is None:
+            # The entire column is NaN, so we can drop it
+            status_cols.append(col)
             continue
-        if len(samples_df[col][0]) in [3, 5, 13, 17]:
+        value = samples_df.loc[first_valid_index, col]
+        try:
+            float(value)
+            continue  # if the value is numeric, it's not a status column
+        except (ValueError, TypeError):
+            # cannot convert to float, so it might be a status column
+            pass
+        # further check the length of the string value
+        if len(value) in [3, 5, 13, 17]:
             status_cols.append(col)
     return samples_df.drop(columns=status_cols)
 
