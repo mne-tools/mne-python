@@ -106,6 +106,7 @@
 .. _Gennadiy Belonosov: https://github.com/Genuster
 .. _Geoff Brookshire: https://github.com/gbrookshire
 .. _George O'Neill: https://georgeoneill.github.io
+.. _Gnaneswar Lopinti: https://github.com/flying-spagetti
 .. _Gonzalo Reina: https://orcid.org/0000-0003-4219-2306
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
