@@ -523,3 +523,89 @@ def test_href_eye_events(tmp_path):
     # Just check that we actually parsed the Saccade and Fixation events
     assert "saccade" in raw.annotations.description
     assert "fixation" in raw.annotations.description
+
+
+@requires_testing_data
+def test_null_sample_values(tmp_path):
+    """Test file with multiple recording segments starting with null data.
+
+    Regression test for gh-13567: the _drop_status_col function failed when
+    the first sample of a recording segment had None values in a column.
+    This happens when sample lines have different numbers of columns, causing
+    pandas to fill missing values with None.
+    """
+    out_file = tmp_path / "tmp_eyelink.asc"
+    lines = fname.read_text("utf-8").splitlines()
+
+    # Find the END line of the first block and insert a second block after it
+    end_idx = None
+    for li, line in enumerate(lines):
+        if line.startswith("END"):
+            end_idx = li
+            break
+    assert end_idx is not None, "Could not find END line in test file"
+
+    # Create a second block with samples having varying column counts
+    # This simulates the condition from gh-13567 where pandas fills
+    # missing columns with None
+    second_block = []
+    new_ts = 888993
+    start = ["START", f"{new_ts}", "LEFT", "SAMPLES", "EVENTS"]
+    samples_info = [
+        "SAMPLES",
+        "GAZE",
+        "LEFT",
+        "RATE",
+        "500.00",
+        "TRACKING",
+        "CR",
+        "FILTER",
+        "2",
+    ]
+    events_info = [
+        "EVENTS",
+        "GAZE",
+        "LEFT",
+        "RATE",
+        "500.00",
+        "TRACKING",
+        "CR",
+        "FILTER",
+        "2",
+    ]
+    pupil_info = ["PUPIL", "DIAMETER"]
+    second_block.append("\t".join(start))
+    second_block.append("\t".join(pupil_info))
+    second_block.append("\t".join(samples_info))
+    second_block.append("\t".join(events_info))
+
+    # First few samples have FEWER columns (no status column)
+    # This creates None values in the status column position after DataFrame creation
+    # columns: timestamp, xpos, ypos, pupil (missing status -> becomes None)
+    for ii in range(12):
+        ts = new_ts + ii
+        tokens = [f"{ts}", ".", ".", "0.0"]  # Only 4 columns
+        second_block.append("\t".join(tokens))
+
+    # Rest of samples have status column (5 columns)
+    for ii in range(12, 100):
+        ts = new_ts + ii
+        tokens = [f"{ts}", "960.0", "540.0", "1000.0", "..."]  # 5 columns
+        second_block.append("\t".join(tokens))
+
+    end_ts = new_ts + 100
+    end_block = ["END", f"{end_ts}", "SAMPLES", "EVENTS", "RES", "45", "45"]
+    second_block.append("\t".join(end_block))
+
+    # Insert the second block after the first END line
+    lines = lines[: end_idx + 1] + second_block + lines[end_idx + 1 :]
+    out_file.write_text("\n".join(lines), encoding="utf-8")
+
+    # This should not raise TypeError from _drop_status_col
+    with pytest.warns(
+        RuntimeWarning, match="This recording switched between monocular and binocular"
+    ):
+        raw = read_raw_eyelink(out_file, create_annotations=False)
+
+    assert raw is not None
+    assert len(raw.ch_names) > 0

@@ -559,10 +559,21 @@ def _drop_status_col(samples_df):
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
     for col in samples_df.columns[3:]:
-        if samples_df[col][0][0].isnumeric():
+        first_val = samples_df[col].iloc[0]
+        # Handle None values - can occur in files with multiple recording segments
+        # where a segment starts with null data. See gh-13567.
+        if first_val is None:
+            # Check if there's any non-None value to determine column type
+            non_null = samples_df[col].dropna()
+            if len(non_null) == 0:
+                # All values are None, drop this column
+                status_cols.append(col)
+                continue
+            first_val = non_null.iloc[0]
+        if first_val[0].isnumeric():
             # if the value is numeric, it's not a status column
             continue
-        if len(samples_df[col][0]) in [3, 5, 13, 17]:
+        if len(first_val) in [3, 5, 13, 17]:
             status_cols.append(col)
     return samples_df.drop(columns=status_cols)
 
