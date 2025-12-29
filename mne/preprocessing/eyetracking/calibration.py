@@ -28,7 +28,7 @@ class Calibration(dict):
     ----------
     onset : float
         The onset of the calibration in seconds. If the calibration was
-        performed before the recording started, the the onset can be
+        performed before the recording started, the onset can be
         negative.
     model : str
         A string, which is the model of the eye-tracking calibration that was applied.
