@@ -1569,7 +1569,7 @@ class BaseEpochs(
             ", ".join(map(str, np.sort(try_idx))),
         )
 
-        if len(self) == 0:
+        if len(self.events) == 0:
             msg = "All epochs dropped"
             if on_drop_all == "raise":
                 raise ValueError(msg)
