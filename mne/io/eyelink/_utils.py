@@ -566,23 +566,22 @@ def _drop_status_col(samples_df):
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
     for col in samples_df.columns[3:]:
-        # use first valid index to ignore preceding empty values
+        # use first valid index and value to ignore leading empty values
         # see https://github.com/mne-tools/mne-python/issues/13567
         first_valid_index = samples_df[col].first_valid_index()
         if first_valid_index is None:
             # The entire column is NaN, so we can drop it
             status_cols.append(col)
             continue
-        value = samples_df.loc[first_valid_index, col]
+        first_value = samples_df.loc[first_valid_index, col]
         try:
-            float(value)
+            float(first_value)
             continue  # if the value is numeric, it's not a status column
         except (ValueError, TypeError):
             # cannot convert to float, so it might be a status column
-            pass
-        # further check the length of the string value
-        if len(value) in [3, 5, 13, 17]:
-            status_cols.append(col)
+            # further check the length of the string value
+            if len(first_value) in [3, 5, 13, 17]:
+                status_cols.append(col)
     return samples_df.drop(columns=status_cols)
 
 
