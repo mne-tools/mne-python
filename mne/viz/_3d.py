@@ -944,10 +944,10 @@ def plot_alignment(
             sensor_colors=sensor_colors,
             sensor_scales=sensor_scales,
         )
-        
+
     if show_channel_names and picks.size > 0:
-        chs = [info["chs"][pi] for pi in picks]    
-        
+        chs = [info["chs"][pi] for pi in picks]
+
         # channel positions are in head coordinates
         pos = np.array([ch["loc"][:3] for ch in chs])
 
