@@ -5,7 +5,6 @@
 import datetime
 import shutil
 from contextlib import nullcontext
-from pathlib import Path
 
 import numpy as np
 import pytest
