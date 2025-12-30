@@ -554,6 +554,7 @@ def plot_alignment(
     sensor_colors=None,
     *,
     sensor_scales=None,
+    show_channel_names=False,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -646,7 +647,9 @@ def plot_alignment(
         .. versionchanged:: 1.6
             Support for passing a ``dict`` was added.
     %(sensor_scales)s
-
+    show_channel_names : bool
+        If True, overlay channel names at sensor locations.
+        Default is False.
         .. versionadded:: 1.9
     %(verbose)s
 
@@ -941,6 +944,25 @@ def plot_alignment(
             sensor_colors=sensor_colors,
             sensor_scales=sensor_scales,
         )
+        
+    if show_channel_names and picks.size > 0:
+        chs = [info["chs"][pi] for pi in picks]    
+        
+        # channel positions are in head coordinates
+        pos = np.array([ch["loc"][:3] for ch in chs])
+
+        # transform to current coord frame
+        pos = apply_trans(to_cf_t["head"], pos)
+
+        for ch, xyz in zip(chs, pos):
+            renderer.text3d(
+                xyz[0],
+                xyz[1],
+                xyz[2],
+                ch["ch_name"],
+                scale=0.005,
+                color=(1.0, 1.0, 1.0),
+            )
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
