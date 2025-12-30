@@ -566,6 +566,8 @@ def _drop_status_col(samples_df):
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
     for col in samples_df.columns[3:]:
+        # use first valid index to ignore preceding empty values
+        # see https://github.com/mne-tools/mne-python/issues/13567
         first_valid_index = samples_df[col].first_valid_index()
         if first_valid_index is None:
             # The entire column is NaN, so we can drop it
