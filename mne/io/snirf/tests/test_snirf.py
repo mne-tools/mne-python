@@ -75,52 +75,10 @@ ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 # GowerLabs
 lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
 
-
-@pytest.fixture(name="multi_wavelength_snirf_fname", scope="module")
-def fixture_multi_wavelength_snirf_fname(tmp_path_factory):
-    """Return path to a tiny 3-wavelength SNIRF file for io tests."""
-    try:
-        snirf = pytest.importorskip("snirf")
-    except AttributeError as exc:
-        # Until https://github.com/BUNPC/pysnirf2/pull/43 is released
-        pytest.skip(f"snirf import error: {exc}")
-    out_dir = Path(tmp_path_factory.mktemp("snirf_multi"))
-    fname = out_dir / "test_multiwl.snirf"
-    if fname.exists():
-        return fname
-
-    # 32 mwasurements with 2 source-detector pairs, each with 3 wavelengths
-    n_times = 32
-    n_freq = 3
-    n_channels = 2 * n_freq
-
-    with snirf.Snirf(str(fname), "w") as f:
-        f.nirs.appendGroup()
-        f.nirs[0].data.appendGroup()
-        f.nirs[0].data[0].dataTimeSeries = np.ones((n_times, n_channels))
-        f.nirs[0].data[0].time = range(n_times)
-        for ii in range(n_channels):
-            f.nirs[0].data[0].measurementList.appendGroup()
-            f.nirs[0].data[0].measurementList[ii].sourceIndex = ii // n_freq + 1
-            f.nirs[0].data[0].measurementList[ii].detectorIndex = ii // n_freq + 1
-            f.nirs[0].data[0].measurementList[ii].wavelengthIndex = (ii % 3) + 1
-            f.nirs[0].data[0].measurementList[ii].dataType = 1
-            f.nirs[0].data[0].measurementList[ii].dataTypeIndex = 0
-        f.nirs[0].metaDataTags.SubjectID = "multi"
-        f.nirs[0].metaDataTags.MeasurementDate = "2000-01-01"
-        f.nirs[0].metaDataTags.MeasurementTime = "00:00:00"
-        f.nirs[0].metaDataTags.LengthUnit = "m"
-        f.nirs[0].metaDataTags.TimeUnit = "s"
-        f.nirs[0].metaDataTags.FrequencyUnit = "Hz"
-        f.nirs[0].probe.wavelengths = [700 + x * 30 for x in range(n_freq)]
-        f.nirs[0].probe.sourcePos3D = [[0.01 * x, 0.0, 0.0] for x in range(n_channels)]
-        f.nirs[0].probe.detectorPos3D = [
-            [0.01 * x, 0.02, 0.0] for x in range(n_channels)
-        ]
-        f.save()
-
-    assert fname.exists()
-    return fname
+# Shimadzu Labnirs 3-wavelength converted to snirf using custom tool
+labnirs_multi_wavelength = (
+    testing_path / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
+)
 
 
 def _get_loc(raw, ch_name):
@@ -142,6 +100,7 @@ def _get_loc(raw, ch_name):
             nirx_nirsport2_103_2,
             kernel_hb,
             lumo110,
+            labnirs_multi_wavelength,
         ]
     ),
 )
@@ -153,17 +112,6 @@ def test_basic_reading_and_min_process(fname):
         raw = optical_density(raw)
     if "fnirs_od" in raw:
         raw = beer_lambert_law(raw, ppf=6)
-    assert "hbo" in raw
-    assert "hbr" in raw
-
-
-def test_basic_reading_and_min_process_multiwl(multi_wavelength_snirf_fname):
-    """Ensure synthetic multi-wavelength SNIRF file passes basic processing."""
-    raw = read_raw_snirf(multi_wavelength_snirf_fname, preload=True)
-    assert "fnirs_cw_amplitude" in raw
-    raw = optical_density(raw)
-    assert "fnirs_od" in raw
-    raw = beer_lambert_law(raw, ppf=6)
     assert "hbo" in raw
     assert "hbr" in raw
 
@@ -641,14 +589,14 @@ def test_sample_rate_jitter(tmp_path):
         read_raw_snirf(new_file, verbose=True)
 
 
-def test_snirf_multiple_wavelengths(multi_wavelength_snirf_fname):
+def test_snirf_multiple_wavelengths():
     """Test importing synthetic SNIRF files with >=3 wavelengths."""
-    raw = read_raw_snirf(multi_wavelength_snirf_fname, preload=True)
-    assert raw._data.shape == (6, 32)
-    assert raw.info["sfreq"] == pytest.approx(1.0)
-    assert raw.info["ch_names"][:3] == ["S1_D1 700", "S1_D1 730", "S1_D1 760"]
-    assert len(raw.ch_names) == 6
+    raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)
+    assert raw._data.shape == (45, 251)
+    assert raw.info["sfreq"] == pytest.approx(19.6, abs=0.01)
+    assert raw.info["ch_names"][:3] == ["S2_D2 780", "S2_D2 805", "S2_D2 830"]
+    assert len(raw.ch_names) == 45
     freqs = np.unique(_channel_frequencies(raw.info))
-    assert_array_equal(freqs, [700, 730, 760])
+    assert_array_equal(freqs, [780, 805, 830])
     distances = source_detector_distances(raw.info)
     assert len(distances) == len(raw.ch_names)
