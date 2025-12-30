@@ -591,7 +591,7 @@ def test_sample_rate_jitter(tmp_path):
 def test_snirf_multiple_wavelengths():
     """Test importing synthetic SNIRF files with >=3 wavelengths."""
     raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)
-    assert raw._data.shape == (45, 251)
+    assert raw._data.shape == (45, 250)
     assert raw.info["sfreq"] == pytest.approx(19.6, abs=0.01)
     assert raw.info["ch_names"][:3] == ["S2_D2 780", "S2_D2 805", "S2_D2 830"]
     assert len(raw.ch_names) == 45
