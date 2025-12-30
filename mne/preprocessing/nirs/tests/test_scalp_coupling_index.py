@@ -8,7 +8,7 @@ from numpy.testing import assert_allclose, assert_array_less
 
 from mne.datasets import testing
 from mne.datasets.testing import data_path
-from mne.io import read_raw_nirx
+from mne.io import read_raw_nirx, read_raw_snirf
 from mne.preprocessing.nirs import (
     beer_lambert_law,
     optical_density,
@@ -23,6 +23,9 @@ fname_nirx_15_2 = (
 )
 fname_nirx_15_2_short = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+)
+fname_labnirs_multi_wavelength = (
+    data_path(download=False) / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
 )
 
 
@@ -78,21 +81,17 @@ def test_scalp_coupling_index(fname, fmt, tmp_path):
         scalp_coupling_index(raw)
 
 
-@pytest.mark.parametrize("multi_wavelength_raw", [12], indirect=True)
-def test_scalp_coupling_index_multi_wavelength(multi_wavelength_raw):
+@testing.requires_testing_data
+def test_scalp_coupling_index_multi_wavelength():
     """Validate SCI min-correlation logic for >=3 wavelengths.
 
     Similar to test in test_scalp_coupling_index, considers cases
-    specific to multi-wavelength data. Uses the `multi_wavelength_raw`
-    fixture to generate CW nirs data with the requested number of
-    channels (S-D optode pairs), each with 3 wavelengths; in total
-    n_channels x 3 data vectors.
+    specific to multi-wavelength data.
     """
-    raw = optical_density(multi_wavelength_raw.copy())
-    assert len(raw.ch_names) == 12 * 3
-    assert raw.ch_names[0] == "S1_D1 700"
+    raw = optical_density(read_raw_snirf(fname_labnirs_multi_wavelength))
     times = np.arange(raw.n_times) / raw.info["sfreq"]
     signal = np.sin(2 * np.pi * 1.0 * times) + 1
+    assert len(raw.ch_names) >= 15 * 3
     rng = np.random.default_rng()
 
     # pre-determined expected results
@@ -160,4 +159,4 @@ def test_scalp_coupling_index_multi_wavelength(multi_wavelength_raw):
     assert_allclose(sci[:18], expected, atol=1e-4)
     for ii in range(18, 27):
         assert np.abs(sci[ii]) < 0.5
-    assert_allclose(sci[28:], sci[27], atol=1e-4)
+    assert_allclose(sci[28:36], sci[27], atol=1e-4)

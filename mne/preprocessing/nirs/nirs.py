@@ -145,7 +145,7 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         )
 
     # Check that the total number of channels is divisible by the number of pair values
-    # (e.g., for 2 wavelengths, we need even number of channels)
+    # (e.g., for 2 wavelengths, we need an even number of channels)
     if len(picks) % len(pair_vals) != 0:
         picks = _throw_or_return_empty(
             "NIRS channels not ordered correctly. The number of channels "
