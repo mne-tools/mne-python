@@ -1,1 +1,0 @@
-Fix bug where :func:`mne.io.read_raw_eyelink` raised an error when reading Eyelink files with an empty first recording block, by :newcontrib:`Varun Kasyap Pentamaraju` (:gh:`13555`).
