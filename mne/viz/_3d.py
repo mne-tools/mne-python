@@ -956,9 +956,7 @@ def plot_alignment(
 
         for ch, xyz in zip(chs, pos):
             renderer.text3d(
-                xyz[0],
-                xyz[1],
-                xyz[2],
+                *xyz,
                 ch["ch_name"],
                 scale=0.005,
                 color=(1.0, 1.0, 1.0),
