@@ -196,7 +196,7 @@ def _validate_data(data_blocks: list):
     if "HREF" in units:
         logger.info("Head-referenced eye-angle (HREF) data detected.")
     elif "PUPIL" in units:
-        warn("Raw eyegaze coordinates detected. Analyze with caution.")
+        warn("Raw pupil position data detected. Analyze with caution.")
     if "AREA" in pupil_units:
         logger.info("Pupil-size area detected.")
     elif "DIAMETER" in pupil_units:

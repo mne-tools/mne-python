@@ -399,7 +399,7 @@ def test_multi_block_misc_channels(fname, tmp_path):
 
     with (
         _record_warnings(),
-        pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
+        pytest.warns(RuntimeWarning, match="Raw pupil position data detected"),
         pytest.warns(RuntimeWarning, match="The eye being tracked changed"),
     ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)

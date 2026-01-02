@@ -1,1 +1,1 @@
-Fix bug where :func:`mne.io.read_raw_eyelink` fails to handle data starting with empty blocks or blocks starting with missing values, by :newcontrib:`Varun Kasyap Pentamaraju`and `Qian Chu`_.
+Fix bug where :func:`mne.io.read_raw_eyelink` fails to handle data starting with empty blocks or blocks starting with missing values, by :newcontrib:`Varun Kasyap Pentamaraju` and `Qian Chu`_.
