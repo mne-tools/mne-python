@@ -32,13 +32,8 @@ def _identity_function(x):
     return x
 
 
-# TODO: no longer needed when py3.9 is minimum supported version
 def _empty_hash(kind="md5"):
-    func = getattr(hashlib, kind)
-    if "usedforsecurity" in inspect.signature(func).parameters:
-        return func(usedforsecurity=False)
-    else:
-        return func()
+    return getattr(hashlib, kind)(usedforsecurity=False)
 
 
 def _pl(x, non_pl="", pl="s"):
