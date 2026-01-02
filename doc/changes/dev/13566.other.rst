@@ -1,0 +1,1 @@
+Remove legacy Python-version compatibility checks in ``mne.utils.misc._empty_hash`` now that ``usedforsecurity=False`` is always supported, by :newcontrib:`Varun Kasyap Pentamaraju` (:gh:`13566`).
