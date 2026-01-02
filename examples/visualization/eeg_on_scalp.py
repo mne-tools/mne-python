@@ -35,6 +35,7 @@ fig = plot_alignment(
     meg=[],
     coord_frame="head",
     subjects_dir=subjects_dir,
+    show_channel_names=True
 )
 
 # Set viewing angle
