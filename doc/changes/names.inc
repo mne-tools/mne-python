@@ -336,6 +336,7 @@
 .. _Tziona NessAiver: https://github.com/TzionaN
 .. _user27182: https://github.com/user27182
 .. _Valerii Chirkov: https://github.com/vagechirkov
+.. _Varun Kasyap Pentamaraju: https://github.com/varunkasyap
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 .. _Victor Ferat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
