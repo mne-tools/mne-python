@@ -665,3 +665,35 @@ def test_plot_ctf():
     )
     midpoints_after = get_axes_midpoints(topo_axes)
     assert (np.linalg.norm(midpoints_before - midpoints_after) < 0.1).all()
+
+
+def test_plot_joint_times_dict():
+    """Test using a dictionary for the 'times' parameter in plot_joint."""
+    
+    ch_names = ['F3', 'Fz', 'F4']
+    sfreq = 1000.
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+    
+    data = np.zeros((3, 500))
+    
+    data[:, 100] = 5e-6  
+    data[:, 300] = 5e-6  
+    
+    evoked = mne.EvokedArray(data, info, tmin=0)
+    
+    evoked.set_montage(mne.channels.make_standard_montage('standard_1020'))
+
+    # Test 1: Integer count (Logic check: does it find N peaks?)
+    fig = evoked.plot_joint(times={"peaks": 3}, show=False)
+    assert len(fig.axes) >= 2 
+    
+    # Test 2: Specific Windows (Logic check: does it parse windows?)
+    fig2 = evoked.plot_joint(times={"peaks": [(0.0, 0.2), (0.2, 0.4)]}, show=False)
+    assert len(fig2.axes) >= 2
+    
+    # Test 3: Validation checks (Ensuring robust error handling)
+    with pytest.raises(ValueError, match="must be 'peaks'"):
+        evoked.plot_joint(times={"bad_key": 5})
+
+    with pytest.raises(ValueError, match="Values for 'peaks' must be"):
+        evoked.plot_joint(times={"peaks": "invalid_string"})
