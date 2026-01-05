@@ -6,7 +6,7 @@ python -m pip install --upgrade --progress-bar off \
     --group=test \
     --group=doc \
     -r doc/sphinxext/related_software.txt \
-    --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
+    --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels,netCDF5,h5py" \
     "git+https://github.com/mne-tools/mne-bids.git" \
     "git+https://github.com/mne-tools/mne-qt-browser.git" \
     "git+https://github.com/pyvista/pyvista.git" \
