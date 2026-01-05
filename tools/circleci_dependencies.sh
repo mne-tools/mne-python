@@ -1,14 +1,13 @@
 #!/bin/bash -ef
 
+ONLY_BINARY="--only-binary \"numpy,dipy,scipy,matplotlib,pandas,statsmodels,netCDF4,h5py\""
+
 set -x
 python -m pip install --upgrade "pip>=25.1" build
-ONLY_BINARY="--only-binary \"numpy,dipy,scipy,matplotlib,pandas,statsmodels,netCDF5,h5py\""
-# netCDF5 is here to work around an annoying bug
 python -m pip install --upgrade --progress-bar off $ONLY_BINARY \
     -ve .[full] \
     --group=test \
     --group=doc \
-    netCDF5 \
     -r doc/sphinxext/related_software.txt \
     "git+https://github.com/mne-tools/mne-bids.git" \
     "git+https://github.com/mne-tools/mne-qt-browser.git" \
