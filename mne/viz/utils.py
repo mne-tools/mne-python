@@ -895,13 +895,12 @@ def _find_peaks(evoked, npeaks):
 
 def _process_times(inst, use_times, n_peaks=None, few=False):
     """Return a list of times for topomaps."""
-    
     if isinstance(use_times, dict):
         if "peaks" not in use_times:
             raise ValueError("If 'times' is a dict, the key must be 'peaks'.")
-        
+
         peak_params = use_times["peaks"]
-        
+
         if isinstance(peak_params, int):
             use_times = _find_peaks(inst, peak_params)
         elif isinstance(peak_params, (list, tuple)):
@@ -910,12 +909,15 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
                 if len(window) != 2:
                     raise ValueError(f"Each window must be (tmin, tmax), got {window}")
                 tmin, tmax = window
-                _, t_peak = inst.get_peak(tmin=tmin, tmax=tmax, mode='abs')
+                _, t_peak = inst.get_peak(tmin=tmin, tmax=tmax, mode="abs")
                 peaks.append(t_peak)
             use_times = np.array(peaks)
         else:
-             raise ValueError("Values for 'peaks' must be an integer or a list/tuple of (tmin, tmax) windows.")
-         
+            raise ValueError(
+                "Values for 'peaks' must be an integer or a list/tuple of "
+                " (tmin, tmax) windows."
+            )
+
     if isinstance(use_times, str):
         if use_times == "interactive":
             use_times, n_peaks = "peaks", 1
