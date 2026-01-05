@@ -1,0 +1,1 @@
+Fix bug preventing reading of :class:`mne.time_frequency.Spectrum` and :class:`mne.time_frequency.BaseTFR` objects created in MNE<1.8 using the deprecated subject info birthday tuple format, by `Thomas Binns`_.

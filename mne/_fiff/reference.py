@@ -316,7 +316,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
             "unit_mul": FIFF.FIFF_UNITM_NONE,
             "unit": FIFF.FIFF_UNIT_V,
             "coord_frame": FIFF.FIFFV_COORD_HEAD,
-            "loc": ref_dig_array,
+            "loc": ref_dig_array.copy(),
         }
         inst.info["chs"].append(chan_info)
         inst.info._update_redundant()

@@ -45,7 +45,6 @@ class TstVTKPicker:
     def __init__(self, mesh, cell_id, event_pos):
         self.mesh = mesh
         self.cell_id = cell_id
-        self.point_id = None
         self.event_pos = event_pos
 
     def GetCellId(self):
@@ -59,12 +58,7 @@ class TstVTKPicker:
     def GetPickPosition(self):
         """Return the picked position."""
         vtk_cell = self.mesh.GetCell(self.cell_id)
-        cell = [
-            vtk_cell.GetPointId(point_id)
-            for point_id in range(vtk_cell.GetNumberOfPoints())
-        ]
-        self.point_id = cell[0]
-        return self.mesh.points[self.point_id]
+        return self.mesh.points[vtk_cell.GetPointId(0)]
 
     def GetEventPosition(self):
         """Return event position."""

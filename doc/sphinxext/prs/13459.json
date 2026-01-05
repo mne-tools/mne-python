@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "2bc159e6210334af85edcfc179ebaf825bab5d50",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/credit.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/spec_zero.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 2,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 9,
+      "d": 9
+    }
+  }
+}

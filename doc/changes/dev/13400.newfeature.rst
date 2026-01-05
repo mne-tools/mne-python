@@ -1,1 +1,0 @@
-Add more options for the ``sphere`` parameter of :func:`mne.viz.plot_sensors`, by `Marijn van Vliet`_

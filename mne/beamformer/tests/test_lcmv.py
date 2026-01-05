@@ -809,6 +809,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
         assert_allclose(stc_cov.data.std(), 0.187, rtol=0.2)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, weight_norm, use_cov, depth, lower, upper",
     [
@@ -851,6 +852,7 @@ def test_localization_bias_fixed(
 
 
 # Changes here should be synced with test_dics.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
@@ -1044,7 +1046,7 @@ def test_orientation_max_power(
     "weight_norm, pick_ori",
     [
         pytest.param("nai", "max-power", marks=pytest.mark.slowtest),
-        ("unit-noise-gain", "vector"),
+        pytest.param("unit-noise-gain", "vector", marks=pytest.mark.slowtest),
         ("unit-noise-gain", "max-power"),
         pytest.param("unit-noise-gain", None, marks=pytest.mark.slowtest),
     ],

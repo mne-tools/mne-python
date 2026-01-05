@@ -16,12 +16,14 @@ at which the fix is no longer needed.
 # because this module is imported many places (but not always used)!
 
 import inspect
+import io
 import operator as operator_module
 import os
 import warnings
 from math import log
 
 import numpy as np
+import numpy.typing
 from packaging.version import parse
 
 ###############################################################################
@@ -733,3 +735,33 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
         return special.sph_harm_y(n, m, theta, phi, diff_n=diff_n)
     else:
         return special.sph_harm(m, n, phi, theta)
+
+
+###############################################################################
+# workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
+# we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
+# from the file-like object.
+def read_from_file_or_buffer(
+    file: str | bytes | os.PathLike | io.IOBase,
+    dtype: numpy.typing.DTypeLike = float,
+    count: int = -1,
+):
+    """numpy.fromfile() wrapper, handling io.BytesIO file-like streams.
+
+    Numpy requires open files to be actual files on disk, i.e., must support
+    file.fileno(), so it fails with file-like streams such as io.BytesIO().
+
+    If numpy.fromfile() fails due to no file.fileno() support, this wrapper
+    reads the required bytes from file and redirects the call to
+    numpy.frombuffer().
+
+    See https://github.com/numpy/numpy/issues/2230#issuecomment-949795210
+    """
+    try:
+        return np.fromfile(file, dtype=dtype, count=count)
+    except io.UnsupportedOperation as e:
+        if not (e.args and e.args[0] == "fileno" and isinstance(file, io.IOBase)):
+            raise  # Nothing I can do about it
+        dtype = np.dtype(dtype)
+        buffer = file.read(dtype.itemsize * count)
+        return np.frombuffer(buffer, dtype=dtype, count=count)

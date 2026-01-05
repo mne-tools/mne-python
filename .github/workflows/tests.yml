@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -59,6 +59,7 @@ jobs:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -91,7 +92,7 @@ jobs:
             python: '3.10'
             kind: old
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -164,7 +165,7 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data

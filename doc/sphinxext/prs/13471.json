@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "7cfcc6ba0bd409e2ec2bb76598853288f61d6dc0",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/directive_formatting.py": {
+      "a": 88,
+      "d": 0
+    },
+    "examples/preprocessing/css.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/time_frequency/compute_source_psd_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

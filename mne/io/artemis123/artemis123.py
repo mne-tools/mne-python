@@ -434,13 +434,13 @@ class RawArtemis123(BaseRaw):
                         )
 
                     # compute initial head to dev transform and hpi ordering
-                    head_to_dev_t, order, trans_g = _fit_coil_order_dev_head_trans(
+                    dev_head_t, order, trans_g = _fit_coil_order_dev_head_trans(
                         hpi_dev, hpi_head
                     )
 
                     # set the device to head transform
                     self.info["dev_head_t"] = Transform(
-                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, head_to_dev_t
+                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, dev_head_t
                     )
 
                     # add hpi_meg_dev to dig...

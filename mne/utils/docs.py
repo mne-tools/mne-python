@@ -1232,7 +1232,7 @@ eeg : bool | str | list | dict
 
 docdict["elevation"] = """
 elevation : float
-    The The zenith angle of the camera rendering the view in degrees.
+    The zenith angle of the camera rendering the view in degrees.
 """
 
 docdict["eltc_mode_notes"] = """
@@ -1283,6 +1283,11 @@ docdict["encoding_edf"] = """
 encoding : str
     Encoding of annotations channel(s). Default is "utf8" (the only correct
     encoding according to the EDF+ standard).
+"""
+
+docdict["encoding_nihon"] = """
+encoding : str
+    Text encoding of Nihon Kohden annotations. See :ref:`standard-encodings`.
 """
 
 docdict["encoding_nirx"] = """
@@ -3030,6 +3035,13 @@ offset : int
     .. versionadded:: 0.12
 """
 
+docdict["on_bad_hpi_match"] = """
+on_bad_hpi_match : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when there is poor matching of HPI coordinates
+    (>10mm difference) for device - head transform.
+"""
+
 docdict["on_baseline_ica"] = """
 on_baseline : str
     How to handle baseline-corrected epochs or evoked data.
@@ -3979,7 +3991,7 @@ scoring : callable | str | None
 
 docdict["sdr_morph"] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
-    The class that applies the the symmetric diffeomorphic registration
+    The class that applies the symmetric diffeomorphic registration
     (SDR) morph.
 """
 

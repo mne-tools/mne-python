@@ -10,7 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from mne import create_info
 from mne.channels import make_dig_montage, make_standard_montage, read_dig_fif
+from mne.io import RawArray
 
 p_dir = Path(__file__).parents[2] / "io" / "kit" / "tests" / "data"
 elp = p_dir / "test_elp.txt"
@@ -86,3 +88,16 @@ def test_plot_digmontage():
     )
     montage.plot()
     plt.close("all")
+
+
+def test_plot_montage_scale():
+    """Test montage.plot with non-default scale using subplot axes."""
+    montage = make_standard_montage("GSN-HydroCel-129")
+    ax = plt.subplots(2, 1)[1][1]
+    picks = montage.ch_names
+    info = create_info(montage.ch_names, sfreq=256, ch_types="eeg")
+    raw = RawArray(
+        np.zeros((len(montage.ch_names), 1)), info, copy=None, verbose=False
+    ).set_montage(montage)
+    # test for gh-13438
+    raw.pick(picks).get_montage().plot(axes=ax, show_names=False, scale=0.1)

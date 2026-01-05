@@ -128,6 +128,7 @@ extensions = [
     "newcontrib_substitutions",
     "unit_role",
     "related_software",
+    "directive_formatting",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -657,6 +658,7 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1017/",  # cambridge.org
     "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
     "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
@@ -682,6 +684,9 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://blender.org",
+    "https://home.alexk101.dev",
+    "https://www.mq.edu.au/",
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
@@ -695,8 +700,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cogsci.nl/smathot",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
-    # TODO https://github.com/mne-tools/curry-python-reader/issues/5
-    "https://github.com/mne-tools/curry-python-reader/README.md",
+    "http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -706,6 +710,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
     "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize",
     "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
@@ -746,13 +751,10 @@ nitpicky = True
 show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
-    ("py:class", "a set-like object providing a view on D's items"),
-    ("py:class", "a set-like object providing a view on D's keys"),
     (
         "py:class",
         "v, remove specified key and return the corresponding value.",
     ),  # noqa: E501
-    ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
@@ -761,6 +763,8 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
+    ("py:class", "a set-like object providing a view on D's (items|keys)"),
+    ("py:class", r"None\.  Update D from (dict|mapping)/iterable E and F\."),
     # Classes whose methods we purposefully do not document
     ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
     ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs

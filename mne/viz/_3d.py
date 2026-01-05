@@ -51,13 +51,13 @@ from ..surface import (
 from ..transforms import (
     Transform,
     _angle_between_quats,
-    _angle_dist_between_rigid,
     _ensure_trans,
     _find_trans,
     _frame_to_str,
     _get_trans,
     _get_transforms_to_coord_frame,
     _print_coord_trans,
+    angle_distance_between_rigid,
     apply_trans,
     combine_transforms,
     read_ras_mni_t,
@@ -322,7 +322,7 @@ def plot_head_positions(
             for ax, val in zip(axes[:3].ravel(), vals):
                 ax.axhline(val, color="r", ls=":", zorder=2, lw=1.0)
             if totals:
-                dest_ang, dest_dist = _angle_dist_between_rigid(
+                dest_ang, dest_dist = angle_distance_between_rigid(
                     destination,
                     angle_units="deg",
                     distance_units="mm",

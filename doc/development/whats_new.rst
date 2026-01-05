@@ -9,6 +9,7 @@ Changes for each version of MNE-Python are listed below.
    :maxdepth: 1
 
    ../changes/dev.rst
+   ../changes/v1.11.rst
    ../changes/v1.10.rst
    ../changes/v1.9.rst
    ../changes/v1.8.rst

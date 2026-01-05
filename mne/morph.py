@@ -412,7 +412,7 @@ class SourceMorph:
     pre_affine : instance of dipy.align.AffineMap
         The transformation that is applied before the before ``sdr_morph``.
     sdr_morph : instance of dipy.align.DiffeomorphicMap
-        The class that applies the the symmetric diffeomorphic registration
+        The class that applies the symmetric diffeomorphic registration
         (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
