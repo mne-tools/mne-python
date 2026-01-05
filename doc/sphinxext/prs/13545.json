@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b16611a2d81ba21e5e93c772120eaef6fc8d82bd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/decoding_xdawn_eeg.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}
