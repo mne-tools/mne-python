@@ -5284,7 +5284,7 @@ def test_drop_all_epochs():
 
     # 1. Test 'ignore' (default)
     epochs.copy().drop([0])
-    
+
     # 2. Test 'warn' explicitly
     # We expect a warning when dropping all epochs
     with pytest.warns(RuntimeWarning, match="All epochs dropped"):
