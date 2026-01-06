@@ -5282,17 +5282,20 @@ def test_drop_all_epochs():
     info = create_info(["ch1"], 1000.0, "eeg")
     epochs = EpochsArray(data, info)
 
-    # 1. Test 'warn' (default)
+    # 1. Test 'ignore' (default)
+    epochs.copy().drop([0])
+    
+    # 2. Test 'warn' explicitly
     # We expect a warning when dropping all epochs
     with pytest.warns(RuntimeWarning, match="All epochs dropped"):
-        epochs.copy().drop([0])
+        epochs.copy().drop([0], on_drop_all="warn")
 
-    # 2. Test 'raise'
+    # 3. Test 'raise'
     # We expect a ValueError when dropping all epochs
     with pytest.raises(ValueError, match="All epochs dropped"):
         epochs.copy().drop([0], on_drop_all="raise")
 
-    # 3. Test 'ignore'
+    # 4. Test 'ignore' explicitly
     # Should run silently (no warning, no error)
     epochs.copy().drop([0], on_drop_all="ignore")
 
