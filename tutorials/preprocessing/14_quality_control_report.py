@@ -1,7 +1,7 @@
 """
 .. _tut-qc-report:
 
-=============================================
+============================================
 Quality control (QC) reports with mne.Report
 ============================================
 
@@ -26,13 +26,6 @@ approach can—and should—be reused whenever new processing steps are applied.
 We use the MNE sample dataset for demonstration. Not all QC sections are
 applicable to every dataset (e.g., continuous head-position tracking), and
 this tutorial explicitly handles such cases.
-
-Note:
-The generated HTML report is intended to be opened directly in a browser.
-Some interactive elements (e.g., sliders) may not function correctly
-when the file is served via a local HTTP server.
-
-
 """
 
 # Authors: The MNE-Python contributors
@@ -48,7 +41,7 @@ from mne.preprocessing import ICA, create_eog_epochs
 
 # %%
 # Load the sample dataset
-# ----------------------
+# -----------------------
 # We load a pre-filtered MEG/EEG recording from the MNE sample dataset.
 # Only channels relevant for QC (MEG, EEG, EOG, stimulus) are retained.
 
@@ -69,7 +62,7 @@ sfreq = raw.info["sfreq"]  # Sampling Frequency (Hz)
 
 # %%
 # Create the QC report
-# -------------------
+# --------------------
 # The report acts as a container that collects figures, tables, and text
 # into a single HTML document.
 
@@ -144,7 +137,7 @@ report.add_events(
 # %%
 
 # Epoching and rejection statistics
-# --------------------------------
+# ---------------------------------
 # Epoching allows inspection of data segments time-locked to events, along
 # with automated rejection based on amplitude thresholds.
 
@@ -245,7 +238,7 @@ report.add_ica(
 
 # %%
 # Head position / HPI quality control
-# ----------------------------------
+# -----------------------------------
 # Continuous head-position tracking (cHPI) allows monitoring subject movement
 # during MEG acquisition. Not all datasets contain usable cHPI information.
 # This sample dataset does not contain usable cHPI information.
@@ -285,7 +278,7 @@ movement-related artifacts.
 
 # %%
 # MEG–MRI coregistration
-# ---------------------
+# ----------------------
 # Accurate coregistration is critical for source localization.
 
 report.add_html(
@@ -317,7 +310,7 @@ report.add_trans(
 
 # %%
 # MRI and BEM surfaces
-# -------------------
+# --------------------
 # Boundary Element Method (BEM) surfaces define the head model used for
 # forward and inverse solutions.
 
@@ -377,10 +370,6 @@ report.add_html(
 # %%
 # Save report
 # -----------
-
-# %%
-# Save report
-# ----------------------------
 # Run this script locally to generate the HTML report.
 report.save(
     "qc_report.html",
