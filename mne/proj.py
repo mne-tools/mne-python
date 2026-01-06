@@ -423,7 +423,7 @@ def sensitivity_map(
     -----
     When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
     by its maximum value.
-    """
+    """  # noqa: E501
     # check strings
     _check_option("ch_type", ch_type, ["eeg", "grad", "mag"])
     _check_option(
