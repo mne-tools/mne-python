@@ -3546,7 +3546,7 @@ class Report:
         evoked = None
         if isinstance(info, Info):  # no-op
             pass
-        elif hasattr(info, "info"):  # try to get the file name
+        elif isinstance(getattr(info, "info", None), Info):  # try to get the file name
             if isinstance(info, Evoked):
                 evoked = info
             info = info.info
