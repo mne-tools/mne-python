@@ -25,8 +25,7 @@ approach can—and should—be reused whenever new processing steps are applied.
 
 We use the MNE sample dataset for demonstration. Not all QC sections are
 applicable to every dataset (e.g., continuous head-position tracking), and
-this tutorial explicitly handles such cases. We will also save the report after each
-step so that it can be viewed in the browser after each code block is run.
+this tutorial explicitly handles such cases.
 
 .. note:: For several additional examples of complete reports, see the
    `MNE-BIDS-Pipeline QC reports <https://mne.tools/mne-bids-pipeline/stable/examples/examples.html>`_.
@@ -97,11 +96,6 @@ report.add_html(
     html=html_overview,
     tags=("overview"),
 )
-save_kwargs = dict(
-    overwrite=True,
-    open_browser=False,
-)
-report.save("qc_report_1.html", **save_kwargs)
 
 # %%
 # Raw data inspection
@@ -118,7 +112,6 @@ report.add_raw(
     title="Raw data overview",
     psd=False,  # omit just for speed here
 )
-report.save("qc_report_2.html", **save_kwargs)
 
 # %%
 # Events and stimulus timing
@@ -136,7 +129,6 @@ report.add_events(
     sfreq=sfreq,
     title="Detected events",
 )
-report.save("qc_report_3.html", **save_kwargs)
 
 # %%
 # Epoching and rejection statistics
@@ -166,7 +158,6 @@ report.add_epochs(
     epochs,
     title="Epochs and rejection statistics",
 )
-report.save("qc_report_4.html", **save_kwargs)
 
 # %%
 # Evoked responses
@@ -190,7 +181,6 @@ report.add_evokeds(
     noise_cov=cov_path,
     n_time_points=5,
 )
-report.save("qc_report_5.html", **save_kwargs)
 
 
 # %%
@@ -234,7 +224,6 @@ report.add_ica(
     eog_scores=eog_scores,
     title="ICA components (artifact inspection)",
 )
-report.save("qc_report_6.html", **save_kwargs)
 
 # %%
 # MEG–MRI coregistration
@@ -253,7 +242,6 @@ report.add_trans(
     subject=subject,
     subjects_dir=subjects_dir,
 )
-report.save("qc_report_7.html", **save_kwargs)
 
 # %%
 # MRI and BEM surfaces
@@ -270,4 +258,10 @@ report.add_bem(
     title="BEM surfaces",
     decim=20,  # for speed
 )
-report.save("qc_report_8.html", **save_kwargs)
+
+# %%
+# View the final report
+# ---------------------
+# You can set ``open_browser=True`` to have it pop open a browser tab if you want:
+
+report.save("qc_report.html", overwrite=True, open_browser=False)
