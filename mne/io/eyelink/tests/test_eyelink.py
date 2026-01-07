@@ -364,7 +364,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
         for timestamp in np.arange(7452389, 7453154):
             fp.write(
                 f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t"
-                "...\t.\t.\t.\n" # no last column
+                "...\t.\t.\t.\n"  # no last column
             )
 
         for timestamp in np.arange(7453154, 7453390):  # second block continues
@@ -530,4 +530,3 @@ def test_href_eye_events(tmp_path):
     # Just check that we actually parsed the Saccade and Fixation events
     assert "saccade" in raw.annotations.description
     assert "fixation" in raw.annotations.description
-
