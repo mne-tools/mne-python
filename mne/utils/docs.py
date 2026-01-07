@@ -1592,10 +1592,10 @@ apply_offsets : bool (default False)
 
 docdict["eyelink_create_annotations"] = """
 create_annotations : bool | list (default True)
-    Whether to create :class:`~mne.Annotations` from occular events
+    Whether to create :class:`~mne.Annotations` from ocular events
     (blinks, fixations, saccades) and experiment messages. If a list, must
     contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
-    If True, creates :class:`~mne.Annotations` for both occular events and
+    If True, creates :class:`~mne.Annotations` for both ocular events and
     experiment messages.
 """
 

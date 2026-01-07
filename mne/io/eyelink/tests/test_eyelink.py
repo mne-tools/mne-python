@@ -172,7 +172,7 @@ def test_fill_times(fname):
 
 
 def test_find_overlaps():
-    """Test finding overlapping occular events between the left and right eyes.
+    """Test finding overlapping ocular events between the left and right eyes.
 
     In the simulated blink df below, the first two rows
     will be considered an overlap because the diff() of both the 'time' and
