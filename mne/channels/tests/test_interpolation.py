@@ -427,20 +427,20 @@ def test_nan_interpolation(raw):
         # delibrately set loc elements to np.nan
         raw.info["chs"][1]["loc"] = np.full(12, np.nan)
         raw.interpolate_bads(on_bad_position="warn")
-    assert np.isnan(raw.info["chs"][1]["loc"]).any() == True
+    assert np.isnan(raw.info["chs"][1]["loc"]).any()
 
     # for on_bad_position="raise"
     with pytest.raises(ValueError):
         raw.info["bads"] = ch_to_interp
         raw.info["chs"][1]["loc"] = np.full(12, np.nan)
         raw.interpolate_bads(on_bad_position="raise")
-    assert np.isnan(raw.info["chs"][1]["loc"]).any() == True
+    assert np.isnan(raw.info["chs"][1]["loc"]).any()
 
     # for on_bad_position="ignore"
     raw.info["bads"] = ch_to_interp
     raw.info["chs"][1]["loc"] = np.full(12, np.nan)
     raw.interpolate_bads(on_bad_position="ignore")
-    assert np.isnan(raw.info["chs"][1]["loc"]).any() == True
+    assert np.isnan(raw.info["chs"][1]["loc"]).any()
 
     raw.info["chs"][1]["loc"] = store
 
