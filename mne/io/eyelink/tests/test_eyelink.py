@@ -360,7 +360,14 @@ def _simulate_eye_tracking_data(in_file, out_file):
         fp.write("START\t7452389\tRIGHT\tSAMPLES\tEVENTS\n")
         fp.write(f"{new_samples_line}\n")
 
-        for timestamp in np.arange(7452389, 7453390):  # simulate a second block
+        # simulate a second block that starts with empty samples
+        for timestamp in np.arange(7452389, 7453154):
+            fp.write(
+                f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t"
+                "...\t.\t.\t.\n" # no last column
+            )
+
+        for timestamp in np.arange(7453154, 7453390):  # second block continues
             fp.write(
                 f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
                 "...\t1497\t5189\t512.5\t.............\n"
@@ -388,7 +395,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
 @requires_testing_data
 @pytest.mark.parametrize("fname", [fname_href])
 def test_multi_block_misc_channels(fname, tmp_path):
-    """Test a file with many edge casses.
+    """Test a file with many edge cases.
 
     This file has multiple acquisition blocks, each tracking a different eye.
     The coordinates are in raw units (not pixels or radians).
@@ -524,23 +531,3 @@ def test_href_eye_events(tmp_path):
     assert "saccade" in raw.annotations.description
     assert "fixation" in raw.annotations.description
 
-
-@requires_testing_data
-def test_empty_first_trial(tmp_path):
-    """Test reading a file with an empty first trial."""
-    out_file = tmp_path / "tmp_eyelink.asc"
-    # Use a real eyelink file as base
-    lines = fname.read_text("utf-8").splitlines()
-    # Find first START and END
-    end_idx = next(i for i, line in enumerate(lines) if line.startswith("END"))
-    # Keep headers + START..END but REMOVE all numeric sample lines
-    first_block = []
-    for line in lines[: end_idx + 1]:
-        tokens = line.split()
-        if line.startswith("START") or not tokens or not tokens[0].isdigit():
-            first_block.append(line)
-
-    # Append rest of file (second trial onwards)
-    rest = lines[end_idx + 1 :]
-    out_file.write_text("\n".join(first_block + rest), encoding="utf-8")
-    read_raw_eyelink(out_file)
