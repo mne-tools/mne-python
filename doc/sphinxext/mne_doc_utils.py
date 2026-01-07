@@ -80,6 +80,8 @@ def reset_warnings(gallery_conf, fname):
     for message in (
         # Matplotlib
         ".*is non-interactive, and thus cannot.*",
+        # nilearn
+        r"You are using the.*matplotlib backend that[.\n]*",
         # pybtex
         ".*pkg_resources is deprecated as an API.*",
     ):
