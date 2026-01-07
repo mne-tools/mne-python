@@ -21,6 +21,9 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+    defaults:
+      run:
+        shell: bash -el {0}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -49,6 +52,11 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
+      - name: Run pre-commit hooks to update other files
+        run: |
+          pip install pre-commit
+          pre-commit run --all
+        if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         run: |
           set -xeo pipefail
