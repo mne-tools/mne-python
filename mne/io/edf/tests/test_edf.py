@@ -24,6 +24,7 @@ from mne.annotations import _ndarray_ch_names, events_from_annotations, read_ann
 from mne.datasets import testing
 from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
 from mne.io.edf.edf import (
+    _check_edf_discontinuity,
     _edf_str,
     _parse_prefilter_string,
     _prefilter_float,
@@ -1261,3 +1262,203 @@ def test_edf_read_from_file_like():
         ]
 
         assert raw.ch_names == channels
+
+
+def _create_edf_plus_file(
+    fname, n_records=5, record_duration=1.0, sfreq=256, discontinuous=False, gap_at=2
+):
+    """Create a minimal EDF+ file for testing.
+
+    Parameters
+    ----------
+    fname : str
+        Path to save the EDF+ file.
+    n_records : int
+        Number of data records.
+    record_duration : float
+        Duration of each record in seconds.
+    sfreq : int
+        Sampling frequency.
+    discontinuous : bool
+        If True, create an EDF+D file with a gap.
+    gap_at : int
+        Record index after which to insert a gap (only used if discontinuous=True).
+    """
+    n_samples_per_record = int(sfreq * record_duration)
+    n_channels = 1  # One signal channel + one annotation channel
+
+    # Calculate header sizes
+    header_bytes = 256 + (n_channels + 1) * 256  # Main header + channel headers
+
+    with open(fname, "wb") as f:
+        # === Main Header (256 bytes) ===
+        # Version (8 bytes)
+        f.write(b"0       ")
+
+        # Patient ID (80 bytes)
+        patient_id = "X X X X"
+        f.write(patient_id.ljust(80).encode("latin-1"))
+
+        # Recording ID (80 bytes)
+        recording_id = "Startdate 01-JAN-2020 X X X"
+        f.write(recording_id.ljust(80).encode("latin-1"))
+
+        # Start date (8 bytes)
+        f.write(b"01.01.20")
+
+        # Start time (8 bytes)
+        f.write(b"00.00.00")
+
+        # Number of bytes in header (8 bytes)
+        f.write(str(header_bytes).ljust(8).encode("latin-1"))
+
+        # Reserved field (44 bytes) - EDF+C or EDF+D
+        if discontinuous:
+            reserved = "EDF+D"
+        else:
+            reserved = "EDF+C"
+        f.write(reserved.ljust(44).encode("latin-1"))
+
+        # Number of data records (8 bytes)
+        f.write(str(n_records).ljust(8).encode("latin-1"))
+
+        # Duration of data record in seconds (8 bytes)
+        f.write(str(record_duration).ljust(8).encode("latin-1"))
+
+        # Number of signals (4 bytes) - 1 data channel + 1 annotation channel
+        f.write(str(n_channels + 1).ljust(4).encode("latin-1"))
+
+        # === Channel Headers ===
+        # Labels (16 bytes each)
+        f.write("EEG Ch1         ".encode("latin-1"))  # Data channel
+        f.write("EDF Annotations ".encode("latin-1"))  # Annotation channel
+
+        # Transducer type (80 bytes each)
+        f.write((" " * 80).encode("latin-1"))
+        f.write((" " * 80).encode("latin-1"))
+
+        # Physical dimension (8 bytes each)
+        f.write("uV      ".encode("latin-1"))
+        f.write("        ".encode("latin-1"))
+
+        # Physical minimum (8 bytes each)
+        f.write("-3200   ".encode("latin-1"))
+        f.write("-1      ".encode("latin-1"))
+
+        # Physical maximum (8 bytes each)
+        f.write("3200    ".encode("latin-1"))
+        f.write("1       ".encode("latin-1"))
+
+        # Digital minimum (8 bytes each)
+        f.write("-32768  ".encode("latin-1"))
+        f.write("-32768  ".encode("latin-1"))
+
+        # Digital maximum (8 bytes each)
+        f.write("32767   ".encode("latin-1"))
+        f.write("32767   ".encode("latin-1"))
+
+        # Prefiltering (80 bytes each)
+        f.write((" " * 80).encode("latin-1"))
+        f.write((" " * 80).encode("latin-1"))
+
+        # Number of samples in each data record (8 bytes each)
+        f.write(str(n_samples_per_record).ljust(8).encode("latin-1"))
+        # Annotation channel - use 60 samples (120 bytes) for TAL
+        annot_samples = 60
+        f.write(str(annot_samples).ljust(8).encode("latin-1"))
+
+        # Reserved (32 bytes each)
+        f.write((" " * 32).encode("latin-1"))
+        f.write((" " * 32).encode("latin-1"))
+
+        # === Data Records ===
+        for record_idx in range(n_records):
+            # Calculate record onset time
+            if discontinuous and record_idx > gap_at:
+                # Add 1 second gap after gap_at
+                onset = record_idx * record_duration + 1.0
+            else:
+                onset = record_idx * record_duration
+
+            # Write signal data (simple sine wave)
+            for _ in range(n_samples_per_record):
+                # Write 16-bit integer (2 bytes, little-endian)
+                f.write((0).to_bytes(2, byteorder="little", signed=True))
+
+            # Write TAL annotation
+            # Format: +onset\x14\x14\x00 (onset time with empty annotation)
+            tal = f"+{onset:.6f}\x14\x14\x00"
+            tal_bytes = tal.encode("latin-1")
+            # Pad to fill annot_samples * 2 bytes
+            tal_bytes = tal_bytes.ljust(annot_samples * 2, b"\x00")
+            f.write(tal_bytes)
+
+
+def test_edf_plus_discontinuous_detection(tmp_path):
+    """Test that EDF+D files with gaps raise NotImplementedError."""
+    # Create a continuous EDF+C file - should load fine
+    edf_c_path = tmp_path / "test_edf_c.edf"
+    _create_edf_plus_file(edf_c_path, discontinuous=False)
+    raw = read_raw_edf(edf_c_path, preload=True)
+    assert len(raw.ch_names) == 1
+    assert raw.n_times == 5 * 256  # 5 records * 256 samples
+
+    # Create a discontinuous EDF+D file with a gap - should raise
+    edf_d_path = tmp_path / "test_edf_d.edf"
+    _create_edf_plus_file(edf_d_path, discontinuous=True, gap_at=2)
+
+    with pytest.raises(
+        NotImplementedError, match="EDF\\+D file contains discontinuous"
+    ):
+        read_raw_edf(edf_d_path, preload=True)
+
+
+def test_check_edf_discontinuity():
+    """Test the _check_edf_discontinuity helper function."""
+    # Continuous records (no gaps)
+    record_times = [0.0, 1.0, 2.0, 3.0, 4.0]
+    record_length = 1.0
+    has_gaps, gaps = _check_edf_discontinuity(record_times, record_length, 5)
+    assert not has_gaps
+    assert gaps == []
+
+    # Discontinuous records with one gap
+    record_times = [0.0, 1.0, 2.0, 4.0, 5.0]  # Gap after record 3
+    has_gaps, gaps = _check_edf_discontinuity(record_times, record_length, 5)
+    assert has_gaps
+    assert len(gaps) == 1
+    assert_allclose(gaps[0][0], 3.0)  # Gap starts at 3.0
+    assert_allclose(gaps[0][1], 1.0)  # Gap duration is 1.0
+
+    # Multiple gaps
+    record_times = [0.0, 1.0, 3.0, 4.0, 6.0]  # Gaps after records 2 and 4
+    has_gaps, gaps = _check_edf_discontinuity(record_times, record_length, 5)
+    assert has_gaps
+    assert len(gaps) == 2
+
+    # Edge case: only one record (no gaps possible)
+    record_times = [0.0]
+    has_gaps, gaps = _check_edf_discontinuity(record_times, record_length, 1)
+    assert not has_gaps
+    assert gaps == []
+
+    # Edge case: empty record times
+    record_times = []
+    has_gaps, gaps = _check_edf_discontinuity(record_times, record_length, 0)
+    assert not has_gaps
+    assert gaps == []
+
+
+def test_edf_plus_d_continuous_allowed(tmp_path):
+    """Test that EDF+D files marked discontinuous but actually continuous load OK."""
+    # Some EDF+D files are marked as discontinuous but have no actual gaps
+    # (e.g., Nihon Kohden systems). These should load fine.
+    edf_d_no_gap_path = tmp_path / "test_edf_d_no_gap.edf"
+
+    # Create EDF+D file but with continuous timestamps (no actual gaps)
+    _create_edf_plus_file(edf_d_no_gap_path, discontinuous=True, gap_at=100)
+    # gap_at=100 means no gap since we only have 5 records
+
+    # This should work because there are no actual gaps
+    raw = read_raw_edf(edf_d_no_gap_path, preload=True)
+    assert len(raw.ch_names) == 1

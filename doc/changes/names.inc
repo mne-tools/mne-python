@@ -29,6 +29,7 @@
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
+.. _Arnav Kumar: https://github.com/Arnav1709
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
