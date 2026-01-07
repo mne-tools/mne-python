@@ -496,7 +496,7 @@ def _prepare_for_forward(
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
     info_trans = str(trans) if isinstance(trans, Path) else trans
-    info = Info(
+    kwargs_fwd_info = dict(
         chs=info["chs"],
         comps=info["comps"],
         # The forward-writing code always wants a dev_head_t, so give an identity one
@@ -510,6 +510,11 @@ def _prepare_for_forward(
         bads=info["bads"],
         mri_head_t=mri_head_t,
     )
+
+    if "kit_system_id" in info:
+        kwargs_fwd_info["kit_system_id"] = info["kit_system_id"]
+
+    info = Info(**kwargs_fwd_info)
     info._update_redundant()
     info._check_consistency()
     logger.info("")
