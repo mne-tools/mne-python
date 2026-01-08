@@ -54,7 +54,7 @@ def test_beer_lambert(fname, fmt, tmp_path):
             raw_volt = read_raw_snirf(fname)
         case _:
             raise ValueError(
-                f"fmt expexted to be one of 'nirx', 'fif' or 'snirf', got {fmt}"
+                f"fmt expected to be one of 'nirx', 'fif' or 'snirf', got {fmt}"
             )
 
     raw_od = optical_density(raw_volt)
