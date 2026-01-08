@@ -71,6 +71,7 @@ class EvokedField:
         .. versionadded:: 0.21
     contour_line_width : float
         The line_width of the contour lines.
+
         .. versionadded:: 1.12
     show_density : bool
         Whether to draw the field density as an overlay on top of the helmet/head
