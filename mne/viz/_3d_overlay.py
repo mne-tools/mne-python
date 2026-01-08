@@ -100,7 +100,7 @@ class _LayeredMesh:
         C[:, :3] *= A_w
         C[:, :3] += B[:, :3] * B_w
         C[:, 3:] += B_w
-        C[:, :3] /= C[:, 3:]
+        C[:, :3] /= np.maximum(1e-20, C[:, 3:])  # avoid divide by zero
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
