@@ -83,7 +83,13 @@ from ..utils import (
 )
 from ._dipole import _check_concat_dipoles, _plot_dipole_3d, _plot_dipole_mri_outlines
 from .evoked_field import EvokedField
-from .utils import _check_time_unit, _get_cmap, _get_color_list, figure_nobar, plt_show
+from .utils import (
+    _check_time_unit,
+    _get_cmap,
+    _get_color_list,
+    figure_nobar,
+    plt_show,
+)
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
