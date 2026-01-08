@@ -432,6 +432,7 @@ class DipoleFitUI:
             for act in self._actors["sensors"]:
                 act.prop.SetColor(1, 1, 1)
             self._renderer._update()
+        print("sensor window closed.")
 
     def _on_channels_select(self, event):
         """Color selected sensor meshes."""

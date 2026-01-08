@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
@@ -70,6 +69,10 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert len(g._dipoles) == len(g.dipoles) == 2
     dip2 = g.dipoles[1]
 
+    # During tests, matplotlib does not open an actual window so we need to force the
+    # close event.
+    g._fig_sensors.canvas.callbacks.process("close_event", None)
+
     # The selected time of 0.09 is not actually in evoked.times, find the closest value
     # that is (0.08990784...). That should be the time recorded in the dipole object.
     closest_time = evoked.times[np.argmin(np.abs(evoked.times - g._current_time))]
@@ -100,9 +103,6 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     new_timecourses = np.vstack((dip1_dict["timecourse"], dip2_dict["timecourse"]))
     assert not np.allclose(old_timecourses, new_timecourses, atol=1e-10)
 
-    plt.close(g._fig_sensors)
-    g._fig._renderer.close()
-
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
@@ -118,7 +118,6 @@ def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
     assert not g._actors["helmet"].visibility
     with pytest.raises(ValueError, match="Invalid value for the 'name' parameter"):
         g.toggle_mesh("non existent")
-    g._fig._renderer.close()
 
 
 @pytest.mark.slowtest
@@ -170,7 +169,6 @@ def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
     assert 2 in g._dipoles
     assert list(g._dipoles.keys())[1] == 2
     assert list(g._dipoles.values())[1]["num"] == 2  # new dipole number
-    g._fig._renderer.close()
 
 
 @pytest.mark.slowtest
@@ -194,4 +192,3 @@ def test_dipolefit_gui_save_load(tmpdir, renderer_interactive_pyvistaqt):
     assert_allclose(
         np.vstack([d.pos for d in g.dipoles[4:]]), dip_from_file.pos, atol=0
     )
-    g._fig._renderer.close()
