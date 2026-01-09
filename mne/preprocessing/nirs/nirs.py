@@ -104,7 +104,7 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # All chromophore fNIRS data
     picks_chroma = _picks_to_idx(info, ["hbo", "hbr"], exclude=[], allow_empty=True)
 
-    if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
+    if (len(picks_wave) > 0) and (len(picks_chroma) > 0):
         picks = _throw_or_return_empty(
             "MNE does not support a combination of amplitude, optical "
             "density, and haemoglobin data in the same raw structure.",
@@ -122,19 +122,18 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         picks = picks_chroma
 
     pair_vals = np.array(pair_vals)
-    if pair_vals.shape != (2,):
+    if pair_vals.shape[0] < 2:
         raise ValueError(
-            f"Exactly two {error_word} must exist in info, got {list(pair_vals)}"
+            f"At least two {error_word} must exist in info, got {list(pair_vals)}"
         )
     # In principle we do not need to require that these be sorted --
     # all we need to do is change our sorted() below to make use of a
     # pair_vals.index(...) in a sort key -- but in practice we always want
-    # (hbo, hbr) or (lower_freq, upper_freq) pairings, both of which will
+    # (hbo, hbr) or (lowest_freq, higher_freq, ...) pairings, both of which will
     # work with a naive string sort, so let's just enforce sorted-ness here
     is_str = pair_vals.dtype.kind == "U"
-    pair_vals = list(pair_vals)
     if is_str:
-        if pair_vals != ["hbo", "hbr"]:
+        if pair_vals.tolist() != ["hbo", "hbr"]:
             raise ValueError(
                 f'The {error_word} in info must be ["hbo", "hbr"], but got '
                 f"{pair_vals} instead"
@@ -145,22 +144,28 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             f"got {pair_vals} instead"
         )
 
-    if len(picks) % 2 != 0:
+    # Check that the total number of channels is divisible by the number of pair values
+    # (e.g., for 2 wavelengths, we need an even number of channels)
+    if len(picks) % len(pair_vals) != 0:
         picks = _throw_or_return_empty(
-            "NIRS channels not ordered correctly. An even number of NIRS "
-            f"channels is required. {len(info.ch_names)} channels were"
-            f"provided",
+            "NIRS channels not ordered correctly. The number of channels "
+            f"must be a multiple of {len(pair_vals)} values, but "
+            f"{len(picks)} channels were provided.",
             throw_errors,
         )
 
     # Ensure wavelength info exists for waveform data
-    all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
-    if np.any(np.isnan(all_freqs)):
-        picks = _throw_or_return_empty(
-            f"NIRS channels is missing wavelength information in the "
-            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
-            throw_errors,
-        )
+    # Note: currently, the only requirement for the wavelength field in info is
+    # that it cannot be NaN. It depends on the data readers what is stored in it.
+    if len(picks_wave) > 0:
+        all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
+        # test for nan values first as those mess up the output of set()
+        if np.any(np.isnan(all_freqs)):
+            picks = _throw_or_return_empty(
+                f"NIRS channels is missing wavelength information in the "
+                f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
+                throw_errors,
+            )
 
     # Validate the channel naming scheme
     for pick in picks:
@@ -174,8 +179,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             )
             break
         value = ch_name_info.groups()[2]
-        if len(picks_wave):
-            value = value
+        if len(picks_wave) > 0:
+            pass
         else:  # picks_chroma
             if value not in ["hbo", "hbr"]:
                 picks = _throw_or_return_empty(
@@ -189,40 +194,51 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # Reorder to be paired (naive sort okay here given validation above)
     picks = picks[np.argsort([info["ch_names"][pick] for pick in picks])]
 
-    # Validate our paired ordering
-    for ii, jj in zip(picks[::2], picks[1::2]):
-        ch1_name = info["chs"][ii]["ch_name"]
-        ch2_name = info["chs"][jj]["ch_name"]
-        ch1_re = use_RE.match(ch1_name)
-        ch2_re = use_RE.match(ch2_name)
-        ch1_S, ch1_D, ch1_value = ch1_re.groups()[:3]
-        ch2_S, ch2_D, ch2_value = ch2_re.groups()[:3]
-        if len(picks_wave):
-            ch1_value, ch2_value = float(ch1_value), float(ch2_value)
-        if (
-            (ch1_S != ch2_S)
-            or (ch1_D != ch2_D)
-            or (ch1_value != pair_vals[0])
-            or (ch2_value != pair_vals[1])
+    # Validate channel grouping (same source-detector pairs, all pair_vals match)
+    for ii in range(0, len(picks), len(pair_vals)):
+        # Extract a group of channels (e.g., all wavelengths for one S-D pair)
+        group_picks = picks[ii : ii + len(pair_vals)]
+
+        # Parse channel names using regex to extract source, detector, and value info
+        group_info = [
+            (use_RE.match(info["ch_names"][pick]).groups() or (pick, 0, 0))
+            for pick in group_picks
+        ]
+
+        # Separate the parsed components:
+        # source IDs, detector IDs, and values (freq/chromophore)
+        s_group, d_group, val_group = zip(*group_info)
+
+        # For wavelength data, convert string frequencies to float for comparison
+        if len(picks_wave) > 0:
+            val_group = np.array([float(v) for v in val_group])
+
+        # Verify that all channels in this group have the same source-detector pair
+        # and that the values match the expected pair_vals sequence
+        if not (
+            len(set(s_group)) == 1
+            and len(set(d_group)) == 1
+            and np.array_equal(val_group, pair_vals)
         ):
             picks = _throw_or_return_empty(
                 "NIRS channels not ordered correctly. Channels must be "
-                "ordered as source detector pairs with alternating"
-                f" {error_word} {pair_vals[0]} & {pair_vals[1]}, but got "
-                f"S{ch1_S}_D{ch1_D} pair "
-                f"{repr(ch1_name)} and {repr(ch2_name)}",
+                f"grouped by source-detector pairs with alternating {error_word} "
+                f"values {pair_vals}, but got mismatching names "
+                f"{[info['ch_names'][pick] for pick in group_picks]}.",
                 throw_errors,
             )
             break
 
     if check_bads:
-        for ii, jj in zip(picks[::2], picks[1::2]):
-            want = [info.ch_names[ii], info.ch_names[jj]]
+        for ii in range(0, len(picks), len(pair_vals)):
+            group_picks = picks[ii : ii + len(pair_vals)]
+
+            want = [info.ch_names[pick] for pick in group_picks]
             got = list(set(info["bads"]).intersection(want))
-            if len(got) == 1:
+            if 0 < len(got) < len(want):
                 raise RuntimeError(
-                    f"NIRS bad labelling is not consistent, found {got} but "
-                    f"needed {want}"
+                    "NIRS bad labelling is not consistent. "
+                    f"Found {got} but needed {want}. "
                 )
     return picks
 
@@ -276,14 +292,29 @@ def _fnirs_spread_bads(info):
     # as bad and spread the bad marking to all components of the optode pair.
     picks = _validate_nirs_info(info, check_bads=False)
     new_bads = set(info["bads"])
-    for ii, jj in zip(picks[::2], picks[1::2]):
-        ch1_name, ch2_name = info.ch_names[ii], info.ch_names[jj]
-        if ch1_name in new_bads:
-            new_bads.add(ch2_name)
-        elif ch2_name in new_bads:
-            new_bads.add(ch1_name)
-    info["bads"] = sorted(new_bads)
 
+    # Extract SD pair groups from channel names
+    # E.g. all channels belonging to S1D1, S1D2, etc.
+    # Assumes valid channels (naming convention and number)
+    ch_names = [info.ch_names[i] for i in picks]
+    match = re.compile(r"^(S\d+_D\d+) ")
+
+    # Create dict with keys corresponding to SD pairs
+    # Defaultdict would require another import
+    sd_groups = {}
+    for ch_name in ch_names:
+        sd_pair = match.match(ch_name).group(1)
+        if sd_pair not in sd_groups:
+            sd_groups[sd_pair] = [ch_name]
+        else:
+            sd_groups[sd_pair].append(ch_name)
+
+    # Spread bad labeling across SD pairs
+    for channels in sd_groups.values():
+        if any(channel in new_bads for channel in channels):
+            new_bads.update(channels)
+
+    info["bads"] = sorted(new_bads)
     return info
 
 
