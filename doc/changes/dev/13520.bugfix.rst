@@ -1,0 +1,1 @@
+Preserve ``kit_system_id`` in forward-solution ``Info``, by :newcontrib: 'Melih Yayli'
