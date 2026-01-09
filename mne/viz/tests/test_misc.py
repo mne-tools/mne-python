@@ -20,6 +20,7 @@ from mne import (
     read_source_spaces,
 )
 from mne.chpi import compute_chpi_snr
+from mne.cov import make_ad_hoc_cov
 from mne.datasets import testing
 from mne.filter import create_filter
 from mne.io import read_raw_fif
@@ -141,6 +142,19 @@ def test_plot_cov():
     raw.set_channel_types({ch: "misc" for ch in raw.ch_names}, on_unit_change="ignore")
     with pytest.raises(RuntimeError, match="No plottable channel types found"):
         cov.plot(raw.info, exclude=raw.ch_names[6:])
+
+
+def test_plot_cov_diagonal():
+    """Test plotting of diagonal covariances (e.g., from make_ad_hoc_cov)."""
+    n_channels = 10
+    sfreq = 100
+    info = create_info(
+        [f"EEG{i:03d}" for i in range(n_channels)], sfreq, ch_types="eeg"
+    )
+    cov = make_ad_hoc_cov(info, std={"eeg": 1})
+    # This should not raise an IndexError
+    fig1, fig2 = cov.plot(info)
+    plt.close("all")
 
 
 @testing.requires_testing_data
