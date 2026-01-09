@@ -15,17 +15,14 @@ from mne.preprocessing.nirs import (
     scalp_coupling_index,
 )
 
-fname_nirx_15_0 = (
-    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"
-)
-fname_nirx_15_2 = (
-    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording"
-)
+testing_path = data_path(download=False)
+fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
+fname_nirx_15_2 = testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording"
 fname_nirx_15_2_short = (
-    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+    testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 )
 fname_labnirs_multi_wavelength = (
-    data_path(download=False) / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
+    testing_path / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
 )
 
 
