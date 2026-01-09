@@ -24,9 +24,15 @@ _no_parse = pytest.warns(RuntimeWarning, match="Could not parse")
 @testing.requires_testing_data
 def test_old_data():
     """Test reading raw cnt files."""
-    with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
+    with _no_parse, pytest.raises(RuntimeError, match="number of bytes"):
+        read_raw_cnt(input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"])
+    with _no_parse:
         raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+            read_raw_cnt,
+            input_fname=fname,
+            eog="auto",
+            misc=["NA1", "LEFT_EAR"],
+            data_format="int16",
         )
 
     # make sure we use annotations event if we synthesized stim
@@ -44,7 +50,9 @@ def test_old_data():
 def test_new_data():
     """Test reading raw cnt files with different header."""
     with pytest.warns(RuntimeWarning):
-        raw = read_raw_cnt(input_fname=fname_bad_spans, header="new")
+        raw = read_raw_cnt(
+            input_fname=fname_bad_spans, header="new", data_format="int32"
+        )
 
     assert raw.info["bads"] == ["F8"]  # test bads
 
@@ -52,18 +60,24 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
-    first = pytest.warns(RuntimeWarning, match="Could not define the number of bytes.*")
-    second = pytest.warns(RuntimeWarning, match="Annotations are outside")
-    third = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
-    with first, second, third:
-        raw = read_raw_cnt(input_fname=fname_bad_spans)
+    inconsistent = pytest.warns(RuntimeWarning, match="Inconsistent file information")
+    outside = pytest.warns(RuntimeWarning, match="outside the data")
+    omitted = pytest.warns(RuntimeWarning, match="Omitted 4 annot")
+    with inconsistent, outside, omitted:
+        raw = read_raw_cnt(
+            input_fname=fname_bad_spans, data_format="int16", verbose="debug"
+        )
     # Test that responses are read properly
     assert "KeyPad Response 1" in raw.annotations.description
     assert raw.info["bads"] == ["F8"]
 
-    with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
+    with _no_parse:
         raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+            read_raw_cnt,
+            input_fname=fname,
+            eog="auto",
+            misc=["NA1", "LEFT_EAR"],
+            data_format="int16",
         )
 
     # make sure we use annotations event if we synthesized stim
@@ -80,8 +94,8 @@ def test_auto_data():
 @testing.requires_testing_data
 def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
-    with _no_parse, pytest.warns(RuntimeWarning, match="Could not define the num"):
-        raw = read_raw_cnt(fname)
+    with _no_parse:
+        raw = read_raw_cnt(fname, data_format="int32")
     events = np.array(
         [[333, 0, 7], [1010, 0, 7], [1664, 0, 109], [2324, 0, 7], [2984, 0, 109]]
     )
@@ -96,8 +110,8 @@ def test_compare_events_and_annotations():
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_reading_bytes():
     """Test reading raw cnt files with different header."""
-    raw_16 = read_raw_cnt(fname, preload=True)
-    raw_32 = read_raw_cnt(fname_bad_spans, preload=True)
+    raw_16 = read_raw_cnt(fname, preload=True, data_format="int16")
+    raw_32 = read_raw_cnt(fname_bad_spans, preload=True, data_format="int32")
 
     # Verify that the number of bytes read is correct
     assert len(raw_16) == 3070

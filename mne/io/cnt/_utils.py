@@ -10,10 +10,12 @@ from struct import Struct
 
 import numpy as np
 
-from ...utils import warn
+from ...utils import _check_option, logger, warn
 
+# Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
 _NCHANNELS_OFFSET = 370
 _NSAMPLES_OFFSET = 864
+_RATE_OFFSET = 376
 _EVENTTABLEPOS_OFFSET = 886
 _DATA_OFFSET = 900  # Size of the 'SETUP' header.
 _CH_SIZE = 75  # Size of each channel in bytes
@@ -111,8 +113,8 @@ def _session_date_2_meas_date(session_date, date_format):
         return (int_part, frac_part)
 
 
-def _compute_robust_event_table_position(fid, data_format="int32"):
-    """Compute `event_table_position`.
+def _compute_robust_sizes(*, fid, data_format):
+    """Compute n_channels, n_samples, n_bytes, and event_table_position.
 
     When recording event_table_position is computed (as accomulation). If the
     file recording is large then this value overflows and ends up pointing
@@ -121,34 +123,94 @@ def _compute_robust_event_table_position(fid, data_format="int32"):
     If the file is smaller than 2G the value in the SETUP is returned.
     Otherwise, the address of the table position is computed from:
     n_samples, n_channels, and the bytes size.
+
+    Reference: https://paulbourke.net/dataformats/eeg/
+    Header has a field for number of samples, but it does not seem to be
+    too reliable.
     """
-    fid_origin = fid.tell()  # save the state
-
-    if fid.seek(0, SEEK_END) < 2e9:
+    _check_option("data_format", data_format, ["auto", "int16", "int32"])
+    # Read the number of channels and samples from the header
+    fid.seek(_NCHANNELS_OFFSET)
+    n_channels = int(np.fromfile(fid, dtype="<u2", count=1).item())
+    logger.debug("Number of channels: %d", n_channels)
+    fid.seek(_NSAMPLES_OFFSET)
+    n_samples = int(np.frombuffer(fid.read(4), dtype="<i4").item())  # may be unreliable
+    logger.debug("Header number of samples: %d", n_samples)
+    file_size = fid.seek(0, SEEK_END)
+    workaround = "pass data_format='int16' or 'int32' explicitly"
+    samples_offset = _DATA_OFFSET + _CH_SIZE * n_channels
+    if file_size < 2e9:
+        # Our most reliable way to get the number of samples is to compute it
+        logger.debug("File size < 2GB, using header values")
         fid.seek(_EVENTTABLEPOS_OFFSET)
-        event_table_pos = int(np.frombuffer(fid.read(4), dtype="<i4").item())
-
-    else:
-        if data_format == "auto":
-            warn(
-                "Using `data_format='auto' for a CNT file larger"
-                " than 2Gb is not granted to work. Please pass"
-                " 'int16' or 'int32'.` (assuming int32)"
+        event_offset = int(np.frombuffer(fid.read(4), dtype="<i4").item())
+        logger.debug("Event table offset from header: %d", event_offset)
+        if event_offset > file_size:
+            problem = (
+                f"Event table offset from header ({event_offset}) is larger than file "
+                f"size ({file_size})"
             )
-
+            if data_format == "auto":
+                raise RuntimeError(
+                    f"{problem}, cannot automatically compute data format, {workaround}"
+                )
+            warn(
+                f"Event table offset from header ({event_offset}) is larger than file "
+                f"size ({file_size}), recomputing event table offset."
+            )
+            n_bytes = 2 if data_format == "int16" else 4
+            event_offset = samples_offset + n_samples * n_channels * n_bytes
+        n_data_bytes = event_offset - samples_offset
+        if data_format == "auto":
+            n_bytes_per_samp, rem = divmod(n_data_bytes, n_channels)
+            why = ""
+            n_bytes = 2
+            if rem != 0:
+                why = (
+                    f"number of data bytes {n_data_bytes} is not evenly divisible by "
+                    f"{n_channels=}"
+                )
+            elif n_samples == 0:
+                why = "number of read samples is 0"
+            else:
+                n_bytes, rem = divmod(n_bytes_per_samp, n_samples)
+                if rem != 0 or n_bytes not in [2, 4]:
+                    why = (
+                        f"number of bytes per sample {n_bytes_per_samp} is not evenly "
+                        f"divisible by {n_samples=} or does not result in 2 or 4 bytes "
+                        f"per sample ({n_bytes=})"
+                    )
+                logger.debug("Inferred data format with %d bytes per sample", n_bytes)
+            if why:
+                raise RuntimeError(
+                    "Could not automatically compute number of bytes per sample as the "
+                    f"{why}.  set data_format manually."
+                )
+        else:
+            n_bytes = 2 if data_format == "int16" else 4
+        logger.debug(
+            "Using %d bytes per sample from data_format=%s", n_bytes, data_format
+        )
+        n_samples, rem = divmod(n_data_bytes, (n_channels * n_bytes))
+        logger.debug("Computed number of samples: %d", n_samples)
+        if rem != 0:
+            warn(
+                "Inconsistent file information detected, number of data bytes "
+                f"({n_data_bytes}) not evenly divisible by number of channels "
+                f"({n_channels}) times number of bytes ({n_bytes})"
+            )
+    else:
+        logger.debug("File size >= 2GB, computing event table offset")
+        if data_format == "auto":
+            raise RuntimeError(
+                "Using `data_format='auto' for a CNT file larger"
+                " than 2Gb is not supported, explicitly pass data_format as "
+                "'int16' or 'int32'"
+            )
         n_bytes = 2 if data_format == "int16" else 4
-
-        fid.seek(_NSAMPLES_OFFSET)
-        n_samples = int(np.frombuffer(fid.read(4), dtype="<u4").item())
-        assert n_samples > 0
-
-        fid.seek(_NCHANNELS_OFFSET)
-        n_channels = int(np.frombuffer(fid.read(2), dtype="<u2").item())
-        assert n_channels > 0
-
-        event_table_pos = (
+        event_offset = (
             _DATA_OFFSET + _CH_SIZE * n_channels + n_bytes * n_channels * n_samples
         )
+        logger.debug("Computed event table offset: %d", event_offset)
 
-    fid.seek(fid_origin)  # restore the state
-    return event_table_pos
+    return n_channels, n_samples, n_bytes, event_offset
