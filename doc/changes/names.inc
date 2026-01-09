@@ -62,6 +62,7 @@
 .. _Daniel Strohmeier: https://github.com/joewalter
 .. _Daniel Tse: https://github.com/Xiezhibin
 .. _Darin Erat Sleiter: https://github.com/dsleiter
+.. _DarkStar1709: https://github.com/DarkStar1709
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
