@@ -92,7 +92,7 @@ def test_scalp_coupling_index_multi_wavelength():
     times = np.arange(raw.n_times) / raw.info["sfreq"]
     signal = np.sin(2 * np.pi * 1.0 * times) + 1
     assert len(raw.ch_names) >= 15 * 3
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(3289745)
 
     # pre-determined expected results
     expected = []
