@@ -44,6 +44,7 @@
 .. _Apoorva Verma: https://github.com/apoorva-01
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
 .. _Ariel Rokem: https://github.com/arokem
+.. _Arnav Kumar: https://github.com/Arnav1709
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
@@ -100,7 +101,6 @@
 .. _Daniel Tse: https://github.com/Xiezhibin
 .. _Daria Agafonova: https://github.com/viranovskaya
 .. _Darin Erat Sleiter: https://github.com/dsleiter
-.. _DarkStar1709: https://github.com/DarkStar1709
 .. _Darlene Heliokinde: https://github.com/kostasde
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
