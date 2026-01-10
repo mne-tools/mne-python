@@ -2363,8 +2363,8 @@ def whiten_evoked(
         noise_cov, evoked.info, picks=picks, rank=rank, scalings=scalings
     )
 
-    # somewhere here we need to create matrix based on nave_per_channel if exists
-    if evoked.nave_per_channel:
+    # create matrix based on nave_per_channel if attribute exists
+    if hasattr(evoked, "nave_per_channel"):
         noise_scaling_matrix = np.diag(np.sqrt(evoked.nave_per_channel[picks]))
         evoked.data[picks] = noise_scaling_matrix @ np.dot(W, evoked.data[picks])
     else:
