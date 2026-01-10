@@ -6,7 +6,9 @@ Brainstorm Elekta phantom dataset tutorial
 ==========================================
 
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
-tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
+tutorial dataset. We will compare the actual dipole positions
+to the estimated dipole positions.
+For comparison, see :footcite:`TadelEtAl2011` and
 `the original Brainstorm tutorial
 <https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta>`__.
 """
