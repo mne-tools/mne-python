@@ -73,7 +73,14 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 from mne.morph_map import _make_morph_map_hemi
-from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
+from mne.source_estimate import (
+    _get_vol_mask,
+    _make_stc,
+    _pca_flip,
+    _prepare_label_extraction,
+    _volume_labels,
+    grade_to_tris,
+)
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform
 from mne.utils import (
@@ -677,6 +684,147 @@ def test_center_of_mass():
     # results:
     assert_equal(vertex, 124791)
     assert_equal(np.round(t, 2), 0.12)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "label_type, mri_res, test_label, cf, call",
+    [
+        (str, False, False, "head", "meth"),  # head frame
+        (str, False, str, "mri", "func"),  # fastest, default for testing
+        (str, True, str, "mri", "func"),  # fastest, default for testing
+        (str, True, False, "mri", "func"),  # mri_resolution
+        (list, True, False, "mri", "func"),  # volume label as list
+        (dict, True, False, "mri", "func"),  # volume label as dict
+    ],
+)
+def test_extract_label_time_course_volume_pca_flip(
+    src_volume_labels, label_type, mri_res, test_label, cf, call
+):
+    """Test extraction of label timecourses on VolumetricSourceEstimate with PCA."""
+    # Setup of data
+    src_labels, volume_labels, lut = src_volume_labels
+    n_tot = 46
+    assert n_tot == len(src_labels)
+    inv = read_inverse_operator(fname_inv_vol)
+    if cf == "head":
+        src = inv["src"]
+    else:
+        src = read_source_spaces(fname_src_vol)
+    klass = VolVectorSourceEstimate._scalar_class
+    vertices = [src[0]["vertno"]]
+    n_verts = len(src[0]["vertno"])
+    n_times = 50
+    data = np.arange(1, n_verts + 1)
+    end_shape = (n_times,)
+    data = np.repeat(data[..., np.newaxis], n_times, -1)
+    stcs = [klass(data.astype(float), vertices, 0, 1)]
+
+    def eltc(*args, **kwargs):
+        if call == "func":
+            return extract_label_time_course(stcs, *args, **kwargs)
+        else:
+            return [stcs[0].extract_label_time_course(*args, **kwargs)]
+
+    # triage "labels" argument
+    if mri_res:
+        # All should be there
+        missing = []
+    else:
+        # Nearest misses these
+        missing = [
+            "Left-vessel",
+            "Right-vessel",
+            "5th-Ventricle",
+            "non-WM-hypointensities",
+        ]
+    n_want = len(src_labels)
+    if label_type is str:
+        labels = fname_aseg
+    elif label_type is list:
+        labels = (fname_aseg, volume_labels)
+    else:
+        assert label_type is dict
+        labels = (fname_aseg, {k: lut[k] for k in volume_labels})
+        assert mri_res
+        assert len(missing) == 0
+        # we're going to add one that won't exist
+        missing = ["intentionally_bad"]
+        labels[1][missing[0]] = 10000
+        n_want += 1
+        n_tot += 1
+    n_want -= len(missing)
+
+    # actually do the testing
+    labels_expanded = _volume_labels(src, labels, mri_res)
+    _, src_flip = _prepare_label_extraction(
+        stcs[0], labels_expanded, src, "pca_flip", "ignore", bool(mri_res)
+    )
+
+    mode = "pca_flip"
+    with catch_logging() as log:
+        label_tc = eltc(
+            labels,
+            src,
+            mode=mode,
+            allow_empty="ignore",
+            mri_resolution=mri_res,
+            verbose=True,
+        )
+    log = log.getvalue()
+    assert re.search("^Reading atlas.*aseg\\.mgz\n", log) is not None
+    if len(missing):
+        # assert that the missing ones get logged
+        assert "does not contain" in log
+        assert repr(missing) in log
+    else:
+        assert "does not contain" not in log
+    assert f"\n{n_want}/{n_tot} atlas regions had at least" in log
+    assert len(label_tc) == 1
+    label_tc = label_tc[0]
+    assert label_tc.shape == (n_tot,) + end_shape
+    assert label_tc.shape == (n_tot, n_times)
+    # let's test some actual values by trusting the masks provided by
+    # setup_volume_source_space. mri_resolution=True does some
+    # interpolation so we should not expect equivalence, False does
+    # nearest so we should.
+    if mri_res:
+        rtol = 0.8  # max much more sensitive
+    else:
+        rtol = 0.0
+    for si, s in enumerate(src_labels):
+        func = _pca_flip
+        these = data[np.isin(src[0]["vertno"], s["vertno"])]
+        print(these.shape)
+        assert len(these) == s["nuse"]
+        if si == 0 and s["seg_name"] == "Unknown":
+            continue  # unknown is crappy
+        if s["nuse"] == 0:
+            want = 0.0
+            if mri_res:
+                # this one is totally due to interpolation, so no easy
+                # test here
+                continue
+        else:
+            if src_flip[si] is None:
+                want = None
+            else:
+                want = func(src_flip[si], these)
+        if want is not None:
+            assert_allclose(label_tc[si], want, atol=1e-6, rtol=rtol)
+        # compare with in_label, only on every fourth for speed
+        if test_label is not False and si % 4 == 0:
+            label = s["seg_name"]
+            if test_label is int:
+                label = lut[label]
+            in_label = stcs[0].in_label(label, fname_aseg, src).data
+            assert in_label.shape == (s["nuse"],) + end_shape
+            if np.all(want == 0):
+                assert in_label.shape[0] == 0
+            else:
+                if src_flip[si] is not None:
+                    in_label = func(src_flip[si], in_label)
+                    assert_allclose(in_label, want, atol=1e-6, rtol=rtol)
 
 
 @testing.requires_testing_data

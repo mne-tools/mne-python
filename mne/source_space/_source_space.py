@@ -652,6 +652,7 @@ class SourceSpaces(list):
 
         # Get shape, inuse array and interpolation matrix from volume sources
         src = src_types["volume"][0]
+        src["mri_file"] = src["mri_volume_name"]
         aseg_data = None
         if mri_resolution:
             # read the mri file used to generate volumes
