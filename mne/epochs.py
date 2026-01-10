@@ -394,7 +394,7 @@ class BaseEpochs(
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        Defaults to ``(None, 0)``, i.e. beginning of the data until
         time point zero.
     %(raw_epochs)s
     %(picks_all)s
@@ -799,7 +799,7 @@ class BaseEpochs(
         Parameters
         ----------
         %(baseline_epochs)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -3310,7 +3310,7 @@ def make_metadata(
 
         # Determine which events fall into the current time window
         if start_sample is None and isinstance(tmin, list):
-            # Lower bound is the the current or the closest previpus event with a name
+            # Lower bound is the current or the closest previous event with a name
             # in "tmin"; if there is no such event (e.g., beginning of the recording is
             # being approached), the upper lower becomes the last event in the
             # recording.
@@ -3334,7 +3334,7 @@ def make_metadata(
             window_start_sample = row_event.sample + start_sample
 
         if stop_sample is None and isinstance(tmax, list):
-            # Upper bound is the the current or the closest following event with a name
+            # Upper bound is the current or the closest following event with a name
             # in "tmax"; if there is no such event (e.g., end of the recording is being
             # approached), the upper bound becomes the last event in the recording.
             next_matching_events = events_df.loc[
@@ -3498,7 +3498,7 @@ class Epochs(BaseEpochs):
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        Defaults to ``(None, 0)``, i.e. beginning of the data until
         time point zero.
     %(picks_all)s
     preload : bool

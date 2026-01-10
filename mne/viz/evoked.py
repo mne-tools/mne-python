@@ -808,6 +808,10 @@ def _plot_lines(
                 # Put back the y limits as fill_betweenx messes them up
                 ax.set_ylim(this_ylim)
 
+        # Ensure the axis spines are drawn above all Line2D artists
+        max_zorder = max((line.get_zorder() for line in ax.get_lines()), default=0) + 1
+        ax.spines[:].set_zorder(max_zorder)
+
         lines.append(line_list)
 
     if selectable:

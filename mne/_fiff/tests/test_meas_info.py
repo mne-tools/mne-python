@@ -1199,6 +1199,13 @@ def test_invalid_subject_birthday():
     assert "birthday" not in raw.info["subject_info"]
 
 
+def test_invalid_set_meas_date():
+    """Test set_meas_date catches invalid str input."""
+    info = create_info(1, 1000, "eeg")
+    with pytest.raises(TypeError, match=r"meas_date must be an instance of"):
+        info.set_meas_date("2025-01-01 00:00:00.000000")
+
+
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
     "fname",

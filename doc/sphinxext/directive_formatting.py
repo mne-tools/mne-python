@@ -60,7 +60,7 @@ def check_directive_formatting(*args):
         # another directive/another directive's content)
         if idx == 0:
             continue
-        dir_pattern = r"\.\. [a-zA-Z]+::"
+        dir_pattern = r"^\s*\.\. \w+::"  # line might start with whitespace
         head_pattern = r"^[-|=|\^]+$"
         directive = re.search(dir_pattern, line)
         if directive is not None:
@@ -84,5 +84,5 @@ def check_directive_formatting(*args):
                 if bad:
                     sphinx_logger.warning(
                         f"{source_type} '{name}' is missing a blank line before the "
-                        f"directive '{directive.group()}'"
+                        f"directive '{directive.group()}' on line {idx + 1}"
                     )

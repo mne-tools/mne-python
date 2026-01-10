@@ -12,6 +12,7 @@ import re
 import shutil
 import stat
 import sys
+from copy import deepcopy
 from functools import reduce
 from glob import glob, iglob
 
@@ -1030,6 +1031,7 @@ def scale_mri(
     annot=False,
     *,
     on_defects="raise",
+    mri_fiducials=None,
     verbose=None,
 ):
     """Create a scaled copy of an MRI subject.
@@ -1056,6 +1058,13 @@ def scale_mri(
     %(on_defects)s
 
         .. versionadded:: 1.0
+    mri_fiducials : None | list of dict
+        If provided, these fiducials will be used as the originals to scale instead
+        of reading from ``{subject_from}/bem/{subject_from}-fiducials.fif``.
+        This is useful typically when using ``mne coreg`` or similar and you have
+        modified the MRI fiducials interactively, but have not saved them to disk.
+
+        .. versionadded:: 1.12
     %(verbose)s
 
     See Also
@@ -1078,6 +1087,28 @@ def scale_mri(
             scale = scale[0]  # speed up scaling conditionals using a singleton
     elif scale.shape != (1,):
         raise ValueError(f"scale must have shape (3,) or (1,), got {scale.shape}")
+    _validate_type(mri_fiducials, (list, tuple, None), "mri_fiducials")
+    if mri_fiducials is not None:
+        _check_option("len(mri_fiducials)", len(mri_fiducials), (3,))
+        want_fids = [
+            FIFF.FIFFV_POINT_LPA,
+            FIFF.FIFFV_POINT_NASION,
+            FIFF.FIFFV_POINT_RPA,
+        ]
+        for fi, fid in enumerate(mri_fiducials):
+            fid_name = f"mri_fiducials[{fi}]"
+            _validate_type(fid, dict, fid_name)
+            for key in ("r", "coord_frame", "ident"):
+                if key not in fid:
+                    raise ValueError(f"{fid_name} is missing the '{key}' key")
+            if fid["coord_frame"] != FIFF.FIFFV_COORD_MRI:
+                raise ValueError(
+                    f"{fid_name}['coord_frame'] must be 'mri', got {fid['coord_frame']}"
+                )
+            _check_option(
+                f"{fid_name}['kind']", fid["kind"], (FIFF.FIFFV_POINT_CARDINAL,)
+            )
+            _check_option(f"{fid_name}['ident']", fid["ident"], (want_fids[fi],))
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to, subjects_dir=subjects_dir)
@@ -1126,6 +1157,21 @@ def scale_mri(
             pt["r"] = pt["r"] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         write_fiducials(dest, pts, cframe, overwrite=True, verbose=False)
+
+    # It is redundant to put this after the paths["fid"] loop, but it's simple, faster
+    # enough, and cleaner to just write it here (rather than adding conditionals to find
+    # the correct file above etc.)
+    if mri_fiducials is not None:
+        dest = os.path.join(
+            bem_dirname.format(subjects_dir=subjects_dir, subject=subject_to),
+            f"{subject_to}-fiducials.fif",
+        )
+        use_mri_fiducials = deepcopy(mri_fiducials)
+        for fid in use_mri_fiducials:
+            fid["r"] = fid["r"] * scale
+        write_fiducials(
+            dest, use_mri_fiducials, FIFF.FIFFV_COORD_MRI, overwrite=True, verbose=False
+        )
 
     logger.debug("MRIs [nibabel]")
     os.mkdir(mri_dirname.format(subjects_dir=subjects_dir, subject=subject_to))
