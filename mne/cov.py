@@ -2363,7 +2363,13 @@ def whiten_evoked(
         noise_cov, evoked.info, picks=picks, rank=rank, scalings=scalings
     )
 
-    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
+    # somewhere here we need to create matrix based on nave_per_channel if exists
+    if evoked.nave_per_channel:
+        noise_scaling_matrix = np.diag(np.sqrt(evoked.nave_per_channel[picks]))
+        evoked.data[picks] = noise_scaling_matrix @ np.dot(W, evoked.data[picks])
+    else:
+        evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
+
     return evoked
 
 
