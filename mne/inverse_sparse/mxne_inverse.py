@@ -253,7 +253,9 @@ def _make_dipoles_sparse(
         _, keep = np.unique(active_idx, return_index=True)
         keep.sort()  # maintain old order
         active_idx = active_idx[keep]
-        gof_split = gof_split.reshape((len(active_idx), n_dip_per_pos, len(times)), copy=False)
+        gof_split = gof_split.reshape(
+            (len(active_idx), n_dip_per_pos, len(times)), copy=False
+        )
         gof_split = gof_split.sum(1)
         assert (gof_split < 100).all()
     assert gof_split.shape == (len(active_idx), len(times))
