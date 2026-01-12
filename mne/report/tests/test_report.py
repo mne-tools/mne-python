@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
+from mne.fixes import _reshape_view
 from mne import (
     Epochs,
     create_info,
@@ -507,7 +508,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs = imgs.reshape((len(imgs), -1), copy=False)
+    imgs = _reshape_view(imgs, (len(imgs), -1))
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]

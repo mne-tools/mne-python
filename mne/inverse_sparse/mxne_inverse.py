@@ -6,7 +6,7 @@ import numpy as np
 
 from .._fiff.proj import deactivate_proj
 from ..dipole import Dipole
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import (
     _check_reference,
@@ -253,8 +253,8 @@ def _make_dipoles_sparse(
         _, keep = np.unique(active_idx, return_index=True)
         keep.sort()  # maintain old order
         active_idx = active_idx[keep]
-        gof_split = gof_split.reshape(
-            (len(active_idx), n_dip_per_pos, len(times)), copy=False
+        gof_split = _reshape_view(
+            gof_split, (len(active_idx), n_dip_per_pos, len(times))
         )
         gof_split = gof_split.sum(1)
         assert (gof_split < 100).all()

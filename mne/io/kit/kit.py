@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ...fixes import _reshape_view
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.pick import pick_types
@@ -672,7 +673,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]["offset"])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
         sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
-        sensitivity = sensitivity.reshape((channel_count, 2), copy=False)
+        sensitivity = _reshape_view(sensitivity, (channel_count, 2))
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
 

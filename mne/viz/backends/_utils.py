@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _compare_version
+from ...fixes import _compare_version, _reshape_view
 from ...utils import _check_qt_version, _validate_type, logger, warn
 from ..utils import _get_cmap
 
@@ -355,7 +355,7 @@ def _pixmap_to_ndarray(pixmap):
     if hasattr(ptr, "setsize"):  # PyQt
         ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
-    data = data.reshape((img.height(), img.width(), 4), copy=False)
+    data = _reshape_view(data, (img.height(), img.width(), 4))
     return data / 255.0
 
 

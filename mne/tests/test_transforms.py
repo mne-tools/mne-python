@@ -19,7 +19,7 @@ from numpy.testing import (
 import mne
 from mne import read_trans, write_trans
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata
+from mne.fixes import _get_img_fdata, _reshape_view
 from mne.io import read_info
 from mne.transforms import (
     _angle_between_quats,
@@ -76,7 +76,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph = sph.reshape((3, -1), copy=False)
+    sph = _reshape_view(sph, (3, -1))
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()

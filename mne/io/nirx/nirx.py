@@ -12,6 +12,7 @@ from configparser import ConfigParser, RawConfigParser
 import numpy as np
 from scipy.io import loadmat
 
+from ...fixes import _reshape_view
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info
 from ..._fiff.utils import _mult_cal_one
@@ -567,7 +568,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds, sep=" ", replace=None)
         if replace is not None:
             data = replace(data)
         x = np.fromstring(data, float, sep=sep)
-    x = x.reshape((stop - start, -1), copy=False)
+    x = _reshape_view(x, (stop - start, -1))
     x = x[:, cols]
     return x
 

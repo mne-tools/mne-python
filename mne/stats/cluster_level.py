@@ -10,7 +10,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
-from ..fixes import has_numba, jit
+from ..fixes import _reshape_view, has_numba, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
@@ -695,7 +695,7 @@ def _do_permutations(
 
         # The stat should have the same shape as the samples for no adj.
         if adjacency is None:
-            t_obs_surr = t_obs_surr.reshape(sample_shape, copy=False)
+            t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
 
         # Find cluster on randomized stats
         out = _find_clusters(
@@ -783,7 +783,7 @@ def _do_1samp_permutations(
 
         # The stat should have the same shape as the samples for no adj.
         if adjacency is None:
-            t_obs_surr = t_obs_surr.reshape(sample_shape, copy=False)
+            t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
 
         # Find cluster on randomized stats
         out = _find_clusters(
@@ -974,7 +974,7 @@ def _permutation_cluster_test(
             f"compatible with the sample shape {sample_shape}"
         )
     if adjacency is None or adjacency is False:
-        t_obs = t_obs.reshape(sample_shape, copy=False)
+        t_obs = _reshape_view(t_obs, sample_shape)
 
     if exclude is not None:
         include = np.logical_not(exclude)
@@ -1001,7 +1001,7 @@ def _permutation_cluster_test(
     clusters, cluster_stats = out
 
     # The stat should have the same shape as the samples
-    t_obs = t_obs.reshape(sample_shape, copy=False)
+    t_obs = _reshape_view(t_obs, sample_shape)
 
     # For TFCE, return the "adjusted" statistic instead of raw scores
     # and for clusters, each point gets treated independently
@@ -1113,7 +1113,7 @@ def _permutation_cluster_test(
         for ti in to_remove:
             step_down_include[clusters[ti]] = False
         if adjacency is None and adjacency is not False:
-            step_down_include = step_down_include.reshape(sample_shape, copy=False)
+            step_down_include = _reshape_view(step_down_include, sample_shape)
         n_step_downs += 1
         if step_down_p > 0:
             a_text = "additional " if n_step_downs > 1 else ""

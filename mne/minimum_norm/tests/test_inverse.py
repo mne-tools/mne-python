@@ -18,6 +18,7 @@ from numpy.testing import (
 from scipy import sparse
 
 import mne
+from mne.fixes import _reshape_view
 from mne import (
     Covariance,
     EvokedArray,
@@ -1686,7 +1687,7 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
         assert ori.shape == (ori.shape[0], 3)
         ori = ori[max_idx]
     assert ori.shape == (max_idx.size, 3)
-    ori = ori.reshape((max_idx.size // 3, 3, 3), copy=False)
+    ori = _reshape_view(ori, (max_idx.size // 3, 3, 3))
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu

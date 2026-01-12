@@ -9,6 +9,7 @@ from itertools import count
 
 import numpy as np
 
+from ...fixes import _reshape_view
 from ..._fiff._digitization import _make_bti_dig_points
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
@@ -1041,7 +1042,7 @@ class RawBTi(BaseRaw):
                     block = np.fromfile(fid, dtype, count)
                 sample_stop = sample_start + count // n_channels
                 shape = (sample_stop - sample_start, bti_info["total_chans"])
-                block = block.reshape(shape, copy=False)
+                block = _reshape_view(block, shape)
                 data_view = data[:, sample_start:sample_stop]
                 one = np.empty(block.shape[::-1])
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .fixes import _reshape_view
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.pick import pick_channels
@@ -181,7 +182,7 @@ def _read_events_fif(fid, tree):
     if event_list is None:
         raise ValueError("Could not find any events")
     else:
-        event_list = event_list.reshape((-1, 3), copy=False)
+        event_list = _reshape_view(event_list, (-1, 3))
     for d in events["directory"]:
         kind = d.kind
         pos = d.pos

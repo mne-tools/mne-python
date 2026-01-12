@@ -11,6 +11,7 @@ import os.path as op
 import numpy as np
 from numpy.polynomial import legendre
 
+from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _get_extra_data_path, _open_lock, fill_doc, logger, verbose
 
@@ -86,7 +87,7 @@ def _get_legen_table(
         logger.info(f"Reading Legendre{extra_str} table...")
         with _open_lock(fname, "rb", buffering=0) as fid:
             lut = np.fromfile(fid, np.float32)
-    lut = lut.reshape(lut_shape, copy=False)
+    lut = _reshape_view(lut, lut_shape)
 
     # we need this for the integration step
     n_fact = np.arange(1, n_coeff, dtype=float)
@@ -265,7 +266,7 @@ def _fast_sphere_dot_r0(
         sums = _comp_sums_meg(
             beta.flatten(), ct.flatten(), lut, n_fact, volume_integral
         )
-        sums = sums.reshape(((4,) + beta.shape), copy=False)
+        sums = _reshape_view(sums, ((4,) + beta.shape))
 
         # Accumulate the result, a little bit streamlined version
         # cosmags1 = cosmags1[:, np.newaxis, :]
@@ -296,7 +297,7 @@ def _fast_sphere_dot_r0(
             result *= r
     else:  # 'eeg'
         result = _comp_sum_eeg(beta.flatten(), ct.flatten(), lut, n_fact)
-        result = result.reshape(beta.shape, copy=False)
+        result = _reshape_view(result, beta.shape)
         # Give it a finishing touch!
         result *= _eeg_const
         result /= lr1lr2

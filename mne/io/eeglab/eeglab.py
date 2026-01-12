@@ -10,6 +10,7 @@ import numpy as np
 
 from mne.utils.check import _check_option
 
+from ...fixes import _reshape_view
 from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
@@ -187,7 +188,7 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
         pos_array = np.array(pos, float)
-        pos_array = pos_array.reshape((-1, 3), copy=False)
+        pos_array = _reshape_view(pos_array, (-1, 3))
 
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).any(axis=1)

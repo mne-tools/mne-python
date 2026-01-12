@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ..fixes import _reshape_view
 from .._fiff._digitization import (
     _coord_frame_const,
     _count_points_by_type,
@@ -973,9 +974,9 @@ def read_dig_hpts(fname, unit="mm"):
         label[ii]: this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "eeg"
     }
     hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "hpi"])
-    hpi = hpi.reshape((-1, 3), copy=False)  # in case it's empty
+    hpi = _reshape_view(hpi, (-1, 3))  # in case it's empty
     hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "extra"])
-    hsp = hsp.reshape((-1, 3), copy=False)  # in case it's empty
+    hsp = _reshape_view(hsp, (-1, 3))  # in case it's empty
     return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
 
 

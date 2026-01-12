@@ -25,7 +25,7 @@ from .._ola import _COLA, _Interp2, _Storer
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-from ..fixes import _safe_svd, bincount, sph_harm_y
+from ..fixes import _reshape_view, _safe_svd, bincount, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
 from ..surface import _normalize_vectors
@@ -2787,7 +2787,7 @@ def find_bad_channels_maxwell(
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
-        data = data.reshape((data.shape[0], -1, flat_step), copy=False)
+        data = _reshape_view(data, (data.shape[0], -1, flat_step))
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
         # We may want to return this later if `return_scores=True`.

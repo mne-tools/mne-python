@@ -15,6 +15,7 @@ from matplotlib import image
 from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
+from mne.fixes import _reshape_view
 from mne import (
     Dipole,
     MixedSourceEstimate,
@@ -1466,7 +1467,7 @@ def _create_testing_brain(
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
         stc_data.size // 20
     )
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     if diverging:
         stc_data -= 0.5
     stc = klass(stc_data, vertices, 1, 1)

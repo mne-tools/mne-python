@@ -10,6 +10,7 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
 import mne
 from mne import pick_types
+from mne.fixes import _reshape_view
 from mne._fiff.constants import FIFF
 from mne._fiff.pick import pick_info
 from mne.beamformer import (
@@ -269,7 +270,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         exp=None,
         noise_cov=noise_cov,
     )
-    G = G.reshape((n_channels, n_verts, n_orient), copy=False)
+    G = _reshape_view(G, (n_channels, n_verts, n_orient))
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

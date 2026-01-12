@@ -8,7 +8,7 @@ import numpy as np
 from scipy import linalg
 
 from .._fiff.pick import pick_channels_forward, pick_info
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import convert_forward_solution, is_fixed_orient
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
@@ -68,9 +68,9 @@ def _apply_rap_music(
     phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
-    G = G.reshape((G.shape[0], -1, n_orient), copy=False)
+    G = _reshape_view(G, (G.shape[0], -1, n_orient))
     gain = forward["sol"]["data"].copy()
-    gain = gain.reshape(G.shape, copy=False)
+    gain = _reshape_view(gain, G.shape)
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
     gain_dip = np.empty((n_channels, n_dipoles))
@@ -122,7 +122,7 @@ def _apply_rap_music(
     sol = linalg.lstsq(A, M)[0]
     if n_orient == 3:
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
-        X = X.reshape((-1, len(times)), copy=False)
+        X = _reshape_view(X, (-1, len(times)))
     else:
         X = sol
 

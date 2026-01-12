@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ...fixes import _reshape_view
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import read_meas_info
 from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
@@ -424,7 +425,7 @@ class Raw(BaseRaw):
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
                 try:
-                    one = one.reshape((nsamp, nchan), copy=False)
+                    one = _reshape_view(one, (nsamp, nchan))
                 except AttributeError:  # one is None
                     n_bad += picksamp
                 else:

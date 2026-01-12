@@ -18,6 +18,7 @@ from scipy import linalg
 from scipy.spatial.distance import cdist
 
 import mne
+from mne.fixes import _reshape_view
 from mne import (
     EvokedArray,
     VolSourceEstimate,
@@ -1185,7 +1186,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     )
     n_channels, n_sources = G.shape
     n_sources //= 3
-    G = G.reshape((n_channels, n_sources, 3), copy=False)
+    G = _reshape_view(G, (n_channels, n_sources, 3))
     G = G.transpose(1, 2, 0)  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

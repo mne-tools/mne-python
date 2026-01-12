@@ -12,6 +12,7 @@ from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from numpy.testing import assert_allclose, assert_array_equal
 
+from mne.fixes import _reshape_view
 from mne import (
     MixedSourceEstimate,
     SourceEstimate,
@@ -135,7 +136,7 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
         np.random.RandomState(0).rand(stc_data.size // 20)
     )
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"
@@ -942,7 +943,7 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.random.RandomState(0).rand(n_verts * n_time)
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
     # Test for simple use cases
@@ -1064,7 +1065,7 @@ def test_stc_mpl():
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.ones(n_verts * n_time)
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
     stc.plot(
         subjects_dir=subjects_dir,
@@ -1396,7 +1397,7 @@ def test_link_brains(renderer_interactive):
     stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
         np.random.RandomState(0).rand(stc_data.size // 20)
     )
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"

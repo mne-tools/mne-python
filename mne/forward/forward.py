@@ -18,6 +18,7 @@ from time import time
 import numpy as np
 from scipy import sparse
 
+from ..fixes import _reshape_view
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
     _read_named_matrix,
@@ -1430,13 +1431,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G = G.reshape((G.shape[0], -1, 3), copy=False)
+        G = _reshape_view(G, (G.shape[0], -1, 3))
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G = G.reshape((G.shape[0], -1), copy=False)
+        G = _reshape_view(G, (G.shape[0], -1))
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
