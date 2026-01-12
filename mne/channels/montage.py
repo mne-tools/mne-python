@@ -28,6 +28,7 @@ from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..fixes import _reshape_view
 from ..transforms import (
     Transform,
     _ensure_trans,
@@ -973,9 +974,9 @@ def read_dig_hpts(fname, unit="mm"):
         label[ii]: this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "eeg"
     }
     hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "hpi"])
-    hpi.shape = (-1, 3)  # in case it's empty
+    hpi = _reshape_view(hpi, (-1, 3))  # in case it's empty
     hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "extra"])
-    hsp.shape = (-1, 3)  # in case it's empty
+    hsp = _reshape_view(hsp, (-1, 3))  # in case it's empty
     return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
 
 
