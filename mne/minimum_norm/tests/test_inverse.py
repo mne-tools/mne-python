@@ -18,7 +18,6 @@ from numpy.testing import (
 from scipy import sparse
 
 import mne
-from mne.fixes import _reshape_view
 from mne import (
     Covariance,
     EvokedArray,
@@ -39,6 +38,7 @@ from mne import (
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
+from mne.fixes import _reshape_view
 from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
 from mne.io import read_info, read_raw_fif
 from mne.label import label_sign_flip, read_label

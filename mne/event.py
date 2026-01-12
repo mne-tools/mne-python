@@ -9,13 +9,13 @@ from pathlib import Path
 
 import numpy as np
 
-from .fixes import _reshape_view
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.pick import pick_channels
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import end_block, start_and_end_file, start_block, write_int
+from .fixes import _reshape_view
 from .utils import (
     _check_fname,
     _check_integer_or_list,

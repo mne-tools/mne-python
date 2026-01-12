@@ -16,7 +16,6 @@ from sklearn.linear_model import Ridge
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import ReceptiveField, TimeDelayingRidge
-from mne.fixes import _reshape_view
 from mne.decoding.receptive_field import (
     _SCORERS,
     _delay_time_series,
@@ -24,6 +23,7 @@ from mne.decoding.receptive_field import (
     _times_to_delays,
 )
 from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
+from mne.fixes import _reshape_view
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"

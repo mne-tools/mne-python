@@ -18,7 +18,6 @@ from scipy import linalg
 from scipy.spatial.distance import cdist
 
 import mne
-from mne.fixes import _reshape_view
 from mne import (
     EvokedArray,
     VolSourceEstimate,
@@ -43,6 +42,7 @@ from mne.beamformer import (
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked

@@ -9,12 +9,12 @@ from itertools import count
 
 import numpy as np
 
-from ...fixes import _reshape_view
 from ..._fiff._digitization import _make_bti_dig_points
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..._fiff.utils import _mult_cal_one, read_str
+from ...fixes import _reshape_view
 from ...transforms import Transform, combine_transforms, invert_transform
 from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
 from ..base import BaseRaw

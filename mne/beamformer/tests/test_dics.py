@@ -10,7 +10,6 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
 import mne
 from mne import pick_types
-from mne.fixes import _reshape_view
 from mne._fiff.constants import FIFF
 from mne._fiff.pick import pick_info
 from mne.beamformer import (
@@ -26,6 +25,7 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest

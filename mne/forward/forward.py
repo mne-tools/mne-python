@@ -18,7 +18,6 @@ from time import time
 import numpy as np
 from scipy import sparse
 
-from ..fixes import _reshape_view
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
     _read_named_matrix,
@@ -49,6 +48,7 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
+from ..fixes import _reshape_view
 from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label

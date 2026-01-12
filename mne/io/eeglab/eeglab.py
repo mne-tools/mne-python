@@ -10,7 +10,6 @@ import numpy as np
 
 from mne.utils.check import _check_option
 
-from ...fixes import _reshape_view
 from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
@@ -21,6 +20,7 @@ from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
 from ...epochs import BaseEpochs
 from ...event import read_events
+from ...fixes import _reshape_view
 from ...utils import (
     Bunch,
     _check_fname,

@@ -15,13 +15,13 @@ from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _reshape_view
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.pick import pick_types
 from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ...event import read_events
+from ...fixes import _reshape_view
 from ...transforms import Transform, als_ras_trans, apply_trans
 from ...utils import (
     _check_fname,

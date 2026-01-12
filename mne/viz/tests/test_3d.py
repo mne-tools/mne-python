@@ -12,7 +12,6 @@ from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne.fixes import _reshape_view
 from mne import (
     MixedSourceEstimate,
     SourceEstimate,
@@ -33,6 +32,7 @@ from mne._fiff.constants import FIFF
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
 from mne.defaults import DEFAULTS
+from mne.fixes import _reshape_view
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate

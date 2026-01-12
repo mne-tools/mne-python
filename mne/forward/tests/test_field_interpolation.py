@@ -18,8 +18,8 @@ from scipy.interpolate import interp1d
 
 import mne
 from mne import Epochs, make_fixed_length_events, pick_types, read_evokeds
-from mne.fixes import _reshape_view
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._field_interpolation import _setup_dots
 from mne.forward._lead_dots import (

@@ -8,9 +8,9 @@ import os
 
 import numpy as np
 
-from ...fixes import _reshape_view
 from ..._fiff._digitization import _format_dig_points
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
+from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _check_option,

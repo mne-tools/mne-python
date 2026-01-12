@@ -15,7 +15,6 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne.fixes import _reshape_view
 from mne import (
     Epochs,
     create_info,
@@ -27,6 +26,7 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
+from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report

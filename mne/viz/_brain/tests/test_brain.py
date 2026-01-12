@@ -15,7 +15,6 @@ from matplotlib import image
 from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne.fixes import _reshape_view
 from mne import (
     Dipole,
     MixedSourceEstimate,
@@ -32,6 +31,7 @@ from mne import (
 )
 from mne.channels import make_dig_montage
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator

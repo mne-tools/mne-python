@@ -16,7 +16,6 @@ from scipy.interpolate import interp1d
 from scipy.sparse import csr_array
 from scipy.spatial.distance import cdist
 
-from ...fixes import _reshape_view
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
 from ..._freesurfer import (
@@ -29,6 +28,7 @@ from ..._freesurfer import (
     vertex_to_mni,
 )
 from ...defaults import DEFAULTS, _handle_default
+from ...fixes import _reshape_view
 from ...surface import _marching_cubes, _mesh_borders, mesh_edges
 from ...transforms import (
     Transform,

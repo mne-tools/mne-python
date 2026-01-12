@@ -9,9 +9,9 @@ from scipy.io import savemat
 
 import mne
 from mne.beamformer import apply_lcmv, apply_lcmv_cov, make_lcmv
-from mne.fixes import _reshape_view
 from mne.beamformer.tests.test_lcmv import _get_data
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 
 data_path = testing.data_path(download=False)
 ft_data_path = data_path / "fieldtrip" / "beamformer"

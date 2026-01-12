@@ -8,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _reshape_view
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import read_meas_info
 from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
@@ -18,6 +17,7 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
+from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,

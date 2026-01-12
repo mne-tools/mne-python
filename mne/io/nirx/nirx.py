@@ -12,12 +12,12 @@ from configparser import ConfigParser, RawConfigParser
 import numpy as np
 from scipy.io import loadmat
 
-from ...fixes import _reshape_view
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info
 from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
 from ...annotations import Annotations
+from ...fixes import _reshape_view
 from ...transforms import _get_trans, apply_trans
 from ...utils import (
     _check_fname,

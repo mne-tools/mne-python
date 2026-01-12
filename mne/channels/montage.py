@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..fixes import _reshape_view
 from .._fiff._digitization import (
     _coord_frame_const,
     _count_points_by_type,
@@ -29,6 +28,7 @@ from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..fixes import _reshape_view
 from ..transforms import (
     Transform,
     _ensure_trans,
