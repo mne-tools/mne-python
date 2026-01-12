@@ -15,10 +15,19 @@ from numpy.testing import (
 )
 from scipy import linalg, sparse, stats
 
-from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne import (
+    EpochsArray,
+    EvokedArray,
+    MixedSourceEstimate,
+    SourceEstimate,
+    SourceSpaces,
+    VolSourceEstimate,
+    create_info,
+)
 from mne.fixes import _eye_array
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
+    cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
@@ -27,7 +36,8 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
-from mne.utils import _record_warnings, catch_logging
+from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
+from mne.utils import GetEpochsMixin, _record_warnings, catch_logging
 
 n_space = 50
 
@@ -867,3 +877,109 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
             assert out_type == "indices"
             got_mask[np.ix_(*clu)] = n
     assert_array_equal(got_mask, want_mask)
+
+
+def test_compare_old_and_new_cluster_api():
+    """Test for same results from old and new APIs."""
+    pd = pytest.importorskip("pandas")
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    df_1d = pd.DataFrame(
+        dict(
+            data=[condition1_1d, condition2_1d],
+            condition=["a", "b"],
+        )
+    )
+    kwargs = dict(n_permutations=100, tail=1, seed=1, buffer_size=None, out_type="mask")
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        [condition1_1d, condition2_1d], **kwargs
+    )
+    formula = "data ~ condition"
+    cluster_result = cluster_test(df_1d, formula, **kwargs)
+    assert_array_equal(cluster_result.H0, H0)
+    assert_array_equal(cluster_result.stat_obs, F_obs)
+    assert_array_equal(cluster_result.cluster_p_values, cluster_pvals)
+    assert cluster_result.clusters == clusters
+
+
+@pytest.mark.parametrize(
+    "Inst", (EpochsArray, EvokedArray, EpochsTFRArray, AverageTFRArray)
+)
+@pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
+def test_new_cluster_api(Inst):
+    """Test handling different MNE objects in the cluster API."""
+    pd = pytest.importorskip("pandas")
+
+    rng = np.random.default_rng(seed=8675309)
+    is_epo = GetEpochsMixin in Inst.__mro__
+    is_tfr = BaseTFR in Inst.__mro__
+
+    n_epo, n_chan, n_freq, n_times = 6, 3, 4, 5
+
+    # prepare the dimensions of the simulated data, then simulate
+    size = (n_chan,)
+    if is_epo:
+        size = (n_epo, *size)
+    if is_tfr:
+        size = (*size, n_freq)
+    size = (*size, n_times)
+    data = rng.normal(size=size)
+
+    # construct the instance
+    info = create_info(ch_names=n_chan, sfreq=1000, ch_types="eeg")
+    kw = dict(times=np.arange(n_times), freqs=np.arange(n_freq)) if is_tfr else dict()
+    cond_a = Inst(data=data, info=info, **kw)
+    cond_b = cond_a.copy()
+    # introduce a significant difference in a specific region, time, and frequency
+    ch_start, ch_end = 0, 2  # 2 channels
+    t_start, t_end = 2, 4  # 2 times
+    f_start, f_end = 2, 4  # 2 freqs
+    if is_tfr:
+        cond_b._data[..., ch_start:ch_end, f_start:f_end, t_start:t_end] += 2
+    else:
+        cond_b._data[..., ch_start:ch_end, t_start:t_end] += 2
+    # for Evokeds/AverageTFRs, we create fake "subjects" as our observations within each
+    # condition. We add a bit of noise while we do so.
+    if not is_epo:
+        insts = list()
+        for cond in cond_a, cond_b:
+            for _n in range(n_epo):
+                if not _n:
+                    insts.append(cond)
+                    continue
+                _cond = cond.copy()
+                _cond.data += rng.normal(scale=0.1, size=_cond.data.shape)
+                insts.append(_cond)
+        conds = np.repeat(["a", "b"], n_epo).tolist()
+    else:
+        # For Epochs(TFR)Array, each epoch is an observation and they're already
+        # noisy/non-identical, so no duplication / noise-addition necessary.
+        insts = [cond_a, cond_b]
+        conds = ["a", "b"]
+
+    # run new clustering API
+    df = pd.DataFrame(dict(data=insts, condition=conds))
+    kwargs = dict(
+        n_permutations=100, seed=42, tail=1, buffer_size=None, out_type="mask"
+    )
+    result_new_api = cluster_test(df, "data~condition", **kwargs)
+
+    # make sure channels are last dimension for old API
+    if is_epo:
+        axes = (0, 3, 2, 1) if is_tfr else (0, 2, 1)
+        X = [cond_a.get_data().transpose(*axes), cond_b.get_data().transpose(*axes)]
+    else:
+        axes = (2, 1, 0) if is_tfr else (1, 0)
+        Xa = list()
+        Xb = list()
+        for inst, cond in zip(insts, conds):
+            container = Xa if cond == "a" else Xb
+            container.append(inst.get_data().transpose(*axes))
+        X = [np.stack(Xa), np.stack(Xb)]
+
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(X, **kwargs)
+    assert_array_almost_equal(result_new_api.H0, H0)
+    assert_array_almost_equal(result_new_api.stat_obs, F_obs)
+    assert_array_almost_equal(result_new_api.cluster_p_values, cluster_pvals)
+    assert len(result_new_api.clusters) == len(clusters)
+    for clu1, clu2 in zip(result_new_api.clusters, clusters):
+        assert_array_equal(clu1, clu2)

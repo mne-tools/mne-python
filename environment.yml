@@ -13,6 +13,7 @@ dependencies:
   - edfio >=0.4.10
   - eeglabio
   - filelock >=3.18.0
+  - formulaic
   - h5io >=0.2.4
   - h5py
   - imageio >=2.6.1

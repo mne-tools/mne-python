@@ -4,20 +4,31 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations
+
+from typing import Literal
+
+import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage, sparse
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
+from ..epochs import BaseEpochs, EvokedArray
+from ..evoked import Evoked
 from ..fixes import has_numba, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
+from ..time_frequency import BaseTFR
 from ..utils import (
+    GetEpochsMixin,
     ProgressBar,
     _check_option,
     _pl,
+    _soft_import,
     _validate_type,
     check_random_state,
     logger,
@@ -25,7 +36,12 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..viz import plot_compare_evokeds
 from .parametric import f_oneway, ttest_1samp_no_p
+
+# need this at top-level of file due to type hints
+pd = _soft_import("pandas", purpose="DataFrame integration", strict=False)
+DataFrame = getattr(pd, "DataFrame", None)
 
 
 def _get_buddies_fallback(r, s, neighbors, indices=None):
@@ -934,7 +950,7 @@ def _permutation_cluster_test(
     sample_shape = X[0].shape[1:]
     for x in X:
         if x.shape[1:] != sample_shape:
-            raise ValueError("All samples mush have the same size")
+            raise ValueError("All samples must have the same size")
 
     # flatten the last dimensions in case the data is high dimensional
     X = [np.reshape(x, (x.shape[0], -1)) for x in X]
@@ -1729,3 +1745,362 @@ def summarize_clusters_stc(
     data_summary[:, 0] = np.sum(data_summary, axis=1)
 
     return klass(data_summary, vertices, tmin, tstep, subject)
+
+
+def _validate_cluster_df(df: DataFrame, dv_name: str, iv_name: str):
+    """Validate the input DataFrame for cluster tests."""
+    # check if all necessary columns are present
+    missing = ({dv_name} | {iv_name}) - set(df.columns)  # should be empty
+    sep = '", "'
+    if missing:  # if not empty, there are missing columns
+        raise ValueError(
+            f"DataFrame must contain a column named for each term in `formula`. "
+            f"Column{_pl(missing)} missing for term{_pl(missing)} "  # _pl = pluralize
+            f'"{sep.join(missing)}".'
+        )
+    # check if the data column contains valid (and consistent) instance types
+    inst = df[dv_name].iloc[0]
+    valid_types = (
+        Evoked,
+        BaseEpochs,
+        BaseTFR,
+        np.ndarray,
+    )  # Base covers all Epochs and TFRs
+    _validate_type(inst, valid_types, f"Data in dependent variable column '{dv_name}'")
+    all_types = set(df[dv_name].map(type))
+    all_type_names = ", ".join([type(x).__name__ for x in all_types])
+    prologue = f"Data in dependent variable column '{dv_name}' must all have "
+    if len(all_types) > 1:
+        raise ValueError(
+            f"{prologue} the same type, but found types {{{all_type_names}}}."
+        )
+    # check if the shape of the data is consistent
+    if isinstance(inst, np.ndarray):
+        all_shapes = set(
+            df[dv_name].map(lambda x: x.shape[1:])
+        )  # first dim may vary (participants or epochs)
+    elif isinstance(inst, (BaseEpochs | BaseTFR)):
+        all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape[1:]))
+    else:
+        all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
+    if len(all_shapes) > 1:
+        raise ValueError(
+            f"{prologue} consistent shape, but {len(all_shapes)} different "
+            f"shapes were found: {'; '.join(all_shapes)}."
+        )
+    obj_type = all_types.pop()
+    is_epo = GetEpochsMixin in obj_type.__mro__
+    is_tfr = BaseTFR in obj_type.__mro__
+    is_arr = np.ndarray in obj_type.__mro__
+    return is_epo, is_tfr, is_arr
+
+
+@verbose
+def cluster_test(
+    df: DataFrame,
+    formula: str,
+    *,  # end of positional-only parameters
+    within_id: str | None = None,
+    stat_fun: callable | None = None,
+    tail: Literal[-1, 0, 1] = 0,
+    threshold=None,
+    n_permutations: str | int = 1024,
+    adjacency: sparse.spmatrix | None | False = None,  # should be None (default)
+    max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
+    exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
+    step_down_p: float = 0.0,
+    t_power: float = 1.0,
+    check_disjoint: bool = False,
+    out_type: Literal["indices", "mask"] = "indices",
+    seed: None | int | np.random.RandomState = None,
+    buffer_size: int | None = None,
+    n_jobs: int = 1,
+    verbose=None,
+):
+    """Run a cluster permutation test from a DataFrame and a formula.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe containing the data, dependent and independent variables.
+    formula : str
+        Wilkinson notation formula for design matrix. The names of the dependent
+        and independent variable should match the columns in ``df``.
+    within_id : None | str
+        Name of column in ``df`` to use in identifying within-group contrasts. If
+        ``None``, will perform a between-group test. Ignored if the number of groups
+        (unique values in the independent variable column of ``df``) is greater than 2.
+    %(stat_fun_clust_both)s
+    %(tail_clust)s
+    %(threshold_clust_both)s
+    %(n_permutations_clust_all)s
+    %(adjacency_clust_both)s
+    max_step : int, optional
+        Maximum distance between samples (time points). Default is 1.
+    exclude : array-like of bool | None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as the channels/vertices
+        dimension of the data objects. If ``None``, no points are excluded.
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the "time" and/or "frequency" dimensions are large.
+    %(out_type_clust)s
+    %(seed)s
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because the data will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    %(n_jobs)s
+    %(verbose)s
+
+    Notes
+    -----
+    %(threshold_clust_t_or_f_notes)s
+
+    Returns
+    -------
+    ClusterResult
+        Object containing the results of the cluster permutation test.
+    """
+    # parse formula
+    formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
+    parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
+    formula = formulaic.Formula(formula, _parser=parser)
+    # extract the dependent and independent variable names
+    dv_name = str(np.array(formula.lhs.root).item())
+    iv_name = str(np.array(formula.rhs.root).item())
+
+    # validate the input dataframe and return the type of the data column entries
+    is_epo, is_tfr, is_arr = _validate_cluster_df(df, dv_name, iv_name)
+
+    # for within_subject designs, check if each subject has 2 observations
+    _validate_type(within_id, (str, None), "within_id")
+    if within_id:
+        df = df.copy(deep=False)  # Don't mutate input dataframe row order!
+        df.sort_values([iv_name, within_id], inplace=True)
+        counts = df[within_id].value_counts()
+        if any(counts != 2):
+            raise ValueError("for paired t-test, each subject must have 2 observations")
+
+    # extract the data from the dataframe
+    outer_func = np.concatenate if is_epo else np.array
+    axes = (-3, -1) if is_tfr else (-2, -1)
+
+    def func_arr(series):
+        return np.concatenate(series.values)
+
+    def func_mne(series):
+        return outer_func(
+            series.map(lambda inst: inst.get_data().swapaxes(*axes)).to_list()
+        )
+
+    func = func_arr if is_arr else func_mne
+
+    # convert to a list-like X for clustering
+    X = df.groupby(iv_name).agg({dv_name: func})[dv_name].to_list()
+
+    # determine test type
+    if len(X) == 1:
+        kind = "within"  # data already subtracted
+    elif len(X) > 2:
+        kind = "between"
+    elif (
+        len(set(x.shape for x in X)) > 1
+    ):  # check if there are unequal observations in each group
+        kind = "between"
+    # by now we know there are exactly 2 elements in X, and their shapes match
+    elif within_id in df:
+        kind = "within"
+        X = X[0] - X[1]
+    else:  # 2 elements in X but no within_id provided → unpaired test
+        kind = "between"
+
+    # define stat function and threshold
+    stat_fun, threshold = _check_fun(
+        X=X, stat_fun=stat_fun, threshold=threshold, tail=tail, kind=kind
+    )
+
+    # check_fun doesn't work with list input`
+    if kind == "within":  # will this create an issue for already subtracted data?
+        X = [X]
+
+    # Run the cluster-based permutation test
+    stat_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
+        X,
+        n_permutations=n_permutations,
+        threshold=threshold,
+        stat_fun=stat_fun,
+        tail=tail,
+        n_jobs=n_jobs,
+        adjacency=adjacency,
+        max_step=max_step,  # maximum distance between samples (time points)
+        exclude=exclude,  # exclude no time points or channels
+        step_down_p=step_down_p,  # step down in jumps test
+        t_power=t_power,  # weigh each location by its stats score
+        out_type=out_type,
+        check_disjoint=check_disjoint,
+        buffer_size=buffer_size,  # block size for chunking the data
+        seed=seed,
+    )
+
+    return ClusterResult(stat_obs, clusters, cluster_p_values, H0, stat_fun)
+
+
+class ClusterResult:
+    """
+    Object containing the results of the cluster permutation test.
+
+    Parameters
+    ----------
+    stat_obs : np.ndarray
+        The observed test statistic.
+    clusters : list
+        List of clusters.
+    cluster_p_values : np.ndarray
+        P-values for each cluster.
+    H0 : np.ndarray
+        Max cluster level stats observed under permutation.
+    """
+
+    def __init__(
+        self,
+        stat_obs: np.typing.NDArray,
+        clusters: list,
+        cluster_p_values: np.typing.NDArray,
+        H0: np.typing.NDArray,
+        stat_fun: callable,
+    ):
+        self.stat_obs = stat_obs
+        self.clusters = clusters
+        self.cluster_p_values = cluster_p_values
+        self.H0 = H0
+        self.stat_fun = stat_fun
+
+        # unpaired t-test equivalent to f_oneway w/ 2 groups
+        if stat_fun is f_oneway:
+            self.stat_name = "F-statistic"
+        elif stat_fun is ttest_1samp_no_p:
+            self.stat_name = "paired T-statistic"
+        else:
+            self.stat_name = "test statistic"
+
+    def plot_cluster_time_sensor(
+        self,
+        condition_labels: dict,
+        colors: list | dict | None = None,
+        linestyles: list | dict | None = None,
+        cmap_evokeds: None | str | tuple = None,
+        cmap_topo: None | str | tuple = None,
+        ci: float | bool | callable | None = None,
+    ):
+        """
+        Plot the cluster with the lowest p-value.
+
+        2D cluster plotted with topoplot on the left and evoked signals on the right.
+        Timepoints that are part of the cluster are
+        highlighted in green on the evoked signals.
+
+        Parameters
+        ----------
+        condition_labels : dict
+            Dictionary with condition labels as keys and evoked objects as values.
+        colors : list|dict|None
+            Colors to use when plotting the ERP lines and confidence bands.
+        linestyles : list|dict|None
+            Styles to use when plotting the ERP lines.
+        cmap_evokeds : None|str|tuple
+            Colormap from which to draw color values when plotting the ERP lines.
+        cmap_topo: matplotlib colormap
+            Colormap to use for the topomap.
+        ci : float|bool|callable()|None
+            Confidence band around each ERP time series.
+        """
+        # extract condition labels from the dictionary
+        cond_keys = list(condition_labels.keys())
+        # extract the evokeds from the dictionary
+        cond_values = list(condition_labels.values())
+
+        linestyles = {cond_keys[0]: "-", cond_keys[1]: "--"}
+
+        lowest_p_cluster = np.argmin(self.cluster_p_values)
+
+        # plot the cluster with the lowest p-value
+        time_inds, space_inds = np.squeeze(self.clusters[lowest_p_cluster])
+        ch_inds = np.unique(space_inds)
+        time_inds = np.unique(time_inds)
+
+        # get topography for t stat
+        t_map = self.stat_obs[time_inds, ...].mean(axis=0).astype(int)
+
+        # get signals at the sensors contributing to the cluster
+        sig_times = cond_values[0][0].times[time_inds]
+
+        # create spatial mask
+        mask = np.zeros((t_map.shape[0], 1), dtype=bool)
+        mask[ch_inds, :] = True
+
+        # initialize figure
+        fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
+
+        # plot average test statistic and mark significant sensors
+        t_evoked = EvokedArray(t_map[:, np.newaxis], cond_values[0][0].info, tmin=0)
+        t_evoked.plot_topomap(
+            times=0,
+            mask=mask,
+            axes=ax_topo,
+            cmap=cmap_topo,
+            show=False,
+            colorbar=False,
+            mask_params=dict(markersize=10),
+            scalings=1.00,
+        )
+        image = ax_topo.images[0]
+
+        # remove the title that would otherwise say "0.000 s"
+        ax_topo.set_title(
+            "Spatial cluster extent:\n averaged from {:0.3f} to {:0.3f} s".format(
+                *sig_times[[0, -1]]
+            )
+        )
+
+        # create additional axes (for ERF and colorbar)
+        divider = make_axes_locatable(ax_topo)
+
+        # add axes for colorbar
+        ax_colorbar = divider.append_axes("right", size="5%", pad=0.1)
+        cbar = plt.colorbar(image, cax=ax_colorbar)
+        cbar.set_label(self.stat_name)
+
+        # add new axis for time courses and plot time courses
+        ax_signals = divider.append_axes("right", size="300%", pad=1.3)
+        title = (
+            f"Temporal cluster extent:\nSignal averaged over {len(ch_inds)} sensor(s)"
+        )
+        plot_compare_evokeds(
+            condition_labels,
+            title=title,
+            picks=ch_inds,
+            axes=ax_signals,
+            colors=colors,
+            linestyles=linestyles,
+            cmap=cmap_evokeds,
+            show=False,
+            split_legend=True,
+            truncate_yaxis="auto",
+            truncate_xaxis=False,
+            ci=ci,
+        )
+        plt.legend(frameon=False, loc="upper left")
+
+        # plot temporal cluster extent
+        ymin, ymax = ax_signals.get_ylim()
+        ax_signals.fill_betweenx(
+            (ymin, ymax), sig_times[0], sig_times[-1], color="grey", alpha=0.3
+        )
+
+        plt.show()

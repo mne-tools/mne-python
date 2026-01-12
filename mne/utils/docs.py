@@ -144,61 +144,54 @@ add_frames : int | None
     formatting. This can add overhead so is meant only for debugging.
 """
 
-docdict["adjacency_clust"] = """
-adjacency : scipy.sparse.spmatrix | None | False
+_adjacency_clust_template = """
+adjacency : scipy.sparse.spmatrix | {param_none}False
     Defines adjacency between locations in the data, where "locations" can be
     spatial vertices, frequency bins, time points, etc. For spatial vertices
     (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
     :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
-    :func:`mne.spatial_src_adjacency` or
-    :func:`mne.spatio_temporal_src_adjacency`. If ``False``, assumes
-    no adjacency (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice adjacency is assumed, connecting
-    each {sp} location to its neighbor(s) along the last dimension
-    of {{eachgrp}} ``{{x}}``{lastdim}.
+    :func:`mne.spatial_src_adjacency` or :func:`mne.spatio_temporal_src_adjacency`.
+    If ``False``, assumes no adjacency (each location is treated as independent and
+    unconnected).{if_none}
     If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
-    ``{{x}}.shape[-1]`` {parone} or ``{{x}}.shape[-1] * {{x}}.shape[-2]``
-    {partwo} or (optionally)
-    ``{{x}}.shape[-1] * {{x}}.shape[-2] * {{x}}.shape[-3]``
-    {parthree}.{memory}
+    the product of the last 1, 2, or 3 data dimensions (e.g., for time-frequency data:
+    n_channels, n_channels * n_freqs, or n_channels * n_freqs * n_times).{memory}
 """
-
-mem = (
-    " If spatial adjacency is uniform in time, it is recommended to use "
-    "a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save "
-    "memory and computation, and to use ``max_step`` to define the extent "
-    "of temporal adjacency to consider when clustering."
-)
-comb = " The function `mne.stats.combine_adjacency` may be useful for 4D data."
+_if_none = """ If ``None``, a regular lattice adjacency is assumed, connecting
+    each {spatial}location to its neighbor(s) along the last dimension
+    of {the_data}.
+"""
 st = dict(
-    sp="spatial",
-    lastdim="",
-    parone="(n_vertices)",
-    partwo="(n_times * n_vertices)",
-    parthree="(n_times * n_freqs * n_vertices)",
-    memory=mem,
+    param_none="None | ",
+    if_none=_if_none.format(spatial="spatial ", the_data="{eachgrp} ``{x}``"),
+    memory="""
+    If spatial adjacency is uniform in time, it is recommended to use a square matrix
+    with dimension ``{x}.shape[-1]`` (n_vertices) to save memory and computation,
+    and to use ``max_step`` to define the extent of temporal adjacency to consider when
+    clustering.
+""",
 )
 tf = dict(
-    sp="",
-    lastdim=" (or the last two dimensions if ``{x}`` is 2D)",
-    parone="(for 2D data)",
-    partwo="(for 3D data)",
-    parthree="(for 4D data)",
-    memory=comb,
+    param_none="None | ",
+    if_none=_if_none.format(
+        spatial="",
+        the_data="{eachgrp} ``{x}`` (or the last two dimensions if ``{x}`` is 2D)",
+    ),
+    memory="""
+    The function `mne.stats.combine_adjacency` may be useful for 4D data.
+""",
 )
-nogroups = dict(eachgrp="", x="X")
+nogrps = dict(eachgrp="", x="X")
 groups = dict(eachgrp="each group ", x="X[k]")
-docdict["adjacency_clust_1"] = (
-    docdict["adjacency_clust"].format(**tf).format(**nogroups)
+
+docdict["adjacency_clust_1"] = _adjacency_clust_template.format(**tf).format(**nogrps)
+docdict["adjacency_clust_both"] = _adjacency_clust_template.format(
+    param_none="", if_none="", memory=""
 )
-docdict["adjacency_clust_n"] = docdict["adjacency_clust"].format(**tf).format(**groups)
-docdict["adjacency_clust_st1"] = (
-    docdict["adjacency_clust"].format(**st).format(**nogroups)
-)
-docdict["adjacency_clust_stn"] = (
-    docdict["adjacency_clust"].format(**st).format(**groups)
-)
+docdict["adjacency_clust_n"] = _adjacency_clust_template.format(**tf).format(**groups)
+docdict["adjacency_clust_st1"] = _adjacency_clust_template.format(**st).format(**nogrps)
+docdict["adjacency_clust_stn"] = _adjacency_clust_template.format(**st).format(**groups)
 
 docdict["adjust_dig_chpi"] = """
 adjust_dig : bool
@@ -708,7 +701,7 @@ docdict["channel_wise_applyfun_epo"] = chwise.format("in each epoch ", "epochs a
 
 docdict["check_disjoint_clust"] = """
 check_disjoint : bool
-    Whether to check if the connectivity matrix can be separated into disjoint
+    Whether to check if the ``adjacency`` matrix can be separated into disjoint
     sets before clustering. This may lead to faster clustering, especially if
     the second dimension of ``X`` (usually the "time" dimension) is large.
 """
@@ -1431,7 +1424,7 @@ exclude_after_unique : bool
 """
 
 docdict["exclude_clust"] = """
-exclude : bool array or None
+exclude : array-like of bool | None
     Mask to apply to the data to exclude certain points from clustering
     (e.g., medial wall vertices). Should be the same shape as ``X``.
     If ``None``, no points are excluded.
@@ -4016,7 +4009,7 @@ docdict["seed"] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
     the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
+    (see :class:`~numpy.random.RandomState` for details), meaning it will most
     likely produce different output every time this function or method is run.
     To achieve reproducible results, pass a value here to explicitly initialize
     the RNG with a defined state.
@@ -4351,16 +4344,23 @@ standardize_names : bool
     channel names in the file will be used when possible.
 """
 
-_stat_fun_clust_base = """
+_stat_fun_template = """
 stat_fun : callable | None
     Function called to calculate the test statistic. Must accept 1D-array as
-    input and return a 1D array. If ``None`` (the default), uses
-    `mne.stats.{}`.
+    input and return a 1D array. If ``None`` (the default), uses {}.
 """
 
-docdict["stat_fun_clust_f"] = _stat_fun_clust_base.format("f_oneway")
+docdict["stat_fun_clust_both"] = _stat_fun_template.format(
+    """:func:`mne.stats.ttest_1samp_no_p`
+    for paired tests and :func:`mne.stats.f_oneway` for unpaired tests or tests of
+    more than 2 groups."""
+)
 
-docdict["stat_fun_clust_t"] = _stat_fun_clust_base.format("ttest_1samp_no_p")
+docdict["stat_fun_clust_f"] = _stat_fun_template.format(":func:`mne.stats.f_oneway`")
+
+docdict["stat_fun_clust_t"] = _stat_fun_template.format(
+    ":func:`mne.stats.ttest_1samp_no_p`"
+)
 
 docdict["static"] = """
 static : instance of SpatialImage
@@ -4571,10 +4571,10 @@ _threshold_clust_base = """
 threshold : float | dict | None
     The so-called "cluster forming threshold" in the form of a test statistic
     (note: this is not an alpha level / "p-value").
-    If numeric, vertices with data values more extreme than ``threshold`` will
-    be used to form clusters. If ``None``, {} will be chosen
+    If numeric, vertices with stat values more extreme than ``threshold`` will
+    be used to form clusters. If ``None``, {which_thresh} will be chosen
     automatically that corresponds to a p-value of 0.05 for the given number of
-    observations (only valid when using {}). If ``threshold`` is a
+    observations (only valid when using {which_stat}). If ``threshold`` is a
     :class:`dict` (with keys ``'start'`` and ``'step'``) then threshold-free
     cluster enhancement (TFCE) will be used (see the
     :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
@@ -4582,8 +4582,14 @@ threshold : float | dict | None
     a particular p-value for one-tailed or two-tailed tests.
 """
 
-f_test = ("an F-threshold", "an F-statistic")
-docdict["threshold_clust_f"] = _threshold_clust_base.format(*f_test)
+docdict["threshold_clust_both"] = _threshold_clust_base.format(
+    which_thresh="a t- or F-threshold",
+    which_stat="``stat_fun=None``, i.e., a paired t-test or one-way F-test",
+)
+
+docdict["threshold_clust_f"] = _threshold_clust_base.format(
+    which_thresh="an F-threshold", which_stat="an F-statistic"
+)
 
 docdict["threshold_clust_f_notes"] = """
 For computing a ``threshold`` based on a p-value, use the conversion
@@ -4595,8 +4601,9 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
     thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
 """
 
-t_test = ("a t-threshold", "a t-statistic")
-docdict["threshold_clust_t"] = _threshold_clust_base.format(*t_test)
+docdict["threshold_clust_t"] = _threshold_clust_base.format(
+    which_thresh="a t-threshold", which_stat="a t-statistic"
+)
 
 docdict["threshold_clust_t_notes"] = """
 For computing a ``threshold`` based on a p-value, use the conversion
@@ -4605,6 +4612,23 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
     pval = 0.001  # arbitrary
     df = n_observations - 1  # degrees of freedom for the test
     thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+
+For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+"""
+
+docdict["threshold_clust_t_or_f_notes"] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.rv_continuous.ppf`::
+
+    pval = 0.001  # arbitrary
+    # for t-statistic
+    df = n_observations - 1  # degrees of freedom for the t-test
+    thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+    # for f-statistic
+    dfn = n_conditions - 1  # degrees of freedom numerator
+    dfd = n_observations - n_conditions  # degrees of freedom denominator
+    thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
 
 For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
