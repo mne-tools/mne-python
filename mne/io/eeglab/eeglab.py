@@ -718,9 +718,7 @@ class EpochsEEGLAB(BaseEpochs):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             with open(data_fname, "rb") as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
-                data = data.reshape(
-                    (eeg.nbchan, eeg.pnts, eeg.trials), order="F", copy=False
-                )
+                data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials), order="F")
         else:
             data = eeg.data
 

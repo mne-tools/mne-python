@@ -117,9 +117,7 @@ def read_head_pos(fname):
     """
     _check_fname(fname, must_exist=True, overwrite="read")
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
-    data = data.reshape(
-        (-1, 10), copy=False
-    )  # ensure it's the right size even if empty
+    data = data.reshape((-1, 10), copy=False)  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
         raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
