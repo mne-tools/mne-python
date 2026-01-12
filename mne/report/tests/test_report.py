@@ -507,7 +507,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs.shape = (len(imgs), -1)
+    imgs = imgs.reshape(len(imgs), -1)
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]

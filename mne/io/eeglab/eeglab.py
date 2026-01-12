@@ -187,7 +187,7 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
         pos_array = np.array(pos, float)
-        pos_array.shape = (-1, 3)
+        pos_array = pos_array.reshape(-1, 3)
 
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).any(axis=1)

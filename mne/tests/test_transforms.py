@@ -76,7 +76,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph.shape = (3, -1)
+    sph = sph.reshape(3, -1)
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()

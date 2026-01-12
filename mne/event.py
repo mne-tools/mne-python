@@ -181,7 +181,7 @@ def _read_events_fif(fid, tree):
     if event_list is None:
         raise ValueError("Could not find any events")
     else:
-        event_list.shape = (-1, 3)
+        event_list = event_list.reshape(-1, 3)
     for d in events["directory"]:
         kind = d.kind
         pos = d.pos

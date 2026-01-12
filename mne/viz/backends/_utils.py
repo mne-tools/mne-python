@@ -355,7 +355,7 @@ def _pixmap_to_ndarray(pixmap):
     if hasattr(ptr, "setsize"):  # PyQt
         ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
-    data.shape = (img.height(), img.width(), 4)
+    data = data.reshape(img.height(), img.width(), 4)
     return data / 255.0
 
 

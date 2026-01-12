@@ -98,7 +98,7 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     ft_fname = ft_data_path / ("ft_source_" + bf_type + "-vol.mat")
     stc_ft_data = pymatreader.read_mat(ft_fname)["stc"]
     if stc_ft_data.ndim == 1:
-        stc_ft_data.shape = (stc_ft_data.size, 1)
+        stc_ft_data = stc_ft_data.reshape(stc_ft_data.size, 1)
 
     if stc_mne.data.ndim == 2:
         signs = np.sign((stc_mne.data * stc_ft_data).sum(-1, keepdims=True))

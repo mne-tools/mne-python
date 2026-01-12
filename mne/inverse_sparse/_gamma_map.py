@@ -306,7 +306,7 @@ def gamma_map(
             X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
             idx = np.searchsorted(active_src, idx)
             X_xyz[idx, offset, :] = X
-            X_xyz.shape = (len(active_src) * 3, X.shape[1])
+            X_xyz = X_xyz.reshape(len(active_src) * 3, X.shape[1])
             X = X_xyz
         active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
     source_weighting[source_weighting == 0] = 1  # zeros

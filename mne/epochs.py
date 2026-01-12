@@ -4479,7 +4479,7 @@ class EpochsFIF(BaseEpochs):
         else:
             data = data.astype(np.float64)
 
-        data.shape = raw.epoch_shape
+        data = data.reshape(raw.epoch_shape)
         data *= raw.cals
         return data
 

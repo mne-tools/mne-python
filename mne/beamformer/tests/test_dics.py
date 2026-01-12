@@ -269,7 +269,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         exp=None,
         noise_cov=noise_cov,
     )
-    G.shape = (n_channels, n_verts, n_orient)
+    G = G.reshape(n_channels, n_verts, n_orient)
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

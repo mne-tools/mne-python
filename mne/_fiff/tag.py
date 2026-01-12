@@ -177,7 +177,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data.shape = dims
+        data = data.reshape(dims)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())

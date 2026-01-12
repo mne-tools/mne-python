@@ -1185,7 +1185,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     )
     n_channels, n_sources = G.shape
     n_sources //= 3
-    G.shape = (n_channels, n_sources, 3)
+    G = G.reshape(n_channels, n_sources, 3)
     G = G.transpose(1, 2, 0)  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

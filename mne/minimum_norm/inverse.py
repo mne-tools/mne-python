@@ -835,8 +835,8 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             # No need to rotate source_cov because it should be uniform
             # (loose=1., and depth weighting is uniform across columns)
             offset = sl.stop
-        eigen_leads.shape = (-1, eigen_leads.shape[2])
-        source_nn.shape = (-1, 3)
+        eigen_leads = eigen_leads.reshape(-1, eigen_leads.shape[2])
+        source_nn = source_nn.reshape(-1, 3)
 
     if pick_ori == "normal":
         if not inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -1673,7 +1673,7 @@ def apply_inverse_cov(
     sol = cov.data[sel][:, sel] @ K.T
     sol = np.sum(K * sol.T, axis=1, keepdims=True)
     # Reshape back to (n_src, ..., 1)
-    sol.shape = stc.data.shape[:-1] + (1,)
+    sol = sol.reshape(stc.data.shape[:-1] + (1,))
     stc = stc.__class__(sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info("    Combining the current components...")

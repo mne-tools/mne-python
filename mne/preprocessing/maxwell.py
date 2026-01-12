@@ -2787,7 +2787,7 @@ def find_bad_channels_maxwell(
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
-        data.shape = (data.shape[0], -1, flat_step)
+        data = data.reshape(data.shape[0], -1, flat_step)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
         # We may want to return this later if `return_scores=True`.

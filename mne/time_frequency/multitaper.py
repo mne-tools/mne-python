@@ -455,7 +455,7 @@ def psd_array_multitaper(
 
     # Combining/reshaping to original data shape
     last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
-    psd.shape = dshape + last_dims
+    psd = psd.reshape(dshape + last_dims)
     if ndim_in == 1:
         psd = psd[0]
 

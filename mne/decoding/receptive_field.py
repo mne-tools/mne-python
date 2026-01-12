@@ -361,7 +361,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         else:
             extra = 1
         shape = shape[: self._y_dim + extra]
-        y_pred.shape = shape
+        y_pred = y_pred.reshape(shape)
         return y_pred
 
     def score(self, X, y):

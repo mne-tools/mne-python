@@ -2317,7 +2317,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh.shape = old_shape
+        neigh = neigh.reshape(old_shape)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]

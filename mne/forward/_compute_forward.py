@@ -457,7 +457,7 @@ def _do_prim_curr(rr, coils):
     for start, stop in _rr_bounds(rr, chunk=1):
         pp = _bem_inf_fields(rr[start:stop], rmags, cosmags)
         pp *= ws
-        pp.shape = (3 * (stop - start), -1)
+        pp = pp.reshape(3 * (stop - start), -1)
         pc[3 * start : 3 * stop] = [
             bincount(bins, this_pp, bins[-1] + 1) for this_pp in pp
         ]
