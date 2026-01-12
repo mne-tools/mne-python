@@ -48,6 +48,7 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
+from ..fixes import _reshape_view
 from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label
@@ -1430,13 +1431,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G.shape = (G.shape[0], -1, 3)
+        G = _reshape_view(G, (G.shape[0], -1, 3))
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G.shape = (G.shape[0], -1)
+        G = _reshape_view(G, (G.shape[0], -1))
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:

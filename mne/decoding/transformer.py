@@ -17,6 +17,7 @@ from .._fiff.pick import (
 from ..cov import _check_scalings_user
 from ..epochs import BaseEpochs
 from ..filter import filter_data
+from ..fixes import _reshape_view
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, check_version, fill_doc
 from ._fixes import validate_data  # TODO VERSION remove with sklearn 1.4+
@@ -118,7 +119,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
     if return_result:
-        X.shape = (orig_shape[0], orig_shape[2], orig_shape[1])
+        X = _reshape_view(X, (orig_shape[0], orig_shape[2], orig_shape[1]))
         X = X.transpose(0, 2, 1)
         return X
 
