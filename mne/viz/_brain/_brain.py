@@ -2230,7 +2230,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx = keep_idx.reshape(self.geo[hemi].faces.shape)
+                    keep_idx = keep_idx.reshape(self.geo[hemi].faces.shape, copy=False)
                     keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
@@ -3978,7 +3978,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].orig_faces.ravel(), keep_idx)
-                    keep_idx = keep_idx.reshape(self.geo[hemi].orig_faces.shape)
+                    keep_idx = keep_idx.reshape(self.geo[hemi].orig_faces.shape, copy=False)
                     keep_idx = self.geo[hemi].orig_faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:

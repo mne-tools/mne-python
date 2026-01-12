@@ -349,7 +349,7 @@ def _overlap_add_filter(
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
 
-    x = x.reshape(orig_shape)
+    x = x.reshape(orig_shape, copy=False)
     return x
 
 
@@ -404,7 +404,7 @@ def _prep_for_filtering(x, copy, picks=None):
     orig_shape = x.shape
     x = np.atleast_2d(x)
     picks = _picks_to_idx(x.shape[-2], picks)
-    x = x.reshape(np.prod(x.shape[:-1]), x.shape[-1])
+    x = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]), copy=False)
     if len(orig_shape) == 3:
         n_epochs, n_channels, n_times = orig_shape
         offset = np.repeat(np.arange(0, n_channels * n_epochs, n_channels), len(picks))
@@ -577,7 +577,7 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
         data_new = parallel(p_fun(x=x[p]) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
-    x = x.reshape(orig_shape)
+    x = x.reshape(orig_shape, copy=False)
     return x
 
 
@@ -1657,7 +1657,7 @@ def _mt_spectrum_proc(
     )
     logger.info(f"{kind} notch frequencies (Hz):\n{found_freqs}")
 
-    x = x.reshape(orig_shape)
+    x = x.reshape(orig_shape, copy=False)
     return x
 
 
@@ -2952,5 +2952,5 @@ def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
             x_ext = _smart_pad(x_ext, (padlen, padlen), padtype)
         x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
         this_x[:] = x_ext[padlen : len(x_ext) - padlen]
-    x_out = x_out.reshape(x.shape)
+    x_out = x_out.reshape(x.shape, copy=False)
     return x_out

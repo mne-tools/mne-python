@@ -118,7 +118,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
     if return_result:
-        X = X.reshape(orig_shape[0], orig_shape[2], orig_shape[1])
+        X = X.reshape((orig_shape[0], orig_shape[2], orig_shape[1]), copy=False)
         X = X.transpose(0, 2, 1)
         return X
 

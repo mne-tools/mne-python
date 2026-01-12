@@ -424,7 +424,7 @@ class Raw(BaseRaw):
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
                 try:
-                    one = one.reshape((nsamp, nchan))
+                    one = one.reshape((nsamp, nchan), copy=False)
                 except AttributeError:  # one is None
                     n_bad += picksamp
                 else:

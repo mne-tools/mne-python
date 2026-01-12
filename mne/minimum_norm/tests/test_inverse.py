@@ -1686,7 +1686,7 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
         assert ori.shape == (ori.shape[0], 3)
         ori = ori[max_idx]
     assert ori.shape == (max_idx.size, 3)
-    ori = ori.reshape(max_idx.size // 3, 3, 3)
+    ori = ori.reshape((max_idx.size // 3, 3, 3), copy=False)
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu

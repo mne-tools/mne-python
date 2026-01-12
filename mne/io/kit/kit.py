@@ -218,7 +218,7 @@ class RawKIT(BaseRaw):
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, dtype=sqd["dtype"], count=blk_size)
-                block = block.reshape(nchan, -1, order="F").astype(float)
+                block = block.reshape((nchan, -1), order="F", copy=False).astype(float)
                 blk_stop = blk_start + block.shape[1]
                 data_view = data[:, blk_start:blk_stop]
                 block *= conv_factor
@@ -471,9 +471,9 @@ class EpochsKIT(BaseEpochs):
             fid.seek(info["dirs"][KIT.DIR_INDEX_RAW_DATA]["offset"])
             count = n_samples * nchan
             data = np.fromfile(fid, dtype=dtype, count=count)
-        data = data.reshape((n_samples, nchan)).T
+        data = data.reshape((n_samples, nchan), copy=False).T
         data = data * info["conv_factor"]
-        data = data.reshape((nchan, n_epochs, epoch_length))
+        data = data.reshape((nchan, n_epochs, epoch_length), copy=False)
         data = data.transpose((1, 0, 2))
 
         return data
@@ -672,7 +672,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]["offset"])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
         sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
-        sensitivity = sensitivity.reshape(channel_count, 2)
+        sensitivity = sensitivity.reshape((channel_count, 2), copy=False)
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
 
@@ -768,7 +768,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
                 if key in dig and np.isfinite(dig[key]).all():
                     elp.append(dig.pop(key))
             elp = np.array(elp)
-            hsp = np.array(hsp, float).reshape(-1, 3)
+            hsp = np.array(hsp, float).reshape((-1, 3), copy=False)
             if elp.shape not in ((6, 3), (7, 3), (8, 3)):
                 raise RuntimeError(f"Fewer than 3 HPI coils found, got {len(elp) - 3}")
             # coregistration

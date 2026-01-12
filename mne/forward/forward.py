@@ -1430,13 +1430,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G = G.reshape(G.shape[0], -1, 3)
+        G = G.reshape((G.shape[0], -1, 3), copy=False)
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G = G.reshape(G.shape[0], -1)
+        G = G.reshape((G.shape[0], -1), copy=False)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:

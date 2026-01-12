@@ -1466,7 +1466,7 @@ def _create_testing_brain(
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
         stc_data.size // 20
     )
-    stc_data = stc_data.reshape(n_verts, n_time)
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     if diverging:
         stc_data -= 0.5
     stc = klass(stc_data, vertices, 1, 1)

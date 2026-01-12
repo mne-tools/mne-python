@@ -85,7 +85,7 @@ def test_legendre_val():
         ctheta = rng.rand(20, 30) * 2.0 - 1.0
         beta = rng.rand(20, 30) * 0.8
         c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), lut_fun, n_fact)
-        c1 = c1.reshape(beta.shape)
+        c1 = c1.reshape(beta.shape, copy=False)
 
         # compare to numpy
         n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]

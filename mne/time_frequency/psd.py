@@ -312,5 +312,5 @@ def psd_array_welch(
     if bad_ch.any():
         psds[bad_ch] = np.nan
 
-    psds = psds.reshape(shape)
+    psds = psds.reshape(shape, copy=False)
     return psds, freqs

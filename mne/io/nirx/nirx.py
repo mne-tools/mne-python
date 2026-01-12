@@ -567,7 +567,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds, sep=" ", replace=None)
         if replace is not None:
             data = replace(data)
         x = np.fromstring(data, float, sep=sep)
-    x = x.reshape(stop - start, -1)
+    x = x.reshape((stop - start, -1), copy=False)
     x = x[:, cols]
     return x
 

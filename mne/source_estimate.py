@@ -3730,7 +3730,7 @@ def _gen_extract_label_time_course(
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
                     this_data = vertidx @ this_data
                     this_data = this_data.reshape(
-                        (this_data.shape[0],) + stc.data.shape[1:]
+                        (this_data.shape[0],) + stc.data.shape[1:], copy=False
                     )
                 else:
                     this_data = stc.data[vertidx]

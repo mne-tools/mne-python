@@ -1041,7 +1041,7 @@ class RawBTi(BaseRaw):
                     block = np.fromfile(fid, dtype, count)
                 sample_stop = sample_start + count // n_channels
                 shape = (sample_stop - sample_start, bti_info["total_chans"])
-                block = block.reshape(shape)
+                block = block.reshape(shape, copy=False)
                 data_view = data[:, sample_start:sample_stop]
                 one = np.empty(block.shape[::-1])
 

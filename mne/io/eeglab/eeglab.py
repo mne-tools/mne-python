@@ -187,7 +187,7 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
         pos_array = np.array(pos, float)
-        pos_array = pos_array.reshape(-1, 3)
+        pos_array = pos_array.reshape((-1, 3), copy=False)
 
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).any(axis=1)
@@ -718,7 +718,7 @@ class EpochsEEGLAB(BaseEpochs):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             with open(data_fname, "rb") as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
-                data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials), order="F")
+                data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials), order="F", copy=False)
         else:
             data = eeg.data
 

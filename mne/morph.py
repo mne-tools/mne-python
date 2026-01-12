@@ -1556,7 +1556,7 @@ def _apply_morph_data(morph, stc_from):
         data[to_sl] = morph.morph_mat @ data_from[from_sl]
     assert to_used.all()
     assert from_used.all()
-    data = data.reshape((data.shape[0],) + stc_from.data.shape[1:])
+    data = data.reshape((data.shape[0],) + stc_from.data.shape[1:], copy=False)
     klass = stc_from.__class__
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep, morph.subject_to)
     return stc_to
