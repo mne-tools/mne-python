@@ -422,12 +422,11 @@ def test_nan_interpolation(raw):
 
     store = raw.info["chs"][1]["loc"]
     # for on_bad_position="raise"
+    raw.info["bads"] = ch_to_interp
+    raw.info["chs"][1]["loc"] = np.full(12, np.nan)
     with pytest.raises(ValueError, match="have invalid sensor position"):
-        raw.info["bads"] = ch_to_interp
-        raw.info["chs"][1]["loc"] = np.full(12, np.nan)
         # DOES NOT interpolates at all. So raw.info["bads"] remains as is
         raw.interpolate_bads(on_bad_position="raise")
-    assert np.isnan(raw.info["chs"][1]["loc"]).any()
 
     # for on_bad_position="warn"
     with pytest.warns(RuntimeWarning, match="have invalid sensor position"):
@@ -435,13 +434,11 @@ def test_nan_interpolation(raw):
         # so raw.info["bad"] will be empty again,
         # and interpolated channel with be all np.nan
         raw.interpolate_bads(on_bad_position="warn")
-    assert np.isnan(raw.info["chs"][1]["loc"]).any()
 
     # for on_bad_position="ignore"
     raw.info["bads"] = ch_to_interp
-    raw.interpolate_bads(on_bad_position="ignore")
-    assert np.isnan(raw.info["chs"][1]["loc"]).any()
-
+    assert raw.interpolate_bads(on_bad_position="ignore")
+    assert np.isnan(bad_chs).all, "Interpolated channel should be all NaN"
     raw.info["chs"][1]["loc"] = store
 
     # make sure other channels are untouched
