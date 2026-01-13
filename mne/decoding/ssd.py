@@ -457,7 +457,7 @@ def read_ssd(fname):
     # restore fitted state
     ssd.filters_ = state["filters"]
     ssd.patterns_ = state["patterns"]
-    ssd.eigenvalues_ = state["eigenvalues"]
+    ssd.evals_ = state["eigenvalues"]
     ssd.picks_ = state["picks_"]
     ssd.freqs_signal_ = state["freqs_signal_"]
     ssd.freqs_noise_ = state["freqs_noise_"]
