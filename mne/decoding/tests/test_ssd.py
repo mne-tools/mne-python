@@ -16,12 +16,11 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, create_info, io, pick_types, read_events
 from mne._fiff.pick import _picks_to_idx
-from mne.decoding import CSP
+from mne.decoding import CSP, read_ssd
 from mne.decoding._mod_ged import _get_spectral_ratio
 from mne.decoding.ssd import SSD
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
-from mne.decoding import read_ssd
 
 freqs_sig = 9, 12
 freqs_noise = 8, 13
@@ -360,6 +359,7 @@ def test_ssd_pipeline():
     out = pipe.fit_transform(X_e, y)
     assert out.shape == (100, 2)
     assert pipe.get_params()["SSD__n_components"] == 5
+
 
 def test_ssd_save_load(tmp_path):
     """Test saving and loading of SSD."""
