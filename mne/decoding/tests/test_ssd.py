@@ -21,6 +21,7 @@ from mne.decoding._mod_ged import _get_spectral_ratio
 from mne.decoding.ssd import SSD
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
+from mne.decoding import read_ssd
 
 freqs_sig = 9, 12
 freqs_noise = 8, 13
@@ -359,6 +360,46 @@ def test_ssd_pipeline():
     out = pipe.fit_transform(X_e, y)
     assert out.shape == (100, 2)
     assert pipe.get_params()["SSD__n_components"] == 5
+
+def test_ssd_save_load(tmp_path):
+    """Test saving and loading of SSD."""
+    X, _, _ = simulate_data()
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types="eeg")
+
+    filt_params_signal = dict(
+        l_freq=freqs_sig[0],
+        h_freq=freqs_sig[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+    filt_params_noise = dict(
+        l_freq=freqs_noise[0],
+        h_freq=freqs_noise[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+
+    ssd = SSD(
+        info,
+        filt_params_signal,
+        filt_params_noise,
+        n_components=5,
+        sort_by_spectral_ratio=True,
+    )
+    ssd.fit(X)
+
+    fname = tmp_path / "ssd.h5"
+    ssd.save(fname)
+
+    ssd_loaded = read_ssd(fname)
+
+    # Check numerical equivalence
+    X_orig = ssd.transform(X)
+    X_loaded = ssd_loaded.transform(X)
+
+    assert_array_almost_equal(X_orig, X_loaded)
 
 
 def test_sorting():

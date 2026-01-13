@@ -18,6 +18,8 @@ from ..utils import (
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
+from mne.utils import _check_fname, check_version
+from mne import __version__ as mne_version
 
 
 @fill_doc
@@ -236,6 +238,66 @@ class SSD(_GEDTransformer):
 
         logger.info("Done.")
         return self
+    
+    def save(self, fname, overwrite=False):
+        """Save the SSD object to disk.
+
+        Parameters
+        ----------
+        fname : path-like
+            Output filename. Must end with ``.h5``.
+        overwrite : bool
+            If True, overwrite the file.
+        """
+        from ..utils.check import _import_h5io_funcs
+
+        _validate_type(fname, "path-like", "fname")
+        _check_fname(fname, overwrite=overwrite)
+        check_version("h5py")
+
+        if not hasattr(self, "filters_"):
+            raise RuntimeError(
+                "Cannot save an unfitted SSD object. "
+                "Call `fit` before saving."
+            )
+
+        state = dict(
+            class_name="SSD",
+            mne_version=mne_version,
+
+            # init params
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            reg=self.reg,
+            n_components=self.n_components,
+            picks=self.picks,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+            return_filtered=self.return_filtered,
+            n_fft=self.n_fft,
+            cov_method_params=self.cov_method_params,
+            restr_type=self.restr_type,
+            rank=self.rank,
+
+            # fitted attributes
+            filters=self.filters_,
+            patterns=self.patterns_,
+            eigenvalues=self.evals_,
+            picks_=self.picks_,
+            freqs_signal_=self.freqs_signal_,
+            freqs_noise_=self.freqs_noise_,
+            n_fft_=self.n_fft_,
+            sfreq_=self.sfreq_,
+            info=self.info,
+        )
+
+        _, write_hdf5 = _import_h5io_funcs()
+        write_hdf5(
+            fname,
+            state,
+            title="mne-python SSD",
+            overwrite=overwrite,
+        )
+
 
     def transform(self, X):
         """Estimate epochs sources given the SSD filters.
@@ -350,3 +412,56 @@ class SSD(_GEDTransformer):
         pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+def read_ssd(fname):
+    """Read an SSD object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to ``.h5`` file.
+
+    Returns
+    -------
+    ssd : SSD
+        The loaded SSD object.
+    """
+    from ..utils.check import _import_h5io_funcs
+
+    _validate_type(fname, "path-like", "fname")
+    check_version("h5py")
+
+    read_hdf5, _ = _import_h5io_funcs()
+    state = read_hdf5(fname, title="mne-python SSD")
+
+    if state.get("class_name") != "SSD":
+        raise RuntimeError(
+            "The file does not contain a valid SSD object."
+        )
+
+    ssd = SSD(
+        info=state["info"],
+        filt_params_signal=state["filt_params_signal"],
+        filt_params_noise=state["filt_params_noise"],
+        reg=state["reg"],
+        n_components=state["n_components"],
+        picks=state["picks"],
+        sort_by_spectral_ratio=state["sort_by_spectral_ratio"],
+        return_filtered=state["return_filtered"],
+        n_fft=state["n_fft"],
+        cov_method_params=state["cov_method_params"],
+        restr_type=state["restr_type"],
+        rank=state["rank"],
+    )
+
+    # restore fitted state
+    ssd.filters_ = state["filters"]
+    ssd.patterns_ = state["patterns"]
+    ssd.eigenvalues_ = state["eigenvalues"]
+    ssd.picks_ = state["picks_"]
+    ssd.freqs_signal_ = state["freqs_signal_"]
+    ssd.freqs_noise_ = state["freqs_noise_"]
+    ssd.n_fft_ = state["n_fft_"]
+    ssd.sfreq_ = state["sfreq_"]
+
+    return ssd
