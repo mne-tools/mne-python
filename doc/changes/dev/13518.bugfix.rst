@@ -1,1 +1,1 @@
-Raise warning implementation in :meth:`mne.channels.InterpolationMixin.interpolate_bads` when interpolation of channels with invalid position is done, by :newcontrib:`Himanshu Mahor`_.
+Raise warning implementation in interpolate_bads() method when interpolation of channels with invalid position is done, by :newcontrib:`Himanshu Mahor`.
