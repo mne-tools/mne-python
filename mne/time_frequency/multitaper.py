@@ -10,6 +10,7 @@ from scipy.integrate import trapezoid
 from scipy.signal import get_window
 from scipy.signal.windows import dpss as sp_dpss
 
+from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _check_option, logger, verbose, warn
 
@@ -455,7 +456,7 @@ def psd_array_multitaper(
 
     # Combining/reshaping to original data shape
     last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
-    psd.shape = dshape + last_dims
+    psd = _reshape_view(psd, dshape + last_dims)
     if ndim_in == 1:
         psd = psd[0]
 
