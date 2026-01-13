@@ -7,6 +7,9 @@ from functools import partial
 
 import numpy as np
 
+from mne import __version__ as mne_version
+from mne.utils import _check_fname, check_version
+
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
@@ -18,8 +21,6 @@ from ..utils import (
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
-from mne.utils import _check_fname, check_version
-from mne import __version__ as mne_version
 
 
 @fill_doc
@@ -238,7 +239,7 @@ class SSD(_GEDTransformer):
 
         logger.info("Done.")
         return self
-    
+
     def save(self, fname, overwrite=False):
         """Save the SSD object to disk.
 
@@ -257,14 +258,12 @@ class SSD(_GEDTransformer):
 
         if not hasattr(self, "filters_"):
             raise RuntimeError(
-                "Cannot save an unfitted SSD object. "
-                "Call `fit` before saving."
+                "Cannot save an unfitted SSD object. Call `fit` before saving."
             )
 
         state = dict(
             class_name="SSD",
             mne_version=mne_version,
-
             # init params
             filt_params_signal=self.filt_params_signal,
             filt_params_noise=self.filt_params_noise,
@@ -277,7 +276,6 @@ class SSD(_GEDTransformer):
             cov_method_params=self.cov_method_params,
             restr_type=self.restr_type,
             rank=self.rank,
-
             # fitted attributes
             filters=self.filters_,
             patterns=self.patterns_,
@@ -297,7 +295,6 @@ class SSD(_GEDTransformer):
             title="mne-python SSD",
             overwrite=overwrite,
         )
-
 
     def transform(self, X):
         """Estimate epochs sources given the SSD filters.
@@ -413,6 +410,7 @@ class SSD(_GEDTransformer):
         X = pick_patterns @ X_ssd
         return X
 
+
 def read_ssd(fname):
     """Read an SSD object from disk.
 
@@ -435,9 +433,7 @@ def read_ssd(fname):
     state = read_hdf5(fname, title="mne-python SSD")
 
     if state.get("class_name") != "SSD":
-        raise RuntimeError(
-            "The file does not contain a valid SSD object."
-        )
+        raise RuntimeError("The file does not contain a valid SSD object.")
 
     ssd = SSD(
         info=state["info"],
