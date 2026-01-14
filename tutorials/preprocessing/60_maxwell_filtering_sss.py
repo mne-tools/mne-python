@@ -330,6 +330,10 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 # You can enable eSSS by setting ``extended_proj=proj`` in
 # :func:`~mne.preprocessing.maxwell_filter`.
 #
+# An external example using spatiotemporal extended SSS (teSSS) with movement
+# compensation can be found at 
+# `github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG`_.
+#
 #
 # Movement compensation
 # ^^^^^^^^^^^^^^^^^^^^^
@@ -401,5 +405,6 @@ mne.viz.plot_head_positions(head_pos, mode="traces")
 #
 #
 # .. LINKS
-#
+# 
 # .. _spherical harmonics: https://en.wikipedia.org/wiki/Spherical_harmonics
+# .. _github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG: https://github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG/blob/8dbe1594c8f69486aee5395b3f4fcaef5484f95b/pipeline.py#L118-L147
