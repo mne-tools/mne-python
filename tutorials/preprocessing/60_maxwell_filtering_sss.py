@@ -407,4 +407,4 @@ mne.viz.plot_head_positions(head_pos, mode="traces")
 # .. LINKS
 #
 # .. _spherical harmonics: https://en.wikipedia.org/wiki/Spherical_harmonics
-# .. _github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG: https://github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG/blob/8dbe1594c8f69486aee5395b3f4fcaef5484f95b/pipeline.py#L118-L147
+# .. _github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG: https://github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG/blob/c62019b4d37a20f0c82420b73595ea241b892a17/pipeline.py#L119-L147
