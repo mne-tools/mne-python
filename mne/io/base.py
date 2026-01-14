@@ -2452,6 +2452,11 @@ class BaseRaw(
         Returns
         -------
         %(df_return)s
+
+        Notes
+        -----
+        This method by default converts the data(:class:`pandas.DataFrame`) to its
+        standard unit and then returns it. See :ref:`units` and :term:`data channels`.
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
