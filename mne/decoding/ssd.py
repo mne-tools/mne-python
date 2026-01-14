@@ -148,6 +148,63 @@ class SSD(_GEDTransformer):
             mod_ged_callable=_ssd_mod,
             restr_type=restr_type,
         )
+    
+    def __getstate__(self):
+        """Get state for serialization."""
+        state = super().__getstate__()
+
+        # init parameters
+        state.update(
+            info=self.info,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            reg=self.reg,
+            n_components=self.n_components,
+            picks=self.picks,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+            return_filtered=self.return_filtered,
+            n_fft=self.n_fft,
+            cov_method_params=self.cov_method_params,
+            restr_type=self.restr_type,
+            rank=self.rank,
+        )
+
+        # fitted attributes (only if present)
+        for attr in (
+            "filters_",
+            "patterns_",
+            "evals_",
+            "picks_",
+            "freqs_signal_",
+            "freqs_noise_",
+            "n_fft_",
+            "sfreq_",
+        ):
+            if hasattr(self, attr):
+                state[attr] = getattr(self, attr)
+
+        return state
+    
+    def __setstate__(self, state):
+        """Restore state from serialization."""
+        super().__setstate__(state)
+
+        # Restore attributes
+        self.__dict__.update(state)
+
+        # Rebuild covariance callable exactly as in __init__
+        self.cov_callable = partial(
+            _ssd_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            picks=self.picks,
+            n_fft=self.n_fft,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            rank=self.rank,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        )
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -241,60 +298,12 @@ class SSD(_GEDTransformer):
         return self
 
     def save(self, fname, overwrite=False):
-        """Save the SSD object to disk.
-
-        Parameters
-        ----------
-        fname : path-like
-            Output filename. Must end with ``.h5``.
-        overwrite : bool
-            If True, overwrite the file.
-        """
-        from ..utils.check import _import_h5io_funcs
-
-        _validate_type(fname, "path-like", "fname")
-        _check_fname(fname, overwrite=overwrite)
-        check_version("h5py")
-
-        if not hasattr(self, "filters_"):
-            raise RuntimeError(
-                "Cannot save an unfitted SSD object. Call `fit` before saving."
-            )
-
-        state = dict(
+        state = self.__getstate__()
+        state.update(
             class_name="SSD",
             mne_version=mne_version,
-            # init params
-            filt_params_signal=self.filt_params_signal,
-            filt_params_noise=self.filt_params_noise,
-            reg=self.reg,
-            n_components=self.n_components,
-            picks=self.picks,
-            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
-            return_filtered=self.return_filtered,
-            n_fft=self.n_fft,
-            cov_method_params=self.cov_method_params,
-            restr_type=self.restr_type,
-            rank=self.rank,
-            # fitted attributes
-            filters=self.filters_,
-            patterns=self.patterns_,
-            eigenvalues=self.evals_,
-            picks_=self.picks_,
-            freqs_signal_=self.freqs_signal_,
-            freqs_noise_=self.freqs_noise_,
-            n_fft_=self.n_fft_,
-            sfreq_=self.sfreq_,
-            info=self.info,
         )
 
-        _, write_hdf5 = _import_h5io_funcs()
-        write_hdf5(
-            fname,
-            state,
-            title="mne-python SSD",
-            overwrite=overwrite,
-        )
 
     def transform(self, X):
         """Estimate epochs sources given the SSD filters.
@@ -435,7 +444,7 @@ def read_ssd(fname):
     if state.get("class_name") != "SSD":
         raise RuntimeError("The file does not contain a valid SSD object.")
 
-    ssd = SSD(
+        ssd = SSD(
         info=state["info"],
         filt_params_signal=state["filt_params_signal"],
         filt_params_noise=state["filt_params_noise"],
@@ -450,14 +459,7 @@ def read_ssd(fname):
         rank=state["rank"],
     )
 
-    # restore fitted state
-    ssd.filters_ = state["filters"]
-    ssd.patterns_ = state["patterns"]
-    ssd.evals_ = state["eigenvalues"]
-    ssd.picks_ = state["picks_"]
-    ssd.freqs_signal_ = state["freqs_signal_"]
-    ssd.freqs_noise_ = state["freqs_noise_"]
-    ssd.n_fft_ = state["n_fft_"]
-    ssd.sfreq_ = state["sfreq_"]
+    # restore full state (fitted attributes + callables)
+    ssd.__setstate__(state)
 
     return ssd

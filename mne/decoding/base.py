@@ -135,6 +135,31 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         super().__init_subclass__(**kwargs)
         cls._is_base_ged = False
 
+    def __getstate__(self):
+        """Get state for serialization.
+
+        This explicitly drops callables and other runtime-only attributes.
+        Subclasses can extend this to add estimator-specific state.
+        """
+        state = self.__dict__.copy()
+
+        # Callables are not serializable and must be reconstructed
+        state.pop("cov_callable", None)
+        state.pop("mod_ged_callable", None)
+
+        return state
+
+    def __setstate__(self, state):
+        """Restore state from serialization.
+
+        Subclasses are responsible for reconstructing dropped callables.
+        """
+        self.__dict__.update(state)
+
+        # Ensure attributes exist even before reconstruction
+        self.cov_callable = None
+        self.mod_ged_callable = None
+
     def fit(self, X, y=None):
         """..."""
         # Let the inheriting transformers check data by themselves
