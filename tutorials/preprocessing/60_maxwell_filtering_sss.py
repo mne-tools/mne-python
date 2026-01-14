@@ -323,7 +323,7 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 # - eSSS can be combined with tSSS (“teSSS”, i.e. setting ``st_duration=X``).
 # - you can get projectsion from an empty room recording via
 #   :func:`mne.compute_proj_raw` like::
-#   
+#
 #       proj = mne.compute_proj_raw(
 #           noise_raw, n_grad=3, n_mag=3, n_eeg=0, meg="combined",
 #       )
