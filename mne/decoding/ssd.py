@@ -8,7 +8,7 @@ from functools import partial
 import numpy as np
 
 from mne import __version__ as mne_version
-from mne.utils import _check_fname, check_version
+from mne.utils import check_version
 
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
@@ -148,7 +148,7 @@ class SSD(_GEDTransformer):
             mod_ged_callable=_ssd_mod,
             restr_type=restr_type,
         )
-    
+
     def __getstate__(self):
         """Get state for serialization."""
         state = super().__getstate__()
@@ -184,7 +184,7 @@ class SSD(_GEDTransformer):
                 state[attr] = getattr(self, attr)
 
         return state
-    
+
     def __setstate__(self, state):
         """Restore state from serialization."""
         super().__setstate__(state)
@@ -303,7 +303,6 @@ class SSD(_GEDTransformer):
             class_name="SSD",
             mne_version=mne_version,
         )
-
 
     def transform(self, X):
         """Estimate epochs sources given the SSD filters.
@@ -445,19 +444,19 @@ def read_ssd(fname):
         raise RuntimeError("The file does not contain a valid SSD object.")
 
         ssd = SSD(
-        info=state["info"],
-        filt_params_signal=state["filt_params_signal"],
-        filt_params_noise=state["filt_params_noise"],
-        reg=state["reg"],
-        n_components=state["n_components"],
-        picks=state["picks"],
-        sort_by_spectral_ratio=state["sort_by_spectral_ratio"],
-        return_filtered=state["return_filtered"],
-        n_fft=state["n_fft"],
-        cov_method_params=state["cov_method_params"],
-        restr_type=state["restr_type"],
-        rank=state["rank"],
-    )
+            info=state["info"],
+            filt_params_signal=state["filt_params_signal"],
+            filt_params_noise=state["filt_params_noise"],
+            reg=state["reg"],
+            n_components=state["n_components"],
+            picks=state["picks"],
+            sort_by_spectral_ratio=state["sort_by_spectral_ratio"],
+            return_filtered=state["return_filtered"],
+            n_fft=state["n_fft"],
+            cov_method_params=state["cov_method_params"],
+            restr_type=state["restr_type"],
+            rank=state["rank"],
+        )
 
     # restore full state (fitted attributes + callables)
     ssd.__setstate__(state)
