@@ -8,13 +8,19 @@ from contextlib import nullcontext
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
+from numpy.testing import (
+    assert_allclose,
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 
 from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
+    _channel_frequencies,
     _reorder_nirx,
     beer_lambert_law,
     optical_density,
@@ -68,6 +74,11 @@ ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 # GowerLabs
 lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
 
+# Shimadzu Labnirs 3-wavelength converted to snirf using custom tool
+labnirs_multi_wavelength = (
+    testing_path / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
+)
+
 
 def _get_loc(raw, ch_name):
     return raw.copy().pick(ch_name).info["chs"][0]["loc"]
@@ -88,6 +99,7 @@ def _get_loc(raw, ch_name):
             nirx_nirsport2_103_2,
             kernel_hb,
             lumo110,
+            labnirs_multi_wavelength,
         ]
     ),
 )
@@ -574,3 +586,17 @@ def test_sample_rate_jitter(tmp_path):
         f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
     with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
         read_raw_snirf(new_file, verbose=True)
+
+
+@requires_testing_data
+def test_snirf_multiple_wavelengths():
+    """Test importing synthetic SNIRF files with >=3 wavelengths."""
+    raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)
+    assert raw._data.shape == (45, 250)
+    assert raw.info["sfreq"] == pytest.approx(19.6, abs=0.01)
+    assert raw.info["ch_names"][:3] == ["S2_D2 780", "S2_D2 805", "S2_D2 830"]
+    assert len(raw.ch_names) == 45
+    freqs = np.unique(_channel_frequencies(raw.info))
+    assert_array_equal(freqs, [780, 805, 830])
+    distances = source_detector_distances(raw.info)
+    assert len(distances) == len(raw.ch_names)

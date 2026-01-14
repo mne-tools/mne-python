@@ -210,6 +210,7 @@
 .. _Matti Hämäläinen: https://research.aalto.fi/en/persons/matti-h%C3%A4m%C3%A4l%C3%A4inen/
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+.. _Melih Yayli: https://github.com/yaylim
 .. _Michael Straube: https://github.com/mistraube
 .. _Michal Žák: https://github.com/michalrzak
 .. _Michiru Kaneda: https://github.com/rcmdnk
@@ -319,6 +320,7 @@
 .. _Sébastien Marti: https://www.researchgate.net/profile/Sebastien-Marti
 .. _T. Wang: https://github.com/twang5
 .. _Tal Linzen: https://tallinzen.net/
+.. _Tamas Fehervari: https://github.com/zEdS15B3GCwq
 .. _Teon Brooks: https://github.com/teonbrooks
 .. _Tharupahan Jayawardana: https://github.com/tharu-jwd
 .. _Thomas Binns: https://github.com/tsbinns

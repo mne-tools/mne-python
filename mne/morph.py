@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from .fixes import _eye_array, _get_img_fdata
+from .fixes import _eye_array, _get_img_fdata, _reshape_view
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -1556,7 +1556,7 @@ def _apply_morph_data(morph, stc_from):
         data[to_sl] = morph.morph_mat @ data_from[from_sl]
     assert to_used.all()
     assert from_used.all()
-    data.shape = (data.shape[0],) + stc_from.data.shape[1:]
+    data = _reshape_view(data, (data.shape[0],) + stc_from.data.shape[1:])
     klass = stc_from.__class__
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep, morph.subject_to)
     return stc_to

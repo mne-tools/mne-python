@@ -11,7 +11,7 @@ from mne._fiff.constants import FIFF
 from mne._fiff.pick import _picks_to_idx
 from mne.datasets import testing
 from mne.datasets.testing import data_path
-from mne.io import RawArray, read_raw_nirx
+from mne.io import RawArray, read_raw_nirx, read_raw_snirf
 from mne.preprocessing.nirs import (
     _channel_chromophore,
     _channel_frequencies,
@@ -35,12 +35,22 @@ fname_nirx_15_2 = (
 fname_nirx_15_2_short = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 )
+fname_labnirs_multi_wavelength = (
+    data_path(download=False) / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
+)
 
 
 @testing.requires_testing_data
-def test_fnirs_picks():
+@pytest.mark.parametrize(
+    "fname, readerfn",
+    [
+        (fname_nirx_15_0, read_raw_nirx),
+        (fname_labnirs_multi_wavelength, read_raw_snirf),
+    ],
+)
+def test_fnirs_picks(fname, readerfn):
     """Test picking of fnirs types after different conversions."""
-    raw = read_raw_nirx(fname_nirx_15_0)
+    raw = readerfn(fname)
     picks = _picks_to_idx(raw.info, "fnirs_cw_amplitude")
     assert len(picks) == len(raw.ch_names)
     raw_subset = raw.copy().pick(picks="fnirs_cw_amplitude")
@@ -106,12 +116,18 @@ def _fnirs_check_bads(info):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "fname", ([fname_nirx_15_2_short, fname_nirx_15_2, fname_nirx_15_0])
+    "fname, readerfn",
+    [
+        (fname_nirx_15_0, read_raw_nirx),
+        (fname_nirx_15_2_short, read_raw_nirx),
+        (fname_nirx_15_2, read_raw_nirx),
+        (fname_labnirs_multi_wavelength, read_raw_snirf),
+    ],
 )
-def test_fnirs_check_bads(fname):
+def test_fnirs_check_bads(fname, readerfn):
     """Test checking of bad markings."""
     # No bad channels, so these should all pass
-    raw = read_raw_nirx(fname)
+    raw = readerfn(fname)
     _fnirs_check_bads(raw.info)
     raw = optical_density(raw)
     _fnirs_check_bads(raw.info)
@@ -119,8 +135,9 @@ def test_fnirs_check_bads(fname):
     _fnirs_check_bads(raw.info)
 
     # Mark pairs of bad channels, so these should all pass
-    raw = read_raw_nirx(fname)
-    raw.info["bads"] = raw.ch_names[0:2]
+    raw = readerfn(fname)
+    nfreqs = len(set(_channel_frequencies(raw.info)))
+    raw.info["bads"] = raw.ch_names[0:nfreqs]
     _fnirs_check_bads(raw.info)
     raw = optical_density(raw)
     _fnirs_check_bads(raw.info)
@@ -128,7 +145,7 @@ def test_fnirs_check_bads(fname):
     _fnirs_check_bads(raw.info)
 
     # Mark single channel as bad, so these should all fail
-    raw = read_raw_nirx(fname)
+    raw = readerfn(fname)
     raw.info["bads"] = raw.ch_names[0:1]
     pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
     with pytest.raises(RuntimeError, match="bad labelling"):
@@ -144,71 +161,90 @@ def test_fnirs_check_bads(fname):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "fname", ([fname_nirx_15_2_short, fname_nirx_15_2, fname_nirx_15_0])
+    "fname, readerfn",
+    [
+        (fname_nirx_15_0, read_raw_nirx),
+        (fname_nirx_15_2_short, read_raw_nirx),
+        (fname_nirx_15_2, read_raw_nirx),
+        (fname_labnirs_multi_wavelength, read_raw_snirf),
+    ],
 )
-def test_fnirs_spread_bads(fname):
+def test_fnirs_spread_bads(fname, readerfn):
     """Test checking of bad markings."""
     # Test spreading upwards in frequency and on raw data
-    raw = read_raw_nirx(fname)
-    raw.info["bads"] = ["S1_D1 760"]
+    raw = readerfn(fname)
+    nfreqs = len(set(_channel_frequencies(raw.info)))
+    raw.info["bads"] = [raw.ch_names[0]]
     info = _fnirs_spread_bads(raw.info)
-    assert info["bads"] == ["S1_D1 760", "S1_D1 850"]
+    assert info["bads"] == raw.ch_names[:nfreqs]
 
-    # Test spreading downwards in frequency and on od data
-    raw = optical_density(raw)
-    raw.info["bads"] = raw.ch_names[5:6]
-    info = _fnirs_spread_bads(raw.info)
-    assert info["bads"] == raw.ch_names[4:6]
+    # Test multiple spreading directions on od data
+    # For each wavelength, mark the nth item in the nth group as bad
+    # e.g. 3 wavelengths:
+    #   group 0 (channels 0, 1, 2) - channel 0 is marked bad,
+    #   group 1 (channels 3, 4, 5) - channel 4 is bad,
+    #   group 2 (channels 6, 7, 8) - channel 8 is bad.
+    # This way we can test spreading from each group member in a
+    # way that's agnostic of the number of wavelengths, and avoid
+    # hard-coded values. Needs nfreqs**2 number of channels.
+    raw_od = optical_density(raw)
+    bads = [raw_od.ch_names[nfreqs * ii + ii] for ii in range(nfreqs)]
+    expected_bads = raw_od.ch_names[: nfreqs**2]
+    raw_od.info["bads"] = bads
+    info = _fnirs_spread_bads(raw_od.info)
+    # channels might not be sorted but the spreading result is
+    assert info["bads"] == sorted(expected_bads)
 
     # Test spreading multiple bads and on chroma data
-    raw = beer_lambert_law(raw)
-    raw.info["bads"] = [raw.ch_names[x] for x in [1, 8]]
-    info = _fnirs_spread_bads(raw.info)
+    # Hb data always has 2 channels per S-D pair, this works for any nfreqs
+    raw_hb = beer_lambert_law(raw_od)
+    raw_hb.info["bads"] = [raw_hb.ch_names[x] for x in [1, 8]]
+    info = _fnirs_spread_bads(raw_hb.info)
     assert info["bads"] == [info.ch_names[x] for x in [0, 1, 8, 9]]
 
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "fname", ([fname_nirx_15_2_short, fname_nirx_15_2, fname_nirx_15_0])
+    "fname, readerfn",
+    [
+        (fname_nirx_15_0, read_raw_nirx),
+        (fname_nirx_15_2_short, read_raw_nirx),
+        (fname_nirx_15_2, read_raw_nirx),
+        (fname_labnirs_multi_wavelength, read_raw_snirf),
+    ],
 )
-def test_fnirs_channel_naming_and_order_readers(fname):
-    """Ensure fNIRS channel checking on standard readers."""
+def test_fnirs_channel_frequency_ordering(fname, readerfn):
+    """Test fNIRS channel frequencies ordering and related errors."""
     # fNIRS data requires specific channel naming and ordering.
 
-    # All standard readers should pass tests
-    raw = read_raw_nirx(fname)
-    freqs = np.unique(_channel_frequencies(raw.info))
-    assert_array_equal(freqs, [760, 850])
+    # Ensure that freqs are well-ordered after reading in from file,
+    # and that there are no chroma channels
+    raw = readerfn(fname)
+    freqs = np.unique(_channel_frequencies(raw.info)).tolist()
+    assert sorted(freqs) == freqs
     chroma = np.unique(_channel_chromophore(raw.info))
     assert len(chroma) == 0
-
     picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)  # as all fNIRS only data
 
-    # Check that dropped channels are detected
-    # For each source detector pair there must be two channels,
-    # removing one should throw an error.
-    raw_dropped = raw.copy().drop_channels(raw.ch_names[4])
-    with pytest.raises(ValueError, match="not ordered correctly"):
-        _check_channels_ordered(raw_dropped.info, freqs)
-
     # The ordering must be increasing for the pairs, if provided
-    raw_names_reversed = raw.copy().ch_names
-    raw_names_reversed.reverse()
-    raw_reversed = raw.copy().pick(raw_names_reversed)
+    raw_reversed = raw.pick(list(reversed(raw.ch_names)))
+
     with pytest.raises(ValueError, match="The frequencies.*sorted.*"):
-        _check_channels_ordered(raw_reversed.info, [850, 760])
+        _check_channels_ordered(raw_reversed.info, list(reversed(freqs)))
     # So if we flip the second argument it should pass again
     picks = _check_channels_ordered(raw_reversed.info, freqs)
-    got_first = set(raw_reversed.ch_names[pick].split()[1] for pick in picks[::2])
-    assert got_first == {"760"}
-    got_second = set(raw_reversed.ch_names[pick].split()[1] for pick in picks[1::2])
-    assert got_second == {"850"}
+    nfreqs = len(freqs)
+    for ii in range(nfreqs):
+        suffixes = {
+            int(raw_reversed.ch_names[pick].split(" ")[1]) for pick in picks[ii::nfreqs]
+        }
+        assert suffixes == {freqs[ii]}
 
     # Check on OD data
     raw = optical_density(raw)
-    freqs = np.unique(_channel_frequencies(raw.info))
-    assert_array_equal(freqs, [760, 850])
+    freqs = np.unique(_channel_frequencies(raw.info)).tolist()
+    assert sorted(freqs) == freqs
     chroma = np.unique(_channel_chromophore(raw.info))
     assert len(chroma) == 0
     picks = _check_channels_ordered(raw.info, freqs)
@@ -553,3 +589,58 @@ def test_order_agnostic(nirx_snirf):
             tddrs["nirx"].get_data(), r.get_data(orders[key]), err_msg=key, atol=1e-9
         )
         assert set(r.get_channel_types()) == {"hbo", "hbr"}
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "fname, readerfn",
+    [
+        (fname_nirx_15_0, read_raw_nirx),
+        (fname_nirx_15_2_short, read_raw_nirx),
+        (fname_nirx_15_2, read_raw_nirx),
+        (fname_labnirs_multi_wavelength, read_raw_snirf),
+    ],
+)
+def test_nirs_channel_grouping(fname, readerfn):
+    """Test channel grouping related errors."""
+    raw = readerfn(fname)
+    freqs = np.unique(_channel_frequencies(raw.info)).tolist()
+    nfreqs = len(freqs)
+
+    # Each source-detector (S-D) optode pair may have data measured at
+    # >=2 wavelengths. The channels that belong to an optode pair form
+    # a group, with a size equal to the number of wavelengths (nfreqs).
+    # An error is raised if these groups are incomplete.
+
+    picks = _check_channels_ordered(raw.info, freqs)
+    assert len(picks) == len(raw.ch_names)
+
+    # Removing one channel breaks the grouping
+    raw_dropped = raw.copy().drop_channels(raw.ch_names[4])
+    with pytest.raises(ValueError, match="NIRS channels not ordered correctly."):
+        _check_channels_ordered(raw_dropped.info, freqs)
+
+    # Selecting incomplete groups results in an error
+    raw_incomplete = raw.copy().pick(list(range(nfreqs + 1)))
+    with pytest.raises(ValueError, match="NIRS channels not ordered correctly."):
+        _check_channels_ordered(raw_incomplete.info, freqs)
+
+    # Changing the frequency in one channel's name also breaks groups
+    raw_extrafreq = raw.copy()
+    new_ch10_name = f"{raw_extrafreq.ch_names[10].split(' ')[0]} 100"
+    raw_extrafreq.rename_channels({raw_extrafreq.ch_names[10]: new_ch10_name})
+    print(raw_extrafreq.ch_names)
+    # checks result in error for both old and new set of frequencies
+    with pytest.raises(ValueError, match="NIRS channels not ordered correctly."):
+        _check_channels_ordered(raw_extrafreq.info, [100] + freqs)
+    with pytest.raises(ValueError, match="NIRS channels not ordered correctly."):
+        _check_channels_ordered(raw_extrafreq.info, freqs)
+
+    # Frequency values are also stored in info['chs'][ii]['loc'][9].
+    # Even though the actual values can be arbitrary, they cannot be None.
+    raw_locnone = raw.copy()
+    raw_locnone.info["chs"][10]["loc"][9] = None
+    with pytest.raises(
+        ValueError, match="NIRS channels is missing wavelength information"
+    ):
+        _check_channels_ordered(raw_locnone.info, freqs)

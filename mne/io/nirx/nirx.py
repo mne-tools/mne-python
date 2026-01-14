@@ -17,6 +17,7 @@ from ..._fiff.meas_info import _format_dig_points, create_info
 from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
 from ...annotations import Annotations
+from ...fixes import _reshape_view
 from ...transforms import _get_trans, apply_trans
 from ...utils import (
     _check_fname,
@@ -41,7 +42,10 @@ def read_raw_nirx(
     Parameters
     ----------
     fname : path-like
-        Path to the NIRX data folder or header file.
+        Path to the NIRX data folder (directory containing NIRX files) or
+        the ``.hdr`` header file within that folder. The function will
+        automatically find and read all required NIRX files from the
+        directory.
     %(saturated)s
     %(preload)s
     %(encoding_nirx)s
@@ -564,7 +568,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds, sep=" ", replace=None)
         if replace is not None:
             data = replace(data)
         x = np.fromstring(data, float, sep=sep)
-    x.shape = (stop - start, -1)
+    x = _reshape_view(x, (stop - start, -1))
     x = x[:, cols]
     return x
 

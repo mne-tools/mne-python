@@ -71,7 +71,7 @@ jobs:
             python: '3.13'
             kind: pip
           - os: ubuntu-latest
-            python: '3.13'
+            python: '3.14'
             kind: pip-pre
           - os: ubuntu-latest
             python: '3.13'
