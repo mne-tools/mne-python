@@ -1559,10 +1559,10 @@ ext_order : int
 docdict["extended_proj_maxwell"] = """
 extended_proj : list
     The empty-room projection vectors used to extend the external
-    SSS basis (i.e., use eSSS). You can use any SSP projectors that contain
-    pure noise of the structure that you expect in your signal, e.g. by
-    proj = mne.compute_proj_raw(raw_noise.pick('meg'), n_grad=3, n_mag=3,
-                                meg="separate")
+    SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+    pure *external* noise that you expect to be present in your signal e.g. by
+    `proj = mne.compute_proj_raw(raw_empty_room.pick('meg'), n_grad=3, n_mag=3,
+                                meg="separate")`
 
     .. versionadded:: 0.21
 """
