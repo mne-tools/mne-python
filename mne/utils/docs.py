@@ -1562,9 +1562,11 @@ extended_proj : list
     SSS basis (i.e., use eSSS). You can use any SSP projections that contain
     pure *external* noise that you expect to be present in your signal.
     Typically, this should be the case during an empty room recording. Get the
-    projections e.g. by calling
-    `proj = mne.compute_proj_raw(raw_empty_room.pick('meg'), n_grad=3, n_mag=3,
-                                meg="combined")`
+    projections e.g. by calling::
+
+        proj = mne.compute_proj_raw(
+            raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+        )
 
     .. versionadded:: 0.21
 """
