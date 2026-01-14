@@ -26,6 +26,7 @@ from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
 from mne.io.edf.edf import (
     _check_edf_discontinuity,
     _edf_str,
+    _get_tal_record_times,
     _parse_prefilter_string,
     _prefilter_float,
     _read_annotations_edf,
@@ -1448,6 +1449,38 @@ def test_check_edf_discontinuity():
     assert not has_gaps
     assert gaps == []
 
+    # Test n_records mismatch validation
+    record_times = [0.0, 1.0, 2.0]
+    with pytest.raises(ValueError, match="does not match expected number of records"):
+        _check_edf_discontinuity(record_times, record_length, 5)
+
+    # Test n_records mismatch for single record
+    record_times = [0.0]
+    with pytest.raises(ValueError, match="does not match expected number of records"):
+        _check_edf_discontinuity(record_times, record_length, 2)
+
+    # Test non-numeric values
+    record_times = [0.0, "invalid", 2.0]
+    with pytest.raises(ValueError, match="must contain numeric values"):
+        _check_edf_discontinuity(record_times, record_length, 3)
+
+    # Test NaN values
+    record_times = [0.0, np.nan, 2.0]
+    with pytest.raises(ValueError, match="non-finite values"):
+        _check_edf_discontinuity(record_times, record_length, 3)
+
+    # Test inf values
+    record_times = [0.0, np.inf, 2.0]
+    with pytest.raises(ValueError, match="non-finite values"):
+        _check_edf_discontinuity(record_times, record_length, 3)
+
+    # Test unsorted record_times (should warn and sort)
+    record_times = [2.0, 0.0, 1.0, 3.0, 4.0]  # Unsorted
+    with pytest.warns(RuntimeWarning, match="not sorted"):
+        has_gaps, gaps = _check_edf_discontinuity(record_times, record_length, 5)
+    assert not has_gaps  # After sorting, should be continuous
+    assert gaps == []
+
 
 def test_edf_plus_d_continuous_allowed(tmp_path):
     """Test that EDF+D files marked discontinuous but actually continuous load OK."""
@@ -1462,3 +1495,48 @@ def test_edf_plus_d_continuous_allowed(tmp_path):
     # This should work because there are no actual gaps
     raw = read_raw_edf(edf_d_no_gap_path, preload=True)
     assert len(raw.ch_names) == 1
+
+
+def test_get_tal_record_times():
+    """Test the _get_tal_record_times helper function."""
+    # TAL format: +onset\x14annotation\x14\x00
+    # Record timestamp has empty annotation: +onset\x14\x14\x00
+
+    # Test with simple TAL data containing record timestamps
+    # Simulate TAL bytes for records at 0.0, 1.0, 2.0 seconds
+    tal_data = b"+0.000000\x14\x14\x00+1.000000\x14\x14\x00+2.000000\x14\x14\x00"
+    # Convert to int16 array as would be read from EDF
+    tal_array = np.frombuffer(tal_data.ljust(60, b"\x00"), dtype="<i2")
+
+    record_times = _get_tal_record_times(tal_array)
+    assert len(record_times) == 3
+    assert_allclose(record_times, [0.0, 1.0, 2.0])
+
+    # Test with TAL data containing annotations (should only extract timestamps)
+    tal_with_annot = (
+        b"+0.000000\x14\x14\x00"
+        b"+0.500000\x15\x141.0\x14Event1\x14\x00"  # Annotation at 0.5s
+        b"+1.000000\x14\x14\x00"
+    )
+    tal_array = np.frombuffer(tal_with_annot.ljust(100, b"\x00"), dtype="<i2")
+    record_times = _get_tal_record_times(tal_array)
+    assert len(record_times) == 2  # Only record timestamps, not annotation
+    assert_allclose(record_times, [0.0, 1.0])
+
+    # Test with empty TAL data
+    empty_tal = np.array([], dtype="<i2")
+    record_times = _get_tal_record_times(empty_tal)
+    assert record_times == []
+
+    # Test with discontinuous record times (gap between 2.0 and 4.0)
+    tal_discontinuous = (
+        b"+0.000000\x14\x14\x00"
+        b"+1.000000\x14\x14\x00"
+        b"+2.000000\x14\x14\x00"
+        b"+4.000000\x14\x14\x00"  # Gap: jumped from 2.0 to 4.0
+        b"+5.000000\x14\x14\x00"
+    )
+    tal_array = np.frombuffer(tal_discontinuous.ljust(120, b"\x00"), dtype="<i2")
+    record_times = _get_tal_record_times(tal_array)
+    assert len(record_times) == 5
+    assert_allclose(record_times, [0.0, 1.0, 2.0, 4.0, 5.0])

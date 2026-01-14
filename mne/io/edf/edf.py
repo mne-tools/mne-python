@@ -2497,14 +2497,55 @@ def _check_edf_discontinuity(record_times, record_length, n_records, tolerance=1
         True if gaps exist between records.
     gaps : list of tuple
         List of (onset, duration) tuples for each gap.
+
+    Raises
+    ------
+    ValueError
+        If the number of record times does not match n_records, or if record_times
+        contains non-numeric values.
     """
+    # Handle empty/short cases early
     if len(record_times) < 2:
+        # Validate n_records match even for edge cases
+        if len(record_times) != n_records:
+            raise ValueError(
+                f"Number of record times ({len(record_times)}) does not match "
+                f"expected number of records ({n_records})."
+            )
         return False, []
 
+    # Validate n_records matches
+    if len(record_times) != n_records:
+        raise ValueError(
+            f"Number of record times ({len(record_times)}) does not match "
+            f"expected number of records ({n_records})."
+        )
+
+    # Convert to numpy array for validation and ensure numeric
+    try:
+        times = np.asarray(record_times, dtype=np.float64)
+    except (ValueError, TypeError) as e:
+        raise ValueError(
+            f"record_times must contain numeric values, got error: {e}"
+        ) from e
+
+    # Check for NaN or inf values
+    if not np.all(np.isfinite(times)):
+        raise ValueError("record_times contains non-finite values (NaN or inf).")
+
+    # Check if times are sorted (monotonically increasing)
+    if not np.all(np.diff(times) >= 0):
+        warn(
+            "record_times are not sorted in monotonically increasing order. "
+            "Sorting a copy for gap detection."
+        )
+        times = np.sort(times)
+
+    # Detect gaps using validated/sorted times
     gaps = []
-    for i in range(len(record_times) - 1):
-        expected_next = record_times[i] + record_length
-        actual_next = record_times[i + 1]
+    for i in range(len(times) - 1):
+        expected_next = times[i] + record_length
+        actual_next = times[i + 1]
         gap = actual_next - expected_next
 
         if gap > tolerance:
