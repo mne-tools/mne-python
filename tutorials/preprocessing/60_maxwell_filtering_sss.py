@@ -308,7 +308,7 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 #
 #
 # Extended SSS (eSSS)
-# ^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^
 #
 # Extended SSS (eSSS) is a variant of SSS that improves suppression of external
 # interference especially, when the “ideal” external model is not perfect
@@ -322,11 +322,13 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 # - Prefer empty-room data from the same session/environment.
 # - eSSS can be combined with tSSS (“teSSS”, i.e. setting ``st_duration=X``).
 # - you can get projectsion from an empty room recording via
+#
 #   :func:`mne.compute_proj_raw` like::
 #
 #       proj = mne.compute_proj_raw(
 #           noise_raw, n_grad=3, n_mag=3, n_eeg=0, meg="combined",
 #       )
+#
 # You can enable eSSS by setting ``extended_proj=proj`` in
 # :func:`~mne.preprocessing.maxwell_filter`.
 #
