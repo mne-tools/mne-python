@@ -321,8 +321,7 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 #   adding too many can worsen numerical conditioning and increase noise.
 # - Prefer empty-room data from the same session/environment.
 # - eSSS can be combined with tSSS (“teSSS”, i.e. setting ``st_duration=X``).
-# - you can get projectsion from an empty room recording via
-#
+# - You can get projections from an empty room recording via
 #   :func:`mne.compute_proj_raw` like::
 #
 #       proj = mne.compute_proj_raw(
