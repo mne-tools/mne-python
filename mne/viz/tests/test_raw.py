@@ -325,9 +325,6 @@ def test_plot_raw_selection(raw, browser_backend, monkeypatch):
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
     assert browser_backend._get_n_figs() == 0
-    # https://github.com/matplotlib/matplotlib/issues/30575
-    monkeypatch.setattr(mne.viz.utils, "_BLIT_KWARGS", dict(useblit=False))
-    monkeypatch.setattr(mne.viz._mpl_figure, "_BLIT_KWARGS", dict(useblit=False))
     fig = raw.plot(group_by="selection", proj=False)
     assert browser_backend._get_n_figs() == 2
     sel_fig = fig.mne.fig_selection
@@ -500,9 +497,6 @@ def test_orphaned_annot_fig(raw, browser_backend, monkeypatch):
     """Test that annotation window is not orphaned (GH #10454)."""
     if browser_backend.name != "matplotlib":
         return
-    # https://github.com/matplotlib/matplotlib/issues/30575
-    monkeypatch.setattr(mne.viz.utils, "_BLIT_KWARGS", dict(useblit=False))
-    monkeypatch.setattr(mne.viz._mpl_figure, "_BLIT_KWARGS", dict(useblit=False))
     assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
     _spawn_child_fig(fig, "fig_annotation", browser_backend, "a")
