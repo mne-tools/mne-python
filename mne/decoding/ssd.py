@@ -7,6 +7,9 @@ from functools import partial
 
 import numpy as np
 
+from mne import __version__ as mne_version
+from mne.utils import check_version
+
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
@@ -146,6 +149,63 @@ class SSD(_GEDTransformer):
             restr_type=restr_type,
         )
 
+    def __getstate__(self):
+        """Get state for serialization."""
+        state = super().__getstate__()
+
+        # init parameters
+        state.update(
+            info=self.info,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            reg=self.reg,
+            n_components=self.n_components,
+            picks=self.picks,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+            return_filtered=self.return_filtered,
+            n_fft=self.n_fft,
+            cov_method_params=self.cov_method_params,
+            restr_type=self.restr_type,
+            rank=self.rank,
+        )
+
+        # fitted attributes (only if present)
+        for attr in (
+            "filters_",
+            "patterns_",
+            "evals_",
+            "picks_",
+            "freqs_signal_",
+            "freqs_noise_",
+            "n_fft_",
+            "sfreq_",
+        ):
+            if hasattr(self, attr):
+                state[attr] = getattr(self, attr)
+
+        return state
+
+    def __setstate__(self, state):
+        """Restore state from serialization."""
+        super().__setstate__(state)
+
+        # Restore attributes
+        self.__dict__.update(state)
+
+        # Rebuild covariance callable exactly as in __init__
+        self.cov_callable = partial(
+            _ssd_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            picks=self.picks,
+            n_fft=self.n_fft,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            rank=self.rank,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        )
+
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
             self.sfreq_ = self.info
@@ -236,6 +296,13 @@ class SSD(_GEDTransformer):
 
         logger.info("Done.")
         return self
+
+    def save(self, fname, overwrite=False):
+        state = self.__getstate__()
+        state.update(
+            class_name="SSD",
+            mne_version=mne_version,
+        )
 
     def transform(self, X):
         """Estimate epochs sources given the SSD filters.
@@ -350,3 +417,48 @@ class SSD(_GEDTransformer):
         pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+def read_ssd(fname):
+    """Read an SSD object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to ``.h5`` file.
+
+    Returns
+    -------
+    ssd : SSD
+        The loaded SSD object.
+    """
+    from ..utils.check import _import_h5io_funcs
+
+    _validate_type(fname, "path-like", "fname")
+    check_version("h5py")
+
+    read_hdf5, _ = _import_h5io_funcs()
+    state = read_hdf5(fname, title="mne-python SSD")
+
+    if state.get("class_name") != "SSD":
+        raise RuntimeError("The file does not contain a valid SSD object.")
+
+        ssd = SSD(
+            info=state["info"],
+            filt_params_signal=state["filt_params_signal"],
+            filt_params_noise=state["filt_params_noise"],
+            reg=state["reg"],
+            n_components=state["n_components"],
+            picks=state["picks"],
+            sort_by_spectral_ratio=state["sort_by_spectral_ratio"],
+            return_filtered=state["return_filtered"],
+            n_fft=state["n_fft"],
+            cov_method_params=state["cov_method_params"],
+            restr_type=state["restr_type"],
+            rank=state["rank"],
+        )
+
+    # restore full state (fitted attributes + callables)
+    ssd.__setstate__(state)
+
+    return ssd
