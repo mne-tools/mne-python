@@ -1,0 +1,1 @@
+make :func:`mne.sys_info` work on Windows systems with Powershell version 7+, by `Marijn van Vliet`_
