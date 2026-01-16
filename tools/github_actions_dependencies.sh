@@ -38,8 +38,6 @@ else
 	EXTRAS=""
 fi
 echo ""
-# until quantities releases...
-STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
 
 echo "::group::Installing test dependencies using pip"
 set -x
