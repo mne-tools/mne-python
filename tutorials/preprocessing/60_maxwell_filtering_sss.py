@@ -307,6 +307,36 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 # :func:`~mne.preprocessing.maxwell_filter` for details.
 #
 #
+# Extended SSS (eSSS)
+# ^^^^^^^^^^^^^^^^^^^
+#
+# Extended SSS (eSSS) is a variant of SSS that improves suppression of external
+# interference especially, when the “ideal” external model is not perfect
+# (e.g., because of small calibration/geometry errors). It does this by
+# extending the *external* part of the SSS model with interference patterns
+# learned from a separate empty-room recording :footcite:`HelleEtAl2021`.
+#
+# Practical notes:
+#
+# - Keep the number of added components small (the ~8 in the original paper);
+#   adding too many can worsen numerical conditioning and increase noise.
+# - Prefer empty-room data from the same session/environment.
+# - eSSS can be combined with tSSS (“teSSS”, i.e. setting ``st_duration=X``).
+# - You can get projections from an empty room recording via
+#   :func:`mne.compute_proj_raw` like::
+#
+#       proj = mne.compute_proj_raw(
+#           noise_raw, n_grad=3, n_mag=3, n_eeg=0, meg="combined",
+#       )
+#
+# You can enable eSSS by setting ``extended_proj=proj`` in
+# :func:`~mne.preprocessing.maxwell_filter`.
+#
+# An external example using spatiotemporal extended SSS (teSSS) with movement
+# compensation can be found at
+# `github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG`_.
+#
+#
 # Movement compensation
 # ^^^^^^^^^^^^^^^^^^^^^
 #
@@ -379,3 +409,4 @@ mne.viz.plot_head_positions(head_pos, mode="traces")
 # .. LINKS
 #
 # .. _spherical harmonics: https://en.wikipedia.org/wiki/Spherical_harmonics
+# .. _github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG: https://github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG/blob/c62019b4d37a20f0c82420b73595ea241b892a17/pipeline.py#L119-L147
