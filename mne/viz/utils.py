@@ -2046,13 +2046,13 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True, nave=1
 def _check_sss(info):
     """Check SSS history in info."""
     ch_used = [ch for ch in _DATA_CH_TYPES_SPLIT if _contains_ch_type(info, ch)]
-    has_meg = "mag" in ch_used and "grad" in ch_used
-    has_sss = (
-        has_meg
+    has_mag_and_grad = "mag" in ch_used and "grad" in ch_used
+    needs_meg_combined = (
+        has_mag_and_grad
         and len(info["proc_history"]) > 0
         and info["proc_history"][0].get("max_info") is not None
     )
-    return ch_used, has_meg, has_sss
+    return ch_used, has_mag_and_grad, needs_meg_combined
 
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
@@ -2062,8 +2062,8 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
     # Only look at good channels
     picks = _pick_data_channels(info, with_ref_meg=False, exclude="bads")
     info = pick_info(info, picks)
-    ch_used, has_meg, has_sss = _check_sss(info)
-    if has_sss:
+    ch_used, has_mag_and_grad, needs_meg_combined = _check_sss(info)
+    if needs_meg_combined:
         if "mag" in rank or "grad" in rank:
             raise ValueError(
                 'When using SSS, pass "meg" to set the rank '
@@ -2072,7 +2072,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
             )
         meg_combined = True
     elif "meg" in rank:
-        if has_sss:
+        if needs_meg_combined:
             start = "SSS has been applied to data"
         else:
             start = "Got a single MEG rank value"
@@ -2080,7 +2080,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         meg_combined = True
     else:
         meg_combined = False
-    del has_sss
+    del needs_meg_combined
 
     picks_list = _picks_by_type(info, meg_combined=meg_combined)
     if meg_combined:
@@ -2094,7 +2094,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
 
     picks_list2 = [k for k in picks_list]
     # add meg picks if needed.
-    if has_meg:
+    if has_mag_and_grad:
         # append ("meg", picks_meg)
         picks_list2 += _picks_by_type(info, meg_combined=True)
 
