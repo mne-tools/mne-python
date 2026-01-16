@@ -317,6 +317,7 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 # learned from a separate empty-room recording :footcite:`HelleEtAl2021`.
 #
 # Practical notes:
+#
 # - Keep the number of added components small (the ~8 in the original paper);
 #   adding too many can worsen numerical conditioning and increase noise.
 # - Prefer empty-room data from the same session/environment.
