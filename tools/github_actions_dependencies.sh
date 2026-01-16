@@ -27,6 +27,13 @@ if [ ! -z "$CONDA_ENV" ]; then
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
 	fi
+elif [[ ${MNE_CI_KIND} == "old" ]]; then
+	GROUP=""  # group "test" already included when pylock file generated
+	EXTRAS=""
+	STD_ARGS="--progress-bar off"
+	uv venv --python 3.10
+	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
+	source .venv/bin/activate
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
