@@ -1926,7 +1926,7 @@ def _setup_ax_spines(
 
         def log_fix(tval):
             exp = np.log10(np.abs(tval))
-            return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
+            return np.sign(tval) * 10 ** (np.trunc(exp) - (exp < 0))
 
         xlims = np.array([xmin, xmax])
         temp_ticks = log_fix(xlims)

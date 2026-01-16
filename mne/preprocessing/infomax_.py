@@ -247,7 +247,7 @@ def infomax(
                     oldsigns = signs
 
                     if signcount >= signcount_threshold:
-                        ext_blocks = np.fix(ext_blocks * signcount_step)
+                        ext_blocks = np.trunc(ext_blocks * signcount_step)
                         signcount = 0
 
         # here we continue after the for loop over the ICA training blocks
