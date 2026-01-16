@@ -2070,14 +2070,20 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 '(separate rank values for "mag" or "grad" are '
                 "meaningless)."
             )
+        meg_combined = True
     elif "meg" in rank:
-        raise ValueError(
-            "When not using SSS, pass separate rank values "
-            'for "mag" and "grad" (do not use "meg").'
-        )
+        if has_sss:
+            start = "SSS has been applied to data"
+        else:
+            start = "Got a single MEG rank value"
+        logger.info("%s. Showing mag and grad whitening jointly.", start)
+        meg_combined = True
+    else:
+        meg_combined = False
+    del has_sss
 
-    picks_list = _picks_by_type(info, meg_combined=has_sss)
-    if has_sss:
+    picks_list = _picks_by_type(info, meg_combined=meg_combined)
+    if meg_combined:
         # reduce ch_used to combined mag grad
         ch_used = list(zip(*picks_list))[0]
     # order pick list by ch_used (required for compat with plot_evoked)
@@ -2121,7 +2127,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 this_rank[ch_type] = rank[ch_type]
 
         rank_list.append(this_rank)
-    return n_ch_used, rank_list, picks_list, has_sss
+    return n_ch_used, rank_list, picks_list, meg_combined
 
 
 def _check_cov(noise_cov, info):
