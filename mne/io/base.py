@@ -2452,6 +2452,12 @@ class BaseRaw(
         Returns
         -------
         %(df_return)s
+
+        Notes
+        -----
+        The default purpose of this method is to return data(picked channels) with
+        scalings applied which is useful for plotting. See :term:`data channels` and
+        :term:`non-data channels` for the default scaling factors applied.
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
