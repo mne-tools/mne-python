@@ -21,7 +21,7 @@ from ..utils import (
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
-
+from ..utils.check import _check_fname, _import_h5io_funcs, check_fname
 
 @fill_doc
 class SSD(_GEDTransformer):
@@ -149,62 +149,13 @@ class SSD(_GEDTransformer):
             restr_type=restr_type,
         )
 
-    def __getstate__(self):
-        """Get state for serialization."""
-        state = super().__getstate__()
-
-        # init parameters
-        state.update(
-            info=self.info,
-            filt_params_signal=self.filt_params_signal,
-            filt_params_noise=self.filt_params_noise,
-            reg=self.reg,
-            n_components=self.n_components,
-            picks=self.picks,
-            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
-            return_filtered=self.return_filtered,
-            n_fft=self.n_fft,
-            cov_method_params=self.cov_method_params,
-            restr_type=self.restr_type,
-            rank=self.rank,
-        )
-
-        # fitted attributes (only if present)
-        for attr in (
-            "filters_",
-            "patterns_",
-            "evals_",
-            "picks_",
-            "freqs_signal_",
-            "freqs_noise_",
-            "n_fft_",
-            "sfreq_",
-        ):
-            if hasattr(self, attr):
-                state[attr] = getattr(self, attr)
-
-        return state
-
     def __setstate__(self, state):
         """Restore state from serialization."""
-        super().__setstate__(state)
-
-        # Restore attributes
+        # Since read_ssd creates a new instance via __init__ first,
+        # callables are already set correctly. We just restore fitted attributes.
+        # Don't call super().__setstate__() as it would set callables to None.
         self.__dict__.update(state)
-
-        # Rebuild covariance callable exactly as in __init__
-        self.cov_callable = partial(
-            _ssd_estimate,
-            reg=self.reg,
-            cov_method_params=self.cov_method_params,
-            info=self.info,
-            picks=self.picks,
-            n_fft=self.n_fft,
-            filt_params_signal=self.filt_params_signal,
-            filt_params_noise=self.filt_params_noise,
-            rank=self.rank,
-            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
-        )
+        return self
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -297,11 +248,32 @@ class SSD(_GEDTransformer):
         logger.info("Done.")
         return self
 
-    def save(self, fname, overwrite=False):
+    @fill_doc
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the SSD decomposition to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            Path of file to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        mne.decoding.read_ssd
+        """
+
+        _, write_hdf5 = _import_h5io_funcs()
+        check_fname(fname, "SSD", (".h5", ".hdf5"))
+        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
         state = self.__getstate__()
         state.update(
             class_name="SSD",
             mne_version=mne_version,
+        )
+        write_hdf5(
+            fname, state, overwrite=overwrite, title="mnepython", slash="replace"
         )
 
     def transform(self, X):
@@ -425,40 +397,18 @@ def read_ssd(fname):
     Parameters
     ----------
     fname : path-like
-        Path to ``.h5`` file.
+        Path to an SSD file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
 
     Returns
     -------
     ssd : SSD
         The loaded SSD object.
     """
-    from ..utils.check import _import_h5io_funcs
-
-    _validate_type(fname, "path-like", "fname")
-    check_version("h5py")
-
     read_hdf5, _ = _import_h5io_funcs()
-    state = read_hdf5(fname, title="mne-python SSD")
-
-    if state.get("class_name") != "SSD":
-        raise RuntimeError("The file does not contain a valid SSD object.")
-
-        ssd = SSD(
-            info=state["info"],
-            filt_params_signal=state["filt_params_signal"],
-            filt_params_noise=state["filt_params_noise"],
-            reg=state["reg"],
-            n_components=state["n_components"],
-            picks=state["picks"],
-            sort_by_spectral_ratio=state["sort_by_spectral_ratio"],
-            return_filtered=state["return_filtered"],
-            n_fft=state["n_fft"],
-            cov_method_params=state["cov_method_params"],
-            restr_type=state["restr_type"],
-            rank=state["rank"],
-        )
-
-    # restore full state (fitted attributes + callables)
-    ssd.__setstate__(state)
-
-    return ssd
+    _validate_type(fname, "path-like", "fname")
+    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
+    state = read_hdf5(fname, title="mnepython", slash="replace")
+    return SSD(
+        info=None, filt_params_signal=None, filt_params_noise=None
+    ).__setstate__(state)
