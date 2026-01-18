@@ -8,7 +8,6 @@ from functools import partial
 import numpy as np
 
 from mne import __version__ as mne_version
-from mne.utils import check_version
 
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
@@ -18,10 +17,11 @@ from ..utils import (
     fill_doc,
     logger,
 )
+from ..utils.check import _check_fname, _import_h5io_funcs, check_fname
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
-from ..utils.check import _check_fname, _import_h5io_funcs, check_fname
+
 
 @fill_doc
 class SSD(_GEDTransformer):
@@ -263,7 +263,6 @@ class SSD(_GEDTransformer):
         --------
         mne.decoding.read_ssd
         """
-
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, "SSD", (".h5", ".hdf5"))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
@@ -409,6 +408,6 @@ def read_ssd(fname):
     _validate_type(fname, "path-like", "fname")
     fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
     state = read_hdf5(fname, title="mnepython", slash="replace")
-    return SSD(
-        info=None, filt_params_signal=None, filt_params_noise=None
-    ).__setstate__(state)
+    return SSD(info=None, filt_params_signal=None, filt_params_noise=None).__setstate__(
+        state
+    )
