@@ -68,7 +68,7 @@ def _read_mff_events(filename, sfreq):
             marker = {
                 "name": event["code"],
                 "start": start,
-                "start_sample": int(np.fix(start * sfreq)),
+                "start_sample": int(np.trunc(start * sfreq)),
                 "end": start + float(event["duration"]) / 1e9,
                 "chan": None,
             }
