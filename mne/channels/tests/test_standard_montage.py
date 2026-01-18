@@ -292,7 +292,7 @@ def test_set_montage_artinis_basic():
     )
     new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
     raw.add_channels([new], force_update_info=True)
-    with pytest.raises(ValueError, match="is not in list"):
+    with pytest.raises(ValueError, match="not in list"):
         raw.set_montage("artinis-brite23")
 
     # Detector not in montage: fail
@@ -302,5 +302,5 @@ def test_set_montage_artinis_basic():
     )
     new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
     raw.add_channels([new], force_update_info=True)
-    with pytest.raises(ValueError, match="is not in list"):
+    with pytest.raises(ValueError, match="not in list"):
         raw.set_montage("artinis-brite23")
