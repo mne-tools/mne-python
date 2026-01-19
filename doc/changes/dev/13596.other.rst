@@ -1,0 +1,2 @@
+Examples Using <some-method> section quirk fix in documentation, by :newcontrib:`Himanshu Mahor`.
+
