@@ -72,11 +72,19 @@ def reset_warnings(gallery_conf, fname):
         r"open_text is deprecated\. Use files",
         # dipy etc.
         "The `disp` and `iprint` options of the L-BFGS-B solver",
-        # Sphinx 9
-        "The mapping interface for autodoc options.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
+        )
+    # ignore (PendingDeprecationWarning)
+    for key in (
+        # sphinx
+        "The mapping interface for autodoc options",
+        # sphinxcontrib-bibtex
+        "sphinx.environment.BuildEnvironment.app' is deprecated",
+    ):
+        warnings.filterwarnings(  # deal with other modules having bad imports
+            "ignore", message=f".*{key}.*", category=PendingDeprecationWarning
         )
     # ignore (UserWarning)
     for message in (
