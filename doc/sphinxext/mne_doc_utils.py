@@ -76,6 +76,16 @@ def reset_warnings(gallery_conf, fname):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
         )
+    # ignore (PendingDeprecationWarning)
+    for key in (
+        # sphinx
+        "The mapping interface for autodoc options",
+        # sphinxcontrib-bibtex
+        "sphinx.environment.BuildEnvironment.app' is deprecated",
+    ):
+        warnings.filterwarnings(  # deal with other modules having bad imports
+            "ignore", message=f".*{key}.*", category=PendingDeprecationWarning
+        )
     # ignore (UserWarning)
     for message in (
         # Matplotlib
