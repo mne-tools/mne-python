@@ -827,7 +827,7 @@ class InterpolationMixin:
         origin="auto",
         method=None,
         exclude=(),
-        on_bad_position="warn",
+        on_bad_position="raise",
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.

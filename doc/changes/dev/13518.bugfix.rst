@@ -1,1 +1,1 @@
-Raise warning implementation in interpolate_bads() method when interpolation of channels with invalid position is done, by :newcontrib:`Himanshu Mahor`.
+Raise warning implementation in interpolate_bads() method when interpolation of channels with invalid position is done, by `Himanshu Mahor`_.
