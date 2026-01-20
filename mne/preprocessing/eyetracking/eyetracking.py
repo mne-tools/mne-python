@@ -113,22 +113,7 @@ def set_channel_types_eyetrack(inst, mapping):
         inst.info["chs"][c_ind]["unit"] = unit_new
 
         # set eye (and x/y-component)
-        loc = np.array(
-            [
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-            ]
-        )
+        loc = np.full(12, np.nan)
 
         ch_eye = ch_desc[2].lower()
         if ch_eye not in valid_eye["all"]:
