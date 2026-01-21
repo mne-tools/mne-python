@@ -74,7 +74,7 @@ print(raw_et.annotations[0]["ch_names"])  # a blink in the right eye
 # will return a list of :class:`~mne.preprocessing.eyetracking.Calibration` instances,
 # one for each calibration. We can index that list to access a specific calibration.
 
-cals = read_eyelink_calibration(et_fpath)
+cals = read_eyelink_calibration(et_fpath, screen_resolution=(1920, 1080))
 print(f"number of calibrations: {len(cals)}")
 first_cal = cals[0]  # let's access the first (and only in this case) calibration
 print(first_cal)
@@ -97,7 +97,15 @@ print(f"x-coordinate for each calibration point: {first_cal['positions'].T[0]}")
 # and the offsets (in visual degrees) between the calibration position and the actual
 # gaze position of each calibration point.
 
+# %%
 first_cal.plot()
+
+# %%
+# .. hint::
+#   If you supply the eyetracker monitor’s screen resolution to
+#   :class:`~mne.preprocessing.eyetracking.Calibration`,
+#   :meth:`~mne.preprocessing.eyetracking.Calibration.plot` will automatically set the
+#   canvas bounds accordingly.
 
 # %%
 # Standardizing eyetracking data to SI units
@@ -106,11 +114,11 @@ first_cal.plot()
 # EyeLink stores eyegaze positions in pixels, and pupil size in arbitrary units.
 # MNE-Python expects eyegaze positions to be in radians of visual angle, and pupil
 # size to be in meters. We can convert the eyegaze positions to radians using
-# :func:`~mne.preprocessing.eyetracking.convert_units`. We'll pass the calibration
-# object we created above, after specifying the screen resolution, screen size, and
-# screen distance.
+# :func:`~mne.preprocessing.eyetracking.convert_units`. In addition to the
+# screen resolution, we need to supply the eyetracker screen size and screen distance
+# to our :class:`~mne.preprocessing.eyetracking.Calibration` object, before calling the
+# convert units function.
 
-first_cal["screen_resolution"] = (1920, 1080)
 first_cal["screen_size"] = (0.53, 0.3)
 first_cal["screen_distance"] = 0.9
 mne.preprocessing.eyetracking.convert_units(raw_et, calibration=first_cal, to="radians")
