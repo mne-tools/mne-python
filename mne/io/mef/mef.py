@@ -68,22 +68,23 @@ class RawMEF(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, *, preload=False, verbose=None):
-        _soft_import("pymef", "reading MEF3 files", strict=True)
-        from pymef.mef_session import MefSession
+    def __init__(self, fname, password="", *, preload=False, verbose=None):
+        pymef = _soft_import("pymef", "reading MEF3 files", strict=True)
 
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
         logger.info("Reading MEF3 file: %s", fname)
 
         # Open MEF session (empty password)
-        session = MefSession(str(fname), "")
+        session = pymef.mef_session.MefSession(str(fname), "")
 
         # Get channel info
         ts_channels = session.session_md["time_series_channels"]
         if not ts_channels:
             raise ValueError("No time series channels found in MEF session.")
+        
         ch_names = list(ts_channels.keys())
         n_channels = len(ch_names)
+        
         logger.info("Found %d channels", n_channels)
 
         # Validate sampling rate and sample count consistency across channels
