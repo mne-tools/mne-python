@@ -38,7 +38,7 @@ __all__ = [
     "read_raw_hitachi",
     "read_raw_kit",
     "read_raw_nedf",
-    "read_raw_neo",
+    "read_raw_micromed",
     "read_raw_neuralynx",
     "read_raw_nicolet",
     "read_raw_nihon",
@@ -83,7 +83,7 @@ from .fil import read_raw_fil
 from .hitachi import read_raw_hitachi
 from .kit import read_epochs_kit, read_raw_kit
 from .nedf import read_raw_nedf
-from .neo import read_raw_neo
+from .micromed import read_raw_micromed
 from .neuralynx import read_raw_neuralynx
 from .nicolet import read_raw_nicolet
 from .nihon import read_raw_nihon
