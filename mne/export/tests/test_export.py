@@ -25,6 +25,7 @@ from mne.export import export_evokeds, export_evokeds_mff
 from mne.fixes import _compare_version
 from mne.io import (
     RawArray,
+    read_raw_bdf,
     read_raw_brainvision,
     read_raw_edf,
     read_raw_eeglab,
@@ -197,7 +198,7 @@ edfio_mark = pytest.mark.skipif(
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
-    raw.info.set_meas_date("2023-09-04 14:53:09.000")
+    raw.info.set_meas_date(datetime(2023, 9, 4, 14, 53, 9, tzinfo=timezone.utc))
     raw.set_annotations(Annotations(onset=[1], duration=[0], description=["test"]))
 
     # include subject info and measurement date
@@ -535,7 +536,9 @@ def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
     raw.export(tmp_path / "test.edf", add_ch_type=True)
 
 
-@pytest.mark.skipif(not check_version("eeglabio", "0.1.2"), reason="fixed by 0.1.2")
+@pytest.mark.skipif(
+    not check_version("eeglabio", "0.1.2"), reason="fixed by eeglabio 0.1.2"
+)
 @pytest.mark.parametrize("preload", (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
@@ -580,7 +583,6 @@ def test_export_epochs_eeglab(tmp_path, preload):
         epochs.export(Path(temp_fname), overwrite=True)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @testing.requires_testing_data
 @pytest.mark.parametrize("fmt", ("auto", "mff"))
 @pytest.mark.parametrize("do_history", (True, False))
@@ -639,7 +641,6 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     evoked[0].export(export_fname, overwrite=True)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @testing.requires_testing_data
 def test_export_to_mff_no_device():
     """Test no device type throws ValueError."""
@@ -651,7 +652,6 @@ def test_export_to_mff_no_device():
         export_evokeds("output.mff", evoked)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
@@ -670,3 +670,50 @@ def test_export_evokeds_unsupported_format(fmt, ext):
     errstr = fmt.lower() if fmt != "auto" else "vhdr"
     with pytest.raises(ValueError, match=f"Format '{errstr}' is not .*"):
         export_evokeds(f"output.{ext}", evoked, fmt=fmt)
+
+
+@edfio_mark()
+@pytest.mark.parametrize(
+    ("input_path", "warning_msg"),
+    [
+        (fname_raw, "Data has a non-integer"),
+        pytest.param(
+            misc_path / "ecog" / "sample_ecog_ieeg.fif",
+            "BDF format requires",
+            marks=[pytest.mark.slowtest, misc._pytest_mark()],
+        ),
+    ],
+)
+def test_export_raw_bdf(tmp_path, input_path, warning_msg):
+    """Test saving a Raw instance to BDF format."""
+    raw = read_raw_fif(input_path)
+
+    # only test with EEG channels
+    raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
+    temp_fname = tmp_path / "test.bdf"
+
+    with pytest.warns(RuntimeWarning, match=warning_msg):
+        raw.export(temp_fname)
+
+    if "epoc" in raw.ch_names:
+        raw.drop_channels(["epoc"])
+
+    raw_read = read_raw_bdf(temp_fname, preload=True)
+    assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
+
+    # assert data and times are not different
+    # Due to the physical range of the data, reading and writing is not lossless. For
+    # example, a physical min/max of -/+ 3200 uV will result in a resolution of 0.38 nV.
+    # This resolution is more than sufficient for EEG.
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=11
+    )
+
+    # Due to the data record duration limitations of BDF files, one cannot store
+    # arbitrary float sampling rate exactly. Usually this results in two sampling rates
+    # that are off by very low number of decimal points. This for practical purposes
+    # does not matter but will result in an error when say the number of time points is
+    # very very large.
+    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)

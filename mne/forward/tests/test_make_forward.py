@@ -270,6 +270,9 @@ def test_make_forward_solution_kit(tmp_path, fname_src_small):
     )
     _compare_forwards(fwd, fwd_py, 157, n_src_small, meg_rtol=1e-3, meg_atol=1e-7)
 
+    # NEW TEST: ensure kit_system_id survives the forward-info rewrite
+    assert "kit_system_id" in fwd_py["info"]
+
 
 @requires_mne
 def test_make_forward_solution_bti(fname_src_small):
@@ -894,8 +897,11 @@ def test_sensors_inside_bem():
     trans["trans"][2, 3] = 0.03
     sphere_noshell = make_sphere_model((0.0, 0.0, 0.0), None)
     sphere = make_sphere_model((0.0, 0.0, 0.0), 1.01)
-    with pytest.raises(RuntimeError, match=".* 15 MEG.*inside the scalp.*"):
-        make_forward_solution(info, trans, fname_src, fname_bem)
+    with pytest.warns(RuntimeWarning, match=".* 15 MEG.*inside the scalp.*"):
+        fwd = make_forward_solution(info, trans, fname_src, fname_bem, on_inside="warn")
+    assert fwd["nsource"] == 516
+    assert fwd["nchan"] == 42
+    assert np.isfinite(fwd["sol"]["data"]).all()
     make_forward_solution(info, trans, fname_src, fname_bem_meg)  # okay
     make_forward_solution(info, trans, fname_src, sphere_noshell)  # okay
     with pytest.raises(RuntimeError, match=".* 42 MEG.*outermost sphere sh.*"):

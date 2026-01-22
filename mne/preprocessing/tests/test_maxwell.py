@@ -562,6 +562,7 @@ def test_multipolar_bases():
         assert_allclose(S_tot, S_tot_fast * flips, atol=1e-16)
 
 
+# This is also slow, but we probably want it running on all OSes
 @testing.requires_testing_data
 def test_basic():
     """Test Maxwell filter basic version."""
@@ -755,6 +756,7 @@ def test_spatiotemporal():
         maxwell_filter(raw, st_duration=10.0, st_correlation=0.0)
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 def test_st_overlap():
@@ -949,6 +951,7 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
     )
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_cross_talk(tmp_path):
     """Test Maxwell filter cross-talk cancellation."""
@@ -1077,6 +1080,7 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     )
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 @pytest.mark.parametrize("regularize", ("in", None))
@@ -1560,6 +1564,7 @@ def test_MGH_cross_talk():
     assert len(py_ctc) > 0
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mf_skips():
     """Test processing of data with skips."""
@@ -1607,6 +1612,7 @@ def test_mf_skips():
     assert_allclose(data_sc, data_cs, atol=1e-20)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     (
@@ -1826,6 +1832,7 @@ def test_find_bad_channels_maxwell(
         assert bads == set(want_bads)
 
 
+@pytest.mark.slowtest
 def test_find_bads_maxwell_flat():
     """Test find_bads_maxwell when there are flat channels."""
     # See gh-9479

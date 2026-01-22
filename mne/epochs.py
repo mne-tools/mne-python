@@ -66,7 +66,7 @@ from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannel
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
-from .fixes import rng_uniform
+from .fixes import _reshape_view, rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
@@ -394,7 +394,7 @@ class BaseEpochs(
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        Defaults to ``(None, 0)``, i.e. beginning of the data until
         time point zero.
     %(raw_epochs)s
     %(picks_all)s
@@ -748,7 +748,7 @@ class BaseEpochs(
         Parameters
         ----------
         %(baseline_epochs)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -2211,6 +2211,7 @@ class BaseEpochs(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
+
             .. versionadded:: 1.9
 
         Notes
@@ -2860,7 +2861,7 @@ class BaseEpochs(
         # prepare extra columns / multiindex
         mindex = list()
         times = np.tile(times, n_epochs)
-        times = _convert_times(times, time_format, self.info["meas_date"])
+        times = _convert_times(times, time_format, meas_date=self.info["meas_date"])
         mindex.append(("time", times))
         rev_event_id = {v: k for k, v in self.event_id.items()}
         conditions = [rev_event_id[k] for k in self.events[:, 2]]
@@ -3247,7 +3248,7 @@ def make_metadata(
 
         # Determine which events fall into the current time window
         if start_sample is None and isinstance(tmin, list):
-            # Lower bound is the the current or the closest previpus event with a name
+            # Lower bound is the current or the closest previous event with a name
             # in "tmin"; if there is no such event (e.g., beginning of the recording is
             # being approached), the upper lower becomes the last event in the
             # recording.
@@ -3271,7 +3272,7 @@ def make_metadata(
             window_start_sample = row_event.sample + start_sample
 
         if stop_sample is None and isinstance(tmax, list):
-            # Upper bound is the the current or the closest following event with a name
+            # Upper bound is the current or the closest following event with a name
             # in "tmax"; if there is no such event (e.g., end of the recording is being
             # approached), the upper bound becomes the last event in the recording.
             next_matching_events = events_df.loc[
@@ -3435,7 +3436,7 @@ class Epochs(BaseEpochs):
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        Defaults to ``(None, 0)``, i.e. beginning of the data until
         time point zero.
     %(picks_all)s
     preload : bool
@@ -4478,7 +4479,7 @@ class EpochsFIF(BaseEpochs):
         else:
             data = data.astype(np.float64)
 
-        data.shape = raw.epoch_shape
+        data = _reshape_view(data, raw.epoch_shape)
         data *= raw.cals
         return data
 

@@ -681,11 +681,9 @@ def _get_gpu_info():
 def _get_total_memory():
     """Return the total memory of the system in bytes."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            [
-                "powershell.exe",
-                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
-            ]
+            [ps, "-c", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"]
         ).decode()
         # Can get for example a "running scripts is disabled on this system"
         # error where "o" will be a long string rather than an int
@@ -708,8 +706,9 @@ def _get_total_memory():
 def _get_cpu_brand():
     """Return the CPU brand string."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            ["powershell.exe", "(Get-CimInstance Win32_Processor).Name"]
+            [ps, "-c", "(Get-CimInstance Win32_Processor).Name"]
         ).decode()
         cpu_brand = o.strip().splitlines()[-1]
     elif platform.system() == "Linux":
@@ -837,6 +836,7 @@ def sys_info(
         "neo",
         "eeglabio",
         "edfio",
+        "curryreader",
         "mffpy",
         "pybv",
         "antio",

@@ -369,7 +369,7 @@ class Evoked(
         Parameters
         ----------
         %(baseline_evoked)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -1392,7 +1392,7 @@ class Evoked(
         data = _scale_dataframe_data(self, data, picks, scalings)
         # prepare extra columns / multiindex
         mindex = list()
-        times = _convert_times(times, time_format, self.info["meas_date"])
+        times = _convert_times(times, time_format, meas_date=self.info["meas_date"])
         mindex.append(("time", times))
         # build DataFrame
         df = _build_data_frame(
@@ -2006,6 +2006,8 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
 
     if not isinstance(evoked, list | tuple):
         evoked = [evoked]
+    if not len(evoked):
+        raise ValueError("No evoked data to write")
 
     warned = False
     # Create the file and save the essentials

@@ -38,16 +38,17 @@ data_dir = doc_root / "sphinxext"
 # preferring GitHub profile info (when complete!) is probably preferable.
 
 # Allowed singletons
-single_names = "btkcodedev buildqa sviter Akshay user27182 Mojackhak".split()
+single_names = "btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot]".split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
     Bailey=2,
     Das=2,
     Drew=2,
+    Jin=2,
     Li=2,
     Peterson=2,
     Wong=2,
-    Zhang=2,
+    Zhang=3,
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
@@ -56,14 +57,16 @@ exceptions = [
 ]
 # Manual renames
 manual_renames = {
-    "alexandra": "Alexandra Corneyllie",  # 7600
-    "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
+    "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
+    "alexandra": "Alexandra Corneyllie",  # 7600
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
     "Basile": "Basile Pinsard",  # 1791
+    "Bru": "Bruno Aristimunha",  # 13489
     "ChristinaZhao": "Christina Zhao",  # 9075
     "Drew, J.": "Jordan Drew",  # 10861
     "enzo": "Enzo Altamiranda",  # 11351
+    "Emma": "Emma Zhang",  # 13486
     "Frostime": "Yiping Zuo",  # 11773
     "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Genuster": "Gennadiy Belonosov",  # 12936
@@ -90,6 +93,8 @@ def _good_name(name):
     if name is None:
         return False
     assert isinstance(name, str), type(name)
+    if name == "mne[bot]":
+        return True
     if not name.strip():
         return False
     if " " not in name and name not in single_names:  # at least two parts
@@ -261,6 +266,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "pre-commit-ci[bot]" not in email
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
+        and "50266005+mne-bot" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))

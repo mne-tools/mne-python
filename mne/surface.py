@@ -7,7 +7,6 @@
 
 import json
 import time
-import warnings
 from collections import OrderedDict
 from copy import deepcopy
 from functools import lru_cache, partial
@@ -804,8 +803,15 @@ class _CheckInside:
 
     def _call_pyvista(self, rr):
         pdata = _surface_to_polydata(dict(rr=rr))
-        out = pdata.select_enclosed_points(self.pdata, check_surface=False)
-        return out["SelectedPoints"].astype(bool)
+        # TODO VERSION PyVista 0.47+
+        if hasattr(pdata, "select_interior_points"):
+            meth = pdata.select_interior_points
+            key = "selected_points"
+        else:
+            meth = pdata.select_enclosed_points
+            key = "SelectedPoints"
+        out = meth(self.pdata, check_surface=False)
+        return out[key].astype(bool)
 
     def _call_old(self, rr, n_jobs):
         n_orig = len(rr)
@@ -1472,16 +1478,12 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
         )
     src = vtkPolyData()
     vtkpoints = vtkPoints()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
     src.SetPoints(vtkpoints)
     vtkcells = vtkCellArray()
     triangles_ = np.pad(triangles, ((0, 0), (1, 0)), "constant", constant_values=3)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
-    vtkcells.SetCells(triangles.shape[0], idarr)
+    idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.ImportLegacyFormat(idarr)
     src.SetPolys(vtkcells)
     # vtkDecimatePro was not very good, even with SplittingOff and
     # PreserveTopologyOn
