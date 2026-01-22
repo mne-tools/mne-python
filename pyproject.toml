@@ -19,6 +19,7 @@ doc = [
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
+  "pymef",
   "pytest",
   "pyvistaqt",
   "pyxdf",
@@ -66,6 +67,7 @@ test_extra = [
   "neo",
   "nitime",
   "pybv",
+  "pymef",
   "snirf",
   "sphinx-gallery",
   "statsmodels",
@@ -161,6 +163,7 @@ full-no-qt = [
   "pybv",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard",
+  "pymef",
   "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
