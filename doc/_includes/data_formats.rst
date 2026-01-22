@@ -77,6 +77,10 @@ NIRS          :ref:`NIRx <import-nirx>`                     directory  :func:`mn
 NIRS          :ref:`BOXY <import-boxy>`                     directory  :func:`mne.io.read_raw_boxy`
 
 EYETRACK      SR eyelink ASCII files                        .asc       :func:`mne.io.read_raw_eyelink`
+
+iEEG          MEF3                                          .mefd      :func:`mne.io.read_raw_mef`
+
+iEEG          Micromed                                      .trc       :func:`mne.io.read_raw_micromed`
 ============  ============================================  =========  ===================================
 
 More details are provided in the tutorials in the :ref:`tut-data-formats`
