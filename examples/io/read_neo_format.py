@@ -6,10 +6,11 @@ Reading data via Neo (Neural Ensemble Objects)
 ==============================================
 
 This example shows how to read electrophysiology data using the
-`Neo <https://neo.readthedocs.io/>`_ library via :func:`mne.io.read_raw_neo`.
+`Neo <https://neo.readthedocs.io/>`_ library and convert it into an
+MNE-Python `~mne.io.Raw` object.
 
-Neo supports reading from many file formats including Micromed TRC,
-Intan, Blackrock, Axon, Spike2, and more. See the
+Neo supports reading from many file formats including Intan, Blackrock,
+Axon, Spike2, and more. See the
 `Neo IO documentation <https://neo.readthedocs.io/en/stable/rawio.html>`_
 for a complete list.
 """
@@ -18,8 +19,7 @@ for a complete list.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import tempfile
-from pathlib import Path
+import neo
 
 import mne
 
@@ -27,15 +27,21 @@ import mne
 # Reading data with Neo
 # ---------------------
 #
-# Use :func:`mne.io.read_raw_neo` with the appropriate ``neo_io_class``
-# parameter. This example uses Neo's ``ExampleIO`` which generates
-# synthetic data.
+# Use Neo's IO classes to read data, then convert to an MNE Raw object.
+# This example uses Neo's ``ExampleIO`` which generates synthetic data.
 
-temp_dir = Path(tempfile.mkdtemp())
-example_fname = temp_dir / "example_data.nof"
-example_fname.touch()  # ExampleIO generates fake data but MNE requires file to exist
+reader = neo.io.ExampleIO("fakedata.nof")
+block = reader.read(lazy=False)[0]  # get the first block
+segment = block.segments[0]  # get data from first (and only) segment
+signals = segment.analogsignals[0]  # get first (multichannel) signal
 
-raw = mne.io.read_raw_neo(example_fname, neo_io_class="ExampleIO", preload=True)
+data = signals.rescale("V").magnitude.T
+sfreq = signals.sampling_rate.rescale("Hz").magnitude
+ch_names = [f"Neo {(idx + 1):02}" for idx in range(signals.shape[1])]
+ch_types = ["eeg"] * len(ch_names)  # if not specified, type 'misc' is assumed
+
+info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
+raw = mne.io.RawArray(data, info)
 print(raw.info)
 
 # %%
@@ -62,17 +68,15 @@ print(f"Channel types: {raw.get_channel_types()[:3]}...")
 #
 # .. code-block:: python
 #
-#     # Micromed TRC (iEEG)
-#     raw = mne.io.read_raw_neo("recording.trc", neo_io_class="MicromedIO")
-#
 #     # Intan RHD
-#     raw = mne.io.read_raw_neo("data.rhd", neo_io_class="IntanIO")
+#     reader = neo.io.IntanIO("data.rhd")
 #
 #     # Blackrock NSx
-#     raw = mne.io.read_raw_neo("recording.ns5", neo_io_class="BlackrockIO")
+#     reader = neo.io.BlackrockIO("recording.ns5")
 #
 #     # Axon ABF
-#     raw = mne.io.read_raw_neo("recording.abf", neo_io_class="AxonIO")
+#     reader = neo.io.AxonIO("recording.abf")
 #
-# See the `Neo documentation <https://neo.readthedocs.io/>`_ for all
-# available IO classes and their requirements.
+# Use the same conversion steps as above after reading data with the
+# desired IO class. See the `Neo documentation <https://neo.readthedocs.io/>`_
+# for all available IO classes and their requirements.

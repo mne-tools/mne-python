@@ -80,7 +80,6 @@ EYETRACK      SR eyelink ASCII files                        .asc       :func:`mn
 
 iEEG          MEF3                                          .mefd      :func:`mne.io.read_raw_mef`
 
-iEEG          Micromed                                      .trc       :func:`mne.io.read_raw_micromed`
 ============  ============================================  =========  ===================================
 
 More details are provided in the tutorials in the :ref:`tut-data-formats`

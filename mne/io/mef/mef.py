@@ -4,8 +4,6 @@
 
 """Read MEF3 files."""
 
-from pathlib import Path
-
 import numpy as np
 
 from ..._fiff.meas_info import create_info
@@ -82,14 +80,25 @@ class RawMEF(BaseRaw):
 
         # Get channel info
         ts_channels = session.session_md["time_series_channels"]
+        if not ts_channels:
+            raise ValueError("No time series channels found in MEF session.")
         ch_names = list(ts_channels.keys())
         n_channels = len(ch_names)
         logger.info("Found %d channels", n_channels)
 
-        # Get sampling rate and number of samples from first channel
-        first_ch_md = ts_channels[ch_names[0]]["section_2"]
-        sfreq = float(first_ch_md["sampling_frequency"][0])
-        n_samples = int(first_ch_md["number_of_samples"][0])
+        # Validate sampling rate and sample count consistency across channels
+        sfreqs = []
+        n_samples_list = []
+        for ch_name in ch_names:
+            ch_md = ts_channels[ch_name]["section_2"]
+            sfreqs.append(float(ch_md["sampling_frequency"][0]))
+            n_samples_list.append(int(ch_md["number_of_samples"][0]))
+        if len(set(sfreqs)) != 1:
+            raise ValueError("MEF channels have inconsistent sampling frequencies.")
+        if len(set(n_samples_list)) != 1:
+            raise ValueError("MEF channels have inconsistent number of samples.")
+        sfreq = sfreqs[0]
+        n_samples = n_samples_list[0]
 
         logger.info("Sampling rate: %s Hz", sfreq)
         logger.info("Total samples: %d", n_samples)
@@ -130,8 +139,11 @@ class RawMEF(BaseRaw):
 
         selected_ch_names = [ch_names[i] for i in ch_indices]
 
-        # Read data [start, stop) - pymef uses inclusive end, so use stop
-        raw_data = session.read_ts_channels_sample(selected_ch_names, [start, stop])
+        # Read data [start, stop) - pymef expects exclusive stop
+        if stop <= start:
+            raw_data = np.empty((len(selected_ch_names), 0), dtype=np.float64)
+        else:
+            raw_data = session.read_ts_channels_sample(selected_ch_names, [start, stop])
 
         # Convert to numpy array and scale from µV to V
         raw_data = np.array(raw_data, dtype=np.float64) * 1e-6
