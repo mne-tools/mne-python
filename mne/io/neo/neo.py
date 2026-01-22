@@ -14,6 +14,73 @@ from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 
 
+def _select_analog_signals(analogsignals, stream_id_to_name):
+    """Select analog signals to read, preferring neural/amplifier data.
+
+    Parameters
+    ----------
+    analogsignals : list
+        List of Neo AnalogSignal or AnalogSignalProxy objects.
+    stream_id_to_name : dict
+        Mapping from stream_id to stream name.
+
+    Returns
+    -------
+    selected : list
+        List of selected analog signals.
+    """
+    if len(analogsignals) == 1:
+        return analogsignals
+
+    # Group signals by stream_id
+    from collections import defaultdict
+
+    by_stream = defaultdict(list)
+    for sig in analogsignals:
+        stream_id = str(sig.annotations.get("stream_id", "unknown"))
+        by_stream[stream_id].append(sig)
+
+    # Try to find amplifier/neural streams
+    amplifier_signals = []
+    for stream_id, signals in by_stream.items():
+        stream_name = stream_id_to_name.get(stream_id, "").lower()
+        if "amplifier" in stream_name:
+            amplifier_signals.extend(signals)
+
+    if amplifier_signals:
+        # Found amplifier streams - use those
+        skipped = len(analogsignals) - len(amplifier_signals)
+        if skipped > 0:
+            logger.info(
+                "Selected %d amplifier signal(s), skipping %d non-neural signal(s)",
+                len(amplifier_signals),
+                skipped,
+            )
+        return amplifier_signals
+
+    # No amplifier streams found - group by sampling rate and select highest
+    by_sfreq = defaultdict(list)
+    for sig in analogsignals:
+        sfreq = float(sig.sampling_rate.rescale("Hz").magnitude)
+        by_sfreq[sfreq].append(sig)
+
+    if len(by_sfreq) > 1:
+        # Multiple sampling rates - select highest (typically neural data)
+        highest_sfreq = max(by_sfreq.keys())
+        selected = by_sfreq[highest_sfreq]
+        skipped_sfreqs = [s for s in by_sfreq.keys() if s != highest_sfreq]
+        logger.warning(
+            "Multiple sampling rates found. Selecting signals at %.1f Hz. "
+            "Skipping signals at %s Hz. Use Neo directly if you need other signals.",
+            highest_sfreq,
+            skipped_sfreqs,
+        )
+        return selected
+
+    # All same sampling rate - return all
+    return analogsignals
+
+
 @fill_doc
 @verbose
 def read_raw_neo(fname, *, neo_io_class=None, preload=False, verbose=None):
@@ -51,6 +118,15 @@ def read_raw_neo(fname, *, neo_io_class=None, preload=False, verbose=None):
 
     Channel types default to EEG. Use :meth:`raw.set_channel_types()
     <mne.io.Raw.set_channel_types>` to set appropriate types after loading.
+
+    When a Neo file contains multiple analog signals per segment, the reader
+    automatically selects neural/amplifier signals based on the stream metadata.
+    For formats like Intan, signals with "amplifier" in the stream name are
+    selected. If no amplifier streams are found but multiple sampling rates
+    exist, the signals with the highest sampling rate are selected (neural data
+    is typically recorded at the highest rate). Other signals (auxiliary inputs,
+    digital channels, etc.) are skipped with a warning. Use Neo directly if you
+    need access to non-neural signals.
 
     Examples
     --------
@@ -126,38 +202,71 @@ class RawNeo(BaseRaw):
         if not segment.analogsignals:
             raise ValueError("No analog signals found in segment.")
 
-        signal = segment.analogsignals[0]
+        # Build stream_id to stream_name mapping from header
+        stream_id_to_name = {}
+        if hasattr(neo_reader, "header") and "signal_streams" in neo_reader.header:
+            for stream in neo_reader.header["signal_streams"]:
+                stream_id_to_name[str(stream["id"])] = stream["name"]
 
-        # Get sampling rate
-        sfreq = float(signal.sampling_rate.rescale("Hz").magnitude)
+        # Select which analogsignals to read based on stream type
+        selected_signals = _select_analog_signals(
+            segment.analogsignals, stream_id_to_name
+        )
+        # Store indices for use in _read_segment_file
+        selected_indices = [
+            segment.analogsignals.index(sig) for sig in selected_signals
+        ]
+
+        # Check all selected analogsignals have the same sampling rate
+        sfreqs = [
+            float(sig.sampling_rate.rescale("Hz").magnitude)
+            for sig in selected_signals
+        ]
+        if len(set(sfreqs)) > 1:
+            raise ValueError(
+                f"Multiple sampling rates found in selected signals: {set(sfreqs)} Hz. "
+                "MNE requires all analog signals to have the same sampling rate. "
+                "Use Neo directly to read signals with a specific sampling rate."
+            )
+        sfreq = sfreqs[0]
         logger.info("Sampling rate: %s Hz", sfreq)
 
-        # Get channel names
-        n_channels = signal.shape[1]
-        if hasattr(signal, "array_annotations"):
-            ann = signal.array_annotations
-            if "channel_names" in ann:
-                ch_names = list(ann["channel_names"])
-            elif "channel_ids" in ann:
-                ch_names = [str(cid) for cid in ann["channel_ids"]]
+        # Get channel info from selected analogsignals
+        n_signals = len(selected_signals)
+        logger.info("Reading %d analog signal(s) per segment", n_signals)
+
+        n_channels = sum(sig.shape[1] for sig in selected_signals)
+        ch_names = []
+        for sig in selected_signals:
+            n_ch = sig.shape[1]
+            if hasattr(sig, "array_annotations"):
+                ann = sig.array_annotations
+                if "channel_names" in ann:
+                    ch_names.extend(list(ann["channel_names"]))
+                elif "channel_ids" in ann:
+                    ch_names.extend([str(cid) for cid in ann["channel_ids"]])
+                else:
+                    offset = len(ch_names)
+                    ch_names.extend([f"CH{i + offset:03d}" for i in range(n_ch)])
             else:
-                ch_names = [f"CH{i:03d}" for i in range(n_channels)]
-        else:
-            ch_names = [f"CH{i:03d}" for i in range(n_channels)]
+                offset = len(ch_names)
+                ch_names.extend([f"CH{i + offset:03d}" for i in range(n_ch)])
 
         logger.info("Found %d channels", n_channels)
 
         # Calculate total samples (concatenate all segments)
+        # Use the first selected signal index to get sample counts
+        first_sig_idx = selected_indices[0]
         segment_sizes = []
         for seg in block.segments:
-            sig = seg.analogsignals[0]
+            sig = seg.analogsignals[first_sig_idx]
             segment_sizes.append(sig.shape[0])
         total_samples = sum(segment_sizes)
 
         logger.info("Total samples: %d", total_samples)
 
-        # Determine unit scale factor
-        unit_str = str(signal.units.dimensionality).lower()
+        # Determine unit scale factor (from first selected analogsignal)
+        unit_str = str(selected_signals[0].units.dimensionality).lower()
         if "microv" in unit_str or "uv" in unit_str:
             scale_factor = 1e-6
         elif "milliv" in unit_str or "mv" in unit_str:
@@ -176,6 +285,7 @@ class RawNeo(BaseRaw):
             segment_sizes=segment_sizes,
             scale_factor=scale_factor,
             n_channels=n_channels,
+            selected_signal_indices=selected_indices,
         )
 
         super().__init__(
@@ -189,7 +299,6 @@ class RawNeo(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         neo = _soft_import("neo", "reading Neo format files", strict=True)
-        from neo.io.proxyobjects import AnalogSignalProxy
 
         extras = self._raw_extras[fi]
         io_class = getattr(neo.io, extras["neo_io_class"])
@@ -201,6 +310,7 @@ class RawNeo(BaseRaw):
         segment_sizes = extras["segment_sizes"]
         scale_factor = extras["scale_factor"]
         n_channels = extras["n_channels"]
+        selected_indices = extras["selected_signal_indices"]
 
         # Find which segments contain our samples
         cum_sizes = np.cumsum([0] + segment_sizes)
@@ -211,24 +321,30 @@ class RawNeo(BaseRaw):
         all_data = []
         for rel_si in range(seg_start_idx, seg_stop_idx + 1):
             segment = block.segments[rel_si]
-            signal = segment.analogsignals[0]
 
             seg_global_start = cum_sizes[rel_si]
             local_start = max(0, start - seg_global_start)
             local_stop = min(segment_sizes[rel_si], stop - seg_global_start)
 
-            # Load signal data
-            if isinstance(signal, AnalogSignalProxy):
-                sig_data = signal.load().magnitude[local_start:local_stop, :]
-            else:
-                sig_data = signal.magnitude[local_start:local_stop, :]
+            # Concatenate selected analogsignals in this segment
+            seg_signals = []
+            for sig_idx in selected_indices:
+                signal = segment.analogsignals[sig_idx]
+                if isinstance(signal, neo.io.proxyobjects.AnalogSignalProxy):
+                    sig_data = signal.load().magnitude[local_start:local_stop, :]
+                else:
+                    sig_data = signal.magnitude[local_start:local_stop, :]
+                seg_signals.append(sig_data)
+
+            # Concatenate along channel axis (axis=1)
+            seg_data = np.concatenate(seg_signals, axis=1)
 
             if isinstance(idx, slice):
-                sig_data = sig_data[:, idx]
+                seg_data = seg_data[:, idx]
             else:
-                sig_data = sig_data[:, idx]
+                seg_data = seg_data[:, idx]
 
-            all_data.append(sig_data)
+            all_data.append(seg_data)
 
         # Concatenate and transpose to (n_channels, n_samples)
         if all_data:
