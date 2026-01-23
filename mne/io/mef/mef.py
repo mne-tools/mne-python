@@ -87,10 +87,14 @@ class RawMEF(BaseRaw):
     def __init__(self, fname, password="", *, preload=False, verbose=None):
         pymef = _soft_import("pymef", "reading MEF3 files", strict=True)
 
+        # This type of dataset is a directory!
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
+        # The dataset maybe have password
         password = (password or "").decode() if isinstance(password, bytes) else (password or "")
-
+        # Open the dataset
         session = pymef.mef_session.MefSession(str(fname), password)
+
+        # Get the time series channels
         ts_channels = session.session_md["time_series_channels"]
         if not ts_channels:
             raise ValueError("No time series channels found in MEF session.")
@@ -117,8 +121,10 @@ class RawMEF(BaseRaw):
                 orig_units[ch_name] = unit_desc
 
         if len(set(sfreqs)) != 1 or len(set(n_samples_list)) != 1:
-            raise ValueError("MEF channels have inconsistent sfreq or n_samples.")
-        sfreq, n_samples = sfreqs[0], n_samples_list[0]
+            raise ValueError("MEF channels have inconsistent sfreq or n_samples, "
+                             "it is not supported for MNE the reading of this dataset.")
+
+        sfreq, n_samples = sfreqs[0], n_samples_list[0]     
 
         # Create info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types="seeg")
@@ -128,6 +134,10 @@ class RawMEF(BaseRaw):
         # Extract session metadata
         session_md = session.session_md
         ts_meta = session_md.get("time_series_metadata", {})
+
+        # Section 3 is a dictionary with the session metadata
+        # Documentation reference: 
+        # https://github.com/msel-source/pymef/blob/89e1eb22847320b3585354b15d6361b71315bf33/pymef/mef_file/pymef3_file.h#L52
         sec3 = ts_meta.get("section_3") or next(iter(ts_channels.values()), {}).get("section_3")
 
         # Get start time
@@ -138,17 +148,22 @@ class RawMEF(BaseRaw):
             starts = [s for s in starts if s is not None and s != _UUTC_NO_ENTRY]
             start_uutc = min(starts) if starts else None
 
+        # Indexing the start time
         meas_date = (dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc) +
                      dt.timedelta(microseconds=int(start_uutc))) if start_uutc else None
 
         # Set info fields
+        # following the style of how is make in the other mne io readers
         with info._unlock():
             if meas_date:
                 info["meas_date"] = meas_date
+            # Indexing the GMT offset
             gmt = _mef_get(sec3, "GMT_offset", kind="int")
+            # If the GMT offset is not None and is not the default value and is not too large
             if gmt is not None and gmt != _GMT_OFFSET_NO_ENTRY and abs(gmt) <= 86400:
                 info["utc_offset"] = f"{'+' if gmt >= 0 else '-'}{abs(gmt)//3600:02d}{(abs(gmt)%3600)//60:02d}"
             for key, mef_key in [("description", "session_description"), ("subject_info", None)]:
+                # Parsing the subject info, and session description (officialt support by mne info)
                 if key == "subject_info":
                     subj = {}
                     for k, m in [("his_id", "subject_ID"), ("first_name", "subject_name_1"), ("last_name", "subject_name_2")]:
@@ -158,6 +173,7 @@ class RawMEF(BaseRaw):
                     if subj:
                         info["subject_info"] = subj
                 else:
+                    # Parsing the session description (officialt support by mne info)
                     v = _mef_get(ts_meta.get("section_2"), mef_key, kind="text", default="")
                     if v:
                         info[key] = v
