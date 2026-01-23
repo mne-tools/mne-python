@@ -33,18 +33,22 @@ import mne
 # Setting channel types
 # ---------------------
 #
-# Channel types default to sEEG. For ECoG or other channel types, use
-# :meth:`raw.set_channel_types() <mne.io.Raw.set_channel_types>`:
+# Channel types default to sEEG. Use :meth:`raw.set_channel_types()
+# <mne.io.Raw.set_channel_types>` to set appropriate types:
 
 # Example:
-# raw.set_channel_types({'CH01': 'ecog', 'CH02': 'ecog'})
+# raw.set_channel_types({'C3': 'eeg', 'C4': 'eeg', 'ECG': 'ecg'})
 # print(raw.get_channel_types())
 
 # %%
 # Notes
 # -----
 #
-# - MEF3 data is assumed to be in microvolts (µV) and is automatically
-#   converted to volts (V)
+# - Data are scaled to volts using MEF metadata (``units_conversion_factor`` and
+#   ``units_description``)
 # - The pymef package is required: ``pip install pymef``
-# - MEF3 sessions can be password-protected (empty password is default)
+# - MEF3 sessions can be password-protected; use ``password=...`` when needed
+# - Record metadata are imported as annotations, and discontinuities become
+#   ``BAD_ACQ_SKIP`` annotations when present
+# - Session time metadata (``recording_time_offset``, ``DST_start_time``,
+#   ``DST_end_time``) are stored in a ``MEF_METADATA`` annotation extras
