@@ -4,8 +4,6 @@
 
 import numpy as np
 
-from ...utils import warn
-
 _UNIT_SCALE_FACTORS = {
     "v": 1.0,
     "volt": 1.0,
@@ -94,19 +92,6 @@ def _get_mef_units_scale(unit_desc, unit_factor):
         unit_factor_valid,
         unit_scale is not None,
     )
-
-
-def _get_consistent_value(values, name, allow_negative=False):
-    values = [v for v in values if np.isfinite(v)]
-    if not values:
-        return None
-    values = [v for v in values if v >= 0] if not allow_negative else values
-    if not values:
-        return None
-    if not np.allclose(values, values[0]):
-        warn(f"MEF channels have inconsistent {name} values; ignoring.")
-        return None
-    return float(values[0])
 
 
 def _mef_time_metadata_extras(section_3):
