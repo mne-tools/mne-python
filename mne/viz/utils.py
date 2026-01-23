@@ -1656,7 +1656,6 @@ class SelectFromCollection:
         from matplotlib.widgets import LassoSelector
 
         self.fig = ax.figure
-        self.canvas = ax.figure.canvas
         self.collection = collection
         self.names = names
         self.alpha_selected = alpha_selected
@@ -1722,14 +1721,14 @@ class SelectFromCollection:
 
         # Don't respond to single clicks without extra keys being hold down.
         # Figures like plot_evoked_topo want to do something else with them.
-        if len(verts) <= 3 and self.canvas._key not in ["control", "ctrl+shift"]:
+        if len(verts) <= 3 and self.fig.canvas._key not in ["control", "ctrl+shift"]:
             return
 
         path = Path(verts)
         inds = np.nonzero([path.intersects_path(p) for p in self.paths])[0]
-        if self.canvas._key == "control":  # Appending selection.
+        if self.fig.canvas._key == "control":  # Appending selection.
             self.selection_inds = np.union1d(self.selection_inds, inds).astype("int")
-        elif self.canvas._key == "ctrl+shift":
+        elif self.fig.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, inds).astype("int")
         else:
             self.selection_inds = inds
@@ -1739,9 +1738,9 @@ class SelectFromCollection:
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
-        if self.canvas._key == "control":
+        if self.fig.canvas._key == "control":
             self.selection_inds = np.union1d(self.selection_inds, [ind])
-        elif self.canvas._key == "ctrl+shift":
+        elif self.fig.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, [ind])
         else:
             return  # don't notify()
@@ -1768,7 +1767,7 @@ class SelectFromCollection:
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.collection.set_linewidths(self.lw)
-        self.canvas.draw_idle()
+        self.fig.canvas.draw_idle()
 
     def disconnect(self):
         """Disconnect the lasso selector."""
@@ -1777,7 +1776,7 @@ class SelectFromCollection:
         self.ec[:, -1] = self.alpha_selected
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
-        self.canvas.draw_idle()
+        self.fig.canvas.draw_idle()
 
 
 def _get_color_list(*, remove=None):

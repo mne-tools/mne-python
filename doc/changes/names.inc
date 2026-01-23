@@ -326,6 +326,7 @@
 .. _Teon Brooks: https://github.com/teonbrooks
 .. _Tharupahan Jayawardana: https://github.com/tharu-jwd
 .. _Thomas Binns: https://github.com/tsbinns
+.. _Thomas Caswell: https://tacaswell.github.io
 .. _Thomas Hartmann: https://github.com/thht
 .. _Thomas Radman: https://github.com/tradman
 .. _Théodore Papadopoulo: https://github.com/papadop
