@@ -13,6 +13,7 @@ meegkit
 meggie
 mne-ari
 mne-bids-pipeline
+mne-denoise
 mne-faster
 mne-features
 mne-icalabel
