@@ -511,7 +511,7 @@ def _frame_info(n):
             except KeyError:  # in our verbose dec
                 pass
             else:
-                infos.append(f"{name.lstrip('mne.')}:{frame.f_lineno}")
+                infos.append(f"{name.removeprefix('mne.')}:{frame.f_lineno}")
             frame = frame.f_back
             if frame is None:
                 break
