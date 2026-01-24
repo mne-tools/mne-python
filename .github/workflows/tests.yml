@@ -153,7 +153,9 @@ jobs:
             -v
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
         timeout-minutes: 20
-      - uses: astral-sh/setup-uv@v1
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ">=0.9.x"
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
