@@ -155,7 +155,7 @@ jobs:
         timeout-minutes: 20
       - uses: astral-sh/setup-uv@v7
         with:
-          version: ">=0.9.x"
+          version: ">=0.9"
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
