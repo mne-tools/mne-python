@@ -52,11 +52,6 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - name: Run pre-commit hooks to update other files
-        run: |
-          pip install pre-commit
-          pre-commit run --all
-        if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         run: |
           set -xeo pipefail
