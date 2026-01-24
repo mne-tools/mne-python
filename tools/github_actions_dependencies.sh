@@ -49,8 +49,15 @@ echo ""
 # until quantities releases...
 STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
 
+# Make sure we only pass non-empty groups argument
+if [ -z "$GROUP" ]; then
+	GROUP_ARG=""
+else
+	GROUP_ARG="--group=$GROUP"
+fi
+
 echo "::group::Installing test dependencies using pip"
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS --group=$GROUP
+python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"
