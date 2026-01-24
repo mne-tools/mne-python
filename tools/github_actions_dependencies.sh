@@ -33,6 +33,7 @@ elif [[ ${MNE_CI_KIND} == "old" ]]; then
 	STD_ARGS="--progress-bar off"
 	uv venv --python 3.10
 	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
+	uv pip install pip
 	source .venv/bin/activate
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
