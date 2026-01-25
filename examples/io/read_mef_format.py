@@ -16,7 +16,6 @@ for storing intracranial EEG data including sEEG and ECoG recordings.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import mne
 
 # %%
 # Reading MEF3 data

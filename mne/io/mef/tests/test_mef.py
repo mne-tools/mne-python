@@ -15,9 +15,7 @@ data_path = testing.data_path(download=False)
 
 def _get_mef_test_file():
     """Find a MEF3 test file in the testing dataset."""
-    mef_dirs = sorted(
-        path for path in data_path.rglob("*.mefd") if path.is_dir()
-    )
+    mef_dirs = sorted(path for path in data_path.rglob("*.mefd") if path.is_dir())
     if not mef_dirs:
         pytest.skip("No MEF3 test directory found in testing dataset")
     return mef_dirs[0]
@@ -77,9 +75,7 @@ def test_mef_units_scale_helper():
     """Test unit scaling helper against known cases."""
     from mne.io.mef._utils import _get_mef_units_scale
 
-    scale, _, unit_desc_norm, ufact_valid, unit_known = _get_mef_units_scale(
-        "uV", 2.0
-    )
+    scale, _, unit_desc_norm, ufact_valid, unit_known = _get_mef_units_scale("uV", 2.0)
     assert scale == pytest.approx(2e-6)
     assert unit_desc_norm == "uv"
     assert ufact_valid
@@ -93,9 +89,7 @@ def test_mef_units_scale_helper():
     assert ufact_valid
     assert not unit_known
 
-    scale, _, unit_desc_norm, ufact_valid, unit_known = _get_mef_units_scale(
-        "mV", 0.0
-    )
+    scale, _, unit_desc_norm, ufact_valid, unit_known = _get_mef_units_scale("mV", 0.0)
     assert scale == pytest.approx(1e-3)
     assert unit_desc_norm == "mv"
     assert not ufact_valid
@@ -132,9 +126,7 @@ def test_mef_record_annotations():
     ts_channels = {
         "CH01": {
             "records_info": {
-                "records": [
-                    dict(type="SyLg", time=start_uutc + 1_000_000, text="chan")
-                ]
+                "records": [dict(type="SyLg", time=start_uutc + 1_000_000, text="chan")]
             },
             "segments": {
                 "seg-000001": {
@@ -212,9 +204,7 @@ def test_mef_scaling_matches_pymef(mef_file):
         scales.append(scale)
     scales = np.array(scales)
     if np.allclose(scales, 1.0):
-        pytest.skip(
-            "MEF test data uses unit scaling factor 1 for all channels"
-        )
+        pytest.skip("MEF test data uses unit scaling factor 1 for all channels")
 
     start, stop = 0, 10
     pymef_data = session.read_ts_channels_sample(raw.ch_names, [start, stop])
