@@ -1,1 +1,1 @@
-Refactoring tutorial on Phantom dipoles using the diataxis framework, by `Carina Forster`_.
+Adopting the diataxis framework by improving the phantom dipole tutorial, by `Carina Forster`_.
