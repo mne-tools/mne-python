@@ -45,7 +45,7 @@ test = [
   "pytest-cov >= 4.1",
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
-  "pytest-timeout",
+  "pytest-timeout >= 2.2",
   "ruff >= 0.1",
   "toml-sort",
   "tomli; python_version<'3.11'",
