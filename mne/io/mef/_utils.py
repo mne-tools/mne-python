@@ -96,9 +96,7 @@ def _get_mef_units_scale(unit_desc, unit_factor):
 
 def _mef_time_metadata_extras(section_3):
     extras = {}
-    recording_time_offset = _mef_get(
-        section_3, "recording_time_offset", kind="int"
-    )
+    recording_time_offset = _mef_get(section_3, "recording_time_offset", kind="int")
     if recording_time_offset not in (None, _UUTC_NO_ENTRY):
         extras["recording_time_offset"] = int(recording_time_offset)
     dst_start_time = _mef_get(section_3, "DST_start_time", kind="int")

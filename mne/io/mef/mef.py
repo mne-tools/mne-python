@@ -11,7 +11,7 @@ import numpy as np
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose, warn
+from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 from ._utils import (
     _GMT_OFFSET_NO_ENTRY,
@@ -90,7 +90,11 @@ class RawMEF(BaseRaw):
         # This type of dataset is a directory!
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
         # The dataset maybe have password
-        password = (password or "").decode() if isinstance(password, bytes) else (password or "")
+        password = (
+            (password or "").decode()
+            if isinstance(password, bytes)
+            else (password or "")
+        )
         # Open the dataset
         session = pymef.mef_session.MefSession(str(fname), password)
 
@@ -121,10 +125,12 @@ class RawMEF(BaseRaw):
                 orig_units[ch_name] = unit_desc
 
         if len(set(sfreqs)) != 1 or len(set(n_samples_list)) != 1:
-            raise ValueError("MEF channels have inconsistent sfreq or n_samples, "
-                             "it is not supported for MNE the reading of this dataset.")
+            raise ValueError(
+                "MEF channels have inconsistent sfreq or n_samples, "
+                "it is not supported for MNE the reading of this dataset."
+            )
 
-        sfreq, n_samples = sfreqs[0], n_samples_list[0]     
+        sfreq, n_samples = sfreqs[0], n_samples_list[0]
 
         # Create info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types="seeg")
@@ -136,21 +142,39 @@ class RawMEF(BaseRaw):
         ts_meta = session_md.get("time_series_metadata", {})
 
         # Section 3 is a dictionary with the session metadata
-        # Documentation reference: 
+        # Documentation reference:
         # https://github.com/msel-source/pymef/blob/89e1eb22847320b3585354b15d6361b71315bf33/pymef/mef_file/pymef3_file.h#L52
-        sec3 = ts_meta.get("section_3") or next(iter(ts_channels.values()), {}).get("section_3")
+        sec3 = ts_meta.get("section_3") or next(iter(ts_channels.values()), {}).get(
+            "section_3"
+        )
 
         # Get start time
-        start_uutc = _mef_get(session_md.get("session_specific_metadata", {}), "earliest_start_time", kind="int")
+        start_uutc = _mef_get(
+            session_md.get("session_specific_metadata", {}),
+            "earliest_start_time",
+            kind="int",
+        )
         if start_uutc in (None, _UUTC_NO_ENTRY):
-            starts = [_mef_get(ch.get("channel_specific_metadata", {}), "earliest_start_time", kind="int")
-                      for ch in ts_channels.values()]
+            starts = [
+                _mef_get(
+                    ch.get("channel_specific_metadata", {}),
+                    "earliest_start_time",
+                    kind="int",
+                )
+                for ch in ts_channels.values()
+            ]
             starts = [s for s in starts if s is not None and s != _UUTC_NO_ENTRY]
             start_uutc = min(starts) if starts else None
 
         # Indexing the start time
-        meas_date = (dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc) +
-                     dt.timedelta(microseconds=int(start_uutc))) if start_uutc else None
+        meas_date = (
+            (
+                dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+                + dt.timedelta(microseconds=int(start_uutc))
+            )
+            if start_uutc
+            else None
+        )
 
         # Set info fields
         # following the style of how is make in the other mne io readers
@@ -161,12 +185,21 @@ class RawMEF(BaseRaw):
             gmt = _mef_get(sec3, "GMT_offset", kind="int")
             # If the GMT offset is not None and is not the default value and is not too large
             if gmt is not None and gmt != _GMT_OFFSET_NO_ENTRY and abs(gmt) <= 86400:
-                info["utc_offset"] = f"{'+' if gmt >= 0 else '-'}{abs(gmt)//3600:02d}{(abs(gmt)%3600)//60:02d}"
-            for key, mef_key in [("description", "session_description"), ("subject_info", None)]:
+                info["utc_offset"] = (
+                    f"{'+' if gmt >= 0 else '-'}{abs(gmt) // 3600:02d}{(abs(gmt) % 3600) // 60:02d}"
+                )
+            for key, mef_key in [
+                ("description", "session_description"),
+                ("subject_info", None),
+            ]:
                 # Parsing the subject info, and session description (officialt support by mne info)
                 if key == "subject_info":
                     subj = {}
-                    for k, m in [("his_id", "subject_ID"), ("first_name", "subject_name_1"), ("last_name", "subject_name_2")]:
+                    for k, m in [
+                        ("his_id", "subject_ID"),
+                        ("first_name", "subject_name_1"),
+                        ("last_name", "subject_name_2"),
+                    ]:
                         v = _mef_get(sec3, m, kind="text", default="")
                         if v:
                             subj[k] = v
@@ -174,7 +207,9 @@ class RawMEF(BaseRaw):
                         info["subject_info"] = subj
                 else:
                     # Parsing the session description (officialt support by mne info)
-                    v = _mef_get(ts_meta.get("section_2"), mef_key, kind="text", default="")
+                    v = _mef_get(
+                        ts_meta.get("section_2"), mef_key, kind="text", default=""
+                    )
                     if v:
                         info[key] = v
 
@@ -183,7 +218,9 @@ class RawMEF(BaseRaw):
             last_samps=[n_samples - 1],
             filenames=[str(fname)],
             preload=preload,
-            raw_extras=[dict(n_channels=len(ch_names), ch_names=ch_names, password=password)],
+            raw_extras=[
+                dict(n_channels=len(ch_names), ch_names=ch_names, password=password)
+            ],
             orig_units=orig_units,
         )
 
@@ -192,25 +229,31 @@ class RawMEF(BaseRaw):
         try:
             toc = session.get_channel_toc(ch_names[0])
             gap_onsets, gap_durs = _toc_to_gap_annotations(toc, sfreq)
-            annotations_data.extend((o, d, "BAD_ACQ_SKIP", [], {"source": "toc"})
-                                    for o, d in zip(gap_onsets, gap_durs))
+            annotations_data.extend(
+                (o, d, "BAD_ACQ_SKIP", [], {"source": "toc"})
+                for o, d in zip(gap_onsets, gap_durs)
+            )
         except Exception:
             pass
 
         if start_uutc:
             rec_data = _records_to_annotations(session, ts_channels, start_uutc)
-            annotations_data.extend((o, d, desc, chs, {**ex, "source": "record"})
-                                    for o, d, desc, chs, ex in zip(*rec_data))
+            annotations_data.extend(
+                (o, d, desc, chs, {**ex, "source": "record"})
+                for o, d, desc, chs, ex in zip(*rec_data)
+            )
 
         if annotations_data:
             annotations_data.sort(key=lambda x: x[0])
-            self.set_annotations(Annotations(
-                onset=[a[0] for a in annotations_data],
-                duration=[a[1] for a in annotations_data],
-                description=[a[2] for a in annotations_data],
-                ch_names=[a[3] for a in annotations_data],
-                orig_time=meas_date,
-            ))
+            self.set_annotations(
+                Annotations(
+                    onset=[a[0] for a in annotations_data],
+                    duration=[a[1] for a in annotations_data],
+                    description=[a[2] for a in annotations_data],
+                    ch_names=[a[3] for a in annotations_data],
+                    orig_time=meas_date,
+                )
+            )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -220,11 +263,16 @@ class RawMEF(BaseRaw):
         ch_names = extras["ch_names"]
         session = MefSession(str(self._filenames[fi]), extras.get("password", ""))
 
-        ch_indices = range(*idx.indices(extras["n_channels"])) if isinstance(idx, slice) else idx
+        ch_indices = (
+            range(*idx.indices(extras["n_channels"])) if isinstance(idx, slice) else idx
+        )
         selected = [ch_names[i] for i in ch_indices]
 
         if stop > start:
-            raw_data = np.array(session.read_ts_channels_sample(selected, [start, stop]), dtype=np.float64)
+            raw_data = np.array(
+                session.read_ts_channels_sample(selected, [start, stop]),
+                dtype=np.float64,
+            )
         else:
             raw_data = np.empty((len(selected), 0), dtype=np.float64)
 
