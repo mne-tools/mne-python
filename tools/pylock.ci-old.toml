@@ -399,8 +399,9 @@ sdist = { url = "https://files.pythonhosted.org/packages/47/9f/4b1dea735b5e419e0
 
 [[packages]]
 name = "pytest-timeout"
-version = "0.1"
-sdist = { url = "https://files.pythonhosted.org/packages/fd/c9/bbbddea660ec7c8253ae48bd4d6a8386e7001a519a9fabd88055d13b74a5/pytest-timeout-0.1.tar.gz", upload-time = 2012-02-27T00:06:13Z, size = 4562, hashes = { sha256 = "6f25f0579aab685af1ed3626a45701bc36a5ba481a31f112d1abfc81abf9aa32" } }
+version = "2.2.0"
+sdist = { url = "https://files.pythonhosted.org/packages/2a/b0/8e3182e9ed65ad5b247f9d13769f214fc52b0d3522c3e1c8dbfa2f879e5a/pytest-timeout-2.2.0.tar.gz", upload-time = 2023-10-08T10:14:25Z, size = 16391, hashes = { sha256 = "3b0b95dabf3cb50bac9ef5ca912fa0cfc286526af17afc806824df20c2f72c90" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/e2/3e/abfdb7319d71a179bb8f5980e211d93e7db03f0c0091794dbcd652d642da/pytest_timeout-2.2.0-py3-none-any.whl", upload-time = 2023-10-08T10:14:23Z, size = 13142, hashes = { sha256 = "bde531e096466f49398a59f2dde76fa78429a09a12411466f88a07213e220de2" } }]
 
 [[packages]]
 name = "python-dateutil"
