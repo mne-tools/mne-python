@@ -46,8 +46,6 @@ else
 	EXTRAS=""
 fi
 echo ""
-# until quantities releases...
-STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
 
 # Make sure we only pass non-empty groups argument
 if [ -z "$GROUP" ]; then
