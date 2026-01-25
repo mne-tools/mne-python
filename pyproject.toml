@@ -36,16 +36,17 @@ doc = [
 ]
 test = [
   "codespell",
-  "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
+  "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy >= 0.14",
-  "numpydoc",
+  "numpydoc >= 1.6",
+  "pillow >= 10.2",
   "pre-commit",
   "pytest >= 8.0",
   "pytest-cov",
   "pytest-qt >= 1.1",
   "pytest-rerunfailures",
   "pytest-timeout",
-  "ruff",
+  "ruff >= 0.1",
   "toml-sort",
   "tomli; python_version<'3.11'",
   "twine",
