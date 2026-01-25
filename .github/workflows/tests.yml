@@ -160,7 +160,7 @@ jobs:
       - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
-        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal'
       - run: bash ./tools/github_actions_infos.sh
       # Check Qt
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
