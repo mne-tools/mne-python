@@ -183,16 +183,21 @@ class RawMEF(BaseRaw):
                 info["meas_date"] = meas_date
             # Indexing the GMT offset
             gmt = _mef_get(sec3, "GMT_offset", kind="int")
-            # If the GMT offset is not None and is not the default value and is not too large
+            # If the GMT offset is not None and is not the default value and is
+            # not too large
             if gmt is not None and gmt != _GMT_OFFSET_NO_ENTRY and abs(gmt) <= 86400:
+                # Convert GMT offset (in seconds) to a string in ±HHMM format
                 info["utc_offset"] = (
-                    f"{'+' if gmt >= 0 else '-'}{abs(gmt) // 3600:02d}{(abs(gmt) % 3600) // 60:02d}"
+                    f"{'+' if gmt >= 0 else '-'}"
+                    f"{abs(gmt) // 3600:02d}"
+                    f"{(abs(gmt) % 3600) // 60:02d}"
                 )
             for key, mef_key in [
                 ("description", "session_description"),
                 ("subject_info", None),
             ]:
-                # Parsing the subject info, and session description (officialt support by mne info)
+                # Parsing the subject info, and session description
+                # (official support by mne info)
                 if key == "subject_info":
                     subj = {}
                     for k, m in [
