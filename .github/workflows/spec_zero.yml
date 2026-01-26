@@ -3,6 +3,7 @@ name: SPEC0
 on:  # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 1'  # At 00:00 every Monday
+  pull_request:
   workflow_dispatch:
     inputs:
       ssh:
@@ -52,6 +53,10 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
+      - name: Run pre-commit hooks to update other files
+        run: |
+          pip install pre-commit
+          pre-commit run --all || true
       - name: Create PR
         run: |
           set -xeo pipefail
