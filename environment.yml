@@ -36,7 +36,7 @@ dependencies:
   - numpy >=1.26,<3
   - openmeeg >=2.5.7
   - packaging
-  - pandas >=2.1
+  - pandas >=2.2
   - pillow
   - pip
   - pooch >=1.5
@@ -50,8 +50,8 @@ dependencies:
   - pyvistaqt >=0.11
   - qdarkstyle !=3.2.2
   - qtpy
-  - scikit-learn >=1.3
-  - scipy >=1.11
+  - scikit-learn >=1.4
+  - scipy >=1.12
   - sip
   - snirf
   - statsmodels
