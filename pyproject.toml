@@ -36,6 +36,7 @@ doc = [
 ]
 test = [
   "codespell",
+  "h5py >= 3.10",
   "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy >= 0.14",
   "numpydoc >= 1.6",

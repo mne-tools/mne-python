@@ -152,6 +152,12 @@ wheels = [
 ]
 
 [[packages]]
+name = "h5py"
+version = "3.10.0"
+sdist = { url = "https://files.pythonhosted.org/packages/37/fc/0b1825077a1c4c79a13984c59997e4b36702962df0bca420698f77b70b10/h5py-3.10.0.tar.gz", upload-time = 2023-10-09T14:45:56Z, size = 403716, hashes = { sha256 = "d93adc48ceeb33347eb24a634fb787efc7ae4644e6ea4ba733d099605045c049" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/3b/d3/ecb4b3d2ec2c84132987e5f12ab1408f455bec1d90cd5bc408ebf37800f5/h5py-3.10.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2023-10-09T14:44:00Z, size = 4800680, hashes = { sha256 = "f42e6c30698b520f0295d70157c4e202a9e402406f50dc08f5a7bc416b24e52d" } }]
+
+[[packages]]
 name = "hmako"
 version = "1.16"
 sdist = { url = "https://files.pythonhosted.org/packages/b7/99/f2b5f60650d398dd2bbb67e4c097b64ad645e10c46b72053af7e1e4be5c7/hmako-1.16.tar.gz", upload-time = 2013-02-24T11:03:49Z, size = 206105, hashes = { sha256 = "b5f2f0415dce2c10aff23762c0b33a20fe396d299090a37410782a21efaaf53a" } }
