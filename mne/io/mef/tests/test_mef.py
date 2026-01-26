@@ -8,31 +8,33 @@ import numpy as np
 import pytest
 
 from mne.datasets import testing
+from mne.io import read_raw_mef
+from mne.io.mef._utils import (
+    _UUTC_NO_ENTRY,
+    _get_mef_units_scale,
+    _mef_time_metadata_extras,
+    _records_to_annotations,
+    _toc_to_gap_annotations,
+)
 
 pymef = pytest.importorskip("pymef")
 data_path = testing.data_path(download=False)
-
-
-def _get_mef_test_file():
-    """Find a MEF3 test file in the testing dataset."""
-    mef_dirs = sorted(path for path in data_path.rglob("*.mefd") if path.is_dir())
-    if not mef_dirs:
-        pytest.skip("No MEF3 test directory found in testing dataset")
-    return mef_dirs[0]
+mef_file_path = (
+    data_path / "MEF" / "sub-ieegModulator_ses-ieeg01_task-photicstim_run-01_ieeg.mefd"
+)
 
 
 @pytest.fixture
 def mef_file():
     """Get a MEF3 test file or skip."""
-    fpath = _get_mef_test_file()
-    return fpath
+    if not mef_file_path.exists():
+        pytest.skip(f"MEF3 test directory not found: {mef_file_path}")
+    return mef_file_path
 
 
 @testing.requires_testing_data
 def test_mef_reading(mef_file):
     """Test reading MEF3 file."""
-    from mne.io import read_raw_mef
-
     raw = read_raw_mef(mef_file, preload=False)
 
     assert raw.info["sfreq"] > 0
@@ -51,8 +53,6 @@ def test_mef_reading(mef_file):
 @testing.requires_testing_data
 def test_mef_channel_types(mef_file):
     """Test that channel types default to sEEG."""
-    from mne.io import read_raw_mef
-
     raw = read_raw_mef(mef_file, preload=False)
     ch_types = set(raw.get_channel_types())
 
@@ -63,8 +63,6 @@ def test_mef_channel_types(mef_file):
 @testing.requires_testing_data
 def test_mef_data_types(mef_file):
     """Test that data is returned as float64."""
-    from mne.io import read_raw_mef
-
     raw = read_raw_mef(mef_file, preload=True)
     data = raw.get_data()
 
@@ -73,8 +71,6 @@ def test_mef_data_types(mef_file):
 
 def test_mef_units_scale_helper():
     """Test unit scaling helper against known cases."""
-    from mne.io.mef._utils import _get_mef_units_scale
-
     scale, _, unit_desc_norm, ufact_valid, unit_known = _get_mef_units_scale("uV", 2.0)
     assert scale == pytest.approx(2e-6)
     assert unit_desc_norm == "uv"
@@ -98,8 +94,6 @@ def test_mef_units_scale_helper():
 
 def test_mef_time_metadata_extras():
     """Test session time metadata extraction."""
-    from mne.io.mef._utils import _UUTC_NO_ENTRY, _mef_time_metadata_extras
-
     md3 = dict(
         recording_time_offset=123456,
         DST_start_time=_UUTC_NO_ENTRY,
@@ -111,8 +105,6 @@ def test_mef_time_metadata_extras():
 
 def test_mef_record_annotations():
     """Test record annotation conversion."""
-    from mne.io.mef._utils import _records_to_annotations
-
     start_uutc = 1_000_000
     session = SimpleNamespace(
         session_md={
@@ -167,8 +159,6 @@ def test_mef_record_annotations():
 
 def test_mef_toc_gap_annotations():
     """Test TOC gap annotations."""
-    from mne.io.mef._utils import _toc_to_gap_annotations
-
     toc = np.array(
         [
             [1, 0, 1],
@@ -186,9 +176,6 @@ def test_mef_toc_gap_annotations():
 @testing.requires_testing_data
 def test_mef_scaling_matches_pymef(mef_file):
     """Test that MNE scaling matches pymef data plus metadata scaling."""
-    from mne.io import read_raw_mef
-    from mne.io.mef._utils import _get_mef_units_scale
-
     raw = read_raw_mef(mef_file, preload=False)
     session = pymef.mef_session.MefSession(str(mef_file), "")
     ts_channels = session.session_md["time_series_channels"]

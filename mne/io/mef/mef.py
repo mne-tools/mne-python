@@ -50,6 +50,8 @@ def read_raw_mef(fname, *, password="", preload=False, verbose=None):
 
     Notes
     -----
+    .. versionadded:: 1.12
+
     Data is read using the `pymef package <https://github.com/msel-source/pymef>`__.
 
     Channel types default to sEEG (stereo-EEG). Use :meth:`raw.set_channel_types()
@@ -233,13 +235,16 @@ class RawMEF(BaseRaw):
         annotations_data = []
         try:
             toc = session.get_channel_toc(ch_names[0])
+        except Exception as exp:
+            logger.info(f"Could not read TOC for {ch_names[0]}: {exp}")
+            toc = None
+
+        if toc is not None:
             gap_onsets, gap_durs = _toc_to_gap_annotations(toc, sfreq)
             annotations_data.extend(
                 (o, d, "BAD_ACQ_SKIP", [], {"source": "toc"})
                 for o, d in zip(gap_onsets, gap_durs)
             )
-        except Exception:
-            pass
 
         if start_uutc:
             rec_data = _records_to_annotations(session, ts_channels, start_uutc)

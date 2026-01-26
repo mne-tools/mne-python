@@ -108,41 +108,43 @@ def _mef_time_metadata_extras(section_3):
     return extras
 
 
+def _convert_record(record, session):
+    if isinstance(record, dict) and "type" in record:
+        return record
+    if isinstance(record, dict) and "record_header" in record:
+        try:
+            return session._create_dict_record(record)
+        except Exception:
+            return None
+    return None
+
+
+def _iter_records(session, ts_channels):
+    session_records = session.session_md.get("records_info", {}).get("records", [])
+    for record in session_records:
+        yield record, None, None
+    if isinstance(ts_channels, dict):
+        for ch_name, ch_md in ts_channels.items():
+            ch_records = ch_md.get("records_info", {}).get("records", [])
+            for record in ch_records:
+                yield record, ch_name, None
+            for seg_name, seg_md in ch_md.get("segments", {}).items():
+                seg_records = seg_md.get("records_info", {}).get("records", [])
+                for record in seg_records:
+                    yield record, ch_name, seg_name
+
+
 def _records_to_annotations(session, ts_channels, start_uutc):
     if start_uutc is None:
         return [], [], [], [], []
-
-    def _convert_record(record):
-        if isinstance(record, dict) and "type" in record:
-            return record
-        if isinstance(record, dict) and "record_header" in record:
-            try:
-                return session._create_dict_record(record)
-            except Exception:
-                return None
-        return None
-
-    def _iter_records():
-        session_records = session.session_md.get("records_info", {}).get("records", [])
-        for record in session_records:
-            yield record, None, None
-        if isinstance(ts_channels, dict):
-            for ch_name, ch_md in ts_channels.items():
-                ch_records = ch_md.get("records_info", {}).get("records", [])
-                for record in ch_records:
-                    yield record, ch_name, None
-                for seg_name, seg_md in ch_md.get("segments", {}).items():
-                    seg_records = seg_md.get("records_info", {}).get("records", [])
-                    for record in seg_records:
-                        yield record, ch_name, seg_name
 
     onsets = []
     durations = []
     descriptions = []
     ch_names = []
     extras_list = []
-    for record, channel, segment in _iter_records():
-        record = _convert_record(record)
+    for record, channel, segment in _iter_records(session, ts_channels):
+        record = _convert_record(record, session)
         if record is None:
             continue
         record_type = _mef_get(record, "type", kind="text", default="")
