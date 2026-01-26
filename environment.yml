@@ -43,7 +43,6 @@ dependencies:
   - pyarrow
   - pybv
   - pymatreader
-  - pymef
   - PySide6 !=6.9.1
   - python-neo
   - python-picard
@@ -66,4 +65,5 @@ dependencies:
   - xlrd
   - pip:
       - nest-asyncio2
+      - pymef
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'
