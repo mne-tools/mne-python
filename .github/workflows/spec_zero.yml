@@ -56,11 +56,11 @@ jobs:
         run: |
           pip install pre-commit
           pre-commit run --all || true
-          git diff
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         run: |
           set -xeo pipefail
+          git diff
           git config --global user.email "50266005+mne-bot@users.noreply.github.com"
           git config --global user.name "mne[bot]"
           git checkout -b spec_zero
