@@ -23,7 +23,11 @@ for mod_name, want_ver in parts:
     if mod_name == "python":
         got_ver = ".".join(map(str, sys.version_info[:2]))
     else:
-        mod = importlib.import_module(mod_name_map.get(mod_name, mod_name))
+        try:
+            mod = importlib.import_module(mod_name_map.get(mod_name, mod_name))
+        except Exception as exc:
+            bad.append(f"{mod_name}: not importable ({type(exc).__name__}: {exc})")
+            continue
         got_ver = mod.__version__.lstrip("v")  # pooch prepends v
     if ".".join(got_ver.split(".")[:2]) != want_ver:
         bad.append(f"{mod_name}: {got_ver} != {want_ver}")
