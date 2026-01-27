@@ -276,9 +276,13 @@ for key in opt_dependencies:
 if changed:
     changelog_text = "Updated minimum for:\n\n"
     changelog_text += "\n".join(f"- {change}" for change in changed)
+    print(changelog_text, flush=True)
+    # no reason to print this but it should go in the changelog
+    changelog_text += (
+        "\n\nChanged implemented via CI action created by `Thomas Binns`_.\n"
+    )
     changelog_path = project_root / "doc" / "changes" / "dev" / "dependency.rst"
     changelog_path.write_text(changelog_text, encoding="utf-8")
-    print(changelog_text, flush=True)
 else:
     print("No dependency versions needed updating.", flush=True)
 
