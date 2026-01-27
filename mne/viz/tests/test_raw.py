@@ -321,6 +321,9 @@ def test_scale_bar(browser_backend):
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
+    if ismpl and os.getenv("MNE_CI_KIND") == "pip-pre":
+        # TODO VERSION FIX SOON AFTER 2026/01/26!
+        pytest.xfail("Needs mpl gh-31031")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
@@ -765,6 +768,9 @@ def test_plot_misc_auto(browser_backend):
 def test_plot_annotations(raw, browser_backend):
     """Test annotation mode of the plotter."""
     ismpl = browser_backend.name == "matplotlib"
+    if ismpl and os.getenv("MNE_CI_KIND") == "pip-pre":
+        # TODO VERSION FIX SOON AFTER 2026/01/26!
+        pytest.xfail("Needs mpl gh-31031")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0
     _annotation_helper(raw, browser_backend)
