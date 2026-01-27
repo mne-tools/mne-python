@@ -7,6 +7,7 @@ import re
 from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -1736,6 +1737,124 @@ def read_custom_montage(
             d["coord_frame"] = coord_frame
 
     return montage
+
+
+@verbose
+def read_meg_montage(system, *, verbose=None):
+    """Load canonical MEG sensor definitions from CSV files.
+
+    Parameters
+    ----------
+    system : str
+        The MEG system name. Currently supported: 'neuromag', 'ctf151' or
+        'ctf275'.
+    %(verbose)s
+
+    Returns
+    -------
+    info : Info
+        An Info object containing the canonical sensor definitions.
+
+    Notes
+    -----
+    This function loads pre-defined canonical sensor positions and
+    orientations from CSV files stored in mne/channels/data/montages/.
+
+    .. versionadded:: 1.11
+    """
+    # Validate system input
+    _check_option("system", system, ["neuromag", "ctf151", "ctf275"])
+
+    # Map system names to CSV filenames
+    system_files = {
+        "neuromag": "neuromag306.csv",
+        "ctf151": "ctf151.csv",
+        "ctf275": "ctf275.csv",
+    }
+
+    # Load the CSV file
+    montage_dir = Path(__file__).parent / "data" / "montages"
+    csv_file = montage_dir / system_files[system]
+
+    if not csv_file.exists():
+        raise FileNotFoundError(f"Canonical sensor file not found: {csv_file}. ")
+
+    # Read sensor definitions manually
+    ch_names = []
+    rows = []
+    with open(csv_file) as fid:
+        # Read header to get column names
+        header = fid.readline().strip().split(",")
+        # Create a mapping from column name to index
+        col_idx = {name: i for i, name in enumerate(header)}
+
+        # Read data rows
+        for line in fid:
+            values = line.strip().split(",")
+            if not values[0]:  # skip empty lines
+                continue
+            rows.append(values)
+            ch_names.append(values[col_idx["name"]])
+
+    # Create base info structure
+    # Use a dummy sample rate; it won't matter for field interpolation
+    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types="mag")
+
+    # Update each channel with full coil information
+    for idx, row in enumerate(rows):
+        ch = info["chs"][idx]
+
+        # Set coil type
+        ch["coil_type"] = int(row[col_idx["coil_type"]])
+
+        # Set position and orientation in loc field
+        # loc[0:3] = position
+        ch["loc"][:3] = [
+            float(row[col_idx["x"]]),
+            float(row[col_idx["y"]]),
+            float(row[col_idx["z"]]),
+        ]
+
+        # loc[3:6] = ex (first orientation vector)
+        ch["loc"][3:6] = [
+            float(row[col_idx["ex_x"]]),
+            float(row[col_idx["ex_y"]]),
+            float(row[col_idx["ex_z"]]),
+        ]
+
+        # loc[6:9] = ey (second orientation vector)
+        ch["loc"][6:9] = [
+            float(row[col_idx["ey_x"]]),
+            float(row[col_idx["ey_y"]]),
+            float(row[col_idx["ey_z"]]),
+        ]
+
+        # loc[9:12] = ez (third orientation vector / normal)
+        ch["loc"][9:12] = [
+            float(row[col_idx["ez_x"]]),
+            float(row[col_idx["ez_y"]]),
+            float(row[col_idx["ez_z"]]),
+        ]
+
+        # Set coordinate frame to device coordinates
+        ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
+
+        # Set channel kind to MEG
+        ch["kind"] = FIFF.FIFFV_MEG_CH
+
+        # Set unit based on coil type
+        # Neuromag gradiometers (3012) use T/m, magnetometers (3024) use T
+        # CTF gradiometers (5001) use T
+        if ch["coil_type"] == 3012:  # Neuromag planar gradiometer
+            ch["unit"] = FIFF.FIFF_UNIT_T_M
+        else:  # Magnetometers and CTF gradiometers
+            ch["unit"] = FIFF.FIFF_UNIT_T
+
+    # Set device to head transform to identity (canonical positions)
+    # This will be updated based on the actual data being interpolated
+    info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+
+    return info
 
 
 def compute_dev_head_t(montage):
