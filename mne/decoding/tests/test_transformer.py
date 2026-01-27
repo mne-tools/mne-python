@@ -339,7 +339,6 @@ def test_bad_triage():
 )
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = []
     if estimator.__class__.__name__ == "FilterEstimator":
         ignores += [

@@ -97,5 +97,4 @@ def test_ems():
 @parametrize_with_checks([EMS()])
 def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     check(estimator)

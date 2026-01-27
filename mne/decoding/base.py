@@ -23,7 +23,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import indexable
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_is_fitted, validate_data
 
 from ..parallel import parallel_func
 from ..utils import (
@@ -35,7 +35,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ._fixes import validate_data
 from ._ged import (
     _handle_restr_mat,
     _is_cov_pos_semidef,
