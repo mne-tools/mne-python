@@ -27,6 +27,8 @@ fname_labnirs_multi_wavelength = (
 )
 def test_optical_density(fname, readerfn):
     """Test return type for optical density."""
+    if fname.suffix == ".snirf":
+        pytest.importorskip("h5py")
     raw_volt = readerfn(fname, preload=False)
     _validate_type(raw_volt, BaseRaw, "raw")
 

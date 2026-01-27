@@ -51,6 +51,7 @@ from mne.utils import (
     _record_warnings,
     assert_meg_snr,
     catch_logging,
+    check_version,
     object_diff,
     verbose,
 )
@@ -884,6 +885,9 @@ def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
 @testing.requires_testing_data
 def test_refit_hpi_locs_basic():
     """Test that HPI locations can be refit."""
+    if not check_version("scipy", "1.13"):
+        # TODO VERSION remove when scipy >= 1.13 is required
+        pytest.xfail("SciPy 1.12 has an lwork bug affecting this test")
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
     # These should be similar (and both should work)
     locs = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1)

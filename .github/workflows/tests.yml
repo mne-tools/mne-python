@@ -154,6 +154,8 @@ jobs:
         if: ${{ !startswith(matrix.kind, 'pip') }}
         timeout-minutes: 20
       - run: bash ./tools/github_actions_dependencies.sh
+      - run: python ./tools/github_actions_check_old.py
+        if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'

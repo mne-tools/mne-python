@@ -43,6 +43,8 @@ fname_labnirs_multi_wavelength = (
 )
 def test_beer_lambert(fname, fmt, tmp_path):
     """Test converting raw CW amplitude files."""
+    if fname.suffix == ".snirf":
+        pytest.importorskip("h5py")
     match fmt:
         case "nirx":
             raw_volt = read_raw_nirx(fname)
