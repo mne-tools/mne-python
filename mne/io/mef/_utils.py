@@ -54,9 +54,9 @@ def _mef_get(md, key, *, kind=None, default=None):
         return default
     try:
         value = md.get(key) if isinstance(md, dict) else md[key]
-    except Exception:
+    except (KeyError, TypeError, AttributeError):
         return default
-    if isinstance(value, np.ndarray):
+    if isinstance(value, np.ndarray) and value.size > 0:
         value = value.ravel()[0]
     if value is None:
         return default
@@ -64,14 +64,9 @@ def _mef_get(md, key, *, kind=None, default=None):
         if isinstance(value, (bytes, np.bytes_)):
             value = value.decode("utf-8", errors="ignore")
         return str(value).strip().strip("\x00")
-    if kind == "int":
+    if kind in ("int", "float"):
         try:
-            return int(value)
-        except (TypeError, ValueError):
-            return default
-    if kind == "float":
-        try:
-            return float(value)
+            return int(value) if kind == "int" else float(value)
         except (TypeError, ValueError):
             return default
     return value
@@ -163,6 +158,7 @@ def _convert_record(record, session):
         try:
             return session._create_dict_record(record)
         except Exception:
+            # We don't know what this might raise, so we catch all
             return None
     return None
 
@@ -243,11 +239,11 @@ def _records_to_annotations(session, ts_channels, start_uutc):
             description = f"{description}: {detail}"
 
         # Resolve onset timestamp
-        onset_uutc = _mef_get(record, "time")
-        if onset_uutc is None:
-            onset_uutc = _mef_get(record, "timestamp")
-        if onset_uutc is None and _mef_get(record, "earliest_onset") is not None:
-            onset_uutc = _mef_get(record, "earliest_onset")
+        onset_uutc = (
+            _mef_get(record, "time")
+            or _mef_get(record, "timestamp")
+            or _mef_get(record, "earliest_onset")
+        )
         if onset_uutc is None or onset_uutc == _UUTC_NO_ENTRY:
             continue
 
@@ -272,18 +268,21 @@ def _records_to_annotations(session, ts_channels, start_uutc):
         except (TypeError, ValueError):
             continue
 
-        extras = {}
-        if detail:
-            extras["detail"] = detail
-        if channel:
-            extras["channel"] = channel
-        if segment:
-            extras["segment"] = segment
         onsets.append(onset)
         durations.append(duration)
         descriptions.append(description)
         ch_names.append([channel] if channel else [])
-        extras_list.append(extras)
+        extras_list.append(
+            {
+                k: v
+                for k, v in [
+                    ("detail", detail),
+                    ("channel", channel),
+                    ("segment", segment),
+                ]
+                if v
+            }
+        )
     return onsets, durations, descriptions, ch_names, extras_list
 
 

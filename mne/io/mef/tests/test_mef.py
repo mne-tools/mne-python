@@ -24,18 +24,10 @@ mef_file_path = (
 )
 
 
-@pytest.fixture
-def mef_file():
-    """Get a MEF3 test file or skip."""
-    if not mef_file_path.exists():
-        pytest.skip(f"MEF3 test directory not found: {mef_file_path}")
-    return mef_file_path
-
-
 @testing.requires_testing_data
-def test_mef_reading(mef_file):
+def test_mef_reading():
     """Test reading MEF3 file."""
-    raw = read_raw_mef(mef_file, preload=False)
+    raw = read_raw_mef(mef_file_path, preload=False)
 
     assert raw.info["sfreq"] > 0
     assert len(raw.ch_names) > 0
@@ -51,9 +43,9 @@ def test_mef_reading(mef_file):
 
 
 @testing.requires_testing_data
-def test_mef_channel_types(mef_file):
+def test_mef_channel_types():
     """Test that channel types default to sEEG."""
-    raw = read_raw_mef(mef_file, preload=False)
+    raw = read_raw_mef(mef_file_path, preload=False)
     ch_types = set(raw.get_channel_types())
 
     # All channels should default to sEEG
@@ -61,9 +53,9 @@ def test_mef_channel_types(mef_file):
 
 
 @testing.requires_testing_data
-def test_mef_data_types(mef_file):
+def test_mef_data_types():
     """Test that data is returned as float64."""
-    raw = read_raw_mef(mef_file, preload=True)
+    raw = read_raw_mef(mef_file_path, preload=True)
     data = raw.get_data()
 
     assert data.dtype == np.float64
@@ -94,11 +86,11 @@ def test_mef_units_scale_helper():
 
 def test_mef_time_metadata_extras():
     """Test session time metadata extraction."""
-    md3 = dict(
-        recording_time_offset=123456,
-        DST_start_time=_UUTC_NO_ENTRY,
-        DST_end_time=789,
-    )
+    md3 = {
+        "recording_time_offset": 123456,
+        "DST_start_time": _UUTC_NO_ENTRY,
+        "DST_end_time": 789,
+    }
     extras = _mef_time_metadata_extras(md3)
     assert extras == {"recording_time_offset": 123456, "dst_end_time": 789}
 
@@ -110,7 +102,7 @@ def test_mef_record_annotations():
         session_md={
             "records_info": {
                 "records": [
-                    dict(type="Note", time=start_uutc + 2_000_000, text="hello")
+                    {"type": "Note", "time": start_uutc + 2_000_000, "text": "hello"}
                 ]
             }
         }
@@ -118,18 +110,20 @@ def test_mef_record_annotations():
     ts_channels = {
         "CH01": {
             "records_info": {
-                "records": [dict(type="SyLg", time=start_uutc + 1_000_000, text="chan")]
+                "records": [
+                    {"type": "SyLg", "time": start_uutc + 1_000_000, "text": "chan"}
+                ]
             },
             "segments": {
                 "seg-000001": {
                     "records_info": {
                         "records": [
-                            dict(
-                                type="EDFA",
-                                time=start_uutc + 3_000_000,
-                                text="seg",
-                                duration=500_000,
-                            )
+                            {
+                                "type": "EDFA",
+                                "time": start_uutc + 3_000_000,
+                                "text": "seg",
+                                "duration": 500_000,
+                            }
                         ]
                     }
                 }
@@ -174,10 +168,10 @@ def test_mef_toc_gap_annotations():
 
 
 @testing.requires_testing_data
-def test_mef_scaling_matches_pymef(mef_file):
+def test_mef_scaling_matches_pymef():
     """Test that MNE scaling matches pymef data plus metadata scaling."""
-    raw = read_raw_mef(mef_file, preload=False)
-    session = pymef.mef_session.MefSession(str(mef_file), "")
+    raw = read_raw_mef(mef_file_path, preload=False)
+    session = pymef.mef_session.MefSession(str(mef_file_path), "")
     ts_channels = session.session_md["time_series_channels"]
     if not ts_channels:
         pytest.skip("No MEF time series channels available")

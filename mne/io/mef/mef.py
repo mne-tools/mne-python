@@ -126,13 +126,18 @@ class RawMEF(BaseRaw):
             if unit_desc:
                 orig_units[ch_name] = unit_desc
 
-        if len(set(sfreqs)) != 1 or len(set(n_samples_list)) != 1:
+        if len(set(sfreqs)) != 1:
             raise ValueError(
-                "MEF channels have inconsistent sfreq or n_samples, "
-                "it is not supported for MNE the reading of this dataset."
+                f"MEF channels have inconsistent sfreq: {set(sfreqs)}, "
+                "this is not supported."
+            )
+        if len(set(n_samples_list)) != 1:
+            raise ValueError(
+                f"MEF channels have inconsistent n_samples: {set(n_samples_list)}, "
+                "this is not supported."
             )
 
-        sfreq, n_samples = sfreqs[0], n_samples_list[0]
+        sfreq, n_samp = sfreqs[0], n_samples_list[0]
 
         # Create info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types="seeg")
@@ -222,11 +227,15 @@ class RawMEF(BaseRaw):
 
         super().__init__(
             info=info,
-            last_samps=[n_samples - 1],
+            last_samps=[n_samp - 1],
             filenames=[str(fname)],
             preload=preload,
             raw_extras=[
-                dict(n_channels=len(ch_names), ch_names=ch_names, password=password)
+                {
+                    "n_channels": len(ch_names),
+                    "ch_names": ch_names,
+                    "password": password,
+                }
             ],
             orig_units=orig_units,
         )
@@ -236,7 +245,8 @@ class RawMEF(BaseRaw):
         try:
             toc = session.get_channel_toc(ch_names[0])
         except Exception as exp:
-            logger.info(f"Could not read TOC for {ch_names[0]}: {exp}")
+            # We don't know what pymef might raise here
+            logger.info("Could not read TOC for %s: %s", ch_names[0], exp)
             toc = None
 
         if toc is not None:
