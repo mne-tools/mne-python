@@ -201,9 +201,11 @@ class RawMEF(BaseRaw):
         annotations_data = []
         try:
             toc = session.get_channel_toc(ch_names[0])
-        except Exception as exp:
-            # We don't know what pymef might raise here
-            logger.info("Could not read TOC for %s: %s", ch_names[0], exp)
+        except KeyError:
+            # 'segments' or 'TOC' key missing in channel metadata
+            logger.info(
+                "Could not read TOC for %s: missing segment metadata", ch_names[0]
+            )
             toc = None
 
         if toc is not None:
