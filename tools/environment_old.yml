@@ -4,9 +4,9 @@ channels:
   - conda-forge
 dependencies:
   - python =3.10
-  - numpy =1.25
+  - numpy =1.26
   - scipy =1.12
-  - matplotlib =3.7
+  - matplotlib =3.8
   - pandas =2.2
   - scikit-learn =1.4
   - nibabel
