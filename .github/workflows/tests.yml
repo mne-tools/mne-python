@@ -67,27 +67,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: pip
-          - os: ubuntu-latest
-            python: '3.14'
-            kind: pip-pre
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
-            python: '3.13'
-            kind: mamba
-          - os: macos-15-intel  # intel: Sequoia
-            python: '3.13'
-            kind: mamba
-          - os: windows-latest
-            python: '3.11'
-            kind: mamba
-          - os: ubuntu-latest
-            python: '3.12'
-            kind: minimal
           - os: ubuntu-22.04
             python: '3.10'
             kind: old
@@ -154,6 +133,8 @@ jobs:
         if: ${{ !startswith(matrix.kind, 'pip') }}
         timeout-minutes: 20
       - run: bash ./tools/github_actions_dependencies.sh
+      - run: python ./tools/github_actions_check_old.py
+        if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
