@@ -260,7 +260,7 @@ class RawMEF(BaseRaw):
 
 @fill_doc
 @verbose
-def read_raw_mef(fname, *, password="", preload=False, verbose=None):
+def read_raw_mef(fname, *, password="", preload=False, verbose=None) -> RawMEF:
     """Read raw data from MEF3 files.
 
     Parameters
@@ -276,7 +276,7 @@ def read_raw_mef(fname, *, password="", preload=False, verbose=None):
     Returns
     -------
     raw : instance of RawMEF
-        A Raw object containing the MEF3 data.
+        The raw instance.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also

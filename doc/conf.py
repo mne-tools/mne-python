@@ -306,6 +306,7 @@ numpydoc_xref_aliases = {
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",

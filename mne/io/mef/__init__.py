@@ -4,4 +4,4 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from .mef import read_raw_mef, RawMEF
+from .mef import read_raw_mef
