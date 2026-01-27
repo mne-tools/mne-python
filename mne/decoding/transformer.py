@@ -44,7 +44,7 @@ class MNETransformerMixin(TransformerMixin):
         if isinstance(epochs_data, BaseEpochs):
             epochs_data = epochs_data.get_data(copy=False)
         kwargs = dict(dtype=np.float64, allow_nd=True, order="C")
-        if check_version("sklearn", "1.4"):  # TODO VERSION sklearn 1.4+
+        if check_version("sklearn", "1.5"):  # TODO VERSION sklearn 1.5+
             kwargs["force_writeable"] = True
         if hasattr(self, "n_features_in_") and check_n_features:
             if y is None:
