@@ -24,49 +24,6 @@ from ._utils import (
 
 
 @fill_doc
-@verbose
-def read_raw_mef(fname, *, password="", preload=False, verbose=None):
-    """Read raw data from MEF3 files.
-
-    Parameters
-    ----------
-    fname : path-like
-        Path to the MEF3 ``.mefd`` directory.
-    password : str | bytes | None
-        Password for encrypted MEF sessions. Use an empty string for
-        unencrypted data.
-    %(preload)s
-    %(verbose)s
-
-    Returns
-    -------
-    raw : instance of RawMEF
-        A Raw object containing the MEF3 data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawMEF.
-
-    Notes
-    -----
-    .. versionadded:: 1.12
-
-    Data is read using the `pymef package <https://github.com/msel-source/pymef>`__.
-
-    Channel types default to sEEG (stereo-EEG). Use :meth:`raw.set_channel_types()
-    <mne.io.Raw.set_channel_types>` to set appropriate types after loading.
-
-    Examples
-    --------
-    Read a MEF3 file::
-
-        >>> raw = mne.io.read_raw_mef('recording.mefd')  # doctest: +SKIP
-    """
-    return RawMEF(fname, password=password, preload=preload, verbose=verbose)
-
-
-@fill_doc
 class RawMEF(BaseRaw):
     """Raw object for MEF3 files.
 
@@ -299,3 +256,46 @@ class RawMEF(BaseRaw):
         block_out = np.zeros((extras["n_channels"], stop - start), dtype=data.dtype)
         block_out[idx] = raw_data
         _mult_cal_one(data, block_out, idx, cals, mult)
+
+
+@fill_doc
+@verbose
+def read_raw_mef(fname, *, password="", preload=False, verbose=None):
+    """Read raw data from MEF3 files.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to the MEF3 ``.mefd`` directory.
+    password : str | bytes | None
+        Password for encrypted MEF sessions. Use an empty string for
+        unencrypted data.
+    %(preload)s
+    %(verbose)s
+
+    Returns
+    -------
+    raw : instance of RawMEF
+        A Raw object containing the MEF3 data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawMEF.
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+
+    Data is read using the `pymef package <https://github.com/msel-source/pymef>`__.
+
+    Channel types default to sEEG (stereo-EEG). Use :meth:`raw.set_channel_types()
+    <mne.io.Raw.set_channel_types>` to set appropriate types after loading.
+
+    Examples
+    --------
+    Read a MEF3 file::
+
+        >>> raw = mne.io.read_raw_mef('recording.mefd')  # doctest: +SKIP
+    """
+    return RawMEF(fname, password=password, preload=preload, verbose=verbose)
