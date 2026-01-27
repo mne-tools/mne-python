@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin, check_array, clone
 from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.utils import check_X_y
-from sklearn.utils.validation import check_is_fitted, validate_data
+from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.pick import (
     _pick_data_channels,
@@ -20,6 +20,7 @@ from ..filter import filter_data
 from ..fixes import _reshape_view
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, check_version, fill_doc
+from ._fixes import validate_data
 
 
 class MNETransformerMixin(TransformerMixin):

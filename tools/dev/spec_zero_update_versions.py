@@ -9,6 +9,7 @@ accommodating users in minimum version support similarly to when before this pol
 adopted.
 
 MNE-Python's policy differs from SPEC0 in the following ways:
+
 - Python versions are supported for at least 3 years after release, but possibly longer
   at the discretion of the MNE-Python maintainers based on, e.g., maintainability,
   features.
@@ -23,6 +24,7 @@ MNE-Python's policy differs from SPEC0 in the following ways:
   https://github.com/mne-tools/mne-python/pull/13451#discussion_r2445337934
 
 For example, in October 2025:
+
 - The latest version of NumPy available 2 years prior was 1.26.1 (released October
   2023), making the latest minor release 1.26, which would be pinned. Support for 1.26
   would be dropped in June 2026 in favour of 2.0, which was released in June 2024.
@@ -39,6 +41,8 @@ For example, in October 2025:
 import collections
 import datetime
 import re
+from copy import deepcopy
+from pathlib import Path
 
 import requests
 from packaging.requirements import Requirement
@@ -60,6 +64,8 @@ SORT_PACKAGES = [
 SUPPORT_TIME = datetime.timedelta(days=365 * 2)
 CURRENT_DATE = datetime.datetime.now()
 
+project_root = Path(__file__).parent.parent.parent
+
 
 def get_release_and_drop_dates(package):
     """Get release and drop dates for a given package from pypi.org."""
@@ -70,7 +76,7 @@ def get_release_and_drop_dates(package):
         headers={"Accept": "application/vnd.pypi.simple.v1+json"},
         timeout=10,
     ).json()
-    print("OK")
+    print("OK", flush=True)
     file_date = collections.defaultdict(list)
     for f in response["files"]:
         if f["filename"].endswith(".tar.gz") or f["filename"].endswith(".zip"):
@@ -99,7 +105,7 @@ def get_release_and_drop_dates(package):
 
 
 def update_specifiers(dependencies, releases):
-    """Update dependency version specifiers."""
+    """Update dependency version specifiers inplace."""
     for idx, dep in enumerate(dependencies):
         req = Requirement(dep)
         pkg_name = req.name
@@ -153,7 +159,6 @@ def update_specifiers(dependencies, releases):
                 dependencies._value[idx], min_ver_release, next_ver, next_ver_release
             )
         dependencies[idx] = _prettify_requirement(req)
-    return dependencies
 
 
 def _as_minor_version(ver):
@@ -239,19 +244,43 @@ package_releases = {
 }
 
 # Get dependencies from pyproject.toml
-pyproject = TOMLFile("pyproject.toml")
+pyproject = TOMLFile(project_root / "pyproject.toml")
 pyproject_data = pyproject.read()
-project_info = pyproject_data.get("project")
+project_info = pyproject_data["project"]
 core_dependencies = project_info["dependencies"]
-opt_dependencies = project_info.get("optional-dependencies", {})
+opt_dependencies = project_info["optional-dependencies"]
 
 # Update version specifiers
-core_dependencies = update_specifiers(core_dependencies, package_releases)
+changed = []
+old_deps = deepcopy(core_dependencies)
+update_specifiers(core_dependencies, package_releases)
+changed.extend(
+    [
+        f"Core dependency ``{new}``"
+        for new, old in zip(core_dependencies, old_deps)
+        if new != old
+    ]
+)
 for key in opt_dependencies:
-    opt_dependencies[key] = update_specifiers(opt_dependencies[key], package_releases)
-pyproject_data["project"]["dependencies"] = core_dependencies
-if opt_dependencies:
-    pyproject_data["project"]["optional-dependencies"] = opt_dependencies
+    old_deps = deepcopy(opt_dependencies[key])
+    update_specifiers(opt_dependencies[key], package_releases)
+    changed.extend(
+        [
+            f"Optional dependency ``{new}``"
+            for new, old in zip(opt_dependencies[key], old_deps)
+            if new != old
+        ]
+    )
+
+# Need to write a changelog entry if versions were updated
+if changed:
+    changelog_text = "Updated minimum for:\n\n"
+    changelog_text += "\n".join(f"- {change}" for change in changed)
+    changelog_path = project_root / "doc" / "changes" / "dev" / "dependency.rst"
+    changelog_path.write_text(changelog_text, encoding="utf-8")
+    print(changelog_text, flush=True)
+else:
+    print("No dependency versions needed updating.", flush=True)
 
 # Save updated pyproject.toml (replace ugly \" with ' first)
 pyproject_data = parse(pyproject_data.as_string().replace('\\"', "'"))
