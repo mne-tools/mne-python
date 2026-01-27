@@ -49,18 +49,61 @@ def _get_lapack_funcs(dtype, names):
 ###############################################################################
 # linalg.svd and linalg.pinv2
 
+# TODO VERSION these can be removed once we use SciPy 1.18+ with batched processing
+# (otherwise call overhead for `lwork` is too high). Can't use NumPy because
+# it doesn't provide an interface to GESVD (only uses GESDD, which can be buggy).
+
+
+# Vendored from scipy: _compute_lwork and _check_work_float
+
+
+def _compute_lwork(routine, *args, **kwargs):  # pragma: no cover
+    dtype = getattr(routine, "dtype", None)
+    int_dtype = getattr(routine, "int_dtype", None)
+    ret = routine(*args, **kwargs)
+    if ret[-1] != 0:
+        raise ValueError(f"Internal work array size computation failed: {ret[-1]}")
+    if len(ret) == 2:
+        return _check_work_float(ret[0].real, dtype, int_dtype)
+    else:
+        return tuple(_check_work_float(x.real, dtype, int_dtype) for x in ret[:-1])
+
+
+_int32_max = np.iinfo(np.int32).max
+_int64_max = np.iinfo(np.int64).max
+
+
+def _check_work_float(value, dtype, int_dtype):  # pragma: no cover
+    if dtype == np.float32 or dtype == np.complex64:
+        # Single-precision routine -- take next fp value to work
+        # around possible truncation in LAPACK code
+        value = np.nextafter(value, np.inf, dtype=np.float32)
+
+    value = int(value)
+    if int_dtype.itemsize == 4:
+        if value < 0 or value > _int32_max:
+            raise ValueError(
+                "Too large work array required -- computation "
+                "cannot be performed with standard 32-bit"
+                " LAPACK."
+            )
+    elif int_dtype.itemsize == 8:
+        if value < 0 or value > _int64_max:
+            raise ValueError(
+                "Too large work array required -- computation"
+                " cannot be performed with standard 64-bit"
+                " LAPACK."
+            )
+    return value
+
 
 def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
-    try:
-        ds = linalg._decomp_svd
-    except AttributeError:  # < 1.8.0
-        ds = linalg.decomp_svd
     gesdd_lwork, gesvd_lwork = _get_lapack_funcs(dtype, ("gesdd_lwork", "gesvd_lwork"))
-    sdd_lwork = ds._compute_lwork(
+    sdd_lwork = _compute_lwork(
         gesdd_lwork, *shape, compute_uv=True, full_matrices=False
     )
-    svd_lwork = ds._compute_lwork(
+    svd_lwork = _compute_lwork(
         gesvd_lwork, *shape, compute_uv=True, full_matrices=False
     )
     return sdd_lwork, svd_lwork
