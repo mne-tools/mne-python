@@ -75,7 +75,10 @@ if missing_urls:
     )
 if extra_urls:
     _s = _pl(extra_urls)
-    warn(f"Superfluous URL{_s} for package{_s} {', '.join(extra_urls)}; {update_msg}")
+    warn(
+        "Superfluous URL%s for package%s %s; %s"
+        % (_s, _s, ", ".join(extra_urls), update_msg)
+    )
 
 # construct the rST
 core_deps_bullets = [
