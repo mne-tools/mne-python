@@ -245,6 +245,7 @@ stages:
           PYTHONIOENCODING: 'utf-8'
           AZURE_CI_WINDOWS: 'true'
           PYTHON_ARCH: 'x64'
+          MNE_CI_KIND: $(TEST_MODE)
         timeoutInMinutes: 95
         strategy:
           maxParallel: 4
