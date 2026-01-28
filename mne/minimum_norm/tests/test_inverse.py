@@ -25,6 +25,7 @@ from mne import (
     combine_evoked,
     compute_raw_covariance,
     convert_forward_solution,
+    create_info,
     make_ad_hoc_cov,
     make_forward_solution,
     make_sphere_model,
@@ -34,7 +35,9 @@ from mne import (
     read_cov,
     read_evokeds,
     read_forward_solution,
+    setup_volume_source_space,
 )
+from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
@@ -1712,3 +1715,38 @@ def test_allow_mixed_source_spaces(mixed_fwd_cov_evoked):
     inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.0)
     stc = apply_inverse(evoked, inv_op, lambda2=1.0 / 9.0)  # normal
     assert (stc.data < 0).any()
+
+
+@testing.requires_testing_data
+def test_make_inverse_no_meg(tmp_path):
+    """Test that we can make and I/O forward solution with no MEG channels."""
+    pos = dict(rr=[[0.05, 0, 0]], nn=[[0, 0, 1.0]])
+    src = setup_volume_source_space(pos=pos)
+    bem = make_sphere_model()
+    trans = None
+    montage = make_standard_montage("standard_1020")
+    info = create_info(["Cz", "Fz"], 1000.0, "eeg").set_montage(montage)
+    data = np.random.default_rng(0).standard_normal((len(info["ch_names"]), 10))
+    evoked = EvokedArray(data, info)
+    evoked.set_eeg_reference(projection=True)
+    del info, data
+    fwd = make_forward_solution(evoked.info, trans, src, bem)
+    assert fwd["info"]["dev_head_t"] is None
+    cov = make_ad_hoc_cov(evoked.info)
+    # Ensure we maintain backward-compatible behavior with when we *did* save
+    # the forward with an identity dev_head_t
+    fname = tmp_path / "test-inv.fif"
+    invs = list()
+    for dev_head_t in (None, mne.Transform("meg", "head")):
+        fwd["info"]["dev_head_t"] = dev_head_t
+        inv = make_inverse_operator(evoked.info, fwd, cov)
+        assert inv["info"]["dev_head_t"] == dev_head_t
+        stc = apply_inverse(evoked, inv, lambda2=1.0 / 9.0)
+        assert stc.data.shape == (1, 10)
+        write_inverse_operator(fname, inv, overwrite=True)
+        inv_read = read_inverse_operator(fname)
+        assert inv_read["info"]["dev_head_t"] == dev_head_t
+        invs.append(inv)
+    assert invs[1]["info"]["dev_head_t"] is not None
+    invs[1]["info"]["dev_head_t"] = None  # for comparison
+    _compare(invs[0], invs[1])

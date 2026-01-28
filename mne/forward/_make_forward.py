@@ -499,8 +499,7 @@ def _prepare_for_forward(
     kwargs_fwd_info = dict(
         chs=info["chs"],
         comps=info["comps"],
-        # The forward-writing code always wants a dev_head_t, so give an identity one
-        dev_head_t=info["dev_head_t"] or Transform("meg", "head"),
+        dev_head_t=info["dev_head_t"],
         mri_file=info_trans,
         mri_id=mri_id,
         meas_file=info_extra,
