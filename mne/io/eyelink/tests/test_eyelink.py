@@ -388,12 +388,12 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     "1497.0\t5189.0\t512.5\t.............\n"
                 )
                 button_idx += 1
-        fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write("END\t7453490\tRIGHT\tSAMPLES\tEVENTS\n")
 
         # simulate a third block with no samples at all
-        fp.write("START\t7454390\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write("START\t7454490\tRIGHT\tSAMPLES\tEVENTS\n")
         fp.write(f"{new_samples_line}\n")
-        for timestamp in np.arange(7454390, 7454990):
+        for timestamp in np.arange(7454490, 7454990):
             fp.write(
                 f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t...\t.\t.\t.\n"  # All empty
             )
@@ -457,6 +457,9 @@ def test_multi_block_misc_channels(fname, tmp_path):
     ]
     assert len(button_idx) == 6
     assert_allclose(raw.annotations.onset[button_idx[0]], 2.102, atol=1e-3)
+
+    assert raw.annotations.description[-1] == "BAD_ACQ_SKIP"
+    assert_allclose(raw.annotations.duration[-1], 1.0, atol=1e-3)
 
     # smoke test for reading events with missing samples (should not emit a warning)
     find_events(raw, verbose=True)
