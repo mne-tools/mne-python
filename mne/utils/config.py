@@ -839,6 +839,7 @@ def sys_info(
         "curryreader",
         "mffpy",
         "pybv",
+        "pymef",
         "antio",
         "defusedxml",
         "",
