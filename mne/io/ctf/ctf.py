@@ -10,6 +10,7 @@ import numpy as np
 
 from ..._fiff._digitization import _format_dig_points
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
+from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _check_option,
@@ -207,7 +208,7 @@ class RawCTF(BaseRaw):
                     pos += np.int64(samp_offset) * si["n_chan"] * 4
                 fid.seek(pos, 0)
                 this_data = np.fromfile(fid, ">i4", count=si["n_chan"] * n_read)
-                this_data.shape = (si["n_chan"], n_read)
+                this_data = _reshape_view(this_data, (si["n_chan"], n_read))
                 this_data = this_data[:, r_lims[bi, 0] : r_lims[bi, 1]]
                 data_view = data[:, d_lims[bi, 0] : d_lims[bi, 1]]
                 _mult_cal_one(data_view, this_data, idx, cals, mult)

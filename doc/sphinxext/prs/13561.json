@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1b3973b3880f53c8decbebcd7c4b8eed5ed924f4",
+  "authors": [
+    {
+      "n": "Varun Kasyap Pentamaraju",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -26,6 +26,7 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
+from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
@@ -507,7 +508,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs.shape = (len(imgs), -1)
+    imgs = _reshape_view(imgs, (len(imgs), -1))
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]

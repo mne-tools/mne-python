@@ -146,6 +146,12 @@ p.sphx-glr-signature {
     margin: 0;
     padding: 0;
 }
+/* this fixes the "Examples using <some-method>" quirk */
+p.rubric {
+  flex-direction: row;
+  gap: 4px;
+}
+
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
     border-radius: 0.5rem;

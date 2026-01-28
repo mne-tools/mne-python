@@ -2176,11 +2176,11 @@ def make_flash_bem(
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
     T1_dir = mri_dir / "T1"
-    if not T1_dir.is_dir() or next(T1_dir.glob("COR*")) is None:
+    if not T1_dir.is_dir() or len(list(T1_dir.glob("COR*"))) == 0:
         convert_T1 = True
     convert_brain = False
     brain_dir = mri_dir / "brain"
-    if not brain_dir.is_dir() or next(brain_dir.glob("COR*")) is None:
+    if not brain_dir.is_dir() or len(list(brain_dir.glob("COR*"))) == 0:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
