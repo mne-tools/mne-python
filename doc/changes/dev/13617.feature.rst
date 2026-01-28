@@ -1,1 +1,0 @@
-Added automatic reporting of rejection and flat thresholds in :meth:`mne.Report.add_epochs`, by Shamshad Ansari (:gh:13617)
