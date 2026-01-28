@@ -2431,7 +2431,7 @@ class BaseRaw(
 
         .. attention:: By default, returned data values are scaled from
             SI units to a unit more suitable for plotting or statistical modeling.
-            See the description of the scalings parameter for details.
+            See the description of the ``scalings`` parameter for details.
 
         Parameters
         ----------
