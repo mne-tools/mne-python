@@ -27,6 +27,14 @@ if [ ! -z "$CONDA_ENV" ]; then
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
 	fi
+elif [[ ${MNE_CI_KIND} == "old" ]]; then
+	GROUP=""  # group "test" already included when pylock file generated
+	EXTRAS=""
+	STD_ARGS="--progress-bar off"
+	uv venv --python 3.10
+	source .venv/bin/activate
+	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
+	uv pip install pip ${MNE_QT_BACKEND}
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
@@ -38,11 +46,16 @@ else
 	EXTRAS=""
 fi
 echo ""
-# until quantities releases...
-STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
+
+# Make sure we only pass non-empty groups argument
+if [ -z "$GROUP" ]; then
+	GROUP_ARG=""
+else
+	GROUP_ARG="--group=$GROUP"
+fi
 
 echo "::group::Installing test dependencies using pip"
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS --group=$GROUP
+python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"
