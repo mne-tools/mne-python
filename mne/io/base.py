@@ -2429,6 +2429,10 @@ class BaseRaw(
         additional column "time" is added, unless ``index`` is not ``None``
         (in which case time values form the DataFrame's index).
 
+        .. attention:: By default, returned data values are scaled from
+            SI units to a unit more suitable for plotting or statistical modeling.
+            See the description of the scalings parameter for details.
+
         Parameters
         ----------
         %(picks_all)s
@@ -2452,12 +2456,6 @@ class BaseRaw(
         Returns
         -------
         %(df_return)s
-
-        Notes
-        -----
-        The default purpose of this method is to return data(picked channels) with
-        scalings applied which is useful for plotting. See :term:`data channels` and
-        :term:`non-data channels` for the default scaling factors applied.
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa

@@ -3982,7 +3982,8 @@ docdict["scalings_df"] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
     ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
-    magnetometers to fT, and gradiometers to fT/cm.
+    magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+    and :term:`non-data channels` for full list of default scalings.
 """
 
 docdict["scalings_topomap"] = """
