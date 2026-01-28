@@ -260,7 +260,6 @@ class RawMEF(BaseRaw):
         _mult_cal_one(data, block_out, idx, cals, mult)
 
 
-@fill_doc
 @verbose
 def read_raw_mef(fname, *, password="", preload=False, verbose=None) -> RawMEF:
     """Read raw data from MEF3 files.

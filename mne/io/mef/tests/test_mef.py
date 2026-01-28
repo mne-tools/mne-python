@@ -173,8 +173,6 @@ def test_mef_scaling_matches_pymef():
     raw = read_raw_mef(mef_file_path, preload=False)
     session = pymef.mef_session.MefSession(str(mef_file_path), "")
     ts_channels = session.session_md["time_series_channels"]
-    if not ts_channels:
-        pytest.skip("No MEF time series channels available")
 
     scales = []
     for ch_name in raw.ch_names:
@@ -184,8 +182,7 @@ def test_mef_scaling_matches_pymef():
         )
         scales.append(scale)
     scales = np.array(scales)
-    if np.allclose(scales, 1.0):
-        pytest.skip("MEF test data uses unit scaling factor 1 for all channels")
+    assert not np.allclose(scales, 1)  # otherwise test won't verify scaling
 
     start, stop = 0, 10
     pymef_data = session.read_ts_channels_sample(raw.ch_names, [start, stop])
