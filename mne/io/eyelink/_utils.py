@@ -90,14 +90,7 @@ def _parse_eyelink_ascii(
                 raw_extras["dfs"][key], max_time=overlap_threshold
             )
     # ======================== Info for BaseRaw ========================
-    dfs = raw_extras["dfs"]
-
-    if "samples" not in dfs or dfs["samples"].empty:
-        logger.info("No sample data found, creating empty Raw object.")
-        eye_ch_data = np.empty((len(ch_names), 0))
-    else:
-        eye_ch_data = dfs["samples"][ch_names].to_numpy().T
-
+    eye_ch_data = raw_extras["dfs"]["samples"][ch_names].to_numpy().T
     info = _create_info(ch_names, raw_extras)
 
     return eye_ch_data, info, raw_extras

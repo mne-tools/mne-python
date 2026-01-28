@@ -362,10 +362,9 @@ def _simulate_eye_tracking_data(in_file, out_file):
 
         # simulate a second block that starts with empty samples
         for timestamp in np.arange(7452389, 7453154):
-            fp.write(
-                f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t"
-                "...\t.\t.\t.\n"  # no last column
-            )
+            # samples without last status column
+            # see https://github.com/mne-tools/mne-python/issues/13567
+            fp.write(f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t...\t.\t.\t.\n")
 
         for timestamp in np.arange(7453154, 7453390):  # second block continues
             fp.write(
@@ -390,6 +389,15 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 )
                 button_idx += 1
         fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
+
+        # simulate a third block with no samples at all
+        fp.write("START\t7454390\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write(f"{new_samples_line}\n")
+        for timestamp in np.arange(7454390, 7454990):
+            fp.write(
+                f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t...\t.\t.\t.\n"  # All empty
+            )
+        fp.write("END\t7454990\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
 @requires_testing_data
@@ -433,15 +441,15 @@ def test_multi_block_misc_channels(fname, tmp_path):
     assert raw.ch_names == chs_in_file
     assert raw.annotations.description[1] == "SYNCTIME"
 
-    assert raw.annotations.description[-7] == "BAD_ACQ_SKIP"
-    assert np.isclose(raw.annotations.onset[-7], 1.001)
-    assert np.isclose(raw.annotations.duration[-7], 0.1)
+    assert raw.annotations.description[-8] == "BAD_ACQ_SKIP"
+    assert np.isclose(raw.annotations.onset[-8], 1.001)
+    assert np.isclose(raw.annotations.duration[-8], 0.1)
 
     data, times = raw.get_data(return_times=True)
     assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
 
-    assert raw.annotations.description[-6] == "button_1_press"
+    assert raw.annotations.description[-7] == "button_1_press"
     button_idx = [
         ii
         for ii, desc in enumerate(raw.annotations.description)
