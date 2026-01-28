@@ -206,9 +206,7 @@ class RawMEF(BaseRaw):
             logger.info(
                 "Could not read TOC for %s: missing segment metadata", ch_names[0]
             )
-            toc = None
-
-        if toc is not None:
+        else:
             gap_onsets, gap_durs = _toc_to_gap_annotations(toc, sfreq)
             annotations_data.extend(
                 (o, d, "BAD_ACQ_SKIP", [], {"source": "toc"})
