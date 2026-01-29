@@ -242,7 +242,7 @@ scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        and sys.modules[x] is not None)
 bad = scipy_submodules - ok_scipy_submodules
 if len(bad) > 0:
-    out |= {'scipy submodules: %s' % list(bad)}
+    out |= {f'scipy submodules: {list(bad)}'}
 
 # check sklearn and others
 for x in sys.modules.keys():
@@ -253,7 +253,7 @@ for x in sys.modules.keys():
             x = '.'.join(x.split('.')[:2])
             out |= {x}
 if len(out) > 0:
-    print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
+    print(f'\\nFound un-nested import(s) for {sorted(out)}', end='')
 exit(len(out))
 
 # but this should still work
