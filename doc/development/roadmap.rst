@@ -189,6 +189,12 @@ More details are in :gh:`4859`; progress in :gh:`12663`.
 
 .. _documentation-updates:
 
+Documentation interactivity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+With jupyterlite support landing `in sphinx-gallery <https://sphinx-gallery.github.io/stable/configuration.html#jupyterlite>`__,
+we should work on allowing users to run examples interactively on our website.
+See :gh:`13616` for more details and discussion.
+
 Documentation updates
 ^^^^^^^^^^^^^^^^^^^^^
 Our documentation has many minor issues, which can be found under the tag
