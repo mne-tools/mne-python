@@ -971,11 +971,37 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 
-        raise ValueError(
-            "The following electrodes have overlapping positions,"
-            " which causes problems during visualization:\n"
-            + ", ".join(problematic_electrodes)
-        )
+        duplicates_1020 = {
+        "T3": "T7",
+        "T4": "T8",
+        "T5": "P7",
+        "T6": "P8",
+        }
+
+        names = set(problematic_electrodes)
+        duplicate_pairs = [
+            (old, new)
+            for old, new in duplicates_1020.items()
+            if old in names and new in names
+        ]
+
+        if duplicate_pairs:
+            raise ValueError(
+                "Duplicate EEG electrode positions detected due to mixed 10–20 "
+                "naming conventions.\n"
+                "You appear to have both old (T3/T4/T5/T6) and new (T7/T8/P7/P8) "
+                "electrode names present.\n\n"
+                "Please drop one set before plotting, for example:\n"
+                "    inst.drop_channels(['T3', 'T4', 'T5', 'T6'])\n"
+                "or\n"
+                "    inst.drop_channels(['T7', 'T8', 'P7', 'P8'])"
+            )
+        else:
+            raise ValueError(
+                "The following electrodes have overlapping positions, which causes "
+                "problems during visualization:\n"
+                + ", ".join(problematic_electrodes)
+            )
 
     if to_sphere:
         # translate to sphere origin, transform/flatten Z, translate back
