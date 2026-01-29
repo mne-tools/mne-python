@@ -302,6 +302,7 @@
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral
+.. _Shruti Bhale: https://github.com/shruti423
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
