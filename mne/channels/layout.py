@@ -972,10 +972,10 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         ]
 
         duplicates_1020 = {
-        "T3": "T7",
-        "T4": "T8",
-        "T5": "P7",
-        "T6": "P8",
+            "T3": "T7",
+            "T4": "T8",
+            "T5": "P7",
+            "T6": "P8",
         }
 
         names = set(problematic_electrodes)
@@ -999,8 +999,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         else:
             raise ValueError(
                 "The following electrodes have overlapping positions, which causes "
-                "problems during visualization:\n"
-                + ", ".join(problematic_electrodes)
+                "problems during visualization:\n" + ", ".join(problematic_electrodes)
             )
 
     if to_sphere:

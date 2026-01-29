@@ -4,7 +4,6 @@
 
 import copy
 from pathlib import Path
-import mne
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,6 +15,7 @@ from numpy.testing import (
     assert_equal,
 )
 
+import mne
 from mne import pick_info, pick_types
 from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import _empty_info
@@ -185,6 +185,7 @@ def test_find_topomap_coords():
     info["dig"] = []
     with pytest.raises(RuntimeError, match="No digitization points found"):
         _find_topomap_coords(info, picks, **kwargs)
+
 
 def test_duplicate_1020_electrode_names_error():
     """Ensure mixed 10–20 EEG naming conventions raise a clear error."""
