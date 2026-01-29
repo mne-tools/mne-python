@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b6e4f5ca04fd432fce6241f091947d37e890346a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/macos_conda.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 8,
+      "d": 3
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 29,
+      "d": 23
+    }
+  }
+}

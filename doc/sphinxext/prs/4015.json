@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a547bb6105c9af646d5d3a326e5397d61d1e3c89",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 8,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

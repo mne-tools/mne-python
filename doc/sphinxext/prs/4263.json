@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d25b1a0fdabf0d0b2e9bf1d95c12042da1234a6d",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

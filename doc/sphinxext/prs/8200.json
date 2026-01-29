@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c1f90498dec08227c19cf7277745454f1551257f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

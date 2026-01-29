@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "087779c3bd5ba84dbcef7f3689a7d70f0b045da7",
+  "authors": [
+    {
+      "n": "Santeri Ruuskanen",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13063.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/evoked_topomap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 24,
+      "d": 1
+    }
+  }
+}

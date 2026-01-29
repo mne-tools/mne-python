@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3168a9aa68c4989420c5a447ac1dc38bba07fc7e",
+  "authors": [
+    {
+      "n": "Lau Møller Andersen",
+      "e": "lmandersen@cfin.au.dk"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 37,
+      "d": 24
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "59e50247c8fc4d6d5c968b9d9b6207b7ff5d6b24",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "LICENSE.txt": {
+      "a": 9,
+      "d": 22
+    }
+  }
+}

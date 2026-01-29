@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b2652a68fd503a087ecba38a208603567db214da",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

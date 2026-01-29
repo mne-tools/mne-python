@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "67d5013d513c48f71780fba340bd5a2bdce29158",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/datasets/plot_opm_data.py": {
+      "a": 5,
+      "d": 4
+    },
+    "examples/preprocessing/plot_movement_detection.py": {
+      "a": 4,
+      "d": 6
+    },
+    "examples/visualization/plot_eeg_on_scalp.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 34,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 12,
+      "d": 2
+    },
+    "tutorials/intro/plot_40_sensor_locations.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/misc/plot_seeg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

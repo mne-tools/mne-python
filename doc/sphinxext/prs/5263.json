@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9af6fa422d7c5240540e4a5c020afd65f8d8f3d1",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 27,
+      "d": 6
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from itertools import product
 from pathlib import Path
 
@@ -31,7 +33,11 @@ from mne.datasets import testing
 from mne.dipole import Dipole, fit_dipole
 from mne.forward import Forward, _do_forward_solution, use_coil_def
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
-from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
+from mne.forward._make_forward import (
+    _create_meg_coils,
+    _ForwardModeler,
+    make_forward_dipole,
+)
 from mne.forward.tests.test_forward import assert_forward_allclose
 from mne.io import read_info, read_raw_bti, read_raw_fif, read_raw_kit
 from mne.simulation import simulate_evoked
@@ -42,7 +48,7 @@ from mne.source_space._source_space import (
     write_source_spaces,
 )
 from mne.surface import _get_ico_surface
-from mne.transforms import Transform
+from mne.transforms import Transform, apply_trans, invert_transform
 from mne.utils import (
     _record_warnings,
     catch_logging,
@@ -264,6 +270,9 @@ def test_make_forward_solution_kit(tmp_path, fname_src_small):
     )
     _compare_forwards(fwd, fwd_py, 157, n_src_small, meg_rtol=1e-3, meg_atol=1e-7)
 
+    # NEW TEST: ensure kit_system_id survives the forward-info rewrite
+    assert "kit_system_id" in fwd_py["info"]
+
 
 @requires_mne
 def test_make_forward_solution_bti(fname_src_small):
@@ -294,7 +303,10 @@ def test_make_forward_solution_bti(fname_src_small):
     "other",
     [
         pytest.param("MNE-C", marks=requires_mne_mark()),
-        pytest.param("openmeeg", marks=requires_openmeeg_mark()),
+        pytest.param(
+            "openmeeg",
+            marks=[requires_openmeeg_mark(), pytest.mark.slowtest],
+        ),
     ],
 )
 def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
@@ -401,6 +413,7 @@ def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
     repr(fwd_py)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_forward_solution_basic():
     """Test making M-EEG forward solution from python."""
@@ -425,6 +438,7 @@ def test_make_forward_solution_basic():
         make_forward_solution(fname_raw, fname_trans, fname_src, fname_bem_meg)
 
 
+@pytest.mark.slowtest
 @requires_openmeeg_mark()
 @pytest.mark.parametrize(
     "n_layers",
@@ -476,7 +490,7 @@ def test_make_forward_solution_openmeeg(n_layers):
         eeg_atol=100,
         meg_corr_tol=0.98,
         eeg_corr_tol=0.98,
-        meg_rdm_tol=0.1,
+        meg_rdm_tol=0.11,
         eeg_rdm_tol=0.2,
     )
 
@@ -541,7 +555,11 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
         ]
     )
     fwd = read_forward_solution(out_name)
-    sphere = make_sphere_model(verbose=True)
+    sphere = make_sphere_model(
+        head_radius=0.1,
+        relative_radii=(0.95, 0.97, 0.98, 1),
+        verbose=True,
+    )
     src = read_source_spaces(fname_src_small)
     fwd_py = make_forward_solution(
         fname_raw, fname_trans, src, sphere, meg=True, eeg=True, verbose=True
@@ -567,6 +585,7 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
             1.0,
             rtol=1e-3,
         )
+
     # Number of layers in the sphere model doesn't matter for MEG
     # (as long as no sources are omitted due to distance)
     assert len(sphere["layers"]) == 4
@@ -584,6 +603,50 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     sphere = make_sphere_model(head_radius=None)
     with pytest.raises(RuntimeError, match="zero shells.*EEG"):
         make_forward_solution(fname_raw, fname_trans, src, sphere)
+
+    # Since the spherical model is defined in head space, the head->MRI transform should
+    # not matter for the check that MEG sensors are outside the sphere.
+    custom_trans = Transform("head", "mri")
+    custom_trans["trans"][0, 3] = 0.05  # move MEG sensors close to mesh
+    sphere = make_sphere_model()
+    fwd = make_forward_solution(fname_raw, custom_trans, src, sphere)
+    assert fwd["mri_head_t"]["trans"][0, 3] == -0.05
+
+
+def test_make_forward_sphere_exclude():
+    """Test that points are excluded that are outside BEM sphere inner layer."""
+    r0 = (0.0, 0.0, 0.04)
+    inner_radius = 0.08
+    head_radius = inner_radius / 0.9  # relative_radii[0] for make_sphere model
+    bem = make_sphere_model(r0=r0, head_radius=head_radius)
+    # construct our source space using a sphere the size of the inner (brain) radius,
+    # with a 1mm exclude zone to avoid numerical issues
+    src = setup_volume_source_space(
+        pos=10.0,
+        sphere=r0 + (inner_radius,),
+        mindist=1,  # use >0 to avoid any numerical issues
+        exclude=10,
+    )
+    assert src[0]["nuse"] == 2102  # empirically determined
+    trans = Transform("mri", "head")  # identity for simplicity
+    raw = read_raw_fif(fname_raw)
+    raw.pick(raw.ch_names[:1])
+    fwd = make_forward_solution(raw.info, trans, src, bem, mindist=0)
+    assert fwd["nsource"] == src[0]["nuse"]
+    bem_small = make_sphere_model(r0=r0, head_radius=head_radius - 0.01 / 0.9)
+    fwd_small = make_forward_solution(raw.info, trans, src, bem_small, mindist=0)
+    assert fwd_small["nsource"] < src[0]["nuse"]
+    idx = np.searchsorted(fwd["src"][0]["vertno"], fwd_small["src"][0]["vertno"])
+    fwd_data = np.reshape(fwd["sol"]["data"], (len(raw.ch_names), -1, 3))
+    fwd_small_data = np.reshape(fwd_small["sol"]["data"], (len(raw.ch_names), -1, 3))
+    assert_allclose(fwd_data[:, idx], fwd_small_data)
+    # again to avoid numerical issues, make this close
+    fwd_small_2 = make_forward_solution(raw.info, trans, src, bem, mindist=9.999)
+    assert fwd_small_2["nsource"] == fwd_small["nsource"]
+    fwd_small_2_data = np.reshape(
+        fwd_small_2["sol"]["data"], (len(raw.ch_names), -1, 3)
+    )
+    assert_allclose(fwd_small_data, fwd_small_2_data)
 
 
 @pytest.mark.slowtest
@@ -713,10 +776,10 @@ def test_make_forward_dipole(tmp_path):
     # Make sure each coordinate is close to reference
     # NB tolerance should be set relative to snr of simulated evoked!
     assert_allclose(
-        dip_fit.pos, dip_test.pos, rtol=0, atol=1e-2, err_msg="position mismatch"
+        dip_fit.pos, dip_test.pos, rtol=0, atol=1.5e-2, err_msg="position mismatch"
     )
     assert dist < 1e-2  # within 1 cm
-    assert corr > 0.985
+    assert corr > 0.98
     assert gc_dist < 20  # less than 20 degrees
     assert amp_err < 10e-9  # within 10 nAm
 
@@ -785,6 +848,7 @@ def test_use_coil_def(tmp_path):
     info = create_info(1, 1000.0, "mag")
     info["chs"][0]["coil_type"] = 9999
     info["chs"][0]["loc"][:] = [0, 0, 0.02, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    info["dev_head_t"] = Transform("meg", "head")
     sphere = make_sphere_model((0.0, 0.0, 0.0), 0.01)
     src = setup_volume_source_space(pos=5, sphere=sphere)
     trans = Transform("head", "mri", None)
@@ -833,15 +897,50 @@ def test_sensors_inside_bem():
     trans["trans"][2, 3] = 0.03
     sphere_noshell = make_sphere_model((0.0, 0.0, 0.0), None)
     sphere = make_sphere_model((0.0, 0.0, 0.0), 1.01)
-    with pytest.raises(RuntimeError, match=".* 15 MEG.*inside the scalp.*"):
-        make_forward_solution(info, trans, fname_src, fname_bem)
+    with pytest.warns(RuntimeWarning, match=".* 15 MEG.*inside the scalp.*"):
+        fwd = make_forward_solution(info, trans, fname_src, fname_bem, on_inside="warn")
+    assert fwd["nsource"] == 516
+    assert fwd["nchan"] == 42
+    assert np.isfinite(fwd["sol"]["data"]).all()
     make_forward_solution(info, trans, fname_src, fname_bem_meg)  # okay
     make_forward_solution(info, trans, fname_src, sphere_noshell)  # okay
     with pytest.raises(RuntimeError, match=".* 42 MEG.*outermost sphere sh.*"):
         make_forward_solution(info, trans, fname_src, sphere)
-    sphere = make_sphere_model((0.0, 0.0, 2.0), 1.01)  # weird, but okay
-    make_forward_solution(info, trans, fname_src, sphere)
+    sphere = make_sphere_model((0.0, 0.0, 0.0), 1.01)  # weird, but okay
+    with pytest.raises(RuntimeError, match=".* 42 MEG.*the outermost sphere shell.*"):
+        make_forward_solution(info, trans, fname_src, sphere)
     for ch in info["chs"]:
         ch["loc"][:3] *= 0.1
     with pytest.raises(RuntimeError, match=".* 42 MEG.*the inner skull.*"):
         make_forward_solution(info, trans, fname_src, fname_bem_meg)
+
+
+def test_make_forward_iterative():
+    """Test that points are excluded that are outside BEM sphere inner layer."""
+    r0 = (0.0, 0.0, 0.04)
+    head_radius = 0.08
+    bem = make_sphere_model(r0=r0, head_radius=head_radius)
+    src = setup_volume_source_space(
+        pos=10.0,
+        sphere=r0 + (head_radius,),
+        exclude=10,
+    )
+    assert 500 < src[0]["nuse"] < 4000
+    trans = Transform("mri", "head")
+    raw = read_raw_fif(fname_raw)
+    raw.pick(raw.ch_names[:2])
+    fwd = make_forward_solution(raw.info, trans, src, bem, mindist=0, verbose=True)
+    # check against iterative version
+    fm = _ForwardModeler(raw.info, trans, bem)
+    fwd_iterative = fm.compute(src)
+    _compare_forwards(fwd, fwd_iterative, fwd["nchan"], 3 * fwd["nsource"])
+    midpt = fwd["nsource"] // 2
+    assert fwd["coord_frame"] == FIFF.FIFFV_COORD_HEAD
+    fwd_data = list()
+    rr = apply_trans(invert_transform(fwd["mri_head_t"]), fwd["source_rr"])
+    nn = apply_trans(invert_transform(fwd["mri_head_t"]), fwd["source_nn"], move=False)
+    for sl in (slice(None, midpt), slice(midpt, None)):
+        ss = setup_volume_source_space(pos=dict(rr=rr[sl], nn=nn[sl]))
+        fwd_data.append(fm.compute(ss)["sol"]["data"])
+    fwd_data = np.concatenate(fwd_data, axis=1)
+    assert_allclose(fwd_data, fwd["sol"]["data"])

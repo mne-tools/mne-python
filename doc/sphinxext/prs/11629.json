@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "1c301417dd3f80ea77289f2fd60a4fe585b9db8b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/locate_ieeg_micro.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 12,
+      "d": 6
+    },
+    "requirements.txt": {
+      "a": 0,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 5,
+      "d": 4
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f367c0b4d8d8153150e53b9fe54b92066b508aa7",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/io/_digitization.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6ce00d9c5bd57d2d461ef450a6b6b6878bb65121",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_estimate_covariance_matrix_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "03d01bcb6dc629d4d4dd80dad4add66bce322f57",
+  "authors": [
+    {
+      "n": "Deleted user",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

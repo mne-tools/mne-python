@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "194d4eda74621b9a2d9a8e3e89f4e12a07c74996",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/dig_formats.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/channels/montage.py": {
+      "a": 74,
+      "d": 3
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 43,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 15,
+      "d": 8
+    },
+    "tutorials/intro/plot_40_sensor_locations.py": {
+      "a": 2,
+      "d": 6
+    }
+  }
+}

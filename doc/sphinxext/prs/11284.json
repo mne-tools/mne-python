@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6e5ca18793c5a0d6db9c97b932bb89756c9dd17e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/utils/tests/test_misc.py": {
+      "a": 7,
+      "d": 14
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

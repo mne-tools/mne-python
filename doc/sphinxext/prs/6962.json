@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b4b03583bcb4cbb944a5bcff60f874e1e54db975",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/io/curry/curry.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 8,
+      "d": 12
+    }
+  }
+}

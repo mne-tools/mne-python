@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "aefa4343fa9ed3cde21309ea73ca471851ce0c77",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 0,
+      "d": 88
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 19,
+      "d": 24
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 767,
+      "d": 95
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 93,
+      "d": 14
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 470,
+      "d": 118
+    },
+    "tutorials/plot_dics.py": {
+      "a": 309,
+      "d": 0
+    }
+  }
+}

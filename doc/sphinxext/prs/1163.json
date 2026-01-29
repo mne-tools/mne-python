@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0f80d89c9a46d3195fd75accc265e01cc2b1247c",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/evoked.py": {
+      "a": 15,
+      "d": 16
+    },
+    "mne/filter.py": {
+      "a": 63,
+      "d": 46
+    },
+    "mne/tests/test_filter.py": {
+      "a": 19,
+      "d": 2
+    }
+  }
+}

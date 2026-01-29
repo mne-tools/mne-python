@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "44f499f13c5100cc86058c65ba81dbd50412ec7e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 203,
+      "d": 37
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 69,
+      "d": 10
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/forward/forward.py": {
+      "a": 47,
+      "d": 33
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 144,
+      "d": 28
+    },
+    "mne/io/constants.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/simulation/raw.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 37,
+      "d": 12
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/_testing.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 4,
+      "d": 3
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

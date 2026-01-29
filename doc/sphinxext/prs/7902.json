@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "408c5c803a6ad634a48829310b5b92ee4d907872",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 2,
+      "d": 2
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

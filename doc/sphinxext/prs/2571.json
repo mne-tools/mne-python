@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f558693d683005b1d3b8b4b900b8af167bf0f1ea",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_clickable_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

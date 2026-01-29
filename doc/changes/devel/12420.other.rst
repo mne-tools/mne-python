@@ -1,1 +1,0 @@
-Clarify in the :ref:`EEG referencing tutorial <tut-set-eeg-ref>` that an average reference projector ready is required for inverse modeling, by :newcontrib:`Nabil Alibou`

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "562f4730dd3d462abb4ec134270c7cf0a9d53b0e",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4310c92b85fa7dcc77ffe322501037e5ad82372d",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/time_frequency/time_frequency_simulated.py": {
+      "a": 77,
+      "d": 52
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

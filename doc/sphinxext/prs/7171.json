@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "1403b54396618888e4475a3b32026ebe4a0c7adc",
+  "authors": [
+    {
+      "n": "Nicolas Barascud",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 100,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 79,
+      "d": 4
+    }
+  }
+}

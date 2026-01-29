@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "368e62b5361caa0514d7f8988b9139118a6d0e53",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/csd.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

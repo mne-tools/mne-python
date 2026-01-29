@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d75bce15717ee4cbf2abbdb5c6e5148959000a91",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/plot_10_raw_overview.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

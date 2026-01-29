@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "9ae1a832b36f8c6688e36e567e0aa129ea0a03e4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/externals/decorator.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/filter.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/minimum_norm/spatial_resolution.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/_logging.py": {
+      "a": 47,
+      "d": 39
+    },
+    "mne/utils/config.py": {
+      "a": 0,
+      "d": 14
+    },
+    "mne/utils/misc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 19
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 40,
+      "d": 1
+    }
+  }
+}

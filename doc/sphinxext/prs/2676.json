@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "f4ffbb42a0bd50150babd1369b65ab1cd2f565cd",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 12,
+      "d": 4
+    },
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 34,
+      "d": 5
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 120
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/eeglab/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 447,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 85,
+      "d": 0
+    },
+    "mne/io/egi/egi.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 58,
+      "d": 61
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/utils.py": {
+      "a": 164,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 7,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

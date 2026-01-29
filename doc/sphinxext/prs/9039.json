@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3319fafd30d3d68c10ae07307ad330f56580dcea",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

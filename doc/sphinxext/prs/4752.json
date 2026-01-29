@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "086478e8334b38fbe02be4c0f2a147429906ba4a",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

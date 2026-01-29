@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e17e31fc42874461648c40a8b5d11e3aced74ab7",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 70,
+      "d": 33
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 57,
+      "d": 0
+    },
+    "mne/decoding/ems.py": {
+      "a": 118,
+      "d": 28
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 35,
+      "d": 3
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 2,
+      "d": 35
+    }
+  }
+}

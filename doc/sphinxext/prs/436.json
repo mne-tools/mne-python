@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b05cccb509800f1c93af912cf0a87bc733f87159",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/forward.py": {
+      "a": 111,
+      "d": 0
+    },
+    "mne/tests/test_forward.py": {
+      "a": 93,
+      "d": 1
+    }
+  }
+}

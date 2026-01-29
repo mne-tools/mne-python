@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "ac2c4c0d72f9843690aad70e63b48269f5269a0f",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/institutional-partners.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel/12803.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12804.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_freesurfer.py": {
+      "a": 19,
+      "d": 16
+    },
+    "mne/forward/forward.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/utils/check.py": {
+      "a": 29,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "73c4a7cb844a13377ce68f31d7d5dec822067986",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/forward.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/documentation/cookbook.rst": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

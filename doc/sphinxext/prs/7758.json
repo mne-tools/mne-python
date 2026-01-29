@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "64499b764a77bd2ccdfcf397c3cd0a6b7b7f6e6d",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 51,
+      "d": 12
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/install/advanced.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/install/mne_python.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 20,
+      "d": 1
+    },
+    "mne/tests/test_cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/viz/_brain/_notebook.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 25,
+      "d": 11
+    },
+    "mne/viz/_brain/tests/test.ipynb": {
+      "a": 62,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 164,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 19,
+      "d": 1
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "server_environment.yml": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

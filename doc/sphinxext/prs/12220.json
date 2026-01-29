@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "61777eb2679fbbc08f9752ae93ebcae547977fed",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/circleci_dependencies.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

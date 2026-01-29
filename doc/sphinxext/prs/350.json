@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "b4303ef661798f9dd128ce9db8d232cdb59535ca",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_space_time_frequency.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 22,
+      "d": 3
+    },
+    "mne/fiff/evoked.py": {
+      "a": 25,
+      "d": 5
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 49,
+      "d": 8
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/tests/test_filter.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

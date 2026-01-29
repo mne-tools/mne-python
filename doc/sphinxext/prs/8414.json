@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "5cb467c54c4f37935f1de86fad35e664aa9de2db",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 4,
+      "d": 11
+    },
+    "mne/source_space.py": {
+      "a": 30,
+      "d": 23
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_background_freesurfer_mne.py": {
+      "a": 45,
+      "d": 0
+    }
+  }
+}

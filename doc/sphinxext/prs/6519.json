@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4684eb5f38943dca74b04bf31f2527b1b2eb4977",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 0,
+      "d": 31
+    }
+  }
+}

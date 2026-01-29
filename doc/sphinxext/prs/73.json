@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0e7f195aa1b48ef7a80ed7a4cb238aa48f4c43f4",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_simulate_evoked_data.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/evoked.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 19,
+      "d": 8
+    }
+  }
+}

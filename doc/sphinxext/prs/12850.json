@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4f58e814b4e5d01311f359f3d8f8e2cbca391fbb",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/defaults.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

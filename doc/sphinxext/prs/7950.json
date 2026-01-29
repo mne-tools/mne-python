@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "54b88d2c4c83a3dcd8afc403d017c3c0e0b33e79",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_space.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

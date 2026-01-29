@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "71551ea8d0e5568473fa0865aaf0f46b0780476f",
+  "authors": [
+    {
+      "n": "David Haslacher",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

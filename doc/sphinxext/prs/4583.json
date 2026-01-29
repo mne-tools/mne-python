@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c79b74e9c67dbe429e29007746aec2691189a794",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 245,
+      "d": 62
+    },
+    "mne/io/egi/events.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/egi/general.py": {
+      "a": 16,
+      "d": 9
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 43,
+      "d": 0
+    }
+  }
+}

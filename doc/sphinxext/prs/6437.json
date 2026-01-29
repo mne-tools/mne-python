@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a2c75903d4471587582bc2715985dc82eff9ac12",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 23,
+      "d": 2
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

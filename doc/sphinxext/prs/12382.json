@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6305bd16975e2fe31b1eaf63408c9f93bfe1b535",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12382.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12382.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 19,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

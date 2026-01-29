@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
@@ -173,7 +175,7 @@ class RawNedf(BaseRaw):
         last = None
         n_chunks = (n_samples_full - 1) // 5 + 1
         n_tot = n_chunks * 5
-        with open(self._filenames[fi], "rb") as fid:
+        with open(self.filenames[fi], "rb") as fid:
             fid.seek(offset, 0)
             chunks = np.fromfile(fid, dtype=dt, count=n_chunks)
             assert len(chunks) == n_chunks

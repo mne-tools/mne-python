@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "f17a53b755c7d2c1aff8742dcdeb6afce80a0d34",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_time_generalization.py": {
+      "a": 23,
+      "d": 57
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 75,
+      "d": 0
+    },
+    "mne/decoding/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 204,
+      "d": 1
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 883,
+      "d": 7
+    },
+    "mne/tests/test_utils.py": {
+      "a": 39,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/decoding.py": {
+      "a": 126,
+      "d": 0
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 68,
+      "d": 0
+    }
+  }
+}

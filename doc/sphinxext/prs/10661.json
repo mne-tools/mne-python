@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2dbebc005f7498a06d5b1d7b64de5b3cb07b1430",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 29,
+      "d": 6
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

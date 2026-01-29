@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "533f5895e8686a41285ad2f15289e23ff6762df2",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/bti/bti.py": {
+      "a": 16,
+      "d": 13
+    },
+    "mne/io/edf/edf.py": {
+      "a": 9,
+      "d": 15
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/60_sleep.py": {
+      "a": 6,
+      "d": 12
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

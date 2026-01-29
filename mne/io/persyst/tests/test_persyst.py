@@ -1,5 +1,4 @@
-# Authors: Adam Li  <adam2392@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -237,7 +236,7 @@ def test_persyst_errors(tmp_path):
                     line = "WaveformCount=1\n"
                 fout.write(line)
     # file should break
-    with pytest.raises(RuntimeError, match="Channels in lay " "file do not"):
+    with pytest.raises(RuntimeError, match="Channels in lay file do not"):
         read_raw_persyst(new_fname_lay)
 
     # reformat the lay file to have testdate

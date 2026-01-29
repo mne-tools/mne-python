@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "0755ef01e4b0be6424e2758109bf6e7a6f41fc8e",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".pre-commit-config.yaml": {
+      "a": 8,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 45,
+      "d": 51
+    },
+    "mne/utils/config.py": {
+      "a": 3,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 40,
+      "d": 35
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 89,
+      "d": 0
+    }
+  }
+}

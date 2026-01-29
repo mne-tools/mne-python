@@ -1,0 +1,227 @@
+{
+  "merge_commit_sha": "d54144fb725acc2b97665288b1162b4c2f1752db",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".lgtm.yml": {
+      "a": 13,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 1,
+      "d": 0
+    },
+    "logo/generate_mne_logos.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/cov.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/mixin.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 9,
+      "d": 19
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/proc_history.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/ctps_.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 17
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/peak_finder.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 14,
+      "d": 16
+    },
+    "mne/utils/mixin.py": {
+      "a": 20,
+      "d": 13
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/viz/circle.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/viz/utils.py": {
+      "a": 15,
+      "d": 15
+    },
+    "setup.py": {
+      "a": 31,
+      "d": 28
+    },
+    "tutorials/plot_info.py": {
+      "a": 6,
+      "d": 5
+    },
+    "tutorials/plot_sleep.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2851fb5f8d2a780ff2ef5dd181678fe8f10f04c6",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

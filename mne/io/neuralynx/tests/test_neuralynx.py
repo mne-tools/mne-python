@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from ast import literal_eval
 from datetime import datetime, timezone
@@ -11,6 +13,7 @@ from scipy.io import loadmat
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_neuralynx
+from mne.io.neuralynx.neuralynx import _exclude_kwarg
 from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
@@ -140,14 +143,14 @@ def test_neuralynx():
     assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
 
     # test that channel selection worked
-    assert (
-        raw.ch_names == expected_chan_names
-    ), "labels in raw.ch_names don't match expected channel names"
+    assert raw.ch_names == expected_chan_names, (
+        "labels in raw.ch_names don't match expected channel names"
+    )
 
-    mne_y, mne_t = raw.get_data(return_times=True)  # in V
+    mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
-    nlx_reader = NeuralynxIO(dirname=testing_path, exclude_filename=excluded_ncs_files)
+    nlx_reader = NeuralynxIO(dirname=testing_path, **_exclude_kwarg(excluded_ncs_files))
     bl = nlx_reader.read(
         lazy=False
     )  # read a single block which contains the data split in segments
@@ -213,9 +216,9 @@ def test_neuralynx_gaps():
     n_expected_gaps = 3
     n_expected_missing_samples = 130
     assert len(raw.annotations) == n_expected_gaps, "Wrong number of gaps detected"
-    assert (
-        (mne_y[0, :] == 0).sum() == n_expected_missing_samples
-    ), "Number of true and inferred missing samples differ"
+    assert (mne_y[0, :] == 0).sum() == n_expected_missing_samples, (
+        "Number of true and inferred missing samples differ"
+    )
 
     # read in .mat files containing original gaps
     matchans = ["LAHC1_3_gaps.mat", "LAHC2_3_gaps.mat"]

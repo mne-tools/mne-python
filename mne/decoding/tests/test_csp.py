@@ -1,8 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Romain Trachel <trachelr@gmail.com>
-#         Alexandre Barachant <alexandre.barachant@gmail.com>
-#         Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,10 +6,23 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 
-from mne import Epochs, io, pick_types, read_events
-from mne.decoding import CSP, Scaler, SPoC
+pytest.importorskip("sklearn")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.svm import SVC
+from sklearn.utils.estimator_checks import parametrize_with_checks
+
+from mne import Epochs, compute_proj_raw, io, pick_types, read_events
+from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef
 from mne.decoding.csp import _ajd_pham
 from mne.utils import catch_logging
 
@@ -131,18 +140,22 @@ def test_csp():
     y = epochs.events[:, -1]
 
     # Init
-    pytest.raises(ValueError, CSP, n_components="foo", norm_trace=False)
+    csp = CSP(n_components="foo")
+    with pytest.raises(TypeError, match="must be an instance"):
+        csp.fit(epochs_data, y)
     for reg in ["foo", -0.1, 1.1]:
         csp = CSP(reg=reg, norm_trace=False)
         pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     for reg in ["oas", "ledoit_wolf", 0, 0.5, 1.0]:
         CSP(reg=reg, norm_trace=False)
-    for cov_est in ["foo", None]:
-        pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
+    csp = CSP(cov_est="foo", norm_trace=False)
+    with pytest.raises(ValueError, match="Invalid value"):
+        csp.fit(epochs_data, y)
+    csp = CSP(norm_trace="foo")
     with pytest.raises(TypeError, match="instance of bool"):
-        CSP(norm_trace="foo")
+        csp.fit(epochs_data, y)
     for cov_est in ["concat", "epoch"]:
-        CSP(cov_est=cov_est, norm_trace=False)
+        CSP(cov_est=cov_est, norm_trace=False).fit(epochs_data, y)
 
     n_components = 3
     # Fit
@@ -163,8 +176,8 @@ def test_csp():
 
     # Test data exception
     pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
-    pytest.raises(ValueError, csp.fit, epochs, y)
-    pytest.raises(ValueError, csp.transform, epochs)
+    pytest.raises(ValueError, csp.fit, "foo", y)
+    pytest.raises(ValueError, csp.transform, "foo")
 
     # Test plots
     epochs.pick(picks="mag")
@@ -192,7 +205,7 @@ def test_csp():
     for cov_est in ["concat", "epoch"]:
         csp = CSP(n_components=n_components, cov_est=cov_est, norm_trace=False)
         csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
-        assert_equal(len(csp._classes), 4)
+        assert_equal(len(csp.classes_), 4)
         assert_array_equal(csp.filters_.shape, [n_channels, n_channels])
         assert_array_equal(csp.patterns_.shape, [n_channels, n_channels])
 
@@ -212,15 +225,17 @@ def test_csp():
     # Different normalization return different transform
     assert np.sum((X_trans["True"] - X_trans["False"]) ** 2) > 1.0
     # Check wrong inputs
-    pytest.raises(ValueError, CSP, transform_into="average_power", log="foo")
+    csp = CSP(transform_into="average_power", log="foo")
+    with pytest.raises(TypeError, match="must be an instance of bool"):
+        csp.fit(epochs_data, epochs.events[:, 2])
 
     # Test csp space transform
     csp = CSP(transform_into="csp_space", norm_trace=False)
     assert csp.transform_into == "csp_space"
     for log in ("foo", True, False):
-        pytest.raises(
-            ValueError, CSP, transform_into="csp_space", log=log, norm_trace=False
-        )
+        csp = CSP(transform_into="csp_space", log=log, norm_trace=False)
+        with pytest.raises(TypeError, match="must be an instance"):
+            csp.fit(epochs_data, epochs.events[:, 2])
     n_components = 2
     csp = CSP(n_components=n_components, transform_into="csp_space", norm_trace=False)
     Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
@@ -250,29 +265,30 @@ def test_csp():
 # Even the "reg is None and rank is None" case should pass now thanks to the
 # do_compute_rank
 @pytest.mark.parametrize("ch_type", ("mag", "eeg", ("mag", "eeg")))
-@pytest.mark.parametrize("rank", (None, "correct"))
+@pytest.mark.parametrize("rank", (None, "full", "correct"))
 @pytest.mark.parametrize("reg", [None, 0.001, "oas"])
 def test_regularized_csp(ch_type, rank, reg):
     """Test Common Spatial Patterns algorithm using regularized covariance."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import StratifiedKFold, cross_val_score
-    from sklearn.pipeline import make_pipeline
-
     raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads").load_data()
     n_orig = len(raw.ch_names)
     ch_decim = 2
     raw.pick_channels(raw.ch_names[::ch_decim])
+    raw.info.normalize_proj()
     if "eeg" in ch_type:
         raw.set_eeg_reference(projection=True)
+        # TODO: for some reason we need to add a second EEG projector in order to get
+        # the non-semidefinite error for EEG data. Hopefully this won't make much
+        # difference in practice given our default is rank=None and regularization
+        # is easy to use.
+        raw.add_proj(compute_proj_raw(raw, n_eeg=1, n_mag=0, n_grad=0, n_jobs=1))
     n_eig = len(raw.ch_names) - len(raw.info["projs"])
     n_ch = n_orig // ch_decim
     if ch_type == "eeg":
-        assert n_eig == n_ch - 1
+        assert n_eig == n_ch - 2
     elif ch_type == "mag":
         assert n_eig == n_ch - 3
     else:
-        assert n_eig == n_ch - 4
+        assert n_eig == n_ch - 5
     if rank == "correct":
         if isinstance(ch_type, str):
             rank = {ch_type: n_eig}
@@ -280,12 +296,13 @@ def test_regularized_csp(ch_type, rank, reg):
             assert ch_type == ("mag", "eeg")
             rank = dict(
                 mag=102 // ch_decim - 3,
-                eeg=60 // ch_decim - 1,
+                eeg=60 // ch_decim - 2,
             )
     else:
-        assert rank is None, rank
-    raw.info.normalize_proj()
-    raw.filter(2, 40)
+        assert rank is None or rank == "full", rank
+    if rank == "full":
+        n_eig = n_ch
+    raw.filter(2, 40).apply_proj()
     events = read_events(event_name)
     # map make left and right events the same
     events[events[:, 2] == 2, 2] = 1
@@ -299,20 +316,28 @@ def test_regularized_csp(ch_type, rank, reg):
     n_components = 3
 
     sc = Scaler(epochs.info)
+    epochs_data_orig = epochs_data.copy()
     epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
+    if rank == "full" and reg is None:
+        with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
+            csp.fit(epochs_data, epochs.events[:, -1])
+        return
     with catch_logging(verbose=True) as log:
         X = csp.fit_transform(epochs_data, epochs.events[:, -1])
     log = log.getvalue()
     assert "Setting small MAG" not in log
-    assert "Setting small data eigen" in log
+    if rank != "full":
+        assert "Setting small data eigen" in log
+    else:
+        assert "Setting small data eigen" not in log
     if rank is None:
         assert "Computing rank from data" in log
         assert " mag: rank" not in log.lower()
         assert " data: rank" in log
         assert "rank (mag)" not in log.lower()
         assert "rank (data)" in log
-    else:  # if rank is passed no computation is done
+    elif rank != "full":  # if rank is passed no computation is done
         assert "Computing rank" not in log
         assert ": rank" not in log
         assert "rank (" not in log
@@ -325,25 +350,38 @@ def test_regularized_csp(ch_type, rank, reg):
 
     # test init exception
     pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
-    pytest.raises(ValueError, csp.fit, epochs, y)
-    pytest.raises(ValueError, csp.transform, epochs)
+    pytest.raises(ValueError, csp.fit, "foo", y)
+    pytest.raises(ValueError, csp.transform, "foo")
 
     csp.n_components = n_components
     sources = csp.transform(epochs_data)
     assert sources.shape[1] == n_components
 
     cv = StratifiedKFold(5)
-    clf = make_pipeline(csp, LogisticRegression(solver="liblinear"))
-    score = cross_val_score(clf, epochs_data, y, cv=cv, scoring="roc_auc").mean()
+    clf = make_pipeline(
+        sc,
+        csp,
+        LinearModel(LogisticRegression(solver="liblinear")),
+    )
+    score = cross_val_score(clf, epochs_data_orig, y, cv=cv, scoring="roc_auc").mean()
     assert 0.75 <= score <= 1.0
+
+    # Test get_coef on CSP
+    clf.fit(epochs_data_orig, y)
+    coef = csp.patterns_[:n_components]
+    assert coef.shape == (n_components, n_channels), coef.shape
+    coef = sc.inverse_transform(coef.T[np.newaxis])[0]
+    assert coef.shape == (len(epochs.ch_names), n_components), coef.shape
+    coef_mne = get_coef(clf, "patterns_", inverse_transform=True, verbose="debug")
+    assert coef.shape == coef_mne.shape
+    coef_mne /= np.linalg.norm(coef_mne, axis=0)
+    coef /= np.linalg.norm(coef, axis=0)
+    coef *= np.sign(np.sum(coef_mne * coef, axis=0))
+    assert_allclose(coef_mne, coef)
 
 
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
-    pytest.importorskip("sklearn")
-    from sklearn.pipeline import Pipeline
-    from sklearn.svm import SVC
-
     csp = CSP(reg=1, norm_trace=False)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
@@ -393,7 +431,7 @@ def test_spoc():
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
-    # Check that doesn't take CSP-spcific input
+    # Check that doesn't take CSP-specific input
     pytest.raises(TypeError, SPoC, cov_est="epoch")
 
     # Check mixing matrix on simulated data
@@ -434,7 +472,9 @@ def test_csp_component_ordering():
     """Test that CSP component ordering works as expected."""
     x, y = deterministic_toy_data(["class_a", "class_b"])
 
-    pytest.raises(ValueError, CSP, component_order="invalid")
+    csp = CSP(component_order="invalid")
+    with pytest.raises(ValueError, match="Invalid value"):
+        csp.fit(x, y)
 
     # component_order='alternate' only works with two classes
     csp = CSP(component_order="alternate")
@@ -449,3 +489,11 @@ def test_csp_component_ordering():
     # p_alt arranges them to [0.8, 0.06, 0.5, 0.1]
     # p_mut arranges them to [0.06, 0.1, 0.8, 0.5]
     assert_array_almost_equal(p_alt, p_mut[[2, 0, 3, 1]])
+
+
+@pytest.mark.filterwarnings("ignore:.*Only one sample available.*")
+@parametrize_with_checks([CSP(), SPoC()])
+def test_sklearn_compliance(estimator, check):
+    """Test compliance with sklearn."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    check(estimator)

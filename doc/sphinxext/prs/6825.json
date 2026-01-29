@@ -1,0 +1,155 @@
+{
+  "merge_commit_sha": "222deb6f5e97036274b9ac117582c20bee18d13a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.12.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/simulation/plot_simulated_raw_data_using_subject_anatomy.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 41
+    },
+    "mne/forward/forward.py": {
+      "a": 7,
+      "d": 19
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 3,
+      "d": 9
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 80
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 11
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 72
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 9
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/rank.py": {
+      "a": 5,
+      "d": 14
+    },
+    "mne/simulation/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 31
+    },
+    "mne/simulation/raw.py": {
+      "a": 12,
+      "d": 100
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 41,
+      "d": 119
+    },
+    "mne/tests/test_cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 11
+    },
+    "mne/tests/test_rank.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 2,
+      "d": 20
+    },
+    "mne/utils/config.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 28
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 1,
+      "d": 17
+    },
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 23
+    },
+    "mne/viz/evoked.py": {
+      "a": 5,
+      "d": 26
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 10
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

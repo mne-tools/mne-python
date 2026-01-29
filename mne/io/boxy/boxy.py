@@ -1,5 +1,4 @@
-# Authors: Kyle Mathewson, Jonathan Kuziek <kuziek@ualberta.ca>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -59,7 +58,7 @@ class RawBOXY(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         # Read header file and grab some info.
         start_line = np.inf
@@ -105,8 +104,7 @@ class RawBOXY(BaseRaw):
                     # Check that the BOXY version is supported
                     if boxy_ver not in ["0.40", "0.84"]:
                         raise RuntimeError(
-                            "MNE has not been tested with BOXY "
-                            "version (%s)" % boxy_ver
+                            f"MNE has not been tested with BOXY version ({boxy_ver})"
                         )
                 elif "Detector Channels" in i_line:
                     raw_extras["detect_num"] = int(i_line.rsplit(" ")[0])
@@ -216,7 +214,7 @@ class RawBOXY(BaseRaw):
         filetype = self._raw_extras[fi]["filetype"]
         col_names = self._raw_extras[fi]["col_names"]
         offsets = self._raw_extras[fi]["offsets"]
-        boxy_file = self._filenames[fi]
+        boxy_file = self.filenames[fi]
 
         # Non-parsed multiplexes sources, so we need source_num times as many
         # lines in that case

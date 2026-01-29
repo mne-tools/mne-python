@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "9cb664813f04be66d758c4ad6321a2a58924bfc8",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 173,
+      "d": 22
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 228,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 34,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 35,
+      "d": 6
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

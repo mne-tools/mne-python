@@ -1,0 +1,531 @@
+{
+  "merge_commit_sha": "ad5ca5f0c222c47deb3dc1d2632629de05e21976",
+  "authors": [
+    {
+      "n": "Yaroslav Halchenko",
+      "e": null
+    }
+  ],
+  "changes": {
+    "AUTHORS.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "LICENSE.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 0,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "bin/mne_flash_bem_model.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/Makefile": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/conf.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/getting_started.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/index.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/AppA.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/AppB.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/AppEULA.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/AppInstall.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/AppReleaseNotes.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/analyze.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/browse.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/convert.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/cookbook.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/forward.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/intro.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/list.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/matlab.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/MNE_preferences.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/adjust_alignment.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/adjust_lights.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/adjust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/cont_hpi_data.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/dipole_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/dipole_parameters.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/dipoles_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/epoch_selector.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/field_mapping_pref.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/file_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/hardcopy_controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/help_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/image_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/label_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/labels_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/main_window.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/movie_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/mri_viewer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/open_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/overlay_management.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/patch_selection_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/save_label_timecourse.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/scales_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/surface_controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/surface_selection_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/timecourse_manager.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/view_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/viewer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/viewer_options.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/visualize_hpi.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_analyze/windows_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/adjust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/adust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/average_pref.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/channel_selection.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/file_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/filter_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/help_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/main.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/manage_averages_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/new_selection.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/new_ssp.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/open_dialog copy.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/open_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/process_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/process_menu2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/scales_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/scales_dialog2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/toolbar.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-0.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-1.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-10.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-11.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-12.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-13.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-14.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-15.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-16.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-17.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-3.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-4.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-5.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-6.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-7.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-8.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu-9.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/mne_browse_raw/windows_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/morph.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/Averaging-flowchart.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/CoordinateSystems.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/Digitizer-example.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/Flowchart.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/HeadCS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/cover.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/flat.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/morphed.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/neuromag.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/orig.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/proj-off-on.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/pics/title_page.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/reading.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/sampledata.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/utilities.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/mne-python.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/README.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/docscrape.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/docscrape_sphinx.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/ipython_console_highlighting.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext/docscrape.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext/docscrape_sphinx.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext/numpydoc.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext_old/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext_old/docscrape.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext_old/docscrape_sphinx.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext_old/numpydoc.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/only_directives.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/README.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/inverse/README.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/README.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/stats/README.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/time_frequency/README.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 0,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cc3f02e4fa1b0fc827348374462e656f8169d4d5",
+  "authors": [
+    {
+      "n": "jeythekey",
+      "e": "44215387+jeythekey@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 116,
+      "d": 57
+    }
+  }
+}

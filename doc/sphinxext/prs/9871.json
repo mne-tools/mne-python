@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "3ed5afdb484122d5bb0d829ae4b48cd1101ae9c4",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 59,
+      "d": 25
+    },
+    "mne/report/templates/epochs.html": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

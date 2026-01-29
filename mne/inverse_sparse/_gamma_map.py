@@ -1,11 +1,10 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
@@ -81,7 +80,7 @@ def _gamma_map_opt(
 
     if n_sources % group_size != 0:
         raise ValueError(
-            "Number of sources has to be evenly dividable by the " "group size"
+            "Number of sources has to be evenly dividable by the group size"
         )
 
     n_active = n_sources
@@ -158,8 +157,8 @@ def _gamma_map_opt(
         breaking = err < tol or n_active == 0
         if len(gammas) != last_size or breaking:
             logger.info(
-                "Iteration: %d\t active set size: %d\t convergence: "
-                "%0.3e" % (itno, len(gammas), err)
+                f"Iteration: {itno}\t active set size: {len(gammas)}\t convergence: "
+                f"{err:.3e}"
             )
             last_size = len(gammas)
 
@@ -307,7 +306,7 @@ def gamma_map(
             X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
             idx = np.searchsorted(active_src, idx)
             X_xyz[idx, offset, :] = X
-            X_xyz.shape = (len(active_src) * 3, X.shape[1])
+            X_xyz = _reshape_view(X_xyz, (len(active_src) * 3, X.shape[1]))
             X = X_xyz
         active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
     source_weighting[source_weighting == 0] = 1  # zeros

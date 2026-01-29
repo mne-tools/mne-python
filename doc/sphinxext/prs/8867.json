@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "4514ea7887ddef6357d0197b5271cb5020c669ce",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    },
+    {
+      "n": "kalenkovich",
+      "e": "e.kalenkovich@gmail.com"
+    },
+    {
+      "n": "Zhenya",
+      "e": "e.kalenkovich@gmail.com"
+    },
+    {
+      "n": "Zhenya",
+      "e": "e.kalenkovich@gmail.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "kalenkovich",
+      "e": "e.kalenkovich@gmail.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/ssvep/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/ssvep/ssvep.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/time-freq/plot_ssvep.py": {
+      "a": 675,
+      "d": 0
+    }
+  }
+}

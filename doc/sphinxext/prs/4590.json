@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e9bbae9bbbb37b37cc9b661a1e76c80af28b7f00",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/montages/10-5_EGI129.csd": {
+      "a": 0,
+      "d": 467
+    },
+    "mne/channels/montage.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

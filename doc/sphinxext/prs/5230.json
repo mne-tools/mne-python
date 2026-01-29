@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "05a09f7e563bb8ef96aef9b64e206af216d8d909",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 6,
+      "d": 5
+    },
+    "doc/_static/reset-syntax.css": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 4,
+      "d": 64
+    },
+    "doc/_templates/layout.html": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 12,
+      "d": 11
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/plot_configuration.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/plot_dics.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

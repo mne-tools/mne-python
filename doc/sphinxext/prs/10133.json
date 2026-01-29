@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3ccb227367560803f91d3f19251a1531e3dde6e2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_pip.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

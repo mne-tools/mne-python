@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2dea04cbed2c733689c09b9202c50abc0a475907",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

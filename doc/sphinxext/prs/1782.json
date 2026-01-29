@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "957e3f3d1c749f29384457478fef7bd3218c9c04",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_compute_mne_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 3,
+      "d": 4
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 2,
+      "d": 8
+    },
+    "examples/inverse/plot_mne_crosstalk_function.py": {
+      "a": 3,
+      "d": 9
+    },
+    "examples/inverse/plot_mne_point_spread_function.py": {
+      "a": 3,
+      "d": 9
+    },
+    "examples/plot_read_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_ssp_projs_sensitivity_map.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 3,
+      "d": 5
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 23,
+      "d": 12
+    },
+    "mne/viz/_3d.py": {
+      "a": 106,
+      "d": 14
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 55,
+      "d": 7
+    },
+    "mne/viz/utils.py": {
+      "a": 44,
+      "d": 29
+    }
+  }
+}

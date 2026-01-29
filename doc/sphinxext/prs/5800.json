@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e2c538b923cb05be626419ddcca3b112d7306d51",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 24,
+      "d": 8
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 68,
+      "d": 0
+    },
+    "tutorials/plot_object_annotations.py": {
+      "a": 59,
+      "d": 19
+    }
+  }
+}

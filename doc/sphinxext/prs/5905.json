@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "3db66e03c9add0646cb722ee1d714da5c73f5c2d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/advanced_setup.rst": {
+      "a": 126,
+      "d": 66
+    },
+    "doc/contributing.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/documentation.rst": {
+      "a": 12,
+      "d": 5
+    },
+    "doc/getting_started.rst": {
+      "a": 12,
+      "d": 70
+    },
+    "doc/git_links.inc": {
+      "a": 19,
+      "d": 2
+    },
+    "doc/index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install_freesurfer.rst": {
+      "a": 25,
+      "d": 0
+    },
+    "doc/install_mne_c.rst": {
+      "a": 125,
+      "d": 236
+    },
+    "doc/install_mne_python.rst": {
+      "a": 48,
+      "d": 45
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/pre_install.rst": {
+      "a": 72,
+      "d": 0
+    },
+    "doc/this_project.inc": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

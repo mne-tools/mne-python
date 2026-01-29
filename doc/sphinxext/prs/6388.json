@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e1c4f0c1c3c76f8fc4c04e34af92090cae6ea10b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/data_formats.rst": {
+      "a": 76,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 9,
+      "d": 8
+    },
+    "doc/manual/io.rst": {
+      "a": 64,
+      "d": 83
+    },
+    "doc/precision.rst": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/units.rst": {
+      "a": 35,
+      "d": 0
+    },
+    "tutorials/intro/plot_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/plot_object_raw.py": {
+      "a": 527,
+      "d": 91
+    }
+  }
+}

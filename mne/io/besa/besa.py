@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from collections import OrderedDict
 from pathlib import Path
 
@@ -109,7 +111,7 @@ def _read_evoked_besa_avr(fname, verbose):
         fields["DI"] = float(fields["DI"])
     else:
         raise RuntimeError(
-            'No "DI" field present. Could not determine ' "sampling frequency."
+            'No "DI" field present. Could not determine sampling frequency.'
         )
     if "TSB" in fields:
         fields["TSB"] = float(fields["TSB"])
@@ -249,7 +251,7 @@ def _read_elp_sidecar(fname):
     """
     fname_elp = fname.parent / (fname.stem + ".elp")
     if not fname_elp.exists():
-        logger.info(f"No {fname_elp} file present containing electrode " "information.")
+        logger.info(f"No {fname_elp} file present containing electrode information.")
         return None
 
     logger.info(f"Reading electrode names and types from {fname_elp}")
@@ -264,7 +266,7 @@ def _read_elp_sidecar(fname):
         else:
             # No channel types present
             logger.info(
-                "No channel types present in .elp file. Marking all " "channels as EEG."
+                "No channel types present in .elp file. Marking all channels as EEG."
             )
             for line in lines:
                 ch_name = line.split()[:1]

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ff3ba8629496bed2fc5b34e77abac48f930abe1c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 9,
+      "d": 0
+    },
+    "tutorials/inverse/40_mne_fixed_free.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

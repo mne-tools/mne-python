@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "08a02e3ce7af03604cde74b2d2b4352f00ab879d",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 2
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 18,
+      "d": 9
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 25,
+      "d": 39
+    },
+    "mne/data/image/custom_layout.lout": {
+      "a": 257,
+      "d": 65
+    },
+    "mne/gui/__init__.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/gui/tests/test_ieeg_locate_gui.py": {
+      "a": 30,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 26,
+      "d": 2
+    }
+  }
+}

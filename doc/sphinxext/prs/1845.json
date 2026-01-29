@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "84dccca8d6398f8f71e9a1d9b60552ecf86d68bf",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

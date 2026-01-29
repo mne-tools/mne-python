@@ -1,6 +1,4 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#          Frank Fishburn
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -51,9 +49,7 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     picks = _validate_nirs_info(raw.info)
 
     if not len(picks):
-        raise RuntimeError(
-            "TDDR should be run on optical density or " "hemoglobin data."
-        )
+        raise RuntimeError("TDDR should be run on optical density or hemoglobin data.")
     for pick in picks:
         raw._data[pick] = _TDDR(raw._data[pick], raw.info["sfreq"])
 

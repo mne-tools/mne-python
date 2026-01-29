@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5bc2190dfb07baaca2c688737191d2ef447b557f",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/check.py": {
+      "a": 13,
+      "d": 12
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 15,
+      "d": 11
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 19,
+      "d": 16
+    }
+  }
+}

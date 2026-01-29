@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "9f4ace5a51174f3922fdbbf887ad3d866faa8e24",
+  "authors": [
+    {
+      "n": null,
+      "e": "flKazemakase@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 9,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/decoding/plot_decoding_csp_timefreq.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/csp.py": {
+      "a": 166,
+      "d": 127
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 78,
+      "d": 2
+    }
+  }
+}

@@ -1,18 +1,16 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import contextlib
 import datetime
 import operator
+import re
 import string
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
+from functools import partial
 from io import BytesIO
 from textwrap import shorten
 
@@ -25,7 +23,6 @@ from ..utils import (
     _check_on_missing,
     _check_option,
     _dt_to_stamp,
-    _is_numeric,
     _on_missing,
     _pl,
     _stamp_to_dt,
@@ -38,6 +35,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils._bunch import NamedFloat, NamedInt
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -49,7 +47,7 @@ from ._digitization import (
     write_dig,
 )
 from .compensator import get_current_comp
-from .constants import FIFF, _ch_unit_mul_named, _coord_frame_named
+from .constants import FIFF, _ch_unit_mul_named
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .open import fiff_open
 from .pick import (
@@ -281,7 +279,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
         dups = {ch_names[x] for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
         warn(
             "Channel names are not unique, found duplicates for: "
-            "%s. Applying running numbers for duplicates." % dups
+            f"{dups}. Applying running numbers for duplicates."
         )
         for ch_stem in dups:
             overlaps = np.where(np.array(ch_names) == ch_stem)[0]
@@ -296,7 +294,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
             for idx, ch_idx in enumerate(overlaps):
                 # try idx first, then loop through lower case chars
                 for suffix in (idx,) + suffixes:
-                    ch_name = ch_stem + "-%s" % suffix
+                    ch_name = ch_stem + f"-{suffix}"
                     if ch_name not in ch_names:
                         break
                 if ch_name not in ch_names:
@@ -305,9 +303,12 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
                     raise ValueError(
                         "Adding a single alphanumeric for a "
                         "duplicate resulted in another "
-                        "duplicate name %s" % ch_name
+                        f"duplicate name {ch_name}"
                     )
     return ch_names
+
+
+# %% Mixin classes
 
 
 class MontageMixin:
@@ -319,7 +320,8 @@ class MontageMixin:
 
         Returns
         -------
-        %(montage)s
+        montage : None | DigMontage
+            A copy of the channel positions, if available, otherwise ``None``.
         """
         from ..channels.montage import make_dig_montage
         from ..transforms import _frame_to_str
@@ -454,7 +456,7 @@ def _check_set(ch, projs, ch_type):
         for proj in projs:
             if ch["ch_name"] in proj["data"]["col_names"]:
                 raise RuntimeError(
-                    f'Cannot change channel type for channel {ch["ch_name"]} in '
+                    f"Cannot change channel type for channel {ch['ch_name']} in "
                     f'projector "{proj["desc"]}"'
                 )
     ch["kind"] = new_kind
@@ -503,7 +505,7 @@ class SetChannelsMixin(MontageMixin):
         info = self if isinstance(self, Info) else self.info
         if len(pos) != len(names):
             raise ValueError(
-                "Number of channel positions not equal to " "the number of names given."
+                "Number of channel positions not equal to the number of names given."
             )
         pos = np.asarray(pos, dtype=np.float64)
         if pos.shape[-1] != 3 or pos.ndim != 2:
@@ -516,7 +518,7 @@ class SetChannelsMixin(MontageMixin):
                 idx = self.ch_names.index(name)
                 info["chs"][idx]["loc"][:3] = p
             else:
-                msg = "%s was not found in the info. Cannot be updated." % name
+                msg = f"{name} was not found in the info. Cannot be updated."
                 raise ValueError(msg)
 
     @verbose
@@ -552,6 +554,9 @@ class SetChannelsMixin(MontageMixin):
             fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
             seeg, stim, syst, temperature.
 
+        When working with eye-tracking data, see
+        :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`.
+
         .. versionadded:: 0.9.0
         """
         info = self if isinstance(self, Info) else self.info
@@ -562,7 +567,7 @@ class SetChannelsMixin(MontageMixin):
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError(
-                    "This channel name (%s) doesn't exist in " "info." % ch_name
+                    f"This channel name ({ch_name}) doesn't exist in info."
                 )
 
             c_ind = ch_names.index(ch_name)
@@ -622,12 +627,17 @@ class SetChannelsMixin(MontageMixin):
         return self
 
     @verbose
-    def rename_channels(self, mapping, allow_duplicates=False, *, verbose=None):
+    def rename_channels(
+        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+    ):
         """Rename channels.
 
         Parameters
         ----------
         %(mapping_rename_channels_duplicates)s
+        %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
         %(verbose)s
 
         Returns
@@ -648,7 +658,7 @@ class SetChannelsMixin(MontageMixin):
         info = self if isinstance(self, Info) else self.info
 
         ch_names_orig = list(info["ch_names"])
-        rename_channels(info, mapping, allow_duplicates)
+        rename_channels(info, mapping, allow_duplicates, on_missing=on_missing)
 
         # Update self._orig_units for Raw
         if isinstance(self, BaseRaw):
@@ -823,6 +833,10 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..annotations import _handle_meas_date
 
+        _validate_type(
+            meas_date, (datetime.datetime, "numeric", tuple, None), "meas_date"
+        )
+
         info = self if isinstance(self, Info) else self.info
 
         meas_date = _handle_meas_date(meas_date)
@@ -875,13 +889,16 @@ class ContainsMixin:
             False
 
         """
-        info = self if isinstance(self, Info) else self.info
+        # this method is not supported by Info object. An Info object inherits from a
+        # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
+        # to check for the presence of a key:
+        # >>> 'bads' in info
         if ch_type == "meg":
-            has_ch_type = _contains_ch_type(info, "mag") or _contains_ch_type(
-                info, "grad"
+            has_ch_type = _contains_ch_type(self.info, "mag") or _contains_ch_type(
+                self.info, "grad"
             )
         else:
-            has_ch_type = _contains_ch_type(info, ch_type)
+            has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
     @property
@@ -919,6 +936,165 @@ class ContainsMixin:
             # set does not preserve order but dict does, so let's just use it
             ch_types = list({k: k for k in ch_types}.keys())
         return ch_types
+
+
+# %% ValidatedDict class
+
+
+class ValidatedDict(dict):
+    _attributes = {}  # subclasses should set this to validated attributes
+
+    def __init__(self, *args, **kwargs):
+        self._unlocked = True
+        super().__init__(*args, **kwargs)
+        self._unlocked = False
+
+    def __getstate__(self):
+        """Get state (for pickling)."""
+        return {"_unlocked": self._unlocked}
+
+    def __setstate__(self, state):
+        """Set state (for pickling)."""
+        self._unlocked = state["_unlocked"]
+
+    def __setitem__(self, key, val):
+        """Attribute setter."""
+        # During unpickling, the _unlocked attribute has not been set, so
+        # let __setstate__ do it later and act unlocked now
+        unlocked = getattr(self, "_unlocked", True)
+        if key in self._attributes:
+            if isinstance(self._attributes[key], str):
+                if not unlocked:
+                    raise RuntimeError(self._attributes[key])
+            else:
+                val = self._attributes[key](
+                    val, info=self
+                )  # attribute checker function
+        else:
+            class_name = self.__class__.__name__
+            extra = ""
+            if "temp" in self._attributes:
+                var_name = _camel_to_snake(class_name)
+                extra = (
+                    f"You can set {var_name}['temp'] to store temporary objects in "
+                    f"{class_name} instances, but these will not survive an I/O "
+                    "round-trip."
+                )
+            raise RuntimeError(
+                f"{class_name} does not support directly setting the key {repr(key)}. "
+                + extra
+            )
+        super().__setitem__(key, val)
+
+    def update(self, other=None, **kwargs):
+        """Update method using __setitem__()."""
+        iterable = other.items() if isinstance(other, Mapping) else other
+        if other is not None:
+            for key, val in iterable:
+                self[key] = val
+        for key, val in kwargs.items():
+            self[key] = val
+
+    def copy(self):
+        """Copy the instance.
+
+        Returns
+        -------
+        info : instance of Info
+            The copied info.
+        """
+        return deepcopy(self)
+
+    def __repr__(self):
+        """Return a string representation."""
+        mapping = ", ".join(f"{key}: {val}" for key, val in self.items())
+        return f"<{_camel_to_snake(self.__class__.__name__)} | {mapping}>"
+
+
+# %% Subject info
+
+
+def _check_types(x, *, info, name, types, cast=None):
+    _validate_type(x, types, name)
+    if cast is not None and x is not None:
+        x = cast(x)
+    return x
+
+
+def _check_bday(birthday_input, *, info):
+    date = _check_types(
+        birthday_input,
+        info=info,
+        name='subject_info["birthday"]',
+        types=(datetime.date, None),
+    )
+    # test if we have a pd.Timestamp
+    if hasattr(date, "date"):
+        date = date.date()
+    return date
+
+
+class SubjectInfo(ValidatedDict):
+    _attributes = {
+        "id": partial(_check_types, name='subject_info["id"]', types=int),
+        "his_id": partial(_check_types, name='subject_info["his_id"]', types=str),
+        "last_name": partial(_check_types, name='subject_info["last_name"]', types=str),
+        "first_name": partial(
+            _check_types, name='subject_info["first_name"]', types=str
+        ),
+        "middle_name": partial(
+            _check_types, name='subject_info["middle_name"]', types=str
+        ),
+        "birthday": partial(_check_bday),
+        "sex": partial(_check_types, name='subject_info["sex"]', types=int),
+        "hand": partial(_check_types, name='subject_info["hand"]', types=int),
+        "weight": partial(
+            _check_types, name='subject_info["weight"]', types="numeric", cast=float
+        ),
+        "height": partial(
+            _check_types, name='subject_info["height"]', types="numeric", cast=float
+        ),
+    }
+
+    def __init__(self, initial):
+        _validate_type(initial, dict, "subject_info")
+        super().__init__()
+        for key, val in initial.items():
+            self[key] = val
+
+
+class HeliumInfo(ValidatedDict):
+    _attributes = {
+        "he_level_raw": partial(
+            _check_types,
+            name='helium_info["he_level_raw"]',
+            types="numeric",
+            cast=float,
+        ),
+        "helium_level": partial(
+            _check_types,
+            name='helium_info["helium_level"]',
+            types="numeric",
+            cast=float,
+        ),
+        "orig_file_guid": partial(
+            _check_types, name='helium_info["orig_file_guid"]', types=str
+        ),
+        "meas_date": partial(
+            _check_types,
+            name='helium_info["meas_date"]',
+            types=(datetime.datetime, None),
+        ),
+    }
+
+    def __init__(self, initial):
+        _validate_type(initial, dict, "helium_info")
+        super().__init__()
+        for key, val in initial.items():
+            self[key] = val
+
+
+# %% Info class and helpers
 
 
 def _format_trans(obj, key):
@@ -992,11 +1168,6 @@ def _check_bads(bads, *, info):
     return MNEBadsList(bads=bads, info=info)
 
 
-def _check_description(description, *, info):
-    _validate_type(description, (None, str), "info['description']")
-    return description
-
-
 def _check_dev_head_t(dev_head_t, *, info):
     from ..transforms import Transform, _ensure_trans
 
@@ -1006,48 +1177,91 @@ def _check_dev_head_t(dev_head_t, *, info):
     return dev_head_t
 
 
-def _check_experimenter(experimenter, *, info):
-    _validate_type(experimenter, (None, str), "experimenter")
-    return experimenter
+def _restore_mne_types(info):
+    """Restore MNE-specific types after unpickling/deserialization.
 
+    This function handles the restoration of MNE-specific object types
+    that need to be reconstructed from their serialized representations.
+    These correspond to the "cast" entries in Info._attributes: bads,
+    dev_head_t, dig, helium_info, line_freq, proj_id, projs, and
+    subject_info. However, this function is specifically for types that
+    need restoration because h5io and other serialization formats cast
+    them to native Python types (e.g., MNEBadsList -> list, Projection
+    -> dict, DigPoint -> dict).
 
-def _check_line_freq(line_freq, *, info):
-    _validate_type(line_freq, (None, "numeric"), "line_freq")
-    line_freq = float(line_freq) if line_freq is not None else line_freq
-    return line_freq
+    This function should be called in Info.__init__ and Info.__setstate__.
+    If new MNE-specific types are added to Info._attributes, they
+    should be handled here if they need type restoration after
+    deserialization.
 
+    Parameters
+    ----------
+    info : Info
+        The Info object whose types need to be restored. Modified in-place.
 
-def _check_subject_info(subject_info, *, info):
-    _validate_type(subject_info, (None, dict), "subject_info")
-    return subject_info
+    Notes
+    -----
+    This function restores:
+    - MNEBadsList for the bads field (see Info._attributes["bads"])
+    - DigPoint objects for digitization points (see Info._attributes["dig"])
+    - Projection objects for SSP projectors (see Info._attributes["projs"])
+    - Transform objects for device/head transformations
+    - meas_date from tuple to datetime
+    - helium_info and subject_info with proper casting
+    - proc_history date field from numpy array to tuple (JSON limitation)
+    """
+    # Restore MNEBadsList (corresponds to Info._attributes["bads"])
+    if "bads" in info:
+        info["bads"] = MNEBadsList(bads=info["bads"], info=info)
 
+    # Format Transform objects
+    for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
+        _format_trans(info, key)
+    for res in info.get("hpi_results", []):
+        _format_trans(res, "coord_trans")
 
-def _check_device_info(device_info, *, info):
-    _validate_type(
-        device_info,
-        (
-            None,
-            dict,
-        ),
-        "device_info",
-    )
-    return device_info
+    # Restore DigPoint objects (corresponds to Info._attributes["dig"])
+    if info.get("dig", None) is not None and len(info["dig"]):
+        if isinstance(info["dig"], dict):  # needs to be unpacked
+            info["dig"] = _dict_unpack(info["dig"], _DIG_CAST)
+        if not isinstance(info["dig"][0], DigPoint):
+            info["dig"] = _format_dig_points(info["dig"])
 
+    # Unpack chs if needed
+    if isinstance(info.get("chs", None), dict):
+        info["chs"]["ch_name"] = [
+            str(x) for x in np.char.decode(info["chs"]["ch_name"], encoding="utf8")
+        ]
+        info["chs"] = _dict_unpack(info["chs"], _CH_CAST)
 
-def _check_helium_info(helium_info, *, info):
-    _validate_type(
-        helium_info,
-        (
-            None,
-            dict,
-        ),
-        "helium_info",
-    )
-    return helium_info
+    # Restore Projection objects (corresponds to Info._attributes["projs"])
+    for pi, proj in enumerate(info.get("projs", [])):
+        if not isinstance(proj, Projection):
+            info["projs"][pi] = Projection(**proj)
+
+    # Old files could have meas_date as tuple instead of datetime
+    try:
+        meas_date = info["meas_date"]
+    except KeyError:
+        pass
+    else:
+        info["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
+
+    # with validation and casting
+    for key in ("helium_info", "subject_info"):
+        if key in info:
+            info[key] = info[key]
+
+    # Restore proc_history[*]['date'] as tuple
+    # JSON converts tuples to lists, so we need to convert back
+    for entry in info.get("proc_history", []):
+        if "date" in entry and isinstance(entry["date"], np.ndarray):
+            # Convert numpy array back to tuple with Python types
+            entry["date"] = tuple(int(x) for x in entry["date"])
 
 
 # TODO: Add fNIRS convention to loc
-class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
+class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
@@ -1063,10 +1277,10 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     .. warning::
         The only entries that should be manually changed by the user are:
-        ``info['bads']``, ``info['description']``, ``info['device_info']``
-        ``info['dev_head_t']``, ``info['experimenter']``,
-        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
-        and ``info['subject_info']``.
+        ``info['bads']``, ``info['description']``, ``info['device_info']``,
+        ``info['proj_id']``, ``info['proj_name']``, ``info['dev_head_t']``,
+        ``info['experimenter']``, ``info['helium_info']``,
+        ``info['line_freq']``, ``info['temp']``, and ``info['subject_info']``.
 
         All other entries should be considered read-only, though they can be
         modified by various MNE-Python functions or methods (which have
@@ -1214,6 +1428,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     See Also
     --------
     mne.create_info
+    mne.pick_info
 
     Notes
     -----
@@ -1246,7 +1461,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Eyetrack
                 Element ``[3]`` contains information about which eye was tracked
                 (-1 for left, 1 for right), and element ``[4]`` contains information
-                about the the axis of coordinate data (-1 for x-coordinate data, 1 for
+                about the axis of coordinate data (-1 for x-coordinate data, 1 for
                 y-coordinate data).
             Dipole
                 Elements ``[3:6]`` contain dipole orientation information.
@@ -1329,8 +1544,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : tuple of int
+        meas_date : datetime.datetime | None
             The helium level meas date.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.datetime` object
+               instead of a tuple of seconds/microseconds.
 
     * ``hpi_meas`` list of dict:
 
@@ -1444,8 +1663,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             First name.
         middle_name : str
             Middle name.
-        birthday : tuple of int
-            Birthday in (year, month, day) format.
+        birthday : datetime.date
+            The subject birthday.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.date` object
+               instead of a tuple of seconds/microseconds.
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
@@ -1479,24 +1702,28 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "custom_ref_applied": "custom_ref_applied cannot be set directly. "
         "Please use method inst.set_eeg_reference() "
         "instead.",
-        "description": _check_description,
+        "description": partial(_check_types, name="description", types=(str, None)),
         "dev_ctf_t": "dev_ctf_t cannot be set directly.",
         "dev_head_t": _check_dev_head_t,
-        "device_info": _check_device_info,
+        "device_info": partial(_check_types, name="device_info", types=(dict, None)),
         "dig": "dig cannot be set directly. "
         "Please use method inst.set_montage() instead.",
         "events": "events cannot be set directly.",
-        "experimenter": _check_experimenter,
+        "experimenter": partial(_check_types, name="experimenter", types=(str, None)),
         "file_id": "file_id cannot be set directly.",
         "gantry_angle": "gantry_angle cannot be set directly.",
-        "helium_info": _check_helium_info,
+        "helium_info": partial(
+            _check_types, name="helium_info", types=(dict, None), cast=HeliumInfo
+        ),
         "highpass": "highpass cannot be set directly. "
         "Please use method inst.filter() instead.",
         "hpi_meas": "hpi_meas can not be set directly.",
         "hpi_results": "hpi_results cannot be set directly.",
         "hpi_subsystem": "hpi_subsystem cannot be set directly.",
         "kit_system_id": "kit_system_id cannot be set directly.",
-        "line_freq": _check_line_freq,
+        "line_freq": partial(
+            _check_types, name="line_freq", types=("numeric", None), cast=float
+        ),
         "lowpass": "lowpass cannot be set directly. "
         "Please use method inst.filter() instead.",
         "maxshield": "maxshield cannot be set directly.",
@@ -1511,14 +1738,16 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "Please use methods inst.add_channels(), "
         "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
-        "proj_id": "proj_id cannot be set directly.",
-        "proj_name": "proj_name cannot be set directly.",
+        "proj_id": partial(_check_types, name="proj_id", types=(int, None), cast=int),
+        "proj_name": partial(_check_types, name="proj_name", types=(str, None)),
         "projs": "projs cannot be set directly. "
         "Please use methods inst.add_proj() and inst.del_proj() "
         "instead.",
         "sfreq": "sfreq cannot be set directly. "
         "Please use method inst.resample() instead.",
-        "subject_info": _check_subject_info,
+        "subject_info": partial(
+            _check_types, name="subject_info", types=(dict, None), cast=SubjectInfo
+        ),
         "temp": lambda x, info=None: x,
         "utc_offset": "utc_offset cannot be set directly.",
         "working_dir": "working_dir cannot be set directly.",
@@ -1526,75 +1755,14 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     }
 
     def __init__(self, *args, **kwargs):
-        self._unlocked = True
         super().__init__(*args, **kwargs)
-        # Deal with h5io writing things as dict
-        if "bads" in self:
-            self["bads"] = MNEBadsList(bads=self["bads"], info=self)
-        for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
-            _format_trans(self, key)
-        for res in self.get("hpi_results", []):
-            _format_trans(res, "coord_trans")
-        if self.get("dig", None) is not None and len(self["dig"]):
-            if isinstance(self["dig"], dict):  # needs to be unpacked
-                self["dig"] = _dict_unpack(self["dig"], _DIG_CAST)
-            if not isinstance(self["dig"][0], DigPoint):
-                self["dig"] = _format_dig_points(self["dig"])
-        if isinstance(self.get("chs", None), dict):
-            self["chs"]["ch_name"] = [
-                str(x) for x in np.char.decode(self["chs"]["ch_name"], encoding="utf8")
-            ]
-            self["chs"] = _dict_unpack(self["chs"], _CH_CAST)
-        for pi, proj in enumerate(self.get("projs", [])):
-            if not isinstance(proj, Projection):
-                self["projs"][pi] = Projection(**proj)
-        # Old files could have meas_date as tuple instead of datetime
-        try:
-            meas_date = self["meas_date"]
-        except KeyError:
-            pass
-        else:
-            self["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
-        self._unlocked = False
-
-    def __getstate__(self):
-        """Get state (for pickling)."""
-        return {"_unlocked": self._unlocked}
+        with self._unlock():
+            _restore_mne_types(self)
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
-        self._unlocked = state["_unlocked"]
+        super().__setstate__(state)
         self["bads"] = MNEBadsList(bads=self["bads"], info=self)
-
-    def __setitem__(self, key, val):
-        """Attribute setter."""
-        # During unpickling, the _unlocked attribute has not been set, so
-        # let __setstate__ do it later and act unlocked now
-        unlocked = getattr(self, "_unlocked", True)
-        if key in self._attributes:
-            if isinstance(self._attributes[key], str):
-                if not unlocked:
-                    raise RuntimeError(self._attributes[key])
-            else:
-                val = self._attributes[key](
-                    val, info=self
-                )  # attribute checker function
-        else:
-            raise RuntimeError(
-                f"Info does not support directly setting the key {repr(key)}. "
-                "You can set info['temp'] to store temporary objects in an "
-                "Info instance, but these will not survive an I/O round-trip."
-            )
-        super().__setitem__(key, val)
-
-    def update(self, other=None, **kwargs):
-        """Update method using __setitem__()."""
-        iterable = other.items() if isinstance(other, Mapping) else other
-        if other is not None:
-            for key, val in iterable:
-                self[key] = val
-        for key, val in kwargs.items():
-            self[key] = val
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
@@ -1614,16 +1782,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 self._check_consistency()
         finally:
             self._unlocked = state
-
-    def copy(self):
-        """Copy the instance.
-
-        Returns
-        -------
-        info : instance of Info
-            The copied info.
-        """
-        return deepcopy(self)
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
@@ -1668,7 +1826,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "projs":
                 if v:
                     entr = ", ".join(
-                        p["desc"] + ": o%s" % {0: "ff", 1: "n"}[p["active"]] for p in v
+                        p["desc"] + ": o" + ("n" if p["active"] else "ff") for p in v
                     )
                     entr = shorten(entr, MAX_WIDTH, placeholder=" ...")
                 else:
@@ -1680,16 +1838,16 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = v.strftime("%Y-%m-%d %H:%M:%S %Z")
             elif k == "kit_system_id" and v is not None:
-                entr = "%i (%s)" % (v, KIT_SYSNAMES.get(v, "unknown"))
+                entr = f"{v} ({KIT_SYSNAMES.get(v, 'unknown')})"
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [
-                    "%d %s" % (counts[ii], _dig_kind_proper[_dig_kind_rev[ii]])
+                    f"{counts[ii]} {_dig_kind_proper[_dig_kind_rev[ii]]}"
                     for ii in _dig_kind_ints
                     if ii in counts
                 ]
-                counts = (" (%s)" % (", ".join(counts))) if len(counts) else ""
-                entr = "%d item%s%s" % (len(v), _pl(len(v)), counts)
+                counts = f" ({', '.join(counts)})" if len(counts) else ""
+                entr = f"{len(v)} item{_pl(v)}{counts}"
             elif isinstance(v, Transform):
                 # show entry only for non-identity transform
                 if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
@@ -1715,6 +1873,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 entr = str(bool(v))
                 if not v:
                     non_empty -= 1  # don't count if 0
+            elif isinstance(v, ValidatedDict):
+                entr = repr(v)
             else:
                 try:
                     this_len = len(v)
@@ -1722,11 +1882,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     entr = f"{v}" if v is not None else ""
                 else:
                     if this_len > 0:
-                        entr = "%d item%s (%s)" % (
-                            this_len,
-                            _pl(this_len),
-                            type(v).__name__,
-                        )
+                        entr = f"{this_len} item{_pl(this_len)} ({type(v).__name__})"
                     else:
                         entr = ""
             if entr != "":
@@ -1785,7 +1941,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
-                    f' or None, got {repr(self["meas_date"])!r}'
+                    f" or None, got {repr(self['meas_date'])!r}"
                 )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
@@ -1815,23 +1971,15 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         for ci, ch in enumerate(self["chs"]):
             _check_ch_keys(ch, ci)
             ch_name = ch["ch_name"]
-            if not isinstance(ch_name, str):
-                raise TypeError(
-                    'Bad info: info["chs"][%d]["ch_name"] is not a string, '
-                    "got type %s" % (ci, type(ch_name))
-                )
+            _validate_type(ch_name, str, f'info["chs"][{ci}]["ch_name"]')
             for key in _SCALAR_CH_KEYS:
                 val = ch.get(key, 1)
-                if not _is_numeric(val):
-                    raise TypeError(
-                        'Bad info: info["chs"][%d][%r] = %s is type %s, must '
-                        "be float or int" % (ci, key, val, type(val))
-                    )
+                _validate_type(val, "numeric", f'info["chs"][{ci}][{key}]')
             loc = ch["loc"]
             if not (isinstance(loc, np.ndarray) and loc.shape == (12,)):
                 raise TypeError(
-                    'Bad info: info["chs"][%d]["loc"] must be ndarray with '
-                    "12 elements, got %r" % (ci, loc)
+                    f'Bad info: info["chs"][{ci}]["loc"] must be ndarray with '
+                    f"12 elements, got {repr(loc)}"
                 )
 
         # make sure channel names are unique
@@ -1848,94 +1996,201 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     @property
     def ch_names(self):
-        return self["ch_names"]
+        try:
+            ch_names = self["ch_names"]
+        except KeyError:
+            ch_names = []
 
-    def _get_chs_for_repr(self):
-        titles = _handle_default("titles")
+        return ch_names
 
-        # good channels
-        good_names = defaultdict(lambda: list())
-        for ci, ch_name in enumerate(self["ch_names"]):
-            if ch_name in self["bads"]:
-                continue
-            ch_type = channel_type(self, ci)
-            good_names[ch_type].append(ch_name)
-        good_channels = ", ".join(
-            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-        )
-        for key in ("ecg", "eog"):  # ensure these are present
-            if key not in good_names:
-                good_names[key] = list()
-        for key, val in good_names.items():
-            good_names[key] = ", ".join(val) or "Not available"
-
-        # bad channels
-        bad_channels = ", ".join(self["bads"]) or "None"
-
-        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
+    @property
+    def _cals(self):
+        return np.array([ch["range"] * ch["cal"] for ch in self["chs"]], float)
 
     @repr_html
-    def _repr_html_(self, caption=None, duration=None, filenames=None):
+    def _repr_html_(self):
         """Summarize info for HTML representation."""
-        if isinstance(caption, str):
-            html = f"<h4>{caption}</h4>"
-        else:
-            html = ""
-
-        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
-
-        # TODO
-        # Most of the following checks are to ensure that we get a proper repr
-        # for Forward['info'] (and probably others like
-        # InverseOperator['info']??), which doesn't seem to follow our standard
-        # Info structure used elsewhere.
-        # Proposed solution for a future refactoring:
-        # Forward['info'] should get its own Info subclass (with respective
-        # repr).
-
-        # meas date
-        meas_date = self.get("meas_date")
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
-
-        projs = self.get("projs")
-        if projs:
-            projs = [
-                f'{p["desc"]} : {"on" if p["active"] else "off"}' for p in self["projs"]
-            ]
-        else:
-            projs = None
-
         info_template = _get_html_template("repr", "info.html.jinja")
-        sections = ("General", "Channels", "Data")
-        return html + info_template.render(
-            sections=sections,
-            caption=caption,
-            meas_date=meas_date,
-            projs=projs,
-            ecg=ecg,
-            eog=eog,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            dig=self.get("dig"),
-            subject_info=self.get("subject_info"),
-            lowpass=self.get("lowpass"),
-            highpass=self.get("highpass"),
-            sfreq=self.get("sfreq"),
-            experimenter=self.get("experimenter"),
-            duration=duration,
-            filenames=filenames,
-        )
+        return info_template.render(info=self)
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Write measurement info in fif file.
 
         Parameters
         ----------
         fname : path-like
             The name of the file. Should end by ``'-info.fif'``.
+        %(overwrite)s
+
+            .. versionadded:: 1.10
+        %(verbose)s
+
+        See Also
+        --------
+        mne.io.write_info
         """
-        write_info(fname, self)
+        write_info(fname, self, overwrite=overwrite)
+
+    def to_json_dict(self) -> dict:
+        """Convert Info to a JSON-serializable dictionary.
+
+        This method converts the Info object to a standard Python dictionary
+        containing only JSON-serializable types (dict, list, str, int, float,
+        bool, None). Numpy arrays are converted to nested lists, and datetime
+        objects to ISO format strings.
+
+        Returns
+        -------
+        dict
+            A JSON-serializable dictionary representation of the Info object.
+
+        See Also
+        --------
+        from_json_dict : Reconstruct Info object from dictionary.
+
+        Notes
+        -----
+        This method is useful for serializing Info objects to JSON or other
+        formats that don't support numpy arrays or custom objects.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_json_dict()
+        >>> import json
+        >>> json_str = json.dumps(info_dict)  # Save to JSON
+        """
+        return _make_serializable(self)
+
+    @classmethod
+    def from_json_dict(cls, data_dict) -> "Info":
+        """Reconstruct Info object from a dictionary.
+
+        Parameters
+        ----------
+        data_dict : dict
+            A dictionary representation of an Info object, typically
+            created by the :meth:`to_json_dict` method.
+
+        Returns
+        -------
+        Info
+            The reconstructed Info object.
+
+        See Also
+        --------
+        to_json_dict : Convert Info to dictionary.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_json_dict()
+        >>> info_restored = mne.Info.from_json_dict(info_dict)
+        """
+        data_dict = data_dict.copy()
+        # Restore all nested objects (Transform, NamedInt, etc.)
+        restored_dict = _restore_objects(data_dict)
+
+        info = cls()
+        with info._unlock():
+            info.update(restored_dict)
+            _restore_mne_types(info)
+
+        return info
+
+
+def _make_serializable(obj):
+    """Recursively convert objects to JSON-serializable types."""
+    from ..transforms import Transform
+
+    if obj is None:
+        return None
+    elif isinstance(obj, bool):
+        return obj
+    elif isinstance(obj, NamedInt):
+        # Preserve NamedInt with its name
+        return {"_mne_type": "NamedInt", "value": int(obj), "name": obj._name}
+    elif isinstance(obj, NamedFloat):
+        # Preserve NamedFloat with its name
+        return {"_mne_type": "NamedFloat", "value": float(obj), "name": obj._name}
+    elif isinstance(obj, (str, int, float)):
+        return obj
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, datetime.datetime):
+        # Tag datetime objects for proper reconstruction
+        return {"_mne_type": "datetime", "value": obj.isoformat()}
+    elif isinstance(obj, datetime.date):
+        # Tag date objects for proper reconstruction
+        return {"_mne_type": "date", "value": obj.isoformat()}
+    elif isinstance(obj, Transform):
+        # Tag Transform objects for proper reconstruction
+        return {
+            "_mne_type": "Transform",
+            "from": obj["from"],
+            "to": obj["to"],
+            "trans": obj["trans"].tolist(),
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [_make_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: _make_serializable(val) for key, val in obj.items()}
+    else:
+        # Try to convert to string as fallback
+        return str(obj)
+
+
+def _restore_objects(obj) -> object:
+    """Recursively restore objects from JSON-serializable types."""
+    if obj is None:
+        return None
+    elif isinstance(obj, (bool, int, float)):
+        return obj
+    elif isinstance(obj, str):
+        # Regular strings are returned as-is
+        return obj
+    elif isinstance(obj, list):
+        # Check if all elements are numbers - convert to numpy array
+        # (JSON doesn't distinguish between tuples and lists, so 1D numeric
+        # lists that came from numpy arrays should be restored as numpy arrays,
+        # while tuple fields like proc_history[date] are handled separately)
+        if len(obj) > 0 and all(isinstance(x, (int, float)) for x in obj):
+            # 1D numeric arrays should be converted to numpy arrays
+            return np.array(obj)
+        elif len(obj) > 0 and all(isinstance(x, list) for x in obj):
+            # 2D or higher dimensional arrays
+            return np.array(obj)
+        else:
+            # Mixed types - recursively restore elements
+            return [_restore_objects(item) for item in obj]
+    elif isinstance(obj, dict):
+        # Check if this is a tagged MNE type
+        if "_mne_type" in obj:
+            if obj["_mne_type"] == "Transform":
+                # Actually create the Transform object now
+                from ..transforms import Transform
+
+                return Transform(obj["from"], obj["to"], np.array(obj["trans"]))
+            elif obj["_mne_type"] == "NamedInt":
+                return NamedInt(obj["name"], obj["value"])
+            elif obj["_mne_type"] == "NamedFloat":
+                return NamedFloat(obj["name"], obj["value"])
+            elif obj["_mne_type"] == "datetime":
+                # Restore datetime object from ISO format string
+                return datetime.datetime.fromisoformat(obj["value"])
+            elif obj["_mne_type"] == "date":
+                # Restore date object from ISO format string
+                return datetime.date.fromisoformat(obj["value"])
+            # Add more types here if needed in the future
+        else:
+            return {key: _restore_objects(val) for key, val in obj.items()}
+    else:
+        return obj
 
 
 def _simplify_info(info, *, keep=()):
@@ -1953,7 +2208,7 @@ def _simplify_info(info, *, keep=()):
 
 
 @verbose
-def read_fiducials(fname, verbose=None):
+def read_fiducials(fname, *, verbose=None):
     """Read fiducials from a fiff file.
 
     Parameters
@@ -1973,26 +2228,8 @@ def read_fiducials(fname, verbose=None):
     fname = _check_fname(fname=fname, overwrite="read", must_exist=True)
     fid, tree, _ = fiff_open(fname)
     with fid:
-        isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
-        isotrak = isotrak[0]
-        pts = []
-        coord_frame = FIFF.FIFFV_COORD_HEAD
-        for k in range(isotrak["nent"]):
-            kind = isotrak["directory"][k].kind
-            pos = isotrak["directory"][k].pos
-            if kind == FIFF.FIFF_DIG_POINT:
-                tag = read_tag(fid, pos)
-                pts.append(DigPoint(tag.data))
-            elif kind == FIFF.FIFF_MNE_COORD_FRAME:
-                tag = read_tag(fid, pos)
-                coord_frame = tag.data[0]
-                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
-
-    # coord_frame is not stored in the tag
-    for pt in pts:
-        pt["coord_frame"] = coord_frame
-
-    return pts, coord_frame
+        pts = _read_dig_fif(fid, tree)
+    return pts, pts[0]["coord_frame"]
 
 
 @verbose
@@ -2206,7 +2443,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             description = tag.data
         elif kind == FIFF.FIFF_PROJ_ID:
             tag = read_tag(fid, pos)
-            proj_id = tag.data
+            proj_id = int(tag.data.item())
         elif kind == FIFF.FIFF_PROJ_NAME:
             tag = read_tag(fid, pos)
             proj_name = tag.data
@@ -2433,10 +2670,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si["hand"] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_WEIGHT:
                 tag = read_tag(fid, pos)
-                si["weight"] = tag.data
+                si["weight"] = float(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HEIGHT:
                 tag = read_tag(fid, pos)
-                si["height"] = tag.data
+                si["height"] = float(tag.data.item())
     info["subject_info"] = si
     del si
 
@@ -2482,7 +2719,11 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hi["orig_file_guid"] = str(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 tag = read_tag(fid, pos)
-                hi["meas_date"] = tuple(int(t) for t in tag.data)
+                hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                    tuple(int(t) for t in tag.data),
+                )
+        if "meas_date" not in hi:
+            hi["meas_date"] = None
     info["helium_info"] = hi
     del hi
 
@@ -2852,7 +3093,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)
         di = info["device_info"]
-        write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
+        if di.get("type") is not None:
+            write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
         for key in ("model", "serial", "site"):
             if di.get(key) is not None:
                 write_string(fid, getattr(FIFF, "FIFF_DEVICE_" + key.upper()), di[key])
@@ -2868,7 +3110,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        write_int(fid, FIFF.FIFF_MEAS_DATE, hi["meas_date"])
+        if hi.get("meas_date", None) is not None:
+            write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
 
@@ -2905,8 +3148,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proc_history(fid, info)
 
 
-@fill_doc
-def write_info(fname, info, data_type=None, reset_range=True):
+@verbose
+def write_info(
+    fname, info, *, data_type=None, reset_range=True, overwrite=False, verbose=None
+):
     """Write measurement info in fif file.
 
     Parameters
@@ -2920,8 +3165,10 @@ def write_info(fname, info, data_type=None, reset_range=True):
         raw data.
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
+    %(overwrite)s
+    %(verbose)s
     """
-    with start_and_end_file(fname) as fid:
+    with start_and_end_file(fname, overwrite=overwrite) as fid:
         start_block(fid, FIFF.FIFFB_MEAS)
         write_meas_info(fid, info, data_type, reset_range)
         end_block(fid, FIFF.FIFFB_MEAS)
@@ -2989,9 +3236,7 @@ def _merge_info_values(infos, key, verbose=None):
         if is_qual:
             return values[0]
         elif key == "meas_date":
-            logger.info(
-                "Found multiple entries for %s. " "Setting value to `None`" % key
-            )
+            logger.info(f"Found multiple entries for {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3001,16 +3246,31 @@ def _merge_info_values(infos, key, verbose=None):
             return values[int(idx)]
         elif len(idx) > 1:
             raise RuntimeError(msg)
+    # proj_id
+    elif _check_isinstance(values, (int, type(None)), all) and key == "proj_id":
+        unique_values = set(values)
+        if len(unique_values) != 1:
+            logger.info("Found multiple proj_ids, using the first one.")
+        return list(unique_values)[0]
+
+    elif key == "experimenter" or key == "proj_name":
+        if _check_isinstance(values, (str, type(None)), all):
+            unique_values = set(values)
+            unique_values.discard(None)
+            if len(unique_values) == 1:
+                return list(unique_values)[0]
+            else:
+                return None
     # other
     else:
         unique_values = set(values)
         if len(unique_values) == 1:
             return list(values)[0]
         elif isinstance(list(unique_values)[0], BytesIO):
-            logger.info("Found multiple StringIO instances. " "Setting value to `None`")
+            logger.info("Found multiple StringIO instances. Setting value to `None`")
             return None
         elif isinstance(list(unique_values)[0], str):
-            logger.info("Found multiple filenames. " "Setting value to `None`")
+            logger.info(f"Found multiple {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3059,7 +3319,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     if len(duplicates) > 0:
         msg = (
             "The following channels are present in more than one input "
-            "measurement info objects: %s" % list(duplicates)
+            f"measurement info objects: {list(duplicates)}"
         )
         raise ValueError(msg)
 
@@ -3078,7 +3338,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         ):
             info[trans_name] = trans[0]
         else:
-            msg = "Measurement infos provide mutually inconsistent %s" % trans_name
+            msg = f"Measurement infos provide mutually inconsistent {trans_name}"
             raise ValueError(msg)
 
     # KIT system-IDs
@@ -3101,7 +3361,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         elif all(object_diff(values[0], v) == "" for v in values[1:]):
             info[k] = values[0]
         else:
-            msg = "Measurement infos are inconsistent for %s" % k
+            msg = f"Measurement infos are inconsistent for {k}"
             raise ValueError(msg)
 
     # other fields
@@ -3220,13 +3480,11 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         _validate_type(ch_name, "str", "each entry in ch_names")
         _validate_type(ch_type, "str", "each entry in ch_types")
         if ch_type not in ch_types_dict:
-            raise KeyError(
-                f"kind must be one of {list(ch_types_dict)}, " f"not {ch_type}"
-            )
+            raise KeyError(f"kind must be one of {list(ch_types_dict)}, not {ch_type}")
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
-        kind = kind[0] if isinstance(kind, (list, tuple)) else kind
+        kind = kind[0] if isinstance(kind, list | tuple) else kind
         # mirror what tag.py does here
         coord_frame = _ch_coord_dict.get(kind, FIFF.FIFFV_COORD_UNKNOWN)
         coil_type = this_ch_dict.get("coil_type", FIFF.FIFFV_COIL_NONE)
@@ -3294,13 +3552,12 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
-    from ..transforms import Transform
-
     _none_keys = (
         "acq_pars",
         "acq_stim",
         "ctf_head_t",
         "description",
+        "dev_head_t",
         "dev_ctf_t",
         "dig",
         "experimenter",
@@ -3341,7 +3598,6 @@ def _empty_info(sfreq):
     info["highpass"] = 0.0
     info["sfreq"] = float(sfreq)
     info["lowpass"] = info["sfreq"] / 2.0
-    info["dev_head_t"] = Transform("meg", "head")
     info._update_redundant()
     info._check_consistency()
     return info
@@ -3367,7 +3623,7 @@ def _force_update_info(info_base, info_target):
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:
         if not isinstance(ii, Info):
-            raise ValueError("Inputs must be of type Info. " "Found type %s" % type(ii))
+            raise ValueError(f"Inputs must be of type Info. Found type {type(ii)}")
     for key, val in info_base.items():
         if key in exclude_keys:
             continue
@@ -3418,7 +3674,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_sex = 0
-    default_desc = "Anonymized using a time shift" " to preserve age at acquisition"
+    default_desc = "Anonymized using a time shift to preserve age at acquisition"
 
     none_meas_date = info["meas_date"] is None
 
@@ -3464,7 +3720,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             subject_info["id"] = default_subject_id
         if keep_his:
             logger.info(
-                "Not fully anonymizing info - keeping " "his_id, sex, and hand info"
+                "Not fully anonymizing info - keeping his_id, sex, and hand info"
             )
         else:
             if subject_info.get("his_id") is not None:
@@ -3482,13 +3738,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if none_meas_date:
             subject_info.pop("birthday", None)
         elif subject_info.get("birthday") is not None:
-            dob = datetime.datetime(
-                subject_info["birthday"][0],
-                subject_info["birthday"][1],
-                subject_info["birthday"][2],
-            )
-            dob -= delta_t
-            subject_info["birthday"] = dob.year, dob.month, dob.day
+            subject_info["birthday"] = subject_info["birthday"] - delta_t
 
         for key in ("weight", "height"):
             if subject_info.get(key) is not None:
@@ -3498,7 +3748,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     info["description"] = default_desc
     with info._unlock():
         if info["proj_id"] is not None:
-            info["proj_id"] = np.zeros_like(info["proj_id"])
+            info["proj_id"] = 0
         if info["proj_name"] is not None:
             info["proj_name"] = default_str
         if info["utc_offset"] is not None:
@@ -3525,9 +3775,9 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if hi.get("orig_file_guid") is not None:
             hi["orig_file_guid"] = default_str
         if none_meas_date and hi.get("meas_date") is not None:
-            hi["meas_date"] = DATE_NONE
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(DATE_NONE)
         elif hi.get("meas_date") is not None:
-            hi["meas_date"] = _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            hi["meas_date"] = hi["meas_date"] - delta_t
 
     di = info.get("device_info")
     if di is not None:
@@ -3536,7 +3786,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 di[k] = default_str
 
     err_mesg = (
-        "anonymize_info generated an inconsistent info object. " "Underlying Error:\n"
+        "anonymize_info generated an inconsistent info object. Underlying Error:\n"
     )
     info._check_consistency(prepend_error=err_mesg)
     err_mesg = (
@@ -3672,8 +3922,7 @@ def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
     # only write new-style channel information if necessary
     if len(ch_names_mapping):
         logger.info(
-            "    Writing channel names to FIF truncated to 15 characters "
-            "with remapping"
+            "    Writing channel names to FIF truncated to 15 characters with remapping"
         )
         for ch in chs:
             start_block(fid, FIFF.FIFFB_CH_INFO)
@@ -3757,3 +4006,7 @@ def _get_fnirs_ch_pos(info):
     for optode in [*srcs, *dets]:
         ch_pos[optode] = _optode_position(info, optode)
     return ch_pos
+
+
+def _camel_to_snake(s):
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", s).lower()

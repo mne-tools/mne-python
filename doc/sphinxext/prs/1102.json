@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "004d3aaaaaa693ea7b5a490a49ef268c117ae2a7",
+  "authors": [
+    {
+      "n": "Daniel G. Wakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

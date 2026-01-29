@@ -1,5 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -9,10 +8,10 @@ from shutil import copyfile
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-from scipy import sparse
 
 from mne import read_morph_map
 from mne.datasets import testing
+from mne.fixes import _eye_array
 from mne.utils import _record_warnings, catch_logging
 
 data_path = testing.data_path(download=False)
@@ -59,4 +58,4 @@ def test_make_morph_maps(tmp_path):
     with _record_warnings():
         mmap = read_morph_map("sample", "sample", subjects_dir=tmp_path)
     for mm in mmap:
-        assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0
+        assert (mm - _eye_array(mm.shape[0])).sum() == 0

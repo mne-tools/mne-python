@@ -1,6 +1,8 @@
 # noqa: E501
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """
 .. _tut-spectrum-class:
 
@@ -33,11 +35,10 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=60)
 raw.compute_psd()
 
 # %%
-# By default, the spectral estimation method will be the
-# :footcite:t:`Welch1967` method for continuous data, and the multitaper
-# method :footcite:`Slepian1978` for epoched or averaged data. This default can
-# be overridden by passing ``method='welch'`` or ``method='multitaper'`` to the
-# :meth:`~mne.io.Raw.compute_psd` method.
+# By default, the spectral estimation method will be the :footcite:t:`Welch1967` method
+# for continuous data, and the multitaper method :footcite:`Slepian1978` for epoched or
+# averaged data. This default can be overridden by passing ``method='welch'`` or
+# ``method='multitaper'`` to the :meth:`~mne.io.Raw.compute_psd` method.
 #
 # There are many other options available as well; for example we can compute a
 # spectrum from a given span of times, for a chosen frequency range, and for a
@@ -122,7 +123,7 @@ epo_spectrum["visual"]
 # (interpolated scalp topography of power, in specific frequency bands). A few
 # plot options are demonstrated below; see the docstrings for full details.
 
-evk_spectrum.plot(picks="data", exclude="bads", amplitude=False)
+evk_spectrum.plot(picks="data", exclude="bads")
 evk_spectrum.plot_topo(color="k", fig_facecolor="w", axis_facecolor="w")
 
 # %%

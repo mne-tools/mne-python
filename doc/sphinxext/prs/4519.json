@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bb92dbbcd9be1b03e846f8ca2d07d0099400e1bf",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

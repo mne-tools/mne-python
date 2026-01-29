@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "8cf161eee8c7e938eee2e1c16bc3fc9e9322d28d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_figure.py": {
+      "a": 440,
+      "d": 153
+    },
+    "mne/viz/epochs.py": {
+      "a": 164,
+      "d": 1214
+    },
+    "mne/viz/ica.py": {
+      "a": 172,
+      "d": 259
+    },
+    "mne/viz/raw.py": {
+      "a": 16,
+      "d": 339
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 116,
+      "d": 104
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 41,
+      "d": 24
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 42,
+      "d": 52
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 23,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 44,
+      "d": 965
+    },
+    "tutorials/epochs/plot_20_visualize_epochs.py": {
+      "a": 16,
+      "d": 9
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 27,
+      "d": 26
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 21,
+      "d": 21
+    }
+  }
+}

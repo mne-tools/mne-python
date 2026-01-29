@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bcd57d65450b5f0271a221f786d1d42d27ec5f4c",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

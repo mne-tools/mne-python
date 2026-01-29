@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "440ce1a9bed96526526cc256dfa282335571ed21",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 8,
+      "d": 12
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

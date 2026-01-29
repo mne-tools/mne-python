@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "caab61377a56cacbe75ea9804599e9a09152a831",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

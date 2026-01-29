@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -121,7 +119,8 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
             [("Subject - age - sex", "Age"), ("Subject - age - sex", "M1/F2")],
             append=True,
         )
-        .stack(level=0)
+        # TODO VERSION future_stack goes away w/ Pandas 3.0
+        .stack(level=0, future_stack=True)
         .reset_index()
     )
 

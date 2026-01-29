@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "cab14251d246268997c27a07fb9260b5f173b149",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 141,
+      "d": 86
+    },
+    "mne/viz/_brain/_notebook.py": {
+      "a": 0,
+      "d": 67
+    },
+    "mne/viz/_brain/mplcanvas.py": {
+      "a": 24,
+      "d": 12
+    },
+    "mne/viz/_brain/tests/test.ipynb": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 5,
+      "d": 148
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

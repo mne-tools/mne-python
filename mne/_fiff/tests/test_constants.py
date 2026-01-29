@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -24,6 +23,7 @@ from mne._fiff.constants import (
     _dig_kind_named,
 )
 from mne.forward._make_forward import _read_coil_defs
+from mne.transforms import _frame_to_str, _verbose_frames
 from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
@@ -117,13 +117,15 @@ _aliases = dict(
 )
 
 
+@pytest.mark.flaky
 @requires_good_network
+@pytest.mark.ultraslowtest  # not that slow, just doesn't need to run very often
 def test_constants(tmp_path):
     """Test compensation."""
     fname = "fiff.zip"
     dest = tmp_path / fname
     pooch.retrieve(
-        url="https://codeload.github.com/" f"{REPO}/fiff-constants/zip/{COMMIT}",
+        url=f"https://codeload.github.com/{REPO}/fiff-constants/zip/{COMMIT}",
         path=tmp_path,
         fname=fname,
         known_hash=None,
@@ -283,7 +285,7 @@ def test_constants(tmp_path):
     #
 
     # Version
-    mne_version = "%d.%d" % (FIFF.FIFFC_MAJOR_VERSION, FIFF.FIFFC_MINOR_VERSION)
+    mne_version = f"{FIFF.FIFFC_MAJOR_VERSION:d}.{FIFF.FIFFC_MINOR_VERSION:d}"
     assert fiff_version == mne_version
     unknowns = list()
 
@@ -359,8 +361,8 @@ def test_constants(tmp_path):
                 assert _aliases.get(name) == con[check][val], msg
             else:
                 con[check][val] = name
-    unknowns = "\n\t".join("{} ({})".format(*u) for u in unknowns)
-    assert len(unknowns) == 0, "Unknown types\n\t%s" % unknowns
+    unknowns = "\n\t".join(f"{u[0]} ({u[1]})" for u in unknowns)
+    assert len(unknowns) == 0, f"Unknown types\n\t{unknowns}"
 
     # Assert that all the FIF defs are in our constants
     assert set(fif.keys()) == set(con.keys())
@@ -384,14 +386,14 @@ def test_constants(tmp_path):
     bad_list = []
     for key in fif["coil"]:
         if key not in _missing_coil_def and key not in coil_def:
-            bad_list.append(("    %s," % key).ljust(10) + "  # " + fif["coil"][key][1])
+            bad_list.append((f"    {key},").ljust(10) + "  # " + fif["coil"][key][1])
     assert len(bad_list) == 0, (
         "\nIn fiff-constants, missing from coil_def:\n" + "\n".join(bad_list)
     )
     # Assert that enum(coil) has all `coil_def.dat` entries
     for key, desc in zip(coil_def, coil_desc):
         if key not in fif["coil"]:
-            bad_list.append(("    %s," % key).ljust(10) + "  # " + desc)
+            bad_list.append((f"    {key},").ljust(10) + "  # " + desc)
     assert len(bad_list) == 0, (
         "In coil_def, missing  from fiff-constants:\n" + "\n".join(bad_list)
     )
@@ -406,7 +408,14 @@ def test_constants(tmp_path):
             "^FIFFV_.*_CH$",
             (FIFF.FIFFV_DIPOLE_WAVE, FIFF.FIFFV_GOODNESS_FIT),
         ),
-        (_coord_frame_named, "FIFFV_COORD_", ()),
+        pytest.param(
+            _coord_frame_named,
+            "FIFFV_(MNE_)?COORD_",
+            (),
+            marks=pytest.mark.xfail(
+                reason="Intentional mismatch tested by test_coord_frame_consistency",
+            ),
+        ),
         (_ch_unit_named, "FIFF_UNIT_", ()),
         (_ch_unit_mul_named, "FIFF_UNITM_", ()),
         (_ch_coil_type_named, "FIFFV_COIL_", ()),
@@ -420,3 +429,29 @@ def test_dict_completion(dict_, match, extras):
         got.add(e)
     want = set(dict_)
     assert got == want, match
+
+
+def test_coord_frame_consistency():
+    """Test consistency between coord frame mappings."""
+    all_frames = set(
+        key for key in dir(FIFF) if key.startswith(("FIFFV_COORD_", "FIFFV_MNE_COORD"))
+    )
+    # ... but there are some frames that we never work in so let's cull those for now
+    ignore_frames = set(
+        f"FIFFV_COORD_{name}"
+        for name in """
+        MRI_SLICE MRI_DISPLAY DICOM_DEVICE IMAGING_DEVICE
+        """.strip().split()
+    )
+    ignore_frames |= set(
+        f"FIFFV_MNE_COORD_{name}"
+        for name in """
+        DIGITIZER TUFTS_EEG FS_TAL_GTZ FS_TAL_LTZ
+        """.strip().split()
+    )
+    assert ignore_frames.issubset(all_frames)
+    all_frames -= ignore_frames
+    all_ints = set(FIFF[key] for key in all_frames)
+    assert set(_frame_to_str) == all_ints
+    assert set(_verbose_frames) == all_ints
+    assert set(_coord_frame_named) == all_ints

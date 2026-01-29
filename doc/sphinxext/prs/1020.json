@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5b20fc2208e41f712f017f67ba6e1df43c563462",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 48,
+      "d": 2
+    }
+  }
+}

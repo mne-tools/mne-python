@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c75dfffcf03c2c061a37db6ba83171e68a91faba",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/macos_conda.yml": {
+      "a": 9,
+      "d": 4
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

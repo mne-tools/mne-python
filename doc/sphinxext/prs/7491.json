@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e7cee41c3f30e4fedd4e6ae931cc7dd64e378d7b",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_beer_lambert_law.py": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "efa7b4cae0a84496ce2c6f9da9714fc73bd41ea2",
+  "authors": [
+    {
+      "n": "Alejandro Weinstein",
+      "e": "alejandro.weinstein@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 70,
+      "d": 22
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

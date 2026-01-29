@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4e45ad1f8429edff31b24a291180a9a165c13b54",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

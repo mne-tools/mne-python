@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "012b02bf402873c91987b9cac4fe0aaf56c89755",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 0,
+      "d": 3
+    }
+  }
+}

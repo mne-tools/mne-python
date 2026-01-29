@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fa0cdb03f72ea29ceaa8f5ecec058f3d5f2fdfa4",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

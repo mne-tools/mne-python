@@ -1,7 +1,10 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import datetime
 import glob
+import inspect
 import os
 
 import numpy as np
@@ -74,6 +77,16 @@ def read_raw_neuralynx(
     )
 
 
+# Helper for neo change of exclude_filename -> exclude_filenames in 0.13.2
+def _exclude_kwarg(exclude_fnames):
+    from neo.io import NeuralynxIO
+
+    key = "exclude_filename"
+    if "exclude_filenames" in inspect.getfullargspec(NeuralynxIO).args:
+        key += "s"
+    return {key: exclude_fnames}
+
+
 @fill_doc
 class RawNeuralynx(BaseRaw):
     """RawNeuralynx class."""
@@ -107,7 +120,7 @@ class RawNeuralynx(BaseRaw):
 
         # get basic file info from header, throw Error if NeuralynxIO can't parse
         try:
-            nlx_reader = NeuralynxIO(dirname=fname, exclude_filename=exclude_fnames)
+            nlx_reader = NeuralynxIO(dirname=fname, **_exclude_kwarg(exclude_fnames))
         except ValueError as e:
             # give a more informative error message and what the user can do about it
             if "Incompatible section structures across streams" in str(e):
@@ -301,8 +314,8 @@ class RawNeuralynx(BaseRaw):
         from quantities import Hz
 
         nlx_reader = NeuralynxIO(
-            dirname=self._filenames[fi],
-            exclude_filename=self._raw_extras[0]["exclude_fnames"],
+            dirname=self.filenames[fi],
+            **_exclude_kwarg(self._raw_extras[0]["exclude_fnames"]),
         )
         neo_block = nlx_reader.read(lazy=True)
 

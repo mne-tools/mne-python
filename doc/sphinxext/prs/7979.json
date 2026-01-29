@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "76fc838e954e70697f33cab0edbca61872ca1c23",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 10,
+      "d": 0
+    },
+    "doc/install/advanced.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/install/mne_python.rst": {
+      "a": 158,
+      "d": 55
+    },
+    "doc/install/pre_install.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

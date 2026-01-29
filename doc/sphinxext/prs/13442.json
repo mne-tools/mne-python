@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f3c00cc7996b48f3c8166269c8d0c1d5b772edea",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codeql-analysis.yml": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

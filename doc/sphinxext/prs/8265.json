@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "724f9ae3e9bbf36eec60bca71ccbb26f20961f37",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/carousel.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 31,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 171,
+      "d": 88
+    },
+    "mne/viz/_brain/_scraper.py": {
+      "a": 68,
+      "d": 43
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 8
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 5,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

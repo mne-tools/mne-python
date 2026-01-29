@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "cc5e2e64a9adefdfaa5d438e839d4447c8f05613",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/tests/test_commands.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 8,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

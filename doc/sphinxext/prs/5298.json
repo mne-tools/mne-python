@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a44caaa3a5b89318cadd11c7f0a27301f727cf24",
+  "authors": [
+    {
+      "n": "Tristan Stenner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/data/test_nV.vhdr": {
+      "a": 151,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

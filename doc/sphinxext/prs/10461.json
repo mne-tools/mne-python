@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "cdbd0459b71be3e094d8c85badc69a33a5b68d2c",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/montage.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

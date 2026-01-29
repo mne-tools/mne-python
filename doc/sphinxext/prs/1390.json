@@ -1,0 +1,135 @@
+{
+  "merge_commit_sha": "f40a08e34cceb2ab31a8099293e0969f618d1e0d",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/source/python_reference.rst": {
+      "a": 22,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/montages/10-5-System_Mastoids_EGI129.csd": {
+      "a": 467,
+      "d": 0
+    },
+    "mne/montages/EGI_256.csd": {
+      "a": 258,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-128.sfp": {
+      "a": 131,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-129.sfp": {
+      "a": 132,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-256.sfp": {
+      "a": 259,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-257.sfp": {
+      "a": 260,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-32.sfp": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-64_1.0.sfp": {
+      "a": 67,
+      "d": 0
+    },
+    "mne/montages/GSN-HydroCel-65_1.0.sfp": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/montages/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/montages/easycap-M1.txt": {
+      "a": 75,
+      "d": 0
+    },
+    "mne/montages/easycap-M10.txt": {
+      "a": 62,
+      "d": 0
+    },
+    "mne/montages/montage.py": {
+      "a": 202,
+      "d": 0
+    },
+    "mne/montages/standard_1005.elc": {
+      "a": 698,
+      "d": 0
+    },
+    "mne/montages/standard_1020.elc": {
+      "a": 200,
+      "d": 0
+    },
+    "mne/montages/standard_alphabetic.elc": {
+      "a": 142,
+      "d": 0
+    },
+    "mne/montages/standard_postfixed.elc": {
+      "a": 212,
+      "d": 0
+    },
+    "mne/montages/standard_prefixed.elc": {
+      "a": 160,
+      "d": 0
+    },
+    "mne/montages/standard_primed.elc": {
+      "a": 212,
+      "d": 0
+    },
+    "mne/montages/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/montages/tests/test_montage.py": {
+      "a": 69,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/montage.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 16,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

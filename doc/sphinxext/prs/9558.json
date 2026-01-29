@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "bd9bf85b28beb3e488289cf532dc0e30919b3ba2",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 40,
+      "d": 34
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d69d7ba6dec94056d78526428b2496bb5f009588",
+  "authors": [
+    {
+      "n": "Hubert Banville",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

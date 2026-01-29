@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2225ce9909964db387d962e55f6dfe2605334e84",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_connectivity_spectrum.py": {
+      "a": 98,
+      "d": 0
+    }
+  }
+}

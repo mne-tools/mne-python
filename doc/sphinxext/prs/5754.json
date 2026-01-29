@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "ef1929f4f71d1cef78eab43e67a79a2ce8f7a736",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 70,
+      "d": 14
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 175,
+      "d": 43
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 10,
+      "d": 9
+    }
+  }
+}

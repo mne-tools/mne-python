@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "41033b0edd7d770625006b908c5131307fef9fa8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 54,
+      "d": 23
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

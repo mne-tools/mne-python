@@ -56,7 +56,7 @@ n_vertices_fsave, n_times = stc.data.shape
 tstep = stc.tstep * 1000  # convert to milliseconds
 
 n_subjects1, n_subjects2 = 6, 7
-print("Simulating data for %d and %d subjects." % (n_subjects1, n_subjects2))
+print(f"Simulating data for {n_subjects1} and {n_subjects2} subjects.")
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)

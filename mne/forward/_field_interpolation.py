@@ -1,6 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -23,7 +21,7 @@ from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
 from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
-from ..transforms import _find_trans, _get_trans, transform_surface_to
+from ..transforms import _find_trans, transform_surface_to
 from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
 from ._lead_dots import (
     _do_cross_dots,
@@ -98,8 +96,11 @@ def _pinv_trunc(x, miss):
     varexp /= varexp[-1]
     n = np.where(varexp >= (1.0 - miss))[0][0] + 1
     logger.info(
-        "    Truncating at %d/%d components to omit less than %g "
-        "(%0.2g)" % (n, len(s), miss, 1.0 - varexp[n - 1])
+        "    Truncating at %d/%d components to omit less than %g (%0.2g)",
+        n,
+        len(s),
+        miss,
+        1.0 - varexp[n - 1],
     )
     s = 1.0 / s[:n]
     inv = ((u[:, :n] * s) @ v[:n]).T
@@ -110,13 +111,12 @@ def _pinv_tikhonov(x, reg):
     # _reg_pinv requires square Hermitian, which we have here
     inv, _, n = _reg_pinv(x, reg=reg, rank=None)
     logger.info(
-        f"    Truncating at {n}/{len(x)} components and regularizing "
-        f"with α={reg:0.1e}"
+        f"    Truncating at {n}/{len(x)} components and regularizing with α={reg:0.1e}"
     )
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
+def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -132,13 +132,15 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
-        fit. Default is ``(0., 0., 0.04)``.
+        fit.
 
     Returns
     -------
     mapping : array, shape (n_to, n_from)
         A mapping matrix.
     """
+    assert origin is not None  # should be assured elsewhere
+
     # no need to apply trans because both from and to coils are in device
     # coordinates
     info_kinds = set(ch["kind"] for ch in info_to["chs"])
@@ -314,7 +316,8 @@ def _make_surface_mapping(
     trans=None,
     mode="fast",
     n_jobs=None,
-    origin=(0.0, 0.0, 0.04),
+    *,
+    origin,
     verbose=None,
 ):
     """Re-map M/EEG data to a surface.
@@ -337,8 +340,6 @@ def _make_surface_mapping(
     %(n_jobs)s
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
-        The default is ``'auto'``, which means a head-digitization-based
-        origin fit.
     %(verbose)s
 
     Returns
@@ -347,11 +348,13 @@ def _make_surface_mapping(
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
+    assert origin is not None  # should be assured elsewhere
+
     if not all(key in surf for key in ["rr", "nn"]):
         raise KeyError('surf must have both "rr" and "nn"')
     if "coord_frame" not in surf:
         raise KeyError(
-            "The surface coordinate frame must be specified " 'in surf["coord_frame"]'
+            'The surface coordinate frame must be specified in surf["coord_frame"]'
         )
     _check_option("mode", mode, ["accurate", "fast"])
 
@@ -395,12 +398,12 @@ def _make_surface_mapping(
     # Step 2. Calculate the dot products
     #
     int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
-    logger.info("Computing dot products for %i %s..." % (len(coils), type_str))
+    logger.info("Computing dot products for %i %s...", len(coils), type_str)
     self_dots = _do_self_dots(
         int_rad, False, coils, origin, ch_type, lut_fun, n_fact, n_jobs
     )
     sel = np.arange(len(surf["rr"]))  # eventually we should do sub-selection
-    logger.info("Computing dot products for %i surface locations..." % len(sel))
+    logger.info("Computing dot products for %i surface locations...", len(sel))
     surface_dots = _do_surface_dots(
         int_rad, False, coils, surf, sel, origin, ch_type, lut_fun, n_fact, n_jobs
     )
@@ -441,11 +444,12 @@ def make_field_map(
     subject=None,
     subjects_dir=None,
     ch_type=None,
+    *,
     mode="fast",
     meg_surf="helmet",
-    origin=(0.0, 0.0, 0.04),
+    origin="auto",
     n_jobs=None,
-    *,
+    upsampling=1,
     head_source=("bem", "head"),
     verbose=None,
 ):
@@ -482,7 +486,13 @@ def make_field_map(
         fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
+        .. versionchanged:: 1.12
+           In 1.12 the default value is "auto".
+           In 1.11 and prior versions, it is ``(0., 0., 0.04)``.
     %(n_jobs)s
+    %(helmet_upsampling)s
+
+        .. versionadded:: 1.10
     %(head_source)s
 
         .. versionadded:: 1.1
@@ -510,10 +520,12 @@ def make_field_map(
             name="subjects_dir",
             need_dir=True,
         )
-    if isinstance(trans, str) and trans == "auto":
-        # let's try to do this in MRI coordinates so they're easy to plot
-        trans = _find_trans(subject, subjects_dir)
-    trans, trans_type = _get_trans(trans, fro="head", to="mri")
+
+    trans, trans_type = _find_trans(
+        trans=trans,
+        subject=subject,
+        subjects_dir=subjects_dir,
+    )
 
     if "eeg" in types and trans_type == "identity":
         logger.info("No trans file available. EEG data ignored.")
@@ -527,7 +539,7 @@ def make_field_map(
     surfs = []
     for this_type in types:
         if this_type == "meg" and meg_surf == "helmet":
-            surf = get_meg_helmet_surf(info, trans)
+            surf = get_meg_helmet_surf(info, trans, upsampling=upsampling)
         else:
             surf = get_head_surf(subject, source=head_source, subjects_dir=subjects_dir)
         surfs.append(surf)

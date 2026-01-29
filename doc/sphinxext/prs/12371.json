@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1b0d20850fa2ff60fb61b8a7e7a68a38323dcf07",
+  "authors": [
+    {
+      "n": "Kristijan Armeni",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12371.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

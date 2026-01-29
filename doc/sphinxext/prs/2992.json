@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1579466cb630fb000087a73f983a1a6469e2df9b",
+  "authors": [
+    {
+      "n": "sviter",
+      "e": "sviter33@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

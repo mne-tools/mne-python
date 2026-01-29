@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -42,7 +39,7 @@ from .._fiff.write import (
 from ..cov import Covariance, _read_cov, _write_cov, compute_whitener, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import (
     _read_forward_meas_info,
     _select_orient_forward,
@@ -65,7 +62,7 @@ from ..source_space._source_space import (
 )
 from ..surface import _normal_orth
 from ..time_frequency.tfr import _check_tfr_complex
-from ..transforms import _ensure_trans, transform_surface_to
+from ..transforms import _ensure_trans
 from ..utils import (
     _check_compensation_grade,
     _check_depth,
@@ -167,10 +164,10 @@ def _pick_channels_inverse_operator(ch_names, inv):
         except ValueError:
             raise ValueError(
                 "The inverse operator was computed with "
-                "channel %s which is not present in "
+                f"channel {name} which is not present in "
                 "the data. You should compute a new inverse "
                 "operator restricted to the good data "
-                "channels." % name
+                "channels."
             )
     return sel
 
@@ -204,7 +201,7 @@ def read_inverse_operator(fname, *, verbose=None):
     #
     #   Open the file, create directory
     #
-    logger.info("Reading inverse operator decomposition from %s..." % fname)
+    logger.info(f"Reading inverse operator decomposition from {fname}...")
     f, tree, _ = fiff_open(fname)
     with f as fid:
         #
@@ -212,7 +209,7 @@ def read_inverse_operator(fname, *, verbose=None):
         #
         invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
         if invs is None or len(invs) < 1:
-            raise Exception("No inverse solutions in %s" % fname)
+            raise Exception(f"No inverse solutions in {fname}")
 
         invs = invs[0]
         #
@@ -220,7 +217,7 @@ def read_inverse_operator(fname, *, verbose=None):
         #
         parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
         if len(parent_mri) == 0:
-            raise Exception("No parent MRI information in %s" % fname)
+            raise Exception(f"No parent MRI information in {fname}")
         parent_mri = parent_mri[0]  # take only first one
 
         logger.info("    Reading inverse operator info...")
@@ -384,19 +381,10 @@ def read_inverse_operator(fname, *, verbose=None):
         inv["reginv"] = []
         inv["noisenorm"] = []  # These are the noise-normalization factors
         #
-        nuse = 0
-        for k in range(len(inv["src"])):
-            try:
-                inv["src"][k] = transform_surface_to(
-                    inv["src"][k], inv["coord_frame"], mri_head_t
-                )
-            except Exception as inst:
-                raise Exception("Could not transform source space (%s)" % inst)
-
-            nuse += inv["src"][k]["nuse"]
+        inv["src"]._transform_to(inv["coord_frame"], mri_head_t)
 
         logger.info(
-            "    Source spaces transformed to the inverse solution " "coordinate frame"
+            "    Source spaces transformed to the inverse solution coordinate frame"
         )
         #
         #   Done!
@@ -437,7 +425,7 @@ def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
     #
     #   Open the file, create directory
     #
-    logger.info("Write inverse operator decomposition in %s..." % fname)
+    logger.info(f"Write inverse operator decomposition in {fname}...")
 
     # Create the file and save the essentials
     with start_and_end_file(fname) as fid:
@@ -584,8 +572,8 @@ def _check_ch_names(inv, info):
     n_missing = len(missing_ch_names)
     if n_missing > 0:
         raise ValueError(
-            "%d channels in inverse operator " % n_missing
-            + "are not present in the data (%s)" % missing_ch_names
+            f"{n_missing} channels in inverse operator "
+            f"are not present in the data ({missing_ch_names})"
         )
     _check_compensation_grade(inv["info"], info, "inverse")
 
@@ -676,8 +664,9 @@ def prepare_inverse_operator(
         inv["eigen_leads"]["data"] = sqrt(scale) * inv["eigen_leads"]["data"]
 
     logger.info(
-        "    Scaled noise and source covariance from nave = %d to"
-        " nave = %d" % (inv["nave"], nave)
+        "    Scaled noise and source covariance from nave = %d to nave = %d",
+        inv["nave"],
+        nave,
     )
     inv["nave"] = nave
     #
@@ -690,9 +679,9 @@ def prepare_inverse_operator(
     #
     inv["proj"], ncomp, _ = make_projector(inv["projs"], inv["noise_cov"]["names"])
     if ncomp > 0:
-        logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
+        logger.info("    Created an SSP operator (subspace dimension = %d)", ncomp)
     else:
-        logger.info("    The projection vectors do not apply to these " "channels.")
+        logger.info("    The projection vectors do not apply to these channels.")
 
     #
     #   Create the whitener
@@ -709,7 +698,7 @@ def prepare_inverse_operator(
     if method == "eLORETA":
         _compute_eloreta(inv, lambda2, method_params)
     elif method != "MNE":
-        logger.info("    Computing noise-normalization factors (%s)..." % method)
+        logger.info(f"    Computing noise-normalization factors ({method})...")
         # Here we have::
         #
         #     inv['reginv'] = sing / (sing ** 2 + lambda2)
@@ -846,8 +835,8 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             # No need to rotate source_cov because it should be uniform
             # (loose=1., and depth weighting is uniform across columns)
             offset = sl.stop
-        eigen_leads.shape = (-1, eigen_leads.shape[2])
-        source_nn.shape = (-1, 3)
+        eigen_leads = _reshape_view(eigen_leads, (-1, eigen_leads.shape[2]))
+        source_nn = _reshape_view(source_nn, (-1, 3))
 
     if pick_ori == "normal":
         if not inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -889,7 +878,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_ori(pick_ori, source_ori, src, allow_vector=True):
+def _check_ori(pick_ori, source_ori, src):
     """Check pick_ori."""
     _check_option("pick_ori", pick_ori, [None, "normal", "vector"])
     _check_src_normal(pick_ori, src)
@@ -909,7 +898,7 @@ def _check_reference(inst, ch_names=None):
             "modeling, use the method set_eeg_reference(projection=True)"
         )
     if _electrode_types(info) and info.get("custom_ref_applied", False):
-        raise ValueError("Custom EEG reference is not allowed for inverse " "modeling.")
+        raise ValueError("Custom EEG reference is not allowed for inverse modeling.")
 
 
 def _subject_from_inverse(inverse_operator):
@@ -1080,7 +1069,7 @@ def _apply_inverse(
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info(f'Applying inverse operator to "{evoked.comment}"...')
-    logger.info("    Picked %d channels from the data" % len(sel))
+    logger.info("    Picked %d channels from the data", len(sel))
     logger.info("    Computing inverse...")
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps
@@ -1223,7 +1212,7 @@ def apply_inverse_raw(
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
     logger.info("Applying inverse to raw...")
-    logger.info("    Picked %d channels from the data" % len(sel))
+    logger.info("    Picked %d channels from the data", len(sel))
     logger.info("    Computing inverse...")
 
     data, times = raw[sel, start:stop]
@@ -1245,7 +1234,8 @@ def apply_inverse_raw(
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
         logger.info(
             "    computing inverse and combining the current "
-            "components (using %d segments)..." % (n_seg)
+            "components (using %d segments)...",
+            n_seg,
         )
 
         # Allocate space for inverse solution
@@ -1260,9 +1250,7 @@ def apply_inverse_raw(
                 sol_chunk = combine_xyz(sol_chunk)
             sol[:, pos : pos + buffer_size] = sol_chunk
 
-            logger.info(
-                "        segment %d / %d done.." % (pos / buffer_size + 1, n_seg)
-            )
+            logger.info("        segment %d / %d done..", pos / buffer_size + 1, n_seg)
     else:
         sol = np.dot(K, data)
         if is_free_ori and pick_ori != "vector":
@@ -1323,7 +1311,7 @@ def _apply_inverse_epochs_gen(
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Picked %d channels from the data", len(sel))
     logger.info("Computing inverse...")
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps
@@ -1343,11 +1331,11 @@ def _apply_inverse_epochs_gen(
 
     subject = _subject_from_inverse(inverse_operator)
     try:
-        total = " / %d" % (len(epochs),)  # len not always defined
+        total = f" / {len(epochs)}"  # len not always defined
     except RuntimeError:
-        total = " / %d (at most)" % (len(epochs.events),)
+        total = f" / {len(epochs.events)} (at most)"
     for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d%s" % (k + 1, total))
+        logger.info("Processing epoch : %d%s", k + 1, total)
         if is_free_ori:
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
@@ -1484,7 +1472,7 @@ def _apply_inverse_tfr_epochs_gen(
         )
         this_inverse_operator = (
             inverse_operator[freq_idx]
-            if isinstance(inverse_operator, (list, tuple))
+            if isinstance(inverse_operator, list | tuple)
             else inverse_operator
         )
         stcs = _apply_inverse_epochs_gen(
@@ -1562,7 +1550,7 @@ def apply_inverse_tfr_epochs(
     """  # noqa E501
     _check_tfr_complex(epochs_tfr)
     if (
-        isinstance(inverse_operator, (list, tuple))
+        isinstance(inverse_operator, list | tuple)
         and len(inverse_operator) != epochs_tfr.freqs.size
     ):
         raise ValueError(
@@ -1685,7 +1673,7 @@ def apply_inverse_cov(
     sol = cov.data[sel][:, sel] @ K.T
     sol = np.sum(K * sol.T, axis=1, keepdims=True)
     # Reshape back to (n_src, ..., 1)
-    sol.shape = stc.data.shape[:-1] + (1,)
+    sol = _reshape_view(sol, stc.data.shape[:-1] + (1,))
     stc = stc.__class__(sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info("    Combining the current components...")
@@ -1764,7 +1752,7 @@ def _prepare_forward(
         exp = float(exp)
         if exp < 0:
             raise ValueError(
-                "depth exponent should be greater than or " f"equal to 0, got {exp}"
+                f"depth exponent should be greater than or equal to 0, got {exp}"
             )
         exp = exp or None  # alias 0. -> None
 
@@ -1799,14 +1787,7 @@ def _prepare_forward(
             )
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov, copy=False)
-    logger.info(
-        "Selected %d channels"
-        % (
-            len(
-                info_picked["ch_names"],
-            )
-        )
-    )
+    logger.info("Selected %d channels", len(info_picked["ch_names"]))
 
     if exp is None:
         depth_prior = None
@@ -2017,11 +1998,11 @@ def make_inverse_operator(
     logger.info("Computing SVD of whitened and weighted lead field matrix.")
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
-    logger.info("    largest singular value = %g" % np.max(sing))
+    logger.info(f"    largest singular value = {np.max(sing):g}")
     logger.info(
         f"    scaling factor to adjust the trace = {trace_GRGT:g} "
         f"(nchan = {eigen_fields.shape[0]} "
-        f'nzero = {(noise_cov["eig"] <= 0).sum()})'
+        f"nzero = {(noise_cov['eig'] <= 0).sum()})"
     )
 
     # MNE-ify everything for output
@@ -2214,7 +2195,7 @@ def estimate_snr(evoked, inv, verbose=None):
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Picked %d channels from the data", len(sel))
     data_white = np.dot(inv["whitener"], np.dot(inv["proj"], evoked.data[sel]))
     data_white_ef = np.dot(inv["eigen_fields"]["data"], data_white)
     n_ch, n_times = data_white.shape
@@ -2222,7 +2203,7 @@ def estimate_snr(evoked, inv, verbose=None):
     # Adapted from mne_analyze/regularization.c, compute_regularization
     n_ch_eff = compute_rank_inverse(inv)
     n_zero = n_ch - n_ch_eff
-    logger.info("Effective nchan = %d - %d = %d" % (n_ch, n_zero, n_ch_eff))
+    logger.info("Effective nchan = %d - %d = %d", n_ch, n_zero, n_ch_eff)
     del n_ch
     signal = np.sum(data_white**2, axis=0)  # sum of squares across channels
     snr = signal / n_ch_eff

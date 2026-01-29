@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "62a2b4531a25a88b993ae16ab92f30dd8f5f5632",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_read_forward.py": {
+      "a": 32,
+      "d": 12
+    }
+  }
+}

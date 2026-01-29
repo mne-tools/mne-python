@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3fa4664534a249c9fb5dd72c131d7b768d193893",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

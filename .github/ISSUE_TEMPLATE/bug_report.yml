@@ -29,8 +29,8 @@ body:
         Paste here a code snippet or minimal working example
         ([MWE](https://en.wikipedia.org/wiki/Minimal_Working_Example))
         to replicate your problem, using one of the
-        [datasets shipped with MNE-Python](https://mne.tools/dev/overview/datasets_index.html),
-        preferably the one called [sample](https://mne.tools/dev/overview/datasets_index.html#sample).
+        [datasets shipped with MNE-Python](https://mne.tools/stable/documentation/datasets.html#datasets),
+        preferably the one called [sample](https://mne.tools/stable/documentation/datasets.html#sample).
       render: Python
     validations:
       required: true

@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "93c525408450b01f61cf78851247c330d67a9f9e",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_xhemi.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 26,
+      "d": 14
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 453,
+      "d": 164
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 105,
+      "d": 55
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 63,
+      "d": 18
+    },
+    "mne/viz/_brain/utils.py": {
+      "a": 100,
+      "d": 0
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 25,
+      "d": 12
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 75,
+      "d": 13
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 86,
+      "d": 29
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 20,
+      "d": 6
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 6
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "e9924c0a693b4d5f0788168967c9e02c1d59fda1",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 69,
+      "d": 14
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 65,
+      "d": 12
+    },
+    "mne/preprocessing/nirs/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_report.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/get_testing_version.sh": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5f776f2696d394ed3e193502b2cf99d9c081865c",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/forward.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

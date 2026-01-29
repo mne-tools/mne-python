@@ -1,12 +1,15 @@
 on: [status]  # yamllint disable-line rule:truthy
+permissions:
+  contents: read
+  statuses: write
 jobs:
   circleci_artifacts_redirector_job:
     if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Run CircleCI artifacts redirector
     steps:
       - name: GitHub Action step
-        uses: larsoner/circleci-artifacts-redirector-action@master
+        uses: scientific-python/circleci-artifacts-redirector-action@master
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           api-token: ${{ secrets.CIRCLECI_TOKEN }}

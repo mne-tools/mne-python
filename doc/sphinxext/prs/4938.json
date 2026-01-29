@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bab48aba426fc40c23cea9a9bb713e604a19d057",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_viewer.py": {
+      "a": 21,
+      "d": 6
+    }
+  }
+}

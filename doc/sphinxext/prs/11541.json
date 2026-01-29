@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "8325f8082afd1d0d836585e77e01fcf600fd348c",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 0,
+      "d": 45
+    },
+    ".github/workflows/precommit.yml": {
+      "a": 14,
+      "d": 0
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 1
+    },
+    ".pre-commit-config.yaml": {
+      "a": 36,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "Makefile": {
+      "a": 6,
+      "d": 89
+    },
+    "azure-pipelines.yml": {
+      "a": 5,
+      "d": 14
+    },
+    "doc/install/contributing.rst": {
+      "a": 10,
+      "d": 6
+    },
+    "examples/simulation/simulate_evoked_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/simulated_raw_data_using_subject_anatomy.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/visualization/topo_customized.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_resolution_matrix.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 50,
+      "d": 0
+    },
+    "requirements_testing.txt": {
+      "a": 2,
+      "d": 3
+    },
+    "setup.cfg": {
+      "a": 0,
+      "d": 42
+    }
+  }
+}

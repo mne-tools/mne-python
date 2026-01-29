@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "58afb0fb73e55296f21f6c68a643f2ea98f77483",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/clinical/60_sleep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

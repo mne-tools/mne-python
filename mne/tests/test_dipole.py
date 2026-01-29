@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -31,7 +30,6 @@ from mne import (
     read_evokeds,
     read_forward_solution,
     read_source_spaces,
-    transform_surface_to,
     write_evokeds,
 )
 from mne._fiff.constants import FIFF
@@ -216,12 +214,11 @@ def test_dipole_fitting(tmp_path):
     data_rms = np.sqrt(np.sum(evoked.data**2, axis=0))
     resi_rms = np.sqrt(np.sum(residual.data**2, axis=0))
     assert (data_rms > resi_rms * 0.95).all(), (
-        f"{(data_rms / resi_rms).min()} " f"(factor: {0.95})"
+        f"{(data_rms / resi_rms).min()} (factor: {0.95})"
     )
 
     # Compare to original points
-    transform_surface_to(fwd["src"][0], "head", fwd["mri_head_t"])
-    transform_surface_to(fwd["src"][1], "head", fwd["mri_head_t"])
+    fwd["src"]._transform_to("head", fwd["mri_head_t"])
     assert fwd["src"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
     src_rr = np.concatenate([s["rr"][v] for s, v in zip(fwd["src"], vertices)], axis=0)
     src_nn = np.concatenate([s["nn"][v] for s, v in zip(fwd["src"], vertices)], axis=0)
@@ -244,12 +241,12 @@ def test_dipole_fitting(tmp_path):
     # XXX possibly some OpenBLAS numerical differences make
     # things slightly worse for us
     factor = 0.7
-    assert dists[0] / factor >= dists[1], "dists: %s" % dists
-    assert corrs[0] * factor <= corrs[1], "corrs: %s" % corrs
-    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, "gc-dists (ori): %s" % gc_dists
-    assert amp_errs[0] / factor >= amp_errs[1], "amplitude errors: %s" % amp_errs
+    assert dists[0] / factor >= dists[1], f"dists: {dists}"
+    assert corrs[0] * factor <= corrs[1], f"corrs: {corrs}"
+    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, f"gc-dists (ori): {gc_dists}"
+    assert amp_errs[0] / factor >= amp_errs[1], f"amplitude errors: {amp_errs}"
     # This one is weird because our cov/sim/picking is weird
-    assert gofs[0] * factor <= gofs[1] * 2, "gof: %s" % gofs
+    assert gofs[0] * factor <= gofs[1] * 2, f"gof: {gofs}"
 
 
 @testing.requires_testing_data
@@ -390,10 +387,19 @@ def test_accuracy():
     )
     evoked.pick("meg")
     evoked.pick([c for c in evoked.ch_names[::4]])
-    for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
+    for rad, perc_90 in zip((0.095, None), (0.002, 0.004)):
         bem = make_sphere_model(
-            "auto", rad, evoked.info, relative_radii=(0.999, 0.998, 0.997, 0.995)
+            (0.0, 0.0, 0.04),
+            rad,
+            evoked.info,
+            relative_radii=(0.999, 0.998, 0.997, 0.995),
         )
+        if rad is not None:
+            # These should end up being sorted, and normed by largest relative radius
+            assert_allclose(bem["layers"][0]["rad"], 0.995 / 0.999 * rad)
+            assert_allclose(bem["layers"][-1]["rad"], rad)
+        else:
+            assert bem["layers"] == []
         src = read_source_spaces(fname_src)
 
         fwd = make_forward_solution(evoked.info, None, src, bem)

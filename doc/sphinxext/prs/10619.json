@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "820bd7a90f7babe7104efdc722c840d0137919a7",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alex",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_csd.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c458b903d9fbb2d4d02c5c5bc510ecb751eebd67",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 200,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "circle.yml": {
+      "a": 0,
+      "d": 204
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/spm_faces_dataset.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

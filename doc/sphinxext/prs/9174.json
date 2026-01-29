@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7db3238ce80d094bc65518486c4f3d1c83421640",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/ica.py": {
+      "a": 24,
+      "d": 35
+    }
+  }
+}

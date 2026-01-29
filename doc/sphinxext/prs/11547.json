@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bf2502166eb15626c1205accc2d2d467535b8d93",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.24.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

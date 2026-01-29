@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "412ce469f55528b9657847fd3aea78aa2b1709c2",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

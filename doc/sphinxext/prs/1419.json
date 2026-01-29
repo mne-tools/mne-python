@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cf93bc65a6861a078539fde0a7e9847e7ea21548",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f5dd3c9207b670a91d603b9afe6ccbf00d176354",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/epochs.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/proj.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/realtime/epochs.py": {
+      "a": 14,
+      "d": 12
+    }
+  }
+}

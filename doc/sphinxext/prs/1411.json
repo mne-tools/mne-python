@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "585e5cbe08f3f3b0eb4588a292f734f2a911c1c7",
+  "authors": [
+    {
+      "n": "marmaduke woodman",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

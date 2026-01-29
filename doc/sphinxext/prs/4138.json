@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1df8195ac81a829e8db9ada4fa266a4c19676e46",
+  "authors": [
+    {
+      "n": "Nicole Proulx",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/plot_decoding_csp_timefreq.py": {
+      "a": 56,
+      "d": 11
+    }
+  }
+}

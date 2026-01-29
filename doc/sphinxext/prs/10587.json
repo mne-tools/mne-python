@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "4349f6d9805c43e1034b09742668a952fdff40ec",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 92,
+      "d": 7
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/interpolate.py": {
+      "a": 85,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_interpolate.py": {
+      "a": 23,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

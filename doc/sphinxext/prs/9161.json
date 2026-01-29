@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "bc78db538a6cd761742c614d716904a571aa8ee1",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/data/html_templates.py": {
+      "a": 67,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 26,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 85
+    },
+    "tutorials/intro/plot_30_info.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

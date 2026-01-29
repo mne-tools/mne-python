@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "618932d7fbb6ef7e4d9f110c90a1cc77f51ab082",
+  "authors": [
+    {
+      "n": "Peter J. Molfese",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13172.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

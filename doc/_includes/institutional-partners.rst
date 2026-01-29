@@ -19,7 +19,6 @@ Current partners
 - `Children’s Hospital of Philadelphia Research Institute <https://www.research.chop.edu/imaging/>`_
 - `Donders Institute for Brain, Cognition and Behaviour at Radboud University <https://www.ru.nl/donders/>`_
 - `Harvard Medical School <https://hms.harvard.edu/>`_
-- `Human Neuroscience Platform at Fondation Campus Biotech Geneva <https://hnp.fcbg.ch/>`_
 - `Institut national de recherche en informatique et en automatique <https://www.inria.fr/>`_
 - `Karl-Franzens-Universität Graz <https://www.uni-graz.at/>`_
 - `Massachusetts General Hospital <https://www.massgeneral.org/>`_
@@ -34,6 +33,7 @@ Former partners
 - `Berkeley Institute for Data Science <https://bids.berkeley.edu/>`_
 - `Boston University <https://www.bu.edu/>`_
 - `Commissariat à l’énergie atomique et aux énergies alternatives <https://www.cea.fr/>`_
+- `Fondation Campus Biotech Geneva <https://fcbg.ch/>`_
 - `Forschungszentrum Jülich <https://www.fz-juelich.de/>`_
 - `Institut du Cerveau et de la Moelle épinière <https://icm-institute.org/>`_
 - `Institut national de la santé et de la recherche médicale <https://www.inserm.fr/>`_

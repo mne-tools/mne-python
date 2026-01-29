@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "78fbfea6363555feb873ef01762f20a4f6c53f72",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

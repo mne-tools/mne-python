@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a2a0e2c763715d174398eb137270045bf21232c6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/_eloreta.py": {
+      "a": 9,
+      "d": 12
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/linalg.py": {
+      "a": 0,
+      "d": 15
+    }
+  }
+}

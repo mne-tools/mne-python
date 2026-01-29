@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3c0fdee5e71f5a6004c0093493c7c576753040a8",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 37
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 22,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 19,
+      "d": 5
+    },
+    "mne/utils.py": {
+      "a": 53,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a8889009536218960e5546d941453c0f1ae86c61",
+  "authors": [
+    {
+      "n": "Jeff Stout",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/report/report.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 15,
+      "d": 3
+    }
+  }
+}

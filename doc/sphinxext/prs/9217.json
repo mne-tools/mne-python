@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b619f54aa80d248e353b54c8be1f6c4932dc3d80",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

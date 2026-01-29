@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d78574cc91ce42bec1fcccca2c4c26e643038e28",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/intro/plot_projectors_intro.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

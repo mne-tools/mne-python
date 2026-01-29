@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1dc380aabb8d4d8869aea0192c3beabeb9fc141c",
+  "authors": [
+    {
+      "n": "Eduard Ort",
+      "e": "eduardxort@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 9,
+      "d": 1
+    },
+    "tutorials/raw/30_annotate_raw.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

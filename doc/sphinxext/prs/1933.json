@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "66f4adde0bca70eca03c79bd86923ed36cc61934",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/classifier.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

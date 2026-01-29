@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6778ce339d577988f25d96360c3b7950a60c508c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_source_label_time_frequency.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 38,
+      "d": 24
+    }
+  }
+}

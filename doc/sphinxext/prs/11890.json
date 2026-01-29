@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "6fe2e1322afb6ae5f6816f05d8f85dd78678e1aa",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/devel.rst.template": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.3.rst": {
+      "a": 0,
+      "d": 9
+    },
+    "mne/html_templates/report/html.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/report/section.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/report/slider.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/js_and_css/report.js": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 156,
+      "d": 150
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 70,
+      "d": 6
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 7,
+      "d": 6
+    }
+  }
+}

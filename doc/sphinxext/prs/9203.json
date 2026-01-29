@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2897d4b2609300da29f86707caf06fe29ecee74f",
+  "authors": [
+    {
+      "n": "Jack Zhang",
+      "e": "me@jackzhang.me"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 53,
+      "d": 0
+    }
+  }
+}

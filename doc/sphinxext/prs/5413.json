@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ae560615a72dea7f807983a359f9b57838c1bd9d",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/CONTRIBUTING.md": {
+      "a": 0,
+      "d": 0
+    },
+    ".github/ISSUE_TEMPLATE/blank.md": {
+      "a": 5,
+      "d": 0
+    },
+    ".github/ISSUE_TEMPLATE/bug_report.md": {
+      "a": 50,
+      "d": 0
+    },
+    ".github/ISSUE_TEMPLATE/feature_request.md": {
+      "a": 22,
+      "d": 0
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "a": 23,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

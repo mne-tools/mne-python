@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "daf7abfeef38fbab44c071d88c530b638bd9a372",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    }
+  ],
+  "changes": {
+    "examples/io/read_impedances.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

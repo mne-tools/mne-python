@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b6bab37a6154aa21c629ad19ac62f49f08f249bb",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

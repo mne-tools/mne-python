@@ -1,6 +1,6 @@
 """Some utility functions for rank estimation."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -114,7 +114,11 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
         if s.ndim == 1:  # typical
             logger.info(
                 "    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g"
-                "  max singular value)" % (tol, eps, len(s), max_s)
+                "  max singular value)",
+                tol,
+                eps,
+                len(s),
+                max_s,
             )
     elif not (isinstance(tol, np.ndarray) and tol.dtype.kind == "f"):
         tol = float(tol)
@@ -126,14 +130,27 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
 
 
 def _estimate_rank_raw(
-    raw, picks=None, tol=1e-4, scalings="norm", with_ref_meg=False, tol_kind="absolute"
+    raw,
+    picks=None,
+    tol=1e-4,
+    scalings="norm",
+    with_ref_meg=False,
+    tol_kind="absolute",
+    on_few_samples="warn",
 ):
     """Aid the transition away from raw.estimate_rank."""
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
     return _estimate_rank_meeg_signals(
-        raw[picks][0], pick_info(raw.info, picks), scalings, tol, False, tol_kind
+        raw[picks][0],
+        pick_info(raw.info, picks),
+        scalings,
+        tol,
+        False,
+        tol_kind,
+        log_ch_type=None,
+        on_few_samples=on_few_samples,
     )
 
 
@@ -146,6 +163,7 @@ def _estimate_rank_meeg_signals(
     return_singular=False,
     tol_kind="absolute",
     log_ch_type=None,
+    on_few_samples="warn",
 ):
     """Estimate rank for M/EEG data.
 
@@ -169,6 +187,10 @@ def _estimate_rank_meeg_signals(
         to determine the rank.
     tol_kind : str
         Tolerance kind. See ``estimate_rank``.
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate rank
+        estimates.
 
     Returns
     -------
@@ -179,11 +201,14 @@ def _estimate_rank_meeg_signals(
         thresholded to determine the rank are also returned.
     """
     picks_list = _picks_by_type(info)
-    if data.shape[1] < data.shape[0]:
-        ValueError(
-            "You've got fewer samples than channels, your "
-            "rank estimate might be inaccurate."
+    assert data.ndim == 2, data.shape
+    n_channels, n_samples = data.shape
+    if n_samples < n_channels:
+        msg = (
+            f"Too few samples ({n_samples=} is less than {n_channels=}), "
+            "rank estimate may be unreliable"
         )
+        _on_missing(on_few_samples, msg, "on_few_samples")
     with _scaled_array(data, picks_list, scalings):
         out = estimate_rank(
             data,
@@ -197,7 +222,7 @@ def _estimate_rank_meeg_signals(
         ch_type = " + ".join(list(zip(*picks_list))[0])
     else:
         ch_type = log_ch_type
-    logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
+    logger.info("    Estimated rank (%s): %d", ch_type, rank)
     return out
 
 
@@ -210,6 +235,7 @@ def _estimate_rank_meeg_cov(
     return_singular=False,
     *,
     log_ch_type=None,
+    on_few_samples="warn",
     verbose=None,
 ):
     """Estimate rank of M/EEG covariance data, given the covariance.
@@ -232,6 +258,10 @@ def _estimate_rank_meeg_cov(
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate rank
+        estimates.
 
     Returns
     -------
@@ -245,10 +275,11 @@ def _estimate_rank_meeg_cov(
     scalings = _handle_default("scalings_cov_rank", scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
-        ValueError(
+        msg = (
             "You've got fewer samples than channels, your "
             "rank estimate might be inaccurate."
         )
+        _on_missing(on_few_samples, msg, "on_few_samples")
     out = estimate_rank(data, tol=tol, norm=False, return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     if log_ch_type is None:
@@ -294,7 +325,7 @@ def _get_rank_sss(
         or "in_order" not in proc_info[0]["max_info"]["sss_info"]
     ):
         raise ValueError(
-            "Could not find Maxfilter information in " 'info["proc_history"]. %s' % msg
+            f'Could not find Maxfilter information in info["proc_history"]. {msg}'
         )
     proc_info = proc_info[0]
     max_info = proc_info["max_info"]
@@ -321,7 +352,7 @@ def _compute_rank_int(inst, *args, **kwargs):
     # XXX eventually we should unify how channel types are handled
     # so that we don't need to do this, or we do it everywhere.
     # Using pca=True in compute_whitener might help.
-    return sum(compute_rank(inst, *args, **kwargs).values())
+    return sum(compute_rank(inst, *args, on_few_samples="ignore", **kwargs).values())
 
 
 @verbose
@@ -331,16 +362,18 @@ def compute_rank(
     scalings=None,
     info=None,
     tol="auto",
+    *,
     proj=True,
     tol_kind="absolute",
     on_rank_mismatch="ignore",
+    on_few_samples=None,
     verbose=None,
 ):
     """Compute the rank of data or noise covariance.
 
     This function will normalize the rows of the data (typically
     channels or vertices) such that non-zero singular values
-    should be close to one.
+    should be close to one. It operates on :term:`data channels` only.
 
     Parameters
     ----------
@@ -359,6 +392,13 @@ def compute_rank(
         considered when ``rank=None`` or ``rank='info'``.
     %(tol_kind_rank)s
     %(on_rank_mismatch)s
+    on_few_samples : str | None
+        Can be 'warn', 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate rank
+        estimates. None (default) means "ignore" if ``inst`` is a
+        :class:`mne.Covariance` or ``rank in ("info", "full")``, and "warn" otherwise.
+
+        .. versionadded:: 1.11
     %(verbose)s
 
     Returns
@@ -380,6 +420,7 @@ def compute_rank(
         proj=proj,
         tol_kind=tol_kind,
         on_rank_mismatch=on_rank_mismatch,
+        on_few_samples=on_few_samples,
     )
 
 
@@ -394,6 +435,7 @@ def _compute_rank(
     proj=True,
     tol_kind="absolute",
     on_rank_mismatch="ignore",
+    on_few_samples=None,
     log_ch_type=None,
     verbose=None,
 ):
@@ -413,7 +455,10 @@ def _compute_rank(
         info = info.copy()
         info["bads"] = []
         inst = pick_channels_cov(
-            inst, set(inst["names"]) & set(info["ch_names"]), exclude=[], ordered=False
+            inst,
+            set(inst["names"]) & set(info["ch_names"]),
+            exclude=info["bads"] + inst["bads"],
+            ordered=False,
         )
         if info["ch_names"] != inst["names"]:
             info = pick_info(
@@ -433,6 +478,12 @@ def _compute_rank(
         rank_type = "estimated"
         if rank is None:
             rank = dict()
+
+    if on_few_samples is None:
+        if inst_type != "covariance" and rank_type == "estimated":
+            on_few_samples = "warn"
+        else:
+            on_few_samples = "ignore"
 
     simple_info = _simplify_info(info)
     picks_list = _picks_by_type(info, meg_combined=True, ref_meg=False, exclude="bads")
@@ -474,14 +525,14 @@ def _compute_rank(
                 logger.info(
                     f"    {ch_type_}: rank {this_rank} after "
                     f"{n_proj} projector{_pl(n_proj)} applied to "
-                    "{n_chan} channel{_pl(n_chan)}"
+                    f"{n_chan} channel{_pl(n_chan)}"
                 )
             else:
                 logger.info(f"    {ch_type_}: rank {this_rank} from info")
         else:
             # Use empirical estimation
             assert rank_type == "estimated"
-            if isinstance(inst, (BaseRaw, BaseEpochs)):
+            if isinstance(inst, BaseRaw | BaseEpochs):
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):
@@ -496,6 +547,7 @@ def _compute_rank(
                     False,
                     tol_kind,
                     log_ch_type=log_ch_type,
+                    on_few_samples=on_few_samples,
                 )
             else:
                 assert isinstance(inst, Covariance)
@@ -513,6 +565,7 @@ def _compute_rank(
                         tol,
                         return_singular=True,
                         log_ch_type=log_ch_type,
+                        on_few_samples=on_few_samples,
                         verbose=est_verbose,
                     )
                     if ch_type in rank:
@@ -538,10 +591,10 @@ def _compute_rank(
             )
             if this_rank > this_info_rank:
                 warn(
-                    "Something went wrong in the data-driven estimation of "
-                    "the data rank as it exceeds the theoretical rank from "
-                    'the info (%d > %d). Consider setting rank to "auto" or '
-                    "setting it explicitly as an integer." % (this_rank, this_info_rank)
+                    "Something went wrong in the data-driven estimation of the data "
+                    "rank as it exceeds the theoretical rank from the info "
+                    f"({this_rank} > {this_info_rank}). Consider setting rank "
+                    'to "auto" or setting it explicitly as an integer.'
                 )
         if ch_type not in rank:
             rank[ch_type] = int(this_rank)

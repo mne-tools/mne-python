@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "329f1b10f625dc3169d82a6b36e941e10681bc96",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 61,
+      "d": 5
+    },
+    "doc/carousel.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

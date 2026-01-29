@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "01bf14e0cb60fd73270f3f91d81a3b4698afdc26",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 8
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 4,
+      "d": 29
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 24,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 10,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "merge_commit_sha": "b7ccda04c0897622c4cc0892af9f3e6e7e29a252",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 20,
+      "d": 30
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 79,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/bem.py": {
+      "a": 44,
+      "d": 19
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/__init__.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 115,
+      "d": 108
+    },
+    "mne/forward/forward.py": {
+      "a": 32,
+      "d": 15
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/array/array.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/simulation/__init__.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/simulation/evoked.py": {
+      "a": 90,
+      "d": 11
+    },
+    "mne/simulation/metrics.py": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 571,
+      "d": 0
+    },
+    "mne/simulation/source.py": {
+      "a": 131,
+      "d": 2
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 17,
+      "d": 25
+    },
+    "mne/simulation/tests/test_metrics.py": {
+      "a": 52,
+      "d": 0
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 234,
+      "d": 0
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 23,
+      "d": 47
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_bem.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 28,
+      "d": 0
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

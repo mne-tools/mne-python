@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "cc3b95b5bf7fced80f5e3d911c52073a37fd0bfd",
+  "authors": [
+    {
+      "n": "kingjr",
+      "e": "jeanremi.king+github@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/connectivity/tests/test_utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 13
+    },
+    "mne/evoked.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/io/pick.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/stats/tests/test_parametric.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 41,
+      "d": 15
+    },
+    "mne/tests/test_filter.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/tests/test_fixes.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/tests/test_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/tests/test_surface.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_circle.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

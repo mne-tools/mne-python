@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "826ddd2f669fb35e574698042378c83e9b1217ca",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

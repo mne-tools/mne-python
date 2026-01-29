@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -283,10 +281,11 @@ _coord_frame_named = {
         FIFF.FIFFV_COORD_HPI,
         FIFF.FIFFV_COORD_HEAD,
         FIFF.FIFFV_COORD_MRI,
-        FIFF.FIFFV_COORD_MRI_SLICE,
-        FIFF.FIFFV_COORD_MRI_DISPLAY,
-        FIFF.FIFFV_COORD_DICOM_DEVICE,
-        FIFF.FIFFV_COORD_IMAGING_DEVICE,
+        # We never use these but could add at some point
+        # FIFF.FIFFV_COORD_MRI_SLICE,
+        # FIFF.FIFFV_COORD_MRI_DISPLAY,
+        # FIFF.FIFFV_COORD_DICOM_DEVICE,
+        # FIFF.FIFFV_COORD_IMAGING_DEVICE,
     )
 }
 #
@@ -819,6 +818,17 @@ FIFF.FIFFV_MNE_COORD_FS_TAL = 2006  # FreeSurfer Talairach coordinates
 #
 FIFF.FIFFV_MNE_COORD_4D_HEAD = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 FIFF.FIFFV_MNE_COORD_KIT_HEAD = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+_coord_frame_named.update({
+    key: key
+    for key in (
+        FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+        FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+        FIFF.FIFFV_MNE_COORD_RAS,
+        FIFF.FIFFV_MNE_COORD_MNI_TAL,
+        FIFF.FIFFV_MNE_COORD_FS_TAL,
+        FIFF.FIFFV_MNE_COORD_KIT_HEAD,
+    )
+})
 
 #
 #   FWD Types

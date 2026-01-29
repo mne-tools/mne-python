@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0b1d5d5ac013514c0202e12aa310751a5906fb48",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_resample.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 6,
+      "d": 5
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/proj.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 30,
+      "d": 24
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

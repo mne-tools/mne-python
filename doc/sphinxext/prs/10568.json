@@ -1,0 +1,151 @@
+{
+  "merge_commit_sha": "858d1b25aafe98c54786e4344d2e5a11ac65da4b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.20.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_ola.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 5,
+      "d": 18
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/search_light.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/transformer.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/dipole.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 10
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/__init__.py": {
+      "a": 1,
+      "d": 12
+    },
+    "mne/gui/_coreg.py": {
+      "a": 2,
+      "d": 28
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 0,
+      "d": 26
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 29
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 0,
+      "d": 108
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 0,
+      "d": 96
+    },
+    "mne/rank.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 0,
+      "d": 17
+    },
+    "mne/utils/docs.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 2,
+      "d": 8
+    }
+  }
+}

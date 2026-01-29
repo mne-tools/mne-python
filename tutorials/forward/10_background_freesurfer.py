@@ -85,8 +85,10 @@ overlay of an anatomical parcellation (in this case, the parcellation from
 :footcite:`DestrieuxEtAl2010`).
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne
@@ -115,6 +117,8 @@ brain.add_annotation("aparc.a2009s", borders=False)
 # particular function, and :ref:`tut-freesurfer-mne` for more details on how
 # MNE-Python and FreeSurfer are integrated.
 #
+#
+# .. _fsaverage_background:
 #
 # 'fsaverage'
 # ===========

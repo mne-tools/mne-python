@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "82487bc6a8976b0fa55ab9c7a2d8af56fd8b7ae3",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/utils/_logging.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

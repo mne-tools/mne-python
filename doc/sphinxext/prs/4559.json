@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9ac40200cc72ac81efc2d59996bbdbf91bf4666c",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/baseline.py": {
+      "a": 18,
+      "d": 14
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 30,
+      "d": 17
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 66,
+      "d": 41
+    },
+    "mne/viz/topomap.py": {
+      "a": 46,
+      "d": 42
+    }
+  }
+}

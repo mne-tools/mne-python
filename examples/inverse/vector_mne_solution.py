@@ -79,7 +79,7 @@ stc_max, directions = stc.project("pca", src=inv["src"])
 # inverse was computed with loose=0.2
 print(
     "Absolute cosine similarity between source normals and directions: "
-    f'{np.abs(np.sum(directions * inv["source_nn"][2::3], axis=-1)).mean()}'
+    f"{np.abs(np.sum(directions * inv['source_nn'][2::3], axis=-1)).mean()}"
 )
 brain_max = stc_max.plot(
     initial_time=peak_time,

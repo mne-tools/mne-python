@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "2c17b8f6e587326d32845f0318e42661cee06d50",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_sensor_noise_level.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/viz/epochs.py": {
+      "a": 8,
+      "d": 11
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 75,
+      "d": 40
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "09621ea3d14b40392744d21b47bc40943e756987",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/externals/pymatreader/pymatreader.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/externals/pymatreader/utils.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

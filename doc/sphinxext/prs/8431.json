@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "010d4c6363a36193d7fa2ddb2139a155e33f693c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/intro/plot_20_events_from_raw.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

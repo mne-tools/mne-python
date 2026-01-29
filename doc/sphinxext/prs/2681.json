@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "91c08a85b2a4cca5ab50c0ea8b50c11d6c10cd31",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e0aa5feb7b2dcb6704242fd9ad4b5fd1e7b97b0d",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 9,
+      "d": 8
+    }
+  }
+}

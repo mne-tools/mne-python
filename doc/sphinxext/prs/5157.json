@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "75a058902bd142b0f2f5c203fd7232f02ecabf60",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_viewer.py": {
+      "a": 10,
+      "d": 8
+    }
+  }
+}

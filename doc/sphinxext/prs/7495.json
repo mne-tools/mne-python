@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0b1bf55f8e3eca094b7928f21cedcfed7f4cf66a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

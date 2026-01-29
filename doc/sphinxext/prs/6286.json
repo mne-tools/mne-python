@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "2682e32be43af610bdb67f5eabfbfcb1472a3e7f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 23,
+      "d": 4
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/io.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/intro/plot_introduction.py": {
+      "a": 339,
+      "d": 366
+    },
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

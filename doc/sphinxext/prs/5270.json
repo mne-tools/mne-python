@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5fb47e0e75e8923a67c47715a3d030f74bf8a369",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 18,
+      "d": 12
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 73,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 29,
+      "d": 7
+    }
+  }
+}

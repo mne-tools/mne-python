@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0dbfe7f7070d82077b703a1626d5638f6a44d687",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a9c5a18c1e2dbb801edc08081e33dafcfe05ff66",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_topo_customized.py": {
+      "a": 58,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 162,
+      "d": 86
+    }
+  }
+}

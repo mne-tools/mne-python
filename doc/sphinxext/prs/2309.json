@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "54bae3c498edebd04237de5490bc68ff1208004b",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 21,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 47,
+      "d": 14
+    }
+  }
+}

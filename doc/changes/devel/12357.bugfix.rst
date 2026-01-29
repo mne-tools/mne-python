@@ -1,1 +1,0 @@
-Fix faulty indexing in :func:`mne.io.read_raw_neuralynx` when picking a single channel, by `Kristijan Armeni`_.

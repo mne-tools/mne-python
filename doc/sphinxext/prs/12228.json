@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bf2d368b65ff8adf92bde35f9ae2d6fdd3a03104",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 7,
+      "d": 40
+    },
+    "doc/development/contributing.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/development/roadmap.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

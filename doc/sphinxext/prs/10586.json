@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a5d91041d787fcd2ba58330a4ccde360cf543b7f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 16,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

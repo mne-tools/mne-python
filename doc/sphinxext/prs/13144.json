@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "61ebcf9e40302b16384c999aa89143407f7c80b1",
+  "authors": [
+    {
+      "n": "Harrison Ritz",
+      "e": "hritz@princeton.edu"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13144.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 41,
+      "d": 4
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 102,
+      "d": 26
+    },
+    "tutorials/preprocessing/80_opm_processing.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "bb1d54798e56b2854cba76d0f3b12a383b8bb96f",
+  "authors": [
+    {
+      "n": "Aaron Earle-Richardson",
+      "e": "ae166@duke.edu"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 12,
+      "d": 7
+    }
+  }
+}

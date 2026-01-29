@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9f73f5a3c857d21dc2fb6e8f14509f79d8126ad6",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_publication_figure.py": {
+      "a": 15,
+      "d": 28
+    },
+    "mne/viz/utils.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

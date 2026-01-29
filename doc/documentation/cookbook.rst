@@ -185,10 +185,7 @@ has been completed as described in :ref:`CHDBBCEJ`.
 
 .. _BABGCDHA:
 
-.. table:: Recommended subdivisions of an icosahedron and an octahedron for
-           the creation of source spaces. The approximate source spacing and
-           corresponding surface area have been calculated assuming a
-           1000-cm2 surface area per hemisphere.
+.. table:: Recommended subdivisions of an icosahedron and an octahedron for the creation of source spaces. The approximate source spacing and corresponding surface area have been calculated assuming a 1000-cm2 surface area per hemisphere.
 
     ===========  ======================  ===================  =============================
     ``spacing``  Sources per hemisphere  Source spacing / mm  Surface area per source / mm2

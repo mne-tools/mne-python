@@ -1,6 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -19,7 +17,7 @@ def combine_adjacency(*structure):
     *structure : list
         The adjacency along each dimension. Each entry can be:
 
-        - ndarray or scipy.sparse.spmatrix
+        - ndarray or scipy.sparse.sparray
             A square binary adjacency matrix for the given dimension.
             For example created by :func:`mne.channels.find_ch_adjacency`.
         - int
@@ -30,7 +28,7 @@ def combine_adjacency(*structure):
 
     Returns
     -------
-    adjacency : scipy.sparse.coo_matrix, shape (n_features, n_features)
+    adjacency : scipy.sparse.coo_array, shape (n_features, n_features)
         The square adjacency matrix, where the shape ``n_features``
         corresponds to the product of the length of all dimensions.
         For example ``len(times) * len(freqs) * len(chans)``.
@@ -55,25 +53,26 @@ def combine_adjacency(*structure):
     ...     n_times,  # regular lattice adjacency for times
     ...     np.zeros((n_freqs, n_freqs)),  # no adjacency between freq. bins
     ...     chan_adj,  # custom matrix, or use mne.channels.find_ch_adjacency
-    ...     )  # doctest: +NORMALIZE_WHITESPACE
-    <5600x5600 sparse matrix of type '<class 'numpy.float64'>'
+    ...     )  # doctest: +SKIP
+    <5600x5600 sparse array of type '<class 'numpy.float64'>'
             with 27076 stored elements in COOrdinate format>
     """
     structure = list(structure)
     for di, dim in enumerate(structure):
         name = f"structure[{di}]"
-        _validate_type(dim, ("int-like", np.ndarray, sparse.spmatrix), name)
+        _validate_type(dim, ("int-like", np.ndarray, "sparse"), name)
         if isinstance(dim, int_like):
             # Don't add the diagonal, because we explicitly remove it later
-            dim = sparse.diags(
-                [1, 1], offsets=(-1, 1), shape=(int(dim), int(dim)), dtype=float
+            dim = sparse.dia_array(
+                (np.ones((2, dim)), [-1, 1]),
+                shape=(dim, dim),
             ).tocoo()
         else:
             _check_option(f"{name}.ndim", dim.ndim, [2])
             if dim.shape[0] != dim.shape[1]:
                 raise ValueError(f"{name} must be square, got shape {dim.shape}")
-            if not isinstance(dim, sparse.coo_matrix):
-                dim = sparse.coo_matrix(dim)
+            if not isinstance(dim, sparse.coo_array):
+                dim = sparse.coo_array(dim)
             else:
                 dim = dim.copy()
         dim.data[dim.row == dim.col] = 0.0  # remove diagonal, will add later
@@ -82,7 +81,7 @@ def combine_adjacency(*structure):
             raise ValueError("All adjacency values must be 0 or 1")
         structure[di] = dim
     # list of coo
-    assert all(isinstance(dim, sparse.coo_matrix) for dim in structure)
+    assert all(isinstance(dim, sparse.coo_array) for dim in structure)
     shape = np.array([d.shape[0] for d in structure], int)
     n_others = np.array(
         [
@@ -115,5 +114,5 @@ def combine_adjacency(*structure):
     # Handle the diagonal separately at the end to avoid duplicate entries
     edges[:, n_off:] = vertices.ravel()
     weights[n_off:] = 1.0
-    graph = sparse.coo_matrix((weights, edges), (vertices.size, vertices.size))
+    graph = sparse.coo_array((weights, edges), (vertices.size, vertices.size))
     return graph

@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "52f064415e7c9fa8fe243d22108dcdf3d86505b9",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/dig_formats.rst": {
+      "a": 41,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 10,
+      "d": 6
+    },
+    "doc/glossary.rst": {
+      "a": 16,
+      "d": 1
+    },
+    "doc/overview/implementation.rst": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/__init__.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 187,
+      "d": 61
+    },
+    "mne/channels/montage.py": {
+      "a": 246,
+      "d": 44
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 297,
+      "d": 72
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/montage.py": {
+      "a": 33,
+      "d": 17
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 14,
+      "d": 11
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/plot_sensor_locations.py": {
+      "a": 27,
+      "d": 15
+    }
+  }
+}

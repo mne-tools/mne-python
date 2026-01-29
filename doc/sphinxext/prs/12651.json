@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "07f429eeebf51a1a686be2bc25a9f760e9c66520",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/_adjacency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 9,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/40_cluster_1samp_time_freq.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

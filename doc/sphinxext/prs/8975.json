@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "d6476f81fcb5639af507ef15ec911818ca8e1163",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 34,
+      "d": 22
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 14,
+      "d": 28
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 67,
+      "d": 45
+    }
+  }
+}

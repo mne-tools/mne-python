@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7157222b112d01133d49065f0f6e4824c6910ce2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_setup_forward_model.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/commands/mne_setup_source_space.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

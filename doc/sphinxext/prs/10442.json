@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "634544ba9a003fb6635ae1bdd89b7a15aac4c22e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_coreg.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

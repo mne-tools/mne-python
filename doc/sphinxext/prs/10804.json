@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0dc113d4abda83aa3e3dcf865ce43bdad3a568b2",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 19,
+      "d": 38
+    }
+  }
+}

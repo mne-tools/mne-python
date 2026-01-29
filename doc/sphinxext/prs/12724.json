@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f20348ef207e41b24a0a0a3dcfc55fa470ec971c",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12724.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/io/elekta_epochs.py": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/visualization/topo_compare_conditions.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/topo.py": {
+      "a": 11,
+      "d": 24
+    }
+  }
+}

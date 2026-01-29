@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bd35715c21098a15b8bf3450a5ea2d6091e3477c",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

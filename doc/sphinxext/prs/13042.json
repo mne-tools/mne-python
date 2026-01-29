@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ee2d0caa98b23fe40bcddea2a666b6803f64c3dd",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13042.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

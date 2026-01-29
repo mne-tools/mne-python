@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "171371169a519062296fc370d3050ba6a7146de5",
+  "authors": [
+    {
+      "n": "Christian O'Reilly",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 46,
+      "d": 6
+    }
+  }
+}

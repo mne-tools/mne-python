@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "19b62e9054e954f147273a146e8e1d95f7339fa1",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/data/test_old_layout_latin1_software_filter_longname.vhdr": {
+      "a": 156,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/tests/test_line_endings.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

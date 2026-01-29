@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "3032f48bec92a2ec12f9b36682070e99a72428bb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 29,
+      "d": 10
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 4,
+      "d": 1
+    },
+    "tools/check_qt_import.sh": {
+      "a": 8,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

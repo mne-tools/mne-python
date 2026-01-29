@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "940ac9553ce42c15b4c16ecd013824ca3ea7244a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d_overlay.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 261,
+      "d": 298
+    }
+  }
+}

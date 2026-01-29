@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "596122d1f39a962e8299c63020885e207f127c87",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

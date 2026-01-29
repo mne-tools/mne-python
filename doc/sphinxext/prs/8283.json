@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e6a22e8950a4aa665eee4450170d94f02013b4d7",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/sphinxext/gh_substitutions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 25,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d4b634b283083ceff8a260da967bfcb41d05944f",
+  "authors": [
+    {
+      "n": "Mainak",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_eog.py": {
+      "a": 59,
+      "d": 53
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 34,
+      "d": 14
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

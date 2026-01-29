@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "eb8f19f2ad96c52ecab5d37a78da5ab426c36e94",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 17,
+      "d": 17
+    },
+    "azure-pipelines.yml": {
+      "a": 9,
+      "d": 12
+    },
+    "doc/install/contributing.rst": {
+      "a": 41,
+      "d": 84
+    },
+    "doc/install/mne_python.rst": {
+      "a": 44,
+      "d": 19
+    },
+    "doc/links.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

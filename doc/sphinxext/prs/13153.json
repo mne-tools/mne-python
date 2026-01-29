@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "df4a3f1601418bf1dfd1a3621c34bfa3b1188f8b",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_rap_music.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 74,
+      "d": 13
+    }
+  }
+}

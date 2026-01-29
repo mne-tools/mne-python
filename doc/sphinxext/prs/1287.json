@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d91654931e4845b080bffc831d79d7570658f800",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/plot_extract_events_from_raw.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/tests/test_viz.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 67,
+      "d": 6
+    }
+  }
+}

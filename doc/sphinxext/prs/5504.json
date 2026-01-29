@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5a84ba9f247362da66b209634916485d1c691c13",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

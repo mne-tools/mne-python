@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "67524c1a03b36954407fbcdd65ca614905cd021a",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_norm_L21_inverse.py": {
+      "a": 71,
+      "d": 0
+    },
+    "mne/forward.py": {
+      "a": 54,
+      "d": 5
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 50,
+      "d": 36
+    },
+    "mne/mixed_norm/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/mixed_norm/debiasing.py": {
+      "a": 126,
+      "d": 0
+    },
+    "mne/mixed_norm/inverse.py": {
+      "a": 226,
+      "d": 0
+    },
+    "mne/mixed_norm/optim.py": {
+      "a": 315,
+      "d": 0
+    },
+    "mne/mixed_norm/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/mixed_norm/tests/test_debiasing.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/mixed_norm/tests/test_inverse.py": {
+      "a": 48,
+      "d": 0
+    },
+    "mne/mixed_norm/tests/test_optim.py": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 29,
+      "d": 4
+    }
+  }
+}

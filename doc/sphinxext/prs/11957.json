@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "98a1f20ce45bc3475212b47746e1642e02bde73d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/mne_c.rst": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a9e2f5fe33a03ffd181c25758ac938e925a023c7",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/surface.py": {
+      "a": 12,
+      "d": 4
+    }
+  }
+}

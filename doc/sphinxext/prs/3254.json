@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "63feb683cd1f8ddd598a78d12c8ef522f9ca2d78",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 9,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

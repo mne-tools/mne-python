@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3da7e332c3ecd75613feb31c6f34c3b362e32d97",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 6,
+      "d": 12
+    }
+  }
+}

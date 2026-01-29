@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "0c4c3b710eda33a2333b9dd0b6c66c03fc65146a",
+  "authors": [
+    {
+      "n": "Christian O'Reilly",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 25,
+      "d": 1
+    }
+  }
+}

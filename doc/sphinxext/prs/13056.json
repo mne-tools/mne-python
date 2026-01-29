@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2abb7b220ed2580e141158499919300cfa1f6a3b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13056.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 30,
+      "d": 18
+    },
+    "mne/_fiff/write.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils/_testing.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

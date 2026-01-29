@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "56f57d039c1c230c40978644e3406def2b547ae4",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/preprocessing/plot_ica_from_epochs.py": {
+      "a": 13,
+      "d": 11
+    },
+    "examples/preprocessing/plot_ica_from_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ctps_.py": {
+      "a": 169,
+      "d": 0
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 53,
+      "d": 16
+    },
+    "mne/preprocessing/tests/test_ctps.py": {
+      "a": 84,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "487500658b65c2cef24f45b3e92354c325633b21",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_transforms.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

@@ -1,14 +1,6 @@
 """Functions to plot epochs data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Stefan Repplinger <stefan.repplinger@ovgu.de>
-#          Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -25,7 +17,6 @@ from .._fiff.pick import (
     _picks_to_idx,
 )
 from ..defaults import _handle_default
-from ..fixes import _sharex
 from ..utils import _check_option, fill_doc, legacy, logger, verbose, warn
 from ..utils.spectrum import _split_psd_kwargs
 from .raw import _setup_channel_selections
@@ -631,7 +622,7 @@ def _plot_epochs_image(
         ax["evoked"].set_xlim(tmin, tmax)
         ax["evoked"].lines[0].set_clip_on(True)
         ax["evoked"].collections[0].set_clip_on(True)
-        _sharex(ax["evoked"], ax_im)
+        ax["evoked"].sharex(ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax["evoked"].xaxis.set_major_locator(loc)
@@ -709,7 +700,7 @@ def plot_drop_log(
     percent = _drop_log_stats(drop_log, ignore)
     if percent < threshold:
         logger.info(
-            "Percent dropped epochs < supplied threshold; not " "plotting drop log."
+            "Percent dropped epochs < supplied threshold; not plotting drop log."
         )
         return
     absolute = len([x for x in drop_log if len(x) if not any(y in ignore for y in x)])
@@ -720,7 +711,7 @@ def plot_drop_log(
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
     fig, ax = plt.subplots(layout="constrained")
-    title = f"{absolute} of {n_epochs_before_drop} epochs removed " f"({percent:.1f}%)"
+    title = f"{absolute} of {n_epochs_before_drop} epochs removed ({percent:.1f}%)"
     if subject is not None:
         title = f"{subject}: {title}"
     ax.set_title(title)
@@ -1103,7 +1094,7 @@ def plot_epochs_psd(
     area_mode="std",
     area_alpha=0.33,
     dB=True,
-    estimate="auto",
+    estimate="power",
     show=True,
     n_jobs=None,
     average=False,

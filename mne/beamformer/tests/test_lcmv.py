@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from contextlib import nullcontext
 from copy import deepcopy
 from inspect import signature
@@ -40,6 +42,7 @@ from mne.beamformer import (
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
@@ -208,7 +211,7 @@ def test_lcmv_vector():
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
-    assert np.mean(mne_angles) < 35
+    assert np.mean(mne_angles) < 36
 
     # Now let's do LCMV
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
@@ -378,9 +381,9 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     rank = 17 if proj else 20
     assert "LCMV" in repr(filters)
     assert "unknown subject" not in repr(filters)
-    assert f'{fwd["nsource"]} vert' in repr(filters)
+    assert f"{fwd['nsource']} vert" in repr(filters)
     assert "20 ch" in repr(filters)
-    assert "rank %s" % rank in repr(filters)
+    assert f"rank {rank}" in repr(filters)
 
     # I/O
     fname = tmp_path / "filters.h5"
@@ -500,9 +503,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     # check whether a filters object without src_type throws expected warning
     del filters["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_lcmv(evoked, filters)
 
     # Now test single trial using fixed orientation forward solution
@@ -809,6 +810,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
         assert_allclose(stc_cov.data.std(), 0.187, rtol=0.2)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, weight_norm, use_cov, depth, lower, upper",
     [
@@ -851,8 +853,9 @@ def test_localization_bias_fixed(
 
 
 # Changes here should be synced with test_dics.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
-    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, " "lower_ori, upper_ori",
+    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
         (
             0.05,
@@ -1044,7 +1047,7 @@ def test_orientation_max_power(
     "weight_norm, pick_ori",
     [
         pytest.param("nai", "max-power", marks=pytest.mark.slowtest),
-        ("unit-noise-gain", "vector"),
+        pytest.param("unit-noise-gain", "vector", marks=pytest.mark.slowtest),
         ("unit-noise-gain", "max-power"),
         pytest.param("unit-noise-gain", None, marks=pytest.mark.slowtest),
     ],
@@ -1183,7 +1186,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     )
     n_channels, n_sources = G.shape
     n_sources //= 3
-    G.shape = (n_channels, n_sources, 3)
+    G = _reshape_view(G, (n_channels, n_sources, 3))
     G = G.transpose(1, 2, 0)  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

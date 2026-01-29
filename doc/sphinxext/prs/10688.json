@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a877fada44f4241e740dad3dee8ffeb1a50422e3",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

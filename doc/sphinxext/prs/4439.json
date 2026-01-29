@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e2c5128f6a6a4060870f95281587a1b5db023ae7",
+  "authors": [
+    {
+      "n": "Lukáš Hejtmánek",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

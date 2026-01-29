@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "53636038c463cfb13c2fc9c7b072f14fc30930e6",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 12
+    },
+    "doc/install/check_installation.rst": {
+      "a": 35,
+      "d": 20
+    },
+    "mne/commands/mne_setup_source_space.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 7,
+      "d": 14
+    },
+    "mne/tests/test_morph.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 28
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 0,
+      "d": 3
+    }
+  }
+}

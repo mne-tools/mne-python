@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3092b72daf804ead4a1c38da707962786c938020",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

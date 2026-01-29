@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "cce705bcfa34226f0f3a1c0abaed94d565539095",
+  "authors": [
+    {
+      "n": "Adonay Nunes",
+      "e": "adonay.s.nunes@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_artifact_detection.py": {
+      "a": 81,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 212,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 49,
+      "d": 0
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

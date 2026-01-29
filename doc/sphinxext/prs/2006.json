@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "854782b66b43bc2ed08a6a3a346859edcf51d0f5",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/layouts/KIT-AD.lout": {
+      "a": 209,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 9,
+      "d": 3
+    }
+  }
+}

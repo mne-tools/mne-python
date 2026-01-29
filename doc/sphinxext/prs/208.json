@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6ee3af2a5ef9cc61e874cc98bdde8ac1ec05d4a6",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/export/README.txt": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/sample/__init__.py": {
+      "a": 27,
+      "d": 6
+    }
+  }
+}

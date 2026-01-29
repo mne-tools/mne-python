@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "4406e6ab6a731b444ed4fe04cf5fd4f2eca4ff81",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 3
+    },
+    "examples/plot_evoked_delayed_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_read_epochs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/plot_read_evoked.py": {
+      "a": 6,
+      "d": 3
+    },
+    "examples/plot_simulate_evoked_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 47,
+      "d": 2
+    },
+    "mne/tests/test_viz.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 152,
+      "d": 60
+    }
+  }
+}

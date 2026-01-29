@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "65a53882e7ba2d7909a9e14de48218dfeb00f664",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/glossary.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/visualization/eeglab_head_sphere.py": {
+      "a": 0,
+      "d": 130
+    },
+    "mne/utils/check.py": {
+      "a": 79,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 36,
+      "d": 21
+    },
+    "mne/viz/montage.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 14,
+      "d": 4
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 160,
+      "d": 132
+    }
+  }
+}

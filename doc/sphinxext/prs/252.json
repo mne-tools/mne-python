@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "8bd48a05148f52ed235781d278400c5640ea7c6d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 13,
+      "d": 1
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_from_raw_to_multiple_epochs_to_evoked.py": {
+      "a": 73,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 170,
+      "d": 23
+    },
+    "mne/fiff/evoked.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 56,
+      "d": 5
+    },
+    "mne/viz.py": {
+      "a": 18,
+      "d": 7
+    }
+  }
+}

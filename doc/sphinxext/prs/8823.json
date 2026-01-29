@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "971c290a0dd2fc564607c6eeff042bde371e3608",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 5,
+      "d": 10
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 19,
+      "d": 17
+    },
+    "mne/datasets/kiloword/kiloword.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/decoding/base.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/search_light.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/event.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/fixes.py": {
+      "a": 21,
+      "d": 20
+    },
+    "mne/io/base.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/simulation/source.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/mixin.py": {
+      "a": 0,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

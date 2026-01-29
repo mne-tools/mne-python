@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4ee23004264b63ba2861ca70a4c777aee141de97",
+  "authors": [
+    {
+      "n": "Zvi Baratz",
+      "e": "z.baratz@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/time_frequency_global_field_power.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

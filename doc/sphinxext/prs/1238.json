@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bf0447e92afa53216381e45998e6a2274428ac07",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "f7bb2ef4a40bf3bc3e20c82feba145e0e6e35aac",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "conftest.py": {
+      "a": 64,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 52,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 76,
+      "d": 15
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 22,
+      "d": 17
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 44,
+      "d": 43
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 80,
+      "d": 139
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

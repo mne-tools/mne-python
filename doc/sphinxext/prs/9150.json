@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "10e1869f39a41250ef4706949b906361a9bc33fd",
+  "authors": [
+    {
+      "n": "Eduard",
+      "e": "eduardxort@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 42,
+      "d": 9
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 56,
+      "d": 45
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

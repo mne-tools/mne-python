@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1264cc711bbce07276c3fc2b79d6b64514e53d28",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 7
+    }
+  }
+}

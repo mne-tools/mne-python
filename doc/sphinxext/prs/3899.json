@@ -1,0 +1,231 @@
+{
+  "merge_commit_sha": "10f69603a5788e6a44692dfed204d32cdbe90502",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/configure_git.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/contributing.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/faq.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/getting_started.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/index.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 37,
+      "d": 23
+    },
+    "doc/manual/decoding.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/manual/migrating.rst": {
+      "a": 29,
+      "d": 29
+    },
+    "doc/manual/preprocessing/bads.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/preprocessing/filter.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/preprocessing/overview.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 6,
+      "d": 8
+    },
+    "doc/manual/statistics.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/manual/visualization.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 129,
+      "d": 55
+    },
+    "doc/tutorials/seven_stories_about_mne.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/whats_new.rst": {
+      "a": 37,
+      "d": 37
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 45,
+      "d": 39
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 22,
+      "d": 20
+    },
+    "mne/datasets/utils.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/decoding/base.py": {
+      "a": 13,
+      "d": 16
+    },
+    "mne/decoding/ems.py": {
+      "a": 27,
+      "d": 24
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/decoding/transformer.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 13,
+      "d": 8
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 12,
+      "d": 14
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 16,
+      "d": 45
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_ecog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/plot_forward.py": {
+      "a": 7,
+      "d": 2
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

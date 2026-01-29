@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fa168dccc221b12ad91d919c5d2b1afc9465a7ba",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/machine-learning/plot_sensors_decoding.py": {
+      "a": 17,
+      "d": 35
+    }
+  }
+}

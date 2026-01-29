@@ -14,9 +14,10 @@ the discriminant neural sources which are extracted by the filters.
 Note patterns/filters in MEG data are more similar than EEG data
 because the noise is less spatially correlated in MEG than EEG.
 """
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
+#          Jean-Rémi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -28,11 +29,16 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 import mne
-from mne import EvokedArray, io
+from mne import io
 from mne.datasets import sample
 
 # import a linear classifier from mne.decoding
-from mne.decoding import LinearModel, Vectorizer, get_coef
+from mne.decoding import (
+    LinearModel,
+    SpatialFilter,
+    Vectorizer,
+    get_spatial_filter_from_estimator,
+)
 
 print(__doc__)
 
@@ -77,20 +83,38 @@ model = LinearModel(clf)
 X = scaler.fit_transform(meg_data)
 model.fit(X, labels)
 
-# Extract and plot spatial filters and spatial patterns
+coefs = dict()
 for name, coef in (("patterns", model.patterns_), ("filters", model.filters_)):
-    # We fitted the linear model onto Z-scored data. To make the filters
+    # We fit the linear model on Z-scored data. To make the filters
     # interpretable, we must reverse this normalization step
     coef = scaler.inverse_transform([coef])[0]
 
     # The data was vectorized to fit a single model across all time points and
     # all channels. We thus reshape it:
-    coef = coef.reshape(len(meg_epochs.ch_names), -1)
+    coefs[name] = coef.reshape(len(meg_epochs.ch_names), -1).T
 
-    # Plot
-    evoked = EvokedArray(coef, meg_epochs.info, tmin=epochs.tmin)
-    fig = evoked.plot_topomap()
-    fig.suptitle(f"MEG {name}")
+# Now we can instantiate the visualization container
+spf = SpatialFilter(info=meg_epochs.info, **coefs)
+fig = spf.plot_patterns(
+    # we will automatically select patterns
+    components="auto",
+    # as our filters and patterns correspond to actual times
+    # we can align them
+    tmin=epochs.tmin,
+    units="fT",  # it's physical - we inversed the scaling
+    show=False,  # to set the title below
+    name_format=None,  # to plot actual times
+)
+fig.suptitle("MEG patterns")
+# Same for filters
+fig = spf.plot_filters(
+    components="auto",
+    tmin=epochs.tmin,
+    units="fT",
+    show=False,
+    name_format=None,
+)
+fig.suptitle("MEG filters")
 
 # %%
 # Let's do the same on EEG data using a scikit-learn pipeline
@@ -107,15 +131,26 @@ clf = make_pipeline(
     ),
 )
 clf.fit(X, y)
-
-# Extract and plot patterns and filters
-for name in ("patterns_", "filters_"):
-    # The `inverse_transform` parameter will call this method on any estimator
-    # contained in the pipeline, in reverse order.
-    coef = get_coef(clf, name, inverse_transform=True)
-    evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
-    fig = evoked.plot_topomap()
-    fig.suptitle(f"EEG {name[:-1]}")
+spf = get_spatial_filter_from_estimator(
+    clf, info=epochs.info, inverse_transform=True, step_name="linearmodel"
+)
+fig = spf.plot_patterns(
+    components="auto",
+    tmin=epochs.tmin,
+    units="uV",
+    show=False,
+    name_format=None,
+)
+fig.suptitle("EEG patterns")
+# Same for filters
+fig = spf.plot_filters(
+    components="auto",
+    tmin=epochs.tmin,
+    units="uV",
+    show=False,
+    name_format=None,
+)
+fig.suptitle("EEG filters")
 
 # %%
 # References

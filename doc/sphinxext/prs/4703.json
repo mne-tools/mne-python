@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f58c782d120d8805d0d0f5553fd34067e85c2a73",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 24
+    },
+    "tutorials/plot_forward.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

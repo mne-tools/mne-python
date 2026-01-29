@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0816e31439a01e7ba6a1488fb006ae75dd25ac57",
+  "authors": [
+    {
+      "n": "Catalina M. Galván",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

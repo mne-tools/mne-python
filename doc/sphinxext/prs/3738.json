@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6c2e2222bcf7e45a911ecd6fdc3e4247dae31e18",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/realtime/epochs.py": {
+      "a": 28,
+      "d": 3
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 44,
+      "d": 1
+    }
+  }
+}

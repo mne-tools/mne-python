@@ -30,7 +30,7 @@ from mne.datasets import phantom_4dbti
 # Read data and compute a dipole fit at the peak of the evoked response
 
 data_path = phantom_4dbti.data_path()
-raw_fname = op.join(data_path, "%d/e,rfhp1.0Hz")
+raw_fname = op.join(data_path, "{}/e,rfhp1.0Hz")
 
 dipoles = list()
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
@@ -42,7 +42,11 @@ ori = np.empty((4, 3))
 
 for ii in range(4):
     raw = mne.io.read_raw_bti(
-        raw_fname % (ii + 1,), rename_channels=False, preload=True
+        raw_fname.format(
+            ii + 1,
+        ),
+        rename_channels=False,
+        preload=True,
     )
     raw.info["bads"] = ["A173", "A213", "A232"]
     events = mne.find_events(raw, "TRIGGER", mask=4350, mask_type="not_and")
@@ -66,7 +70,7 @@ actual_pos = 0.01 * np.array(
 actual_pos = np.dot(actual_pos, [[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
 
 errors = 1e3 * np.linalg.norm(actual_pos - pos, axis=1)
-print("errors (mm) : %s" % errors)
+print(f"errors (mm) : {errors}")
 
 # %%
 # Plot the dipoles in 3D

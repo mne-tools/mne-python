@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f474eb196eca50104f09948c6a4215d628a971f5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/surface.py": {
+      "a": 3,
+      "d": 29
+    }
+  }
+}

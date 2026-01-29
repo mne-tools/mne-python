@@ -1,5 +1,4 @@
-# Author: Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -84,7 +83,7 @@ def _get_event_parser(event_type):
         event_maker = CNTEventType3
         struct_pattern = "<HBclhhfccc"  # Same as event type 2
     else:
-        raise ValueError("unknown CNT even type %s" % event_type)
+        raise ValueError(f"unknown CNT even type {event_type}")
 
     def parser(buffer):
         struct = Struct(struct_pattern)

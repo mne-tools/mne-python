@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bb908f197823c3ae27da493d2cd89895136717bf",
+  "authors": [
+    {
+      "n": "Christian O'Reilly",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 0,
+      "d": 3
+    }
+  }
+}

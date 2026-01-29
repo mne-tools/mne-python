@@ -1,6 +1,4 @@
-# Author: Martin Billinger <martin.billinger@tugraz.at>
-#         Adam Li <adam2392@gmail.com>
-#         Daniel McCloy <dan@mccloy.info>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -23,7 +21,9 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
 
     This is a low-level function useful for getting a local copy of a remote EEGBCI
     dataset :footcite:`SchalkEtAl2004`, which is also available at PhysioNet
-    :footcite:`GoldbergerEtAl2000`.
+    :footcite:`GoldbergerEtAl2000`. Metadata, such as the meaning of event markers
+    may be obtained from the
+    `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 
     Parameters
     ----------
@@ -94,8 +94,9 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
 
 @verbose
 def load_data(
-    subject,
+    subjects,
     runs,
+    *,
     path=None,
     force_update=False,
     update_path=None,
@@ -105,12 +106,14 @@ def load_data(
     """Get paths to local copies of EEGBCI dataset files.
 
     This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is
-    also available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+    also available at PhysioNet :footcite:`GoldbergerEtAl2000`. Metadata, such as the
+    meaning of event markers may be obtained from the
+    `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 
     Parameters
     ----------
-    subject : int
-        The subject to use. Can be in the range of 1-109 (inclusive).
+    subjects : int | list of int
+        The subjects to use. Can be in the range of 1-109 (inclusive).
     runs : int | list of int
         The runs to use (see Notes for details).
     path : None | path-like
@@ -151,11 +154,11 @@ def load_data(
     For example, one could do::
 
         >>> from mne.datasets import eegbci
-        >>> eegbci.load_data(1, [6, 10, 14], "~/datasets") # doctest:+SKIP
+        >>> eegbci.load_data([1, 2], [6, 10, 14], "~/datasets") # doctest:+SKIP
 
-    This would download runs 6, 10, and 14 (hand/foot motor imagery) runs from subject 1
-    in the EEGBCI dataset to "~/datasets" and prompt the user to store this path in the
-    config (if it does not already exist).
+    This would download runs 6, 10, and 14 (hand/foot motor imagery) runs from subjects
+    1 and 2 in the EEGBCI dataset to "~/datasets" and prompt the user to store this path
+    in the config (if it does not already exist).
 
     References
     ----------
@@ -164,6 +167,9 @@ def load_data(
     import pooch
 
     t0 = time.time()
+
+    if not hasattr(subjects, "__iter__"):
+        subjects = [subjects]
 
     if not hasattr(runs, "__iter__"):
         runs = [runs]
@@ -200,20 +206,22 @@ def load_data(
     # fetch the file(s)
     data_paths = []
     sz = 0
-    for run in runs:
-        file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
-        destination = Path(base_path, file_part)
-        data_paths.append(destination)
-        if destination.exists():
-            if force_update:
-                destination.unlink()
-            else:
-                continue
-        if sz == 0:  # log once
-            logger.info("Downloading EEGBCI data")
-        fetcher.fetch(file_part)
-        # update path in config if desired
-        sz += destination.stat().st_size
+    for subject in subjects:
+        for run in runs:
+            file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
+            destination = Path(base_path, file_part)
+            data_paths.append(destination)
+            if destination.exists():
+                if force_update:
+                    destination.unlink()
+                else:
+                    continue
+            if sz == 0:  # log once
+                logger.info("Downloading EEGBCI data")
+            fetcher.fetch(file_part)
+            # update path in config if desired
+            sz += destination.stat().st_size
+
     _do_path_update(path, update_path, config_key, name)
     if sz > 0:
         _log_time_size(t0, sz)

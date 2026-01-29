@@ -16,8 +16,10 @@ applied to its EEG channels. As usual we'll start by importing the modules we
 need and loading the data:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.pyplot as plt

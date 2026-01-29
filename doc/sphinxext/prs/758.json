@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cd5ddf7e15f8d6c16957ff79afaad49e8aed7ba0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/source_space.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

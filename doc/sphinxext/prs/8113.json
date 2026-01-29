@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "c997dc0d0ebed9f4f1fede5c869e700c8d687a6a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "wronk",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 40
+    },
+    "mne/externals/doccer.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tag.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 434,
+      "d": 19
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 68,
+      "d": 46
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 116,
+      "d": 17
+    },
+    "mne/utils/docs.py": {
+      "a": 26,
+      "d": 2
+    }
+  }
+}

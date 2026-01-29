@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ec8a360911172e8c245b676c0e2af38c023b266f",
+  "authors": [
+    {
+      "n": "Daniel C Schad",
+      "e": null
+    },
+    {
+      "n": "Daniel Carlström Schad",
+      "e": "daniel.c.schad@protonmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/tests/test_time_frequency.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 11,
+      "d": 8
+    }
+  }
+}

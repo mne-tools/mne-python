@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7e2fbcc8a40bb4357543e8745c26c8edd65b60e2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_movement_compensation.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

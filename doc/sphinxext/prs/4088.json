@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "52109930a4e483f3d325291c2e12cca9ff502c0b",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 115,
+      "d": 1
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 18,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "b2de2e9a192301e4dfb106cef3963d1283d74024",
+  "authors": [
+    {
+      "n": "Stanislas Chambon",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 0
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 201,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 110,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/age_records.csv": {
+      "a": 79,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 107,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/temazepam_records.csv": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 161,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/tests/test_utils.py": {
+      "a": 29,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 38,
+      "d": 6
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/plot_sleep.py": {
+      "a": 306,
+      "d": 0
+    }
+  }
+}

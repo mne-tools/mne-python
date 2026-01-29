@@ -1,11 +1,11 @@
 """Test exporting functions."""
-# Authors: MNE Developers
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 from contextlib import nullcontext
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +25,7 @@ from mne.export import export_evokeds, export_evokeds_mff
 from mne.fixes import _compare_version
 from mne.io import (
     RawArray,
+    read_raw_bdf,
     read_raw_brainvision,
     read_raw_edf,
     read_raw_eeglab,
@@ -35,6 +36,7 @@ from mne.utils import (
     _check_edfio_installed,
     _record_warnings,
     _resource_path,
+    check_version,
     object_diff,
 )
 
@@ -122,6 +124,49 @@ def test_export_raw_eeglab(tmp_path):
         raw.export(temp_fname, overwrite=True)
 
 
+@pytest.mark.parametrize("tmin", (0, 1, 5, 10))
+def test_export_raw_eeglab_annotations(tmp_path, tmin):
+    """Test annotations in the exported EEGLAB file.
+
+    All annotations should be preserved and onset corrected.
+    """
+    pytest.importorskip("eeglabio")
+    raw = read_raw_fif(fname_raw, preload=True)
+    raw.apply_proj()
+    annotations = Annotations(
+        onset=[0.01, 0.05, 0.90, 1.05],
+        duration=[0, 1, 0, 0],
+        description=["test1", "test2", "test3", "test4"],
+        ch_names=[["MEG 0113"], ["MEG 0113", "MEG 0132"], [], ["MEG 0143"]],
+    )
+    raw.set_annotations(annotations)
+    raw.crop(tmin)
+
+    # export
+    temp_fname = tmp_path / "test.set"
+    raw.export(temp_fname)
+
+    # read in the file
+    with pytest.warns(RuntimeWarning, match="is above the 99th percentile"):
+        raw_read = read_raw_eeglab(temp_fname, preload=True, montage_units="m")
+    assert raw_read.first_time == 0  # exportation resets first_time
+    valid_annot = (
+        raw.annotations.onset >= tmin
+    )  # only annotations in the cropped range gets exported
+
+    # compare annotations before and after export
+    assert_array_almost_equal(
+        raw.annotations.onset[valid_annot] - raw.first_time,
+        raw_read.annotations.onset,
+    )
+    assert_array_equal(
+        raw.annotations.duration[valid_annot], raw_read.annotations.duration
+    )
+    assert_array_equal(
+        raw.annotations.description[valid_annot], raw_read.annotations.description
+    )
+
+
 def _create_raw_for_edf_tests(stim_channel_index=None):
     rng = np.random.RandomState(12345)
     ch_types = [
@@ -145,7 +190,7 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
 
 
 edfio_mark = pytest.mark.skipif(
-    not _check_edfio_installed(strict=False), reason="unsafe use of private module"
+    not _check_edfio_installed(strict=False), reason="requires edfio"
 )
 
 
@@ -153,14 +198,15 @@ edfio_mark = pytest.mark.skipif(
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
-    raw.info.set_meas_date("2023-09-04 14:53:09.000")
+    raw.info.set_meas_date(datetime(2023, 9, 4, 14, 53, 9, tzinfo=timezone.utc))
+    raw.set_annotations(Annotations(onset=[1], duration=[0], description=["test"]))
 
     # include subject info and measurement date
     raw.info["subject_info"] = dict(
         his_id="12345",
         first_name="mne",
         last_name="python",
-        birthday=(1992, 1, 20),
+        birthday=date(1992, 1, 20),
         sex=1,
         weight=78.3,
         height=1.75,
@@ -217,8 +263,53 @@ def test_edf_physical_range(tmp_path):
 
 
 @edfio_mark()
-def test_export_edf_annotations(tmp_path):
-    """Test that exporting EDF preserves annotations."""
+@pytest.mark.parametrize("pad_width", (1, 10, 100, 500, 999))
+def test_edf_padding(tmp_path, pad_width):
+    """Test exporting an EDF file with not-equal-length data blocks."""
+    ch_types = ["eeg"] * 4
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    fs = 1000
+    info = create_info(len(ch_types), sfreq=fs, ch_types=ch_types)
+    data = np.tile(
+        np.sin(2 * np.pi * 10 * np.arange(0, 2, 1 / fs)) * 1e-5, (len(ch_names), 1)
+    )[:, 0:-pad_width]  # remove last pad_width samples
+    raw = RawArray(data, info)
+
+    # export with physical range per channel type (default)
+    temp_fname = tmp_path / "test.edf"
+    with pytest.warns(
+        RuntimeWarning,
+        match=(
+            "EDF format requires equal-length data blocks.*"
+            f"{pad_width / 1000:.3g} seconds of edge values were appended.*"
+        ),
+    ):
+        raw.export(temp_fname)
+
+    # read in the file
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert raw.n_times == raw_read.n_times - pad_width
+    edge_data = raw_read.get_data()[:, -pad_width - 1]
+    pad_data = raw_read.get_data()[:, -pad_width:]
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :-pad_width], decimal=10
+    )
+    assert_array_almost_equal(
+        pad_data, np.tile(edge_data, (pad_width, 1)).T, decimal=10
+    )
+
+    assert "BAD_ACQ_SKIP" in raw_read.annotations.description
+    assert_array_almost_equal(raw_read.annotations.onset[0], raw.times[-1] + 1 / fs)
+    assert_array_almost_equal(raw_read.annotations.duration[0], pad_width / fs)
+
+
+@edfio_mark()
+@pytest.mark.parametrize("tmin", (0, 0.005, 0.03, 1))
+def test_export_edf_annotations(tmp_path, tmin):
+    """Test annotations in the exported EDF file.
+
+    All annotations should be preserved and onset corrected.
+    """
     raw = _create_raw_for_edf_tests()
     annotations = Annotations(
         onset=[0.01, 0.05, 0.90, 1.05],
@@ -227,17 +318,44 @@ def test_export_edf_annotations(tmp_path):
         ch_names=[["0"], ["0", "1"], [], ["1"]],
     )
     raw.set_annotations(annotations)
+    raw.crop(tmin)
+    assert raw.first_time == tmin
+
+    if raw.n_times % raw.info["sfreq"] == 0:
+        expectation = nullcontext()
+    else:
+        expectation = pytest.warns(
+            RuntimeWarning, match="EDF format requires equal-length data blocks"
+        )
 
     # export
     temp_fname = tmp_path / "test.edf"
-    raw.export(temp_fname)
+    with expectation:
+        raw.export(temp_fname)
 
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
-    assert_array_equal(raw.annotations.duration, raw_read.annotations.duration)
-    assert_array_equal(raw.annotations.description, raw_read.annotations.description)
-    assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
+    assert raw_read.first_time == 0  # exportation resets first_time
+    bad_annot = raw_read.annotations.description == "BAD_ACQ_SKIP"
+    if bad_annot.any():
+        raw_read.annotations.delete(bad_annot)
+    valid_annot = (
+        raw.annotations.onset >= tmin
+    )  # only annotations in the cropped range gets exported
+
+    # compare annotations before and after export
+    assert_array_almost_equal(
+        raw.annotations.onset[valid_annot] - raw.first_time, raw_read.annotations.onset
+    )
+    assert_array_equal(
+        raw.annotations.duration[valid_annot], raw_read.annotations.duration
+    )
+    assert_array_equal(
+        raw.annotations.description[valid_annot], raw_read.annotations.description
+    )
+    assert_array_equal(
+        raw.annotations.ch_names[valid_annot], raw_read.annotations.ch_names
+    )
 
 
 @edfio_mark()
@@ -249,7 +367,7 @@ def test_rawarray_edf(tmp_path):
     raw.info["subject_info"] = dict(
         first_name="mne",
         last_name="python",
-        birthday=(1992, 1, 20),
+        birthday=date(1992, 1, 20),
         sex=1,
         hand=3,
     )
@@ -339,6 +457,16 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
 
 
 @edfio_mark()
+def test_export_edf_with_constant_channel(tmp_path):
+    """Test if exporting to edf works if a channel contains only constant values."""
+    temp_fname = tmp_path / "test.edf"
+    raw = RawArray(np.zeros((1, 10)), info=create_info(1, 1))
+    raw.export(temp_fname)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert_array_equal(raw_read.get_data(), np.zeros((1, 10)))
+
+
+@edfio_mark()
 @pytest.mark.parametrize(
     ("input_path", "warning_msg"),
     [
@@ -408,7 +536,9 @@ def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
     raw.export(tmp_path / "test.edf", add_ch_type=True)
 
 
-@pytest.mark.xfail(reason="eeglabio (usage?) bugs that should be fixed")
+@pytest.mark.skipif(
+    not check_version("eeglabio", "0.1.2"), reason="fixed by eeglabio 0.1.2"
+)
 @pytest.mark.parametrize("preload", (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
@@ -425,7 +555,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     with ctx():
         epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ["epoc", "STI 014"] if ch in epochs.ch_names])
-    epochs_read = read_epochs_eeglab(temp_fname)
+    epochs_read = read_epochs_eeglab(temp_fname, verbose="error")  # head radius
     assert epochs.ch_names == epochs_read.ch_names
     cart_coords = np.array([d["loc"][:3] for d in epochs.info["chs"]])  # just xyz
     cart_coords_read = np.array([d["loc"][:3] for d in epochs_read.info["chs"]])
@@ -453,7 +583,6 @@ def test_export_epochs_eeglab(tmp_path, preload):
         epochs.export(Path(temp_fname), overwrite=True)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @testing.requires_testing_data
 @pytest.mark.parametrize("fmt", ("auto", "mff"))
 @pytest.mark.parametrize("do_history", (True, False))
@@ -512,7 +641,6 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     evoked[0].export(export_fname, overwrite=True)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @testing.requires_testing_data
 def test_export_to_mff_no_device():
     """Test no device type throws ValueError."""
@@ -524,12 +652,11 @@ def test_export_to_mff_no_device():
         export_evokeds("output.mff", evoked)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
     evoked = read_evokeds(fname_evoked)
-    with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
+    with pytest.raises(ValueError, match=f"sfreq: {evoked[0].info['sfreq']}"):
         export_evokeds("output.mff", evoked)
 
 
@@ -543,3 +670,50 @@ def test_export_evokeds_unsupported_format(fmt, ext):
     errstr = fmt.lower() if fmt != "auto" else "vhdr"
     with pytest.raises(ValueError, match=f"Format '{errstr}' is not .*"):
         export_evokeds(f"output.{ext}", evoked, fmt=fmt)
+
+
+@edfio_mark()
+@pytest.mark.parametrize(
+    ("input_path", "warning_msg"),
+    [
+        (fname_raw, "Data has a non-integer"),
+        pytest.param(
+            misc_path / "ecog" / "sample_ecog_ieeg.fif",
+            "BDF format requires",
+            marks=[pytest.mark.slowtest, misc._pytest_mark()],
+        ),
+    ],
+)
+def test_export_raw_bdf(tmp_path, input_path, warning_msg):
+    """Test saving a Raw instance to BDF format."""
+    raw = read_raw_fif(input_path)
+
+    # only test with EEG channels
+    raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
+    temp_fname = tmp_path / "test.bdf"
+
+    with pytest.warns(RuntimeWarning, match=warning_msg):
+        raw.export(temp_fname)
+
+    if "epoc" in raw.ch_names:
+        raw.drop_channels(["epoc"])
+
+    raw_read = read_raw_bdf(temp_fname, preload=True)
+    assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
+
+    # assert data and times are not different
+    # Due to the physical range of the data, reading and writing is not lossless. For
+    # example, a physical min/max of -/+ 3200 uV will result in a resolution of 0.38 nV.
+    # This resolution is more than sufficient for EEG.
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=11
+    )
+
+    # Due to the data record duration limitations of BDF files, one cannot store
+    # arbitrary float sampling rate exactly. Usually this results in two sampling rates
+    # that are off by very low number of decimal points. This for practical purposes
+    # does not matter but will result in an error when say the number of time points is
+    # very very large.
+    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)

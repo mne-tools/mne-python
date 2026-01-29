@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7c531e49aa46083efd507921fe53a6ac0c89de49",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/egi/egimff.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

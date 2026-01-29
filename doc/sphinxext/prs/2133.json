@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f9909e5c4df78f188071cefa9938d4bcc00eddde",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

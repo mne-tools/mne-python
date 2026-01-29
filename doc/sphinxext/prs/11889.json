@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f48b4899b35940d0dc2ece525ca264e0a92658b4",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

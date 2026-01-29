@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "a6ea90c7619c4294f5ae5731ea622cebd45923a8",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 47,
+      "d": 10
+    },
+    "examples/preprocessing/plot_eeg_csd.py": {
+      "a": 4,
+      "d": 12
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 22,
+      "d": 32
+    },
+    "mne/preprocessing/tests/test_csd.py": {
+      "a": 77,
+      "d": 103
+    },
+    "mne/tests/test_defaults.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

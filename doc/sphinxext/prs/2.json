@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "1886878b372506c2168f2084c7c39bd03dfaaeb1",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_make_inverse_operator.py": {
+      "a": 53,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 73,
+      "d": 164
+    },
+    "mne/forward.py": {
+      "a": 58,
+      "d": 43
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 93,
+      "d": 183
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 27,
+      "d": 28
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/tests/test_cov.py": {
+      "a": 1,
+      "d": 20
+    }
+  }
+}

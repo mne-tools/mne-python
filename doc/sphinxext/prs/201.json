@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6b6688df63361b287fc58c331d8efb1c520aaaa1",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/manual/analyze.rst": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

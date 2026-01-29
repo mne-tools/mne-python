@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "683b93219a2027d8064b0b3bfa8f96b6518adc3c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/evoked.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/fiff/raw.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

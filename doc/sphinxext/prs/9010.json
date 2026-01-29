@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4f0ba23e8df4bbd875e3040c72a079da3628c1a0",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 19,
+      "d": 2
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 16,
+      "d": 11
+    },
+    "tutorials/forward/10_background_freesurfer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

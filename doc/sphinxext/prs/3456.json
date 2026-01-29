@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "403ab40f91a8bd196159e779a34d06823dc7209f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_montage.py": {
+      "a": 20,
+      "d": 36
+    },
+    "mne/datasets/megsim/urls.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 35,
+      "d": 35
+    },
+    "tutorials/plot_stats_cluster_methods.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6c43b2d398780e2e69ea2f5b2e3db6b59135825c",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "jadrew43",
+      "e": "39603454+jadrew43@users.noreply.github.com"
+    },
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/mixed_source_space_inverse.py": {
+      "a": 13,
+      "d": 14
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 6,
+      "d": 7
+    }
+  }
+}

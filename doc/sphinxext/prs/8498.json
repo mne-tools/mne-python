@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0ca1c5c8eb3a46b8a170ed21e8a98d2dfa533a04",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/overview/faq.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

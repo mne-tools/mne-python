@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Mads Jensen <mje.mads@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -23,7 +19,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _safe_svd
+from .fixes import _eye_array, _reshape_view, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -296,8 +292,8 @@ def read_source_estimate(fname, subject=None):
                 fname = fname[:-7]
             else:
                 err = (
-                    "Invalid .stc filename: %r; needs to end with "
-                    "hemisphere tag ('...-lh.stc' or '...-rh.stc')" % fname
+                    f"Invalid .stc filename: {fname!r}; needs to end with "
+                    "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
                 )
                 raise OSError(err)
         elif fname.endswith(".w"):
@@ -306,15 +302,15 @@ def read_source_estimate(fname, subject=None):
                 fname = fname[:-5]
             else:
                 err = (
-                    "Invalid .w filename: %r; needs to end with "
-                    "hemisphere tag ('...-lh.w' or '...-rh.w')" % fname
+                    f"Invalid .w filename: {fname!r}; needs to end with "
+                    "hemisphere tag ('...-lh.w' or '...-rh.w')"
                 )
                 raise OSError(err)
         elif fname.endswith(".h5"):
             ftype = "h5"
             fname = fname[:-3]
         else:
-            raise RuntimeError("Unknown extension for file %s" % fname_arg)
+            raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
         stc_exist = [op.exists(f) for f in [fname + "-rh.stc", fname + "-lh.stc"]]
@@ -329,9 +325,9 @@ def read_source_estimate(fname, subject=None):
             ftype = "h5"
             fname += "-stc"
         elif any(stc_exist) or any(w_exist):
-            raise OSError("Hemisphere missing for %r" % fname_arg)
+            raise OSError(f"Hemisphere missing for {fname_arg!r}")
         else:
-            raise OSError("SourceEstimate File(s) not found for: %r" % fname_arg)
+            raise OSError(f"SourceEstimate File(s) not found for: {fname_arg!r}")
 
     # read the files
     if ftype == "volume":  # volume source space
@@ -453,7 +449,7 @@ def _make_stc(
         Klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate
     else:
         raise ValueError(
-            "vertices has to be either a list with one or more " "arrays or an array"
+            "vertices has to be either a list with one or more arrays or an array"
         )
 
     # Rotate back for vector source estimates
@@ -479,7 +475,7 @@ def _make_stc(
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
-    if type(a) != type(b):
+    if type(a) is not type(b):
         raise ValueError(f"Cannot combine {type(a)} and {type(b)}.")
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)):
@@ -524,8 +520,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         if self._src_count is not None:
             if len(vertices) != self._src_count:
                 raise ValueError(
-                    "vertices must be a list with %d entries, "
-                    "got %s" % (self._src_count, len(vertices))
+                    f"vertices must be a list with {self._src_count} entries, "
+                    f"got {len(vertices)}."
                 )
         vertices = [np.array(v, np.int64) for v in vertices]  # makes copy
         if any(np.any(np.diff(v) <= 0) for v in vertices):
@@ -566,9 +562,9 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         self.subject = _check_subject(None, subject, raise_error=False)
 
     def __repr__(self):  # noqa: D105
-        s = "%d vertices" % (sum(len(v) for v in self.vertices),)
+        s = f"{sum(len(v) for v in self.vertices)} vertices"
         if self.subject is not None:
-            s += ", subject : %s" % self.subject
+            s += f", subject : {self.subject}"
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
@@ -701,7 +697,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         Parameters
         ----------
         %(baseline_stc)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -768,6 +764,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         transparent=True,
         alpha=1.0,
         time_viewer="auto",
+        *,
         subjects_dir=None,
         figure=None,
         views="auto",
@@ -953,12 +950,12 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def data(self, value):
         value = np.asarray(value)
         if self._data is not None and value.ndim != self._data.ndim:
-            raise ValueError("Data array should have %d dimensions." % self._data.ndim)
+            raise ValueError(f"Data array should have {self._data.ndim} dimensions.")
         n_verts = sum(len(v) for v in self.vertices)
         if value.shape[0] != n_verts:
             raise ValueError(
-                "The first dimension of the data array must "
-                "match the number of vertices (%d != %d)" % (value.shape[0], n_verts)
+                "The first dimension of the data array must match the number of "
+                f"vertices ({value.shape[0]} != {n_verts})."
             )
         self._data = value
         self._update_times()
@@ -1391,8 +1388,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 ]
             else:
                 raise ValueError(
-                    "copy must be True if transformed data has "
-                    "more than 2 dimensions"
+                    "copy must be True if transformed data has more than 2 dimensions"
                 )
         else:
             # return new or overwritten stc
@@ -1455,7 +1451,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         # triage surface vs volume source estimates
         col_names = list()
         kinds = ["VOL"] * len(self.vertices)
-        if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
+        if isinstance(self, _BaseSurfaceSourceEstimate | _BaseMixedSourceEstimate):
             kinds[:2] = ["LH", "RH"]
         for kind, vertno in zip(kinds, self.vertices):
             col_names.extend([f"{kind}_{vert}" for vert in vertno])
@@ -2260,6 +2256,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         vector_alpha=1.0,
         scale_factor=None,
         time_viewer="auto",
+        *,
         subjects_dir=None,
         figure=None,
         views="lateral",
@@ -2271,6 +2268,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         foreground=None,
         initial_time=None,
         time_unit="s",
+        title=None,
         show_traces="auto",
         src=None,
         volume_options=1.0,
@@ -2303,6 +2301,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             foreground=foreground,
             initial_time=initial_time,
             time_unit=time_unit,
+            title=title,
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
@@ -2504,7 +2503,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         if isinstance(label, str):
             volume_label = [label]
         else:
-            volume_label = {"Volume ID %s" % (label): _ensure_int(label)}
+            volume_label = {f"Volume ID {label}": _ensure_int(label)}
         label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
@@ -2689,7 +2688,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             )
         if ftype != "h5" and self.data.dtype == "complex":
             raise ValueError(
-                "Can only write non-complex data to .stc or .w" ", use .h5 instead"
+                "Can only write non-complex data to .stc or .w, use .h5 instead"
             )
         if ftype == "stc":
             logger.info("Writing STC to disk...")
@@ -2771,6 +2770,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         vector_alpha=1.0,
         scale_factor=None,
         time_viewer="auto",
+        *,
         subjects_dir=None,
         figure=None,
         views="axial",
@@ -2782,6 +2782,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         foreground=None,
         initial_time=None,
         time_unit="s",
+        title=None,
         show_traces="auto",
         src=None,
         volume_options=1.0,
@@ -2814,6 +2815,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
             foreground=foreground,
             initial_time=initial_time,
             time_unit=time_unit,
+            title=title,
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
@@ -3078,10 +3080,10 @@ def _spatio_temporal_src_adjacency_surf(src, n_times):
     missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
     if missing:
         warn(
-            "%0.1f%% of original source space vertices have been"
+            f"{missing:0.1f}% of original source space vertices have been"
             " omitted, tri-based adjacency will have holes.\n"
             "Consider using distance-based adjacency or "
-            "morphing data to all source space vertices." % missing
+            "morphing data to all source space vertices."
         )
         masks = np.tile(masks, n_times)
         masks = np.where(masks)[0]
@@ -3112,7 +3114,7 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3174,7 +3176,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3186,7 +3188,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris)
-    edges = (edges + sparse.eye(edges.shape[0], format="csr")).tocoo()
+    edges = (edges + _eye_array(edges.shape[0])).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 
@@ -3210,7 +3212,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3255,7 +3257,7 @@ def spatial_src_adjacency(src, dist=None, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_src_adjacency(src, 1, dist)
@@ -3276,7 +3278,7 @@ def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_tris_adjacency(tris, 1, remap_vertices)
@@ -3300,7 +3302,7 @@ def spatial_dist_adjacency(src, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_dist_adjacency(src, 1, dist)
@@ -3321,7 +3323,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
         Typically this should be combined (addititively) with another
         existing intra-hemispheric adjacency matrix, e.g. computed
@@ -3329,8 +3331,8 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     """
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
-    adj = sparse.csr_matrix(adj <= dist, dtype=int)
-    empties = [sparse.csr_matrix((nv, nv), dtype=int) for nv in adj.shape]
+    adj = sparse.csr_array(adj <= dist, dtype=int)
+    empties = [sparse.csr_array((nv, nv), dtype=int) for nv in adj.shape]
     adj = sparse.vstack(
         [sparse.hstack([empties[0], adj]), sparse.hstack([adj.T, empties[1]])]
     )
@@ -3341,7 +3343,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
     n_vertices = edges.shape[0]
-    logger.info("-- number of adjacent vertices : %d" % n_vertices)
+    logger.info("-- number of adjacent vertices : %d", n_vertices)
     nnz = edges.col.size
     aux = n_vertices * np.tile(np.arange(n_times)[:, None], (1, nnz))
     col = (edges.col[None, :] + aux).ravel()
@@ -3359,7 +3361,7 @@ def _get_adjacency_from_edges(edges, n_times, verbose=None):
     data = np.ones(
         edges.data.size * n_times + 2 * n_vertices * (n_times - 1), dtype=np.int64
     )
-    adjacency = sparse.coo_matrix((data, (row, col)), shape=(n_times * n_vertices,) * 2)
+    adjacency = sparse.coo_array((data, (row, col)), shape=(n_times * n_vertices,) * 2)
     return adjacency
 
 
@@ -3416,9 +3418,8 @@ def _check_stc_src(stc, src):
             n_missing = (~np.isin(v, s["vertno"])).sum()
             if n_missing:
                 raise ValueError(
-                    "%d/%d %s hemisphere stc vertices "
-                    "missing from the source space, likely "
-                    "mismatch" % (n_missing, len(v), hemi)
+                    f"{n_missing}/{len(v)} {hemi} hemisphere stc vertices "
+                    "missing from the source space, likely mismatch"
                 )
 
 
@@ -3470,12 +3471,12 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             # Efficiency shortcut: use linearity early to avoid redundant
             # calculations
             elif mode == "mean":
-                vertidx = sparse.csr_matrix(vertidx.mean(axis=0))
+                vertidx = sparse.csr_array(vertidx.mean(axis=0)[np.newaxis])
             label_vertidx.append(vertidx)
             label_flip.append(None)
             continue
         # standard case
-        _validate_type(label, (Label, BiHemiLabel), "labels[%d]" % (li,))
+        _validate_type(label, (Label, BiHemiLabel), f"labels[{li}]")
 
         if label.hemi == "both":
             # handle BiHemiLabel
@@ -3491,7 +3492,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
                 this_vertices = np.intersect1d(vertno[1], slabel.vertices)
                 vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertices)
             else:
-                raise ValueError("label %s has invalid hemi" % label.name)
+                raise ValueError(f"label {label.name} has invalid hemi")
             this_vertidx.append(vertidx)
 
         # convert it to an array
@@ -3515,10 +3516,9 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
         label_flip.append(this_flip)
 
     if len(bad_labels):
-        msg = "source space does not contain any vertices for %d label%s:\n%s" % (
-            len(bad_labels),
-            _pl(bad_labels),
-            bad_labels,
+        msg = (
+            f"source space does not contain any vertices for {len(bad_labels)} "
+            f"label{_pl(bad_labels)}:\n{bad_labels}"
         )
         if not allow_empty:
             raise ValueError(msg)
@@ -3575,9 +3575,7 @@ def _volume_labels(src, labels, mri_resolution):
     if atlas_values.dtype.kind == "f":  # MGZ will be 'i'
         atlas_values = atlas_values[np.isfinite(atlas_values)]
         if not (atlas_values == np.round(atlas_values)).all():
-            raise RuntimeError(
-                "Non-integer values present in atlas, cannot " "labelize"
-            )
+            raise RuntimeError("Non-integer values present in atlas, cannot labelize")
         atlas_values = np.round(atlas_values).astype(np.int64)
     if infer_labels:
         labels = {
@@ -3597,7 +3595,7 @@ def _volume_labels(src, labels, mri_resolution):
     vox_mri_t, want = vox_mri_t["trans"], want["trans"]
     if not np.allclose(vox_mri_t, want, atol=1e-6):
         raise RuntimeError(
-            "atlas vox_mri_t does not match that used to create the source " "space"
+            "atlas vox_mri_t does not match that used to create the source space"
         )
     src_shape = tuple(src[0]["mri_" + k] for k in ("width", "height", "depth"))
     atlas_shape = atlas_data.shape
@@ -3634,8 +3632,9 @@ def _volume_labels(src, labels, mri_resolution):
         ]
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info(
-        "%d/%d atlas regions had at least one vertex "
-        "in the source space" % (nnz, len(out_labels))
+        "%d/%d atlas regions had at least one vertex in the source space",
+        nnz,
+        len(out_labels),
     )
     return out_labels
 
@@ -3645,7 +3644,7 @@ def _get_default_label_modes():
 
 
 def _get_allowed_label_modes(stc):
-    if isinstance(stc, (_BaseVolSourceEstimate, _BaseVectorSourceEstimate)):
+    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
         return ("mean", "max", "auto")
     else:
         return _get_default_label_modes()
@@ -3681,14 +3680,14 @@ def _gen_extract_label_time_course(
     n_labels = n_mode + n_mean
     vertno = func = None
     for si, stc in enumerate(stcs):
-        _validate_type(stc, _BaseSourceEstimate, "stcs[%d]" % (si,), "source estimate")
+        _validate_type(stc, _BaseSourceEstimate, f"stcs[{si}]", "source estimate")
         _check_option(
             "mode",
             mode,
             _get_allowed_label_modes(stc),
             "when using a vector and/or volume source estimate",
         )
-        if isinstance(stc, (_BaseVolSourceEstimate, _BaseVectorSourceEstimate)):
+        if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
             mode = "mean" if mode == "auto" else mode
         else:
             mode = "mean_flip" if mode == "auto" else mode
@@ -3714,9 +3713,7 @@ def _gen_extract_label_time_course(
             if not np.array_equal(svn, vn):
                 raise ValueError("stc not compatible with source space")
 
-        logger.info(
-            "Extracting time courses for %d labels (mode: %s)" % (n_labels, mode)
-        )
+        logger.info("Extracting time courses for %d labels (mode: %s)", n_labels, mode)
 
         # do the extraction
         if mode is None:
@@ -3727,12 +3724,14 @@ def _gen_extract_label_time_course(
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                if isinstance(vertidx, sparse.csr_matrix):
+                if isinstance(vertidx, sparse.csr_array):
                     assert mri_resolution
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
                     this_data = vertidx @ this_data
-                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                    this_data = _reshape_view(
+                        this_data, (this_data.shape[0],) + stc.data.shape[1:]
+                    )
                 else:
                     this_data = stc.data[vertidx]
                 label_tc[i] = func(flip, this_data)
@@ -3793,7 +3792,7 @@ def extract_label_time_course(
     time courses.
     """
     # convert inputs to lists
-    if not isinstance(stcs, (list, tuple, GeneratorType)):
+    if not isinstance(stcs, list | tuple | GeneratorType):
         stcs = [stcs]
         return_several = False
         return_generator = False
@@ -3927,22 +3926,6 @@ def stc_near_sensors(
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
     if surface == "auto":
-        if src is not None:
-            pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
-            pial_rr = read_surface(pial_fname)[0]
-            src_surf_is_pial = (
-                op.isfile(pial_fname)
-                and src[0]["rr"].shape == pial_rr.shape
-                and np.allclose(src[0]["rr"], pial_rr)
-            )
-            if not src_surf_is_pial:
-                warn(
-                    "In version 1.8, ``surface='auto'`` will be the default "
-                    "which will use the surface in ``src`` instead of the "
-                    "pial surface when ``src != None``. Pass ``surface='pial'`` "
-                    "or ``surface=None`` to suppress this warning",
-                    DeprecationWarning,
-                )
         surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs
@@ -3952,7 +3935,7 @@ def stc_near_sensors(
     frames = set(ch["coord_frame"] for ch in evoked.info["chs"])
     if not frames == {FIFF.FIFFV_COORD_HEAD}:
         raise RuntimeError(
-            "Channels must be in the head coordinate frame, " f"got {sorted(frames)}"
+            f"Channels must be in the head coordinate frame, got {sorted(frames)}"
         )
 
     # get channel positions that will be used to pinpoint where
@@ -4024,7 +4007,7 @@ def stc_near_sensors(
 
     min_dist = pdist(pos).min() * 1000
     logger.info(
-        f'    Minimum {"projected " if project else ""}intra-sensor distance: '
+        f"    Minimum {'projected ' if project else ''}intra-sensor distance: "
         f"{min_dist:0.1f} mm"
     )
 
@@ -4052,7 +4035,7 @@ def stc_near_sensors(
     if len(missing):
         warn(
             f"Channel{_pl(missing)} missing in STC: "
-            f'{", ".join(evoked.ch_names[mi] for mi in missing)}'
+            f"{', '.join(evoked.ch_names[mi] for mi in missing)}"
         )
 
     nz_data = w @ evoked.data

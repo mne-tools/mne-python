@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0faabfb093ebf4e03d8b6cbdb0b9418eeb090ff1",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/inverse.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 89,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 48,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

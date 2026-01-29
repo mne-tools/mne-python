@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "60505e96a7d90a56b48a6e1ea1e9f9f16a3dd87a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12498.bugfix.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/muscle_ica.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/ica.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

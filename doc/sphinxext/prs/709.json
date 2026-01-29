@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b94101eb1fe2b393ad076921e0ba9d5830dd818d",
+  "authors": [
+    {
+      "n": "Mads Jensen",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/maxfilter.py": {
+      "a": 16,
+      "d": 3
+    }
+  }
+}

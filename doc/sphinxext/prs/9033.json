@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "014e9526306a07f8cd47bbcb30ac33cd7779392e",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 50,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 45,
+      "d": 7
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 24,
+      "d": 10
+    }
+  }
+}

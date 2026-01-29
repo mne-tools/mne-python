@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "59c116e0ec3718586f2a6664702a889e06e3873e",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 36,
+      "d": 17
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 17,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

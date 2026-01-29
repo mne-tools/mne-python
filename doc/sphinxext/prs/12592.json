@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7fd22d63e8e478db23e9f114abc9b1b5228ed822",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

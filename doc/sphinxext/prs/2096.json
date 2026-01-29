@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f9d457444743c03f9de3d8c9c6b1bf1df5930762",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 10,
+      "d": 6
+    }
+  }
+}

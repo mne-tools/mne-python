@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "3b1704f581798cf71a88cbb5c352dc8beefa20ca",
+  "authors": [
+    {
+      "n": "Jevri Hanna",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/visualization/plot_sensor_noise_level.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/io/base.py": {
+      "a": 14,
+      "d": 13
+    },
+    "mne/utils/docs.py": {
+      "a": 73,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 51,
+      "d": 60
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 46,
+      "d": 277
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 209,
+      "d": 2
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

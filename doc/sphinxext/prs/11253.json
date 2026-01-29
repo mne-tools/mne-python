@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4957469534ed5f8a4434df8a31d7033ce0560a36",
+  "authors": [
+    {
+      "n": "Dinara Issagaliyeva",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

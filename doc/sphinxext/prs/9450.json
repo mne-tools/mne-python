@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a759bb35cb08cc5b5eb9e7fc177f12bcdc3b86db",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/CONTRIBUTING.md": {
+      "a": 2,
+      "d": 2
+    },
+    "CONTRIBUTING.md": {
+      "a": 9,
+      "d": 0
+    },
+    "CONTRIBUTING.rst": {
+      "a": 0,
+      "d": 21
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/development.rst": {
+      "a": 18,
+      "d": 12
+    }
+  }
+}

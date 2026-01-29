@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1af793825ae60e68c2845c853c5c9a1bffc3628b",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 13,
+      "d": 5
+    }
+  }
+}

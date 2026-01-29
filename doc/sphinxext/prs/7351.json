@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b75bfec5d184784bdc5f2f208e8b05bdc018c9a4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

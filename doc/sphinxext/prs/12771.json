@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e42e1d6a5ff1c3c807e3e6ac3f79d63be589a7f2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12771.apichange.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/inverse/morph_volume_stc.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 49,
+      "d": 48
+    },
+    "mne/datasets/_infant/base.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/datasets/_phantom/base.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 45,
+      "d": 39
+    },
+    "mne/datasets/utils.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 7,
+      "d": 9
+    }
+  }
+}

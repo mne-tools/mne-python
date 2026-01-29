@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "71cea4bf9a2ced60503272c1570b6993aa38df35",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/_eloreta.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

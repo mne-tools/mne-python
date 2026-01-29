@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b8ba02fb74f63fef08f5386ea27a0f660342c99b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

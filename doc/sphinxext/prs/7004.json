@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6233196394b1712f65be858227d9846b534fa150",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

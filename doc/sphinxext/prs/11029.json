@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c1f65be9f79cdb29f629f5335d79d2fedd32f73b",
+  "authors": [
+    {
+      "n": "Sena",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/compute_csd.py": {
+      "a": 10,
+      "d": 10
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f68d047d4305cc0622241e2886c8632059192d64",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 9,
+      "d": 16
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

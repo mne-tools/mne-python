@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e108241dbc0392100cf1b5df1598bda2f1645459",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/prs/12794.json": {
+      "a": 39,
+      "d": 0
+    }
+  }
+}

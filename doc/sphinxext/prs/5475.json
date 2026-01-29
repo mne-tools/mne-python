@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d91f99f56e4beb80808f396b4404f5434bedae8e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 23,
+      "d": 30
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 14,
+      "d": 15
+    },
+    "tutorials/plot_brainstorm_phantom_ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 16,
+      "d": 2
+    }
+  }
+}

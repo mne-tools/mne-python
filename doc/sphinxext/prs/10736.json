@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1310269f27bdf4347dfc465a834c1e04d25563d8",
+  "authors": [
+    {
+      "n": "Drew, J.",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/viz/_mpl_figure.py": {
+      "a": 20,
+      "d": 8
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

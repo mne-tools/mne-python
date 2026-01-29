@@ -1,7 +1,6 @@
 """Eye tracking specific preprocessing functions."""
 
-# Authors: Dominik Welke <dominik.welke@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

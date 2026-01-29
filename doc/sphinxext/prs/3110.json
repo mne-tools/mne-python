@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "f202ce34fcd296c5a9727bde808f6aa2383c1b9f",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/manual/memory.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 56,
+      "d": 25
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 22,
+      "d": 22
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_epochs.py": {
+      "a": 24,
+      "d": 5
+    }
+  }
+}

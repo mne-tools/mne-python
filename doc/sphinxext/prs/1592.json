@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "834ba92eca3f66f623f72d582a2690511bb32a87",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

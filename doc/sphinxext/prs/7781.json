@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f8276a8c6aebcb1f0cffcdfef5879342cf737fc1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 41,
+      "d": 29
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

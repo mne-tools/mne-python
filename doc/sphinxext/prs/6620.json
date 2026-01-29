@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7a790639d51d99afe9590809b05cc4b01a871aac",
+  "authors": [
+    {
+      "n": "Lorenz Esch",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

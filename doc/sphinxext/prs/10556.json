@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f523f24af64921cf3e49fee01f665ef36867e05a",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/multi_dipole_model.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

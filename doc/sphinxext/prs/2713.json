@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a8e93eca08e5c60a2ec2382fa5e3d40bd8625ce0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/regression.py": {
+      "a": 18,
+      "d": 4
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

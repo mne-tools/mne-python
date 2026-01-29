@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "87df00d63991a51835992e054d690aa67ccca7da",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12206.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12206.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 38,
+      "d": 7
+    },
+    "mne/evoked.py": {
+      "a": 58,
+      "d": 12
+    },
+    "mne/io/base.py": {
+      "a": 37,
+      "d": 5
+    },
+    "mne/io/tests/test_apply_function.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

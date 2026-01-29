@@ -1,5 +1,4 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,11 +9,24 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_equal
 
+sklearn = pytest.importorskip("sklearn")
+
+from sklearn.base import BaseEstimator, clone, is_classifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.ensemble import BaggingClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
+from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.svm import SVC
+from sklearn.utils.estimator_checks import parametrize_with_checks
+
 from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
-from mne.utils import _record_warnings, check_version, use_log_level
+from mne.utils import check_version, use_log_level
 
-pytest.importorskip("sklearn")
+NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 
 
 def make_data():
@@ -29,28 +41,24 @@ def make_data():
     return X, y
 
 
-def test_search_light():
+def test_search_light_basic():
     """Test SlidingEstimator."""
     # https://github.com/scikit-learn/scikit-learn/issues/27711
     if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
         pytest.skip("sklearn int_t / long long mismatch")
-    from sklearn.linear_model import LogisticRegression, Ridge
-    from sklearn.metrics import make_scorer, roc_auc_score
-    from sklearn.pipeline import make_pipeline
 
-    with _record_warnings():  # NumPy module import
-        from sklearn.ensemble import BaggingClassifier
-    from sklearn.base import is_classifier
-
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+    logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
-    pytest.raises(ValueError, SlidingEstimator, "foo")
+    sl = SlidingEstimator("foo")
+    with pytest.raises(ValueError, match="must be"):
+        sl.fit(X, y)
     sl = SlidingEstimator(Ridge())
     assert not is_classifier(sl)
     sl = SlidingEstimator(LogisticRegression(solver="liblinear"))
+    assert is_classifier(sl.base_estimator)
     assert is_classifier(sl)
     # fit
     assert_equal(sl.__repr__()[:18], "<SlidingEstimator(")
@@ -63,7 +71,8 @@ def test_search_light():
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
     y_trans = sl.transform(X)
-    assert X.dtype == y_trans.dtype == np.dtype(float)
+    assert X.dtype == float
+    assert y_trans.dtype == float
     y_pred = sl.predict(X)
     assert y_pred.dtype == np.dtype(int)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
@@ -158,9 +167,7 @@ def test_search_light():
         def transform(self, X):
             return super().predict_proba(X)[..., 1]
 
-    logreg_transformer = _LogRegTransformer(
-        random_state=0, multi_class="ovr", solver="liblinear"
-    )
+    logreg_transformer = OneVsRestClassifier(_LogRegTransformer(random_state=0))
     pipe = make_pipeline(SlidingEstimator(logreg_transformer), logreg)
     pipe.fit(X, y)
     pipe.predict(X)
@@ -185,13 +192,28 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-def test_generalization_light():
-    """Test GeneralizingEstimator."""
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import roc_auc_score
-    from sklearn.pipeline import make_pipeline
+@pytest.fixture()
+def metadata_routing():
+    """Temporarily enable metadata routing for new sklearn."""
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=True)
+    yield
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=False)
 
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+
+def test_generalization_light(metadata_routing):
+    """Test GeneralizingEstimator."""
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        clf = LogisticRegression(random_state=0)
+        clf.set_fit_request(sample_weight=True)
+        logreg = OneVsRestClassifier(clf)
+    else:
+        logreg = LogisticRegression(
+            solver="liblinear",
+            random_state=0,
+            multi_class="ovr",
+        )
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -276,8 +298,6 @@ def test_generalization_light():
 )
 def test_verbose_arg(capsys, n_jobs, verbose):
     """Test controlling output with the ``verbose`` argument."""
-    from sklearn.svm import SVC
-
     X, y = make_data()
     clf = SVC()
 
@@ -298,11 +318,6 @@ def test_verbose_arg(capsys, n_jobs, verbose):
 
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    from sklearn.base import BaseEstimator, clone
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-    from sklearn.linear_model import LinearRegression
-    from sklearn.model_selection import cross_val_predict
-
     rng = np.random.RandomState(42)
     X = rng.randn(10, 1, 3)
     y = rng.randint(0, 2, 10)
@@ -332,23 +347,12 @@ def test_cross_val_predict():
 
 
 @pytest.mark.slowtest
-def test_sklearn_compliance():
-    """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.utils.estimator_checks import check_estimator
-
-    est = SlidingEstimator(LogisticRegression(), allow_2d=True)
-
-    ignores = (
-        "check_estimator_sparse_data",  # we densify
-        "check_classifiers_one_label_sample_weights",  # don't handle singleton
-        "check_classifiers_classes",  # dim mismatch
-        "check_classifiers_train",
-        "check_decision_proba_consistency",
-        "check_parameters_default_constructible",
-    )
-    for est, check in check_estimator(est, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+@parametrize_with_checks(
+    [
+        SlidingEstimator(LogisticRegression(), allow_2d=True),
+        GeneralizingEstimator(LogisticRegression(), allow_2d=True),
+    ]
+)
+def test_sklearn_compliance(estimator, check):
+    """Test searchlights compliance with sklearn."""
+    check(estimator)

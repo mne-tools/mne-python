@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a4ba5dd96fda159010f709e054eb0a9666d10d58",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/evoked.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_point_spread.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

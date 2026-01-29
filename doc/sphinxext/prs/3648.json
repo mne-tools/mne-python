@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "85c42d12f4a99227673846601c343e393203ba79",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg_gui.py": {
+      "a": 11,
+      "d": 23
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 10,
+      "d": 19
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 6,
+      "d": 15
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 11,
+      "d": 21
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 9,
+      "d": 18
+    },
+    "mne/gui/_viewer.py": {
+      "a": 10,
+      "d": 19
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/gui/tests/test_fiducials_gui.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 20,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 0,
+      "d": 7
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d133a304d68b8e1aac5ebef49441e6ffa78a399b",
+  "authors": [
+    {
+      "n": "Mark Henney",
+      "e": null
+    },
+    {
+      "n": "Mark",
+      "e": "mah@optoceutics.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/export/_edf.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

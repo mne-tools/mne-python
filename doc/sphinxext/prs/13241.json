@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "1ea5dbbdb056592980c3daa9816d91683abf13ba",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "b.aristimunha@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13241.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 76,
+      "d": 4
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 103,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

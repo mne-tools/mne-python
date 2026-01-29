@@ -42,12 +42,14 @@ Projections:
    read_dig_polhemus_isotrak
    read_dig_captrak
    read_dig_dat
+   read_dig_curry
    read_dig_egi
    read_dig_fif
    read_dig_hpts
    read_dig_localite
    make_standard_montage
    read_custom_montage
+   transform_to_head
    compute_dev_head_t
    read_layout
    find_layout
@@ -115,6 +117,7 @@ Projections:
    read_ica_eeglab
    read_fine_calibration
    write_fine_calibration
+   apply_pca_obs
 
 :py:mod:`mne.preprocessing.nirs`:
 
@@ -218,6 +221,7 @@ EEG referencing:
    get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos
+   refit_hpi
    write_head_pos
 
 :py:mod:`mne.transforms`
@@ -232,6 +236,7 @@ EEG referencing:
    :toctree: ../generated/
 
    Transform
+   angle_distance_between_rigid
    quat_to_rot
    rot_to_quat
    read_ras_mni_t

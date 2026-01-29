@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "65928ef2b39d035b3479f4dfe0cf53d2307f1e8a",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_topo_compare_conditions.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/plot_topography.py": {
+      "a": 1,
+      "d": 4
+    },
+    "examples/time_frequency/plot_tfr_topography.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz.py": {
+      "a": 94,
+      "d": 58
+    }
+  }
+}

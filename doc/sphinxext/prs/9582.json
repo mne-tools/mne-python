@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b5767013e44a6b47393bc55d4534ea17a6b7b8bf",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

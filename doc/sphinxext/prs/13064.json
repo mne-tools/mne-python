@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "672bdf4357f815c63dfab91d9c8e257266bceb21",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel/13062.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

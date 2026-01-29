@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "b884155c707c9e7d5224bb38f1854a54599a5b37",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 12,
+      "d": 10
+    }
+  }
+}

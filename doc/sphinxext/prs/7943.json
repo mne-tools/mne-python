@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "b04ff04df17852a8d933075c4c5e3f4b5ee78b12",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 29,
+      "d": 30
+    },
+    "doc/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/flow_diagram.py": {
+      "a": 2,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 58,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/proj.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 3,
+      "d": 1
+    },
+    "server_environment.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

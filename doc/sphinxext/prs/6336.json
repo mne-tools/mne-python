@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5105bad5229c93eabb09697aa3438008bf4b1f71",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_configuration.py": {
+      "a": 230,
+      "d": 0
+    },
+    "tutorials/misc/plot_configuration.py": {
+      "a": 0,
+      "d": 88
+    }
+  }
+}

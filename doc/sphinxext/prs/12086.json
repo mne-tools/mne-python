@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "566fa0701f5c44324b330c8b21d8c8a434898e3e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 11,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/40_cluster_1samp_time_freq.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

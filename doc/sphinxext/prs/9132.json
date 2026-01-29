@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d8dbf98c005822f99112f5927975e13894f9c2ca",
+  "authors": [
+    {
+      "n": "Matteo Anelli",
+      "e": "matteanelli.96.11@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

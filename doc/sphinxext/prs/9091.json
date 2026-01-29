@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "53757d01c8f5e86fa6c2c0bd1934cb0a1f58aa3f",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 22,
+      "d": 1
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

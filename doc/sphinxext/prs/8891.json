@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "dc86ec0519632ac86eb8f1f640972d0f6df45562",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/channels/data/neighbors/neuromag122_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

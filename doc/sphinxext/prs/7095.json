@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "1689df918f18a44fd4602b691ea59c781a0c8763",
+  "authors": [
+    {
+      "n": null,
+      "e": "olaf.hauk@mrc-cbu.cam.ac.uk"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_psf_ctf_vertices.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_psf_ctf_vertices_lcmv.py": {
+      "a": 137,
+      "d": 0
+    },
+    "examples/inverse/plot_resolution_metrics.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/inverse/plot_resolution_metrics_eegmeg.py": {
+      "a": 23,
+      "d": 17
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 104,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_resolution_matrix.py": {
+      "a": 94,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/minimum_norm/tests/test_resolution_metrics.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

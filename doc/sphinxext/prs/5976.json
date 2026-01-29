@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "571a792299d07c298b9707fa84ad0b31badd5deb",
+  "authors": [
+    {
+      "n": "Quentin Bertrand",
+      "e": "quentin.bertrand@mila.quebec"
+    }
+  ],
+  "changes": {
+    "mne/simulation/source.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "merge_commit_sha": "e6336f0ee5dcb13023bee516787150dfb25a4bcf",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 13,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/data/html_templates.py": {
+      "a": 0,
+      "d": 180
+    },
+    "mne/epochs.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/externals/tempita/__init__.py": {
+      "a": 0,
+      "d": 1309
+    },
+    "mne/externals/tempita/_looper.py": {
+      "a": 0,
+      "d": 163
+    },
+    "mne/externals/tempita/compat3.py": {
+      "a": 0,
+      "d": 45
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/html_templates/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/html_templates/_templates.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/html_templates/report/code.html.jinja": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/html_templates/report/cov.html.jinja": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/html_templates/report/epochs.html.jinja": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/html_templates/report/evoked.html.jinja": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/html_templates/report/footer.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/report/forward.html.jinja": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/html_templates/report/header.html.jinja": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/html_templates/report/html.html.jinja": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/html_templates/report/ica.html.jinja": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/html_templates/report/image.html.jinja": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/html_templates/report/inverse.html.jinja": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/html_templates/report/raw.html.jinja": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/html_templates/report/slider.html.jinja": {
+      "a": 22,
+      "d": 22
+    },
+    "mne/html_templates/report/toc.html.jinja": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/html_templates/repr/epochs.html.jinja": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/html_templates/repr/forward.html.jinja": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/html_templates/repr/ica.html.jinja": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/html_templates/repr/info.html.jinja": {
+      "a": 74,
+      "d": 0
+    },
+    "mne/html_templates/repr/inverse_operator.html.jinja": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/html_templates/repr/raw.html.jinja": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 57,
+      "d": 13
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 74,
+      "d": 106
+    },
+    "mne/report/templates/code.html": {
+      "a": 0,
+      "d": 24
+    },
+    "mne/report/templates/cov.html": {
+      "a": 0,
+      "d": 23
+    },
+    "mne/report/templates/epochs.html": {
+      "a": 0,
+      "d": 27
+    },
+    "mne/report/templates/evoked.html": {
+      "a": 0,
+      "d": 26
+    },
+    "mne/report/templates/forward.html": {
+      "a": 0,
+      "d": 23
+    },
+    "mne/report/templates/html.html": {
+      "a": 0,
+      "d": 23
+    },
+    "mne/report/templates/ica.html": {
+      "a": 0,
+      "d": 29
+    },
+    "mne/report/templates/image.html": {
+      "a": 0,
+      "d": 36
+    },
+    "mne/report/templates/inverse.html": {
+      "a": 0,
+      "d": 23
+    },
+    "mne/report/templates/raw.html": {
+      "a": 0,
+      "d": 25
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d14d7b492cd8c7253e2b3216f1040491cb649de3",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/decoding_rsa.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

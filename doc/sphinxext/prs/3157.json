@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "f05bd2a2563c96eb92f47a0225e0abf1a5ddeedc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 17,
+      "d": 14
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/defaults.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 9
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 27,
+      "d": 18
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 36,
+      "d": 22
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 8,
+      "d": 7
+    }
+  }
+}

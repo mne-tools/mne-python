@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "09d7b82cf34053f031feadf31bd729e6ed3c21a6",
+  "authors": [
+    {
+      "n": "Alan Leggitt",
+      "e": "leggitta3@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/plot_left_cerebellum_volume_source.py": {
+      "a": 97,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/data/FreeSurferColorLUT.txt": {
+      "a": 1397,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 27,
+      "d": 3
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 56,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 158,
+      "d": 14
+    },
+    "mne/source_space.py": {
+      "a": 490,
+      "d": 25
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 26,
+      "d": 2
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 122,
+      "d": 0
+    }
+  }
+}

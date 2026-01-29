@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "57c520e0585c04bc37894f9c8ea0a2ed3c466b29",
+  "authors": [
+    {
+      "n": "Kambiz Tavabi",
+      "e": "ktavabi@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

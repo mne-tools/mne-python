@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b9cdca8638b20768e85822f5e5e57a5fe043d393",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12862.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 42,
+      "d": 9
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

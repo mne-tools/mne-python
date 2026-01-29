@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3149819463d4690146b3f038dca8441157abb36b",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 19,
+      "d": 17
+    }
+  }
+}

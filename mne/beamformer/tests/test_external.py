@@ -1,5 +1,4 @@
-# Authors: Britta Westner <britta.wstnr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,6 +11,7 @@ import mne
 from mne.beamformer import apply_lcmv, apply_lcmv_cov, make_lcmv
 from mne.beamformer.tests.test_lcmv import _get_data
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 
 data_path = testing.data_path(download=False)
 ft_data_path = data_path / "fieldtrip" / "beamformer"
@@ -99,7 +99,7 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     ft_fname = ft_data_path / ("ft_source_" + bf_type + "-vol.mat")
     stc_ft_data = pymatreader.read_mat(ft_fname)["stc"]
     if stc_ft_data.ndim == 1:
-        stc_ft_data.shape = (stc_ft_data.size, 1)
+        stc_ft_data = _reshape_view(stc_ft_data, (stc_ft_data.size, 1))
 
     if stc_mne.data.ndim == 2:
         signs = np.sign((stc_mne.data * stc_ft_data).sum(-1, keepdims=True))

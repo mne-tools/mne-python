@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9cc9fb1c1a2223e0ab349aae34c678b8b09ec9c2",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

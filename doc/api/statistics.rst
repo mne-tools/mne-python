@@ -48,6 +48,13 @@ Non-parametric (clustering) resampling methods:
    summarize_clusters_stc
    bootstrap_confidence_interval
 
+ERP-related statistics:
+
+.. autosummary::
+   :toctree: ../generated/
+
+   erp.compute_sme
+
 Compute ``adjacency`` matrices for cluster-level statistics:
 
 .. currentmodule:: mne

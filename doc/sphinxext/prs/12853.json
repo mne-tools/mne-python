@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2cab0257a430127c4bae348380ab2be99bffb412",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12853.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

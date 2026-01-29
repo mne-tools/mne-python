@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "07aecf85877621a37fd83b69a78d837f81df81e2",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/eyetracking/_pupillometry.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

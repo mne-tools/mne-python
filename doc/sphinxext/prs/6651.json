@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1f6f4f89a81df875ecb0a8c86c2542337dfbaaa9",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 0,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

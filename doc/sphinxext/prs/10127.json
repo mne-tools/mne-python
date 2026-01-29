@@ -1,0 +1,143 @@
+{
+  "merge_commit_sha": "fd4f692f142ed8107cc816c3f60cfb3b4509e477",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/bem.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/channels/montage.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/event.py": {
+      "a": 14,
+      "d": 16
+    },
+    "mne/evoked.py": {
+      "a": 16,
+      "d": 12
+    },
+    "mne/forward/forward.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/io/_digitization.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 16,
+      "d": 17
+    },
+    "mne/io/meas_info.py": {
+      "a": 9,
+      "d": 25
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/write.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 13,
+      "d": 9
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/morph_map.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 11
+    },
+    "mne/proj.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/source_estimate.py": {
+      "a": 55,
+      "d": 50
+    },
+    "mne/source_space.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_event.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 18,
+      "d": 16
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/transforms.py": {
+      "a": 8,
+      "d": 7
+    }
+  }
+}

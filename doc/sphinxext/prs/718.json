@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6cd7d77fa2fef767f7514a884c3778a721aa870d",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 56,
+      "d": 36
+    },
+    "mne/tests/test_event.py": {
+      "a": 21,
+      "d": 18
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "2b3f339aed81f7990caeb1313e0c6341a15546ec",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".cirrus.yml": {
+      "a": 41,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/gui/tests/test_core.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/cirrus_dependencies.sh": {
+      "a": 5,
+      "d": 0
+    },
+    "tools/cirrus_install_python.sh": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6e332b112da0fe2b155c481c746adeeb82e3fda2",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

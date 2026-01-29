@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2cc6d7e275a60ae27c377de9c09272db5705155d",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

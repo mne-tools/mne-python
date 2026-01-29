@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "7655632d8e85164a36b8f322ed52e9262a7e2ebb",
+  "authors": [
+    {
+      "n": "Evan Hathaway",
+      "e": null
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/data/layouts/GeodesicHeadWeb-130.lout": {
+      "a": 132,
+      "d": 0
+    },
+    "mne/channels/data/layouts/GeodesicHeadWeb-280.lout": {
+      "a": 282,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 54,
+      "d": 2
+    }
+  }
+}

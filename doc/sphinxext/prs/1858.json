@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ec35be4d87505e9c7b7a0912e6c5e572c4fd3323",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 16,
+      "d": 32
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/io/reference.py": {
+      "a": 83,
+      "d": 0
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 102,
+      "d": 1
+    }
+  }
+}

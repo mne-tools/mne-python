@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5bab96d4a76609f34b4e505b57746925b557173a",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

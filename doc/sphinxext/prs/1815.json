@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "193cf2f7799ba388654433b47e0ebeae0a5adfe4",
+  "authors": [
+    {
+      "n": "Yousra Bekhti",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 56,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 267,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 149,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 16,
+      "d": 2
+    }
+  }
+}

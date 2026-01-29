@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6ce8b7110aa91bee4e61219de72863aadd6b4de9",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 20,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

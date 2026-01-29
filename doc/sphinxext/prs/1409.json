@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ac947d0723c093c4945bee92cfe7793940016643",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 23,
+      "d": 7
+    }
+  }
+}

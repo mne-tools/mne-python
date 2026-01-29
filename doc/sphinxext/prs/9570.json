@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "0446fcf6efb4a04e51f38b3f72b1d1a187e50d26",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/visualization.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 149,
+      "d": 32
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 77,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 27,
+      "d": 9
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 17,
+      "d": 3
+    }
+  }
+}

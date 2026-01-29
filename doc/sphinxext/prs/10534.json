@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "5adb55223e564575ac384dbc853d0daaa4e75d8e",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 28,
+      "d": 0
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/preprocessing/muscle_ica.py": {
+      "a": 117,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 104,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 7,
+      "d": 1
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

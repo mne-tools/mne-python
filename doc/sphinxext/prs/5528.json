@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "8f6ff4237b0f9cf31053de21fed4b66cbaf39b53",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 129,
+      "d": 111
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_visualize_stc.py": {
+      "a": 140,
+      "d": 0
+    }
+  }
+}

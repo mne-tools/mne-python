@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "60070e37959ad01125fa21f14f7479c07bf45dd5",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

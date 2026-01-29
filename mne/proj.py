@@ -1,5 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -35,7 +34,7 @@ from .utils import (
 
 
 @verbose
-def read_proj(fname, verbose=None):
+def read_proj(fname, *, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -57,6 +56,7 @@ def read_proj(fname, verbose=None):
     check_fname(
         fname, "projection", ("-proj.fif", "-proj.fif.gz", "_proj.fif", "_proj.fif.gz")
     )
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
@@ -393,11 +393,21 @@ def sensitivity_map(
         List of projection vectors.
     ch_type : ``'grad'`` | ``'mag'`` | ``'eeg'``
         The type of sensors to use.
-    mode : str
-        The type of sensitivity map computed. See manual. Should be ``'free'``,
-        ``'fixed'``, ``'ratio'``, ``'radiality'``, ``'angle'``,
-        ``'remaining'``, or ``'dampening'`` corresponding to the argument
-        ``--map 1, 2, 3, 4, 5, 6, 7`` of the command ``mne_sensitivity_map``.
+    mode : ``'free'`` | ``'fixed'`` | ``'ratio'`` | ``'radiality'`` | ``'angle'`` | ``'remaining'`` | ``'dampening'``
+
+        Which sensitivity quantity to compute:
+
+        - 'free' : Maximum obtainable signal over all source orientations.
+        - 'fixed' : Signal from sources constrained to be normal to the
+          cortical surface.
+        - 'ratio' : Ratio of 'fixed' sensitivity to the 'free'
+          (maximum-over-orientations) sensitivity.
+        - 'radiality' : Ratio of signal from sources normal to the cortex
+          to the maximum signal among all orientations.
+        - 'angle' : Subspace angle with the noise subspace.
+        - 'remaining' : Fraction of signal remaining after the projection
+          (e.g., after SSS/SSP).
+        - 'dampening' : Fraction of signal dampening due to the projection.
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If ``'bads'``, exclude channels in ``fwd['info']['bads']``.
@@ -413,7 +423,7 @@ def sensitivity_map(
     -----
     When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
     by its maximum value.
-    """
+    """  # noqa: E501
     # check strings
     _check_option("ch_type", ch_type, ["eeg", "grad", "mag"])
     _check_option(
@@ -463,7 +473,7 @@ def sensitivity_map(
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:
-        raise ValueError("No projectors used, cannot compute %s" % mode)
+        raise ValueError(f"No projectors used, cannot compute {mode}")
 
     _, n_dipoles = gain.shape
     n_locations = n_dipoles // 3
@@ -495,7 +505,7 @@ def sensitivity_map(
                     elif mode == "dampening":
                         sensitivity_map[k] = 1.0 - p / gz
                     else:
-                        raise ValueError("Unknown mode type (got %s)" % mode)
+                        raise ValueError(f"Unknown mode type (got {mode})")
 
     # only normalize fixed and free methods
     if mode in ["fixed", "free"]:

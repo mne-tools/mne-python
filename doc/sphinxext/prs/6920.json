@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3c5770522827205e65ed401dddf4abc9e50d776a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/morph.py": {
+      "a": 25,
+      "d": 32
+    }
+  }
+}

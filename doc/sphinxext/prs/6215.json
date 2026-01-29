@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7a8404959f686ad7a0bcf9257836b1bd13c0fe40",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

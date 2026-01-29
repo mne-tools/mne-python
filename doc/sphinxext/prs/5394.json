@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5ae2ad3dce9b1289cd33439d49f94a8143a53997",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/search_light.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 35,
+      "d": 1
+    }
+  }
+}

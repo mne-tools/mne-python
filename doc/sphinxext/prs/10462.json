@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "091da8f01aeeecd7d583ba596cf5a85cd649f192",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

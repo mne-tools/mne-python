@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e97fad175d1174b7f22d27e19ecf4382f7c0c512",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 10,
+      "d": 10
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

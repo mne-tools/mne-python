@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "06d41b9b378f5e4bc30f0607398235d6c2d6ceef",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 34,
+      "d": 14
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 42,
+      "d": 10
+    }
+  }
+}

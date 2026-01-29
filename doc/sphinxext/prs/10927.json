@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b733f72c4f2fdffcaf1248491368c7240e30c7f8",
+  "authors": [
+    {
+      "n": "Reza",
+      "e": "rezanasri@outlook.com"
+    },
+    {
+      "n": "RezaNasri",
+      "e": "rezanasri@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/export/_eeglab.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

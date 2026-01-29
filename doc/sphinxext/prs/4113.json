@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "add8370d54eae2ddef00ee9290b4dfcca411c44a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 31,
+      "d": 44
+    },
+    "mne/decoding/transformer.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/filter.py": {
+      "a": 146,
+      "d": 59
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 6,
+      "d": 11
+    },
+    "mne/io/base.py": {
+      "a": 31,
+      "d": 18
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 9,
+      "d": 12
+    },
+    "mne/tests/test_filter.py": {
+      "a": 51,
+      "d": 37
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 52,
+      "d": 28
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

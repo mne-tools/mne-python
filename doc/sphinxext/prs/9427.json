@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "abfe37b2c046375bebb210cd711025c455068a3e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/export.rst": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 35
+    },
+    "mne/export/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_eeglab.py": {
+      "a": 69,
+      "d": 0
+    },
+    "mne/export/_export.py": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 64,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 39
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 1,
+      "d": 23
+    },
+    "mne/io/utils.py": {
+      "a": 0,
+      "d": 21
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 29
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 43
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b7771efabf3f2e22abd9963347de5e4a1b540bd7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

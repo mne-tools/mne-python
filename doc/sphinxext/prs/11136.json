@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9e67f7ce9100bbac452b990541e8f36a072f098a",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/annotate_amplitude.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

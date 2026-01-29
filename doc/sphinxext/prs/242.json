@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2a32d359695b6e8623c5c377a39ec1a9dd45dfc1",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_label_activation_from_stc.py": {
+      "a": 62,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

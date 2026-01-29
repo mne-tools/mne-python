@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9afac0a8f8543922cef27bea55ca35a930241a17",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 17,
+      "d": 20
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 8,
+      "d": 10
+    }
+  }
+}

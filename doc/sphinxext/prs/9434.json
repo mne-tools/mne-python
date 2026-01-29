@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e6a029802bb2174eaee21f0ab544b4b64c71c1da",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg_gui.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 7,
+      "d": 3
+    }
+  }
+}

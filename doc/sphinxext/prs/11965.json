@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1d7b2187516cb5f17f7c194e66e8546708d546c2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/viz/backends/tests/test_abstract.py": {
+      "a": 1,
+      "d": 15
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

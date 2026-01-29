@@ -1,7 +1,6 @@
 """Coregistration between different coordinate frames."""
 
-# Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -13,6 +12,7 @@ import re
 import shutil
 import stat
 import sys
+from copy import deepcopy
 from functools import reduce
 from glob import glob, iglob
 
@@ -180,13 +180,13 @@ def coregister_fiducials(info, fiducials, tol=0.01):
 def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbose=None):
     """Create an average brain subject for subjects without structural MRI.
 
-    Create a copy of fsaverage from the Freesurfer directory in subjects_dir
+    Create a copy of fsaverage from the FreeSurfer directory in subjects_dir
     and add auxiliary files from the mne package.
 
     Parameters
     ----------
     fs_home : None | str
-        The freesurfer home directory (only needed if ``FREESURFER_HOME`` is
+        The FreeSurfer home directory (only needed if ``FREESURFER_HOME`` is
         not specified as environment variable).
     update : bool
         In cases where a copy of the fsaverage brain already exists in the
@@ -200,10 +200,10 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     Notes
     -----
     When no structural MRI is available for a subject, an average brain can be
-    substituted. Freesurfer comes with such an average brain model, and MNE
+    substituted. FreeSurfer comes with such an average brain model, and MNE
     comes with some auxiliary files which make coregistration easier.
     :py:func:`create_default_subject` copies the relevant
-    files from Freesurfer into the current subjects_dir, and also adds the
+    files from FreeSurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """
     subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
@@ -216,17 +216,17 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
                 "create_default_subject()."
             )
 
-    # make sure freesurfer files exist
+    # make sure FreeSurfer files exist
     fs_src = os.path.join(fs_home, "subjects", "fsaverage")
     if not os.path.exists(fs_src):
         raise OSError(
-            "fsaverage not found at %r. Is fs_home specified correctly?" % fs_src
+            f"fsaverage not found at {fs_src!r}. Is fs_home specified correctly?"
         )
     for name in ("label", "mri", "surf"):
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
             raise OSError(
-                "Freesurfer fsaverage seems to be incomplete: No directory named "
+                "FreeSurfer fsaverage seems to be incomplete: No directory named "
                 f"{name} found in {fs_src}"
             )
 
@@ -234,20 +234,20 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     dest = os.path.join(subjects_dir, "fsaverage")
     if dest == fs_src:
         raise OSError(
-            "Your subjects_dir points to the freesurfer subjects_dir (%r). "
-            "The default subject can not be created in the freesurfer "
-            "installation directory; please specify a different "
-            "subjects_dir." % subjects_dir
+            "Your subjects_dir points to the FreeSurfer subjects_dir "
+            f"({repr(subjects_dir)}). The default subject can not be created in the "
+            "FreeSurfer installation directory; please specify a different "
+            "subjects_dir."
         )
     elif (not update) and os.path.exists(dest):
         raise OSError(
-            "Can not create fsaverage because {!r} already exists in "
-            "subjects_dir {!r}. Delete or rename the existing fsaverage "
-            "subject folder.".format("fsaverage", subjects_dir)
+            'Can not create fsaverage because "fsaverage" already exists in '
+            f"subjects_dir {repr(subjects_dir)}. Delete or rename the existing "
+            "fsaverage subject folder."
         )
 
-    # copy fsaverage from freesurfer
-    logger.info("Copying fsaverage subject from freesurfer directory...")
+    # copy fsaverage from FreeSurfer
+    logger.info("Copying fsaverage subject from FreeSurfer directory...")
     if (not update) or not os.path.exists(dest):
         shutil.copytree(fs_src, dest)
         _make_writable_recursive(dest)
@@ -460,7 +460,7 @@ def fit_matched_points(
         est_pts = np.dot(src_pts, trans.T)[:, :3]
         err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
         if np.any(err > tol):
-            raise RuntimeError("Error exceeds tolerance. Error = %r" % err)
+            raise RuntimeError(f"Error exceeds tolerance. Error = {err!r}")
 
     if out == "params":
         return x
@@ -468,7 +468,7 @@ def fit_matched_points(
         return trans
     else:
         raise ValueError(
-            "Invalid out parameter: %r. Needs to be 'params' or 'trans'." % out
+            f"Invalid out parameter: {out!r}. Needs to be 'params' or 'trans'."
         )
 
 
@@ -669,11 +669,11 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         # check that we found at least one
         if len(paths["fid"]) == 0:
             raise OSError(
-                "No fiducials file found for %s. The fiducials "
+                f"No fiducials file found for {subject}. The fiducials "
                 "file should be named "
                 "{subject}/bem/{subject}-fiducials.fif. In "
                 "order to scale an MRI without fiducials set "
-                "skip_fiducials=True." % subject
+                "skip_fiducials=True."
             )
 
     # duplicate files (curvature and some surfaces)
@@ -706,7 +706,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     prefix = subject + "-"
     for fname in fnames:
         if fname.startswith(prefix):
-            fname = "{subject}-%s" % fname[len(prefix) :]
+            fname = f"{{subject}}-{fname[len(prefix) :]}"
         path = os.path.join(bem_dirname, fname)
         src.append(path)
 
@@ -760,28 +760,6 @@ def _is_mri_subject(subject, subjects_dir=None):
     )
 
 
-def _is_scaled_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is a scaled mri subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the potential subject/directory.
-    subjects_dir : None | path-like
-        Override the SUBJECTS_DIR environment variable.
-
-    Returns
-    -------
-    is_scaled_mri_subject : bool
-        Whether ``subject`` is a scaled mri subject.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    if not _is_mri_subject(subject, subjects_dir):
-        return False
-    fname = subjects_dir / subject / "MRI scaling parameters.cfg"
-    return fname.exists()
-
-
 def _mri_subject_has_bem(subject, subjects_dir=None):
     """Check whether an mri subject has a file matching the bem pattern.
 
@@ -827,7 +805,7 @@ def read_mri_cfg(subject, subjects_dir=None):
             "exist."
         )
 
-    logger.info("Reading MRI cfg file %s" % fname)
+    logger.info(f"Reading MRI cfg file {fname}")
     config = configparser.RawConfigParser()
     config.read(fname)
     n_params = config.getint("MRI Scaling", "n_params")
@@ -837,7 +815,7 @@ def read_mri_cfg(subject, subjects_dir=None):
         scale_str = config.get("MRI Scaling", "scale")
         scale = np.array([float(s) for s in scale_str.split()])
     else:
-        raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
+        raise ValueError(f"Invalid n_params value in MRI cfg: {n_params}")
 
     out = {
         "subject_from": config.get("MRI Scaling", "subject_from"),
@@ -899,8 +877,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
         raise TypeError(
-            "Need to provide either both subject_from and scale "
-            "parameters, or neither."
+            "Need to provide either both subject_from and scale parameters, or neither."
         )
 
     if subject_from is None:
@@ -963,7 +940,7 @@ def scale_bem(
     dst = bem_fname.format(subjects_dir=subjects_dir, subject=subject_to, name=bem_name)
 
     if os.path.exists(dst):
-        raise OSError("File already exists: %s" % dst)
+        raise OSError(f"File already exists: {dst}")
 
     surfs = read_bem_surfaces(src, on_defects=on_defects)
     for surf in surfs:
@@ -1054,6 +1031,7 @@ def scale_mri(
     annot=False,
     *,
     on_defects="raise",
+    mri_fiducials=None,
     verbose=None,
 ):
     """Create a scaled copy of an MRI subject.
@@ -1080,6 +1058,13 @@ def scale_mri(
     %(on_defects)s
 
         .. versionadded:: 1.0
+    mri_fiducials : None | list of dict
+        If provided, these fiducials will be used as the originals to scale instead
+        of reading from ``{subject_from}/bem/{subject_from}-fiducials.fif``.
+        This is useful typically when using ``mne coreg`` or similar and you have
+        modified the MRI fiducials interactively, but have not saved them to disk.
+
+        .. versionadded:: 1.12
     %(verbose)s
 
     See Also
@@ -1102,6 +1087,28 @@ def scale_mri(
             scale = scale[0]  # speed up scaling conditionals using a singleton
     elif scale.shape != (1,):
         raise ValueError(f"scale must have shape (3,) or (1,), got {scale.shape}")
+    _validate_type(mri_fiducials, (list, tuple, None), "mri_fiducials")
+    if mri_fiducials is not None:
+        _check_option("len(mri_fiducials)", len(mri_fiducials), (3,))
+        want_fids = [
+            FIFF.FIFFV_POINT_LPA,
+            FIFF.FIFFV_POINT_NASION,
+            FIFF.FIFFV_POINT_RPA,
+        ]
+        for fi, fid in enumerate(mri_fiducials):
+            fid_name = f"mri_fiducials[{fi}]"
+            _validate_type(fid, dict, fid_name)
+            for key in ("r", "coord_frame", "ident"):
+                if key not in fid:
+                    raise ValueError(f"{fid_name} is missing the '{key}' key")
+            if fid["coord_frame"] != FIFF.FIFFV_COORD_MRI:
+                raise ValueError(
+                    f"{fid_name}['coord_frame'] must be 'mri', got {fid['coord_frame']}"
+                )
+            _check_option(
+                f"{fid_name}['kind']", fid["kind"], (FIFF.FIFFV_POINT_CARDINAL,)
+            )
+            _check_option(f"{fid_name}['ident']", fid["ident"], (want_fids[fi],))
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to, subjects_dir=subjects_dir)
@@ -1150,6 +1157,21 @@ def scale_mri(
             pt["r"] = pt["r"] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         write_fiducials(dest, pts, cframe, overwrite=True, verbose=False)
+
+    # It is redundant to put this after the paths["fid"] loop, but it's simple, faster
+    # enough, and cleaner to just write it here (rather than adding conditionals to find
+    # the correct file above etc.)
+    if mri_fiducials is not None:
+        dest = os.path.join(
+            bem_dirname.format(subjects_dir=subjects_dir, subject=subject_to),
+            f"{subject_to}-fiducials.fif",
+        )
+        use_mri_fiducials = deepcopy(mri_fiducials)
+        for fid in use_mri_fiducials:
+            fid["r"] = fid["r"] * scale
+        write_fiducials(
+            dest, use_mri_fiducials, FIFF.FIFFV_COORD_MRI, overwrite=True, verbose=False
+        )
 
     logger.debug("MRIs [nibabel]")
     os.mkdir(mri_dirname.format(subjects_dir=subjects_dir, subject=subject_to))
@@ -1353,7 +1375,7 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale, subjects_di
     # The "talairach.xfm" file stores the ras_mni transform.
     #
     # For "from" subj F, "to" subj T, F->T scaling S, some equivalent vertex
-    # positions F_x and T_x in MRI (Freesurfer RAS) coords, knowing that
+    # positions F_x and T_x in MRI (FreeSurfer RAS) coords, knowing that
     # we have T_x = S @ F_x, we want to have the same MNI coords computed
     # for these vertices:
     #
@@ -1425,8 +1447,7 @@ def _read_surface(filename, *, on_defects):
                 complete_surface_info(bem, copy=False)
             except Exception:
                 raise ValueError(
-                    "Error loading surface from %s (see "
-                    "Terminal for details)." % filename
+                    f"Error loading surface from {filename} (see Terminal for details)."
                 )
     return bem
 
@@ -1479,7 +1500,6 @@ class Coregistration:
         self._scale_mode = None
         self._on_defects = on_defects
 
-        self._rot_trans = None
         self._default_parameters = np.array(
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         )
@@ -1487,7 +1507,6 @@ class Coregistration:
         self._rotation = self._default_parameters[:3]
         self._translation = self._default_parameters[3:6]
         self._scale = self._default_parameters[6:9]
-        self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
         self._icp_scale = 0.2
@@ -1565,11 +1584,7 @@ class Coregistration:
             # This should be very rare!
             warn(
                 "No low-resolution head found, decimating high resolution "
-                "mesh (%d vertices): %s"
-                % (
-                    len(self._bem_high_res["rr"]),
-                    high_res_path,
-                )
+                f"mesh ({len(self._bem_high_res['rr'])} vertices): {high_res_path}"
             )
             # Create one from the high res one, which we know we have
             rr, tris = decimate_surface(
@@ -1869,10 +1884,6 @@ class Coregistration:
     def _processed_high_res_mri_points(self):
         return self._get_processed_mri_points("high")
 
-    @property
-    def _processed_low_res_mri_points(self):
-        return self._get_processed_mri_points("low")
-
     def _get_processed_mri_points(self, res):
         bem = self._bem_low_res if res == "low" else self._bem_high_res
         points = bem["rr"].copy()
@@ -1905,7 +1916,7 @@ class Coregistration:
     def _log_dig_mri_distance(self, prefix):
         errs_nearest = self.compute_dig_mri_distances()
         logger.info(
-            f"{prefix} median distance: " f"{np.median(errs_nearest * 1000):6.2f} mm"
+            f"{prefix} median distance: {np.median(errs_nearest * 1000):6.2f} mm"
         )
 
     @property
@@ -2109,7 +2120,7 @@ class Coregistration:
         self._rpa_weight = rpa_weight
         self._hsp_weight = hsp_weight
         self._eeg_weight = eeg_weight
-        self._hsp_weight = hpi_weight
+        self._hpi_weight = hpi_weight
 
         # Initial guess (current state)
         est = self._parameters
@@ -2178,8 +2189,7 @@ class Coregistration:
         mask = self._orig_hsp_point_distance <= distance
         n_excluded = np.sum(~mask)
         logger.info(
-            "Coregistration: Excluding %i head shape points with "
-            "distance >= %.3f m.",
+            "Coregistration: Excluding %i head shape points with distance >= %.3f m.",
             n_excluded,
             distance,
         )

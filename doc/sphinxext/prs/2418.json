@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "745605ee16a731274fbb5ea4ee0a9d4d02c294fc",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

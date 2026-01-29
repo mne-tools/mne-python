@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4c5f722585b6637b9180b50345a7ee0bbb6942be",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_freesurfer.py": {
+      "a": 33,
+      "d": 1
+    },
+    "mne/tests/test_freesurfer.py": {
+      "a": 37,
+      "d": 1
+    }
+  }
+}

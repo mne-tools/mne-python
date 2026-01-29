@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f5e6965a89a85098bbd389bb6fc9c90e78e192d3",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 16,
+      "d": 16
+    }
+  }
+}

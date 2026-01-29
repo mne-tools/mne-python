@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "9e546ac41629ff18548328dfe79fe47d232b1229",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/ssp.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_templates/autosummary/class.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 20
+    },
+    "doc/install/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/design_philosophy.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/overview/matlab.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/visualization.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "ignore_words.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 17,
+      "d": 18
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 28,
+      "d": 24
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

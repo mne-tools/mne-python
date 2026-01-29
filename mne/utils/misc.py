@@ -1,6 +1,6 @@
 """Some miscellaneous utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -32,18 +32,13 @@ def _identity_function(x):
     return x
 
 
-# TODO: no longer needed when py3.9 is minimum supported version
 def _empty_hash(kind="md5"):
-    func = getattr(hashlib, kind)
-    if "usedforsecurity" in inspect.signature(func).parameters:
-        return func(usedforsecurity=False)
-    else:
-        return func()
+    return getattr(hashlib, kind)(usedforsecurity=False)
 
 
 def _pl(x, non_pl="", pl="s"):
     """Determine if plural should be used."""
-    len_x = x if isinstance(x, (int, np.generic)) else len(x)
+    len_x = x if isinstance(x, int | np.generic) else len(x)
     return non_pl if len_x == 1 else pl
 
 
@@ -246,7 +241,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     else:
         command = [str(s) for s in command]
         command_str = " ".join(s for s in command)
-    logger.info("Running subprocess: %s" % command_str)
+    logger.info(f"Running subprocess: {command_str}")
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -254,7 +249,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command.split()[0]
         else:
             command_name = command[0]
-        logger.error("Command not found: %s" % command_name)
+        logger.error(f"Command not found: {command_name}")
         raise
     try:
         with ExitStack() as stack:
@@ -333,14 +328,14 @@ def sizeof_fmt(num):
     size : str
         The size in human-readable format.
     """
-    units = ["bytes", "kB", "MB", "GB", "TB", "PB"]
+    units = ["bytes", "KiB", "MiB", "GiB", "TiB", "PiB"]
     decimals = [0, 0, 1, 2, 2, 2]
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024**exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = "{0:.%sf} {1}" % (num_decimals)
+        format_string = f"{{0:.{num_decimals}f}} {{1}}"
         return format_string.format(quotient, unit)
     if num == 0:
         return "0 bytes"
@@ -358,12 +353,27 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ("read", "seek"))
 
 
-def _fullname(obj):
+def _fullname(obj, *, referent=None):
     klass = obj.__class__
     module = klass.__module__
-    if module == "builtins":
-        return klass.__qualname__
-    return module + "." + klass.__qualname__
+    name = klass.__qualname__
+    if module != "builtins":
+        name = f"{module}.{name}"
+    if referent is not None:
+        if isinstance(obj, list | tuple):
+            for ii, item in enumerate(obj):
+                if item is referent:
+                    name += f"[{ii}]"
+                    break
+        elif isinstance(obj, dict):
+            for key, value in obj.items():
+                if key is referent:
+                    name += "-key"
+                    break
+                if value is referent:
+                    name += f"[{key!r}]"
+                    break
+    return name
 
 
 def _assert_no_instances(cls, when=""):
@@ -372,40 +382,43 @@ def _assert_no_instances(cls, when=""):
     ref = list()
     gc.collect()
     objs = gc.get_objects()
-    for obj in objs:
+    for obj in objs:  # e.g., vtkPolyData, Brain, Plotter, etc.
         try:
             check = isinstance(obj, cls)
         except Exception:  # such as a weakref
             check = False
         if check:
             if cls.__name__ == "Brain":
-                ref.append(f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
+                ref.append(f"Brain._cleaned = {getattr(obj, '_cleaned', None)}")
             rr = gc.get_referrers(obj)
             count = 0
-            for r in rr:
+            for r in rr:  # e.g., list, dict, etc. that holds the reference to obj
                 if (
                     r is not objs
                     and r is not globals()
                     and r is not locals()
                     and not inspect.isframe(r)
                 ):
-                    if isinstance(r, (list, dict, tuple)):
+                    name = _fullname(r, referent=obj)
+                    if isinstance(r, list | dict | tuple):
                         rep = f"len={len(r)}"
                         r_ = gc.get_referrers(r)
-                        types = (_fullname(x) for x in r_)
-                        types = "/".join(sorted(set(x for x in types if x is not None)))
-                        rep += f", {len(r_)} referrers: {types}"
+                        types = list()
+                        for x in r_:
+                            types.append(_fullname(x, referent=r))
+                        types = " / ".join(sorted(types))
+                        rep += f" | {len(r_)} referrers: {types}"
                         del r_
                     else:
-                        rep = repr(r)[:100].replace("\n", " ")
+                        rep = "repr="
+                        rep += repr(r)[:100].replace("\n", " ")
                         # If it's a __closure__, get more information
                         if rep.startswith("<cell at "):
                             try:
                                 rep += f" ({repr(r.cell_contents)[:100]})"
                             except Exception:
                                 pass
-                    name = _fullname(r)
-                    ref.append(f"{name}: {rep}")
+                    ref.append(f"{name} with {rep}")
                     count += 1
                 del r
             del rr

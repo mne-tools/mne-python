@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "8823240c015a993c7a4585c0b268f42306faddf3",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_xdawn_transformer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/preprocessing/plot_xdawn_denoising.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/decoding/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/tests/test_xdawn.py": {
+      "a": 0,
+      "d": 97
+    },
+    "mne/decoding/xdawn.py": {
+      "a": 0,
+      "d": 174
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 123,
+      "d": 56
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 421,
+      "d": 288
+    }
+  }
+}

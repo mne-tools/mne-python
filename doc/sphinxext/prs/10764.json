@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ba2754fe3d9f49e486773403e673b04df8bb66e7",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/forward.rst": {
+      "a": 14,
+      "d": 12
+    },
+    "doc/_includes/morph.rst": {
+      "a": 5,
+      "d": 4
+    },
+    "doc/_static/style.css": {
+      "a": 25,
+      "d": 16
+    },
+    "doc/install/contributing.rst": {
+      "a": 10,
+      "d": 5
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

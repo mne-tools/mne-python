@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e68c0662a829d68207f8ff8c111579965546641a",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

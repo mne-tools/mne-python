@@ -1,0 +1,447 @@
+{
+  "merge_commit_sha": "765cff8a214f45045b45ff2500a4a91ecdaa2b32",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/io.rst": {
+      "a": 19,
+      "d": 3
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/channels/channels.py": {
+      "a": 47,
+      "d": 3
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 9,
+      "d": 12
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 20,
+      "d": 19
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 18,
+      "d": 17
+    },
+    "mne/epochs.py": {
+      "a": 46,
+      "d": 22
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 14,
+      "d": 23
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 25,
+      "d": 21
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 184,
+      "d": 143
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 11,
+      "d": 14
+    },
+    "mne/io/proj.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/reference.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/io/tests/test_compensator.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 17,
+      "d": 20
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/tests/test_proc_history.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 40,
+      "d": 30
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 17,
+      "d": 15
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_eog.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 36,
+      "d": 35
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 84,
+      "d": 79
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/epochs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 21,
+      "d": 15
+    },
+    "mne/tests/test_cov.py": {
+      "a": 37,
+      "d": 31
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 16,
+      "d": 14
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 260,
+      "d": 245
+    },
+    "mne/tests/test_event.py": {
+      "a": 25,
+      "d": 20
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 23,
+      "d": 22
+    },
+    "mne/tests/test_filter.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_proj.py": {
+      "a": 19,
+      "d": 18
+    },
+    "mne/tests/test_report.py": {
+      "a": 11,
+      "d": 15
+    },
+    "mne/tests/test_selection.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/tests/test_surface.py": {
+      "a": 14,
+      "d": 18
+    },
+    "mne/tests/test_utils.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 8,
+      "d": 10
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 10,
+      "d": 16
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/utils.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/_3d.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/viz/misc.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 13,
+      "d": 9
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 13,
+      "d": 8
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 17,
+      "d": 18
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 11,
+      "d": 14
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 16,
+      "d": 13
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 12
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_maxwell_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_artifacts_correction_ssp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/plot_modifying_data_inplace.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_epochs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/plot_object_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_visualize_epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

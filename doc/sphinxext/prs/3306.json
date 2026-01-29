@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c0e73eeb959a636fb25a6f4ca550ca3111f05852",
+  "authors": [
+    {
+      "n": "Camilo Lamus",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 16,
+      "d": 1
+    }
+  }
+}

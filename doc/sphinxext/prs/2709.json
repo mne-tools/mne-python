@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "81546d7f2011c7495b0e00a382d74c8ffeda0fec",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 62,
+      "d": 58
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/io/pick.py": {
+      "a": 33,
+      "d": 18
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 63,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 135,
+      "d": 52
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 102,
+      "d": 16
+    },
+    "mne/tests/common.py": {
+      "a": 27,
+      "d": 1
+    },
+    "mne/tests/test_bem.py": {
+      "a": 24,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

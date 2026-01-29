@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e0af51dec97219655d59aae0eab09675363f3792",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 6,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 6
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

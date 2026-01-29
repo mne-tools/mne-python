@@ -234,9 +234,11 @@ of data. We'll discuss some major ones here, with some of their implications:
 
 - :func:`mne.Epochs.decimate`, which does the same thing as the
   ``decim`` parameter in the :class:`mne.Epochs` constructor, sub-selects every
-  :math:`N^{th}` sample before and after each event. This should only be
-  used when the raw data have been sufficiently low-passed e.g. by
-  :func:`mne.io.Raw.filter` to avoid aliasing artifacts.
+  :math:`N^{th}` sample before and after each event. To avoid aliasing
+  artifacts, the raw data should be sufficiently low-passed before decimation.
+  It is recommended to use :func:`mne.io.Raw.filter` with ``h_freq`` set to
+  half the new sampling rate (fs/2N) or lower, as per the Nyquist criterion, to
+  ensure effective attenuation of frequency content above this threshold.
 
 - :func:`mne.Epochs.resample`, :func:`mne.Evoked.resample`, and
   :func:`mne.SourceEstimate.resample` all resample data.

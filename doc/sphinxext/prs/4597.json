@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4314b7b1a5cc8f5f17101b4b79da53a54640c173",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

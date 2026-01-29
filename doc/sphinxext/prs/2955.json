@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3554e677c64db90388ef15dce6651f72d78c6d0c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

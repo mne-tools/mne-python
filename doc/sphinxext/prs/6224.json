@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "be294971ab3f6467fc6930404ce6c0166c3519b9",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/cited.rst": {
+      "a": 4,
+      "d": 191
+    },
+    "doc/sphinxext/cited_mne.py": {
+      "a": 0,
+      "d": 261
+    }
+  }
+}

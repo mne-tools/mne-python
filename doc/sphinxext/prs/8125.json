@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "0686c1424dd46b9275791734cb3cd1b5fab4b40d",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/icons/mne-circle-black.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne.qrc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/reset-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/resources.py": {
+      "a": 368,
+      "d": 335
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

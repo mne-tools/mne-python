@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c22b9ae75893723a875579862bedbdf80110da83",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

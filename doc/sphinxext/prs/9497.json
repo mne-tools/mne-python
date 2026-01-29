@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0af111f4238d735fc05a260b4347ddb9958f39f1",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

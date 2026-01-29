@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9256d6b2a7fd8132a986ccbb042db8f2c40edb5b",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

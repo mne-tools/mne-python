@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "59c6e749bcdfbe4c43f553070452b3fe57ee3974",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 19,
+      "d": 2
+    }
+  }
+}

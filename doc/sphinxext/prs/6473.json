@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2272435bd21157d32b3c90d34d1bb7d15930c1e2",
+  "authors": [
+    {
+      "n": "Elizabeth DuPre",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/preprocessing/ica.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

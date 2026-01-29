@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "926bec285c34c0fbdcad7b09ac4f550af8288e8a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/events.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 35,
+      "d": 0
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7a8d41e7175db1b6744d20f5670f90190329a1c9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 97,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_scraper.py": {
+      "a": 4,
+      "d": 1
+    },
+    "requirements_testing.txt": {
+      "a": 0,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

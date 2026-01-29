@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0e71bec27a738dd3db69166264144729b9b1a8aa",
+  "authors": [
+    {
+      "n": "Thomas Radman",
+      "e": "radman.thomas@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

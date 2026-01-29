@@ -1,0 +1,303 @@
+{
+  "merge_commit_sha": "a2dd739e3d0a1cf82433d5cb2a075ebe4b1cd647",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/tutorials/report.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/datasets/plot_megsim_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/datasets/plot_megsim_data_single_trial.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_unsupervised_spatial_filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/io/plot_elekta_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/plot_read_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/plot_read_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_define_target_events.py": {
+      "a": 5,
+      "d": 9
+    },
+    "examples/preprocessing/plot_interpolate_bad_channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_metadata_query.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_movement_compensation.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 6,
+      "d": 3
+    },
+    "examples/preprocessing/plot_shift_evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/preprocessing/plot_virtual_evoked.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 7,
+      "d": 5
+    },
+    "examples/visualization/plot_evoked_whitening.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 34,
+      "d": 26
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/parametric.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/viz/evoked.py": {
+      "a": 65,
+      "d": 85
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 43,
+      "d": 35
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 16,
+      "d": 10
+    },
+    "mne/viz/topomap.py": {
+      "a": 44,
+      "d": 13
+    },
+    "mne/viz/utils.py": {
+      "a": 18,
+      "d": 0
+    },
+    "tutorials/plot_artifacts_correction_maxwell_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_artifacts_correction_ssp.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_detection.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/plot_brainstorm_phantom_ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 12,
+      "d": 10
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_metadata_epochs.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/plot_object_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_object_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_phantom_4DBTi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 9,
+      "d": 9
+    },
+    "tutorials/plot_whitened.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

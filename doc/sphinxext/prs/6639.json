@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "0600f811dbdcbe288d4c51b1b2b4a055b193e9c3",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/channels/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 306,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 362,
+      "d": 258
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 112,
+      "d": 47
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/digitization/_utils.py": {
+      "a": 18,
+      "d": 8
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

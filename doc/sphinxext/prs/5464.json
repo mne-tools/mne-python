@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2dd7aa0bd05f3cae8dc5c17e951454ef6c71b17c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cuda.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 30,
+      "d": 6
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 44,
+      "d": 29
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 109,
+      "d": 95
+    },
+    "mne/utils/progressbar.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

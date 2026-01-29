@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b223ea351d9b6579aa64554748249eaa95bfba95",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 29,
+      "d": 10
+    }
+  }
+}

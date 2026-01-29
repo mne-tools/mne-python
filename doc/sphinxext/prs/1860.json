@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c5dc39d285ca8395947e28fe512a0339838657b1",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

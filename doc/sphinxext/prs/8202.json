@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "97498364165e8702e07d582cd13cfb48cea51b06",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

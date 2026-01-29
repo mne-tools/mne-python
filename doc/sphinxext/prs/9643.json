@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "59c3b921cf7609d0f2ffc19c1a7dc276110100a3",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/export/_edf.py": {
+      "a": 225,
+      "d": 0
+    },
+    "mne/export/_export.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 132,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/tests/data/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 0
+    },
+    "requirements_testing_extra.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

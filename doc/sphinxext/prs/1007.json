@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e0cac66a4840087cc624c081312f05ae4f37a244",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/layouts/layout.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

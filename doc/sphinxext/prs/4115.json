@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f823a00bae2d7e39ebc587128822e673369b9420",
+  "authors": [
+    {
+      "n": "Laura Gwilliams",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_csp_timefreq.py": {
+      "a": 111,
+      "d": 0
+    }
+  }
+}

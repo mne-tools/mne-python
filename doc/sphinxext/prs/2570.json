@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a26590ffb4fc8691e11133f52b1b00f296a55535",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_clickable_image.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

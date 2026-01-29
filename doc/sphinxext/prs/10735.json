@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a9bdf81d21626c22dc879154367648515bcea3cd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

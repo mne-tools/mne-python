@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cabc08f9ee07eccd8e9ee0c610b2f7a0db90b755",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

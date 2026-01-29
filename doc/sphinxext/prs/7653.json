@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "beaff02d91a80c2cf12e626d47b3f1678188472d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_space.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/tests/test_morph.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

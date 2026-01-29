@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "1a39aaa4d1510abc2c37e98b9c39d0611e628b5a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/source/getting_started.rst": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/source/python_reference.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/cuda.py": {
+      "a": 386,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/fiff/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/raw.py": {
+      "a": 51,
+      "d": 62
+    },
+    "mne/filter.py": {
+      "a": 373,
+      "d": 144
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/tests/test_filter.py": {
+      "a": 59,
+      "d": 6
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_utils.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

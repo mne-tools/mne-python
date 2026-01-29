@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "715e9790836c1e25ac20a82feed0b68d0e227d1b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 146,
+      "d": 174
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 20,
+      "d": 19
+    },
+    "mne/utils/docs.py": {
+      "a": 35,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 139,
+      "d": 92
+    },
+    "mne/viz/utils.py": {
+      "a": 14,
+      "d": 0
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

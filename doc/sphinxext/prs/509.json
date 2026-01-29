@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "bc9f87af581de15ffb321447250dc74ff560667e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/fiff/kit/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/sns.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_Ykgw.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_bin.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_elp.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_hsp.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_mrk.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/test_kit.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 19,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

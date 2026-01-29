@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "31c2c28a9134f3ca86f762ebb1a48de7659e9c22",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 39,
+      "d": 2
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 35,
+      "d": 7
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

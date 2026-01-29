@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "81ab01de410f7de45d08c21f564571a3c28f8863",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

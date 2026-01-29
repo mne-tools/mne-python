@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5e63884ceff9bc7658f56c0699d5bf115d20723a",
+  "authors": [
+    {
+      "n": "Matteo Anelli",
+      "e": "matteanelli.96.11@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/xdawn.py": {
+      "a": 7,
+      "d": 15
+    }
+  }
+}

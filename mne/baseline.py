@@ -1,7 +1,6 @@
 """Utility functions to baseline-correct data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -18,7 +17,7 @@ def _log_rescale(baseline, mode="mean"):
             mode,
             ["logratio", "ratio", "zscore", "mean", "percent", "zlogratio"],
         )
-        msg = "Applying baseline correction (mode: %s)" % mode
+        msg = f"Applying baseline correction (mode: {mode})"
     else:
         msg = "No baseline correction applied"
     return msg

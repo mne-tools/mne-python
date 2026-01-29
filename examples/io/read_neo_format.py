@@ -6,24 +6,24 @@ How to use data in neural ensemble (NEO) format
 ===============================================
 
 This example shows how to create an MNE-Python `~mne.io.Raw` object from data
-in the `neural ensemble <https://neo.readthedocs.io>`__ format. For general
+in the `neural ensemble <https://neo.readthedocs.io>`_ format. For general
 information on creating MNE-Python's data objects from NumPy arrays, see
 :ref:`tut-creating-data-structures`.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-# %%
 
 import neo
 
 import mne
 
 # %%
-# This example uses NEO's ``ExampleIO`` object for creating fake data. The data
-# will be all zeros, so the plot won't be very interesting, but it should
-# demonstrate the steps to using NEO data. For actual data and different file
-# formats, consult the NEO documentation.
+# This example uses NEO's ``ExampleIO`` object for creating fake data. The data will be
+# all zeros, so the plot won't be very interesting, but it should demonstrate the steps
+# to using NEO data. For actual data and different file formats, consult the NEO
+# documentation.
 
 reader = neo.io.ExampleIO("fakedata.nof")
 block = reader.read(lazy=False)[0]  # get the first block

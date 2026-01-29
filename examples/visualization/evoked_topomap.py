@@ -5,8 +5,8 @@
 Plotting topographic maps of evoked data
 ========================================
 
-Load evoked data and plot topomaps for selected time points using multiple
-additional options.
+Load evoked data and plot topomaps for selected time points using
+multiple additional options.
 """
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Tal Linzen <linzen@nyu.edu>
@@ -19,6 +19,7 @@ additional options.
 # Copyright the MNE-Python contributors.
 
 # %%
+
 # sphinx_gallery_thumbnail_number = 5
 
 import matplotlib.pyplot as plt

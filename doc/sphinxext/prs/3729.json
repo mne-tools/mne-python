@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "6c43c09312a86c4010385c12c055dfd06ae2efce",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/ica.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/viz/raw.py": {
+      "a": 24,
+      "d": 12
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

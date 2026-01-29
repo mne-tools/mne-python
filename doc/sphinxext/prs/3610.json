@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e9dd187de6d4ef7262f3c6a14d7c090ddbdb86ba",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 11,
+      "d": 8
+    }
+  }
+}

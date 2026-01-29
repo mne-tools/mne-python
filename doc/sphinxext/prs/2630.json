@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4371f76a94e54f3b2c8dcd672b8343d14e3d58be",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/csp.py": {
+      "a": 25,
+      "d": 41
+    }
+  }
+}

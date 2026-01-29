@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "09901960a0b9c4254b3f8ca0ab483444445ffa31",
+  "authors": [
+    {
+      "n": "Jeyhte Key",
+      "e": "jeythekey@tutanota.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

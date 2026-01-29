@@ -1,0 +1,127 @@
+{
+  "merge_commit_sha": "6f091cc401625dc0ab7098a8f5e000d8bb3db981",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "appveyor.yml": {
+      "a": 7,
+      "d": 7
+    },
+    "make/install_python.ps1": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 15,
+      "d": 18
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/io/proc_history.py": {
+      "a": 24,
+      "d": 24
+    },
+    "mne/io/tests/test_proc_history.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_psf_ctf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_filter.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/tests/test_report.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

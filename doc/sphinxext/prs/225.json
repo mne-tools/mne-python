@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "af52f1bb7dc6811c73f7b3f952c328d447f0bdbc",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 22,
+      "d": 21
+    }
+  }
+}

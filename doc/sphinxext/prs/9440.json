@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "e009e5c538c70df4b2dd7e9d3b8315437ef71413",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/mne_inverse_envelope_correlation.py": {
+      "a": 12,
+      "d": 10
+    },
+    "examples/connectivity/mne_inverse_envelope_correlation_volume.py": {
+      "a": 4,
+      "d": 3
+    },
+    "examples/inverse/evoked_ers_source_power.py": {
+      "a": 13,
+      "d": 7
+    },
+    "examples/inverse/psf_ctf_vertices.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/psf_ctf_vertices_lcmv.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/label.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_label.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 7,
+      "d": 13
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

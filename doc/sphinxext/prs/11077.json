@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5ee892f2ef79f451b7bdba251f4dec18e266001e",
+  "authors": [
+    {
+      "n": "Andrew Quinn",
+      "e": "aquinn501@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "bad786df12c4c14512cb1a27276a688912131a16",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 237,
+      "d": 0
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 34,
+      "d": 272
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 47,
+      "d": 18
+    },
+    "tutorials/io/70_reading_eyetracking_data.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 22,
+      "d": 8
+    }
+  }
+}

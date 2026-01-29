@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "b08f759efd08fa060e68f0bdee45f45e3fc5347a",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12747.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 202,
+      "d": 70
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 294,
+      "d": 32
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/utils/spectrum.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

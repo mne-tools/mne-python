@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "547e80eb73e054c535b49325b037b1a1459f6ecc",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_channel_epochs_image.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 43,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 24,
+      "d": 2
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 52,
+      "d": 12
+    },
+    "mne/viz/utils.py": {
+      "a": 129,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "ab69d3e235de846b53ac2052b33faddce9ffd4f9",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/reading_raw_data.rst": {
+      "a": 14,
+      "d": 13
+    },
+    "doc/changes/devel/12792.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/_read_raw.py": {
+      "a": 34,
+      "d": 10
+    },
+    "mne/io/ant/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/ant/ant.py": {
+      "a": 293,
+      "d": 0
+    },
+    "mne/io/ant/tests/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 138,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 18,
+      "d": 15
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/tests/test_read_raw.py": {
+      "a": 58,
+      "d": 1
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

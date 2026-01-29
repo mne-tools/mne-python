@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "cf8543c8d609d717cd39d69d49431d3da73a7fdb",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/misc.py": {
+      "a": 9,
+      "d": 3
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 113,
+      "d": 103
+    }
+  }
+}

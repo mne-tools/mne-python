@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ea3549486711c50b2cc4b7b3b7fc1512f193bcc9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install_mne_python.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

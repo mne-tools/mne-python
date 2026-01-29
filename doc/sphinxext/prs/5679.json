@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b71585bac18f613ea20adf41b5ac98a09a58d98a",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

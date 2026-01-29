@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f44636f00666b8eb869417960926d01690ff4f42",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/preprocessing.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/_fiff/proj.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/proj.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 14,
+      "d": 13
+    }
+  }
+}

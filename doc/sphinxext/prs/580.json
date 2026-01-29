@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "947bf7d8d1ea065458f81c94f6ea5382354b7259",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 280,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_stats_time_frequency_repeated_measures_anova.py": {
+      "a": 223,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/stats/parametric.py": {
+      "a": 171,
+      "d": 1
+    },
+    "mne/stats/tests/test_parametric.py": {
+      "a": 68,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "ae02bcba43a50a70b714ca19a62ba155e6320050",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/git_links.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation_volume.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_compute_mne_inverse_volume.py": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

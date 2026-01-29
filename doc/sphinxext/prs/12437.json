@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7436c9efc30c0d2679161a83e9255770f41ec21b",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

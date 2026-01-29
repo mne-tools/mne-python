@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7f2c9315dc6f9709f480ac711ebe30368b052c36",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12628.newfeature.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/install/advanced.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 9,
+      "d": 3
+    }
+  }
+}

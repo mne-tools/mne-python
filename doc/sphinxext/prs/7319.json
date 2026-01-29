@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5152d60bbc1714d4920decce3e9f8416d8d86598",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/tests/test_scalp_coupling_index.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

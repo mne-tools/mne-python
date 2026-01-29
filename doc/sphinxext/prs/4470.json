@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "61a531a78e46a6d042c5f14e238dc7fec14d8a62",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 52,
+      "d": 33
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 93,
+      "d": 6
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

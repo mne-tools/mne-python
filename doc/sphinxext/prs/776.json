@@ -1,0 +1,127 @@
+{
+  "merge_commit_sha": "f9fc2a38040605e4972bc64647d7ab5a3e446267",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/plot_make_forward.py": {
+      "a": 54,
+      "d": 0
+    },
+    "examples/plot_read_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/data/coil_def.dat": {
+      "a": 416,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/compensator.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/fiff/constants.py": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 24,
+      "d": 2
+    },
+    "mne/fiff/pick.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fiff/tag.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/fiff/tests/data/sample-audvis-raw-trans.txt": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/fiff/write.py": {
+      "a": 22,
+      "d": 1
+    },
+    "mne/forward/__init__.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 346,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 474,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 172,
+      "d": 96
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 51,
+      "d": 92
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 172,
+      "d": 0
+    },
+    "mne/proj.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/source_space.py": {
+      "a": 28,
+      "d": 14
+    },
+    "mne/surface.py": {
+      "a": 323,
+      "d": 187
+    },
+    "mne/tests/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 16
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 28,
+      "d": 5
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 22,
+      "d": 11
+    }
+  }
+}

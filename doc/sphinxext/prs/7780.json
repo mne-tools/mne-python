@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e68d1963fee51c78969eb2523e9877a62024fb8a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".travis.yml": {
+      "a": 4,
+      "d": 3
+    },
+    "azure-pipelines.yml": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

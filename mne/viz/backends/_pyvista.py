@@ -4,14 +4,11 @@ Core visualization operations based on PyVista.
 Actual implementation of _Renderer and _Projection classes.
 """
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 import platform
 import re
 import warnings
@@ -19,6 +16,9 @@ from contextlib import contextmanager
 from inspect import signature
 
 import numpy as np
+import pyvista
+from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
+from pyvistaqt import BackgroundPlotter
 
 from ...fixes import _compare_version
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
@@ -36,16 +36,10 @@ from ._utils import (
     _init_mne_qtapp,
 )
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import pyvista
-    from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
-    from pyvistaqt import BackgroundPlotter
-
-    try:
-        from pyvista.plotting.plotter import _ALL_PLOTTERS
-    except Exception:  # PV < 0.40
-        from pyvista.plotting.plotting import _ALL_PLOTTERS
+try:
+    from pyvista.plotting.plotter import _ALL_PLOTTERS
+except Exception:  # PV < 0.40
+    from pyvista.plotting.plotting import _ALL_PLOTTERS
 
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
@@ -100,7 +94,7 @@ class PyVistaFigure(Figure3D):
         self,
         plotter=None,
         show=False,
-        title="PyVista Scene",
+        title="MNE-Python 3D Figure",
         size=(600, 600),
         shape=(1, 1),
         background_color="black",
@@ -207,7 +201,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         fig=None,
         size=(600, 600),
         bgcolor="black",
-        name="PyVista Scene",
+        *,
+        name=None,
         show=False,
         shape=(1, 1),
         notebook=None,
@@ -217,7 +212,8 @@ class _PyVistaRenderer(_AbstractRenderer):
     ):
         from .._3d import _get_3d_option
 
-        _require_version("pyvista", "use 3D rendering", "0.32")
+        # TODO VERSION change whenever PyVista min gets updated:
+        _require_version("pyvista", "use 3D rendering", "0.42")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         if platform.system() == "Darwin":
@@ -362,6 +358,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         representation="surface",
         line_width=1.0,
         polygon_offset=None,
+        *,
+        name=None,
         **kwargs,
     ):
         from matplotlib.colors import to_rgba_array
@@ -392,6 +390,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         actor = _add_mesh(
             plotter=self.plotter,
             mesh=mesh,
+            name=name,
             color=color,
             scalars=scalars,
             edge_color=color,
@@ -436,6 +435,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         line_width=1.0,
         normals=None,
         polygon_offset=None,
+        name=None,
         **kwargs,
     ):
         vertices = np.c_[x, y, z].astype(float)
@@ -455,6 +455,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             representation=representation,
             line_width=line_width,
             polygon_offset=polygon_offset,
+            name=name,
             **kwargs,
         )
 
@@ -510,6 +511,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         scalars=None,
         backface_culling=False,
         polygon_offset=None,
+        *,
+        name=None,
     ):
         normals = surface.get("nn", None)
         vertices = np.array(surface["rr"])
@@ -530,6 +533,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             vmin=vmin,
             vmax=vmax,
             polygon_offset=polygon_offset,
+            name=name,
         )
 
     def sphere(
@@ -592,7 +596,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 color = None
             else:
                 scalars = None
-            tube = line.tube(radius, n_sides=self.tube_n_sides)
+            tube = line.tube(radius=radius, n_sides=self.tube_n_sides)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=tube,
@@ -619,6 +623,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         scale,
         mode,
         resolution=8,
+        *,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -627,13 +632,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         scalars=None,
         colormap=None,
         backface_culling=False,
-        line_width=2.0,
-        name=None,
-        glyph_width=None,
-        glyph_depth=None,
         glyph_radius=0.15,
         solid_transform=None,
-        *,
         clim=None,
     ):
         _check_option("mode", mode, ALLOWED_QUIVER_MODES)
@@ -847,7 +847,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         """Enable it everywhere except on systems with problematic OpenGL."""
         # MESA can't seem to handle MSAA and depth peeling simultaneously, see
         # https://github.com/pyvista/pyvista/issues/4867
-        bad_system = _is_mesa(self.plotter)
+        bad_system = _is_osmesa(self.plotter)
         for plotter in self._all_plotters:
             if bad_system or not self.antialias:
                 plotter.disable_anti_aliasing()
@@ -891,9 +891,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.RenderEvent, on_mouse_move)
         add_obs(vtkCommand.LeftButtonPressEvent, on_button_press)
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
-        self.plotter.picker = vtkCellPicker()
-        self.plotter.picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
-        self.plotter.picker.SetVolumeOpacityIsovalue(0.0)
+        self._picker = vtkCellPicker()
+        self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
+        self._picker.SetVolumeOpacityIsovalue(0.0)
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None
@@ -1029,7 +1029,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         silhouette_mapper.SetInputConnection(silhouette_filter.GetOutputPort())
         actor, prop = self.plotter.add_actor(
             silhouette_mapper,
-            name=None,
             culling=False,
             pickable=False,
             reset_camera=False,
@@ -1093,13 +1092,6 @@ def _to_pos(azimuth, elevation):
     return x, y, z
 
 
-def _mat_to_array(vtk_mat):
-    e = [vtk_mat.GetElement(i, j) for i in range(4) for j in range(4)]
-    arr = np.array(e, dtype=float)
-    arr.shape = (4, 4)
-    return arr
-
-
 def _3d_to_2d(plotter, xyz):
     # https://vtk.org/Wiki/VTK/Examples/Cxx/Utilities/Coordinate
     coordinate = vtkCoordinate()
@@ -1113,9 +1105,7 @@ def _3d_to_2d(plotter, xyz):
 
 
 def _close_all():
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        close_all()
+    close_all()
     _FIGURES.clear()
 
 
@@ -1205,10 +1195,17 @@ def _set_3d_view(
         _process_events(figure.plotter)
 
 
-def _set_3d_title(figure, title, size=16):
-    figure.plotter.add_text(title, font_size=size, color="white", name="title")
+def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
+    handle = figure.plotter.add_text(
+        title,
+        font_size=size,
+        color=color,
+        position=position,
+        name="title",
+    )
     figure.plotter.update()
     _process_events(figure.plotter)
+    return handle
 
 
 def _check_3d_figure(figure):
@@ -1274,12 +1271,12 @@ def _arrow_glyph(grid, factor):
 
 def _glyph(
     dataset,
+    *,
     scale_mode="scalar",
     orient=True,
     scalars=True,
     factor=1.0,
     geom=None,
-    tolerance=0.0,
     absolute=False,
     clamping=False,
     rng=None,
@@ -1329,20 +1326,23 @@ def _disabled_depth_peeling():
         depth_peeling["enabled"] = depth_peeling_enabled
 
 
-def _is_mesa(plotter):
+def _is_osmesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    # and a working Nouveau is: "Mesa 24.2.3-1ubuntu1 via NVE6"
     if platform.system() == "Darwin":  # segfaults on macOS sometimes
         return False
+    if os.getenv("MNE_IS_OSMESA", "").lower() == "true":
+        return True
     gpu_info_full = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",
         gpu_info_full,
     )
     gpu_info = " ".join(gpu_info).lower()
-    is_mesa = "mesa" in gpu_info.split()
-    if is_mesa:
+    is_osmesa = "mesa" in gpu_info.split()
+    if is_osmesa:
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+)[ -].*", gpu_info) or re.findall(
             "OpenGL version string: .* Mesa ([0-9.]+)\n", gpu_info_full
@@ -1355,7 +1355,8 @@ def _is_mesa(plotter):
                     "surface rendering, consider upgrading to 18.3.6 or "
                     "later."
                 )
-    return is_mesa
+        is_osmesa = "llvmpipe" in gpu_info
+    return is_osmesa
 
 
 class _SafeBackgroundPlotter(BackgroundPlotter):

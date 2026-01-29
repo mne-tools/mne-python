@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "4dd4db9647338dab31c1ca8847331502efcea3b7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 4,
+      "d": 0
+    },
+    "CITATION.cff": {
+      "a": 39,
+      "d": 20
+    },
+    "SECURITY.md": {
+      "a": 3,
+      "d": 3
+    },
+    "codemeta.json": {
+      "a": 102,
+      "d": 48
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/versions.json": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/changes/0.17.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.8.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/1.5.inc": {
+      "a": 30,
+      "d": 3
+    },
+    "doc/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

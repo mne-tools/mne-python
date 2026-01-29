@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "422ea3229199c7c7b9fdf70de7a4f9583850d160",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/layouts/CTF151.lay": {
+      "a": 153,
+      "d": 0
+    },
+    "mne/layouts/CTF275.lay": {
+      "a": 275,
+      "d": 0
+    },
+    "mne/layouts/layout.py": {
+      "a": 68,
+      "d": 24
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

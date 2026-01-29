@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4bedd849b868f3fe35a98ebf1c9dbd1acfa758f5",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

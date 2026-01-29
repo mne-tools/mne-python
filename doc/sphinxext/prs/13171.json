@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "511b7a5c28151542e1547dc7273e5c6ee67f3c7e",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

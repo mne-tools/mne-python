@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b87838f8988755b70d9506afc3b5c04fcbf4af3d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 16,
+      "d": 7
+    }
+  }
+}

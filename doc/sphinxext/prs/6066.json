@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "32bf58dfb3f0b6c61faba5b7b33f4565eb36a205",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

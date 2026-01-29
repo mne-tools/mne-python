@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "59008cfa021f617c9c6de50593f55cdbdbf17538",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Adam Li",
+      "e": "adam2392@gmail.com"
+    },
+    {
+      "n": "Liberty Hamilton",
+      "e": "libertyhamilton@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/epilepsy_ecog/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/epilepsy_ecog/_data.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 118,
+      "d": 130
+    }
+  }
+}

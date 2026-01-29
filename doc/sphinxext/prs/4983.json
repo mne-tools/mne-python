@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a188859b57044fa158af05852bcce2870fabde91",
+  "authors": [
+    {
+      "n": "Pierre Ablin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

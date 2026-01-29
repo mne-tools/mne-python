@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "e4a6eba5d0a4c5f92b904207c33252f1979043db",
+  "authors": [
+    {
+      "n": "nordme",
+      "e": "nordme@uw.edu"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/source_label_time_frequency.py": {
+      "a": 45,
+      "d": 3
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 140,
+      "d": 1
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 203,
+      "d": 18
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

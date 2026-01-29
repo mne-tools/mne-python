@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3a6d15f2fcef509d800b7e4accb6b40a40e20d4d",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/_file_traits.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4e32966c5df0f294141ebb9da16ba3756228f808",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 37,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 95,
+      "d": 17
+    }
+  }
+}

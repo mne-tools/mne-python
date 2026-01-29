@@ -44,6 +44,7 @@ from mne.stats import permutation_cluster_1samp_test
 # %%
 # Set parameters
 # --------------
+
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"
 raw_fname = meg_path / "sample_audvis_raw.fif"

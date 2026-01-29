@@ -6,10 +6,8 @@ at which the fix is no longer needed.
 # originally copied from scikit-learn
 
 """
-# Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
-#          Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Fabian Pedregosa <fpedregosa@acm.org>
-#          Lars Buitinck <L.J.Buitinck@uva.nl>
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -18,21 +16,18 @@ at which the fix is no longer needed.
 # because this module is imported many places (but not always used)!
 
 import inspect
+import io
 import operator as operator_module
 import os
 import warnings
-from contextlib import contextmanager
-from io import StringIO
 from math import log
-from pprint import pprint
 
 import numpy as np
+import numpy.typing
+from packaging.version import parse
 
 ###############################################################################
-# distutils
-
-# distutils has been deprecated since Python 3.10 and was removed
-# from the standard library with the release of Python 3.12.
+# distutils LooseVersion removed in Python 3.12
 
 
 def _compare_version(version_a, operator, version_b):
@@ -53,14 +48,53 @@ def _compare_version(version_a, operator, version_b):
     bool
         The result of the version comparison.
     """
-    from packaging.version import parse
-
     mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
         ver_a = parse(version_a)
         ver_b = parse(version_b)
         return getattr(operator_module, mapping[operator])(ver_a, ver_b)
+
+
+###############################################################################
+# NumPy 2.5 deprecates .shape assignment, but .reshape(copy=False) requires 2.1+
+
+
+def _reshape_view(arr, shape):
+    """Reshape an array as a view, raising if a copy would be required.
+
+    This function provides compatibility across NumPy versions for reshaping
+    arrays as views. On NumPy >= 2.1, it uses ``reshape(copy=False)`` which
+    explicitly fails if a view cannot be created. On older versions, it uses
+    direct shape assignment which has the same behavior but is deprecated in
+    NumPy 2.5+.
+
+    Can be removed once NumPy 2.1 is the minimum supported version.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The array to reshape.
+    shape : tuple of int
+        The new shape.
+
+    Returns
+    -------
+    ndarray
+        A reshaped view of the array.
+
+    Raises
+    ------
+    AttributeError
+        If a view cannot be created on NumPy < 2.1.
+    ValueError
+        If a view cannot be created on NumPy >= 2.1.
+    """
+    if _compare_version(np.__version__, ">=", "2.1"):
+        return arr.reshape(shape, copy=False)
+    else:
+        arr.shape = shape
+        return arr
 
 
 ###############################################################################
@@ -102,10 +136,17 @@ def _safe_svd(A, **kwargs):
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
-def _csc_matrix_cast(x):
-    from scipy.sparse import csc_matrix
+def _csc_array_cast(x):
+    from scipy.sparse import csc_array
 
-    return csc_matrix(x)
+    return csc_array(x)
+
+
+# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
+def _eye_array(n, *, format="csr"):  # noqa: A002
+    from scipy import sparse
+
+    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################
@@ -113,7 +154,7 @@ def _csc_matrix_cast(x):
 
 
 def rng_uniform(rng):
-    """Get the unform/randint from the rng."""
+    """Get the uniform/randint from the rng."""
     # prefer Generator.integers, fall back to RandomState.randint
     return getattr(rng, "integers", getattr(rng, "randint", None))
 
@@ -128,231 +169,6 @@ def _get_img_fdata(img):
     data = np.asanyarray(img.dataobj)
     dtype = np.complex128 if np.iscomplexobj(data) else np.float64
     return data.astype(dtype)
-
-
-##############################################################################
-# adapted from scikit-learn
-
-
-_DEFAULT_TAGS = {
-    "array_api_support": False,
-    "non_deterministic": False,
-    "requires_positive_X": False,
-    "requires_positive_y": False,
-    "X_types": ["2darray"],
-    "poor_score": False,
-    "no_validation": False,
-    "multioutput": False,
-    "allow_nan": False,
-    "stateless": False,
-    "multilabel": False,
-    "_skip_test": False,
-    "_xfail_checks": False,
-    "multioutput_only": False,
-    "binary_only": False,
-    "requires_fit": True,
-    "preserves_dtype": [np.float64],
-    "requires_y": False,
-    "pairwise": False,
-}
-
-
-class BaseEstimator:
-    """Base class for all estimators in scikit-learn.
-
-    Notes
-    -----
-    All estimators should specify all the parameters that can be set
-    at the class level in their ``__init__`` as explicit keyword
-    arguments (no ``*args`` or ``**kwargs``).
-    """
-
-    @classmethod
-    def _get_param_names(cls):
-        """Get parameter names for the estimator."""
-        # fetch the constructor or the original constructor before
-        # deprecation wrapping if any
-        init = getattr(cls.__init__, "deprecated_original", cls.__init__)
-        if init is object.__init__:
-            # No explicit constructor to introspect
-            return []
-
-        # introspect the constructor arguments to find the model parameters
-        # to represent
-        init_signature = inspect.signature(init)
-        # Consider the constructor parameters excluding 'self'
-        parameters = [
-            p
-            for p in init_signature.parameters.values()
-            if p.name != "self" and p.kind != p.VAR_KEYWORD
-        ]
-        for p in parameters:
-            if p.kind == p.VAR_POSITIONAL:
-                raise RuntimeError(
-                    "scikit-learn estimators should always "
-                    "specify their parameters in the signature"
-                    " of their __init__ (no varargs)."
-                    f" {cls} with constructor {init_signature} doesn't "
-                    " follow this convention."
-                )
-        # Extract and sort argument names excluding 'self'
-        return sorted([p.name for p in parameters])
-
-    def get_params(self, deep=True):
-        """Get parameters for this estimator.
-
-        Parameters
-        ----------
-        deep : bool, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-
-        Returns
-        -------
-        params : dict
-            Parameter names mapped to their values.
-        """
-        out = dict()
-        for key in self._get_param_names():
-            # We need deprecation warnings to always be on in order to
-            # catch deprecated param values.
-            # This is set in utils/__init__.py but it gets overwritten
-            # when running under python3 somehow.
-            warnings.simplefilter("always", DeprecationWarning)
-            try:
-                with warnings.catch_warnings(record=True) as w:
-                    value = getattr(self, key, None)
-                if len(w) and w[0].category is DeprecationWarning:
-                    # if the parameter is deprecated, don't show it
-                    continue
-            finally:
-                warnings.filters.pop(0)
-
-            # XXX: should we rather test if instance of estimator?
-            if deep and hasattr(value, "get_params"):
-                deep_items = value.get_params().items()
-                out.update((key + "__" + k, val) for k, val in deep_items)
-            out[key] = value
-        return out
-
-    def set_params(self, **params):
-        """Set the parameters of this estimator.
-
-        The method works on simple estimators as well as on nested objects
-        (such as pipelines). The latter have parameters of the form
-        ``<component>__<parameter>`` so that it's possible to update each
-        component of a nested object.
-
-        Parameters
-        ----------
-        **params : dict
-            Parameters.
-
-        Returns
-        -------
-        inst : instance
-            The object.
-        """
-        if not params:
-            # Simple optimisation to gain speed (inspect is slow)
-            return self
-        valid_params = self.get_params(deep=True)
-        for key, value in params.items():
-            split = key.split("__", 1)
-            if len(split) > 1:
-                # nested objects case
-                name, sub_name = split
-                if name not in valid_params:
-                    raise ValueError(
-                        f"Invalid parameter {name} for estimator {self}. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`."
-                    )
-                sub_object = valid_params[name]
-                sub_object.set_params(**{sub_name: value})
-            else:
-                # simple objects case
-                if key not in valid_params:
-                    raise ValueError(
-                        f"Invalid parameter {key} for estimator "
-                        f"{self.__class__.__name__}. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`."
-                    )
-                setattr(self, key, value)
-        return self
-
-    def __repr__(self):  # noqa: D105
-        params = StringIO()
-        pprint(self.get_params(deep=False), params)
-        params.seek(0)
-        class_name = self.__class__.__name__
-        return f"{class_name}({params.read().strip()})"
-
-    # __getstate__ and __setstate__ are omitted because they only contain
-    # conditionals that are not satisfied by our objects (e.g.,
-    # ``if type(self).__module__.startswith('sklearn.')``.
-
-    def _more_tags(self):
-        return _DEFAULT_TAGS
-
-    def _get_tags(self):
-        collected_tags = {}
-        for base_class in reversed(inspect.getmro(self.__class__)):
-            if hasattr(base_class, "_more_tags"):
-                # need the if because mixins might not have _more_tags
-                # but might do redundant work in estimators
-                # (i.e. calling more tags on BaseEstimator multiple times)
-                more_tags = base_class._more_tags(self)
-                collected_tags.update(more_tags)
-        return collected_tags
-
-
-# newer sklearn deprecates importing from sklearn.metrics.scoring,
-# but older sklearn does not expose check_scoring in sklearn.metrics.
-def _get_check_scoring():
-    try:
-        from sklearn.metrics import check_scoring  # noqa
-    except ImportError:
-        from sklearn.metrics.scorer import check_scoring  # noqa
-    return check_scoring
-
-
-def _check_fit_params(X, fit_params, indices=None):
-    """Check and validate the parameters passed during `fit`.
-
-    Parameters
-    ----------
-    X : array-like of shape (n_samples, n_features)
-        Data array.
-
-    fit_params : dict
-        Dictionary containing the parameters passed at fit.
-
-    indices : array-like of shape (n_samples,), default=None
-        Indices to be selected if the parameter has the same size as
-        `X`.
-
-    Returns
-    -------
-    fit_params_validated : dict
-        Validated parameters. We ensure that the values support
-        indexing.
-    """
-    try:
-        from sklearn.utils.validation import (
-            _check_fit_params as _sklearn_check_fit_params,
-        )
-
-        return _sklearn_check_fit_params(X, fit_params, indices)
-    except ImportError:
-        from sklearn.model_selection import _validation
-
-        fit_params_validated = {
-            k: _validation._index_param_value(X, v, indices)
-            for k, v in fit_params.items()
-        }
-        return fit_params_validated
 
 
 ###############################################################################
@@ -384,7 +200,7 @@ def empirical_covariance(X, assume_centered=False):
 
     if X.shape[0] == 1:
         warnings.warn(
-            "Only one sample available. " "You may want to reshape your data array"
+            "Only one sample available. You may want to reshape your data array"
         )
 
     if assume_centered:
@@ -397,7 +213,66 @@ def empirical_covariance(X, assume_centered=False):
     return covariance
 
 
-class EmpiricalCovariance(BaseEstimator):
+class _EstimatorMixin:
+    def __sklearn_tags__(self):
+        # If we get here, we should have sklearn installed
+        from sklearn.utils import Tags, TargetTags
+
+        return Tags(
+            estimator_type=None,
+            target_tags=TargetTags(required=False),
+            transformer_tags=None,
+            regressor_tags=None,
+            classifier_tags=None,
+        )
+
+    def _param_names(self):
+        return inspect.getfullargspec(self.__init__).args[1:]
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : bool, default=True
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+
+        Returns
+        -------
+        params : dict
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        for key in self._param_names():
+            out[key] = getattr(self, key)
+        return out
+
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The latter have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
+
+        Parameters
+        ----------
+        **params : dict
+            Estimator parameters.
+
+        Returns
+        -------
+        self : object
+            Estimator instance.
+        """
+        param_names = self._param_names()
+        for key in params:
+            if key in param_names:
+                setattr(self, key, params[key])
+
+
+class EmpiricalCovariance(_EstimatorMixin):
     """Maximum likelihood covariance estimator.
 
     Read more in the :ref:`User Guide <covariance>`.
@@ -649,7 +524,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     from scipy.special import gammaln
 
     if rank > len(spectrum):
-        raise ValueError("The tested rank cannot exceed the rank of the" " dataset")
+        raise ValueError("The tested rank cannot exceed the rank of the dataset")
 
     pu = -rank * log(2.0)
     for i in range(rank):
@@ -772,7 +647,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 try:
     import numba
 
-    if _compare_version(numba.__version__, "<", "0.53.1"):
+    if _compare_version(numba.__version__, "<", "0.56.4"):
         raise ImportError
     prange = numba.prange
 
@@ -814,7 +689,6 @@ else:
 
 # workaround: plt.close() doesn't spawn close_event on Agg backend
 # https://github.com/matplotlib/matplotlib/issues/18609
-# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
     from matplotlib import backend_bases
@@ -832,63 +706,8 @@ def _close_event(fig):
         pass  # pragma: no cover
 
 
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()  # 3.4+
-    except AttributeError:
-        return ax.is_last_row()
-    return ax.get_subplotspec().is_last_row()
-
-
-def _sharex(ax1, ax2):
-    if hasattr(ax1.axes, "sharex"):
-        ax1.axes.sharex(ax2)
-    else:
-        ax1.get_shared_x_axes().join(ax1, ax2)
-
-
 ###############################################################################
-# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway) in 1.7
-
-
-def pinvh(a, rtol=None):
-    """Compute a pseudo-inverse of a Hermitian matrix."""
-    s, u = np.linalg.eigh(a)
-    del a
-    if rtol is None:
-        rtol = s.size * np.finfo(s.dtype).eps
-    maxS = np.max(np.abs(s))
-    above_cutoff = abs(s) > maxS * rtol
-    psigma_diag = 1.0 / s[above_cutoff]
-    u = u[:, above_cutoff]
-    return (u * psigma_diag) @ u.conj().T
-
-
-def pinv(a, rtol=None):
-    """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = _safe_svd(a, full_matrices=False)
-    del a
-    maxS = np.max(s)
-    if rtol is None:
-        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
-    rank = np.sum(s > maxS * rtol)
-    u = u[:, :rank]
-    u /= s[:rank]
-    return (u @ vh[:rank]).conj().T
-
-
-###############################################################################
-# h5py uses np.product which is deprecated in NumPy 1.25
-
-
-@contextmanager
-def _numpy_h5py_dep():
-    # h5io uses np.product
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings(
-            "ignore", "`product` is deprecated.*", DeprecationWarning
-        )
-        yield
+# SciPy 1.14+ minimum_phase half=True option
 
 
 def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
@@ -917,7 +736,7 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
         n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
     n_fft = int(n_fft)
     if n_fft < len(h):
-        raise ValueError("n_fft must be at least len(h)==%s" % len(h))
+        raise ValueError(f"n_fft must be at least len(h)=={len(h)}")
 
     # zero-pad; calculate the DFT
     h_temp = np.abs(fft(h, n_fft))
@@ -944,3 +763,46 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
 
     n_out = (n_half + len(h) % 2) if half else len(h)
     return h_minimum[:n_out]
+
+
+# SciPy 1.15 deprecates sph_harm for sph_harm_y and using it will trigger a
+# DeprecationWarning. This is a backport of the new function for older SciPy versions.
+def sph_harm_y(n, m, theta, phi, *, diff_n=0):
+    """Wrap scipy.special.sph_harm for sph_harm_y."""
+    # Can be removed once we no longer support scipy < 1.15.0
+    from scipy import special
+
+    if "sph_harm_y" in special.__dict__:
+        return special.sph_harm_y(n, m, theta, phi, diff_n=diff_n)
+    else:
+        return special.sph_harm(m, n, phi, theta)
+
+
+###############################################################################
+# workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
+# we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
+# from the file-like object.
+def read_from_file_or_buffer(
+    file: str | bytes | os.PathLike | io.IOBase,
+    dtype: numpy.typing.DTypeLike = float,
+    count: int = -1,
+):
+    """numpy.fromfile() wrapper, handling io.BytesIO file-like streams.
+
+    Numpy requires open files to be actual files on disk, i.e., must support
+    file.fileno(), so it fails with file-like streams such as io.BytesIO().
+
+    If numpy.fromfile() fails due to no file.fileno() support, this wrapper
+    reads the required bytes from file and redirects the call to
+    numpy.frombuffer().
+
+    See https://github.com/numpy/numpy/issues/2230#issuecomment-949795210
+    """
+    try:
+        return np.fromfile(file, dtype=dtype, count=count)
+    except io.UnsupportedOperation as e:
+        if not (e.args and e.args[0] == "fileno" and isinstance(file, io.IOBase)):
+            raise  # Nothing I can do about it
+        dtype = np.dtype(dtype)
+        buffer = file.read(dtype.itemsize * count)
+        return np.frombuffer(buffer, dtype=dtype, count=count)

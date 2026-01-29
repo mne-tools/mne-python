@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "66c40caea1fd343fbe49a34815542065ceecdf3d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/io/proj.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 62,
+      "d": 0
+    }
+  }
+}

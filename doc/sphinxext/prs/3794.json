@@ -1,0 +1,183 @@
+{
+  "merge_commit_sha": "23575ddc79324e5e846318ee6adf9daf55baf4dd",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/channels/interpolation.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 79,
+      "d": 17
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 52,
+      "d": 11
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/egi/egi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/proj.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/reference.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 18,
+      "d": 18
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/realtime/epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/regression.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/common.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/ica.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "90c94ef284f232ec619c6fcad7b1671f16f81ffe",
+  "authors": [
+    {
+      "n": "Brad Buran",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/forward/_lead_dots.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

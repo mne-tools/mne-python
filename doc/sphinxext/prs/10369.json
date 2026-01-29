@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4cf71bf9db388c4d2e6b1eefdd688e1675a13524",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/_static/branch_dropdown.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/forking_button.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/pull_button.png": {
+      "a": 0,
+      "d": 0
+    },
+    "logo/LICENSE": {
+      "a": 397,
+      "d": 0
+    },
+    "logo/README.md": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

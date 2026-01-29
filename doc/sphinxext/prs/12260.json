@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "82d195dd10c3b0756b5615b6e28dbc481040825f",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".gitignore": {
+      "a": 2,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/api/realtime.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/changes/v0.23.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/transformer.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

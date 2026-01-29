@@ -6,9 +6,8 @@ Brainstorm raw (median nerve) dataset
 =====================================
 
 Here we compute the evoked from raw for the Brainstorm
-tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
-
-    https://neuroimage.usc.edu/brainstorm/Tutorials/MedianNerveCtf
+tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
+https://neuroimage.usc.edu/brainstorm/Tutorials/MedianNerveCtf.
 """
 
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>

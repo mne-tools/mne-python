@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3d068c5e67da500862b0ebd2c4b8bffbcb5f18b4",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/channels.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/fiff/fiff/tests/test_raw.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

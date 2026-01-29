@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "a93c198d3d6fd9bad27c3f6d4fb879db980330ef",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "logo/generate_mne_logos.py": {
+      "a": 22,
+      "d": 7
+    },
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/icons/mne-splash.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne.qrc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/resources.py": {
+      "a": 2950,
+      "d": 1127
+    },
+    "mne/viz/_figure.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 36,
+      "d": 5
+    }
+  }
+}

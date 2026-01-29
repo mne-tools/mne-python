@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c5f58fb48972127dcfc262a10591de2d7e390e98",
+  "authors": [
+    {
+      "n": "apadee",
+      "e": "anna.padee@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 25,
+      "d": 14
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 46,
+      "d": 4
+    }
+  }
+}

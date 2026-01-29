@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "15b45a74c762f559f1c25199a67b290a5f18a26e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 73,
+      "d": 25
+    },
+    "mne/source_space.py": {
+      "a": 62,
+      "d": 43
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 46,
+      "d": 30
+    },
+    "mne/tests/test_label.py": {
+      "a": 19,
+      "d": 11
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 38,
+      "d": 17
+    }
+  }
+}

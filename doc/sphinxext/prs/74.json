@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "438dea14ed8aff90c5994ad17295a42a4d0e7e91",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/plot_source_power_spectrum.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/fiff/raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 21,
+      "d": 1
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 132,
+      "d": 5
+    }
+  }
+}

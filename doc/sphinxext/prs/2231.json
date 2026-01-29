@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0529b2ec7fbc3a561d57e7ca29401d77f2b9c948",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

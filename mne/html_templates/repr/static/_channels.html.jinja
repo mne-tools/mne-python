@@ -1,0 +1,17 @@
+{% set channel_names_good = channels["good"] | map(attribute='name_html') | join(', ') %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>{{ channel_type }}</td>
+    <td>
+        <button class="mne-ch-names-btn sd-sphinx-override sd-btn sd-btn-info sd-text-wrap sd-shadow-sm" onclick="alert('Good {{ channel_type}}:\n\n{{ channel_names_good | safe }}')" title="(Click to open in popup)&#13;&#13;{{ channel_names_good | safe }}">
+            {{ channels["good"] | length}}
+        </button>
+
+        {% if channels["bad"] %}
+        {% set channel_names_bad = channels["bad"] | map(attribute='name_html') | join(', ') %}
+        and <button class="mne-ch-names-btn sd-sphinx-override sd-btn sd-btn-info sd-text-wrap sd-shadow-sm" onclick="alert('Bad {{ channel_type}}:\n\n{{ channel_names_bad | safe }}')" title="(Click to open in popup)&#13;&#13;{{ channel_names_bad | safe }}">
+            {{ channels["bad"] | length}} bad
+        </button>
+        {% endif %}
+    </td>
+</tr>

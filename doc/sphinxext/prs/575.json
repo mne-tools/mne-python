@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6bd182407fda06e7bfe24d76b46dfb4046243311",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/layouts/layout.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 19,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "eb444700eed3157a6d42c129c3ccd8dfbb0babbc",
+  "authors": [
+    {
+      "n": "Oleh Kozynets",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 24,
+      "d": 4
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 36,
+      "d": 1
+    }
+  }
+}

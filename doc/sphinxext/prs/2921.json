@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6a3a6f60f6bc3384adcedbdb457be18ce535b87b",
+  "authors": [
+    {
+      "n": "Asish Panda",
+      "e": "asishrocks95@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e10b1dae11867cb15e63c783318995d0099979cd",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/glossary.rst": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

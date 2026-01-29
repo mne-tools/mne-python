@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "94a75a5c6c4124c950d96c9eec7e1d69c068b7ef",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

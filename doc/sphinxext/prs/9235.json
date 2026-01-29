@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "5cc6eb8d7ebd102049843336d9d4a342f0f3e966",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/io/tests/test_apply_function.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 24,
+      "d": 28
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 8,
+      "d": 15
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 8
+    }
+  }
+}

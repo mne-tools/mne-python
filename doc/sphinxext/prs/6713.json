@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "cd203d3b0f3d8054490b8705e40ebd318a939c74",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

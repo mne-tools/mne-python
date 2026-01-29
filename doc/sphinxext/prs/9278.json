@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "7b428b96c2a719902ae72a498618062f879d674c",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/viz/evoked.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 17,
+      "d": 13
+    }
+  }
+}

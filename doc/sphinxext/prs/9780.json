@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9c7e837f59e480fff1b6ea5841630e089aa5a235",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

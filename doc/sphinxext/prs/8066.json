@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7f30d1d840f953cbb0b01c77610f4acab6e09493",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Robert Luke",
+      "e": "mail@robertluke.net"
+    }
+  ],
+  "changes": {
+    "mne/io/nirx/nirx.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

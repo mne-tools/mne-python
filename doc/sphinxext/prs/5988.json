@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "541860518239b541eaf7be85db271327ec90085c",
+  "authors": [
+    {
+      "n": "Jeyhte Key",
+      "e": "jeythekey@tutanota.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 33,
+      "d": 3
+    }
+  }
+}

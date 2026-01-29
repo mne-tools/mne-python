@@ -1,9 +1,9 @@
 """
 .. _ex-ssd-spatial-filters:
 
-===========================================================
-Compute Spectro-Spatial Decomposition (SSD) spatial filters
-===========================================================
+================================================================
+Compute spatial filters with Spatio-Spectral Decomposition (SSD)
+================================================================
 
 In this example, we will compute spatial filters for retaining
 oscillatory brain activity and down-weighting 1/f background signals
@@ -13,6 +13,7 @@ from surrounding non-oscillatory noise based on the covariance in the
 frequency band of interest and the noise covariance based on surrounding
 frequencies.
 """
+
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 # License: BSD-3-Clause
@@ -25,7 +26,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path
-from mne.decoding import SSD
+from mne.decoding import SSD, get_spatial_filter_from_estimator
 
 # %%
 # Define parameters
@@ -33,7 +34,7 @@ fname = data_path() / "SubjectCMC.ds"
 
 # Prepare data
 raw = mne.io.read_raw_ctf(fname)
-raw.crop(50.0, 110.0).load_data()  # crop for memory purposes
+raw.crop(tmin=50.0, tmax=110.0).load_data()  # crop for memory purposes
 raw.resample(sfreq=250)
 
 raw.pick_types(meg=True, ref_meg=False)
@@ -63,14 +64,14 @@ ssd.fit(X=raw.get_data())
 
 
 # %%
-# Let's investigate spatial filter with max power ratio.
+# Let's investigate spatial filter with the max power ratio.
 # We will first inspect the topographies.
-# According to Nikulin et al. 2011 this is done by either inverting the filters
+# According to Nikulin et al. (2011), this is done by either inverting the filters
 # (W^{-1}) or by multiplying the noise cov with the filters Eq. (22) (C_n W)^t.
 # We rely on the inversion approach here.
 
-pattern = mne.EvokedArray(data=ssd.patterns_[:4].T, info=ssd.info)
-pattern.plot_topomap(units=dict(mag="A.U."), time_format="")
+spf = get_spatial_filter_from_estimator(ssd, info=ssd.info)
+spf.plot_patterns(components=list(range(4)))
 
 # The topographies suggest that we picked up a parietal alpha generator.
 
@@ -82,11 +83,11 @@ psd, freqs = mne.time_frequency.psd_array_welch(
     ssd_sources, sfreq=raw.info["sfreq"], n_fft=4096
 )
 
-# Get spec_ratio information (already sorted).
-# Note that this is not necessary if sort_by_spectral_ratio=True (default).
+# Get spec_ratio information (already sorted)
+# Note that this is not necessary if sort_by_spectral_ratio=True (default)
 spec_ratio, sorter = ssd.get_spectral_ratio(ssd_sources)
 
-# Plot spectral ratio (see Eq. 24 in Nikulin 2011).
+# Plot spectral ratio (see Eq. 24 in Nikulin et al., 2011).
 fig, ax = plt.subplots(1)
 ax.plot(spec_ratio, color="black")
 ax.plot(spec_ratio[sorter], color="orange", label="sorted eigenvalues")
@@ -100,7 +101,7 @@ ax.axhline(1, linestyle="--")
 # the sorting might make a difference.
 
 # %%
-# Let's also look at the power spectrum of that source and compare it to
+# Let's also look at the power spectrum of that source and compare it
 # to the power spectrum of the source with lowest SNR.
 
 below50 = freqs < 50
@@ -121,7 +122,7 @@ ax.legend()
 # %%
 # Epoched data
 # ------------
-# Although we suggest to use this method before epoching, there might be some
+# Although we suggest using this method before epoching, there might be some
 # situations in which data can only be treated by chunks.
 
 # Build epochs as sliding windows over the continuous raw file.
@@ -149,8 +150,8 @@ ssd_epochs = SSD(
 ssd_epochs.fit(X=epochs.get_data(copy=False))
 
 # Plot topographies.
-pattern_epochs = mne.EvokedArray(data=ssd_epochs.patterns_[:4].T, info=ssd_epochs.info)
-pattern_epochs.plot_topomap(units=dict(mag="A.U."), time_format="")
+spf = get_spatial_filter_from_estimator(ssd_epochs, info=ssd_epochs.info)
+spf.plot_patterns(components=list(range(4)))
 # %%
 # References
 # ----------

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6601b7ce5cd2b8caa8dda9ac913ffadc62fda5bb",
+  "authors": [
+    {
+      "n": "Darlene Heliokinde",
+      "e": "demetres.kostas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 15,
+      "d": 8
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

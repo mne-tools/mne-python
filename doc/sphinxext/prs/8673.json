@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7a689df121d1193d0efec099fbc26b63db40e583",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/advanced.rst": {
+      "a": 37,
+      "d": 0
+    }
+  }
+}

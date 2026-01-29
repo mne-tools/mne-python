@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3ca43776bc2a380a10b1c1f7aef33c619c5a2af2",
+  "authors": [
+    {
+      "n": "Falach",
+      "e": "rotemfa0@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

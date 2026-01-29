@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "fc819143b28298c50c8d9de9555a02474fbe3bc9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_show_fiff.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/open.py": {
+      "a": 45,
+      "d": 21
+    },
+    "mne/io/tag.py": {
+      "a": 41,
+      "d": 40
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/tree.py": {
+      "a": 6,
+      "d": 12
+    },
+    "mne/io/write.py": {
+      "a": 26,
+      "d": 89
+    }
+  }
+}

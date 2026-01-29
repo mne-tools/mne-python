@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "54638887057a2cc771e108e44dd4a61b75de4933",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

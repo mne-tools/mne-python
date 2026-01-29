@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "3a109ba9d5cbf9a08912d1c34ba44ddce8329a58",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 3,
+      "d": 4
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/minimum_norm/_eloreta.py": {
+      "a": 145,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 148,
+      "d": 58
+    },
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 7,
+      "d": 41
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 107,
+      "d": 16
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 48,
+      "d": 34
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 29,
+      "d": 46
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 5,
+      "d": 1
+    },
+    "tutorials/plot_dipole_orientations.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 43,
+      "d": 39
+    },
+    "tutorials/plot_mne_solutions.py": {
+      "a": 112,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 6,
+      "d": 8
+    },
+    "tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8f6af8068fa2281d9b6bc207bd46ae705a31eb2d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 61,
+      "d": 19
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 42,
+      "d": 3
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

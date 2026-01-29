@@ -1,6 +1,4 @@
-# Authors: Dominik Welke <dominik.welke@mailbox.org>
-#          Scott Huberty <seh33@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -75,9 +73,7 @@ def set_channel_types_eyetrack(inst, mapping):
     # loop over channels
     for ch_name, ch_desc in mapping.items():
         if ch_name not in ch_names:
-            raise ValueError(
-                "This channel name (%s) doesn't exist in " "info." % ch_name
-            )
+            raise ValueError(f"This channel name ({ch_name}) doesn't exist in info.")
         c_ind = ch_names.index(ch_name)
 
         # set ch_type and unit
@@ -117,22 +113,7 @@ def set_channel_types_eyetrack(inst, mapping):
         inst.info["chs"][c_ind]["unit"] = unit_new
 
         # set eye (and x/y-component)
-        loc = np.array(
-            [
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-            ]
-        )
+        loc = np.full(12, np.nan)
 
         ch_eye = ch_desc[2].lower()
         if ch_eye not in valid_eye["all"]:

@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -52,13 +50,13 @@ def _read_named_matrix(fid, node, matkind, indent="    ", transpose=False):
                     break
         else:
             logger.info(
-                indent + "Desired named matrix (kind = %d) not " "available" % matkind
+                f"{indent}Desired named matrix (kind = {matkind}) not available"
             )
             return None
     else:
         if not has_tag(node, matkind):
             logger.info(
-                indent + "Desired named matrix (kind = %d) not " "available" % matkind
+                f"{indent}Desired named matrix (kind = {matkind}) not available"
             )
             return None
 
@@ -73,13 +71,13 @@ def _read_named_matrix(fid, node, matkind, indent="    ", transpose=False):
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NROW)
     if tag is not None and tag.data != nrow:
         raise ValueError(
-            "Number of rows in matrix data and FIFF_MNE_NROW " "tag do not match"
+            "Number of rows in matrix data and FIFF_MNE_NROW tag do not match"
         )
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NCOL)
     if tag is not None and tag.data != ncol:
         raise ValueError(
-            "Number of columns in matrix data and " "FIFF_MNE_NCOL tag do not match"
+            "Number of columns in matrix data and FIFF_MNE_NCOL tag do not match"
         )
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_ROW_NAMES)
@@ -115,10 +113,9 @@ def write_named_matrix(fid, kind, mat):
         if n_tot < mat["data"].size and ratio > 0:
             ratio = 1 / ratio
         raise ValueError(
-            "Cannot write matrix: row (%i) and column (%i) "
-            "total element (%i) mismatch with data size (%i), "
-            "appears to be off by a factor of %gx"
-            % (mat["nrow"], mat["ncol"], n_tot, mat["data"].size, ratio)
+            f"Cannot write matrix: row ({mat['nrow']}) and column ({mat['ncol']}) "
+            f"total element ({n_tot}) mismatch with data size ({mat['data'].size}), "
+            f"appears to be off by a factor of {ratio:g}x"
         )
     start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
     write_int(fid, FIFF.FIFF_MNE_NROW, mat["nrow"])

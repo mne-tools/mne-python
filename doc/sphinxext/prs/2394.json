@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1fedc47e766b954e11d884aaa295b3b5c01dbb95",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 50,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/egi/egi.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

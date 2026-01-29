@@ -1,6 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Denis Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -117,6 +115,20 @@ def test_compute_whitener(proj, pca):
     rank = n_channels - len(raw.info["projs"])
     n_reduced = rank if pca is True else n_channels
     assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
+
+    # ensure that computing a whitener when there is a huge amplitude mismatch
+    # emits a warning
+    raw.pick("grad")
+    raw.info["bads"] = []
+    assert len(raw.info["projs"]) == 0
+    assert len(raw.ch_names) == 204
+    cov = make_ad_hoc_cov(raw.info)
+    assert cov["data"].ndim == 1
+    cov["data"][0] *= 1e12  # make one channel 6 orders of magnitude larger
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        W, _ = compute_whitener(cov, raw.info)
+    assert_allclose(np.diag(np.diag(W)), W, atol=1e-20)
+    assert_allclose(np.diag(W), 1.0 / np.sqrt(cov["data"]))
 
 
 def test_cov_mismatch():
@@ -620,8 +632,9 @@ def test_auto_low_rank():
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank, sigma=sigma)
     method_params = {"iter_n_components": [n_features + 5]}
     msg = (
-        "You are trying to estimate %i components on matrix " "with %i features."
-    ) % (n_features + 5, n_features)
+        f"You are trying to estimate {n_features + 5} components on matrix with "
+        f"{n_features} features."
+    )
     with pytest.warns(RuntimeWarning, match=msg):
         _auto_low_rank_model(
             X, mode=mode, n_jobs=n_jobs, method_params=method_params, cv=cv
@@ -893,7 +906,8 @@ def test_cov_ctf():
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
         with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
             noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"])
-        prepare_noise_cov(noise_cov, raw.info, ch_names)
+        with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+            prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
@@ -902,7 +916,8 @@ def test_cov_ctf():
     raw.apply_gradient_compensation(1)
 
     # TODO This next call in principle should fail.
-    prepare_noise_cov(noise_cov, raw.info, ch_names)
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     # make sure comps matrices was not removed from raw
     assert raw.info["comps"], "Comps matrices removed"
@@ -940,6 +955,24 @@ def test_compute_whitener_rank():
     assert rank == 305
     assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
     # this should emit a warning
-    with pytest.warns(RuntimeWarning, match="exceeds the estimated"):
+    with (
+        pytest.warns(RuntimeWarning, match="orders of magnitude"),
+        pytest.warns(RuntimeWarning, match="exceeds the estimated"),
+    ):
         _, _, rank = compute_whitener(cov, info, rank=dict(meg=306), return_rank=True)
     assert rank == 306
+
+
+def test_reg_rank():
+    """Test simple rank for cov regularization."""
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0), proj=False)
+    assert evoked.info["bads"] == []
+    cov = read_cov(cov_fname)
+    assert len(cov["names"]) == 366
+    cov["bads"] = ["MEG 2443", "EEG 053"]
+    want_ranks = dict(meg=302, eeg=58)  # one bad and one avg ref
+    ranks = compute_rank(cov, info=evoked.info, rank=None)
+    assert ranks == want_ranks
+    cov = regularize(cov, evoked.info)
+    ranks = compute_rank(cov, info=evoked.info, rank=None)
+    assert ranks == want_ranks

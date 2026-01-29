@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1a6e5159fe0610acb5320f7858270aaa75b3371d",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/tests/test_viz.py": {
+      "a": 3,
+      "d": 21
+    },
+    "mne/viz.py": {
+      "a": 21,
+      "d": 9
+    }
+  }
+}

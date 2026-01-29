@@ -1,19 +1,26 @@
-# Authors: Robert Luke  <mail@robertluke.net>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import shutil
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
+from numpy.testing import (
+    assert_allclose,
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 
 from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
+    _channel_frequencies,
     _reorder_nirx,
     beer_lambert_law,
     optical_density,
@@ -55,7 +62,6 @@ nirx_nirsport2_103_2 = (
 snirf_nirsport2_20219 = (
     testing_path / "SNIRF" / "NIRx" / "NIRSport2" / "2021.9" / "2021-10-01_002.snirf"
 )
-nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
 kernel_hb = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11" / "hb.snirf"
@@ -67,6 +73,11 @@ ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 
 # GowerLabs
 lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
+
+# Shimadzu Labnirs 3-wavelength converted to snirf using custom tool
+labnirs_multi_wavelength = (
+    testing_path / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
+)
 
 
 def _get_loc(raw, ch_name):
@@ -88,6 +99,7 @@ def _get_loc(raw, ch_name):
             nirx_nirsport2_103_2,
             kernel_hb,
             lumo110,
+            labnirs_multi_wavelength,
         ]
     ),
 )
@@ -423,7 +435,7 @@ def test_snirf_kernel_hb():
     assert raw.copy().pick("hbo")._data.shape == (180, 14)
     assert raw.copy().pick("hbr")._data.shape == (180, 14)
 
-    assert_allclose(raw.info["sfreq"], 8.257638)
+    assert_allclose(raw.info["sfreq"], 8.256495)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
     assert np.sum(bad_nans) == 20
@@ -433,6 +445,23 @@ def test_snirf_kernel_hb():
     assert raw.annotations.onset[1] == 0.874633
     assert raw.annotations.description[0] == "StartTrial"
     assert raw.annotations.description[1] == "StartIti"
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "sfreq,context",
+    (
+        [8.2, nullcontext()],  # sfreq estimated from file is 8.256495
+        [22, pytest.warns(RuntimeWarning, match="User-supplied sampling frequency")],
+    ),
+)
+def test_user_set_sfreq(sfreq, context):
+    """Test manually setting sfreq."""
+    with context:
+        # both sfreqs are far enough from true rate to yield >1% jitter
+        with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
+            raw = read_raw_snirf(kernel_hb, preload=False, sfreq=sfreq)
+    assert raw.info["sfreq"] == sfreq
 
 
 @requires_testing_data
@@ -516,7 +545,10 @@ def test_birthday(tmp_path, monkeypatch):
         a.save()
 
     raw = read_raw_snirf(fname)
-    assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+    assert raw.info["subject_info"]["birthday"] == datetime.date(1950, 1, 1)
+    # TODO: trigger some setting checkers that should maybe be in the reader (like
+    # those for subject_info)
+    raw.info.copy()
 
 
 @requires_testing_data
@@ -533,8 +565,8 @@ def test_sample_rate_jitter(tmp_path):
     with h5py.File(new_file, "r+") as f:
         orig_time = np.array(f.get("nirs/data1/time"))
         acceptable_time_jitter = orig_time.copy()
-        average_time_diff = np.mean(np.diff(orig_time))
-        acceptable_time_jitter[-1] += 0.0099 * average_time_diff
+        mean_period = np.mean(np.diff(orig_time))
+        acceptable_time_jitter[-1] += 0.0099 * mean_period
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
@@ -543,14 +575,28 @@ def test_sample_rate_jitter(tmp_path):
     lines = "\n".join(line for line in log.getvalue().splitlines() if "jitter" in line)
     assert "Found jitter of 0.9" in lines
 
-    # Add jitter of 1.01%, which is greater than allowed tolerance
+    # Add jitter of 1.02%, which is greater than allowed tolerance
     with h5py.File(new_file, "r+") as f:
         unacceptable_time_jitter = orig_time
         unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
-            0.0101 * average_time_diff
+            0.0102 * mean_period
         )
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
     with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
         read_raw_snirf(new_file, verbose=True)
+
+
+@requires_testing_data
+def test_snirf_multiple_wavelengths():
+    """Test importing synthetic SNIRF files with >=3 wavelengths."""
+    raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)
+    assert raw._data.shape == (45, 250)
+    assert raw.info["sfreq"] == pytest.approx(19.6, abs=0.01)
+    assert raw.info["ch_names"][:3] == ["S2_D2 780", "S2_D2 805", "S2_D2 830"]
+    assert len(raw.ch_names) == 45
+    freqs = np.unique(_channel_frequencies(raw.info))
+    assert_array_equal(freqs, [780, 805, 830])
+    distances = source_detector_distances(raw.info)
+    assert len(distances) == len(raw.ch_names)

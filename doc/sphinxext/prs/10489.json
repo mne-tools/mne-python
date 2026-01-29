@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2052b15cf1194bfa19c1b168b8b530c82d67f839",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/_phantom/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/config.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,1 +1,0 @@
-Allow :meth:`mne.io.Raw.interpolate_bads` and :meth:`mne.Epochs.interpolate_bads` to work on ``ecog`` and ``seeg`` data; for ``seeg`` data a spline is fit to neighboring electrode contacts on the same shaft, by `Alex Rockhill`_

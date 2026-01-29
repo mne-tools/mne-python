@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "75d17d52c6596234bd1e80d7206044aab07230dc",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "examples/io/plot_elekta_epochs.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 6
+    }
+  }
+}

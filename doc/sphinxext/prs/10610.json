@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "20a721328b430b850e5e4654e93a592cdab87271",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 0,
+      "d": 9
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 23,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 66,
+      "d": 21
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

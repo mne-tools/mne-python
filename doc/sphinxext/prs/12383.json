@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "03d78f43bf46e98cc4e2905c6e98e6190cf01924",
+  "authors": [
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12383.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 23,
+      "d": 4
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

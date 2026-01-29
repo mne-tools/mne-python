@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "dddbd843e46eaa0dd91d90880eaf4034f4ce05bc",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_compute_mne_inverse_raw_in_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 41,
+      "d": 33
+    },
+    "mne/io/reference.py": {
+      "a": 83,
+      "d": 55
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 24,
+      "d": 7
+    },
+    "mne/tests/test_cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/tests/test_proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_visualize_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

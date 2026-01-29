@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9262ae4858b123b7dcd70d5fad99b3b4aa00d271",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 14,
+      "d": 14
+    }
+  }
+}

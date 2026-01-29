@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e3ef29e667391e6977ea6b0e0861893e91054d95",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 71,
+      "d": 40
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

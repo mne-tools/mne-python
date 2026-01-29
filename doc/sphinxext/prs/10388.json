@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "61f10d539fcb3e95943eb1462771a3538d53a772",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/gui/_coreg.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 20,
+      "d": 4
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6bb318d43ae3d556f2bc637168bf2f97bdb93f75",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/check_steering_committee.py": {
+      "a": 58,
+      "d": 0
+    }
+  }
+}

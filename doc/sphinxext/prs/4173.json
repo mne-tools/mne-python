@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "d902ce646ae5195dd2e8a589947441fbb1b17cd4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 5
+    },
+    "doc/configure_git.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/contributing.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/documentation.rst": {
+      "a": 680,
+      "d": 0
+    },
+    "doc/getting_started.rst": {
+      "a": 38,
+      "d": 104
+    },
+    "doc/index.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/install_mne_python.rst": {
+      "a": 3,
+      "d": 4
+    },
+    "doc/manual/channel_interpolation.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/decoding.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/manual/index.rst": {
+      "a": 0,
+      "d": 8
+    },
+    "doc/manual/io.rst": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/manual/matlab.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/manual/pitfalls.rst": {
+      "a": 0,
+      "d": 30
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/tutorials.rst": {
+      "a": 0,
+      "d": 178
+    },
+    "doc/tutorials/philosophy.rst": {
+      "a": 27,
+      "d": 45
+    },
+    "doc/whats_new.rst": {
+      "a": 14,
+      "d": 12
+    },
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 16,
+      "d": 26
+    },
+    "mne/decoding/search_light.py": {
+      "a": 28,
+      "d": 31
+    },
+    "mne/decoding/transformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_configuration.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

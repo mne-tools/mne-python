@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "828953e0ba584c149bcd2d6898d3599af1b30f40",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12787.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 55,
+      "d": 5
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

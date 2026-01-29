@@ -1,1 +1,0 @@
-Fix bad channels not handled properly in :func:`mne.stc_near_sensors` by `Alex Rockhill`_.

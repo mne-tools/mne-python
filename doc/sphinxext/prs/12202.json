@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "fa0e8cfc42e8a80f6018df02372bb9f709bd993f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 5,
+      "d": 6
+    },
+    "doc/_includes/inverse.rst": {
+      "a": 12,
+      "d": 12
+    },
+    "doc/_includes/ssp.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/development/roadmap.rst": {
+      "a": 81,
+      "d": 79
+    },
+    "doc/links.inc": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

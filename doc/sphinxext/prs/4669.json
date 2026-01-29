@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "cb9f94891ed4252c9e7d88b1d6d77f06297cb375",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/evoked.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/proc_history.py": {
+      "a": 42,
+      "d": 2
+    },
+    "mne/io/tests/test_proc_history.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 90,
+      "d": 25
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 15,
+      "d": 3
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 56,
+      "d": 15
+    }
+  }
+}

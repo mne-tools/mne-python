@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "5ca0141f6bd9db9be98e94e7362e2103471487d2",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/locate_ieeg_micro.py": {
+      "a": 94,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/gui/__init__.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/gui/_core.py": {
+      "a": 152,
+      "d": 101
+    },
+    "mne/gui/_ieeg_locate.py": {
+      "a": 37,
+      "d": 17
+    },
+    "mne/gui/tests/test_core.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/gui/tests/test_ieeg_locate.py": {
+      "a": 15,
+      "d": 10
+    },
+    "mne/surface.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 83,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

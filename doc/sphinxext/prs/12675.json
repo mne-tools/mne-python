@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2c696d5ca0bc48b44f7916322b0759c760c54f94",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    ".github/release.yaml": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

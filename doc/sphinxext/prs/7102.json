@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "27e3f1d75f3c8605272d9071b5d5a2d77a7d1f22",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/io/plot_read_events.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/epochs/plot_10_epochs_overview.py": {
+      "a": 12,
+      "d": 0
+    },
+    "tutorials/epochs/plot_20_visualize_epochs.py": {
+      "a": 210,
+      "d": 0
+    },
+    "tutorials/epochs/plot_epoching_and_averaging.py": {
+      "a": 0,
+      "d": 166
+    },
+    "tutorials/epochs/plot_visualize_epochs.py": {
+      "a": 0,
+      "d": 94
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/evoked/plot_visualize_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

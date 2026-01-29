@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "eb6cb0d2ecc05091b139db27718998f51741f190",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/channels.py": {
+      "a": 63,
+      "d": 0
+    },
+    "mne/fiff/tests/test_channels.py": {
+      "a": 66,
+      "d": 0
+    }
+  }
+}

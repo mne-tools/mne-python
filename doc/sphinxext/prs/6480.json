@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2549c536721dfad921940cdbd821e3596fc513fa",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 75,
+      "d": 58
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 34,
+      "d": 2
+    }
+  }
+}

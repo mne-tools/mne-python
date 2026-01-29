@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "9e477f1b6bc5d3b8e219d56b8b594bd13694e384",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/sample/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/datasets/somato/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/datasets/spm_face/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/datasets/testing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/datasets/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 19,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

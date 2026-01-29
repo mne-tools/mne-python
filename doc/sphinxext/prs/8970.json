@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f20c60ec23481e8c9888fb9f7da1544378dd2489",
+  "authors": [
+    {
+      "n": "kimcoco",
+      "e": "kimjico@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_dics.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

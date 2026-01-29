@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "83bc6e189308e39db542878a0073be33233b5f37",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/plot_read_noise_covariance_matrix.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/cov.py": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

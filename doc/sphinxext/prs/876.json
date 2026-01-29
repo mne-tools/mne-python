@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6626d2e6c29607636115640a81530d5870ff6531",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_viz.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

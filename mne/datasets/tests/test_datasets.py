@@ -1,15 +1,17 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-import os
+
 import re
 import shutil
 import zipfile
 from functools import partial
-from os import path as op
+from pathlib import Path
 
 import pooch
 import pytest
 
+import mne.datasets._fsaverage.base
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
 from mne.datasets import fetch_dataset, fetch_infant_template, fetch_phantom, testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
@@ -61,20 +63,17 @@ def test_datasets_basic(tmp_path, monkeypatch):
             assert dataset.get_version() is None
             assert not datasets.has_dataset(dname)
         print(f"{dname}: {datasets.has_dataset(dname)}")
-    tempdir = str(tmp_path)
     # Explicitly test one that isn't preset (given the config)
-    monkeypatch.setenv("MNE_DATASETS_SAMPLE_PATH", tempdir)
+    monkeypatch.setenv("MNE_DATASETS_SAMPLE_PATH", str(tmp_path))
     dataset = datasets.sample
     assert str(dataset.data_path(download=False)) == "."
     assert dataset.get_version() != ""
     assert dataset.get_version() is None
     # don't let it read from the config file to get the directory,
     # force it to look for the default
-    monkeypatch.setenv("_MNE_FAKE_HOME_DIR", tempdir)
+    monkeypatch.setenv("_MNE_FAKE_HOME_DIR", str(tmp_path))
     monkeypatch.delenv("SUBJECTS_DIR", raising=False)
-    assert str(datasets.utils._get_path(None, "foo", "bar")) == op.join(
-        tempdir, "mne_data"
-    )
+    assert datasets.utils._get_path(None, "foo", "bar") == tmp_path / "mne_data"
     assert get_subjects_dir(None) is None
     _set_montage_coreg_path()
     sd = get_subjects_dir()
@@ -83,12 +82,19 @@ def test_datasets_basic(tmp_path, monkeypatch):
     with pytest.raises(FileNotFoundError, match="as specified by MNE_DAT"):
         testing.data_path(download=False)
 
+    def noop(*args, **kwargs):
+        return
+
+    monkeypatch.setattr(mne.datasets._fsaverage.base, "_manifest_check_download", noop)
+    sd_2 = datasets.fetch_fsaverage()
+    assert sd / "fsaverage" == sd_2
+
 
 @requires_good_network
 def test_downloads(tmp_path, monkeypatch, capsys):
     """Test dataset URL and version handling."""
     # Try actually downloading a dataset
-    kwargs = dict(path=str(tmp_path), verbose=True)
+    kwargs = dict(path=tmp_path, verbose=True)
     # XXX we shouldn't need to disable capsys here, but there's a pytest bug
     # that we're hitting (https://github.com/pytest-dev/pytest/issues/5997)
     # now that we use pooch
@@ -99,8 +105,8 @@ def test_downloads(tmp_path, monkeypatch, capsys):
             datasets.utils, "_MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS", ()
         )
         path = datasets._fake.data_path(update_path=False, **kwargs)
-    assert op.isdir(path)
-    assert op.isfile(op.join(path, "bar"))
+    assert path.is_dir()
+    assert (path / "bar").is_file()
     assert not datasets.has_dataset("fake")  # not in the desired path
     assert datasets._fake.get_version() is None
     assert datasets.utils._get_version("fake") is None
@@ -167,35 +173,31 @@ def test_downloads(tmp_path, monkeypatch, capsys):
         datasets._fake.data_path(download=True, force_update=True, **kwargs)
 
 
-@pytest.mark.slowtest
+# Okay to xfail this one because CircleCI downloads + uses the parcellations,
+# so we'll know if they break
+@pytest.mark.xfail(reason="Figshare blocks access from CIs sometimes")
+@pytest.mark.ultraslowtest  # not really ultraslow, but flakes out a lot
 @testing.requires_testing_data
-@requires_good_network
 def test_fetch_parcellations(tmp_path):
     """Test fetching parcellations."""
     pytest.importorskip("nibabel")
-    this_subjects_dir = str(tmp_path)
-    os.mkdir(op.join(this_subjects_dir, "fsaverage"))
-    os.mkdir(op.join(this_subjects_dir, "fsaverage", "label"))
-    os.mkdir(op.join(this_subjects_dir, "fsaverage", "surf"))
+    this_subjects_dir = tmp_path
+    fsaverage_dir = this_subjects_dir / "fsaverage"
+    (fsaverage_dir / "label").mkdir(parents=True)
+    (fsaverage_dir / "surf").mkdir()
     for hemi in ("lh", "rh"):
         shutil.copyfile(
-            op.join(subjects_dir, "fsaverage", "surf", "%s.white" % hemi),
-            op.join(this_subjects_dir, "fsaverage", "surf", "%s.white" % hemi),
+            subjects_dir / "fsaverage" / "surf" / f"{hemi}.white",
+            fsaverage_dir / "surf" / f"{hemi}.white",
         )
     # speed up by prenteding we have one of them
-    with open(
-        op.join(this_subjects_dir, "fsaverage", "label", "lh.aparc_sub.annot"), "wb"
-    ):
+    with open(fsaverage_dir / "label" / "lh.aparc_sub.annot", "wb"):
         pass
     datasets.fetch_aparc_sub_parcellation(subjects_dir=this_subjects_dir)
     with ArgvSetter(("--accept-hcpmmp-license",)):
         datasets.fetch_hcp_mmp_parcellation(subjects_dir=this_subjects_dir)
     for hemi in ("lh", "rh"):
-        assert op.isfile(
-            op.join(
-                this_subjects_dir, "fsaverage", "label", "%s.aparc_sub.annot" % hemi
-            )
-        )
+        assert (fsaverage_dir / "label" / f"{hemi}.aparc_sub.annot").is_file()
     # test our annot round-trips here
     kwargs = dict(
         subject="fsaverage", hemi="both", sort=False, subjects_dir=this_subjects_dir
@@ -207,9 +209,9 @@ def test_fetch_parcellations(tmp_path):
         table_name="./left.fsaverage164.label.gii",
         **kwargs,
     )
-    orig = op.join(this_subjects_dir, "fsaverage", "label", "lh.HCPMMP1.annot")
+    orig = fsaverage_dir / "label" / "lh.HCPMMP1.annot"
     first = hashfunc(orig)
-    new = orig[:-6] + "_round.annot"
+    new = str(orig)[:-6] + "_round.annot"
     second = hashfunc(new)
     assert first == second
 
@@ -218,7 +220,9 @@ _zip_fnames = ["foo/foo.txt", "foo/bar.txt", "foo/baz.txt"]
 
 
 def _fake_zip_fetch(url, path, fname, *args, **kwargs):
-    fname = op.join(path, fname)
+    path = Path(path)
+    assert isinstance(fname, str)
+    fname = path / fname
     with zipfile.ZipFile(fname, "w") as zipf:
         with zipf.open("foo/", "w"):
             pass
@@ -231,20 +235,20 @@ def _fake_zip_fetch(url, path, fname, *args, **kwargs):
 def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     """Test our manifest downloader."""
     monkeypatch.setattr(pooch, "retrieve", _fake_zip_fetch)
-    destination = op.join(str(tmp_path), "empty")
-    manifest_path = op.join(str(tmp_path), "manifest.txt")
+    destination = tmp_path / "empty"
+    manifest_path = tmp_path / "manifest.txt"
     with open(manifest_path, "w") as fid:
         for fname in _zip_fnames:
-            fid.write("%s\n" % fname)
+            fid.write(f"{fname}\n")
     assert n_have in range(len(_zip_fnames) + 1)
-    assert not op.isdir(destination)
+    assert not destination.is_file()
     if n_have > 0:
-        os.makedirs(op.join(destination, "foo"))
-        assert op.isdir(op.join(destination, "foo"))
+        (destination / "foo").mkdir(parents=True)
+        assert (destination / "foo").is_dir()
     for fname in _zip_fnames:
-        assert not op.isfile(op.join(destination, fname))
+        assert not (destination / fname).is_file()
     for fname in _zip_fnames[:n_have]:
-        with open(op.join(destination, fname), "w"):
+        with open(destination / fname, "w"):
             pass
     with catch_logging() as log:
         with use_log_level(True):
@@ -253,15 +257,15 @@ def test_manifest_check_download(tmp_path, n_have, monkeypatch):
             _manifest_check_download(manifest_path, destination, url, hash_)
     log = log.getvalue()
     n_missing = 3 - n_have
-    assert ("%d file%s missing from" % (n_missing, _pl(n_missing))) in log
+    assert (f"{n_missing} file{_pl(n_missing)} missing from") in log
     for want in ("Extracting missing", "Successfully "):
         if n_missing > 0:
             assert want in log
         else:
             assert want not in log
-    assert op.isdir(destination)
+    assert (destination).is_dir()
     for fname in _zip_fnames:
-        assert op.isfile(op.join(destination, fname))
+        assert (destination / fname).is_file()
 
 
 def _fake_mcd(manifest_path, destination, url, hash_, name=None, fake_files=False):
@@ -269,7 +273,7 @@ def _fake_mcd(manifest_path, destination, url, hash_, name=None, fake_files=Fals
         name = url.split("/")[-1].split(".")[0]
         assert name in url
         assert name in str(destination)
-    assert name in manifest_path
+    assert name in str(manifest_path)
     assert len(hash_) == 32
     if fake_files:
         with open(manifest_path) as fid:
@@ -277,8 +281,8 @@ def _fake_mcd(manifest_path, destination, url, hash_, name=None, fake_files=Fals
                 path = path.strip()
                 if not path:
                     continue
-                fname = op.join(destination, path)
-                os.makedirs(op.dirname(fname), exist_ok=True)
+                fname = destination / path
+                fname.parent.mkdir(exist_ok=True)
                 with open(fname, "wb"):
                     pass
 
@@ -303,7 +307,7 @@ def test_phantom(tmp_path, monkeypatch):
         partial(_fake_mcd, name="phantom_otaniemi", fake_files=True),
     )
     fetch_phantom("otaniemi", subjects_dir=tmp_path)
-    assert op.isfile(tmp_path / "phantom_otaniemi" / "mri" / "T1.mgz")
+    assert (tmp_path / "phantom_otaniemi" / "mri" / "T1.mgz").is_file()
 
 
 @requires_good_network
@@ -311,11 +315,9 @@ def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(
         dataset_name="license",
-        url=(
-            "https://raw.githubusercontent.com/mne-tools/mne-python/main/" "LICENSE.txt"
-        ),
+        url="https://raw.githubusercontent.com/mne-tools/mne-python/main/LICENSE.txt",
         archive_name="LICENSE.foo",
-        folder_name=op.join(tmp_path, "foo"),
+        folder_name=tmp_path / "foo",
         hash=None,
     )
     fetch_dataset(dataset_dict, path=None, force_update=True)

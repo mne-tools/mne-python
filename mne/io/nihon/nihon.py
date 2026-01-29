@@ -1,5 +1,4 @@
-# Authors: Federico Raimondo <federaimondo@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -24,7 +23,9 @@ def _ensure_path(fname):
 
 
 @fill_doc
-def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
+def read_raw_nihon(
+    fname, preload=False, *, encoding="utf-8", verbose=None
+) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
     Parameters
@@ -33,6 +34,9 @@ def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
         Path to the Nihon Kohden data file (``.EEG``).
     preload : bool
         If True, all data are loaded at initialization.
+    %(encoding_nihon)s
+
+        .. versionadded:: 1.11
     %(verbose)s
 
     Returns
@@ -45,7 +49,7 @@ def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
     --------
     mne.io.Raw : Documentation of attributes and methods of RawNihon.
     """
-    return RawNihon(fname, preload, verbose)
+    return RawNihon(fname, preload, encoding=encoding, verbose=verbose)
 
 
 _valid_headers = [
@@ -58,7 +62,7 @@ _valid_headers = [
     "EEG-2100  V02.00",
     "DAE-2100D V01.30",
     "DAE-2100D V02.00",
-    # 'EEG-1200A V01.00',  # Not working for the moment.
+    "EEG-1200A V01.00",
 ]
 
 
@@ -67,8 +71,10 @@ def _read_nihon_metadata(fname):
     fname = _ensure_path(fname)
     pnt_fname = fname.with_suffix(".PNT")
     if not pnt_fname.exists():
-        warn("No PNT file exists. Metadata will be blank")
-        return metadata
+        pnt_fname = fname.with_suffix(".pnt")
+        if not pnt_fname.exists():
+            warn("No PNT file exists. Metadata will be blank")
+            return metadata
     logger.info("Found PNT file, reading metadata.")
     with open(pnt_fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
@@ -156,9 +162,14 @@ def _read_21e_file(fname):
                 break
         else:
             warn(
-                f"Could not decode 21E file as one of {_encodings}; "
+                f"Could not decode {e_fname} as one of {_encodings}; "
                 f"Default channel names are chosen."
             )
+    else:
+        warn(
+            f"Could not find {e_fname} containing channel definitions; "
+            f"Default channel names are chosen."
+        )
 
     return _chan_labels
 
@@ -184,7 +195,7 @@ def _read_nihon_header(fname):
         fid.seek(0x17FE)
         waveform_sign = np.fromfile(fid, np.uint8, 1)[0]
         if waveform_sign != 1:
-            raise ValueError("Not a valid Nihon Kohden EEG file " "(waveform block)")
+            raise ValueError("Not a valid Nihon Kohden EEG file (waveform block)")
         header["version"] = version
 
         fid.seek(0x0091)
@@ -267,17 +278,56 @@ def _read_nihon_header(fname):
                 )
             if block_0["channels"] != t_block["channels"]:
                 raise ValueError(
-                    "Cannot read NK file with different channels in each " "datablock"
+                    "Cannot read NK file with different channels in each datablock"
                 )
             if block_0["sfreq"] != t_block["sfreq"]:
                 raise ValueError(
-                    "Cannot read NK file with different sfreq in each " "datablock"
+                    "Cannot read NK file with different sfreq in each datablock"
                 )
 
-    return header
+    return header, _chan_labels
 
 
-def _read_nihon_annotations(fname):
+def _read_event_log_block(fid, t_block, version):
+    fid.seek(0x92 + t_block * 20)
+    data = np.fromfile(fid, np.uint32, 1)
+    if data.size == 0 or data[0] == 0:
+        return
+    t_blk_address = data[0]
+
+    fid.seek(t_blk_address + 0x1)
+    data = np.fromfile(fid, "|S16", 1).astype("U16")
+    if data.size == 0 or data[0] != version:
+        return
+
+    fid.seek(t_blk_address + 0x12)
+    data = np.fromfile(fid, np.uint8, 1)
+    if data.size == 0:
+        return
+    n_logs = data[0]
+
+    fid.seek(t_blk_address + 0x14)
+    return np.fromfile(fid, "|S45", n_logs)
+
+
+def _parse_event_log(event_log):
+    t_desc = event_log[:20]
+    hour, minute, second = (
+        int(event_log[20:22]),
+        int(event_log[22:24]),
+        int(event_log[24:26]),
+    )
+    t_onset = hour * 3600 + minute * 60 + second
+    return t_desc, t_onset
+
+
+def _parse_sub_event_log(sub_event_log):
+    t_sub_desc = sub_event_log[:20]
+    t_sub_onset = int(sub_event_log[24:30]) / 1e6
+    return t_sub_desc, t_sub_onset
+
+
+def _read_nihon_annotations(fname, encoding="utf-8"):
     fname = _ensure_path(fname)
     log_fname = fname.with_suffix(".LOG")
     if not log_fname.exists():
@@ -293,27 +343,27 @@ def _read_nihon_annotations(fname):
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
         all_onsets = []
         all_descriptions = []
+        may_have_sub_blocks = n_logblocks <= 21
         for t_block in range(n_logblocks):
-            fid.seek(0x92 + t_block * 20)
-            t_blk_address = np.fromfile(fid, np.uint32, 1)[0]
-            fid.seek(t_blk_address + 0x12)
-            n_logs = np.fromfile(fid, np.uint8, 1)[0]
-            fid.seek(t_blk_address + 0x14)
-            t_logs = np.fromfile(fid, "|S45", n_logs)
-            for t_log in t_logs:
-                for enc in _encodings:
-                    try:
-                        t_log = t_log.decode(enc)
-                    except UnicodeDecodeError:
-                        pass
-                    else:
-                        break
-                else:
-                    warn(f"Could not decode log as one of {_encodings}")
+            t_logs = _read_event_log_block(fid, t_block, version)
+            t_sub_logs = None
+            if may_have_sub_blocks:
+                t_sub_logs = _read_event_log_block(fid, t_block + 22, version)
+
+            for li, t_log in enumerate(t_logs):
+                t_desc, t_onset = _parse_event_log(t_log)
+                if t_sub_logs is not None and t_sub_logs.size == t_logs.size:
+                    t_sub_desc, t_sub_onset = _parse_sub_event_log(t_sub_logs[li])
+                    t_desc += t_sub_desc
+                    t_onset += t_sub_onset
+
+                t_desc = t_desc.rstrip(b"\x00")
+                try:
+                    t_desc = t_desc.decode(encoding)
+                except UnicodeDecodeError:
+                    warn(f"Could not decode log as {encoding}")
                     continue
-                t_desc = t_log[:20].strip("\x00")
-                t_onset = datetime.strptime(t_log[20:26], "%H%M%S")
-                t_onset = t_onset.hour * 3600 + t_onset.minute * 60 + t_onset.second
+
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
 
@@ -335,13 +385,13 @@ def _map_ch_to_type(ch_name):
     return "eeg"
 
 
-def _map_ch_to_specs(ch_name):
+def _map_ch_to_specs(ch_name, chan_labels_upper):
     unit_mult = 1e-3
     phys_min = -12002.9
     phys_max = 12002.56
     dig_min = -32768
-    if ch_name.upper() in _default_chan_labels:
-        idx = _default_chan_labels.index(ch_name.upper())
+    if ch_name.upper() in chan_labels_upper:
+        idx = chan_labels_upper.index(ch_name.upper())
         if (idx < 42 or idx > 73) and idx not in [76, 77]:
             unit_mult = 1e-6
             phys_min = -3200
@@ -371,6 +421,9 @@ class RawNihon(BaseRaw):
         Path to the Nihon Kohden data ``.eeg`` file.
     preload : bool
         If True, all data are loaded at initialization.
+    %(encoding_nihon)s
+
+        .. versionadded:: 1.11
     %(verbose)s
 
     See Also
@@ -379,12 +432,14 @@ class RawNihon(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, preload=False, *, encoding="utf-8", verbose=None):
         fname = _check_fname(fname, "read", True, "fname")
         data_name = fname.name
-        logger.info("Loading %s" % data_name)
+        logger.info(f"Loading {data_name}")
 
-        header = _read_nihon_header(fname)
+        # chan_labels are electrode codes defined in the .21E file.
+        # It is not the same as header["ch_names"].
+        header, chan_labels = _read_nihon_header(fname)
         metadata = _read_nihon_metadata(fname)
 
         # n_chan = len(header['ch_names']) + 1
@@ -399,8 +454,9 @@ class RawNihon(BaseRaw):
         if "meas_date" in metadata:
             with info._unlock():
                 info["meas_date"] = metadata["meas_date"]
-        chs = {x: _map_ch_to_specs(x) for x in info["ch_names"]}
 
+        chan_labels_upper = [x.upper() for x in chan_labels]
+        chs = {x: _map_ch_to_specs(x, chan_labels_upper) for x in info["ch_names"]}
         cal = np.array([chs[x]["cal"] for x in info["ch_names"]], float)[:, np.newaxis]
         offsets = np.array([chs[x]["offset"] for x in info["ch_names"]], float)[
             :, np.newaxis
@@ -425,7 +481,7 @@ class RawNihon(BaseRaw):
         )
 
         # Get annotations from LOG file
-        annots = _read_nihon_annotations(fname)
+        annots = _read_nihon_annotations(fname, encoding)
 
         # Annotate acquisition skips
         controlblock = header["controlblocks"][0]
@@ -503,7 +559,7 @@ class RawNihon(BaseRaw):
                 rel_start = start - ends[start_block - 1]
             start_offset = datastart + rel_start * n_channels * 2
 
-            with open(self._filenames[fi], "rb") as fid:
+            with open(self.filenames[fi], "rb") as fid:
                 to_read = (stop - start) * n_channels
                 fid.seek(start_offset)
                 block_data = np.fromfile(fid, "<u2", to_read) + 0x8000

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "fd3112ef5b8bf4f23f4dda320ef91b1b22e7f7cb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/overview/faq.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 20,
+      "d": 3
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 64,
+      "d": 42
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 27,
+      "d": 4
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 4,
+      "d": 13
+    },
+    "mne/preprocessing/nirs/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 9,
+      "d": 1
+    }
+  }
+}

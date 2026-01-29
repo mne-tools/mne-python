@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "70062c9d9fcb70ce8e17dcdc4418cba78c6a39e6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/cov.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/dipole.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 33,
+      "d": 33
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_cov.py": {
+      "a": 38,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

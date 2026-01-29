@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e3d7a6db0665877ce573df3f24128b2457978fc1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/data/coil_def_Elekta.dat": {
+      "a": 70,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 568,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 138,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "53335f68227374b584ede6f4300f0f97f5efb0aa",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 54,
+      "d": 16
+    },
+    "mne/gui/_coreg.py": {
+      "a": 976,
+      "d": 0
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 91,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 3
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

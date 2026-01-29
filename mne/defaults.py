@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -67,8 +64,8 @@ DEFAULTS = dict(
         whitened="Z",
         gsr="S",
         temperature="C",
-        eyegaze="AU",
-        pupil="AU",
+        eyegaze="rad",
+        pupil="m",
     ),
     units=dict(
         mag="fT",
@@ -95,8 +92,8 @@ DEFAULTS = dict(
         whitened="Z",
         gsr="S",
         temperature="C",
-        eyegaze="AU",
-        pupil="AU",
+        eyegaze="rad",
+        pupil="mm",
     ),
     # scalings for the units
     scalings=dict(
@@ -125,7 +122,7 @@ DEFAULTS = dict(
         gsr=1.0,
         temperature=1.0,
         eyegaze=1.0,
-        pupil=1.0,
+        pupil=1e3,
     ),
     # rough guess for a good plot
     scalings_plot_raw=dict(
@@ -159,8 +156,8 @@ DEFAULTS = dict(
         gof=1e2,
         gsr=1.0,
         temperature=0.1,
-        eyegaze=3e-1,
-        pupil=1e3,
+        eyegaze=2e-1,
+        pupil=1e-2,
     ),
     scalings_cov_rank=dict(
         mag=1e12,
@@ -186,8 +183,8 @@ DEFAULTS = dict(
         hbo=(0, 20),
         hbr=(0, 20),
         csd=(-50.0, 50.0),
-        eyegaze=(0.0, 5000.0),
-        pupil=(0.0, 5000.0),
+        eyegaze=(-1, 1),
+        pupil=(-1.0, 1.0),
     ),
     titles=dict(
         mag="Magnetometers",
@@ -268,6 +265,7 @@ DEFAULTS = dict(
         nasion_color=(0.0, 1.0, 0.0),
         rpa_color=(0.0, 0.0, 1.0),
     ),
+    report_coreg=dict(dig=True, meg=("helmet", "sensors"), show_axes=True),
     noise_std=dict(grad=5e-13, mag=20e-15, eeg=0.2e-6),
     eloreta_options=dict(eps=1e-6, max_iter=20, force_equal=False),
     depth_mne=dict(

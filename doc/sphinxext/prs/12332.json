@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6eb4c3f4f94177d9c6e7c40cf941f5a4be9d4c98",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12332.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_edf.py": {
+      "a": 33,
+      "d": 66
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "merge_commit_sha": "59f56acde198b1eba20b4411cf3d334ec328a36f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 10,
+      "d": 15
+    },
+    "doc/tutorials/report.rst": {
+      "a": 17,
+      "d": 17
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "environment2.yml": {
+      "a": 9,
+      "d": 5
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/plot_megsim_data.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_timefreq.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 18,
+      "d": 31
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 4,
+      "d": 1
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 21,
+      "d": 11
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_find_ecg_artifacts.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_interpolate_bad_channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 5,
+      "d": 2
+    },
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/label.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/report.py": {
+      "a": 17,
+      "d": 12
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 14,
+      "d": 15
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_visualize_epochs.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

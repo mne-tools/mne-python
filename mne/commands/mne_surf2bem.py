@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Convert surface to BEM FIF file.
 
 Examples
@@ -10,8 +9,8 @@ Examples
         --id=4
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -46,7 +45,7 @@ def run():
         parser.print_help()
         sys.exit(1)
 
-    print("Converting %s to BEM FIF file." % options.surf)
+    print(f"Converting {options.surf} to BEM FIF file.")
     surf = mne.bem._surfaces_to_bem([options.surf], [int(options.id)], sigmas=[1])
     mne.write_bem_surfaces(options.fif, surf)
 

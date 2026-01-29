@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d25c87d65238e4a0b1f583be1dde2defcff0a5c6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

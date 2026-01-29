@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "61ab9e37a0c937229edc08489bbc28d028cacf08",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 1,
+      "d": 6
+    },
+    "doc/source/python_reference.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/plot_megsim_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/fiff/__init__.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/fiff/base.py": {
+      "a": 20,
+      "d": 472
+    },
+    "mne/fiff/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/fiff/bti/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/channels.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/fiff/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/egi/egi.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/fiff/egi/tests/test_egi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/fiff/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/fiff/raw.py": {
+      "a": 535,
+      "d": 0
+    },
+    "mne/fiff/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 6,
+      "d": 6
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

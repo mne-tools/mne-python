@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "11696d018595e934bf98080f08d1ddeb704e1c4d",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 19,
+      "d": 8
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

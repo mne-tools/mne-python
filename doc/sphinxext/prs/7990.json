@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4903cf2b9c5aef7fabb01ce84bf7d20203568d94",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/report.py": {
+      "a": 44,
+      "d": 31
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

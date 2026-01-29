@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "50cc4f28f8ed0dfae8e78139ddabe93a80b6d1f9",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "58f1acbce1f2e6395ace5119e00dee2ff5ccf10b",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 22,
+      "d": 20
+    },
+    "mne/decoding/csp.py": {
+      "a": 22,
+      "d": 20
+    },
+    "mne/epochs.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 33,
+      "d": 5
+    },
+    "mne/viz/topomap.py": {
+      "a": 116,
+      "d": 82
+    }
+  }
+}

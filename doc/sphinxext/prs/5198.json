@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "c38073288f2c32fea37c5d7c3a1bb5bcabc175f9",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 9,
+      "d": 11
+    },
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 11
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/decoding/search_light.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/reference.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/utils.py": {
+      "a": 72,
+      "d": 61
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

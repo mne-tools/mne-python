@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "36f5dcd355ab15dbc5b5e86fa7cc679997078f45",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topo.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

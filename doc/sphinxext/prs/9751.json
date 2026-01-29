@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3aeee826450c823464282657a38c6751d9cdc5a2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/epochs/60_make_fixed_length_epochs.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "af89a09629689d1aea2aa64fc9d44c6195cc8561",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/tutorial_links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 30,
+      "d": 31
+    },
+    "mne/viz/topomap.py": {
+      "a": 12,
+      "d": 7
+    },
+    "tutorials/plot_background_statistics.py": {
+      "a": 28,
+      "d": 19
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_time_frequency.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

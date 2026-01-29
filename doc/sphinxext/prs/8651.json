@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5d7ddd2bb64f22a150ff49e7f2c61f7dab2a6e53",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 8,
+      "d": 2
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 13,
+      "d": 13
+    }
+  }
+}

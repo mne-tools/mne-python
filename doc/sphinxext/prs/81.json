@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "7581f380b790d169af687b37c286dd4880ab1b8d",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/source/_images/mne_helmet.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/list.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/source/python_reference.rst": {
+      "a": 55,
+      "d": 2
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 254,
+      "d": 52
+    },
+    "examples/inverse/plot_mixed_norm_L21_inverse.py": {
+      "a": 3,
+      "d": 4
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/plot_read_bem_surfaces.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/plot_read_forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz.py": {
+      "a": 12,
+      "d": 13
+    }
+  }
+}

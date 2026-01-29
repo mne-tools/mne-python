@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5971f0ef4a90c8d369197e28fc3326e35ba5e973",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 23,
+      "d": 1
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 35,
+      "d": 26
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/viz/_3d.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

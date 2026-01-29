@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "2a423f9aa7613e0809bbe2bafcd7469d313234bb",
+  "authors": [
+    {
+      "n": "Nikolai M Chapochnikov",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/_stockwell.py": {
+      "a": 17,
+      "d": 19
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 14,
+      "d": 5
+    }
+  }
+}

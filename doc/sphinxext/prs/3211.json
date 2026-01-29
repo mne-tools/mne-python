@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1edafe34f02c14cda0d4fd28942c56d2871f9135",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 34,
+      "d": 1
+    }
+  }
+}

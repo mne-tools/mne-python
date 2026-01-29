@@ -1,0 +1,195 @@
+{
+  "merge_commit_sha": "93485e025d576470c21cc936becb3992c01a9c5e",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/time_frequency.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 96,
+      "d": 40
+    },
+    "mne/evoked.py": {
+      "a": 93,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/html_templates/repr/spectrum.html.jinja": {
+      "a": 50,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 41,
+      "d": 38
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 34,
+      "d": 69
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 1146,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 30,
+      "d": 27
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 116,
+      "d": 243
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 184,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/dataframe.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 151,
+      "d": 41
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/epochs.py": {
+      "a": 18,
+      "d": 25
+    },
+    "mne/viz/ica.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 36,
+      "d": 87
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 57,
+      "d": 57
+    },
+    "mne/viz/utils.py": {
+      "a": 12,
+      "d": 13
+    },
+    "setup.cfg": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/clinical/60_sleep.py": {
+      "a": 6,
+      "d": 7
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 36,
+      "d": 19
+    },
+    "tutorials/raw/40_visualize_raw.py": {
+      "a": 42,
+      "d": 14
+    },
+    "tutorials/time-freq/10_spectrum_class.py": {
+      "a": 172,
+      "d": 0
+    }
+  }
+}

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# Authors: Teon Brooks  <teon.brooks@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -82,7 +81,7 @@ def run():
             from mne_kit_gui import kit2fiff  # noqa
         except ImportError:
             raise ImportError(
-                "The mne-kit-gui package is required, install it using " "conda or pip"
+                "The mne-kit-gui package is required, install it using conda or pip"
             ) from None
         kit2fiff()
         sys.exit(0)

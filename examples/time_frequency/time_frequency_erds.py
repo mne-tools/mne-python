@@ -50,7 +50,7 @@ from mne.stats import permutation_cluster_1samp_test as pcluster_test
 # First, we load and preprocess the data. We use runs 6, 10, and 14 from
 # subject 1 (these runs contains hand and feet motor imagery).
 
-fnames = eegbci.load_data(subject=1, runs=(6, 10, 14))
+fnames = eegbci.load_data(subjects=1, runs=(6, 10, 14))
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in fnames])
 
 raw.rename_channels(lambda x: x.strip("."))  # remove dots from channel names

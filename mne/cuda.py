@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -82,13 +81,13 @@ def init_cuda(ignore_config=False, verbose=None):
     except Exception:
         warn(
             "so CUDA device could be initialized, likely a hardware error, "
-            "CUDA not enabled%s" % _explain_exception()
+            f"CUDA not enabled{_explain_exception()}"
         )
         return
 
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
-    logger.info("Enabling CUDA with %s available memory" % get_cuda_memory())
+    logger.info(f"Enabling CUDA with {get_cuda_memory()} available memory")
 
 
 @verbose
@@ -178,12 +177,11 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
             try:
                 # do the IFFT normalization now so we don't have to later
                 h_fft = cupy.array(cuda_dict["h_fft"])
-                logger.info("Using CUDA for %s" % kind)
+                logger.info(f"Using CUDA for {kind}")
             except Exception as exp:
                 logger.info(
-                    "CUDA not used, could not instantiate memory "
-                    '(arrays may be too large: "%s"), falling back to '
-                    "n_jobs=None" % str(exp)
+                    "CUDA not used, could not instantiate memory (arrays may be too "
+                    f'large: "{exp}"), falling back to n_jobs=None'
                 )
             cuda_dict.update(h_fft=h_fft, rfft=_cuda_upload_rfft, irfft=_cuda_irfft_get)
         else:
@@ -376,10 +374,9 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
     elif (n_pad < 0).any():
         raise RuntimeError("n_pad must be non-negative")
     if pad == "reflect_limited":
-        # need to pad with zeros if len(x) <= npad
         l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
         r_z_pad = np.zeros(max(n_pad[1] - len(x) + 1, 0), dtype=x.dtype)
-        return np.concatenate(
+        out = np.concatenate(
             [
                 l_z_pad,
                 2 * x[0] - x[n_pad[0] : 0 : -1],
@@ -389,4 +386,8 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
             ]
         )
     else:
-        return np.pad(x, (tuple(n_pad),), pad)
+        kwargs = dict()
+        if pad == "reflect":
+            kwargs["reflect_type"] = "odd"
+        out = np.pad(x, (tuple(n_pad),), pad, **kwargs)
+    return out

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bc9782eb8540abfc6e7b734d3a1ebd5b1a4d3f76",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

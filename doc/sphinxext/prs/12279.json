@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "97512a15a74c6a610132c83e8e420dd4a7caf4f5",
+  "authors": [
+    {
+      "n": "Kristijan Armeni",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 187,
+      "d": 27
+    },
+    "mne/io/neuralynx/tests/test_neuralynx.py": {
+      "a": 95,
+      "d": 13
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

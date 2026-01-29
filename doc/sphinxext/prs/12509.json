@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "c4d20c37d0c3f2a337428811f0e627ccdb078a09",
+  "authors": [
+    {
+      "n": "Nabil Alibou",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/channel_types.rst": {
+      "a": 61,
+      "d": 29
+    },
+    "doc/changes/devel/12509.other.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/documentation/glossary.rst": {
+      "a": 15,
+      "d": 4
+    },
+    "doc/sphinxext/mne_substitutions.py": {
+      "a": 23,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 22,
+      "d": 13
+    },
+    "mne/_fiff/pick.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/defaults.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/raw/10_raw_overview.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

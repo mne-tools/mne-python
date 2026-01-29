@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b4e43315dcdb12e86c1f11e8111f8e6c0217f147",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/_typing.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 9
+    }
+  }
+}

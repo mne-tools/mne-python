@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6e9ab0782890c5a3a6aac39159ccdb55a8e61223",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 6,
+      "d": 6
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

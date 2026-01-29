@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "54ea53109e14e7c707d92703797c220f5165e6c1",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/source/whats_new.rst": {
+      "a": 23,
+      "d": 20
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 18,
+      "d": 2
+    },
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 268
+    },
+    "mne/channels/montage.py": {
+      "a": 487,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 104,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/layouts/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/montage.py": {
+      "a": 24,
+      "d": 9
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 16,
+      "d": 2
+    }
+  }
+}

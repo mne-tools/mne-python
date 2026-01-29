@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3f40409c849080e6dd5a62c460427c3bad2992f3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

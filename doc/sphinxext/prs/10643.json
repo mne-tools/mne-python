@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6a8dd1434c6bbea527385838aa1fa0cc07c5201f",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/1.0.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

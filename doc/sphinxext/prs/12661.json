@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f90dd6eab35819df1da2b3e9aefb7f5d6ed3061c",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12661.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 17,
+      "d": 19
+    }
+  }
+}

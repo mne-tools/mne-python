@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e1b441460b3eb426dea9a90e1d250da18a169f12",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 12,
+      "d": 5
+    }
+  }
+}

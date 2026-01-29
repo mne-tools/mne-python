@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d2089d28ba1dae9b0a1159046f235e1dd596f8ea",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

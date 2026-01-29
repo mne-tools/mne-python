@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5df5a6996192c7541e8e2dbb33a104be09a4f8e0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_compute_mne_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 15,
+      "d": 78
+    },
+    "mne/viz.py": {
+      "a": 55,
+      "d": 307
+    }
+  }
+}

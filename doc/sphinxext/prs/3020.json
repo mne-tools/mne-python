@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "a430554085baaf53dcdde4ed79e7c19215ca4932",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 28,
+      "d": 4
+    },
+    "mne/fixes.py": {
+      "a": 87,
+      "d": 8
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 25,
+      "d": 1
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

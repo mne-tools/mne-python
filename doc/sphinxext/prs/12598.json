@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "537faea66da9a0f2bb4b09efe39b90627c941d68",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/filter.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

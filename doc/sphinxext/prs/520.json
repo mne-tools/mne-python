@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a4adae4fcf8862689afaef2b0e5c9a80bbcfa3ea",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/megsim/megsim.py": {
+      "a": 11,
+      "d": 8
+    }
+  }
+}

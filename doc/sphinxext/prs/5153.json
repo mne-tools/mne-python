@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9865f9275f596443668a06e84e54f2e2c645bddb",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/peak_finder.py": {
+      "a": 13,
+      "d": 8
+    }
+  }
+}

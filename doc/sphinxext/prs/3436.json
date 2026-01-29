@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "df88642e06748bb321e623e290d935e0142545e1",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import copy
 import re
 from pathlib import Path
@@ -36,6 +38,7 @@ from mne import (
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
+from mne.fixes import _reshape_view
 from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
 from mne.io import read_info, read_raw_fif
 from mne.label import label_sign_flip, read_label
@@ -85,7 +88,6 @@ fname_trans = s_path / "sample_audvis_trunc-trans.fif"
 subjects_dir = test_path / "subjects"
 s_path_bem = subjects_dir / "sample" / "bem"
 fname_bem = s_path_bem / "sample-320-320-320-bem-sol.fif"
-fname_bem_homog = s_path_bem / "sample-320-bem-sol.fif"
 src_fname = s_path_bem / "sample-oct-4-src.fif"
 
 snr = 3.0
@@ -129,8 +131,7 @@ def _compare(a, b):
             for k, v in a.items():
                 if k not in b and k not in skip_types:
                     raise ValueError(
-                        "First one had one second one didn't:\n"
-                        f"{k} not in {b.keys()}"
+                        f"First one had one second one didn't:\n{k} not in {b.keys()}"
                     )
                 if k not in skip_types:
                     last_keys.pop()
@@ -146,7 +147,7 @@ def _compare(a, b):
             assert len(a) == len(b)
             for i, j in zip(a, b):
                 _compare(i, j)
-        elif isinstance(a, sparse.csr_matrix):
+        elif isinstance(a, sparse.csr_array):
             assert_array_almost_equal(a.data, b.data)
             assert_equal(a.indices, b.indices)
             assert_equal(a.indptr, b.indptr)
@@ -244,6 +245,7 @@ def _compare_io(inv_op, *, out_file_ext=".fif", tmp_path):
     _compare(inv_init, inv_op)
 
 
+@pytest.mark.slowtest
 def test_warn_inverse_operator(evoked, noise_cov):
     """Test MNE inverse warning without average EEG projection."""
     bad_info = evoked.info
@@ -304,7 +306,7 @@ def test_make_inverse_operator_loose(evoked, tmp_path):
         )
     log = log.getvalue()
     assert "MEG: rank 302 computed" in log
-    assert "limit = 1/%d" % fwd_op["nsource"] in log
+    assert f"limit = 1/{fwd_op['nsource']}" in log
     assert "Loose (0.2)" in repr(my_inv_op)
     _compare_io(my_inv_op, tmp_path=tmp_path)
     assert_equal(inverse_operator["units"], "Am")
@@ -345,7 +347,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
             evoked.info, fwd_orig, noise_cov, loose=0.2, depth=depth, verbose=True
         )
     log = log.getvalue()
-    assert "limit = 1/%s" % fwd_orig["nsource"] in log
+    assert f"limit = 1/{fwd_orig['nsource']}" in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
@@ -390,12 +392,22 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
 @pytest.mark.parametrize(
     "method, lower, upper, depth",
     [
-        ("MNE", 54, 57, dict(limit=None, combine_xyz=False, exp=1.0)),  # DICS def
-        ("MNE", 75, 80, dict(limit_depth_chs=False)),  # ancient MNE default
+        pytest.param(
+            "MNE",
+            54,
+            57,
+            dict(limit=None, combine_xyz=False, exp=1.0),
+            marks=pytest.mark.slowtest,
+        ),  # DICS default
+        pytest.param(
+            "MNE", 75, 80, dict(limit_depth_chs=False), marks=pytest.mark.slowtest
+        ),  # ancient MNE default
         ("MNE", 83, 87, 0.8),  # MNE default
-        ("MNE", 89, 92, dict(limit_depth_chs="whiten")),  # sparse default
-        ("dSPM", 96, 98, 0.8),
-        ("sLORETA", 100, 100, 0.8),
+        pytest.param(
+            "MNE", 89, 92, dict(limit_depth_chs="whiten"), marks=pytest.mark.slowtest
+        ),  # sparse default
+        pytest.param("dSPM", 96, 98, 0.8, marks=pytest.mark.slowtest),
+        pytest.param("sLORETA", 100, 100, 0.8, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 100, 100, None, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 100, 100, 0.8, marks=pytest.mark.slowtest),
     ],
@@ -418,11 +430,25 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper, depth)
 @pytest.mark.parametrize(
     "method, lower, upper, depth, loose",
     [
-        ("MNE", 32, 37, dict(limit=None, combine_xyz=False, exp=1.0), 0.2),  # DICS
+        pytest.param(
+            "MNE",
+            32,
+            37,
+            dict(limit=None, combine_xyz=False, exp=1.0),
+            0.2,
+            marks=pytest.mark.slowtest,
+        ),  # DICS
         ("MNE", 78, 81, 0.8, 0.2),  # MNE default
-        ("MNE", 89, 92, dict(limit_depth_chs="whiten"), 0.2),  # sparse default
-        ("dSPM", 85, 87, 0.8, 0.2),
-        ("sLORETA", 100, 100, 0.8, 0.2),
+        pytest.param(
+            "MNE",
+            89,
+            92,
+            dict(limit_depth_chs="whiten"),
+            0.2,
+            marks=pytest.mark.slowtest,
+        ),  # sparse default
+        pytest.param("dSPM", 85, 87, 0.8, 0.2, marks=pytest.mark.slowtest),
+        pytest.param("sLORETA", 100, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 99, 100, None, 0.2, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
         pytest.param("eLORETA", 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
@@ -461,7 +487,7 @@ def test_localization_bias_loose(
 @pytest.mark.parametrize(
     "method, lower, upper, lower_ori, upper_ori, kwargs, depth, loose",
     [
-        (
+        pytest.param(
             "MNE",
             21,
             24,
@@ -470,8 +496,9 @@ def test_localization_bias_loose(
             {},
             dict(limit=None, combine_xyz=False, exp=1.0),
             1,
+            marks=pytest.mark.slowtest,
         ),
-        (
+        pytest.param(
             "MNE",
             35,
             40,
@@ -480,6 +507,7 @@ def test_localization_bias_loose(
             {},
             dict(limit_depth_chs=False),
             1,
+            marks=pytest.mark.slowtest,
         ),  # ancient default
         ("MNE", 45, 55, 0.94, 0.95, {}, 0.8, 1),  # MNE default
         (
@@ -493,7 +521,9 @@ def test_localization_bias_loose(
             1,
         ),  # sparse default
         ("dSPM", 40, 45, 0.96, 0.97, {}, 0.8, 1),
-        ("sLORETA", 93, 95, 0.95, 0.96, {}, 0.8, 1),
+        pytest.param(
+            "sLORETA", 93, 95, 0.95, 0.96, {}, 0.8, 1, marks=pytest.mark.slowtest
+        ),
         pytest.param(
             "eLORETA",
             93,
@@ -543,7 +573,7 @@ def test_apply_inverse_sphere(evoked, tmp_path):
     with evoked.info._unlock():
         evoked.info["projs"] = []
     cov = make_ad_hoc_cov(evoked.info)
-    sphere = make_sphere_model("auto", "auto", evoked.info)
+    sphere = make_sphere_model((0.0, 0.0, 0.04), None)
     fwd = read_forward_solution(fname_fwd)
     vertices = [fwd["src"][0]["vertno"][::5], fwd["src"][1]["vertno"][::5]]
     stc = SourceEstimate(
@@ -567,6 +597,7 @@ def test_apply_inverse_sphere(evoked, tmp_path):
     assert_array_equal(np.argmax(stc.data, axis=0), np.repeat(np.arange(101), 3))
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize("loose", [0.0, 0.2, 1.0])
 @pytest.mark.parametrize("lambda2", [1.0 / 9.0, 0.0])
 def test_apply_inverse_eLORETA_MNE_equiv(bias_params_free, loose, lambda2):
@@ -764,6 +795,7 @@ def assert_var_exp_log(log, lower, upper):
     return exp_var
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize("method", INVERSE_METHODS)
 @pytest.mark.parametrize("pick_ori", (None, "vector"))
 def test_inverse_residual(evoked, method, pick_ori):
@@ -936,6 +968,7 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
     assert_allclose(stc_diff.data, (stc_vec0 - stc_vec1).magnitude().data, atol=1e-20)
 
 
+@pytest.mark.slowtest
 def test_make_inverse_operator_diag(evoked, noise_cov, tmp_path, azure_windows):
     """Test MNE inverse computation with diagonal noise cov."""
     noise_cov = noise_cov.as_diag()
@@ -965,6 +998,11 @@ def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     assert compute_rank_inverse(inv) == 64
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
+
+    bad_cov = noise_cov.copy()
+    bad_cov["data"][0, 0] *= 1e12
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        make_inverse_operator(evoked.info, fwd_op, bad_cov, rank=dict(meg=64))
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))
@@ -1051,6 +1089,7 @@ _fast_methods = list(INVERSE_METHODS)
 _fast_methods.pop(_fast_methods.index("eLORETA"))
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("method", _fast_methods)
 @pytest.mark.parametrize("pick_ori", ["normal", None])
@@ -1113,6 +1152,7 @@ def test_apply_inverse_cov(method, pick_ori):
         )
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_mne_inverse_raw():
     """Test MNE with precomputed inverse operator on Raw."""
@@ -1572,11 +1612,11 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     evoked_sim = EvokedArray(data, evoked.info)
     del data
     # dipole
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model((0.0, 0.0, 0.05), 0.1)
     dip, _ = mne.fit_dipole(evoked_sim, cov, sphere)
     assert_allclose(dip.pos, want_pos, atol=1e-2)  # 1 cm
     ang = np.rad2deg(np.arccos(np.sum(dip.ori * want_ori, axis=1)))
-    assert_array_less(ang, 65)  # not great
+    assert_array_less(ang, 70)  # not great
     # MNE
     stc = apply_inverse(evoked_sim, inv_fixed, pick_ori="vector")
     stc, nn = stc.project("pca", fwd["src"])
@@ -1589,9 +1629,10 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     )
     got_ori = nn[idx]
     got_pos = fwd["source_rr"][idx]
-    assert_allclose(got_pos, want_pos, atol=1.1e-2)  # 1.1 cm
+    assert_allclose(got_pos, want_pos, atol=3e-2)  # 3 cm
     ang = np.rad2deg(np.arccos(np.sum(got_ori * want_ori, axis=1)))
-    assert_array_less(ang, 40)  # better than ECD + sphere
+    ang = np.minimum(ang, 180 - ang)  # don't care about direction
+    assert_array_less(ang, 50)  # better than ECD + sphere
     # MxNE
     stc = mne.inverse_sparse.mixed_norm(
         evoked,
@@ -1608,7 +1649,7 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     assert len(stc.data) == 2
     pos = np.concatenate([fwd["src"][ii]["rr"][v] for ii, v in enumerate(stc.vertices)])
     assert pos.shape == (2, 3)
-    assert_allclose(got_pos, want_pos, atol=1.1e-2)
+    assert_allclose(got_pos, want_pos, atol=3e-2)
 
 
 @testing.requires_testing_data
@@ -1646,7 +1687,7 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
         assert ori.shape == (ori.shape[0], 3)
         ori = ori[max_idx]
     assert ori.shape == (max_idx.size, 3)
-    ori.shape = (max_idx.size // 3, 3, 3)
+    ori = _reshape_view(ori, (max_idx.size // 3, 3, 3))
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu

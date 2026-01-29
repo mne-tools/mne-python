@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e5b0447baf2e0fe7d24fdcb1f11338257c89d33c",
+  "authors": [
+    {
+      "n": "Steven Gutstein",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_report.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a629463849b5e00bd01fc13e90d0f775ef52afd2",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/classifier.py": {
+      "a": 0,
+      "d": 73
+    },
+    "mne/decoding/csp.py": {
+      "a": 7,
+      "d": 22
+    }
+  }
+}

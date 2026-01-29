@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "438206d4a3f41f6bd9fbc45ee756a516760ce86c",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

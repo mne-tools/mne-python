@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "99e985845759005c2d809c705241918589aa2a0e",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 3,
+      "d": 0
+    },
+    ".github/workflows/circle_artifacts.yml": {
+      "a": 3,
+      "d": 0
+    },
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -21,6 +21,7 @@ will only work properly when run in an interactive environment.
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import matplotlib.pyplot as plt
 
 import mne
@@ -67,6 +68,7 @@ field_map = mne.make_field_map(
     trans=data_path / "MEG" / "sample" / "sample_audvis_raw-trans.fif",
     subject="sample",
     subjects_dir=data_path / "subjects",
+    origin="auto",
 )
 fig_field = mne.viz.plot_evoked_field(
     avg_evokeds,

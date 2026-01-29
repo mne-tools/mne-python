@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "50bee3363f1ab8a782fa6ed9d40a736061f4e13d",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_morph_data.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

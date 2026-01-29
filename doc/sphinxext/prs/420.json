@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "22e0b13221f96931b59b0d5f595bdd680bd9edc4",
+  "authors": [
+    {
+      "n": "Simon Kornblith",
+      "e": "simon@simonster.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 88,
+      "d": 6
+    },
+    "mne/tests/test_event.py": {
+      "a": 72,
+      "d": 3
+    }
+  }
+}

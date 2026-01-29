@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3b705d9973cd6e824f74226d1223387f4572453d",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/filter.py": {
+      "a": 199,
+      "d": 82
+    },
+    "mne/tests/test_filter.py": {
+      "a": 21,
+      "d": 2
+    }
+  }
+}

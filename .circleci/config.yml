@@ -27,8 +27,8 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     # large 4 vCPUs 15GB mem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
     resource_class: large
@@ -36,7 +36,8 @@ jobs:
       - restore_cache:
           keys:
             - source-cache
-      - checkout
+      - checkout:
+          method: full
       - run:
           name: Complete checkout
           command: |
@@ -94,11 +95,6 @@ jobs:
           command: ./tools/circleci_bash_env.sh
 
       - run:
-          name: check neuromag2ft
-          command: |
-            neuromag2ft --version
-
-      - run:
           name: Install fonts needed for diagrams
           command: |
             mkdir -p $HOME/.fonts
@@ -111,7 +107,7 @@ jobs:
       # Load pip cache
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-0
       - restore_cache:
           keys:
             - user-install-bin-cache-310
@@ -123,7 +119,7 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: pip-cache
+          key: pip-cache-0
           paths:
             - ~/.cache/pip
       - save_cache:
@@ -148,6 +144,7 @@ jobs:
               which python
               QT_DEBUG_PLUGINS=1 mne sys_info -pd
               python -c "import numpy; numpy.show_config()"
+              python -c "import dipy.align.metrics"
               LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
               python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
               python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
@@ -217,6 +214,9 @@ jobs:
       - restore_cache:
           keys:
             - data-cache-phantom-kit
+      - restore_cache:
+          keys:
+            - data-cache-ds004388
       - run:
           name: Get data
           # This limit could be increased, but this is helpful for finding slow ones
@@ -240,6 +240,7 @@ jobs:
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
       # Build docs
       - run:
@@ -251,7 +252,7 @@ jobs:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
           command: |
-            ! grep "^.* WARNING: .*$" sphinx_log.txt
+            ! grep "^.*\(WARNING\|ERROR\): " sphinx_log.txt
       - run:
           name: Show profiling output
           when: always
@@ -284,6 +285,15 @@ jobs:
       - store_artifacts:
           path: doc/_build/test-results
           destination: test-results
+      # Upload test results to Codecov
+      - run:
+          name: Upload test results to Codecov
+          environment:
+            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
+          command: |
+            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            fi
       # Save the SG RST
       - store_artifacts:
           path: doc/auto_examples.zip
@@ -392,6 +402,10 @@ jobs:
           key: data-cache-phantom-kit
           paths:
             - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
+      - save_cache:
+          key: data-cache-ds004388
+          paths:
+            - ~/mne_data/ds004388  # (1.8 G)
 
 
   linkcheck:
@@ -400,8 +414,8 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - restore_cache:
@@ -421,7 +435,7 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-0
       - run:
           name: Get Python running
           command: |
@@ -432,27 +446,27 @@ jobs:
             mne sys_info -pd
       - run:
           name: make linkcheck
+          no_output_timeout: 40m
           command: |
             make -C doc linkcheck
-      - run:
-          name: make linkcheck-grep
-          when: always
-          command: |
-            make -C doc linkcheck-grep
       - store_artifacts:
           path: doc/_build/linkcheck
           destination: linkcheck
 
 
   deploy:
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     steps:
       - attach_workspace:
           at: /tmp/build
       - restore_cache:
           keys:
-            - website-cache
+            - website-cache-1
+      - add_ssh_keys:
+          fingerprints:
+            # SHA256:N4qvp6MSbXcTz/27xz96VPsNuTDRT92zoRP8EW0I/8I
+            - "19:fe:1d:c3:c7:af:7e:16:94:4c:e1:e7:0a:56:13:bd"
       - run:
           name: Set BASH_ENV
           command: |
@@ -480,6 +494,7 @@ jobs:
           command: |
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
+            ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
             cd ~/mne-tools.github.io;
             git checkout main
             git remote -v
@@ -501,9 +516,9 @@ jobs:
             fi;
             git push origin main;
       - save_cache:
-          key: website-cache
+          key: website-cache-1
           paths:
-            - ~/mne_data/MNE-visual_92_categories-data
+            - ~/mne-tools.github.io
 
 workflows:
   default:

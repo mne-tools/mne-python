@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "149453c569645b5cf29103f1dc0e54e5286ce23d",
+  "authors": [
+    {
+      "n": "Jacob",
+      "e": "jacob.phelan.jp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12978.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/preprocessing/35_artifact_correction_regression.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

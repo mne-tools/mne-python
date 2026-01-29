@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "75193005557fd323e11feb7bfbf0c49de04336b3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 46,
+      "d": 44
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

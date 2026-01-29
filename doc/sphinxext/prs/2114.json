@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "14f89ce12865319fc7ebe62d669d78797afb727a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 24,
+      "d": 6
+    },
+    "mne/evoked.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/tests/test_circle.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 98,
+      "d": 80
+    },
+    "mne/viz/topomap.py": {
+      "a": 90,
+      "d": 48
+    }
+  }
+}

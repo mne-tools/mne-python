@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d13681dfc8961b96654a17ee7e4e2584c1346260",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

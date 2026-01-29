@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "630632c83b4e3b258a77e9bb4d602310b367660e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/bti/bti.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/constants.py": {
+      "a": 16,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3a83e2cc6b5323e7b8bf97d1f9b0daa3698c1f1d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f822aff865eec167ae7683cb30cb3006a601f721",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/source_estimate.py": {
+      "a": 13,
+      "d": 8
+    },
+    "mne/tests/test_viz.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 69,
+      "d": 57
+    }
+  }
+}

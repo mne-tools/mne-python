@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5608da261cc18f4813c1165baa8a6d5f64a1ea8c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

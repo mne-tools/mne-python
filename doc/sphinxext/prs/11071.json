@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "bb93462a5853dc1a6bd6f4ebfb3a9d8b9431e731",
+  "authors": [
+    {
+      "n": "Andrew Quinn",
+      "e": "aquinn501@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 10,
+      "d": 15
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 3
+    }
+  }
+}

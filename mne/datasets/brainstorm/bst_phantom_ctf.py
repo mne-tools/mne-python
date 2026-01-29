@@ -1,7 +1,7 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from ...utils import verbose
 from ..utils import (
     _data_path_doc_accept,

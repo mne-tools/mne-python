@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6bc7dfb3535ef954b7a6fcbad93887abe2aa7c92",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13048.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 30,
+      "d": 39
+    }
+  }
+}

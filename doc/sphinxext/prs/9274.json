@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "392d5cab6e9460f177b5832d3201366ce58967e4",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 6,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

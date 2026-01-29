@@ -1,5 +1,4 @@
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,9 +7,10 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal
-from scipy import linalg, stats
+from scipy import stats
 
 from mne.preprocessing.infomax_ import infomax
+from mne.utils import pinv
 
 pytest.importorskip("sklearn")
 
@@ -159,7 +159,7 @@ def test_non_square_infomax():
         unmixing_ = infomax(m, random_state=rng, extended=True)
         s_ = np.dot(unmixing_, m.T)
         # Check that the mixing model described in the docstring holds:
-        mixing_ = linalg.pinv(unmixing_.T)
+        mixing_ = pinv(unmixing_.T)
 
         assert_almost_equal(m, s_.T.dot(mixing_))
 

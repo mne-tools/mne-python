@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "52a2ce106e89446e4b693e142e2b8fc365750839",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/megsim/megsim.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/utils.py": {
+      "a": 178,
+      "d": 25
+    }
+  }
+}

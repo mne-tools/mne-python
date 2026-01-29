@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7d653f91d9cc3661dc7a27f411df457fd3b1ebeb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/__init__.py": {
+      "a": 18,
+      "d": 5
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 89,
+      "d": 71
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

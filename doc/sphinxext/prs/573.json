@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "196f09fffd30c3b0748c49aae8599ccb319c26ab",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "setup.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

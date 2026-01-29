@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,10 +10,11 @@ from functools import partial
 from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
+from ..fixes import _reshape_view
 from ..utils import _check_option, warn
-from ..utils.numerics import _julian_to_cal
+from ..utils.numerics import _julian_to_date
 from .constants import (
     FIFF,
     _ch_coil_type_named,
@@ -72,8 +71,7 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
         have_shape = tag_size // item_size
         if want_shape != have_shape:
             raise ValueError(
-                f"Wrong shape specified, requested {want_shape} but got "
-                f"{have_shape}"
+                f"Wrong shape specified, requested {want_shape} but got {have_shape}"
             )
         if not len(rlims) == 2:
             raise ValueError("rlims must have two elements")
@@ -180,7 +178,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data.shape = dims
+        data = _reshape_view(data, dims)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
@@ -197,41 +195,34 @@ def _read_matrix(fid, tag, shape, rlims):
         # We need to make a copy so that we can own the data, otherwise we get:
         #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
         # E   ValueError: WRITEBACKIFCOPY base is read-only
-        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).copy()
+        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).astype(np.float32)
         shape = (dims[1], dims[2])
         if matrix_coding == "sparse CCS":
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (ncol + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (nrow + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (nrow + 1) :], dtype="<i4"),
-                    )
-                )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csc_matrix((data, indices, indptr), shape=shape)
+            swap = nrow
+            klass = csc_array
         else:
             assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (nrow + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (ncol + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (ncol + 1) :], dtype="<i4"),
-                    )
+            swap = ncol
+            klass = csr_array
+        if indptr[-1] > len(indices) or np.any(indptr < 0):
+            # There was a bug in MNE-C that caused some data to be
+            # stored without byte swapping
+            indices = np.concatenate(
+                (
+                    np.frombuffer(tmp_indices[: 4 * (swap + 1)], dtype=">i4"),
+                    np.frombuffer(tmp_indices[4 * (swap + 1) :], dtype="<i4"),
                 )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csr_matrix((data, indices, indptr), shape=shape)
+            )
+            indptr = np.frombuffer(tmp_ptr, dtype="<i4")
+        data = klass((data, indices, indptr), shape=shape)
     return data
 
 
@@ -280,19 +271,26 @@ def _read_id_struct(fid, tag, shape, rlims):
     )
 
 
-def _read_dig_point_struct(fid, tag, shape, rlims):
+def _read_dig_point_struct(fid, tag, shape, rlims, *, string=False):
     """Read dig point struct tag."""
     kind = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     kind = _dig_kind_named.get(kind, kind)
     ident = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     if kind == FIFF.FIFFV_POINT_CARDINAL:
         ident = _dig_cardinal_named.get(ident, ident)
-    return dict(
-        kind=kind,
-        ident=ident,
-        r=np.frombuffer(fid.read(12), dtype=">f4"),
-        coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-    )
+    n = 1 if not string else int(np.frombuffer(fid.read(4), dtype=">i4").item())
+    out = [
+        dict(
+            kind=kind,
+            ident=ident,
+            r=np.frombuffer(fid.read(12), dtype=">f4"),
+            coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+        )
+        for _ in range(n)
+    ]
+    if not string:
+        out = out[0]
+    return out
 
 
 def _read_coord_trans_struct(fid, tag, shape, rlims):
@@ -366,7 +364,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
     """Read dir entry struct tag."""
     pos = tag.pos + 16
     entries = list()
-    for offset in range(1, tag.size // 16):
+    for offset in range(tag.size // 16):
         ent = _read_tag_header(fid, pos + offset * 16)
         # The position of the real tag on disk is stored in the "next" entry within the
         # directory, so we need to overwrite ent.pos. For safety let's also overwrite
@@ -378,7 +376,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
+    return _julian_to_date(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
 
 
 # Read types call dict
@@ -388,11 +386,13 @@ _call_dict = {
     FIFF.FIFFT_COMPLEX_DOUBLE: _read_complex_double,
     FIFF.FIFFT_ID_STRUCT: _read_id_struct,
     FIFF.FIFFT_DIG_POINT_STRUCT: _read_dig_point_struct,
+    FIFF.FIFFT_DIG_STRING_STRUCT: partial(_read_dig_point_struct, string=True),
     FIFF.FIFFT_COORD_TRANS_STRUCT: _read_coord_trans_struct,
     FIFF.FIFFT_CH_INFO_STRUCT: _read_ch_info_struct,
     FIFF.FIFFT_OLD_PACK: _read_old_pack,
     FIFF.FIFFT_DIR_ENTRY_STRUCT: _read_dir_entry_struct,
     FIFF.FIFFT_JULIAN: _read_julian,
+    FIFF.FIFFT_VOID: lambda fid, tag, shape, rlims: None,
 }
 _call_dict_names = {
     FIFF.FIFFT_STRING: "str",
@@ -400,6 +400,7 @@ _call_dict_names = {
     FIFF.FIFFT_COMPLEX_DOUBLE: "c16",
     FIFF.FIFFT_ID_STRUCT: "ids",
     FIFF.FIFFT_DIG_POINT_STRUCT: "dps",
+    FIFF.FIFFT_DIG_STRING_STRUCT: "dss",
     FIFF.FIFFT_COORD_TRANS_STRUCT: "cts",
     FIFF.FIFFT_CH_INFO_STRUCT: "cis",
     FIFF.FIFFT_OLD_PACK: "op_",

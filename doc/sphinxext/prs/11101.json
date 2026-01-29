@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "a5acbec2c9c5a93a6ac2a06127068927858e6302",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/bug_report.md": {
+      "a": 0,
+      "d": 52
+    },
+    ".github/ISSUE_TEMPLATE/bug_report.yml": {
+      "a": 65,
+      "d": 0
+    },
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "a": 3,
+      "d": 3
+    },
+    ".github/ISSUE_TEMPLATE/documentation.md": {
+      "a": 0,
+      "d": 15
+    },
+    ".github/ISSUE_TEMPLATE/documentation.yml": {
+      "a": 26,
+      "d": 0
+    },
+    ".github/ISSUE_TEMPLATE/feature_request.md": {
+      "a": 0,
+      "d": 27
+    },
+    ".github/ISSUE_TEMPLATE/feature_request.yml": {
+      "a": 51,
+      "d": 0
+    }
+  }
+}

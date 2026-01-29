@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "344cf674630c644ebb4d599e53cccdc35bf847d3",
+  "authors": [
+    {
+      "n": "Dirk Gütlin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

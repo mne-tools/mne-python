@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5238cf7ccba5b5c14caaa76904dfacc22919cdcb",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_edf.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 18,
+      "d": 7
+    }
+  }
+}

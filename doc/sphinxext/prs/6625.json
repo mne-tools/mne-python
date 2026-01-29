@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4d8b50db8656bcd35d2ce84a1c8004c50cb70cb2",
+  "authors": [
+    {
+      "n": "Jevri Hanna",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

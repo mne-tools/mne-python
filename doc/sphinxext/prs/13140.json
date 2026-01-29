@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1fe211a7b70d30cb1bb0c8eaa195469c1df2616f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 27,
+      "d": 106
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 4,
+      "d": 0
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

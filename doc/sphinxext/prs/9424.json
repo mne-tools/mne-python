@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "cd2fd28134826438c4f308fb1c90f0f1ab4215a9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 114,
+      "d": 44
+    },
+    "mne/surface.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_label.py": {
+      "a": 59,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 16,
+      "d": 22
+    },
+    "tutorials/simulation/70_point_spread.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

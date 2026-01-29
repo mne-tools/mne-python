@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d512801d56091376f51c0d60cf0a1e82a87a351b",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

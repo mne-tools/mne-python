@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5329dba29161aca72cb179759d258b0e0c9cd5ff",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/realtime/mock_lsl_stream.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

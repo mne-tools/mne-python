@@ -1,4 +1,16 @@
-e81ec528a42ac687f3d961ed5cf8e25f236925b0  # black
-12395f9d9cf6ea3c72b225b62e052dd0d17d9889  # YAML indentation
-d6d2f8c6a2ed4a0b27357da9ddf8e0cd14931b59  # isort
-e7dd1588013179013a50d3f6b8e8f9ae0a185783  # ruff format
+# PR number should follow the commit number so that our code credit
+# can parse this file correctly:
+d71e497dcf6f98e19eb81e82e641404a71d2d663  # 1420, split up viz.py
+203a96cbba2732d2e349a8f96065e74bbfd2a53b  # 5862, split utils.py
+ff349f356edb04e1b5f0db13deda8d1a20aca351  # 6767, move around manual parts
+31a83063557fbd54d898f00f9527ffc547888395  # 10407, alphabetize docdict
+e81ec528a42ac687f3d961ed5cf8e25f236925b0  # 11667, black
+12395f9d9cf6ea3c72b225b62e052dd0d17d9889  # 11868, YAML indentation
+d6d2f8c6a2ed4a0b27357da9ddf8e0cd14931b59  # 12097, isort
+e7dd1588013179013a50d3f6b8e8f9ae0a185783  # 12261, ruff format
+940ac9553ce42c15b4c16ecd013824ca3ea7244a  # 12533, whitespace
+e39995d9be6fc831c7a4a59f09b7a7c0a41ae315  # 12588, percent formatting
+1c5b39ff1d99bbcb2fc0e0071a989b3f3845ff30  # 12603, ruff UP028
+b8b168088cb474f27833f5f9db9d60abe00dca83  # 12779, PR JSONs
+ee64eba6f345e895e3d5e7d2804fa6aa2dac2e6d  # 12781, Header unification
+362f9330925fb79a6adc19a42243672676dec63e  # 12799, UP038

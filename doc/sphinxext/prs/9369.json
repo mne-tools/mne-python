@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "8ccc3999da6c15efa03840230c13aeb7bab5618d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.23.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 39,
+      "d": 9
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 33,
+      "d": 7
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

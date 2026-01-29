@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7e15c0f5552aca66a10a3ca54d92a61bb3d781b9",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/io/plot_read_events.py": {
+      "a": 77,
+      "d": 0
+    },
+    "examples/io/read_events.py": {
+      "a": 0,
+      "d": 31
+    },
+    "mne/event.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

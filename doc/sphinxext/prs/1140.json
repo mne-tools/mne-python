@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "22fb909b06f5f69867d241b426a9e8978f31cd9e",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/getting_started.rst": {
+      "a": 113,
+      "d": 82
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 7,
+      "d": 37
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "375c3b67f6b5b73d7be6ec5902c6911e0c87b504",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 23,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 111,
+      "d": 65
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 23,
+      "d": 19
+    },
+    "mne/time_frequency/stft.py": {
+      "a": 22,
+      "d": 0
+    }
+  }
+}

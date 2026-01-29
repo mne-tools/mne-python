@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "dcada0c29b9de284d5b2fd323e8aa1d04929d1a4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

@@ -1,6 +1,4 @@
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -27,6 +25,7 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
@@ -271,7 +270,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         exp=None,
         noise_cov=noise_cov,
     )
-    G.shape = (n_channels, n_verts, n_orient)
+    G = _reshape_view(G, (n_channels, n_verts, n_orient))
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
     _assert_weight_norm(filters, G)
 
@@ -600,14 +599,12 @@ def test_real(_load_forward, idx):
 
     # check whether a filters object without src_type throws expected warning
     del filters_vol["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_dics_csd(csd, filters_vol)
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The use of several sensor types with the" ":RuntimeWarning"
+    "ignore:The use of several sensor types with the:RuntimeWarning"
 )
 @idx_param
 def test_apply_dics_timeseries(_load_forward, idx):
@@ -678,7 +675,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
     evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
-    assert_array_equal(filters_proj["proj"], proj_matrix)
+    assert_allclose(filters_proj["proj"], proj_matrix, rtol=1e-7)
     stc_proj = apply_dics(evoked_proj, filters_proj)
     assert np.any(np.not_equal(stc_noproj.data, stc_proj.data))
 
@@ -709,6 +706,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
         apply_dics_epochs(epochs, filters_vol)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("return_generator", (True, False))
 def test_apply_dics_tfr(return_generator):
@@ -853,6 +851,7 @@ def test_localization_bias_free(
     assert lower <= perc <= upper
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "weight_norm, lower, upper, lower_ori, upper_ori, real_filter",
     [

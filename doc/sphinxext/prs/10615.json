@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "439e598ccb30019e81ebe8fc7885c8b5e57dff02",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

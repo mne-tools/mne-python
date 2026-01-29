@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "01dce0d268b3b3243d363b1d7f14ac2894030cbe",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 335,
+      "d": 86
+    },
+    "mne/channels/data/neighbors/easycapM1_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ecog256_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ecog256bipolar_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/eeg1010_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/elec1005_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/elec1010_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/elec1020_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/itab153_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/itab28_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/language29ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/mpi_59_channels_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag122cmb_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag306cmb_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/yokogawa160_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/yokogawa440_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 88,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "51b2b75424a239116384b3268029b3ea60e18953",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

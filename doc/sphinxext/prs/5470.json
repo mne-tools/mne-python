@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "14d0c6a3e6257692fd497614d9cedfc1c3bc2a60",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 33,
+      "d": 8
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 20,
+      "d": 0
+    }
+  }
+}

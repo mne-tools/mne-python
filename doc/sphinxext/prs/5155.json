@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "8341e066a6b11b3e9fd9d804f37b7e2cb6f81b3a",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 42,
+      "d": 27
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 20,
+      "d": 4
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 67,
+      "d": 108
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 20,
+      "d": 7
+    },
+    "mne/preprocessing/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

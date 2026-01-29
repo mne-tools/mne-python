@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4f8295490c731d75b6763d710242c789e09c3ce2",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamzaabdelhedi18@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

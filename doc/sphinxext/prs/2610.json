@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6bf5cd02b8ea599dd59d33ec201ebe00d06e4157",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7686801d1c4bf05b536b6078d51ef82d3bfe8cdb",
+  "authors": [
+    {
+      "n": "Nicolas Legrand",
+      "e": "nicolas.legrand@cas.au.dk"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

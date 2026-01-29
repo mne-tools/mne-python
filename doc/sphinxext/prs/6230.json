@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6a3a438fe23f0c459a50af8401a3e3083edd8fea",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 55,
+      "d": 21
+    }
+  }
+}

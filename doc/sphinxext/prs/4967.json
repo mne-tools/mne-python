@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fe067e403cf1d20e5ede87d274933b026284083a",
+  "authors": [
+    {
+      "n": "Erik Hornberger",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

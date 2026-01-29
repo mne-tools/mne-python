@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ef08c9ef02e198b443e40364f502b192ee14f70e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/minimum_norm/tests/test_snr.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 13,
+      "d": 6
+    }
+  }
+}

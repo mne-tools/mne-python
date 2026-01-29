@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c24702cb9feff0ab4a38b9903d4b8e23378c35be",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "CITATION.cff": {
+      "a": 3,
+      "d": 3
+    },
+    "codemeta.json": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/v1.7.rst": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/install/installers.rst": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

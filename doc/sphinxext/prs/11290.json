@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9e5989097dcf60634c1daf111457ca8e202d29e6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/data/montages/mgh60.elc": {
+      "a": 42,
+      "d": 42
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 75,
+      "d": 13
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

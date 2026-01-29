@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "8a2a765ff0b959de55ff851d279b2ec3774f8be8",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 16,
+      "d": 1
+    },
+    ".github/workflows/compat_minimal.yml": {
+      "a": 17,
+      "d": 4
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 17,
+      "d": 6
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 16,
+      "d": 3
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 16,
+      "d": 3
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 16,
+      "d": 3
+    }
+  }
+}

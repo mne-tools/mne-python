@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "83dc0e1e4f772805428cce0c0c1ca45936262394",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/_eloreta.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 49,
+      "d": 42
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

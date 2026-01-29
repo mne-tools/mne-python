@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "d4c24cb24cde540572d93f9541ee0c5f4f16a728",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 60,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 183,
+      "d": 19
+    },
+    "mne/source_estimate.py": {
+      "a": 27,
+      "d": 38
+    },
+    "mne/tests/test_event.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/tests/test_label.py": {
+      "a": 53,
+      "d": 8
+    }
+  }
+}

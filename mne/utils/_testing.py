@@ -1,6 +1,6 @@
 """Testing functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,7 +10,6 @@ import sys
 import tempfile
 import traceback
 from functools import wraps
-from io import StringIO
 from shutil import rmtree
 from unittest import SkipTest
 
@@ -141,23 +140,6 @@ class ArgvSetter:
         sys.stderr = self.orig_stderr
 
 
-class SilenceStdout:
-    """Silence stdout."""
-
-    def __init__(self, close=True):
-        self.close = close
-
-    def __enter__(self):  # noqa: D105
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return sys.stdout
-
-    def __exit__(self, *args):  # noqa: D105
-        if self.close:
-            sys.stdout.close()
-        sys.stdout = self.stdout
-
-
 def has_mne_c():
     """Check for MNE-C."""
     return "MNE_ROOT" in os.environ
@@ -187,20 +169,26 @@ def buggy_mkl_svd(function):
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
+    __tracebackhide__ = True
+
     from ..io import BaseRaw
 
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
     for key in ("EDGE", "BAD"):
-        idx = np.where(annotations.description == "%s boundary" % key)[0]
-        assert len(idx) == n
+        idx = np.where(annotations.description == f"{key} boundary")[0]
+        assert len(idx) == n, (
+            f"Got {len(idx)} '{key} boundary' annotations, expected {n}"
+        )
         annotations.delete(idx)
 
 
-def assert_object_equal(a, b):
+def assert_object_equal(a, b, *, err_msg="Object mismatch", allclose=False):
     """Assert two objects are equal."""
-    d = object_diff(a, b)
-    assert d == "", d
+    __tracebackhide__ = True
+
+    d = object_diff(a, b, allclose=allclose)
+    assert d == "", f"{err_msg}\n{d}"
 
 
 def _raw_annot(meas_date, orig_time):
@@ -232,6 +220,8 @@ def _get_data(x, ch_idx):
 
 def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     """Check the SNR of a set of channels."""
+    __tracebackhide__ = True
+
     actual_data = _get_data(actual, picks)
     desired_data = _get_data(desired, picks)
     bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
@@ -242,7 +232,7 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = " (%s)" % msg if msg != "" else msg
+    msg = f" ({msg})" if msg != "" else msg
     assert bad_count == 0, (
         f"SNR (worst {snr:0.2f}) < {min_tol:0.2f} "
         f"for {bad_count}/{len(picks)} channels{msg}"
@@ -260,6 +250,8 @@ def assert_meg_snr(
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
+    __tracebackhide__ = True
+
     from .._fiff.pick import pick_types
 
     picks = pick_types(desired.info, meg=True, exclude=[])
@@ -291,19 +283,31 @@ def assert_meg_snr(
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
+    __tracebackhide__ = True
+
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
-    assert snr >= tol, f"{snr} < {tol}"
+    assert snr >= tol, f"{snr=} < {tol=}"
 
 
 def assert_stcs_equal(stc1, stc2):
     """Check that two STC are equal."""
-    assert_allclose(stc1.times, stc2.times)
-    assert_allclose(stc1.data, stc2.data)
-    assert_array_equal(stc1.vertices[0], stc2.vertices[0])
-    assert_array_equal(stc1.vertices[1], stc2.vertices[1])
-    assert_allclose(stc1.tmin, stc2.tmin)
-    assert_allclose(stc1.tstep, stc2.tstep)
+    __tracebackhide__ = True
+
+    assert_allclose(stc1.times, stc2.times, err_msg="Times mismatch")
+    assert_allclose(stc1.data, stc2.data, err_msg="Data mismatch")
+    assert_array_equal(
+        stc1.vertices[0],
+        stc2.vertices[0],
+        err_msg="Left vertices mismatch",
+    )
+    assert_array_equal(
+        stc1.vertices[1],
+        stc2.vertices[1],
+        err_msg="Right vertices mismatch",
+    )
+    assert_allclose(stc1.tmin, stc2.tmin, err_msg="tmin mismatch")
+    assert_allclose(stc1.tstep, stc2.tstep, err_msg="tstep mismatch")
 
 
 def _dig_sort_key(dig):
@@ -313,6 +317,8 @@ def _dig_sort_key(dig):
 
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
+    __tracebackhide__ = True
+
     from .._fiff.constants import FIFF
     from .._fiff.meas_info import Info
     from ..bem import fit_sphere_to_headshape
@@ -321,21 +327,21 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
     # test dig positions
     dig_py, dig_bin = info_py, info_bin
     if isinstance(dig_py, Info):
-        assert isinstance(dig_bin, Info)
+        assert isinstance(dig_bin, Info), "Both must be Info or DigMontage"
         dig_py, dig_bin = dig_py["dig"], dig_bin["dig"]
     else:
-        assert isinstance(dig_bin, DigMontage)
-        assert isinstance(dig_py, DigMontage)
+        assert isinstance(dig_bin, DigMontage), "Both must be Info or DigMontage"
+        assert isinstance(dig_py, DigMontage), "Both must be Info or DigMontage"
         dig_py, dig_bin = dig_py.dig, dig_bin.dig
         info_py = info_bin = None
-    assert isinstance(dig_py, list)
-    assert isinstance(dig_bin, list)
+    assert isinstance(dig_py, list), "dig_py must be a list"
+    assert isinstance(dig_bin, list), "dig_bin must be a list"
     dig_py = sorted(dig_py, key=_dig_sort_key)
     dig_bin = sorted(dig_bin, key=_dig_sort_key)
-    assert len(dig_py) == len(dig_bin)
+    assert len(dig_py) == len(dig_bin), "Different number of dig points"
     for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
         for key in ("ident", "kind", "coord_frame"):
-            assert d_py[key] == d_bin[key], key
+            assert d_py[key] == d_bin[key], f"{key=} mismatch on point {ii}"
         assert_allclose(
             d_py["r"],
             d_bin["r"],
@@ -350,9 +356,21 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
         r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(
             info_py, units="m", verbose="error"
         )
-        assert_allclose(r_py, r_bin, atol=1e-6)
-        assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
-        assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
+        assert_allclose(r_py, r_bin, atol=1e-6, err_msg="Sphere radius mismatch")
+        assert_allclose(
+            o_dev_py,
+            o_dev_bin,
+            rtol=1e-5,
+            atol=1e-6,
+            err_msg="Sphere device origin mismatch",
+        )
+        assert_allclose(
+            o_head_py,
+            o_head_bin,
+            rtol=1e-5,
+            atol=1e-6,
+            err_msg="Sphere origin mismatch",
+        )
 
 
 def _click_ch_name(fig, ch_index=0, button=1):
@@ -375,3 +393,27 @@ def _get_suptitle(fig):
     else:
         # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
         return fig.texts[0].get_text()
+
+
+def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
+    __tracebackhide__ = True
+
+    from ..transforms import Transform, angle_distance_between_rigid
+
+    if isinstance(actual, Transform):
+        assert isinstance(desired, Transform), "Both must be Transform or ndarray"
+        assert actual["from"] == desired["from"], "'from' frame mismatch"
+        assert actual["to"] == desired["to"], "'to' frame mismatch"
+        actual = actual["trans"]
+        desired = desired["trans"]
+    assert isinstance(actual, np.ndarray), "actual should be ndarray"
+    assert isinstance(desired, np.ndarray), "desired should be ndarray"
+    assert actual.shape == (4, 4), "actual.shape should be (4, 4)"
+    assert desired.shape == (4, 4), "desired.shape should be (4, 4)"
+    angle, dist = angle_distance_between_rigid(
+        actual, desired, angle_units="deg", distance_units="m"
+    )
+    assert dist <= dist_tol, (
+        f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
+    )
+    assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"

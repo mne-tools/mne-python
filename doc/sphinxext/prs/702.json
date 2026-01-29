@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ac3216cf5ae91af1b0d2ee24b32e675792a45403",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "bin/mne_compute_proj_eog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 17,
+      "d": 9
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1d44c29cb0123f72176f251bf688be709284f522",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 24,
+      "d": 5
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 27,
+      "d": 15
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 19,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 22,
+      "d": 1
+    }
+  }
+}

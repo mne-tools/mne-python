@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2bb3ac284683ba60bee782f70e54bd1dcb5d4269",
+  "authors": [
+    {
+      "n": "Sebastian Jentschke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13233.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

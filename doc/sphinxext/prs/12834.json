@@ -1,0 +1,135 @@
+{
+  "merge_commit_sha": "5425ef42e41b6a427f3365e13ea57ecf9c0c12b0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12834.dependency.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 28,
+      "d": 0
+    },
+    "examples/visualization/evoked_whitening.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/__init__.pyi": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/decoding/base.py": {
+      "a": 24,
+      "d": 34
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/decoding/ems.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/mixin.py": {
+      "a": 0,
+      "d": 89
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 5,
+      "d": 13
+    },
+    "mne/decoding/search_light.py": {
+      "a": 7,
+      "d": 21
+    },
+    "mne/decoding/ssd.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 32,
+      "d": 42
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 7,
+      "d": 9
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 30,
+      "d": 37
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 24,
+      "d": 33
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/decoding/tests/test_time_frequency.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 6,
+      "d": 10
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 48,
+      "d": 228
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 12,
+      "d": 3
+    },
+    "pyproject.toml": {
+      "a": 4,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 3
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 4,
+      "d": 0
+    },
+    "tutorials/forward/90_compute_covariance.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

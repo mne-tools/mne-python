@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "244d21c7175671e5ed4dbc6c17e9c7453d10c6e5",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

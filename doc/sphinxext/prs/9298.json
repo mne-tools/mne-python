@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8b2394b3ad6b18461c989b872396cc6228be6662",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

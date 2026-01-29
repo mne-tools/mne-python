@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "11864803848d08ce2abf1d379f4a6b0f03e133ee",
+  "authors": [
+    {
+      "n": "Dominique Makowski",
+      "e": "D.Makowski@sussex.ac.uk"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 17,
+      "d": 5
+    }
+  }
+}

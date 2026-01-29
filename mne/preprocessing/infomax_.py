@@ -1,7 +1,4 @@
-# Authors: Lukas Breuer <l.breuer@fz-juelich.de>
-#          Juergen Dammers <j.dammers@fz-juelich.de>
-#          Denis A. Engeman <denis.engemann@gemail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -250,7 +247,7 @@ def infomax(
                     oldsigns = signs
 
                     if signcount >= signcount_threshold:
-                        ext_blocks = np.fix(ext_blocks * signcount_step)
+                        ext_blocks = np.trunc(ext_blocks * signcount_step)
                         signcount = 0
 
         # here we continue after the for loop over the ICA training blocks
@@ -269,8 +266,11 @@ def infomax(
 
             if verbose:
                 logger.info(
-                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg"
-                    % (step, l_rate, change, angledelta)
+                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg",
+                    step,
+                    l_rate,
+                    change,
+                    angledelta,
                 )
 
             # anneal learning rate
@@ -320,8 +320,7 @@ def infomax(
             if l_rate > min_l_rate:
                 if verbose:
                     logger.info(
-                        "... lowering learning rate to %g"
-                        "\n... re-starting..." % l_rate
+                        f"... lowering learning rate to {l_rate:g}\n... re-starting..."
                     )
             else:
                 raise ValueError(

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "4d37ad3ced0f1a653b019a73f4a8fdaa2e49cab0",
+  "authors": [
+    {
+      "n": "PAB",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Pierre-Antoine Bannier",
+      "e": "pierre-antoine@mbpdepieantoine.home"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

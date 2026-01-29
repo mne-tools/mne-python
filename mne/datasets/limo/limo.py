@@ -1,5 +1,4 @@
-# Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -293,7 +292,7 @@ def load_data(subject, path=None, force_update=False, update_path=None, verbose=
     pd = _check_pandas_installed()
     # subject in question
     if isinstance(subject, int) and 1 <= subject <= 18:
-        subj = "S%i" % subject
+        subj = f"S{subject}"
     else:
         raise ValueError("subject must be an int in the range from 1 to 18")
 

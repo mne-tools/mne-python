@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "c3d67179a80b9d9e8c23684c8cad4c01e1c44093",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/visualization.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 97,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 210,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 38,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 1,
+      "d": 7
+    }
+  }
+}

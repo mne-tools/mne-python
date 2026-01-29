@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "d6a4eb056617056d31d2c71ecf1b6d9287015139",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 10,
+      "d": 24
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/linalg.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/tests/test_linalg.py": {
+      "a": 72,
+      "d": 0
+    }
+  }
+}

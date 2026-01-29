@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3d12b2b7b3b0ddb3f50962e4293cddf8ccf6ba52",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4e1f0632aea44af1d0e07dba331391cee8979df1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "8fd3c1096c07c1a6dfaa7bb2a4021ba97f02b4fb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 18
+    },
+    "mne/evoked.py": {
+      "a": 6,
+      "d": 13
+    },
+    "mne/externals/doccer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 87,
+      "d": 0
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_regress.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 37,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_35_artifact_correction_regression.py": {
+      "a": 172,
+      "d": 0
+    }
+  }
+}

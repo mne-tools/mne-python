@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f568738b10c5186a1475d41e5d62373f9134ead6",
+  "authors": [
+    {
+      "n": "Yaroslav Halchenko",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/externals/tempita/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

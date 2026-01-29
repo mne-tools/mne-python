@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "106f567b2b3a16411e585373cb064d90d7928945",
+  "authors": [
+    {
+      "n": "Manu Sutela",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

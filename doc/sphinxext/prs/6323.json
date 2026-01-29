@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b31e573bd1bb97ab8daf6e813a6f5fa77ba266c4",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/intro/plot_introduction.py": {
+      "a": 15,
+      "d": 9
+    }
+  }
+}

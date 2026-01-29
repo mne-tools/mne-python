@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0ccd8028f8a2bbcf74595cce3649d1756b77dfdd",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 77,
+      "d": 27
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 32,
+      "d": 1
+    }
+  }
+}

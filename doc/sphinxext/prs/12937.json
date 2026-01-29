@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ddca04beb56baa6af008b43e658ffbedac2c2228",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

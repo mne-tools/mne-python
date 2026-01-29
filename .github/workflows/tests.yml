@@ -7,6 +7,14 @@ on:  # yamllint disable-line rule:truthy
     branches: ["main", "maint/*"]
   pull_request:
     branches: ["main", "maint/*"]
+  # adapted from spyder-ide/spyder
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Enable ssh debugging'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -17,11 +25,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
         with:
-          python-version: '3.12'
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
       - uses: pre-commit/action@v3.0.1
+      - run: pip install mypy numpy scipy vulture
+      - run: mypy
+      - run: vulture
 
   bandit:
     name: Bandit
@@ -37,8 +50,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 70
-    continue-on-error: true
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -47,86 +59,119 @@ jobs:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            python: '3.12'
+            python: '3.13'
+            kind: pip
+          - os: ubuntu-latest
+            python: '3.14'
             kind: pip-pre
           - os: ubuntu-latest
-            python: '3.12'
+            python: '3.13'
             kind: conda
-          - os: macos-14  # arm64
-            python: '3.12'
+          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
+            python: '3.13'
             kind: mamba
-          - os: macos-latest  # intel
-            python: '3.12'
+          - os: macos-15-intel  # intel: Sequoia
+            python: '3.13'
             kind: mamba
           - os: windows-latest
-            python: '3.10'
+            python: '3.11'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.9'
+            python: '3.12'
             kind: minimal
-          - os: ubuntu-20.04
-            python: '3.9'
+          - os: ubuntu-22.04
+            python: '3.10'
             kind: old
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: Get commit message
+        run: echo "COMMIT_MESSAGE=$(git show -s --format=%s ${{ github.event.pull_request.head.sha || github.sha }})" | tee -a ${GITHUB_ENV}
+      - name: Triage SSH
+        run: |
+          if [[ "${{ inputs.ssh }}" == "true" ]] || [[ "$COMMIT_MESSAGE" == *"[actions ssh]"* ]]; then
+            echo "ENABLE_SSH=true" | tee -a $GITHUB_ENV
+          else
+            echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
+          fi
+      - name: Setup Remote SSH Connection
+        if: env.ENABLE_SSH == 'true'
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 80
+        with:
+          detached: true
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
-      - uses: pyvista/setup-headless-display-action@main
+      - uses: pyvista/setup-headless-display-action@v4
         with:
           qt: true
           pyvista: false
+          wm: false
       # Python (if pip)
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - name: Remove numba and dipy
-        run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
-          sed -i '/numba/d' environment.yml
-          sed -i '/dipy/d' environment.yml
-          sed -i 's/- mne$/- mne-base/' environment.yml
-        if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
-      - uses: mamba-org/setup-micromamba@v1
+      - name: Fixes for conda
+        run: |
+          # For some reason on Linux we get crashes
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sed -i "/numba/d" environment.yml
+          fi
+          # And on Windows and macOS PySide6.9.0 segfaults
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
+            sed -i "" "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+
+          else
+            sed -i "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
+            sed -i "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
+            fi
+          fi
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
+      - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
+          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
-            mamba
-            fmt!=10.2.0
+            -v
         if: ${{ !startswith(matrix.kind, 'pip') }}
-      # Make sure we have the right Python
-      - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
-        if: matrix.os == 'macos-14'
-      - run: ./tools/github_actions_dependencies.sh
+        timeout-minutes: 20
+      - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
-      - run: ./tools/get_minimal_commands.sh
-        if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: ./tools/github_actions_infos.sh
+      - run: bash ./tools/get_minimal_commands.sh
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
+      - run: bash ./tools/github_actions_infos.sh
       # Check Qt
-      - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
-        if: ${{ env.MNE_QT_BACKEND != '' }}
+      - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
+        if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
-      - run: ./tools/github_actions_download.sh
-      - run: ./tools/github_actions_test.sh
-      - uses: codecov/codecov-action@v4
+      - run: bash ./tools/github_actions_download.sh
+      - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        if: success()
+        if: success() || failure()

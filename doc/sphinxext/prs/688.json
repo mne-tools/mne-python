@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5728b7a205a683851b87148dede318c5282b33f1",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/contributing.rst": {
+      "a": 124,
+      "d": 3
+    },
+    "doc/source/git_links.inc": {
+      "a": 27,
+      "d": 1
+    }
+  }
+}

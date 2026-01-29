@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a4ea969b41d0f58c047ad481fff69c9abd73bc23",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/getting_started.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

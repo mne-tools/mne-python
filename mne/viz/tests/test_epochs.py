@@ -1,10 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#          Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -419,7 +413,7 @@ def test_plot_psd_epochs(epochs):
     # test support for single-bin bands and old-style list-of-tuple input
     fig = spectrum.plot_topomap(bands=[(20, "20 Hz"), (15, 25, "15-25 Hz")])
     # test with a flat channel
-    err_str = "for channel %s" % epochs.ch_names[2]
+    err_str = f"for channel {epochs.ch_names[2]}"
     epochs.get_data(copy=False)[0, 2, :] = 0
     for dB in [True, False]:
         with _record_warnings(), pytest.warns(UserWarning, match=err_str):

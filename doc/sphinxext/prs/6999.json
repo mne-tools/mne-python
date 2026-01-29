@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d2e86a157608072374f898098bbd3ec64457f77b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/_beer_lambert_law.py": {
+      "a": 9,
+      "d": 14
+    }
+  }
+}

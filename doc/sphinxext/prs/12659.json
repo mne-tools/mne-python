@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d0eff795ad5d52c72428f61cb39cfb966bd60571",
+  "authors": [
+    {
+      "n": "Ilian AZZ",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12659.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,8 +1,6 @@
 """Compute a Recursively Applied and Projected MUltiple Signal Classification (RAP-MUSIC)."""  # noqa
 
-# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,7 +8,7 @@ import numpy as np
 from scipy import linalg
 
 from .._fiff.pick import pick_channels_forward, pick_info
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import convert_forward_solution, is_fixed_orient
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
@@ -70,9 +68,9 @@ def _apply_rap_music(
     phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
-    G.shape = (G.shape[0], -1, n_orient)
+    G = _reshape_view(G, (G.shape[0], -1, n_orient))
     gain = forward["sol"]["data"].copy()
-    gain.shape = G.shape
+    gain = _reshape_view(gain, G.shape)
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
     gain_dip = np.empty((n_channels, n_dipoles))
@@ -124,7 +122,7 @@ def _apply_rap_music(
     sol = linalg.lstsq(A, M)[0]
     if n_orient == 3:
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
-        X.shape = (-1, len(times))
+        X = _reshape_view(X, (-1, len(times)))
     else:
         X = sol
 
@@ -148,8 +146,8 @@ def _apply_rap_music(
     )
     for dipole, ori in zip(dipoles, oris):
         signs = np.sign((dipole.ori * ori).sum(-1, keepdims=True))
-        dipole.ori *= signs
-        dipole.amplitude *= signs[:, 0]
+        dipole._ori *= signs
+        dipole._amplitude *= signs[:, 0]
     logger.info("[done]")
     return dipoles, explained_data
 

@@ -1,0 +1,155 @@
+{
+  "merge_commit_sha": "ce903fe24a451a12a0b6634de63a7db79b70fa77",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/connectivity/effective.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/base.py": {
+      "a": 12,
+      "d": 29
+    },
+    "mne/fiff/brainvision/brainvision.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/fiff/bti/raw.py": {
+      "a": 389,
+      "d": 392
+    },
+    "mne/fiff/bti/tests/test_bti.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/fiff/edf/edf.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/fiff/egi/egi.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/fiff/fiff/raw.py": {
+      "a": 114,
+      "d": 115
+    },
+    "mne/fiff/fiff/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/fiff/tests/test_raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/open.py": {
+      "a": 17,
+      "d": 12
+    },
+    "mne/fiff/write.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/proj.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/realtime/stim_server_client.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_space.py": {
+      "a": 16,
+      "d": 17
+    },
+    "mne/stats/permutations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_filter.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/time_frequency/stft.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz.py": {
+      "a": 8,
+      "d": 11
+    }
+  }
+}

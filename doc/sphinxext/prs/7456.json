@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9646e22ed8447234a25571e759633d8fa1c4c8dd",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 24,
+      "d": 10
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 18,
+      "d": 1
+    }
+  }
+}

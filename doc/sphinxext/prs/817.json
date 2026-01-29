@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "603e479f4d50938927759ee39fa227b97c132762",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/kit/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/kit/coreg.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/kit/tests/test_coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/kit/tests/test_kit.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

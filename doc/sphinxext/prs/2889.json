@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b4d089e1a9088ec6dac237b4c323395e7005b897",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8e6858e0cfda78923cd745bb83d2f53bc6f6b02f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 5,
+      "d": 9
+    }
+  }
+}

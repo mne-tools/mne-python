@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "139a6347e481477650022b9fc069bea84be344eb",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

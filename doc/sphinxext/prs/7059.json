@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "67d03cc0d0554b0d939ddd8ec2d2665add84d4ed",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

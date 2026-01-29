@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0c57855cad9e77e02f2f4352abe1b44dd4c57199",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 38,
+      "d": 23
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/decoding/search_light.py": {
+      "a": 574,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 109,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b6b0afe7b0e124f0b04465cd5b65b0a9f2651e68",
+  "authors": [
+    {
+      "n": "ezemikulan",
+      "e": "e.mikulan@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

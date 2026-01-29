@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "59ca238896e275e0f97f2c81fc9bdd18f31066b1",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

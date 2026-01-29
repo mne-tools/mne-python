@@ -43,9 +43,6 @@ only, use pip_ in a terminal:
 
     $ pip install --upgrade mne
 
-The current MNE-Python release requires Python 3.9 or higher. MNE-Python 0.17
-was the last release to support Python 2.7.
-
 For more complete instructions, including our standalone installers and more
 advanced installation methods, please refer to the `installation guide`_.
 
@@ -58,7 +55,7 @@ terminal and type:
 
 .. code-block:: console
 
-    $ pip install --upgrade git+https://github.com/mne-tools/mne-python@main
+    $ pip install --upgrade https://github.com/mne-tools/mne-python/archive/refs/heads/main.zip
 
 To clone the repository with `git <https://git-scm.com/>`__, open a terminal
 and type:
@@ -73,43 +70,20 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- `Python <https://www.python.org>`__ ≥ 3.9
-- `NumPy <https://numpy.org>`__ ≥ 1.21.2
-- `SciPy <https://scipy.org>`__ ≥ 1.7.1
-- `Matplotlib <https://matplotlib.org>`__ ≥ 3.5.0
+.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓
+
+- `Python <https://www.python.org>`__ ≥ 3.10
+- `NumPy <https://numpy.org>`__ ≥ 1.26
+- `SciPy <https://scipy.org>`__ ≥ 1.11
+- `Matplotlib <https://matplotlib.org>`__ ≥ 3.8
 - `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
 - `tqdm <https://tqdm.github.io>`__
 - `Jinja2 <https://palletsprojects.com/p/jinja/>`__
 - `decorator <https://github.com/micheles/decorator>`__
-- `lazy_loader <https://pypi.org/project/lazy_loader/>`__
+- `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
+- `packaging <https://packaging.pypa.io/en/stable/>`__
 
-For full functionality, some functions require:
-
-- `scikit-learn <https://scikit-learn.org/stable/>`__ ≥ 1.0
-- `Joblib <https://joblib.readthedocs.io/en/latest/index.html>`__ ≥ 0.15 (for parallelization)
-- `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__ ≥ 0.1 (for fast raw data visualization)
-- `Qt <https://www.qt.io>`__ ≥ 5.15 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
-
-  - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
-  - `PySide6 <https://doc.qt.io/qtforpython-6/>`__ ≥ 6.0
-  - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.15
-  - `PySide2 <https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html>`__ ≥ 5.15
-
-- `Numba <https://numba.pydata.org>`__ ≥ 0.54.0
-- `NiBabel <https://nipy.org/nibabel/>`__ ≥ 3.2.1
-- `OpenMEEG <https://openmeeg.github.io>`__ ≥ 2.5.6
-- `pandas <https://pandas.pydata.org>`__ ≥ 1.3.2
-- `Picard <https://pierreablin.github.io/picard/>`__ ≥ 0.3
-- `CuPy <https://cupy.dev>`__ ≥ 9.0.0 (for NVIDIA CUDA acceleration)
-- `DIPY <https://dipy.org>`__ ≥ 1.4.0
-- `imageio <https://imageio.readthedocs.io/en/stable/>`__ ≥ 2.8.0
-- `PyVista <https://pyvista.org>`__ ≥ 0.32 (for 3D visualization)
-- `PyVistaQt <https://qtdocs.pyvista.org>`__ ≥ 0.4 (for 3D visualization)
-- `mffpy <https://github.com/BEL-Public/mffpy>`__ ≥ 0.5.7
-- `h5py <https://www.h5py.org>`__
-- `h5io <https://github.com/h5io/h5io>`__
-- `pymatreader <https://pymatreader.readthedocs.io/en/latest/>`__
-
+.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑
 
 Contributing
 ^^^^^^^^^^^^

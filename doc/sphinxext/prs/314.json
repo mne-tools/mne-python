@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "17dc87d5fb2bf5c00fbca5d9e9cbda757ce4611d",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/_templates/layout.html": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/source/conf.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "92f5dd8520a74a273872536365a144972a656e3c",
+  "authors": [
+    {
+      "n": "Santeri Ruuskanen",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

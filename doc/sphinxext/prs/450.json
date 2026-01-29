@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2fdd8867b0209f8b97ce99c1120ec4cc37d7e84f",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

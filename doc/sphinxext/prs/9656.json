@@ -1,0 +1,307 @@
+{
+  "merge_commit_sha": "9b16524bc8b98211d351afb19efd264f04c18e60",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_templates/layout.html": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/inverse/psf_ctf_label_leakage.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/CTF-275.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/KIT-AS-2008.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/Vectorview-all.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/Vectorview-grad.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/Vectorview-mag.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/magnesWH3600.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/biosemi16_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/biosemi32_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/biosemi64_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/bti148_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/bti248_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/bti248grad_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ctf151_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ctf275_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ctf64_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycap128ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycap32ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycap64ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM11_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM14_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM15_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM1_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag306mag_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag306planar_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_compare_fiff.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_report.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_show_fiff.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_show_info.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_debiasing.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_debiasing.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test.eeg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test.vhdr": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test.vmrk": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_highpass.vhdr": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_lowpass_s.vhdr": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_mixed_highpass.vhdr": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_partially_disabled_hw_filter.vhdr": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_units.vhdr": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/bti/tests/data/test_config_linux": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/bti/tests/data/test_hs_linux": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/bti/tests/data/test_pdf_linux": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/data/test_edf_stim_channel.edf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/data/test_edf_stim_channel.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/data/test_uneven_samp.edf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/data/test_elp.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/data/test_hsp.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/data/test_mrk.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/data/test_mrk_post.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/data/test_mrk_pre.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test-ave.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test-cov.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test-eve.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test-no-reject.ave": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test.ave": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test.cov": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test_keepmean.cov": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test_raw-eve.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test_raw.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 0,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

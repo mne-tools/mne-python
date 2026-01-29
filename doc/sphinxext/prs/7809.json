@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "432d5b77270e2900c8034cbc1f7f576935b7de68",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/_read_raw.py": {
+      "a": 84,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_read_raw.py": {
+      "a": 38,
+      "d": 0
+    }
+  }
+}

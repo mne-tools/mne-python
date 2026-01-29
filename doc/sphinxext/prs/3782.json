@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "496db659369c671fc4a4a244cfdec3c6845cc800",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

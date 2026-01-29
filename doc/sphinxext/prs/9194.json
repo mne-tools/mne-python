@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7350ca8697d149ead8454045fcd4fd1f7db50192",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/config.yml": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

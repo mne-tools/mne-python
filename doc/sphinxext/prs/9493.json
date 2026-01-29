@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "702bdaccee9131798c68a82d81ad497c286aac4a",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Adam Li",
+      "e": "adam2392@Adams-MBP-2.home"
+    },
+    {
+      "n": "Adam Li",
+      "e": "adam2392@new-host-2.home"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 34,
+      "d": 15
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/README.txt": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/connectivity/cwt_sensor_connectivity.py": {
+      "a": 0,
+      "d": 85
+    },
+    "examples/connectivity/mixed_source_space_connectivity.py": {
+      "a": 0,
+      "d": 187
+    },
+    "examples/connectivity/mne_inverse_coherence_epochs.py": {
+      "a": 0,
+      "d": 149
+    },
+    "examples/connectivity/mne_inverse_connectivity_spectrum.py": {
+      "a": 0,
+      "d": 99
+    },
+    "examples/connectivity/mne_inverse_envelope_correlation.py": {
+      "a": 0,
+      "d": 110
+    },
+    "examples/connectivity/mne_inverse_envelope_correlation_volume.py": {
+      "a": 0,
+      "d": 95
+    },
+    "examples/connectivity/mne_inverse_label_connectivity.py": {
+      "a": 0,
+      "d": 181
+    },
+    "examples/connectivity/mne_inverse_psi_visual.py": {
+      "a": 0,
+      "d": 118
+    },
+    "examples/connectivity/sensor_connectivity.py": {
+      "a": 0,
+      "d": 57
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/connectivity/effective.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/connectivity/envelope.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/connectivity/utils.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 3,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/epochs/60_make_fixed_length_epochs.py": {
+      "a": 8,
+      "d": 1
+    },
+    "tutorials/intro/20_events_from_raw.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

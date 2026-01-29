@@ -1,0 +1,199 @@
+{
+  "merge_commit_sha": "45cdcdaa3842b6adcb38595ae31240899e38ee2b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/contributing.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/source/python_reference.rst": {
+      "a": 6,
+      "d": 1
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 18,
+      "d": 12
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 12,
+      "d": 9
+    },
+    "mne/bem.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 35,
+      "d": 4
+    },
+    "mne/connectivity/effective.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 49,
+      "d": 47
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/decoding/classifier.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/decoding/csp.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 33,
+      "d": 28
+    },
+    "mne/dipole.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/event.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/evoked.py": {
+      "a": 24,
+      "d": 8
+    },
+    "mne/filter.py": {
+      "a": 34,
+      "d": 23
+    },
+    "mne/io/base.py": {
+      "a": 24,
+      "d": 18
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/io/tag.py": {
+      "a": 15,
+      "d": 2
+    },
+    "mne/io/tree.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/label.py": {
+      "a": 15,
+      "d": 13
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/misc.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 32,
+      "d": 29
+    },
+    "mne/realtime/epochs.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/report.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 34,
+      "d": 9
+    },
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 30,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 22,
+      "d": 7
+    },
+    "mne/viz/_3d.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 14,
+      "d": 6
+    }
+  }
+}

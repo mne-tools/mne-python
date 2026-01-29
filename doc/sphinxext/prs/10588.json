@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cc44af23232542e5a14d86922e10f6d0ea22bc1e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

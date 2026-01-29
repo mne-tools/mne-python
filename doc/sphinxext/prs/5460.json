@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "c5b43b0bea7017a2171d5e22b1351f3ee80e3906",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 247,
+      "d": 133
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 97,
+      "d": 75
+    },
+    "mne/io/utils.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

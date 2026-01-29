@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2ae61edccb2af5b5f9f3a89a3131499b5c229c27",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/api/time_frequency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/13054.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

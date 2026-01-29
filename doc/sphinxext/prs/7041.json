@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3ee879a9b6ff78f592e4a2d330ee2e6382fab143",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/search_light.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

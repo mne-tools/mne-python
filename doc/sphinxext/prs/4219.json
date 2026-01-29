@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ebabe331f06df5f222b2a00f9ce782b6267cf8f7",
+  "authors": [
+    {
+      "n": "jdue",
+      "e": "jdue@dtu.dk"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

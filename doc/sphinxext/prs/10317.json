@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "356dde91de47d8d1d113b65400ece5c777d833c2",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/viz/_mpl_figure.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

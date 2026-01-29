@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4d12df23916601003aef45d9e72c1e240191cd53",
+  "authors": [
+    {
+      "n": "Eric Brayet",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/1.2.inc": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "8fd16d645994c2dd220d7455e6b0e89c750870ba",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_decimate_head_surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_read_bem_surfaces.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/array/array.py": {
+      "a": 1,
+      "d": 21
+    },
+    "mne/io/base.py": {
+      "a": 54,
+      "d": 26
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 11,
+      "d": 26
+    },
+    "mne/io/bti/bti.py": {
+      "a": 4,
+      "d": 26
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 10,
+      "d": 23
+    },
+    "mne/io/egi/egi.py": {
+      "a": 7,
+      "d": 23
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 18,
+      "d": 66
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 50,
+      "d": 51
+    },
+    "mne/io/kit/kit.py": {
+      "a": 7,
+      "d": 20
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

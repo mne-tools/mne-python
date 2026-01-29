@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7ba03032d4d7fb70cbbe0816b21eaa97a953ced7",
+  "authors": [
+    {
+      "n": "Michael",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

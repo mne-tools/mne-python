@@ -1,5 +1,4 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -18,6 +17,7 @@ from ..._fiff.meas_info import _format_dig_points, create_info
 from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
 from ...annotations import Annotations
+from ...fixes import _reshape_view
 from ...transforms import _get_trans, apply_trans
 from ...utils import (
     _check_fname,
@@ -35,16 +35,20 @@ from ._localized_abbr import _localized_abbr
 
 @fill_doc
 def read_raw_nirx(
-    fname, saturated="annotate", preload=False, verbose=None
+    fname, saturated="annotate", *, preload=False, encoding="latin-1", verbose=None
 ) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
     Parameters
     ----------
     fname : path-like
-        Path to the NIRX data folder or header file.
+        Path to the NIRX data folder (directory containing NIRX files) or
+        the ``.hdr`` header file within that folder. The function will
+        automatically find and read all required NIRX files from the
+        directory.
     %(saturated)s
     %(preload)s
+    %(encoding_nirx)s
     %(verbose)s
 
     Returns
@@ -61,7 +65,9 @@ def read_raw_nirx(
     -----
     %(nirx_notes)s
     """
-    return RawNIRX(fname, saturated, preload, verbose)
+    return RawNIRX(
+        fname, saturated, preload=preload, encoding=encoding, verbose=verbose
+    )
 
 
 def _open(fname):
@@ -78,6 +84,7 @@ class RawNIRX(BaseRaw):
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
+    %(encoding_nirx)s
     %(verbose)s
 
     See Also
@@ -90,8 +97,8 @@ class RawNIRX(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, saturated, preload=False, verbose=None):
-        logger.info("Loading %s" % fname)
+    def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
         _check_option("saturated", saturated, ("annotate", "nan", "ignore"))
@@ -102,10 +109,7 @@ class RawNIRX(BaseRaw):
         fname = str(_check_fname(fname, "read", True, "fname", need_dir=True))
 
         json_config = glob.glob(f"{fname}/*{'config.json'}")
-        if len(json_config):
-            is_aurora = True
-        else:
-            is_aurora = False
+        is_aurora = len(json_config)
 
         if is_aurora:
             # NIRSport2 devices using Aurora software
@@ -178,7 +182,7 @@ class RawNIRX(BaseRaw):
         # Read header file
         # The header file isn't compliant with the configparser. So all the
         # text between comments must be removed before passing to parser
-        with _open(files["hdr"]) as f:
+        with open(files["hdr"], encoding=encoding) as f:
             hdr_str_all = f.read()
         hdr_str = re.sub("#.*?#", "", hdr_str_all, flags=re.DOTALL)
         if is_aurora:
@@ -210,8 +214,8 @@ class RawNIRX(BaseRaw):
             ):
                 warn(
                     "Only import of data from NIRScout devices have been "
-                    "thoroughly tested. You are using a %s device. "
-                    % hdr["GeneralInfo"]["Device"]
+                    f"thoroughly tested. You are using a {hdr['GeneralInfo']['Device']}"
+                    " device."
                 )
 
         # Parse required header fields
@@ -242,6 +246,7 @@ class RawNIRX(BaseRaw):
                 '"%a %d %b %Y""%H:%M:%S.%f"',
                 '"%a, %d %b %Y""%H:%M:%S.%f"',
                 "%Y-%m-%d %H:%M:%S.%f",
+                '"%Y年%m月%d日""%H:%M:%S.%f"',
             ]:
                 try:
                     meas_date = dt.datetime.strptime(loc_datetime_str, dt_code)
@@ -343,7 +348,7 @@ class RawNIRX(BaseRaw):
         else:
             subject_info["sex"] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
         if inf["age"] != "":
-            subject_info["birthday"] = (
+            subject_info["birthday"] = dt.date(
                 meas_date.year - int(inf["age"]),
                 meas_date.month,
                 meas_date.day,
@@ -563,7 +568,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds, sep=" ", replace=None)
         if replace is not None:
             data = replace(data)
         x = np.fromstring(data, float, sep=sep)
-    x.shape = (stop - start, -1)
+    x = _reshape_view(x, (stop - start, -1))
     x = x[:, cols]
     return x
 

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0c76381a84153f0b44e5db132322f3fe4e14f0c9",
+  "authors": [
+    {
+      "n": "Zhenya",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 20,
+      "d": 10
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "82c8b85f8c13e8a5db4a075f7b027b2f455c3994",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    ".github/CODEOWNERS": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

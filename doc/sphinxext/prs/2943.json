@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "963eda039acfa4b7dbcaacad02e2b21f386159d7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_topo.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/topo.py": {
+      "a": 158,
+      "d": 67
+    }
+  }
+}

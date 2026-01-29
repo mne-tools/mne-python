@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "2bd0c3ee25606fc1e755fe589b0cc6bf409d3f84",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/datasets/brainstorm_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/eeg_csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/find_ref_artifacts.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/sensor_noise_level.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/report/report.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 9,
+      "d": 46
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/utils/spectrum.py": {
+      "a": 63,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 11
+    },
+    "mne/viz/raw.py": {
+      "a": 6,
+      "d": 14
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 18,
+      "d": 16
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 25,
+      "d": 31
+    },
+    "mne/viz/topomap.py": {
+      "a": 12,
+      "d": 10
+    },
+    "tutorials/epochs/10_epochs_overview.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/epochs/30_epochs_metadata.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/15_inplace.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/10_preprocessing_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/30_filtering_resampling.py": {
+      "a": 9,
+      "d": 6
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 6,
+      "d": 8
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

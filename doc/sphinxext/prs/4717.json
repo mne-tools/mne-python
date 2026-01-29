@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "062e9b39983dcb288e78041532f35f34788a6fce",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 27,
+      "d": 32
+    },
+    "mne/io/base.py": {
+      "a": 20,
+      "d": 15
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 123,
+      "d": 35
+    }
+  }
+}

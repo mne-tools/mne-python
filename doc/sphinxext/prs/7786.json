@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "07cdaf9f30aa8c421f43a7c75e92ae3fe9ccdc5f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_cluster_stats_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/discussions/plot_background_statistics.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

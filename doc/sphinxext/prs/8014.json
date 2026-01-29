@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "1a3a392f63216f010de1658949a2bff5439eda46",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@inria.fr"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@inria.fr"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 142,
+      "d": 1
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 68,
+      "d": 2
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

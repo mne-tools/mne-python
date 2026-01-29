@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "b62d8297f60c4b8c8f3ec44e499353b4a73efee1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "azure-pipelines.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/utils/_testing.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

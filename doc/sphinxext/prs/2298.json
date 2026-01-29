@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "16a78f8dcc00a874300e02ce39f955315a509962",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 85,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 19,
+      "d": 6
+    },
+    "mne/event.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/filter.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 91,
+      "d": 37
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 62,
+      "d": 5
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/tests/test_filter.py": {
+      "a": 24,
+      "d": 3
+    },
+    "mne/tests/test_utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 34,
+      "d": 6
+    }
+  }
+}

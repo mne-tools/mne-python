@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "966e489a408a6ea32ab4af3ed0a04a22dbc4879d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gen_rst.py": {
+      "a": 1,
+      "d": 4
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 1,
+      "d": 4
+    },
+    "examples/inverse/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 4
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 1,
+      "d": 4
+    },
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 2,
+      "d": 4
+    },
+    "examples/plot_decimate_head_surface.py": {
+      "a": 1,
+      "d": 4
+    },
+    "examples/plot_read_bem_surfaces.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/commands/mne_flash_bem_model.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 11
+    }
+  }
+}

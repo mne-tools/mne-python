@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5d43084ffc12ae4c8d73c5db991856ea8e2e47e5",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_ssd_spatial_filters.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/ssd.py": {
+      "a": 13,
+      "d": 14
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

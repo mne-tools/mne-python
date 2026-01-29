@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "8ed962512312b147d123cdf10b2dc818b11b81e5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/channels/montage.py": {
+      "a": 117,
+      "d": 19
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 53,
+      "d": 10
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/io/meas_info.py": {
+      "a": 33,
+      "d": 20
+    },
+    "mne/tests/common.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

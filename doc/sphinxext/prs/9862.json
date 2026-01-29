@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4c286e9159539e1e51163e01c0ae241cbdd79fb5",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

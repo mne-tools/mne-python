@@ -1,5 +1,4 @@
-# Author: Mathieu Scheltienne <mathieu.scheltienne@fcbg.ch>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -127,7 +126,7 @@ def annotate_amplitude(
         for ch_type, picks_of_type in _picks_by_type(raw.info, exclude="bads")
         if np.intersect1d(picks_of_type, picks_, assume_unique=True).size != 0
     }
-    del picks_  # re-using this variable name in for loop
+    del picks_  # reusing this variable name in for loop
 
     # skip BAD_acq_skip sections
     onsets, ends = _annotations_starts_stops(raw, "bad_acq_skip", invert=True)

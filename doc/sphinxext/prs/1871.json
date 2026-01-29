@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fe5aaecfe2ce2bf6efb88064e9b5dbea4b9559c2",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/time_gen.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

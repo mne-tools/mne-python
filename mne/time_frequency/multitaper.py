@@ -1,5 +1,4 @@
-# Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -11,6 +10,7 @@ from scipy.integrate import trapezoid
 from scipy.signal import get_window
 from scipy.signal.windows import dpss as sp_dpss
 
+from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _check_option, logger, verbose, warn
 
@@ -64,7 +64,14 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True)
+    # TODO VERSION can be removed with SciPy 1.16 is min,
+    # workaround for https://github.com/scipy/scipy/pull/22344
+    if N <= 1:
+        dpss, eigvals = np.ones((1, 1)), np.ones(1)
+    else:
+        dpss, eigvals = sp_dpss(
+            N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True
+        )
     if low_bias:
         idx = eigvals > 0.9
         if not idx.any():
@@ -305,8 +312,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         n_times, half_nbw, n_tapers_max, sym=False, low_bias=low_bias
     )
     logger.info(
-        "    Using multitaper spectrum estimation with %d DPSS "
-        "windows" % len(eigvals)
+        f"    Using multitaper spectrum estimation with {len(eigvals)} DPSS windows"
     )
 
     if adaptive and len(eigvals) < 3:
@@ -450,7 +456,7 @@ def psd_array_multitaper(
 
     # Combining/reshaping to original data shape
     last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
-    psd.shape = dshape + last_dims
+    psd = _reshape_view(psd, dshape + last_dims)
     if ndim_in == 1:
         psd = psd[0]
 
@@ -473,8 +479,8 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
+    return_weights=False,
     verbose=None,
-    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
@@ -507,11 +513,12 @@ def tfr_array_multitaper(
           coherence across trials.
     %(n_jobs)s
         The parallelization is implemented across channels.
+    return_weights : bool, default False
+        If True, return the taper weights. Only applies if ``output='complex'`` or
+        ``'phase'``.
+
+        .. versionadded:: 1.10.0
     %(verbose)s
-    epoch_data : None
-        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
-        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
-        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
@@ -527,6 +534,9 @@ def tfr_array_multitaper(
         If ``output`` is ``'avg_power_itc'``, the real values in ``out``
         contain the average power and the imaginary values contain the
         inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
+    weights : array of shape (n_tapers, n_freqs)
+        The taper weights. Only returned if ``output='complex'`` or ``'phase'`` and
+        ``return_weights=True``.
 
     See Also
     --------
@@ -546,13 +556,6 @@ def tfr_array_multitaper(
     """
     from .tfr import _compute_tfr
 
-    if epoch_data is not None:
-        warn(
-            "The parameter for providing data will be switched from `epoch_data` to "
-            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
-            FutureWarning,
-        )
-
     return _compute_tfr(
         data,
         freqs,
@@ -564,6 +567,7 @@ def tfr_array_multitaper(
         use_fft=use_fft,
         decim=decim,
         output=output,
+        return_weights=return_weights,
         n_jobs=n_jobs,
         verbose=verbose,
     )

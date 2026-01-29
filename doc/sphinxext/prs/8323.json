@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5fb608a82d5c82ced7fc66abc7781a9162d9b8ac",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 20,
+      "d": 12
+    }
+  }
+}

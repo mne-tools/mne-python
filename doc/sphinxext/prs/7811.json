@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "15866de8908d37337930a2afa2a54277a8a78ebe",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 21,
+      "d": 15
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

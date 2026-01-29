@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "74ceb7dc4a4c71cd4749fc5af385d548eef57749",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/externals/jdcal.py": {
+      "a": 0,
+      "d": 116
+    },
+    "mne/io/tag.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/write.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 96,
+      "d": 0
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 23,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "5eda6a5b832cb9bedcc25bbf0b75c19d19685f16",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/plot_simulate_evoked_data.py": {
+      "a": 85,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 147,
+      "d": 1
+    },
+    "mne/simulation/__init__.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/simulation/evoked.py": {
+      "a": 125,
+      "d": 0
+    },
+    "mne/simulation/source.py": {
+      "a": 178,
+      "d": 0
+    },
+    "mne/simulation/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 70,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/tests/test_label.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 155,
+      "d": 0
+    }
+  }
+}

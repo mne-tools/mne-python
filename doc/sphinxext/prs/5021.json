@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "96654288dd107afcba9ae5cede7c72daf8c66ef0",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 14,
+      "d": 6
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 11,
+      "d": 9
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 8,
+      "d": 10
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 6,
+      "d": 6
+    },
+    "examples/time_frequency/plot_compute_csd.py": {
+      "a": 88,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 57,
+      "d": 56
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 77,
+      "d": 86
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 1302,
+      "d": 235
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 679,
+      "d": 172
+    },
+    "mne/viz/__init__.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/misc.py": {
+      "a": 119,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 18,
+      "d": 1
+    }
+  }
+}

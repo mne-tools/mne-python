@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "daa0458a0ca91ebada2682fee43bb95ec388cd0d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/manual/appendix/c_misc.rst": {
+      "a": 64,
+      "d": 61
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 6,
+      "d": 2
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/gui/analyze.rst": {
+      "a": 32,
+      "d": 24
+    },
+    "doc/manual/gui/browse.rst": {
+      "a": 95,
+      "d": 66
+    },
+    "doc/manual/index.rst": {
+      "a": 20,
+      "d": 21
+    },
+    "doc/manual/io.rst": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/manual/matlab.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/manual/preprocessing/bads.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/manual/preprocessing/overview.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 48,
+      "d": 144
+    },
+    "doc/manual/source_localization/c_forward.rst": {
+      "a": 323,
+      "d": 262
+    },
+    "doc/manual/source_localization/c_inverse.rst": {
+      "a": 351,
+      "d": 309
+    },
+    "doc/manual/source_localization/c_morph.rst": {
+      "a": 108,
+      "d": 98
+    },
+    "doc/manual/source_localization/coil_geometries.rst": {
+      "a": 0,
+      "d": 266
+    },
+    "doc/manual/source_localization/forward.rst": {
+      "a": 0,
+      "d": 436
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 0,
+      "d": 439
+    },
+    "doc/manual/source_localization/morph_stc.rst": {
+      "a": 0,
+      "d": 249
+    },
+    "doc/overview/faq.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/index.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_background_freesurfer.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

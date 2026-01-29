@@ -66,8 +66,8 @@ T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=None)
 significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.ch_names[k] for k in significant_sensors]
 
-print("Number of significant sensors : %d" % len(significant_sensors))
-print("Sensors names : %s" % significant_sensors_names)
+print(f"Number of significant sensors : {len(significant_sensors)}")
+print(f"Sensors names : {significant_sensors_names}")
 
 # %%
 # View location of significantly active sensors

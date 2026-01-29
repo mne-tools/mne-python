@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "33f224d4486b4b13facf543aae7e1867e3606898",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/surface.py": {
+      "a": 20,
+      "d": 4
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

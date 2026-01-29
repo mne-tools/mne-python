@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "fd43bbe2ca013d742b3d082f0284c2d73d06a52a",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/_includes/dig_formats.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.19.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 40,
+      "d": 10
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 13,
+      "d": 4
+    }
+  }
+}

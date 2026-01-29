@@ -1,5 +1,4 @@
-# Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
-#          Luke Bloy <luke.bloy@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -214,9 +213,11 @@ def annotate_movement(
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(
-            "Omitting %5.1f%% (%3d segments): "
-            "ω >= %5.1f°/s (max: %0.1f°/s)"
-            % (bad_pct, len(onsets), rotation_velocity_limit, np.rad2deg(r.max()))
+            "Omitting %5.1f%% (%3d segments): ω >= %5.1f°/s (max: %0.1f°/s)",
+            bad_pct,
+            len(onsets),
+            rotation_velocity_limit,
+            np.rad2deg(r.max()),
         )
         annot += _annotations_from_mask(
             hp_ts, bad_mask, "BAD_mov_rotat_vel", orig_time=orig_time
@@ -232,9 +233,11 @@ def annotate_movement(
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(
-            "Omitting %5.1f%% (%3d segments): "
-            "v >= %5.4fm/s (max: %5.4fm/s)"
-            % (bad_pct, len(onsets), translation_velocity_limit, v.max())
+            "Omitting %5.1f%% (%3d segments): v >= %5.4fm/s (max: %5.4fm/s)",
+            bad_pct,
+            len(onsets),
+            translation_velocity_limit,
+            v.max(),
         )
         annot += _annotations_from_mask(
             hp_ts, bad_mask, "BAD_mov_trans_vel", orig_time=orig_time
@@ -283,9 +286,11 @@ def annotate_movement(
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(
-            "Omitting %5.1f%% (%3d segments): "
-            "disp >= %5.4fm (max: %5.4fm)"
-            % (bad_pct, len(onsets), mean_distance_limit, disp.max())
+            "Omitting %5.1f%% (%3d segments): disp >= %5.4fm (max: %5.4fm)",
+            bad_pct,
+            len(onsets),
+            mean_distance_limit,
+            disp.max(),
         )
         annot += _annotations_from_mask(
             hp_ts, bad_mask, "BAD_mov_dist", orig_time=orig_time
@@ -322,9 +327,9 @@ def compute_average_dev_head_t(raw, pos, *, verbose=None):
        Support for multiple raw instances and position arrays was added.
     """
     # Get weighted head pos trans and rot
-    if not isinstance(raw, (list, tuple)):
+    if not isinstance(raw, list | tuple):
         raw = [raw]
-    if not isinstance(pos, (list, tuple)):
+    if not isinstance(pos, list | tuple):
         pos = [pos]
     if len(pos) != len(raw):
         raise ValueError(
@@ -368,8 +373,9 @@ def _raw_hp_weights(raw, pos):
     mask = hp_ts <= raw.times[-1]
     if not mask.all():
         logger.info(
-            "          Removing %d samples > raw.times[-1] (%s)"
-            % (np.sum(~mask), raw.times[-1])
+            "          Removing %d samples > raw.times[-1] (%s)",
+            np.sum(~mask),
+            raw.times[-1],
         )
         hp = hp[mask]
     del mask, hp_ts
@@ -533,7 +539,7 @@ def annotate_break(
         if ignore:
             logger.info(
                 f"Ignoring annotations with descriptions starting "
-                f'with: {", ".join(ignore)}'
+                f"with: {', '.join(ignore)}"
             )
     else:
         annotations = annotations_from_events(
@@ -541,9 +547,7 @@ def annotate_break(
         )
 
     if not annotations:
-        raise ValueError(
-            "Could not find (or generate) any annotations in " "your data."
-        )
+        raise ValueError("Could not find (or generate) any annotations in your data.")
 
     # Only keep annotations of interest and extract annotated time periods
     # Ignore case

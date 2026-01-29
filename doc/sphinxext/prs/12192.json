@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a91f582874a29b32b558d8a55d60c2b5e22b0812",
+  "authors": [
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

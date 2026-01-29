@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "6286b04e1214d0be8c2cda8c16ae0d1c8c8db2d8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 17
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

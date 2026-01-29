@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b707d37dc880205154773de703b2e47a438cc051",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "codecov.yml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

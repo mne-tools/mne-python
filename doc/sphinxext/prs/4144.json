@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "1239f23d5c44c1e8b79d035221559163c595978e",
+  "authors": [
+    {
+      "n": "alexandre barachant",
+      "e": null
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/manual/decoding.rst": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_spoc_CMC.py": {
+      "a": 84,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/fieldtrip_cmc/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/fieldtrip_cmc/fieldtrip_cmc.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 209,
+      "d": 29
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 103,
+      "d": 26
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a9bbb9eded90321545e211857eec935d387e065c",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    },
+    {
+      "n": "Teon Brooks",
+      "e": "teon.brooks@gmail.com"
+    },
+    {
+      "n": "Teon Brooks",
+      "e": "teon.brooks@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/bti/bti.py": {
+      "a": 77,
+      "d": 121
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 14,
+      "d": 3
+    }
+  }
+}

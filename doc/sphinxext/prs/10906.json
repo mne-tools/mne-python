@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4351e611364be97c9bd156535ba73735bf6ea78d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 67,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 130,
+      "d": 6
+    }
+  }
+}

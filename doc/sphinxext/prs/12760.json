@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a362e5ac3b2965d9cf129b9461e2907747618c30",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12760.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 11,
+      "d": 6
+    }
+  }
+}

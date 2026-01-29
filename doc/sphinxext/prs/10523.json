@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "f222ef5b8caa622e56279f5e33cefbe3771fe186",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/mne_logo.svg": {
+      "a": 864,
+      "d": 174
+    },
+    "doc/_static/mne_logo_dark.svg": {
+      "a": 866,
+      "d": 0
+    },
+    "doc/_static/mne_logo_small.svg": {
+      "a": 82,
+      "d": 80
+    },
+    "doc/_static/style.css": {
+      "a": 26,
+      "d": 2
+    },
+    "doc/_templates/homepage.html": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/index.rst": {
+      "a": 12,
+      "d": 2
+    },
+    "doc/install/install_type_selector.html": {
+      "a": 2,
+      "d": 2
+    },
+    "logo/generate_mne_logos.py": {
+      "a": 26,
+      "d": 15
+    },
+    "mne/icons/mne_bigsur_icon.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne_default_icon.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne_icon.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne_splash.png": {
+      "a": 0,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_download.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "a9d697358ccfff7d67e02df5889c203f7da0daa3",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/preprocessing/plot_corrmap_detection.py": {
+      "a": 76,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 321,
+      "d": 11
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 17,
+      "d": 4
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 17,
+      "d": 12
+    },
+    "mne/tests/test_utils.py": {
+      "a": 23,
+      "d": 2
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 16,
+      "d": 1
+    }
+  }
+}

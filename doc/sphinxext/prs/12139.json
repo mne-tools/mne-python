@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c733e7b4d471eb72231b6492aa3031efc28d426d",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".lgtm.yml": {
+      "a": 0,
+      "d": 8
+    }
+  }
+}

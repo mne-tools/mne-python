@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "46f3c151ba8c431a882daa609403d4f996c0b1e7",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_source_space_snr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 19,
+      "d": 13
+    },
+    "tutorials/misc/plot_seeg.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8886f42e8a28d4987849802bc568003c0f44b9e1",
+  "authors": [
+    {
+      "n": "David Sabbagh",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_spoc_CMC.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "592f9afca21a68755042741af760790d93df69b8",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/read_events.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/event.py": {
+      "a": 53,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 9,
+      "d": 1
+    }
+  }
+}

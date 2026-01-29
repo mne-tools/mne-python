@@ -1,6 +1,4 @@
-# Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -19,10 +17,13 @@ from mne import (
     pick_types,
     read_events,
 )
-from mne.decoding import Vectorizer
 from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
-from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
+
+pytest.importorskip("sklearn")
+
+from mne.decoding.xdawn import XdawnTransformer
+from mne.preprocessing.xdawn import Xdawn  # noqa: E402
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -166,9 +167,9 @@ def test_xdawn_apply_transform():
     pytest.raises(ValueError, xd.transform, 42)
 
     # Check numerical results with shuffled epochs
-    np.random.seed(0)  # random makes unstable linalg
+    rng = np.random.RandomState(0)
     idx = np.arange(len(epochs))
-    np.random.shuffle(idx)
+    rng.shuffle(idx)
     xd.fit(epochs[idx])
     denoise_shfl = xd.apply(epochs)
     assert_array_almost_equal(denoise["cond2"]._data, denoise_shfl["cond2"]._data)
@@ -236,7 +237,7 @@ def test_xdawn_regularization():
 
 
 def test_XdawnTransformer():
-    """Test _XdawnTransformer."""
+    """Test XdawnTransformer."""
     pytest.importorskip("sklearn")
     # Get data
     raw, events, picks = _get_data()
@@ -255,40 +256,42 @@ def test_XdawnTransformer():
     X = epochs._data
     y = epochs.events[:, -1]
     # Fit
-    xdt = _XdawnTransformer()
+    xdt = XdawnTransformer()
     xdt.fit(X, y)
     pytest.raises(ValueError, xdt.fit, X, y[1:])
     pytest.raises(ValueError, xdt.fit, "foo")
 
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     xdt.fit(X, y)
     # Provide ndarray
     signal_cov = np.eye(len(picks))
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     xdt.fit(X, y)
     # Provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     pytest.raises(ValueError, xdt.fit, X, y)
     # Provide another type
     signal_cov = 42
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     pytest.raises(ValueError, xdt.fit, X, y)
 
     # Fit with y as None
-    xdt = _XdawnTransformer()
+    xdt = XdawnTransformer()
     xdt.fit(X)
 
-    # Compare xdawn and _XdawnTransformer
+    # Compare xdawn and XdawnTransformer
     xd = Xdawn(correct_overlap=False)
     xd.fit(epochs)
 
-    xdt = _XdawnTransformer()
+    xdt = XdawnTransformer()
     xdt.fit(X, y)
+    # Subset filters
+    xdt_filters = xdt._subset_multi_components()
     assert_array_almost_equal(
-        xd.filters_["cond2"][:2, :], xdt.filters_.reshape(2, 2, 8)[0]
+        xd.filters_["cond2"][:2, :], xdt_filters.reshape(2, 2, 8)[0]
     )
 
     # Transform testing
@@ -355,13 +358,15 @@ def test_xdawn_decoding_performance():
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import MinMaxScaler
 
+    from mne.decoding import Vectorizer
+
     n_xdawn_comps = 3
     expected_accuracy = 0.98
 
     epochs, mixing_mat = _simulate_erplike_mixed_data(n_epochs=100)
     y = epochs.events[:, 2]
 
-    # results of Xdawn and _XdawnTransformer should match
+    # results of Xdawn and XdawnTransformer should match
     xdawn_pipe = make_pipeline(
         Xdawn(n_components=n_xdawn_comps),
         Vectorizer(),
@@ -369,7 +374,7 @@ def test_xdawn_decoding_performance():
         LogisticRegression(solver="liblinear"),
     )
     xdawn_trans_pipe = make_pipeline(
-        _XdawnTransformer(n_components=n_xdawn_comps),
+        XdawnTransformer(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
         LogisticRegression(solver="liblinear"),
@@ -395,7 +400,8 @@ def test_xdawn_decoding_performance():
                 [comps[[0]] for comps in fitted_xdawn.patterns_.values()]
             )
         else:
-            relev_patterns = fitted_xdawn.patterns_[::n_xdawn_comps]
+            pick_patterns = fitted_xdawn._subset_multi_components(name="patterns")
+            relev_patterns = pick_patterns[::n_xdawn_comps]
 
         for i in range(len(relev_patterns)):
             r, _ = stats.pearsonr(relev_patterns[i, :], mixing_mat[0, :])

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e1b02121eb183c683b6b796fc01998aa4512d7c3",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 32
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 10,
+      "d": 8
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

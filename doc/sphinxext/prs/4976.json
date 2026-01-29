@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f6e3fe522bff721114212066d9dcecd330efdfd1",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

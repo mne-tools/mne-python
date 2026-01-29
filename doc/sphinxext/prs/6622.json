@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "18f06d118a45c23fa733b218c81630d968085e73",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_templates/autosummary/class.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/_templates/autosummary/function.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 27,
+      "d": 3
+    },
+    "doc/sphinxext/README.txt": {
+      "a": 0,
+      "d": 25
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 10,
+      "d": 10
+    },
+    "doc/sphinxext/ipython_console_highlighting.py": {
+      "a": 0,
+      "d": 100
+    },
+    "doc/sphinxext/only_directives.py": {
+      "a": 0,
+      "d": 65
+    },
+    "examples/time_frequency/plot_compute_csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/.gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

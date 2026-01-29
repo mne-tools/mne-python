@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "da1d32978b6033dd89609f12af291ed619264c7d",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/utils.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 20,
+      "d": 29
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

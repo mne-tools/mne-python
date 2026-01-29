@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4dcd4d16f961d4a614c105f2d28a3fd912a7c1b8",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 15,
+      "d": 9
+    },
+    "doc/_templates/copyright.html": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_templates/sidebar-quicklinks.html": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

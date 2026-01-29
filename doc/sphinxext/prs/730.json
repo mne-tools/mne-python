@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "205701479f2b8f8d8707b66f71039ce6fe6a7a02",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 105,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 78,
+      "d": 27
+    },
+    "mne/source_estimate.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/tests/test_label.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,5 +1,4 @@
-# Author: Denis A. Engemann <d.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,6 +7,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_equal
+
+pytest.importorskip("sklearn")
+
+from sklearn.model_selection import StratifiedKFold
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import EMS, compute_ems
@@ -18,13 +22,9 @@ event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
-pytest.importorskip("sklearn")
-
 
 def test_ems():
     """Test event-matched spatial filters."""
-    from sklearn.model_selection import StratifiedKFold
-
     raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events
@@ -92,3 +92,10 @@ def test_ems():
     assert_equal(ems.__repr__(), "<EMS: fitted with 4 filters on 2 classes.>")
     assert_array_almost_equal(filters, np.mean(coefs, axis=0))
     assert_array_almost_equal(surrogates, np.vstack(Xt))
+
+
+@parametrize_with_checks([EMS()])
+def test_sklearn_compliance(estimator, check):
+    """Test compliance with sklearn."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    check(estimator)

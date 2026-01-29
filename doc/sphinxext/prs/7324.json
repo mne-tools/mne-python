@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2b9a707f1600af9f120df20b15e55d6c6ce18c62",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 9,
+      "d": 8
+    }
+  }
+}

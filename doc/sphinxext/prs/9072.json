@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6d1ee18a4cd7e753a0c42306a89630d7e8d092cb",
+  "authors": [
+    {
+      "n": "Catalina M. Galván",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/connectivity/envelope.py": {
+      "a": 2,
+      "d": 7
+    }
+  }
+}

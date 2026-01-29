@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "df6115ead7474c0374eda5958266fd02c9b5b1e0",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/_optical_density.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 10,
+      "d": 10
+    }
+  }
+}

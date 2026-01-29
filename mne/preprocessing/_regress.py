@@ -1,17 +1,15 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx, pick_info
+from .._fiff.proj import _needs_eeg_average_ref_proj
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..io import BaseRaw
-from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
 from ..utils import (
     _check_fname,
     _check_option,

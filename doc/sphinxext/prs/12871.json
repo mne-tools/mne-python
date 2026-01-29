@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "381688fc250e6f1b1a6e1bf26357379b0fec94a4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12871.newfeature.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 34,
+      "d": 3
+    }
+  }
+}

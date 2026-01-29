@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3a0812f1ef4823cc2b9e012ee948c82ebc0a2e7f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/_static/scrollfix.js": {
+      "a": 0,
+      "d": 31
+    },
+    "doc/_static/style.css": {
+      "a": 0,
+      "d": 21
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5ac71c35403983091c6fb6ebe552b73d79c3d9db",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 15,
+      "d": 12
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 22,
+      "d": 0
+    }
+  }
+}

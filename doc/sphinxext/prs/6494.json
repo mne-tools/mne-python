@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "68f5d09da60a17b5d162cd902c4d64379ad3d87e",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 48,
+      "d": 22
+    }
+  }
+}

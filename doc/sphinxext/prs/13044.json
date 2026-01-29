@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "7b316cb500a5039a9e79ada02f117f650801d17b",
+  "authors": [
+    {
+      "n": "Antoine Collas",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13044.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 8,
+      "d": 0
+    },
+    "examples/preprocessing/interpolate_to.py": {
+      "a": 81,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 157,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 83,
+      "d": 1
+    }
+  }
+}

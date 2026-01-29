@@ -18,7 +18,7 @@ MNE, dSPM, sLORETA, and eLORETA.
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.minimum_norm import apply_inverse, apply_inverse_cov, make_inverse_operator
 
 print(__doc__)
 
@@ -54,32 +54,32 @@ kwargs = dict(
     subjects_dir=subjects_dir,
     size=(600, 600),
     clim=dict(kind="percent", lims=[90, 95, 99]),
-    smoothing_steps=7,
+    smoothing_steps=10,
 )
 
 stc = abs(apply_inverse(evoked, inv, lambda2, "MNE", verbose=True))
-brain = stc.plot(figure=1, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "MNE", "title", font_size=14)
 
 # %%
 # Next let's use the default noise normalization, dSPM:
 
 stc = abs(apply_inverse(evoked, inv, lambda2, "dSPM", verbose=True))
-brain = stc.plot(figure=2, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "dSPM", "title", font_size=14)
 
 # %%
 # And sLORETA:
 
 stc = abs(apply_inverse(evoked, inv, lambda2, "sLORETA", verbose=True))
-brain = stc.plot(figure=3, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "sLORETA", "title", font_size=14)
 
 # %%
 # And finally eLORETA:
 
 stc = abs(apply_inverse(evoked, inv, lambda2, "eLORETA", verbose=True))
-brain = stc.plot(figure=4, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "eLORETA", "title", font_size=14)
 del inv
 
@@ -97,21 +97,21 @@ del fwd
 # value of the source estimates to simplify the visualization.
 
 stc = apply_inverse(evoked, inv, lambda2, "MNE", verbose=True)
-brain = stc.plot(figure=5, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "MNE", "title", font_size=14)
 
 # %%
 # Next let's use the default noise normalization, dSPM:
 
 stc = apply_inverse(evoked, inv, lambda2, "dSPM", verbose=True)
-brain = stc.plot(figure=6, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "dSPM", "title", font_size=14)
 
 # %%
 # sLORETA:
 
 stc = apply_inverse(evoked, inv, lambda2, "sLORETA", verbose=True)
-brain = stc.plot(figure=7, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "sLORETA", "title", font_size=14)
 
 # %%
@@ -120,5 +120,19 @@ brain.add_text(0.1, 0.9, "sLORETA", "title", font_size=14)
 stc = apply_inverse(
     evoked, inv, lambda2, "eLORETA", verbose=True, method_params=dict(eps=1e-4)
 )  # larger eps just for speed
-brain = stc.plot(figure=8, **kwargs)
+brain = stc.plot(**kwargs)
 brain.add_text(0.1, 0.9, "eLORETA", "title", font_size=14)
+
+# %%
+# And one interesting property to note is the noise normalization of dSPM
+# can be easily seen by visualizing the source reconstruction of the noise
+# covariance used to compute the inverse operator -- it's takes on the
+# value of 1. (orange in the colormap here) across the entire brain:
+
+stc_baseline = apply_inverse_cov(
+    cov, evoked.info, inv, lambda2=lambda2, method="dSPM", verbose=True
+)
+kwargs_baseline = kwargs.copy()
+kwargs_baseline["clim"] = dict(kind="value", lims=[0, 1, 2])
+brain = stc_baseline.plot(**kwargs_baseline)
+brain.add_text(0.1, 0.9, "dSPM of the baseline", "title", font_size=14)

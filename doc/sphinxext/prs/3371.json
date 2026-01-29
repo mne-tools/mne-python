@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7fe99df50119d06803cdd929c512a8d799ecd962",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

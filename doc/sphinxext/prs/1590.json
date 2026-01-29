@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "bf46062b42ba9e0702de81d833af9d2b5ec82f27",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/constants.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 507,
+      "d": 283
+    },
+    "mne/io/kit/tests/data/test-epoch.raw": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/data/test-eve.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 27,
+      "d": 4
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "067b0144f3b9f8e572f53e1af1dbe417aa9e6d98",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

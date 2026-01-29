@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "045abeb46be8088f5fd8c3dd0415f5a4f79a182a",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/manual/cookbook.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/manual/preprocessing/annotations.rst": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/tutorials.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 28,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 32,
+      "d": 14
+    },
+    "mne/io/base.py": {
+      "a": 41,
+      "d": 8
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/regression.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 10,
+      "d": 24
+    },
+    "mne/viz/utils.py": {
+      "a": 13,
+      "d": 10
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 357,
+      "d": 0
+    }
+  }
+}

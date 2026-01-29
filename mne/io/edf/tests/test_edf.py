@@ -1,16 +1,11 @@
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Martin Billinger <martin.billinger@tugraz.at>
-#          Alan Leggitt <alan.leggitt@ucsf.edu>
-#          Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import datetime
 from contextlib import nullcontext
 from functools import partial
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -51,8 +46,6 @@ edf_path = data_dir / "test.edf"
 duplicate_channel_labels_path = data_dir / "duplicate_channel_labels.edf"
 edf_uneven_path = data_dir / "test_uneven_samp.edf"
 bdf_eeglab_path = data_dir / "test_bdf_eeglab.mat"
-edf_eeglab_path = data_dir / "test_edf_eeglab.mat"
-edf_uneven_eeglab_path = data_dir / "test_uneven_samp.mat"
 edf_stim_channel_path = data_dir / "test_edf_stim_channel.edf"
 edf_txt_stim_channel_path = data_dir / "test_edf_stim_channel.txt"
 
@@ -100,7 +93,7 @@ def test_orig_units():
 def test_units_params():
     """Test enforcing original channel units."""
     with pytest.raises(
-        ValueError, match=r"Unit for channel .* is present .* cannot " "overwrite it"
+        ValueError, match=r"Unit for channel .* is present .* cannot overwrite it"
     ):
         _ = read_raw_edf(edf_path, units="V", preload=True)
 
@@ -131,23 +124,11 @@ def test_subject_info(tmp_path):
     want = {
         "his_id": "X",
         "sex": 1,
-        "birthday": (1967, 10, 9),
+        "birthday": datetime.date(1967, 10, 9),
         "last_name": "X",
     }
     for key, val in want.items():
         assert raw.info["subject_info"][key] == val, key
-
-    # check "subject_info" from `_raw_extras`
-    edf_info = raw._raw_extras[0]
-    assert edf_info["subject_info"] is not None
-    want = {
-        "id": "X",
-        "sex": "M",
-        "birthday": datetime.datetime(1967, 10, 9, 0, 0),
-        "name": "X",
-    }
-    for key, val in want.items():
-        assert edf_info["subject_info"][key] == val, key
 
     # add information
     raw.info["subject_info"]["hand"] = 0
@@ -162,7 +143,7 @@ def test_subject_info(tmp_path):
     want = {
         "his_id": "X",
         "sex": 1,
-        "birthday": (1967, 10, 9),
+        "birthday": datetime.date(1967, 10, 9),
         "last_name": "X",
         "hand": 0,
     }
@@ -175,28 +156,26 @@ def test_bdf_data():
     # XXX BDF data for these is around 0.01 when it should be in the uV range,
     # probably some bug
     test_scaling = False
-    with pytest.warns(RuntimeWarning, match="Channels contain different"):
-        raw_py = _test_raw_reader(
-            read_raw_bdf,
-            input_fname=bdf_path,
-            eog=eog,
-            misc=misc,
-            exclude=["M2", "IEOG"],
-            test_scaling=test_scaling,
-        )
+    raw_py = _test_raw_reader(
+        read_raw_bdf,
+        input_fname=bdf_path,
+        eog=eog,
+        misc=misc,
+        exclude=["M2", "IEOG"],
+        test_scaling=test_scaling,
+    )
     assert len(raw_py.ch_names) == 71
-    with pytest.warns(RuntimeWarning, match="Channels contain different"):
-        raw_py = _test_raw_reader(
-            read_raw_bdf,
-            input_fname=bdf_path,
-            montage="biosemi64",
-            eog=eog,
-            misc=misc,
-            exclude=["M2", "IEOG"],
-            test_scaling=test_scaling,
-        )
+    raw_py = _test_raw_reader(
+        read_raw_bdf,
+        input_fname=bdf_path,
+        montage="biosemi64",
+        eog=eog,
+        misc=misc,
+        exclude=["M2", "IEOG"],
+        test_scaling=test_scaling,
+    )
     assert len(raw_py.ch_names) == 71
-    assert "RawEDF" in repr(raw_py)
+    assert "RawBDF" in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude="bads")
     data_py, _ = raw_py[picks]
 
@@ -279,6 +258,24 @@ def test_edf_different_sfreqs(stim_channel):
     data2, times2 = raw2[picks, :512]
     assert_allclose(data1, data2, err_msg="Data mismatch with preload")
     assert_allclose(times1, times2)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("stim_channel", (None, False, "auto"))
+def test_edf_different_sfreqs_nopreload(stim_channel):
+    """Test loading smaller sfreq channels without preloading."""
+    # load without preloading, then load a channel that has smaller sfreq
+    # as other channels, produced an error, see mne-python/issues/12897
+
+    for i in range(1, 13):
+        raw = read_raw_edf(input_fname=edf_reduced, verbose="error", preload=False)
+
+        # this should work for channels of all sfreq, even if larger sfreqs
+        # are present in the file
+        x1 = raw.get_data(picks=[f"A{i}"], return_times=False)
+        # load next ch, this is sometimes with a higher sometimes a lower sfreq
+        x2 = raw.get_data([f"A{i + 1}"], return_times=False)
+        assert x1.shape == x2.shape
 
 
 def test_edf_data_broken(tmp_path):
@@ -890,7 +887,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("2")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
     # another invalid date 29.00.14 (0 is not a month)
@@ -898,7 +895,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("0")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
 
@@ -962,10 +959,16 @@ def test_degenerate():
         read_raw_edf,
         read_raw_bdf,
         read_raw_gdf,
-        partial(_read_header, exclude=(), infer_types=False),
     ):
         with pytest.raises(NotImplementedError, match="Only.*txt.*"):
             func(edf_txt_stim_channel_path)
+
+    with pytest.raises(
+        NotImplementedError, match="Only GDF, EDF, and BDF files are supported."
+    ):
+        partial(_read_header, exclude=(), infer_types=False, file_type=4)(
+            edf_txt_stim_channel_path
+        )
 
 
 def test_exclude():
@@ -1015,9 +1018,8 @@ def test_include():
     raw = read_raw_edf(edf_path, include="I[1-4]")
     assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="'exclude' must be empty if 'include' is "):
         raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
-        assert str(e.value) == "'exclude' must be empty" "if 'include' is assigned."
 
 
 @pytest.mark.parametrize(
@@ -1200,3 +1202,62 @@ def test_ch_types():
     raw = read_raw_edf(edf_chtypes_path, units="uV")  # should be okay
     data_units = raw.get_data()
     assert_allclose(data, data_units)
+
+
+@testing.requires_testing_data
+def test_anonymization():
+    """Test that RawEDF anonymizes data in memory."""
+    # gh-11966
+    raw = read_raw_edf(edf_stim_resamp_path)
+    for key in ("meas_date", "subject_info"):
+        assert key not in raw._raw_extras[0]
+    bday = raw.info["subject_info"]["birthday"]
+    assert bday == datetime.date(1967, 10, 9)
+    raw.anonymize()
+    assert raw.info["subject_info"]["birthday"] != bday
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Invalid measurement date encountered in the header."
+)
+@testing.requires_testing_data
+def test_bdf_read_from_bad_file_like():
+    """Test that RawEDF is NOT able to read from file-like objects for non BDF files."""
+    with pytest.raises(Exception, match="Bad BDF file provided."):
+        with open(edf_txt_stim_channel_path, "rb") as blob:
+            read_raw_bdf(BytesIO(blob.read()), preload=True)
+
+
+@testing.requires_testing_data
+def test_bdf_read_from_file_like():
+    """Test that RawEDF is able to read from file-like objects for BDF files."""
+    with open(bdf_path, "rb") as blob:
+        raw = read_raw_bdf(BytesIO(blob.read()), preload=True)
+        assert len(raw.ch_names) == 73
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Invalid measurement date encountered in the header."
+)
+@testing.requires_testing_data
+def test_edf_read_from_bad_file_like():
+    """Test that RawEDF is NOT able to read from file-like objects for non EDF files."""
+    with pytest.raises(Exception, match="Bad EDF file provided."):
+        with open(edf_txt_stim_channel_path, "rb") as blob:
+            read_raw_edf(BytesIO(blob.read()), preload=True)
+
+
+@testing.requires_testing_data
+def test_edf_read_from_file_like():
+    """Test that RawEDF is able to read from file-like objects for EDF files."""
+    with open(edf_path, "rb") as blob:
+        raw = read_raw_edf(BytesIO(blob.read()), preload=True)
+        channels = [
+            *[f"{prefix}{num}" for prefix in "ABCDEFGH" for num in range(1, 17)],
+            *[f"I{num}" for num in range(1, 9)],
+            "Ergo-Left",
+            "Ergo-Right",
+            "Status",
+        ]
+
+        assert raw.ch_names == channels

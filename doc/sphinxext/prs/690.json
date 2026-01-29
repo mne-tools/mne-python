@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5ef1710b5074aef193983e21d31224ac07e45f11",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/decoding/csp.py": {
+      "a": 12,
+      "d": 14
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 19,
+      "d": 20
+    }
+  }
+}

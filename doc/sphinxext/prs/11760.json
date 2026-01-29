@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1763fa6af209b2eef34e2b41fe95f7e4f6d5dac1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 32,
+      "d": 8
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 61,
+      "d": 1
+    }
+  }
+}

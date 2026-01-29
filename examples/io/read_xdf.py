@@ -7,8 +7,7 @@ Reading XDF EEG data
 
 Here we read some sample XDF data. Although we do not analyze it here, this
 recording is of a short parallel auditory response (pABR) experiment
-:footcite:`PolonenkoMaddox2019` and was provided by the `Maddox Lab
-<https://www.urmc.rochester.edu/labs/maddox.aspx>`__.
+:footcite:`PolonenkoMaddox2019` and was provided by the `Maddox Lab <Ross Maddox_>`_.
 """
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>

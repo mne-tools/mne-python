@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5364ec5b842ab879a8fc71cf120bcd599a86260c",
+  "authors": [
+    {
+      "n": "Desislava Petkova",
+      "e": "desislavka@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "00a23a3cc62f14a563dc45aac38dc839a7277bf1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 11
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 325
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/epochs.py": {
+      "a": 39,
+      "d": 98
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 459
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 10,
+      "d": 31
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 3,
+      "d": 20
+    },
+    "mne/realtime/epochs.py": {
+      "a": 4,
+      "d": 11
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 12,
+      "d": 51
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 10,
+      "d": 16
+    },
+    "mne/viz/_3d.py": {
+      "a": 7,
+      "d": 151
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 0,
+      "d": 14
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

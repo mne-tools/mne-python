@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "b86ba4a6f4d6378a6499adfd918f20385a73becc",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/data/mne_analyze.sel": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/selection.py": {
+      "a": 68,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 189,
+      "d": 46
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 225,
+      "d": 35
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 33,
+      "d": 15
+    }
+  }
+}

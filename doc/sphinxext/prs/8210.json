@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "06f232cd75c203765b7165a8d94df1a52d5c7cea",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 25,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 31,
+      "d": 9
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 19,
+      "d": 30
+    },
+    "mne/io/edf/edf.py": {
+      "a": 56,
+      "d": 69
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/io/eximia/tests/test_eximia.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 143,
+      "d": 3
+    },
+    "mne/io/utils.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

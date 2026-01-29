@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9c6a99e3c3ec693e3fb21014aea42c03f589bc5e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

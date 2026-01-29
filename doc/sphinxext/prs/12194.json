@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9cbdc7b3eb0ff1e96e79c5cabd3fc7d8a8c27a92",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/html_templates/repr/ica.html.jinja": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

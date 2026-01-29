@@ -1,8 +1,7 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from pathlib import Path
 
@@ -39,14 +38,13 @@ from mne.event import (
     shift_time_events,
 )
 from mne.io import RawArray, read_raw_fif
+from mne.utils import catch_logging
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-eve.fif"
 fname_raw = base_dir / "test_raw.fif"
 fname_gz = base_dir / "test-eve.fif.gz"
 fname_1 = base_dir / "test-1-eve.fif"
-fname_txt = base_dir / "test-eve.eve"
-fname_txt_1 = base_dir / "test-eve-1.eve"
 fname_c_annot = base_dir / "test_raw-annot.fif"
 
 # for testing Elekta averager
@@ -222,7 +220,7 @@ def test_find_events():
     raw = read_raw_fif(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
     extra_ends = ["", "_1"]
-    orig_envs = [os.getenv("MNE_STIM_CHANNEL%s" % s) for s in extra_ends]
+    orig_envs = [os.getenv(f"MNE_STIM_CHANNEL{s}") for s in extra_ends]
     os.environ["MNE_STIM_CHANNEL"] = "STI 014"
     if "MNE_STIM_CHANNEL_1" in os.environ:
         del os.environ["MNE_STIM_CHANNEL_1"]
@@ -373,7 +371,7 @@ def test_find_events():
     # put back the env vars we trampled on
     for s, o in zip(extra_ends, orig_envs):
         if o is not None:
-            os.environ["MNE_STIM_CHANNEL%s" % s] = o
+            os.environ[f"MNE_STIM_CHANNEL{s}"] = o
 
     # Test with list of stim channels
     raw._data[stim_channel_idx, 1:101] = np.zeros(100)
@@ -396,7 +394,10 @@ def test_find_events():
     raw = RawArray(data, info, first_samp=7)
     data[0, :10] = 100
     data[0, 30:40] = 200
-    assert_array_equal(find_events(raw, "MYSTI"), [[37, 0, 200]])
+    with catch_logging(True) as log:
+        assert_array_equal(find_events(raw, "MYSTI"), [[37, 0, 200]])
+    log = log.getvalue()
+    assert "value of 100 (consider" in log
     assert_array_equal(
         find_events(raw, "MYSTI", initial_event=True), [[7, 0, 100], [37, 0, 200]]
     )

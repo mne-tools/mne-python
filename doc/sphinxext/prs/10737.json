@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5ff33fa5ae8c1b0004ef894d5fe009140203ed48",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 163,
+      "d": 73
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 21,
+      "d": 25
+    },
+    "mne/utils/docs.py": {
+      "a": 10,
+      "d": 5
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 5,
+      "d": 10
+    }
+  }
+}

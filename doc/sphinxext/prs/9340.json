@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6ac763359a7fb2e9ee9aa610d02c475aedb44a7d",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

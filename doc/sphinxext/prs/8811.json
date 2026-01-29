@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5a6688b94f97d365a0abf256d86109d6a092cc6a",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

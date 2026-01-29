@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "d839a6ce32da840d7ed4f4cec5340e479f8bde55",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/bti/bti.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/constants.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/io/tag.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/io/tests/test_compensator.py": {
+      "a": 11,
+      "d": 14
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/viz/misc.py": {
+      "a": 3,
+      "d": 16
+    },
+    "tutorials/source-modeling/plot_background_freesurfer.py": {
+      "a": 49,
+      "d": 34
+    },
+    "tutorials/source-modeling/plot_background_freesurfer_mne.py": {
+      "a": 431,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 11,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_object_source_estimate.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

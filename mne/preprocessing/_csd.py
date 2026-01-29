@@ -1,6 +1,4 @@
-# Authors: Denis A. Engeman <denis.engemann@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -127,16 +125,16 @@ def compute_current_source_density(
 
     _validate_type(lambda2, "numeric", "lambda2")
     if not 0 <= lambda2 < 1:
-        raise ValueError("lambda2 must be between 0 and 1, got %s" % lambda2)
+        raise ValueError(f"lambda2 must be between 0 and 1, got {lambda2}")
 
     _validate_type(stiffness, "numeric", "stiffness")
     if stiffness < 0:
-        raise ValueError("stiffness must be non-negative got %s" % stiffness)
+        raise ValueError(f"stiffness must be non-negative got {stiffness}")
 
     n_legendre_terms = _ensure_int(n_legendre_terms, "n_legendre_terms")
     if n_legendre_terms < 1:
         raise ValueError(
-            "n_legendre_terms must be greater than 0, " "got %s" % n_legendre_terms
+            f"n_legendre_terms must be greater than 0, got {n_legendre_terms}"
         )
 
     if isinstance(sphere, str) and sphere == "auto":
@@ -148,14 +146,14 @@ def compute_current_source_density(
         x, y, z, radius = sphere
     except Exception:
         raise ValueError(
-            f'sphere must be "auto" or array-like with shape (4,), ' f"got {sphere}"
+            f'sphere must be "auto" or array-like with shape (4,), got {sphere}'
         )
     _validate_type(x, "numeric", "x")
     _validate_type(y, "numeric", "y")
     _validate_type(z, "numeric", "z")
     _validate_type(radius, "numeric", "radius")
     if radius <= 0:
-        raise ValueError("sphere radius must be greater than 0, " "got %s" % radius)
+        raise ValueError("sphere radius must be greater than 0, got {radius}")
 
     pos = np.array([inst.info["chs"][pick]["loc"][:3] for pick in picks])
     if not np.isfinite(pos).all() or np.isclose(pos, 0.0).all(1).any():
@@ -219,7 +217,7 @@ def compute_bridged_electrodes(
 
     Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`
     and the `EEGLAB implementation
-    <https://psychophysiology.cpmc.columbia.edu/software/eBridge/index.html>`_.
+    <https://psychophysiology.cpmc.columbia.edu/>`__.
 
     Parameters
     ----------
@@ -267,9 +265,7 @@ def compute_bridged_electrodes(
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)
     if len(picks) == 0:
-        raise RuntimeError(
-            "No EEG channels found, cannot compute " "electrode bridging"
-        )
+        raise RuntimeError("No EEG channels found, cannot compute electrode bridging")
     # first, filter
     inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks, verbose=False)
 
@@ -302,7 +298,7 @@ def compute_bridged_electrodes(
         return bridged_idx, ed_matrix
 
     # kernel density estimation
-    kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
+    kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff], bw_method=bw_method)
     with np.errstate(invalid="ignore"):
         local_minimum = float(
             minimize_scalar(

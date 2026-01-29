@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d4564c25bd156f85a63904414f76bccae55db67e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 39,
+      "d": 20
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 14,
+      "d": 10
+    }
+  }
+}

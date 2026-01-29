@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "390a9483e98678e60f0ff8fc63b0f620e2b3c856",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 209,
+      "d": 72
+    },
+    "mne/tests/test_label.py": {
+      "a": 71,
+      "d": 56
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 8,
+      "d": 11
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "749715585be234efa7b6ce9ec16136e57ec2d7ed",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

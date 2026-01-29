@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ecc33755375a49df8c5c27fb6263230b4d0b0193",
+  "authors": [
+    {
+      "n": "Theodore Papadopoulo",
+      "e": "Theodore.Papadopoulo@inria.fr"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13268.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/tag.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

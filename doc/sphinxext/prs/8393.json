@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "641e9d161987de1e5ff270b1c9828f9990f2ba2b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 20,
+      "d": 13
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 20,
+      "d": 51
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

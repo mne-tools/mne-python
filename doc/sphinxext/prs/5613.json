@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9df12aa57dce2a75ba619c90abc6a6547dde9997",
+  "authors": [
+    {
+      "n": "Tom Dupré la Tour",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/csp.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

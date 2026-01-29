@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9de684d70e489d8a66f2e33c2c5af0170b766fda",
+  "authors": [
+    {
+      "n": "Fahimeh Mamashli",
+      "e": "fahimeh.mamashli@pfizer.com"
+    }
+  ],
+  "changes": {
+    "mne/transforms.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

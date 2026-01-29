@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8dc2d3e627fbf19e9dce7240928519d9c4d8485e",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

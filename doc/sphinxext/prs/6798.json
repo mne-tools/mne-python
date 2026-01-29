@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "42380c2d633c50b03c6c51d84a5db822a2fb9261",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_limo_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/channels/montage.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/datasets/limo/limo.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "372bdcecce8272ada0094583a06d66b1d6d2e565",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

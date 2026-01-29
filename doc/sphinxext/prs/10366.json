@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e2150ede1cfbdb44ad64268623a3d55ed87a1702",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 21,
+      "d": 22
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

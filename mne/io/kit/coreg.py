@@ -1,11 +1,9 @@
 """Coordinate Point Extractor for KIT system."""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import pickle
 import re
 from collections import OrderedDict
 from os import SEEK_CUR, PathLike
@@ -50,8 +48,7 @@ def read_mrk(fname):
     from .kit import _read_dirs
 
     fname = Path(_check_fname(fname, "read", must_exist=True, name="mrk file"))
-    if fname.suffix != ".pickled":
-        _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
+    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
     if fname.suffix in (".sqd", ".mrk"):
         with open(fname, "rb", buffering=0) as fid:
             dirs = _read_dirs(fid)
@@ -67,21 +64,9 @@ def read_mrk(fname):
                 if meg_done:
                     pts.append(meg_pts)
             mrk_points = np.array(pts)
-    elif fname.suffix == ".txt":
+    else:
+        assert fname.suffix == ".txt"
         mrk_points = _read_dig_kit(fname, unit="m")
-    elif fname.suffix == ".pickled":
-        warn(
-            "Reading pickled files is unsafe and not future compatible, save "
-            "to a standard format (text or FIF) instea, e.g. with:\n"
-            r"np.savetxt(fid, pts, delimiter=\"\\t\", newline=\"\\n\")",
-            FutureWarning,
-        )
-        with open(fname, "rb") as fid:
-            food = pickle.load(fid)  # nosec B301
-        try:
-            mrk_points = food["mrk"]
-        except Exception:
-            raise ValueError(f"{fname} does not contain marker points.") from None
 
     # check output
     mrk_points = np.asarray(mrk_points)
@@ -150,7 +135,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     """
     from ...coreg import _decimate_points, fit_matched_points
 
-    if isinstance(hsp, (str, Path, PathLike)):
+    if isinstance(hsp, str | Path | PathLike):
         hsp = _read_dig_kit(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
@@ -162,7 +147,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
             f"{n_new} points. The preferred way to downsample is using FastScan."
         )
 
-    if isinstance(elp, (str, Path, PathLike)):
+    if isinstance(elp, str | Path | PathLike):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError(
@@ -176,7 +161,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     # passed in directly)
     if len(elp) not in (6, 7, 8):
         raise ValueError(f"ELP should contain 6 ~ 8 points; got shape {elp.shape}.")
-    if isinstance(mrk, (str, Path, PathLike)):
+    if isinstance(mrk, str | Path | PathLike):
         mrk = read_mrk(mrk)
         if len(bad_coils) > 0:
             mrk = np.delete(mrk, bad_coils, 0)

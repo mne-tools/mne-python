@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e94f255675c9287e8f69ca08db20a1eb6ada8a69",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 46,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 9,
+      "d": 19
+    }
+  }
+}

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os.path as op
 
 import numpy as np
@@ -17,7 +19,7 @@ def _load_mne_locs(fname=None):
         fname = op.join(resource_dir, "Artemis123_mneLoc.csv")
 
     if not op.exists(fname):
-        raise OSError('MNE locs file "%s" does not exist' % (fname))
+        raise OSError(f'MNE locs file "{fname}" does not exist')
 
     logger.info(f"Loading mne loc file {fname}")
     locs = dict()
@@ -42,7 +44,7 @@ def _generate_mne_locs_file(output_fname):
     # write it out to output_fname
     with open(output_fname, "w") as fid:
         for n in sorted(locs.keys()):
-            fid.write("%s," % n)
+            fid.write(f"{n},")
             fid.write(",".join(locs[n].astype(str)))
             fid.write("\n")
 

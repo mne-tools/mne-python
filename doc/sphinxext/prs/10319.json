@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "a5f8d0bf0cb68f91696d442bdb81f3b2d152e8e2",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 29,
+      "d": 18
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 12,
+      "d": 5
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

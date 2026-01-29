@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c4f5f0a0ea8d3f333c401449b96f77a9930e92d3",
+  "authors": [
+    {
+      "n": "LaurentLM",
+      "e": "laurent.lementec@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13284.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

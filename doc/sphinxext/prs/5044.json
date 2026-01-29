@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "374d4b53e17a3aa54efb6628e443448f0c0ca9f5",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f675c61e93c5a4536ef3ab60318baa120c506beb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 29,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a62497855cfd2703e5043ff8def72f4a9d7b97f3",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

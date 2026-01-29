@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0dd33332144db31a087ccd535fc52bef7e3ada89",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 8,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

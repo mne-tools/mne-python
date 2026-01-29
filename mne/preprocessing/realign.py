@@ -1,6 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Qian Chu <qianchu99@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -13,7 +11,7 @@ from ..utils import _validate_type, logger, verbose, warn
 
 
 @verbose
-def realign_raw(raw, other, t_raw, t_other, verbose=None):
+def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
     """Realign two simultaneous recordings.
 
     Due to clock drift, recordings at a given same sample rate made by two
@@ -72,7 +70,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     converted = poly.convert(domain=(-1, 1))
     [zero_ord, first_ord] = converted.coef
     logger.info(
-        f"Zero order coefficient: {zero_ord} \n" f"First order coefficient: {first_ord}"
+        f"Zero order coefficient: {zero_ord} \nFirst order coefficient: {first_ord}"
     )
     r, p = pearsonr(t_other, t_raw)
     msg = f"Linear correlation computed as R={r:0.3f} and p={p:0.2e}"
@@ -113,7 +111,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         )
     logger.info("Resampling other")
     sfreq_new = raw.info["sfreq"] * first_ord
-    other.load_data().resample(sfreq_new, verbose=True)
+    other.load_data().resample(sfreq_new)
     with other.info._unlock():
         other.info["sfreq"] = raw.info["sfreq"]
 

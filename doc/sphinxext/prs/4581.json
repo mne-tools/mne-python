@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9ef2b0dde60701f1597619edb5ac955f84320224",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

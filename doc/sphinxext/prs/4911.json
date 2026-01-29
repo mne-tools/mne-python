@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0e4cf70b742f36ada54550500b9e7d0133ec3d9b",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/ctf/eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

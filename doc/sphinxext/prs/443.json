@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "32d2ec90d60b132d6e893bfe954937f975297ecd",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/fiff/evoked.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

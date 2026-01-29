@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "37ae7e37354fddc5eced35aa96973e3f944c9780",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamzaabdelhedi18@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 15,
+      "d": 11
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 38,
+      "d": 8
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

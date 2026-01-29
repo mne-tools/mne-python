@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "65fe6d6a0d30a49c30b2a5f583dfc7a4395fa354",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/parallel.py": {
+      "a": 17,
+      "d": 1
+    }
+  }
+}

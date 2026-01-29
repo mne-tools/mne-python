@@ -21,8 +21,10 @@ We will cover some of these considerations here by processing the
 :footcite:`SeymourEtAl2022`
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.pyplot as plt
@@ -241,8 +243,7 @@ epochs = mne.Epochs(
 )
 evoked = epochs.average()
 t_peak = evoked.times[np.argmax(np.std(evoked.copy().pick("meg").data, axis=0))]
-fig = evoked.plot()
-fig.axes[0].axvline(t_peak, color="red", ls="--", lw=1)
+fig = evoked.plot_joint(picks="mag")
 
 # %%
 # Visualizing coregistration

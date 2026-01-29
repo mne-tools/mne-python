@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "48b5b4072a4999bf45c8bbf8f7446eae499c1058",
+  "authors": [
+    {
+      "n": "Basile",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

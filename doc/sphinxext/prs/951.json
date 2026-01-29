@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b3f227ca3b0f39d973db85e56bf0eb0b95dcfe2b",
+  "authors": [
+    {
+      "n": "Praveen Sripad",
+      "e": "pravsripad@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/commands/utils.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

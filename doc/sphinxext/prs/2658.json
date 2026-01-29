@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8360a8e3348eccdaea8da4663470c1eecd924369",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 9,
+      "d": 3
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

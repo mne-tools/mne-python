@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "8f66cbcb28c7f41bf972b22c067d03782b14d107",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel/12583.newfeature.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/html_templates/_templates.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/html_templates/repr/_channels.html.jinja": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

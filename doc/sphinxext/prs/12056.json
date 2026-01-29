@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7c1429403e4beaa0dadb369512e2d5b1b1ed79fc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/js/set_installer_tab.js": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/_static/js/update_installer_version.js": {
+      "a": 61,
+      "d": 0
+    },
+    "doc/install/installers.rst": {
+      "a": 4,
+      "d": 29
+    }
+  }
+}

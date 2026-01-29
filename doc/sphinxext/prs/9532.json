@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "032d6112d1a141ae00c6807713106a880d46e8ad",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 131,
+      "d": 141
+    }
+  }
+}

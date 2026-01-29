@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "5492174fc0e64762056b5b99a330129ca6eefca4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12875.bugfix.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 178,
+      "d": 114
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

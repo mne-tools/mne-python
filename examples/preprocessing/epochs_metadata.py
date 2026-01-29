@@ -35,8 +35,8 @@ raw.crop(tmax=60).filter(l_freq=0.1, h_freq=40)
 #
 # All experimental events are stored in the :class:`~mne.io.Raw` instance as
 # :class:`~mne.Annotations`. We first need to convert these to events and the
-# corresponding mapping from event codes to event names (``event_id``). We then
-# visualize the events.
+# corresponding mapping from event codes to event names (``event_id``).
+# We then visualize the events.
 all_events, all_event_id = mne.events_from_annotations(raw)
 mne.viz.plot_events(events=all_events, event_id=all_event_id, sfreq=raw.info["sfreq"])
 

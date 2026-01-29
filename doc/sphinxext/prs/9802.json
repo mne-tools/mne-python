@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "32f4ee82bf6178c287539f72323ab470ef711cb4",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/_fetch.py": {
+      "a": 26,
+      "d": 35
+    },
+    "mne/datasets/config.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

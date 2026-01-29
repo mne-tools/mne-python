@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "7a91c470be872698dd21b5c76ab26c1bc3f4f10c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/receptive_field_mtrf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 20
+    },
+    "mne/transforms.py": {
+      "a": 7,
+      "d": 11
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/machine-learning/30_strf.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

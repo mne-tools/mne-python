@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "558802eff2315bf60948c8087c9e983c577435fb",
+  "authors": [
+    {
+      "n": "Henrich Kolkhorst",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 27,
+      "d": 2
+    },
+    "examples/preprocessing/plot_xdawn_denoising.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 97,
+      "d": 3
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

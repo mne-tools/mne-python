@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "654248a3ea9d5b106eaba51b9a74b93a531b3746",
+  "authors": [
+    {
+      "n": "Lukas Hecker",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/mne_tools_suite.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

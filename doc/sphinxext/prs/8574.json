@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "f9e62e04cbb4e0f2f5019919be58a470c8e9289e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 21,
+      "d": 17
+    },
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/io/ctf_comp.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/io/meas_info.py": {
+      "a": 140,
+      "d": 47
+    },
+    "mne/io/proj.py": {
+      "a": 8,
+      "d": 20
+    },
+    "mne/io/tag.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 157,
+      "d": 3
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

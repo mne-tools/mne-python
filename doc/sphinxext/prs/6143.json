@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "aa7b3a0ba1038e6ad7fb357e60844696e234c40b",
+  "authors": [
+    {
+      "n": "Nichalas",
+      "e": "nikos.ch01@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/event.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/tests/test_event.py": {
+      "a": 19,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "81051e6eb9ec1a58c1b1f1c956dddfedfcf6b47f",
+  "authors": [
+    {
+      "n": "Tristan Stenner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/nedf/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 217,
+      "d": 0
+    },
+    "mne/io/nedf/tests/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/nedf/tests/test_nedf.py": {
+      "a": 131,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

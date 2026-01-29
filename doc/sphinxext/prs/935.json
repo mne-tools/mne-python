@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d22d8640d4864cf0ec6c778c5c8a6edb255f8fc7",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4684fc1dabe0218102e931c58a2d6dfdf22fffda",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/stft.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

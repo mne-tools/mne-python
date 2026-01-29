@@ -26,7 +26,7 @@
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
 .. _`MNE-NIRS`: https://github.com/mne-tools/mne-nirs
-.. _PICARD: https://pierreablin.github.io/picard/
+.. _PICARD: https://mind-inria.github.io/picard/
 .. _OpenMEEG: https://openmeeg.github.io
 .. _openneuro-py: https://pypi.org/project/openneuro-py
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
@@ -71,6 +71,7 @@
 
 .. _python: http://www.python.org
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
+.. _SPEC0: https://scientific-python.org/specs/spec-0000
 
 .. python packages
 
@@ -109,10 +110,10 @@
 .. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
-.. _mambaforge: https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
+.. _conda-forge: https://conda-forge.org
 
 .. installation links
 

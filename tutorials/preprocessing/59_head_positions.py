@@ -77,7 +77,7 @@ head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
 
 # sphinx_gallery_thumbnail_number = 2
 
-mne.viz.plot_head_positions(head_pos, mode="traces")
+mne.viz.plot_head_positions(head_pos, mode="traces", totals=True)
 
 # %%
 # Or we can visualize them as a continuous field (with the vectors pointing

@@ -1,5 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from cycler import cycler
+from matplotlib import rc_context
 from numpy.testing import assert_allclose
 
 from mne import read_evokeds
@@ -17,6 +18,7 @@ from mne.io import read_raw_fif
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.viz.ui_events import ColormapRange, link, subscribe
 from mne.viz.utils import (
+    SelectFromCollection,
     _compute_scalings,
     _fake_click,
     _fake_keypress,
@@ -46,10 +48,14 @@ def test_setup_vmin_vmax_warns():
 
 def test_get_color_list():
     """Test getting a colormap from rcParams."""
-    colors = _get_color_list()
-    assert isinstance(colors, list)
-    colors_no_red = _get_color_list(annotations=True)
-    assert "#ff0000" not in colors_no_red
+    with rc_context({"axes.prop_cycle": cycler(color=["#ff0000", "#00ff00"])}):
+        colors = _get_color_list()
+        assert isinstance(colors, list)
+        assert len(colors) == 2
+        assert "#ff0000" in colors
+        colors_no_red = _get_color_list(remove=("#ff0000",))
+        assert "#ff0000" not in colors_no_red
+        assert len(colors_no_red) == 1
 
 
 def test_mne_analyze_colormap():
@@ -101,7 +107,6 @@ def test_add_background_image():
         # Background without changing aspect
         if ii == 0:
             ax_im = add_background_image(f, im)
-            return
             assert ax_im.get_aspect() == "auto"
             for ax in axs:
                 assert ax.get_aspect() == 1
@@ -124,6 +129,10 @@ def test_auto_scale():
     raw = read_raw_fif(raw_fname)
     epochs = Epochs(raw, read_events(ev_fname))
     rand_data = np.random.randn(10, 100)
+    # make a stim channel all zeros (gh 13376)
+    ix = raw.get_channel_types().index("stim")
+    raw.load_data()
+    raw._data[ix] = 0.0
 
     for inst in [raw, epochs]:
         scale_grad = 1e10
@@ -137,6 +146,8 @@ def test_auto_scale():
         scalings_new = _compute_scalings(scalings_def, inst)
         assert scale_grad == scalings_new["grad"]
         assert scalings_new["eeg"] != "auto"
+        # make sure an all-zero channel doesn't cause scaling=0 (gh 13376)
+        assert scalings_new["stim"] > 0
 
     with pytest.raises(ValueError, match="Must supply either Raw or Epochs"):
         _compute_scalings(scalings_def, rand_data)
@@ -276,3 +287,71 @@ def test_draggable_colorbar():
     cmap_new1 = fig.axes[0].CB.mappable.get_cmap().name
     cmap_new2 = fig2.axes[0].CB.mappable.get_cmap().name
     assert cmap_new1 == cmap_new2 == cmap_want != cmap_old
+
+
+def test_select_from_collection():
+    """Test the lasso selector for matplotlib figures."""
+    fig, ax = plt.subplots()
+    collection = ax.scatter([1, 2, 2, 1], [1, 1, 0, 0], color="black", edgecolor="red")
+    ax.set_xlim(-1, 4)
+    ax.set_ylim(-1, 2)
+    lasso = SelectFromCollection(ax, collection, names=["A", "B", "C", "D"])
+    assert lasso.selection == []
+
+    # Make a selection with no patches inside of it.
+    _fake_click(fig, ax, (0, 0), xform="data")
+    _fake_click(fig, ax, (0.5, 0), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1), xform="data", kind="release")
+    assert lasso.selection == []
+
+    # Doing a single click on a patch should not select it.
+    _fake_click(fig, ax, (1, 1), xform="data")
+    assert lasso.selection == []
+
+    # Make a selection with two patches in it.
+    _fake_click(fig, ax, (0, 0.5), xform="data")
+    _fake_click(fig, ax, (3, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (3, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0, 0.5), xform="data", kind="release")
+    assert lasso.selection == ["A", "B"]
+
+    # Use Control key to lasso an additional patch.
+    _fake_keypress(fig, "control")
+    _fake_click(fig, ax, (0.5, -0.5), xform="data")
+    _fake_click(fig, ax, (1.5, -0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (1.5, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 0.5), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
+    assert lasso.selection == ["A", "B", "D"]
+
+    # Use CTRL+SHIFT to remove a patch.
+    _fake_keypress(fig, "ctrl+shift")
+    _fake_click(fig, ax, (0.5, 0.5), xform="data")
+    _fake_click(fig, ax, (1.5, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (1.5, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1.5), xform="data", kind="release")
+    _fake_keypress(fig, "ctrl+shift", kind="release")
+    assert lasso.selection == ["B", "D"]
+
+    # Check that the two selected patches have a different appearance.
+    fc = lasso.collection.get_facecolors()
+    ec = lasso.collection.get_edgecolors()
+    assert (fc[:, -1] == [0.5, 1.0, 0.5, 1.0]).all()
+    assert (ec[:, -1] == [0.25, 1.0, 0.25, 1.0]).all()
+
+    # Test adding and removing single channels.
+    lasso.select_one(2)  # should not do anything without modifier keys
+    assert lasso.selection == ["B", "D"]
+    _fake_keypress(fig, "control")
+    lasso.select_one(2)  # add to selection
+    _fake_keypress(fig, "control", kind="release")
+    assert lasso.selection == ["B", "C", "D"]
+    _fake_keypress(fig, "ctrl+shift")
+    lasso.select_one(1)  #  remove from selection
+    assert lasso.selection == ["C", "D"]
+    _fake_keypress(fig, "ctrl+shift", kind="release")

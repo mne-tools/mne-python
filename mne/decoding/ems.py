@@ -1,22 +1,20 @@
-# Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 from collections import Counter
 
 import numpy as np
+from sklearn.base import BaseEstimator
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
 from ..utils import logger, verbose
 from .base import _set_cv
-from .mixin import EstimatorMixin, TransformerMixin
+from .transformer import MNETransformerMixin
 
 
-class EMS(TransformerMixin, EstimatorMixin):
+class EMS(MNETransformerMixin, BaseEstimator):
     """Transformer to compute event-matched spatial filters.
 
     This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
@@ -40,11 +38,21 @@ class EMS(TransformerMixin, EstimatorMixin):
     .. footbibliography::
     """
 
+    def __sklearn_tags__(self):
+        """Return sklearn tags."""
+        from sklearn.utils import ClassifierTags
+
+        tags = super().__sklearn_tags__()
+        if tags.classifier_tags is None:
+            tags.classifier_tags = ClassifierTags()
+        tags.classifier_tags.multi_class = False
+        return tags
+
     def __repr__(self):  # noqa: D105
         if hasattr(self, "filters_"):
-            return "<EMS: fitted with %i filters on %i classes.>" % (
-                len(self.filters_),
-                len(self.classes_),
+            return (
+                f"<EMS: fitted with {len(self.filters_)} filters "
+                f"on {len(self.classes_)} classes.>"
             )
         else:
             return "<EMS: not fitted.>"
@@ -67,11 +75,12 @@ class EMS(TransformerMixin, EstimatorMixin):
         self : instance of EMS
             Returns self.
         """
-        classes = np.unique(y)
-        if len(classes) != 2:
+        X, y = self._check_data(X, y=y, fit=True, return_y=True)
+        classes, y = np.unique(y, return_inverse=True)
+        if len(classes) > 2:
             raise ValueError("EMS only works for binary classification.")
         self.classes_ = classes
-        filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
+        filters = X[y == 0].mean(0) - X[y == 1].mean(0)
         filters /= np.linalg.norm(filters, axis=0)[None, :]
         self.filters_ = filters
         return self
@@ -89,13 +98,14 @@ class EMS(TransformerMixin, EstimatorMixin):
         X : array, shape (n_epochs, n_times)
             The input data transformed by the spatial filters.
         """
+        X = self._check_data(X)
         Xt = np.sum(X * self.filters_, axis=1)
         return Xt
 
 
 @verbose
 def compute_ems(
-    epochs, conditions=None, picks=None, n_jobs=None, cv=None, verbose=None
+    epochs, conditions=None, picks=None, n_jobs=None, cv=None, *, verbose=None
 ):
     """Compute event-matched spatial filter on epochs.
 
@@ -168,7 +178,7 @@ def compute_ems(
     if len(conditions) != 2:
         raise ValueError(
             "Currently this function expects exactly 2 "
-            "conditions but you gave me %i" % len(conditions)
+            f"conditions but you gave me {len(conditions)}"
         )
 
     ev = epochs.events[:, 2]
@@ -191,7 +201,7 @@ def compute_ems(
             data[:, this_picks] /= np.std(data[:, this_picks])
 
     # Setup cross-validation. Need to use _set_cv to deal with sklearn
-    # deprecation of cv objects.
+    # changes in cv object handling.
     y = epochs.events[:, 2]
     _, cv_splits = _set_cv(cv, "classifier", X=y, y=y)
 

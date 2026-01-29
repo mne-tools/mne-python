@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4fa583a1796c8d4838d7e31b656e8d14068abfdd",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/brainvision/brainvision.py": {
+      "a": 41,
+      "d": 20
+    },
+    "mne/fiff/brainvision/tests/test_brainvision.py": {
+      "a": 17,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0fff718f956ad86fb8b9154f87e6414c64c758c4",
+  "authors": [
+    {
+      "n": "Pablo-Arias",
+      "e": "pablo12co@hotmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 34,
+      "d": 16
+    },
+    "mne/io/brainvision/tests/data/test.vhdr": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 25,
+      "d": 25
+    }
+  }
+}

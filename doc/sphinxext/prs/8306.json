@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b2d759a8231003b0555283617f6d319e0657089e",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

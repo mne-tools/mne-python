@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "415ae684e35a8facbe9e8c5c049b2461de119fe1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 48,
+      "d": 6
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "codemeta.json": {
+      "a": 1413,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 2
+    },
+    "setup.py": {
+      "a": 10,
+      "d": 1
+    },
+    "tools/generate_codemeta.py": {
+      "a": 137,
+      "d": 0
+    }
+  }
+}

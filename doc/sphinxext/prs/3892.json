@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "e0faad3d65e3f4ad1c2eced112c4070b08cb1963",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/advanced_setup.rst": {
+      "a": 120,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/configure_git.rst": {
+      "a": 609,
+      "d": 0
+    },
+    "doc/contributing.rst": {
+      "a": 77,
+      "d": 859
+    },
+    "doc/customizing_git.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/faq.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/getting_started.rst": {
+      "a": 10,
+      "d": 10
+    },
+    "doc/git_links.inc": {
+      "a": 5,
+      "d": 2
+    },
+    "doc/install_mne_c.rst": {
+      "a": 17,
+      "d": 37
+    },
+    "doc/install_mne_python.rst": {
+      "a": 43,
+      "d": 196
+    },
+    "doc/known_projects.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

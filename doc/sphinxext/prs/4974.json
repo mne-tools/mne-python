@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "da6d93195cdd3ce7e9a4859c0ff7cc2d259c85e8",
+  "authors": [
+    {
+      "n": "Erik Hornberger",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 3,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8121b2d60a751b506585cc91d648f7b0052c124e",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_sensors.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 14,
+      "d": 13
+    },
+    "mne/viz/topomap.py": {
+      "a": 55,
+      "d": 56
+    },
+    "mne/viz/utils.py": {
+      "a": 11,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "1241392f40554b7523a28ccc36cd9d991a72c65c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/visualization/plot_warp_surfaces.py": {
+      "a": 0,
+      "d": 83
+    },
+    "mne/source_space.py": {
+      "a": 74,
+      "d": 62
+    },
+    "mne/surface.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 30,
+      "d": 40
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/transforms.py": {
+      "a": 37,
+      "d": 18
+    }
+  }
+}

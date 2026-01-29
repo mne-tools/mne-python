@@ -17,8 +17,10 @@ the events from an external events file. Finally, to speed up computations
 we'll crop the raw data from ~4.5 minutes down to 90 seconds.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.pyplot as plt
@@ -284,8 +286,8 @@ for evk in (l_aud, l_vis):
     evk.plot(gfp=True, spatial_colors=True, ylim=dict(eeg=[-12, 12]))
 
 # %%
-# To plot the GFP by itself, you can pass ``gfp='only'`` (this makes it easier
-# to read off the GFP data values, because the scale is aligned):
+# To plot the GFP by itself, you can pass ``gfp='only'`` (this makes it easier to
+# read off the GFP data values, because the scale is aligned):
 
 l_aud.plot(gfp="only")
 

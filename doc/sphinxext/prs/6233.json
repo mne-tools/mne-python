@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "a750523f8364c935263a6c6d154cc1248cf515ee",
+  "authors": [
+    {
+      "n": "Maksymenko Kostiantyn",
+      "e": "makkostya@ukr.net"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Joan Massich",
+      "e": "sik@visor.udg.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 59,
+      "d": 0
+    },
+    "doc/simulation.rst": {
+      "a": 20,
+      "d": 0
+    },
+    "examples/simulation/plot_stc_metrics.py": {
+      "a": 260,
+      "d": 0
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/simulation/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/simulation/_metrics.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/simulation/metrics/__init__.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/simulation/metrics/metrics.py": {
+      "a": 572,
+      "d": 0
+    },
+    "mne/simulation/metrics/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/simulation/metrics/tests/test_metrics.py": {
+      "a": 241,
+      "d": 0
+    },
+    "mne/simulation/tests/test_metrics.py": {
+      "a": 18,
+      "d": 12
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

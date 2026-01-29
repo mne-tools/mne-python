@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "52128c2fa5f556048f0d3c49f3e77e5ce3f3bdd2",
+  "authors": [
+    {
+      "n": "Alejandro Weinstein",
+      "e": "alejandro.weinstein@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

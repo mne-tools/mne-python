@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "42c6bf2bd822e2e81af0c8dd49b50c50fa193ba2",
+  "authors": [
+    {
+      "n": "Samuel Deslauriers-Gauthier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 90,
+      "d": 0
+    },
+    "mne/tests/test_label.py": {
+      "a": 52,
+      "d": 1
+    }
+  }
+}

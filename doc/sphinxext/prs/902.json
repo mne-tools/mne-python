@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "9423f28a8998ec659cbbb32ff2770e35ef3e3f81",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/source/_static/logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_templates/layout.html": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/cite.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "doc/source/index.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

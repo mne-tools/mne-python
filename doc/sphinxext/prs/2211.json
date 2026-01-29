@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "632bb07ab246beff57c3e56d5322225524287cd1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 709,
+      "d": 682
+    },
+    "mne/evoked.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/io/kit/kit.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/io/meas_info.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/epochs.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 205,
+      "d": 15
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

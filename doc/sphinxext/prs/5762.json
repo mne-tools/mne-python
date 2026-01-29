@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "87c0563c86677be75fc23f3e372492a5c9b3ce9d",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 346
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 64,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 38,
+      "d": 29
+    },
+    "mne/utils.py": {
+      "a": 354,
+      "d": 0
+    }
+  }
+}

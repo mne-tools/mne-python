@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7d691d2f3462234bb3f8fe75a75e449750708bf6",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/circle.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

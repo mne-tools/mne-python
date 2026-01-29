@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "dcdbd071b117746d68972821da668d67fd225841",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 130,
+      "d": 78
+    },
+    "doc/conf.py": {
+      "a": 24,
+      "d": 8
+    },
+    "doc/install/mne_c.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/morph.py": {
+      "a": 5,
+      "d": 6
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 38,
+      "d": 9
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

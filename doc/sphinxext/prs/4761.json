@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "a7a62f2b77927b6e257a69fe3ce559d9d2e06fc9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/read.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tag.py": {
+      "a": 54,
+      "d": 54
+    },
+    "mne/io/tree.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/io/write.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/client.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

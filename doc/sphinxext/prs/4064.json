@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "68c2d32fc915c5a730cc074a1cfff7b753fccde3",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "merge_commit_sha": "d5556313874d1d68e50dcab685d80fb6f73a7913",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 0,
+      "d": 77
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 0,
+      "d": 68
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 0,
+      "d": 125
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 0,
+      "d": 76
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 0,
+      "d": 76
+    },
+    ".github/workflows/precommit.yml": {
+      "a": 0,
+      "d": 14
+    },
+    ".github/workflows/tests.yml": {
+      "a": 117,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 10,
+      "d": 97
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/filter.py": {
+      "a": 43,
+      "d": 15
+    },
+    "mne/fixes.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/_digitization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 54,
+      "d": 65
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/io/ctf/info.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/ctf/res4.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ctf_comp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/general.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 36,
+      "d": 36
+    },
+    "mne/io/open.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/proc_history.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/proj.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tag.py": {
+      "a": 28,
+      "d": 20
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/tree.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/source_space.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/regression.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/_testing.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 21,
+      "d": 11
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 11,
+      "d": 15
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 30,
+      "d": 0
+    },
+    "tools/github_actions_install.sh": {
+      "a": 4,
+      "d": 3
+    },
+    "tools/github_actions_locale.sh": {
+      "a": 0,
+      "d": 5
+    },
+    "tools/github_actions_test.sh": {
+      "a": 11,
+      "d": 4
+    }
+  }
+}

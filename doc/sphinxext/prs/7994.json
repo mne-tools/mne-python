@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ca3595f0b073ed4c75470eae634d046236007838",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 29,
+      "d": 11
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

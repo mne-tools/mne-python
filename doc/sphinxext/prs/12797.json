@@ -1,0 +1,311 @@
+{
+  "merge_commit_sha": "bf5173b3cdc69d86fb7db1f2fc2edd3b57fbc2a2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/credit.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".mailmap": {
+      "a": 2,
+      "d": 1
+    },
+    "CITATION.cff": {
+      "a": 39,
+      "d": 23
+    },
+    "codemeta.json": {
+      "a": 122,
+      "d": 74
+    },
+    "doc/_static/versions.json": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/changes/devel.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/changes/devel/12300.apichange.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12300.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12338.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12554.dependency.rst": {
+      "a": 0,
+      "d": 6
+    },
+    "doc/changes/devel/12556.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12561.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12562.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12569.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12573.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12576.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12578.bugfix.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12583.apichange.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12583.newfeature.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/devel/12584.newfeature.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/devel/12593.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12597.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12600.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12605.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12609.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12612.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12616.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12620.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12628.newfeature.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/devel/12633.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12646.bugfix.rst": {
+      "a": 0,
+      "d": 10
+    },
+    "doc/changes/devel/12649.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12650.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12652.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12655.newfeature.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12659.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12661.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12664.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12669.newfeature.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12676.bugfix.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12686.newfeature.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12687.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12688.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12694.bugfix.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12697.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12699.apichange.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12703.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12707.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12719.apichange.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12720.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12720.newfeature.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12721.bugfix.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12724.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12725.newfeature.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12727.bugfix.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12727.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12730.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12733.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12734.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12735.bugfix.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12742.dependency.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12747.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12754.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12759.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12760.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12763.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12771.apichange.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/devel/12774.other.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/devel/12781.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/v1.8.rst": {
+      "a": 173,
+      "d": 0
+    },
+    "doc/development/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/sphinxext/update_credit_rst.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

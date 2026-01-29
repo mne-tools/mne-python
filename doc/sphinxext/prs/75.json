@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0e31c0df6e161aafe1481a052821aa7f83c70a1f",
+  "authors": [
+    {
+      "n": "Brad Buran",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/parallel.py": {
+      "a": 20,
+      "d": 15
+    }
+  }
+}

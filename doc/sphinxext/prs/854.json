@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ac07d28fb314c0856eb67a7f5aa15d97d6912f53",
+  "authors": [
+    {
+      "n": "Yaroslav Halchenko",
+      "e": null
+    }
+  ],
+  "changes": {
+    "debian/changelog": {
+      "a": 1,
+      "d": 1
+    },
+    "debian/compat": {
+      "a": 1,
+      "d": 1
+    },
+    "debian/control": {
+      "a": 2,
+      "d": 2
+    },
+    "debian/gbp.conf": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

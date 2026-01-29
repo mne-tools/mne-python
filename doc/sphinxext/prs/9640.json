@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "53d0f5de8a8a99e3f4211a8dc1361930e3cc3cd8",
+  "authors": [
+    {
+      "n": "PAB",
+      "e": null
+    },
+    {
+      "n": "Pierre-Antoine Bannier",
+      "e": "pierre-antoine@MacBook-Pro-de-Pierre-Antoine.local"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 22,
+      "d": 2
+    }
+  }
+}

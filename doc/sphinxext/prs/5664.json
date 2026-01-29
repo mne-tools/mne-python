@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "922d00a893cadbceae932b9c66ce952a2b890661",
+  "authors": [
+    {
+      "n": "Thomas Hartmann",
+      "e": "thomas.hartmann@th-ht.de"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 28,
+      "d": 0
+    }
+  }
+}

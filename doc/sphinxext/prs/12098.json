@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c7c8a2919734963726cd2d04fa9e01002b7f843c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 98,
+      "d": 40
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

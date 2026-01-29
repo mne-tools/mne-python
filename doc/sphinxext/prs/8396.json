@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "69340341e44decadb3b3df1a34f6b9489f54b797",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/io/nihon/nihon.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6cb00360f539c413a79690ec67377e5b920279c2",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/transformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

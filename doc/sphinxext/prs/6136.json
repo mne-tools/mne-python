@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "cd3f4fb2fe42d99d3eaa2d6a7d1dc56e08d69749",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/connectivity/envelope.py": {
+      "a": 15,
+      "d": 12
+    },
+    "mne/connectivity/tests/test_envelope.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 16
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 19,
+      "d": 0
+    }
+  }
+}

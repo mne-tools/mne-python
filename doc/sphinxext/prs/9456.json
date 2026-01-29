@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "43777569587b7ba5f07210eabe72ab1e87226576",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/question.md": {
+      "a": 0,
+      "d": 15
+    }
+  }
+}

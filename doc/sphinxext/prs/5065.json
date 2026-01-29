@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6bd1280150f4ad312265cf233273a1c77d2b30cf",
+  "authors": [
+    {
+      "n": "Nathalie",
+      "e": "nat.gayraud@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 9,
+      "d": 12
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 26,
+      "d": 11
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/tests/test_cov.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "5cd3000a6713c10361478b1b1293f687ee2781b9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 6,
+      "d": 1
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/channels/montage.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 6
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/misc/plot_sensor_locations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 17,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 17,
+      "d": 5
+    }
+  }
+}

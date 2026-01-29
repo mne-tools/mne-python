@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f2d152916e8cd32c411c9b429317b455a7e699f5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

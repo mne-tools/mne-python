@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d7202b4866c88c6989a548e268b87113ac69e212",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

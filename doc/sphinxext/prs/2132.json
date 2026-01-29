@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c0062c9979c3632d021c853465e382fd70948e5b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/_images/plot_time_frequency.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 12,
+      "d": 9
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7097a122d682a7b09dcee6c2be0de38a3239a141",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 158,
+      "d": 150
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 87,
+      "d": 61
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 10,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "8cfadafadb3ddd7c91a1b03934f0eb1d2fc54a3c",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 29,
+      "d": 10
+    },
+    "mne/gui/_coreg.py": {
+      "a": 11,
+      "d": 4
+    }
+  }
+}

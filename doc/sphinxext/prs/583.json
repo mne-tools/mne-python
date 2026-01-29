@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "67be230abb59dfe592bd560df537b7271b594c5b",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/simulation/source.py": {
+      "a": 23,
+      "d": 17
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 96,
+      "d": 4
+    }
+  }
+}

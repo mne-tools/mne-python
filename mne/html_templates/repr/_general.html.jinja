@@ -1,0 +1,58 @@
+{% set section = "General" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "mne-repr-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+{%include 'static/_section_header_row.html.jinja' %}
+
+{% if filenames %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Filename(s)</td>
+    <td>
+        {% for f in filenames %}
+        {{ f }}
+        {% if not loop.last %}<br />{% endif %}
+        {% endfor %}
+    </td>
+</tr>
+{% endif %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>MNE object type</td>
+    <td>{{ inst | data_type }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Measurement date</td>
+    {% if info["meas_date"] is defined and info["meas_date"] is not none %}
+    <td>{{ info["meas_date"] | dt_to_str }}</td>
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Participant</td>
+    {% if info["subject_info"] is defined and info["subject_info"] is not none %}
+    {% if info["subject_info"]["his_id"] is defined %}
+    <td>{{ info["subject_info"]["his_id"] }}</td>
+    {% endif %}
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Experimenter</td>
+    {% if info["experimenter"] is defined and info["experimenter"] is not none %}
+    <td>{{ info["experimenter"] }}</td>
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>

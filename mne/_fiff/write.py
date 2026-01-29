@@ -1,9 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import os.path as op
 import re
 import time
@@ -12,10 +11,10 @@ from contextlib import contextmanager
 from gzip import GzipFile
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
-from ..utils import _file_like, _validate_type, logger
-from ..utils.numerics import _cal_to_julian
+from ..utils import _check_fname, _file_like, _validate_type, logger
+from ..utils.numerics import _date_to_julian
 from .constants import FIFF
 
 # We choose a "magic" date to store (because meas_date is obligatory)
@@ -45,7 +44,7 @@ def _get_split_size(split_size):
     if isinstance(split_size, str):
         exp = dict(MB=20, GB=30).get(split_size[-2:], None)
         if exp is None:
-            raise ValueError("split_size has to end with either" '"MB" or "GB"')
+            raise ValueError('split_size has to end with either "MB" or "GB"')
         split_size = int(float(split_size[:-2]) * 2**exp)
 
     if split_size > 2147483648:
@@ -73,11 +72,13 @@ def write_int(fid, kind, data):
     data_size = 4
     data = np.asarray(data)
     if data.dtype.kind not in "uib" and data.size > 0:
-        raise TypeError(f"Cannot safely write data with dtype {data.dtype} as int")
+        raise TypeError(
+            f"Cannot safely write data kind {kind} with dtype {data.dtype} as int",
+        )
     max_val = data.max() if data.size > 0 else 0
     if max_val > INT32_MAX:
         raise TypeError(
-            f"Value {max_val} exceeds maximum allowed ({INT32_MAX}) for " f"tag {kind}"
+            f"Value {max_val} exceeds maximum allowed ({INT32_MAX}) for tag {kind}"
         )
     data = data.astype(">i4").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, ">i4")
@@ -120,9 +121,9 @@ def write_complex128(fid, kind, data):
 
 def write_julian(fid, kind, data):
     """Write a Julian-formatted date to a FIF file."""
-    assert len(data) == 3
+    assert isinstance(data, datetime.date), type(data)
     data_size = 4
-    jd = np.sum(_cal_to_julian(*data))
+    jd = _date_to_julian(data)
     data = np.array(jd, dtype=">i4")
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, ">i4")
 
@@ -155,7 +156,7 @@ def write_name_list_sanitized(fid, kind, lst, name):
 
 def _safe_name_list(lst, operation, name):
     if operation == "write":
-        assert isinstance(lst, (list, tuple, np.ndarray)), type(lst)
+        assert isinstance(lst, list | tuple | np.ndarray), type(lst)
         if any("{COLON}" in val for val in lst):
             raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
         return ":".join(val.replace(":", "{COLON}") for val in lst)
@@ -224,7 +225,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b"%012x" % uuid.getnode()  # byte conversion for Py3
+    mac = f"{uuid.getnode():012x}".encode()  # byte conversion for Py3
     mac = re.findall(b"..", mac)  # split string
     mac += [b"00", b"00"]  # add two more fields
 
@@ -276,7 +277,7 @@ def end_block(fid, kind):
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
-def start_file(fname, id_=None):
+def start_file(fname, id_=None, *, overwrite=True):
     """Open a fif file for writing and writes the compulsory header tags.
 
     Parameters
@@ -289,10 +290,11 @@ def start_file(fname, id_=None):
         ID to use for the FIFF_FILE_ID.
     """
     if _file_like(fname):
-        logger.debug("Writing using %s I/O" % type(fname))
+        logger.debug(f"Writing using {type(fname)} I/O")
         fid = fname
         fid.seek(0)
     else:
+        fname = _check_fname(fname, overwrite=overwrite)
         fname = str(fname)
         if op.splitext(fname)[1].lower() == ".gz":
             logger.debug("Writing using gzip")
@@ -310,9 +312,9 @@ def start_file(fname, id_=None):
 
 
 @contextmanager
-def start_and_end_file(fname, id_=None):
+def start_and_end_file(fname, id_=None, *, overwrite=True):
     """Start and (if successfully written) close the file."""
-    with start_file(fname, id_=id_) as fid:
+    with start_file(fname, id_=id_, overwrite=overwrite) as fid:
         yield fid
         end_file(fid)  # we only hit this line if the yield does not err
 
@@ -388,7 +390,7 @@ def write_ch_info(fid, ch):
     fid.write(b"\0" * (16 - len(ch_name)))
 
 
-def write_dig_points(fid, dig, block=False, coord_frame=None):
+def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
     """Write a set of digitizer data points into a fif file."""
     if dig is not None:
         data_size = 5 * 4
@@ -405,6 +407,10 @@ def write_dig_points(fid, dig, block=False, coord_frame=None):
             fid.write(np.array(d["kind"], ">i4").tobytes())
             fid.write(np.array(d["ident"], ">i4").tobytes())
             fid.write(np.array(d["r"][:3], ">f4").tobytes())
+        if ch_names is not None:
+            write_name_list_sanitized(
+                fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names, "ch_names"
+            )
         if block:
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 
@@ -414,21 +420,12 @@ def write_float_sparse_rcs(fid, kind, mat):
     return write_float_sparse(fid, kind, mat, fmt="csr")
 
 
-def write_float_sparse_ccs(fid, kind, mat):
-    """Write a single-precision sparse compressed column matrix tag."""
-    return write_float_sparse(fid, kind, mat, fmt="csc")
-
-
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
     if fmt == "auto":
-        fmt = "csr" if isinstance(mat, csr_matrix) else "csc"
-    if fmt == "csr":
-        need = csr_matrix
-        matrix_type = FIFF.FIFFT_SPARSE_RCS_MATRIX
-    else:
-        need = csc_matrix
-        matrix_type = FIFF.FIFFT_SPARSE_CCS_MATRIX
+        fmt = "csr" if isinstance(mat, csr_array) else "csc"
+    need = csr_array if fmt == "csr" else csc_array
+    matrix_type = getattr(FIFF, f"FIFFT_SPARSE_{fmt[-1].upper()}CS_MATRIX")
     _validate_type(mat, need, "sparse")
     matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT
     nnzm = mat.nnz

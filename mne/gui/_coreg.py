@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import inspect
 import os
 import os.path as op
@@ -8,12 +10,13 @@ import queue
 import re
 import threading
 import time
+import weakref
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 
 import numpy as np
-from traitlets import Bool, Float, HasTraits, Unicode, observe
+from traitlets import Bool, Float, HasTraits, Instance, Unicode, observe
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _empty_info, read_fiducials, read_info, write_fiducials
@@ -35,6 +38,7 @@ from ..defaults import DEFAULTS
 from ..io._read_raw import _get_supported, read_raw
 from ..surface import _CheckInside, _DistanceQuery
 from ..transforms import (
+    Transform,
     _ensure_trans,
     _get_trans,
     _get_transforms_to_coord_frame,
@@ -89,51 +93,51 @@ class CoregistrationUI(HasTraits):
 
     Parameters
     ----------
-    info_file : None | str
+    info_file : None | path-like
         The FIFF file with digitizer data for coregistration.
     %(subject)s
     %(subjects_dir)s
     %(fiducials)s
     head_resolution : bool
-        If True, use a high-resolution head surface. Defaults to False.
+        If ``True``, use a high-resolution head surface. Defaults to ``False``.
     head_opacity : float
-        The opacity of the head surface. Defaults to 0.8.
+        The opacity of the head surface. Defaults to ``0.8``.
     hpi_coils : bool
-        If True, display the HPI coils. Defaults to True.
+        If ``True``, display the HPI coils. Defaults to ``True``.
     head_shape_points : bool
-        If True, display the head shape points. Defaults to True.
+        If ``True``, display the head shape points. Defaults to ``True``.
     eeg_channels : bool
-        If True, display the EEG channels. Defaults to True.
+        If ``True``, display the EEG channels. Defaults to ``True``.
     meg_channels : bool
-        If True, display the MEG channels. Defaults to False.
+        If ``True``, display the MEG channels. Defaults to ``False``.
     fnirs_channels : bool
-        If True, display the fNIRS channels. Defaults to True.
+        If ``True``, display the fNIRS channels. Defaults to ``True``.
     orient_glyphs : bool
-        If True, orient the sensors towards the head surface. Default to False.
+        If ``True``, orient the sensors towards the head surface. Default to ``False``.
     scale_by_distance : bool
-        If True, scale the sensors based on their distance to the head surface.
-        Defaults to True.
+        If ``True``, scale the sensors based on their distance to the head surface.
+        Defaults to ``True``.
     mark_inside : bool
-        If True, mark the head shape points that are inside the head surface
-        with a different color. Defaults to True.
+        If ``True``, mark the head shape points that are inside the head surface
+        with a different color. Defaults to ``True``.
     sensor_opacity : float
-        The opacity of the sensors between 0 and 1. Defaults to 1.0.
-    trans : path-like
-        The path to the Head<->MRI transform FIF file ("-trans.fif").
+        The opacity of the sensors between ``0`` and ``1``. Defaults to ``1.``.
+    trans : path-like | Transform
+        The Head<->MRI transform or the path to its FIF file (``"-trans.fif"``).
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
-        (800, 600).
-    bgcolor : tuple | str
+        ``(800, 600)``.
+    bgcolor : tuple of float | str
         The background color as a tuple (red, green, blue) of float
-        values between 0 and 1 or a valid color name (i.e. 'white'
-        or 'w'). Defaults to 'grey'.
+        values between ``0`` and ``1`` or a valid color name (i.e. ``'white'``
+        or ``'w'``). Defaults to ``'grey'``.
     show : bool
-        Display the window as soon as it is ready. Defaults to True.
+        Display the window as soon as it is ready. Defaults to ``True``.
     block : bool
         Whether to halt program execution until the GUI has been closed
         (``True``) or not (``False``, default).
     %(fullscreen)s
-        The default is False.
+        The default is ``False``.
 
         .. versionadded:: 1.1
     %(interaction_scene)s
@@ -152,7 +156,7 @@ class CoregistrationUI(HasTraits):
     _subjects_dir = Unicode()
     _lock_fids = Bool()
     _current_fiducial = Unicode()
-    _info_file = Unicode()
+    _info_file = Instance(Path, default_value=Path("."))
     _orient_glyphs = Bool()
     _scale_by_distance = Bool()
     _mark_inside = Bool()
@@ -289,6 +293,7 @@ class CoregistrationUI(HasTraits):
         self._renderer.set_interaction(interaction)
 
         # coregistration model setup
+        self._picking_targets = list()
         self._immediate_redraw = self._renderer._kind != "qt"
         self._info = info
         self._fiducials = fiducials
@@ -454,10 +459,9 @@ class CoregistrationUI(HasTraits):
                 tuple(supported),
                 endings_err=tuple(supported),
             )
-            fname = str(_check_fname(fname, overwrite="read"))  # cast to str
-
+            fname = Path(fname)
             # ctf ds `files` are actually directories
-            if fname.endswith((".ds",)):
+            if fname.suffix == ".ds":
                 info_file = _check_fname(
                     fname, overwrite="read", must_exist=True, need_dir=True
                 )
@@ -470,7 +474,7 @@ class CoregistrationUI(HasTraits):
             valid = False
         if valid:
             style = dict(border="initial")
-            self._info_file = str(info_file)
+            self._info_file = info_file
         else:
             style = dict(border="2px solid #ff0000")
         self._forward_widget_command("info_file_field", "set_style", style)
@@ -689,7 +693,7 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message(
-                "Placing MRI fiducials - " f"{self._current_fiducial.upper()}"
+                f"Placing MRI fiducials - {self._current_fiducial.upper()}"
             )
 
         self._set_sensors_visibility(self._lock_fids)
@@ -702,14 +706,14 @@ class CoregistrationUI(HasTraits):
         self._follow_fiducial_view()
         if not self._lock_fids:
             self._display_message(
-                "Placing MRI fiducials - " f"{self._current_fiducial.upper()}"
+                f"Placing MRI fiducials - {self._current_fiducial.upper()}"
             )
 
     @observe("_info_file")
     def _info_file_changed(self, change=None):
         if not self._info_file:
             return
-        elif self._info_file.endswith((".fif", ".fif.gz")):
+        elif self._info_file.name.endswith((".fif", ".fif.gz")):
             fid, tree, _ = fiff_open(self._info_file)
             fid.close()
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
@@ -897,10 +901,10 @@ class CoregistrationUI(HasTraits):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # XXX: internal plotter/renderer should not be exposed
-            plotter = self._renderer.figure.plotter
+            picker = self._renderer._picker
             picked_renderer = self._renderer.figure.plotter.renderer
             # trigger the pick
-            plotter.picker.Pick(x, y, 0, picked_renderer)
+            picker.Pick(x, y, 0, picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -911,22 +915,13 @@ class CoregistrationUI(HasTraits):
         mesh = vtk_picker.GetDataSet()
         if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
             return
-        if not getattr(mesh, "_picking_target", False):
+        if not any(mesh is target() for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
-        vtk_cell = mesh.GetCell(cell_id)
-        cell = [
-            vtk_cell.GetPointId(point_id)
-            for point_id in range(vtk_cell.GetNumberOfPoints())
-        ]
-        vertices = mesh.points[cell]
-        idx = np.argmin(abs(vertices - pos), axis=0)
-        vertex_id = cell[idx[0]]
-
         fiducials = [s.lower() for s in self._defaults["fiducials"]]
         idx = fiducials.index(self._current_fiducial.lower())
         # XXX: add coreg.set_fids
-        self.coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
+        self.coreg._fid_points[idx] = pos
         self.coreg._reset_fiducials()
         self._update_fiducials()
         self._update_plot("mri_fids")
@@ -953,7 +948,7 @@ class CoregistrationUI(HasTraits):
         self._update_plot("hsp")
         self._update_distance_estimation()
         self._display_message(
-            f"{n_omitted} head shape points omitted, " f"{n_remaining} remaining."
+            f"{n_omitted} head shape points omitted, {n_remaining} remaining."
         )
 
     def _reset_omit_hsp_filter(self):
@@ -1165,7 +1160,7 @@ class CoregistrationUI(HasTraits):
         if isinstance(names, str):
             names = [names]
 
-        if not isinstance(value, (str, float, int, dict, type(None))):
+        if not isinstance(value, str | float | int | dict | type(None)):
             value = list(value)
             assert len(names) == len(value)
 
@@ -1192,7 +1187,10 @@ class CoregistrationUI(HasTraits):
                 actors = self._actors[sensor]
                 actors = actors if isinstance(actors, list) else [actors]
                 for actor in actors:
+                    if actor is None:
+                        continue
                     actor.SetVisibility(state)
+
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
@@ -1276,7 +1274,14 @@ class CoregistrationUI(HasTraits):
             fnirs=self._defaults["sensor_opacity"],
             meg=0.25,
         )
-        picks = pick_types(self._info, ref_meg=False, meg=True, eeg=True, fnirs=True)
+        picks = pick_types(
+            self._info,
+            ref_meg=False,
+            meg=True,
+            eeg=True,
+            fnirs=True,
+            exclude=(),
+        )
         these_actors = _plot_sensors_3d(
             self._renderer,
             self._info,
@@ -1293,7 +1298,7 @@ class CoregistrationUI(HasTraits):
             nearest=self._nearest,
             **plot_types,
         )
-        sens_actors = sum(these_actors.values(), list())
+        sens_actors = sum((these_actors or {}).values(), list())
         self._update_actor("sensors", sens_actors)
 
     def _add_head_surface(self):
@@ -1329,7 +1334,7 @@ class CoregistrationUI(HasTraits):
             key = "low"
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
-        head_surf._picking_target = True
+        self._picking_targets.append(weakref.ref(head_surf))
         # We need to use _get_processed_mri_points to incorporate grow_hair
         rr = self.coreg._get_processed_mri_points(key) * self.coreg._scale.T
         head_surf.points = rr
@@ -1500,6 +1505,7 @@ class CoregistrationUI(HasTraits):
                 labels=True,
                 annot=True,
                 on_defects="ignore",
+                mri_fiducials=self.coreg.fiducials,
             )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
@@ -1521,7 +1527,7 @@ class CoregistrationUI(HasTraits):
             except Exception:
                 logger.error(f"Error computing {bem_name} solution")
             else:
-                self._display_message(f"Computing {bem_name} solution..." " Done!")
+                self._display_message(f"Computing {bem_name} solution... Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
         self._renderer._window_set_cursor(default_cursor)
         self._mri_scale_modified = False
@@ -1541,10 +1547,10 @@ class CoregistrationUI(HasTraits):
         self._display_message(f"{fname} transform file is saved.")
         self._trans_modified = False
 
-    def _load_trans(self, fname):
-        mri_head_t = _ensure_trans(read_trans(fname, return_all=True), "mri", "head")[
-            "trans"
-        ]
+    def _load_trans(self, trans):
+        if not isinstance(trans, Transform):
+            trans = read_trans(trans, return_all=True)
+        mri_head_t = _ensure_trans(trans, "mri", "head")["trans"]
         rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
         x, y, z = mri_head_t[:3, 3]
         self.coreg._update_params(
@@ -1554,7 +1560,7 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
         self._update_distance_estimation()
         self._update_plot()
-        self._display_message(f"{fname} transform file is loaded.")
+        self._display_message(f"{trans} transform file is loaded.")
 
     def _update_fiducials_label(self):
         if self._fiducials_file is None:
@@ -1602,8 +1608,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_subjects_dir,
             is_directory=True,
             icon=True,
-            tooltip="Load the path to the directory containing the "
-            "FreeSurfer subjects",
+            tooltip="Load the path to the directory containing the FreeSurfer subjects",
             layout=subjects_dir_layout,
         )
         self._renderer._layout_add_widget(
@@ -1704,7 +1709,7 @@ class CoregistrationUI(HasTraits):
             desc="Load",
             func=self._set_info_file,
             icon=True,
-            tooltip="Load the FIFF file with digitization data for " "coregistration",
+            tooltip="Load the FIFF file with digitization data for coregistration",
             layout=info_file_layout,
         )
         self._renderer._layout_add_widget(
@@ -1732,8 +1737,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
-            tooltip="Exclude the head shape points that are far away from "
-            "the MRI head",
+            tooltip="Exclude the head shape points that are far away from the MRI head",
             layout=omit_hsp_layout_2,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
@@ -1758,7 +1762,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["meg"] = self._renderer._dock_add_check_box(
             name="Show MEG sensors",
-            value=self._helmet,
+            value=self._meg_channels,
             callback=self._set_meg_channels,
             tooltip="Enable/Disable MEG sensors",
             layout=view_options_layout,
@@ -1891,7 +1895,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
-            tooltip="Find rotation and translation to match the " "head shape points",
+            tooltip="Find rotation and translation to match the head shape points",
             layout=fit_layout,
         )
         self._renderer._layout_add_widget(param_layout, fit_layout)
@@ -1908,7 +1912,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=str(Path(self._info_file).parent),
+            initial_directory=self._info_file.parent,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -1917,7 +1921,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=str(Path(self._info_file).parent),
+            initial_directory=self._info_file.parent,
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
         self._widgets["reset_trans"] = self._renderer._dock_add_button(

@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "25e6aecf1c0fd0b0f1e2b3fc8d46377dffa752e4",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/_freesurfer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_ola.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/annotations.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/bem.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/coreg.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/dipole.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 4,
+      "d": 18
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/array/array.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/morph.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 6
+    },
+    "pyproject.toml": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

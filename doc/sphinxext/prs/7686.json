@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "68acfab7b6ffa3b5fb90f0d7e23915c482d7e9cb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/stats/parametric.py": {
+      "a": 49,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 40,
+      "d": 1
+    },
+    "mne/stats/tests/test_parametric.py": {
+      "a": 46,
+      "d": 1
+    }
+  }
+}

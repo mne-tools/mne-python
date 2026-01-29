@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d9fc70aaba832713e20d5bd9222da8a687b8e404",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/_static/default.css": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/source/_static/navy.css": {
+      "a": 10,
+      "d": 0
+    },
+    "doc/source/_templates/layout.html": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/source/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/source/mne-python.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

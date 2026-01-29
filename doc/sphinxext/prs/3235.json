@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "60a7440269b12bb5c44bd246e90af80dd8551cf2",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 68,
+      "d": 20
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

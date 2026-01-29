@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7af1ee3d52354334c7db4c06a71c5759bf7a1815",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 74,
+      "d": 50
+    }
+  }
+}

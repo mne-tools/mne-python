@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "7c21bd6c43c79d325fa47c39925daaa001882790",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 23,
+      "d": 8
+    },
+    "mne/source_estimate.py": {
+      "a": 273,
+      "d": 233
+    },
+    "mne/tests/test_morph.py": {
+      "a": 20,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 33,
+      "d": 6
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 9,
+      "d": 5
+    }
+  }
+}

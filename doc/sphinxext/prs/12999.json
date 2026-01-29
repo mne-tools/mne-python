@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ed2fd8da1e16e449cdfe779491542fecad6ecbcb",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".mailmap": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 9,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "80b029d305872aef82e03d1f9353a191e17da7c6",
+  "authors": [
+    {
+      "n": "Giorgio_M",
+      "e": "giorgio.marinato@unitn.it"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 13,
+      "d": 0
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

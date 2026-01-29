@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "ee20e842efc6c950e0b93757b881c3fcf867c588",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 2,
+      "d": 4
+    },
+    "doc/_includes/forward.rst": {
+      "a": 11,
+      "d": 3
+    },
+    "doc/_includes/inverse.rst": {
+      "a": 4,
+      "d": 6
+    },
+    "doc/_static/style.css": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/bibliography.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 11,
+      "d": 1
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 23,
+      "d": 29
+    },
+    "doc/overview/faq.rst": {
+      "a": 10,
+      "d": 14
+    },
+    "doc/overview/implementation.rst": {
+      "a": 2,
+      "d": 10
+    },
+    "doc/overview/index.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 1663,
+      "d": 0
+    },
+    "doc/references.rst": {
+      "a": 24,
+      "d": 99
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 24,
+      "d": 39
+    },
+    "mne/filter.py": {
+      "a": 6,
+      "d": 7
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_45_projectors_background.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 7,
+      "d": 12
+    }
+  }
+}

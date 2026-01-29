@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "50fe6bb67d9a85d1d0c4579060b67c50a31c3ef7",
+  "authors": [
+    {
+      "n": "Tanay Gahlot",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

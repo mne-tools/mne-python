@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ffb4ef3d623b9e7202e5078cd3301c8cfc40d5a5",
+  "authors": [
+    {
+      "n": "rcmdnk",
+      "e": "rcmdnk@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/utils.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

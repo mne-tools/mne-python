@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "7afa43778a0ef2096a61437eb30d2c98ad8c7598",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "jeff",
+      "e": "jeff.hanna@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 8,
+      "d": 0
+    },
+    "examples/preprocessing/plot_find_ref_artifacts.py": {
+      "a": 139,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/refmeg_noise/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/refmeg_noise/refmeg_noise.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/preprocessing/bads.py": {
+      "a": 32,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 103,
+      "d": 30
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 17,
+      "d": 11
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

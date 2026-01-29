@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e0588eedc173902a9b55dfe6436ea433c19bbf30",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_eeg_erp.py": {
+      "a": 8,
+      "d": 9
+    }
+  }
+}

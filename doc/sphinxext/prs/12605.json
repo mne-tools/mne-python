@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "4cffc343a3cb7c75101a11294c517d845ab423eb",
+  "authors": [
+    {
+      "n": "Michal Žák",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12605.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 21,
+      "d": 18
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 15
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

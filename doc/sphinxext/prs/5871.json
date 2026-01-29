@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "d5ae1c83a70dfb3c40f23914d389976c65a3cd11",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/fetching.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/progressbar.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/testing.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

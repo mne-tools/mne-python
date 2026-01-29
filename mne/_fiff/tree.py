@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -50,7 +48,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     else:
         block = 0
 
-    logger.debug("    " * indent + "start { %d" % block)
+    start_separate = False
 
     this = start
 
@@ -66,6 +64,9 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     while this < len(directory):
         if directory[this].kind == FIFF.FIFF_BLOCK_START:
             if this != start:
+                if not start_separate:
+                    start_separate = True
+                    logger.debug("    " * indent + f"start {{ {block}")
                 child, this = make_dir_tree(fid, directory, this, indent + 1)
                 tree["nchild"] += 1
                 tree["children"].append(child)
@@ -98,11 +99,10 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     if tree["nent"] == 0:
         tree["directory"] = None
 
-    logger.debug(
-        "    " * (indent + 1)
-        + "block = %d nent = %d nchild = %d"
-        % (tree["block"], tree["nent"], tree["nchild"])
-    )
-    logger.debug("    " * indent + "end } %d" % block)
+    content = f"block = {tree['block']} nent = {tree['nent']} nchild = {tree['nchild']}"
+    if start_separate:
+        logger.debug("    " * indent + f"end }} {content}")
+    else:
+        logger.debug("    " * indent + content)
     last = this
     return tree, last

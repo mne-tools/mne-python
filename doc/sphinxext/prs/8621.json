@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "35fcbca549a1a7b91cbda18768b8dc8dcf32b547",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "038e8687a974184184390523c996aa74c3370d25",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

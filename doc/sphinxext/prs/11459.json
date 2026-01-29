@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b8df1bd8c03ccf5c6f86a1173ba82f81874ae1b6",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ieeg/_projection.py": {
+      "a": 6,
+      "d": 14
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

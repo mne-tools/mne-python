@@ -3,13 +3,20 @@ name: Changelog
 on:  # yamllint disable-line rule:truthy
   pull_request:
     types: [opened, synchronize, labeled, unlabeled]
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   changelog_checker:
-    name: Check towncrier entry in doc/changes/devel/
+    name: Check towncrier entry in doc/changes/dev/
     runs-on: ubuntu-latest
     steps:
-      - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: scientific-python/action-towncrier-changelog@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BOT_USERNAME: changelog-bot

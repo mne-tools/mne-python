@@ -1,9 +1,6 @@
 """Functions to plot raw M/EEG data."""
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -26,7 +23,7 @@ from .utils import (
     _shorten_path_from_middle,
 )
 
-_RAW_CLIP_DEF = 1.5
+_RAW_CLIP_DEF = 3
 
 
 @verbose
@@ -40,6 +37,8 @@ def plot_raw(
     color=None,
     bad_color="lightgray",
     event_color="cyan",
+    *,
+    annotation_regex=".*",
     scalings=None,
     remove_dc=True,
     order=None,
@@ -64,7 +63,6 @@ def plot_raw(
     precompute=None,
     use_opengl=None,
     picks=None,
-    *,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -102,6 +100,11 @@ def plot_raw(
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
+    annotation_regex : str
+        A regex pattern applied to each annotation's label.
+        Matching labels remain visible, non-matching labels are hidden.
+
+        .. versionadded:: 1.11
     %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.
@@ -339,7 +342,7 @@ def plot_raw(
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
         title = "<unknown>"
-        fnames = raw._filenames.copy()
+        fnames = list(tuple(raw.filenames))  # get a list of a copy of the filenames
         if len(fnames):
             title = fnames.pop(0)
             extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""
@@ -376,6 +379,7 @@ def plot_raw(
         event_times=event_times,
         event_nums=event_nums,
         event_id_rev=event_id_rev,
+        annotation_regex=annotation_regex,
         # preprocessing
         projs=projs,
         projs_on=projs_on,
@@ -430,7 +434,7 @@ def plot_raw_psd(
     area_mode="std",
     area_alpha=0.33,
     dB=True,
-    estimate="auto",
+    estimate="power",
     show=True,
     n_jobs=None,
     average=False,

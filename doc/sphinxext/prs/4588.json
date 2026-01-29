@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "ab34726258cc124846134f350c0a907d8dd11318",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "26a3de0a18b84f01d065948839fb6f671c7f7c9f",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

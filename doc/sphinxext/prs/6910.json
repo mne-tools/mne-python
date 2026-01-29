@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "3fafe437413f29b91f36ca2726a4cceb87dfbab7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/plot_eeg_csd.py": {
+      "a": 96,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/channels/interpolation.py": {
+      "a": 23,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/defaults.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/io/ctf/info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 23,
+      "d": 14
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 189,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_csd.py": {
+      "a": 195,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 13,
+      "d": 15
+    }
+  }
+}

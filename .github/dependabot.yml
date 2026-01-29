@@ -4,3 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    labels:
+      - no-changelog-entry-needed
+    commit-message:
+      prefix: "[dependabot]"
+    cooldown:
+      default-days: 7

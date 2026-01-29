@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "24e5fe2ec67c5c23bce53a2158cc8cc78907eae6",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 184,
+      "d": 99
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 55,
+      "d": 35
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 39,
+      "d": 12
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

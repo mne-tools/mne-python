@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ecae0576c838f18d3ceae00e2268412356580135",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/epochs/40_autogenerate_metadata.py": {
+      "a": 28,
+      "d": 29
+    }
+  }
+}

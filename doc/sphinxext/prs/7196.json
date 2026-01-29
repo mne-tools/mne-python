@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "44b44b1d324c95a36d51e76e7fc369d191118b3b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

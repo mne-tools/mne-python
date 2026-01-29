@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4742914ff898d22a3c3012aeefaf2a8301f2c2f8",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 16,
+      "d": 4
+    }
+  }
+}

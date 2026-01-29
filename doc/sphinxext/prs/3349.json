@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5d33ad298c409bee6b28e8688fe90391a3df063c",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/layouts/KIT-UMD.lout": {
+      "a": 158,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 38,
+      "d": 4
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 10,
+      "d": 4
+    }
+  }
+}

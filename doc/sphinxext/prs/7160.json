@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "eba30878532e1851b74bf99009c1582ed4591e16",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/_includes/inverse.rst": {
+      "a": 226,
+      "d": 129
+    },
+    "doc/_includes/ssp.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/implementation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/matlab.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/references.bib": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 8,
+      "d": 15
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 12,
+      "d": 8
+    }
+  }
+}

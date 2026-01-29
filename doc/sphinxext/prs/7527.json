@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "9ca6b11553a8dc9eaee7e5cdbcdbe7f02d26aaa6",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_psf_ctf_vertices_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_publication_figure.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

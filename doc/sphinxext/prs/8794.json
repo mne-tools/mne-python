@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "982b0e093865ec4cc8116c47a1fc7349fbdf682e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 45,
+      "d": 11
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 21,
+      "d": 11
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "ccd2974b621274a1cdc43b4f7f66708a39c720b9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 72,
+      "d": 41
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 33,
+      "d": 16
+    },
+    "mne/viz/utils.py": {
+      "a": 40,
+      "d": 0
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

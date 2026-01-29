@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "754ea8e1d4f4204b172653eda34d30a74438b9fe",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_freesurfer.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/bem.py": {
+      "a": 54,
+      "d": 23
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 73,
+      "d": 50
+    },
+    "mne/tests/test_bem.py": {
+      "a": 53,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/utils/misc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 69,
+      "d": 48
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/forward/80_fix_bem_in_blender.py": {
+      "a": 129,
+      "d": 75
+    }
+  }
+}

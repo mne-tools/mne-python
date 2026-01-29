@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8d6905d35dbae5cc16769989bc666e01c4e289ef",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

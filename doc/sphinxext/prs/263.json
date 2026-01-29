@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e5f8ca61b4528f920d96814861e000d8498e22cc",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 157,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 95,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 16,
+      "d": 1
+    }
+  }
+}

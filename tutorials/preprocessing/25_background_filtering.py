@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 r"""
 .. _disc-filtering:
 
@@ -170,7 +172,7 @@ gain = [1, 1, 0, 0]
 
 third_height = np.array(plt.rcParams["figure.figsize"]) * [1, 1.0 / 3.0]
 ax = plt.subplots(1, figsize=third_height, layout="constrained")[1]
-plot_ideal_filter(freq, gain, ax, title="Ideal %s Hz lowpass" % f_p, flim=flim)
+plot_ideal_filter(freq, gain, ax, title=f"Ideal {f_p} Hz lowpass", flim=flim)
 
 # %%
 # This filter hypothetically achieves zero ripple in the frequency domain,
@@ -425,7 +427,7 @@ h = mne.filter.create_filter(
     l_freq=None,
     h_freq=f_p,
     h_trans_bandwidth=transition_band,
-    filter_length="%ss" % filter_dur,
+    filter_length=f"{filter_dur}s",
     fir_design="firwin2",
     verbose=True,
 )
@@ -517,7 +519,7 @@ plot_signal(x_mne_c, offset=yticks[5])
 plot_signal(x_min, offset=yticks[6])
 axes[0].set(
     xlim=tlim,
-    title="FIR, Lowpass=%d Hz" % f_p,
+    title=f"FIR, Lowpass={f_p} Hz",
     xticks=tticks,
     ylim=[-len(yticks) / yscale, 1.0 / yscale],
     yticks=yticks,
@@ -675,7 +677,7 @@ plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
 axes[0].set(
     xlim=tlim,
-    title="IIR, Lowpass=%d Hz" % f_p,
+    title=f"IIR, Lowpass={f_p} Hz",
     xticks=tticks,
     ylim=[-0.125, 0.025],
     yticks=yticks,
@@ -844,7 +846,7 @@ def baseline_plot(x):
             if ri == 0:
                 ax.set(title=("No " if ci == 0 else "") + "Baseline Correction")
             ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)
-            ax.set_ylabel("%0.1f Hz" % freq, rotation=0, horizontalalignment="right")
+            ax.set_ylabel(f"{freq:0.1f} Hz", rotation=0, horizontalalignment="right")
     fig.suptitle(title)
     plt.show()
 

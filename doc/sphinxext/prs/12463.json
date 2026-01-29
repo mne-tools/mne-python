@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f2fa901ca6f87eaadca6acd45f4c460f1c92f8fe",
+  "authors": [
+    {
+      "n": "Kristijan Armeni",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12463.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/decoding/search_light.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 82,
+      "d": 0
+    },
+    "mne/io/neuralynx/tests/test_neuralynx.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

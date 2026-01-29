@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b573951de1a84194aff18e9a99eae9f01a3b7aa0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 0,
+      "d": 5
+    }
+  }
+}

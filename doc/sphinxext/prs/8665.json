@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "1b9d2228bc40f817ef1765686bc2ec6e81079d13",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 130,
+      "d": 130
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 31,
+      "d": 33
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 23,
+      "d": 18
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 13,
+      "d": 15
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 192,
+      "d": 164
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 124,
+      "d": 117
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

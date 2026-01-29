@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bf8b8758f440fc480d5cc601777cd0d8962870e7",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/faq.rst": {
+      "a": 73,
+      "d": 0
+    },
+    "doc/source/mne-python.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

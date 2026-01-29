@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cfab03350b00f4b0e129ce83dfb70ed73554b8e0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/misc.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

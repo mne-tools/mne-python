@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7870269da65ec9341a09d9c0ef60bd4eb760d409",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 8,
+      "d": 10
+    }
+  }
+}

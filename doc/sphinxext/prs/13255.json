@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "68b5523a1d2e301fb0e4f2460c67d42c465e46b7",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 23,
+      "d": 53
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

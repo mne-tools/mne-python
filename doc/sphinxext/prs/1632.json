@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "936e3791cf4ed0945f678e882013e693e67cbd92",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/kit/kit.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

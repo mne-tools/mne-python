@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3b29980d22becbf8bfa1c535f6e5680ad4bc749a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

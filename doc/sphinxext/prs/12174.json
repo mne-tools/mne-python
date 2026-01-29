@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8ea98e2dd542735e2ae950e5daf2bdcc363f90bd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

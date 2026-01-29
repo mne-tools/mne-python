@@ -60,7 +60,7 @@ Changelog
 
 - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
-- Add :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
+- Add :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Rémi King`_ and `Alex Gramfort`_
 
 - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
 
@@ -70,7 +70,7 @@ Changelog
 
 - Add source space plotting with :meth:`mne.SourceSpaces.plot` using ``mne.viz.plot_trans`` by `Eric Larson`_
 
-- Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model - typically a spatial filter or pattern, by `Jean-Remi King`_
+- Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model - typically a spatial filter or pattern, by `Jean-Rémi King`_
 
 - Add support for reading in EGI MFF digitization coordinate files in ``mne.channels.read_dig_montage`` by `Matt Boggess`_
 
@@ -113,7 +113,7 @@ BUG
 
 - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
 
-- Fix bug :func:`mne.io.anonymize_info` when Info does not contain 'file_id' or 'meas_id' fields by `Jean-Remi King`_
+- Fix bug :func:`mne.io.anonymize_info` when Info does not contain 'file_id' or 'meas_id' fields by `Jean-Rémi King`_
 
 - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
@@ -141,9 +141,9 @@ BUG
 
 - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
 
-- :class:`mne.decoding.Scaler` now scales each channel independently using data from all time points (epochs and times) instead of scaling all channels for each time point. It also now accepts parameter ``scalings`` to determine the data scaling method (default is ``None`` to use static channel-type-based scaling), by `Asish Panda`_, `Jean-Remi King`_, and `Eric Larson`_
+- :class:`mne.decoding.Scaler` now scales each channel independently using data from all time points (epochs and times) instead of scaling all channels for each time point. It also now accepts parameter ``scalings`` to determine the data scaling method (default is ``None`` to use static channel-type-based scaling), by `Asish Panda`_, `Jean-Rémi King`_, and `Eric Larson`_
 
-- Raise error if the cv parameter of ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
+- Raise error if the cv parameter of ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is not a partition and the predict_mode is "cross-validation" by `Jean-Rémi King`_
 
 - Fix bug in :func:`mne.io.read_raw_edf` when ``preload=False`` and channels have different sampling rates by `Jaakko Leppakangas`_
 
@@ -196,7 +196,7 @@ API
 
 - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
-- The :class:`mne.decoding.LinearModel` class will no longer support ``plot_filters`` and ``plot_patterns``, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
+- The :class:`mne.decoding.LinearModel` class will no longer support ``plot_filters`` and ``plot_patterns``, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Rémi King`_
 
 - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
 
@@ -227,7 +227,7 @@ People who contributed to this release  (in alphabetical order):
 * Hermann Sonntag
 * Jaakko Leppakangas
 * Jakub Kaczmarzyk
-* Jean-Remi King
+* Jean-Rémi King
 * Jon Houck
 * Jona Sassenhagen
 * Jussi Nurminen

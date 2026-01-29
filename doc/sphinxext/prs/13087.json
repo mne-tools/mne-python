@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4037ead8fe9ec27d7342263c574b99a7bc537104",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

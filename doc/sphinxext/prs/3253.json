@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bacd4adfa5645827784e2d34ab80c33d129d98a6",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

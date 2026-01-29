@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "04262d6a9873bace9259bd23eddb7504daf78f23",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "eaeef19153154c2e087961fd6d1fdcc6613d0b88",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

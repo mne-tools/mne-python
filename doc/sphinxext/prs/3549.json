@@ -1,0 +1,911 @@
+{
+  "merge_commit_sha": "24ca938c616b3ef5b4f57a9ffbcf9f35a9dfdf56",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 4,
+      "d": 1
+    },
+    "Makefile": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/annotations.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/baseline.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 5,
+      "d": 12
+    },
+    "mne/bem.py": {
+      "a": 48,
+      "d": 48
+    },
+    "mne/channels/__init__.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/channels.py": {
+      "a": 24,
+      "d": 26
+    },
+    "mne/channels/data/neighbors/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/interpolation.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/channels/layout.py": {
+      "a": 18,
+      "d": 15
+    },
+    "mne/channels/montage.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/chpi.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/commands/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/commands/mne_compare_fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_report.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/commands/mne_show_fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_show_info.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_watershed_bem.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/commands/utils.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/connectivity/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/connectivity/effective.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 46,
+      "d": 37
+    },
+    "mne/connectivity/utils.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 29,
+      "d": 25
+    },
+    "mne/cov.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/cuda.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/data/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/_fake/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/_fake/_fake.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/eegbci/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/megsim/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/megsim/urls.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/misc/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/misc/_misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/multimodal/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/multimodal/multimodal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/sample/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/somato/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/spm_face/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/testing/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/decoding/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 25,
+      "d": 25
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/decoding/ems.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/mixin.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/search_light.py": {
+      "a": 36,
+      "d": 33
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 40,
+      "d": 39
+    },
+    "mne/decoding/transformer.py": {
+      "a": 27,
+      "d": 23
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 33,
+      "d": 29
+    },
+    "mne/epochs.py": {
+      "a": 78,
+      "d": 69
+    },
+    "mne/event.py": {
+      "a": 39,
+      "d": 40
+    },
+    "mne/evoked.py": {
+      "a": 34,
+      "d": 33
+    },
+    "mne/filter.py": {
+      "a": 21,
+      "d": 21
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 13,
+      "d": 15
+    },
+    "mne/forward/forward.py": {
+      "a": 29,
+      "d": 38
+    },
+    "mne/gui/__init__.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/gui/_backend.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 31,
+      "d": 23
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 21,
+      "d": 15
+    },
+    "mne/gui/_help.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 19,
+      "d": 18
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 18,
+      "d": 11
+    },
+    "mne/gui/_viewer.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/inverse_sparse/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 9,
+      "d": 13
+    },
+    "mne/inverse_sparse/mxne_debiasing.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 27,
+      "d": 25
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 58,
+      "d": 54
+    },
+    "mne/io/brainvision/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 13,
+      "d": 10
+    },
+    "mne/io/bti/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 34,
+      "d": 41
+    },
+    "mne/io/bti/read.py": {
+      "a": 18,
+      "d": 18
+    },
+    "mne/io/cnt/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/compensator.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/io/constants.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/io/ctf/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/ctf/eeg.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/ctf/hc.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/ctf/info.py": {
+      "a": 13,
+      "d": 14
+    },
+    "mne/io/ctf/res4.py": {
+      "a": 12,
+      "d": 13
+    },
+    "mne/io/ctf/trans.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/ctf_comp.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/diff.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/edf/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 10,
+      "d": 14
+    },
+    "mne/io/eeglab/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/io/egi/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/io/fiff/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/io/kit/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 18,
+      "d": 16
+    },
+    "mne/io/matrix.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 20,
+      "d": 21
+    },
+    "mne/io/nicolet/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/open.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/pick.py": {
+      "a": 20,
+      "d": 20
+    },
+    "mne/io/proc_history.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/proj.py": {
+      "a": 22,
+      "d": 20
+    },
+    "mne/io/tag.py": {
+      "a": 26,
+      "d": 28
+    },
+    "mne/io/tree.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/utils.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/io/write.py": {
+      "a": 27,
+      "d": 26
+    },
+    "mne/label.py": {
+      "a": 39,
+      "d": 43
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 25,
+      "d": 28
+    },
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 12,
+      "d": 13
+    },
+    "mne/misc.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/parallel.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/bads.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ctps_.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 49,
+      "d": 55
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 3,
+      "d": 28
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 39,
+      "d": 40
+    },
+    "mne/preprocessing/peak_finder.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/proj.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/realtime/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/client.py": {
+      "a": 21,
+      "d": 21
+    },
+    "mne/realtime/epochs.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 12,
+      "d": 16
+    },
+    "mne/realtime/mockclient.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/realtime/stim_server_client.py": {
+      "a": 15,
+      "d": 20
+    },
+    "mne/report.py": {
+      "a": 43,
+      "d": 88
+    },
+    "mne/selection.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/simulation/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/simulation/evoked.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/simulation/metrics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/raw.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/simulation/source.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 93,
+      "d": 106
+    },
+    "mne/source_space.py": {
+      "a": 43,
+      "d": 47
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 35,
+      "d": 32
+    },
+    "mne/stats/multi_comp.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/stats/parametric.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/stats/permutations.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/stats/regression.py": {
+      "a": 10,
+      "d": 14
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 31,
+      "d": 32
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 14,
+      "d": 17
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/stft.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 45,
+      "d": 38
+    },
+    "mne/transforms.py": {
+      "a": 36,
+      "d": 32
+    },
+    "mne/utils.py": {
+      "a": 114,
+      "d": 115
+    },
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 11
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/circle.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/decoding.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/viz/epochs.py": {
+      "a": 29,
+      "d": 30
+    },
+    "mne/viz/evoked.py": {
+      "a": 29,
+      "d": 32
+    },
+    "mne/viz/ica.py": {
+      "a": 17,
+      "d": 17
+    },
+    "mne/viz/misc.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/viz/montage.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/raw.py": {
+      "a": 13,
+      "d": 14
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 15,
+      "d": 17
+    },
+    "mne/viz/topomap.py": {
+      "a": 25,
+      "d": 28
+    },
+    "mne/viz/utils.py": {
+      "a": 32,
+      "d": 33
+    },
+    "setup.cfg": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

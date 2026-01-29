@@ -1,0 +1,227 @@
+{
+  "merge_commit_sha": "ba127f705a0046cd30d9fb4bfcc610cf1d66bbfd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/evoked_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_freesurfer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/ctf/info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/source.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/regression.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_adjacency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/tests/test_morph.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/check.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_figure.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/viz/_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 10,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

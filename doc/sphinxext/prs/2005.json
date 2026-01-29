@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e5ff306445eb68a247ce13994ab8042c1dec261f",
+  "authors": [
+    {
+      "n": "Yousra Bekhti",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/plot_meg_eeg_fields_3d.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

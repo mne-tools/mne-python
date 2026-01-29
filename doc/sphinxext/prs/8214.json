@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3d16144b9e8779abbfdb7b66192d5ab339601996",
+  "authors": [
+    {
+      "n": "Jeroen Van Der Donckt",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

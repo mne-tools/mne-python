@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ad4ccbe285e6d92e3dac68fccda36da7658f49d1",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 6,
+      "d": 8
+    }
+  }
+}

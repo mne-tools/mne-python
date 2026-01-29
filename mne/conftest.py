@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -7,6 +6,8 @@ import gc
 import inspect
 import os
 import os.path as op
+import platform
+import re
 import shutil
 import sys
 import warnings
@@ -18,8 +19,12 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from pytest import StashKey
+from pytest import StashKey, register_assert_rewrite
 
+# Any `assert` statements in our testing functions should be verbose versions
+register_assert_rewrite("mne.utils._testing")
+
+# ruff: noqa: E402
 import mne
 from mne import Epochs, pick_types, read_events
 from mne.channels import read_layout
@@ -35,13 +40,13 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
+    check_version,
     numerics,
 )
-
-# data from sample dataset
 from mne.viz._figure import use_browser_backend
 from mne.viz.backends._utils import _init_mne_qtapp
 
+# data from sample dataset
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, "MEG", "sample")
 fname_evoked = op.join(s_path, "sample_audvis_trunc-ave.fif")
@@ -76,19 +81,19 @@ fname_evoked_io = op.join(base_dir, "test-ave.fif")
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout("Vectorview-all")
 
-collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
+collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf_bdf.py"]
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config):
     """Configure pytest options."""
     # Markers
+    # can be queried with `pytest --markers` for example
     for marker in (
-        "slowtest",
-        "ultraslowtest",
-        "pgtest",
-        "pvtest",
-        "allow_unclosed",
-        "allow_unclosed_pyside2",
+        "slowtest: mark a test as slow",
+        "ultraslowtest: mark a test as ultraslow or to be run rarely",
+        "pgtest: mark a test as relevant for mne-qt-browser",
+        "pvtest: mark a test as relevant for pyvistaqt",
+        "allow_unclosed: allow unclosed pyvistaqt instances",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -121,7 +126,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") != "true":
+    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") not in ("true", "1"):
         first_kind = "error"
     else:
         first_kind = "always"
@@ -137,21 +142,11 @@ def pytest_configure(config):
     ignore:joblib not installed.*:RuntimeWarning
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
-    # scikit-learn using this arg
-    ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    # Should be removable by 2022/07/08, SciPy savemat issue
-    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
-    # numba with NumPy dev
-    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
-    # matplotlib 3.6 and pyvista/nilearn
-    ignore:.*cmap function will be deprecated.*:
-    # joblib hasn't updated to avoid distutils
-    ignore:.*distutils package is deprecated.*:DeprecationWarning
-    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     # nbclient
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
+    ignore:datetime\.datetime\.utcnow\(\) is deprecated.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
@@ -159,33 +154,19 @@ def pytest_configure(config):
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    ignore:Failed to disconnect.*:RuntimeWarning
     # pkg_resources usage bug
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
-    # h5py
-    ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
-    # pandas
-    ignore:In the future `np.long`.*:FutureWarning
-    # https://github.com/joblib/joblib/issues/1454
-    ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
-    # numpy 2.0 <-> SciPy
-    ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
-    ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
-    ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
-    ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
-    # Until mne-qt-browser > 0.5.2 is released
-    ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     # Windows CIs using MESA get this
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
-    # Matplotlib <-> NumPy 2.0
-    ignore:`row_stack` alias is deprecated.*:DeprecationWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
     # joblib
@@ -198,13 +179,49 @@ def pytest_configure(config):
     # pandas
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
+    ignore:Python binding for RankQuantileOptions.*:
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
+    # pyvista <-> VTK dev
+    ignore:Call to deprecated method Get.*:DeprecationWarning
+    # nibabel <-> NumPy 2.0
+    ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
+    # quantities via neo
+    ignore:The 'copy' argument in Quantity is deprecated.*:
+    # debugpy uses deprecated matplotlib API
+    ignore:The (non_)?interactive_bk attribute was deprecated.*:
+    # SWIG (via OpenMEEG)
+    ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
+    # eeglabio
+    ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
+    ignore:Starting field name with a underscore.*:
+    # joblib
+    ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
+    # sklearn
+    ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
+    ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
+    # matplotlib<->nilearn
+    ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
+    # matplotlib<->pyparsing
+    ignore:^'.*' argument is deprecated, use '.*'$:DeprecationWarning
+    ignore:^'.*' deprecated - use '.*'$:DeprecationWarning
+    # dipy
+    ignore:'where' used without 'out', expect .*:UserWarning
+    # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
+    # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
+    ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]):
+    """Add slowtest marker automatically to anything marked ultraslow."""
+    for item in items:
+        if len(list(item.iter_markers("ultraslowtest"))):
+            item.add_marker(pytest.mark.slowtest)
 
 
 # Have to be careful with autouse=True, but this is just an int comparison
@@ -295,9 +312,10 @@ def matplotlib_config():
 @pytest.fixture(scope="session")
 def azure_windows():
     """Determine if running on Azure Windows."""
-    return os.getenv(
-        "AZURE_CI_WINDOWS", "false"
-    ).lower() == "true" and sys.platform.startswith("win")
+    return (
+        os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
+        and platform.system() == "Windows"
+    )
 
 
 @pytest.fixture(scope="function")
@@ -538,7 +556,7 @@ def _check_pyqtgraph(request):
     qt_version, api = _check_qt_version(return_api=True)
     if (not qt_version) or _compare_version(qt_version, "<", "5.12"):
         pytest.skip(
-            f"Qt API {api} has version {qt_version} " f"but pyqtgraph needs >= 5.12!"
+            f"Qt API {api} has version {qt_version} but pyqtgraph needs >= 5.12!"
         )
     try:
         import mne_qt_browser  # noqa: F401
@@ -549,10 +567,10 @@ def _check_pyqtgraph(request):
         f_name = request.function.__name__
         if lower_2_0 and m_name in pre_2_0_skip_modules:
             pytest.skip(
-                f'Test-Module "{m_name}" was skipped for' f" mne-qt-browser < 0.2.0"
+                f'Test-Module "{m_name}" was skipped for mne-qt-browser < 0.2.0'
             )
         elif lower_2_0 and f_name in pre_2_0_skip_funcs:
-            pytest.skip(f'Test "{f_name}" was skipped for ' f"mne-qt-browser < 0.2.0")
+            pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
     else:
@@ -654,23 +672,21 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
-    from mne.viz.backends.tests._utils import (
-        has_imageio_ffmpeg,
-        has_pyvista,
-        has_pyvistaqt,
-    )
 
-    if not has_pyvista():
-        pytest.skip("Test skipped, requires pyvista.")
-    if not has_imageio_ffmpeg():
-        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    pytest.importorskip("pyvista")
+    pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
+        pytest.importorskip("pyvistaqt")
         if not _check_qt_version():
             pytest.skip("Test skipped, requires Qt.")
-        if not has_pyvistaqt():
-            pytest.skip("Test skipped, requires pyvistaqt")
     else:
         assert name == "notebook", name
+        pytest.importorskip("jupyter")
+        pytest.importorskip("ipympl")
+        pytest.importorskip("ipyevents")
+        pytest.importorskip("trame")
+        pytest.importorskip("trame_vtk")
+        pytest.importorskip("trame_vuetify")
         if not _notebook_vtk_works():
             pytest.skip("Test skipped, requires working notebook vtk")
 
@@ -678,10 +694,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope="session")
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista
-
     # _check_qt_version will init an app for us, so no need for us to do it
-    if not has_pyvista() or not _check_qt_version():
+    if not check_version("pyvista", "0.32") or not _check_qt_version():
         return 1.0
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow
@@ -729,14 +743,16 @@ def _evoked_cov_sphere(_evoked):
     evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model(
+        (0.0, 0.0, 0.04), 0.1, relative_radii=(0.995, 0.997, 0.998, 1.0)
+    )
     return evoked, cov, sphere
 
 
 @pytest.fixture(scope="session")
 def _fwd_surf(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     src_surf = mne.read_source_spaces(fname_src)
     return mne.make_forward_solution(
         evoked.info, fname_trans, src_surf, sphere, mindist=5.0
@@ -747,7 +763,7 @@ def _fwd_surf(_evoked_cov_sphere):
 def _fwd_subvolume(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
     pytest.importorskip("nibabel")
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     volume_labels = ["Left-Cerebellum-Cortex", "right-Cerebellum-Cortex"]
     with pytest.raises(ValueError, match=r"Did you mean one of \['Right-Cere"):
         mne.setup_volume_source_space(
@@ -761,9 +777,12 @@ def _fwd_subvolume(_evoked_cov_sphere):
         subjects_dir=subjects_dir,
         add_interpolator=False,
     )
-    return mne.make_forward_solution(
-        evoked.info, fname_trans, src_vol, sphere, mindist=5.0
+    fwd = mne.make_forward_solution(
+        evoked.info, fname_trans, src_vol, sphere, mindist=1.0
     )
+    nsrc = sum(s["nuse"] for s in src_vol)
+    assert fwd["nsource"] == nsrc
+    return fwd
 
 
 @pytest.fixture
@@ -1033,7 +1052,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
+    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
@@ -1177,7 +1196,6 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
     app = _init_mne_qtapp()
-    from qtpy import API_NAME
 
     app.processEvents()
     gc.collect()
@@ -1187,8 +1205,6 @@ def qt_windows_closed(request):
     app.processEvents()
     gc.collect()
     if "allow_unclosed" in marks:
-        return
-    if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
     if not _test_passed(request):
@@ -1204,10 +1220,56 @@ _phase_report_key = StashKey()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Stash the status of each item."""
+    """Stash the status of each item and turn unexpected skips into errors."""
     outcome = yield
-    rep = outcome.get_result()
+    rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
+    if rep.outcome == "passed":  # only check for skips etc. if otherwise green
+        _modify_report_skips(rep)
+    return rep
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_make_collect_report(collector: pytest.Collector):
+    """Turn unexpected skips during collection (e.g., module-level) into errors."""
+    outcome = yield
+    rep: pytest.CollectReport = outcome.get_result()
+    _modify_report_skips(rep)
+    return rep
+
+
+# Default means "allow all skips". Can use something like "$." to mean
+# "never match", i.e., "treat all skips as errors"
+_valid_skips_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+
+
+# To turn unexpected skips into errors, we need to look both at the collection phase
+# (for decorated tests) and the call phase (for things like `importorskip`
+# within the test body). code adapted from pytest-error-for-skips
+def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
+    if not report.skipped:
+        return
+    if isinstance(report.longrepr, tuple):
+        file, lineno, reason = report.longrepr
+    else:
+        file, lineno, reason = "<unknown>", 1, str(report.longrepr)
+    if _valid_skips_re.match(reason):
+        return
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
+    if file.endswith("doctest.py"):  # _python/doctest.py
+        return
+    # xfail tests aren't true "skips" but show up as skipped in reports
+    if getattr(report, "keywords", {}).get("xfail", False):
+        return
+    # the above only catches marks, so we need to actually parse the report to catch
+    # an xfail based on the traceback
+    if " pytest.xfail( " in reason:
+        return
+    if reason.startswith("Skipped: "):
+        reason = reason[9:]
+    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
+    # Make it show up as an error in the report
+    report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
 
 
 @pytest.fixture(scope="function")

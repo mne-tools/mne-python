@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f7f9c9f34eaf241c2d69143d4e1c762a1baef0c4",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 26,
+      "d": 18
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ed933b8d9d523a9f4f7006d6e6d1c81901e5478a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/html_templates/repr/_channels.html.jinja": {
+      "a": 1,
+      "d": 17
+    },
+    "mne/html_templates/repr/forward.html.jinja": {
+      "a": 18,
+      "d": 24
+    },
+    "mne/html_templates/repr/static/_channels.html.jinja": {
+      "a": 17,
+      "d": 0
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

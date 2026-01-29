@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "dcd26258c5fd83fd3974d73ba2b1e2773c33bc3d",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ant/ant.py": {
+      "a": 14,
+      "d": 12
+    },
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 23,
+      "d": 24
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 7,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 6
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "25e9451ccacd0523343807a54255f8d06d202755",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 7,
+      "d": 21
+    },
+    "azure-pipelines.yml": {
+      "a": 19,
+      "d": 19
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 11,
+      "d": 7
+    },
+    "doc/install/advanced.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/install/check_installation.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 24,
+      "d": 11
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 31,
+      "d": 14
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/viz/_scraper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 20,
+      "d": 11
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/viz/backends/tests/test_utils.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/viz/tests/test_scraper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 4
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 13
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

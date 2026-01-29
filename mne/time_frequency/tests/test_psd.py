@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
@@ -224,3 +226,36 @@ def test_psd_array_welch_n_jobs():
     data = np.zeros((1, 2048))
     psd_array_welch(data, 1024, n_jobs=1)
     psd_array_welch(data, 1024, n_jobs=2)
+
+
+def test_psd_nan_in_data():
+    """psd_array_welch should fail if +Inf lies inside analyzed samples."""
+    n_samples, n_fft, n_overlap = 2048, 256, 128
+    rng = np.random.RandomState(0)
+    x = rng.standard_normal(size=(2, n_samples))
+    # Put +Inf inside the series; this falls within Welch windows
+    x[0, 800] = np.inf  # Channel 0 has Inf → bad channel
+    with pytest.warns(RuntimeWarning, match="Non-finite values"):
+        psds, freqs = psd_array_welch(x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+
+    # Channel 0 is contaminated → NaN PSD
+    assert np.isnan(psds[0]).all()
+
+    # Channel 1 is clean → has finite PSD values
+    assert np.isfinite(psds[1]).any()
+
+
+def test_psd_misaligned_nan_across_channels():
+    """If NaNs are present but masks are NOT aligned across channels."""
+    n_samples, n_fft, n_overlap = 2048, 256, 128
+    rng = np.random.RandomState(42)
+    x = rng.standard_normal(size=(2, n_samples))
+    # NaN only in ch0; ch1 has no NaN => masks not aligned -> should raise
+    x[0, 500] = np.nan
+    with pytest.warns(RuntimeWarning, match="Non-finite values"):
+        psds, freqs = psd_array_welch(x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    # Bad channel gets NaN PSD
+    assert np.isnan(psds[0]).all()
+
+    # Good channel retains finite values
+    assert np.isfinite(psds[1]).any()

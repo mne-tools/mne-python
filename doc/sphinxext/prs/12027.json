@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9f31cf35945a3bb8924208a816072d541443a9eb",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 44,
+      "d": 9
+    },
+    "mne/channels/interpolation.py": {
+      "a": 17,
+      "d": 3
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 25,
+      "d": 0
+    }
+  }
+}

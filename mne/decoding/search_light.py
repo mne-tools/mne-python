@@ -1,21 +1,29 @@
-# Author: Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import logging
 
 import numpy as np
-from scipy.sparse import issparse
+from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
+from sklearn.metrics import check_scoring
+from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.validation import check_is_fitted
 
-from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
-from ..utils import ProgressBar, _parse_verbose, array_split_idx, fill_doc, verbose
-from .base import BaseEstimator, _check_estimator
-from .mixin import TransformerMixin
+from ..utils import (
+    ProgressBar,
+    _parse_verbose,
+    _verbose_safe_false,
+    array_split_idx,
+    fill_doc,
+)
+from .base import _check_estimator
+from .transformer import MNETransformerMixin
 
 
 @fill_doc
-class SlidingEstimator(BaseEstimator, TransformerMixin):
+class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
@@ -37,7 +45,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         List of fitted scikit-learn estimators (one per task).
     """
 
-    @verbose
     def __init__(
         self,
         base_estimator,
@@ -48,7 +55,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         allow_2d=False,
         verbose=None,
     ):
-        _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         self.scoring = scoring
@@ -56,18 +62,29 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.allow_2d = allow_2d
         self.verbose = verbose
 
-    def _more_tags(self):
-        return {"no_validation": True, "requires_fit": False}
-
     @property
     def _estimator_type(self):
         return getattr(self.base_estimator, "_estimator_type", None)
+
+    def __sklearn_tags__(self):
+        """Get sklearn tags."""
+        from sklearn.utils import get_tags
+
+        tags = super().__sklearn_tags__()
+        sub_tags = get_tags(self.base_estimator)
+        tags.estimator_type = sub_tags.estimator_type
+        for kind in ("classifier", "regressor", "transformer"):
+            if tags.estimator_type == kind:
+                attr = f"{kind}_tags"
+                setattr(tags, attr, getattr(sub_tags, attr))
+                break
+        return tags
 
     def __repr__(self):  # noqa: D105
         repr_str = "<" + super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ", fitted with %i estimators" % len(self.estimators_)
+            repr_str += f", fitted with {len(self.estimators_)} estimators"
         return repr_str + ">"
 
     def fit(self, X, y, **fit_params):
@@ -90,9 +107,13 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self : object
             Return self.
         """
-        X = self._check_Xy(X, y)
+        _check_estimator(self.base_estimator)
+        X, _ = self._check_Xy(X, y, fit=True)
         parallel, p_func, n_jobs = parallel_func(
-            _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _sl_fit,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
         self.estimators_ = list()
         self.fit_params_ = fit_params
@@ -141,14 +162,19 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
-        X = self._check_Xy(X)
+        X, is_nd = self._check_Xy(X)
+        orig_method = method
+        check_is_fitted(self)
         method = _check_method(self.base_estimator, method)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError("The number of estimators does not match " "X.shape[-1]")
+            raise ValueError("The number of estimators does not match X.shape[-1]")
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _sl_transform,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
 
         X_splits = np.array_split(X, n_jobs, axis=-1)
@@ -162,6 +188,13 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             )
 
         y_pred = np.concatenate(y_pred, axis=1)
+        if orig_method == "transform":
+            y_pred = y_pred.astype(X.dtype)
+        elif (
+            orig_method in ("predict", "predict_proba", "decision_function")
+            and not is_nd
+        ):
+            y_pred = y_pred.squeeze()
         return y_pred
 
     def transform(self, X):
@@ -184,7 +217,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         Xt : array, shape (n_samples, n_estimators)
             The transformed values generated by each estimator.
         """  # noqa: E501
-        return self._transform(X, "transform").astype(X.dtype)
+        return self._transform(X, "transform")
 
     def predict(self, X):
         """Predict each data slice/task with a series of independent estimators.
@@ -253,20 +286,12 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         return self._transform(X, "decision_function")
 
-    def _check_Xy(self, X, y=None):
+    def _check_Xy(self, X, y=None, fit=False):
         """Aux. function to check input data."""
         # Once we require sklearn 1.1+ we should do something like:
-        # from sklearn.utils import check_array
-        # X = check_array(X, ensure_2d=False, input_name="X")
-        # y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
-        if issparse(X):
-            raise TypeError("X should be a dense array, got sparse instead.")
-        X = np.asarray(X)
-        if y is not None:
-            y = np.asarray(y)
-            if len(X) != len(y) or len(y) < 1:
-                raise ValueError("X and y must have the same length.")
-        if X.ndim < 3:
+        X = self._check_data(X, y=y, atleast_3d=False, fit=fit)
+        is_nd = X.ndim >= 3
+        if not is_nd:
             err = None
             if not self.allow_2d:
                 err = 3
@@ -275,7 +300,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             if err:
                 raise ValueError(f"X must have at least {err} dimensions.")
             X = X[..., np.newaxis]
-        return X
+        return X, is_nd
 
     def score(self, X, y):
         """Score each estimator on each task.
@@ -300,11 +325,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator/task.
         """  # noqa: E501
-        check_scoring = _get_check_scoring()
-
-        X = self._check_Xy(X, y)
+        X, _ = self._check_Xy(X, y)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError("The number of estimators does not match " "X.shape[-1]")
+            raise ValueError("The number of estimators does not match X.shape[-1]")
 
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
@@ -312,7 +335,10 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _sl_score,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
@@ -357,8 +383,6 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
     estimators_ : list of estimators
         The fitted estimators.
     """
-    from sklearn.base import clone
-
     estimators_ = list()
     for ii in range(X.shape[-1]):
         est = clone(estimator)
@@ -450,7 +474,7 @@ def _check_method(estimator, method):
     if method == "transform" and not hasattr(estimator, "transform"):
         method = "predict"
     if not hasattr(estimator, method):
-        ValueError("base_estimator does not have `%s` method." % method)
+        ValueError(f"base_estimator does not have `{method}` method.")
     return method
 
 
@@ -475,16 +499,21 @@ class GeneralizingEstimator(SlidingEstimator):
         repr_str = super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ", fitted with %i estimators>" % len(self.estimators_)
+            repr_str += f", fitted with {len(self.estimators_)} estimators>"
         return repr_str
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
-        X = self._check_Xy(X)
+        X, is_nd = self._check_Xy(X)
+        check_is_fitted(self)
+        orig_method = method
         method = _check_method(self.base_estimator, method)
 
         parallel, p_func, n_jobs = parallel_func(
-            _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _gl_transform,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
 
         context = _create_progressbar_context(self, X, "Transforming")
@@ -497,6 +526,13 @@ class GeneralizingEstimator(SlidingEstimator):
             )
 
         y_pred = np.concatenate(y_pred, axis=2)
+        if orig_method == "transform":
+            y_pred = y_pred.astype(X.dtype)
+        if (
+            orig_method in ("predict", "predict_proba", "decision_function")
+            and not is_nd
+        ):
+            y_pred = y_pred.squeeze()
         return y_pred
 
     def transform(self, X):
@@ -515,6 +551,7 @@ class GeneralizingEstimator(SlidingEstimator):
         Xt : array, shape (n_samples, n_estimators, n_slices)
             The transformed values generated by each estimator.
         """
+        check_is_fitted(self)
         return self._transform(X, "transform")
 
     def predict(self, X):
@@ -600,12 +637,14 @@ class GeneralizingEstimator(SlidingEstimator):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """  # noqa: E501
-        check_scoring = _get_check_scoring()
-        X = self._check_Xy(X, y)
+        X, _ = self._check_Xy(X, y)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _gl_score,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
@@ -719,8 +758,6 @@ def _gl_score(estimators, scoring, X, y, pb):
 
 
 def _fix_auc(scoring, y):
-    from sklearn.preprocessing import LabelEncoder
-
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
@@ -732,7 +769,7 @@ def _fix_auc(scoring, y):
         ):
             if np.ndim(y) != 1 or len(set(y)) != 2:
                 raise ValueError(
-                    "roc_auc scoring can only be computed for " "two-class problems."
+                    "roc_auc scoring can only be computed for two-class problems."
                 )
             y = LabelEncoder().fit_transform(y)
     return y

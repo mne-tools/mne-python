@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "3b909b7361f3f00f2b15b03e7057e59dc1027c44",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/ci.yml": {
+      "a": 0,
+      "d": 76
+    },
+    ".github/workflows/linux.yml": {
+      "a": 61,
+      "d": 0
+    },
+    ".github/workflows/macos.yml": {
+      "a": 56,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 1,
+      "d": 11
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 5,
+      "d": 0
+    },
+    "tools/github_actions_download.sh": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/github_actions_infos.sh": {
+      "a": 4,
+      "d": 0
+    },
+    "tools/github_actions_install.sh": {
+      "a": 4,
+      "d": 0
+    },
+    "tools/github_actions_locale.sh": {
+      "a": 5,
+      "d": 0
+    },
+    "tools/github_actions_test.sh": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

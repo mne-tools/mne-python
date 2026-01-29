@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "157a0409de8790a105b60266b8970496b21da895",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 50,
+      "d": 50
+    },
+    "doc/install/contributing.rst": {
+      "a": 70,
+      "d": 7
+    }
+  }
+}

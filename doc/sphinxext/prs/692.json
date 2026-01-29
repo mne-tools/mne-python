@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "ab82e2ba16163fe83b26f3e332a3c9d3761cd138",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/realtime/rt_feedback_client.py": {
+      "a": 116,
+      "d": 0
+    },
+    "examples/realtime/rt_feedback_server.py": {
+      "a": 143,
+      "d": 0
+    },
+    "mne/realtime/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/mockclient.py": {
+      "a": 78,
+      "d": 2
+    },
+    "mne/realtime/stim_server_client.py": {
+      "a": 262,
+      "d": 0
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 26,
+      "d": 7
+    },
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 46,
+      "d": 0
+    }
+  }
+}

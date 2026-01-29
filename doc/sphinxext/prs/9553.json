@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "19bdd7941e3dedaf4fd8dcc49805d2e7dacfbecc",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Johann Benerradi",
+      "e": "johann.benerradi@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 34,
+      "d": 15
+    },
+    "mne/io/base.py": {
+      "a": 53,
+      "d": 46
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 35,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 20,
+      "d": 0
+    }
+  }
+}

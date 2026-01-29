@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4302ad01495a151e215bd5a0d6e221e2d79c0911",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/simulation/plot_stc_metrics.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/simulation/metrics/metrics.py": {
+      "a": 38,
+      "d": 42
+    },
+    "mne/simulation/metrics/tests/test_metrics.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

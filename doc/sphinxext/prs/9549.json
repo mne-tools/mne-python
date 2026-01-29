@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ff02cb1806d5671cc93edb0ceb16b05085681dae",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_morph.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

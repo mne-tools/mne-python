@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "0aae72dda030242d992866ce6d551206749474b2",
+  "authors": [
+    {
+      "n": "Alex lepauvre",
+      "e": "alex.lepauvre@ae.mpg.de"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12805.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 71,
+      "d": 5
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 111,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 156,
+      "d": 0
+    }
+  }
+}

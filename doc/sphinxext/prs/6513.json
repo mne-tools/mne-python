@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7df663911b414b5f21241d3c301dc7318150c16d",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 27,
+      "d": 0
+    }
+  }
+}

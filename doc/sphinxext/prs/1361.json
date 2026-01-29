@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f13274cb3f05904b4428c2e0b4124cf6439ea495",
+  "authors": [
+    {
+      "n": "marmaduke woodman",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

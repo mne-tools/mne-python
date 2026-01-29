@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c0b8dfcc84ea97682e79a13d06526caaff03695f",
+  "authors": [
+    {
+      "n": "Christoph Dinh",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

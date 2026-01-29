@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "cb8707f43e62184c4a0f8651495ff6d3b2b81b7a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/externals/tempita/__init__.py": {
+      "a": 3,
+      "d": 1302
+    },
+    "mne/externals/tempita/_looper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/externals/tempita/_tempita.py": {
+      "a": 1182,
+      "d": 0
+    },
+    "mne/externals/tempita/compat3.py": {
+      "a": 11,
+      "d": 9
+    },
+    "setup.cfg": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

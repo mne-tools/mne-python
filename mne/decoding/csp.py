@@ -1,35 +1,23 @@
-# Authors: Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import copy as cp
+import collections.abc as abc
+from functools import partial
 
 import numpy as np
-from scipy.linalg import eigh
 
-from .._fiff.meas_info import create_info
-from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
+from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..evoked import EvokedArray
-from ..fixes import pinv
-from ..utils import (
-    _check_option,
-    _validate_type,
-    _verbose_safe_false,
-    copy_doc,
-    fill_doc,
-)
-from .base import BaseEstimator
-from .mixin import TransformerMixin
+from ..utils import _check_option, _validate_type, fill_doc, legacy
+from ._covs_ged import _csp_estimate, _spoc_estimate
+from ._mod_ged import _csp_mod, _spoc_mod
+from .base import _GEDTransformer
+from .spatial_filter import get_spatial_filter_from_estimator
 
 
 @fill_doc
-class CSP(TransformerMixin, BaseEstimator):
+class CSP(_GEDTransformer):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This class can be used as a supervised decomposition to estimate spatial
@@ -72,6 +60,26 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to "restricting".
+
+        .. versionadded:: 1.11
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.11
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -99,7 +107,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     See Also
     --------
-    mne.preprocessing.Xdawn, SPoC
+    XdawnTransformer, SPoC, SSD
 
     References
     ----------
@@ -115,55 +123,89 @@ class CSP(TransformerMixin, BaseEstimator):
         transform_into="average_power",
         norm_trace=False,
         cov_method_params=None,
+        *,
+        restr_type="restricting",
+        info=None,
         rank=None,
         component_order="mutual_info",
     ):
         # Init default CSP
-        if not isinstance(n_components, int):
-            raise ValueError("n_components must be an integer.")
         self.n_components = n_components
+        self.info = info
         self.rank = rank
         self.reg = reg
-
-        # Init default cov_est
-        if not (cov_est == "concat" or cov_est == "epoch"):
-            raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
-
-        # Init default transform_into
-        self.transform_into = _check_option(
-            "transform_into", transform_into, ["average_power", "csp_space"]
-        )
-
-        # Init default log
-        if transform_into == "average_power":
-            if log is not None and not isinstance(log, bool):
-                raise ValueError(
-                    "log must be a boolean if transform_into == " '"average_power".'
-                )
-        else:
-            if log is not None:
-                raise ValueError(
-                    "log must be a None if transform_into == " '"csp_space".'
-                )
+        self.transform_into = transform_into
         self.log = log
-
-        _validate_type(norm_trace, bool, "norm_trace")
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        self.component_order = _check_option(
-            "component_order", component_order, ("mutual_info", "alternate")
+        self.component_order = component_order
+        self.restr_type = restr_type
+
+        cov_callable = partial(
+            _csp_estimate,
+            reg=reg,
+            cov_method_params=cov_method_params,
+            cov_est=cov_est,
+            info=info,
+            rank=rank,
+            norm_trace=norm_trace,
+        )
+        mod_ged_callable = partial(_csp_mod, evecs_order=component_order)
+        super().__init__(
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=mod_ged_callable,
+            restr_type=restr_type,
+            R_func=sum,
         )
 
-    def _check_Xy(self, X, y=None):
-        """Check input data."""
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)." % type(X))
-        if y is not None:
-            if len(X) != len(y) or len(y) < 1:
-                raise ValueError("X and y must have the same length.")
-        if X.ndim < 3:
-            raise ValueError("X must have at least 3 dimensions.")
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = True
+        tags.target_tags.multi_output = True
+        return tags
+
+    def _validate_params(self, *, y):
+        _validate_type(self.n_components, int, "n_components")
+        if hasattr(self, "cov_est"):
+            _validate_type(self.cov_est, str, "cov_est")
+            _check_option("cov_est", self.cov_est, ("concat", "epoch"))
+        if hasattr(self, "norm_trace"):
+            _validate_type(self.norm_trace, bool, "norm_trace")
+        _check_option(
+            "transform_into", self.transform_into, ["average_power", "csp_space"]
+        )
+        if self.transform_into == "average_power":
+            _validate_type(
+                self.log,
+                (bool, None),
+                "log",
+                extra="when transform_into is 'average_power'",
+            )
+        else:
+            _validate_type(
+                self.log, None, "log", extra="when transform_into is 'csp_space'"
+            )
+        _check_option(
+            "component_order", self.component_order, ("mutual_info", "alternate")
+        )
+        self.classes_ = np.unique(y)
+        n_classes = len(self.classes_)
+        if n_classes < 2:
+            raise ValueError(
+                "y should be a 1d array with more than two classes, "
+                f"but got {n_classes} class from {y}"
+            )
+        elif n_classes > 2 and self.component_order == "alternate":
+            raise ValueError(
+                "component_order='alternate' requires two classes, but data contains "
+                f"{n_classes} classes; use component_order='mutual_info' instead."
+            )
+        _validate_type(self.rank, (dict, None, str), "rank")
+        _validate_type(self.info, (Info, None), "info")
+        _validate_type(self.cov_method_params, (abc.Mapping, None), "cov_method_params")
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
@@ -180,31 +222,12 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        self._check_Xy(X, y)
+        X, y = self._check_data(X, y=y, fit=True, return_y=True)
+        self._validate_params(y=y)
 
-        self._classes = np.unique(y)
-        n_classes = len(self._classes)
-        if n_classes < 2:
-            raise ValueError("n_classes must be >= 2.")
-        if n_classes > 2 and self.component_order == "alternate":
-            raise ValueError(
-                "component_order='alternate' requires two classes, but data contains "
-                f"{n_classes} classes; use component_order='mutual_info' instead."
-            )
-
-        # Convert rank to one that will run
-        _validate_type(self.rank, (dict, None), "rank")
-
-        covs, sample_weights = self._compute_covariance_matrices(X, y)
-        eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
-        ix = self._order_components(
-            covs, sample_weights, eigen_vectors, eigen_values, self.component_order
-        )
-
-        eigen_vectors = eigen_vectors[:, ix]
-
-        self.filters_ = eigen_vectors.T
-        self.patterns_ = pinv(eigen_vectors)
+        # Covariance estimation, GED/AJD
+        # and evecs/evals sorting happen here
+        super().fit(X, y)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -230,20 +253,12 @@ class CSP(TransformerMixin, BaseEstimator):
         -------
         X : ndarray
             If self.transform_into == 'average_power' then returns the power of
-            CSP features averaged over time and shape (n_epochs, n_sources)
+            CSP features averaged over time and shape (n_epochs, n_components)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times).
+            space and shape is (n_epochs, n_components, n_times).
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)." % type(X))
-        if self.filters_ is None:
-            raise RuntimeError(
-                "No filters available. Please first fit CSP " "decomposition."
-            )
-
-        pick_filters = self.filters_[: self.n_components]
-        X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
-
+        X = self._check_data(X)
+        X = super().transform(X)
         # compute features (mean band power)
         if self.transform_into == "average_power":
             X = (X**2).mean(axis=2)
@@ -255,17 +270,64 @@ class CSP(TransformerMixin, BaseEstimator):
                 X /= self.std_
         return X
 
-    @copy_doc(TransformerMixin.fit_transform)
-    def fit_transform(self, X, y, **fit_params):  # noqa: D102
+    def inverse_transform(self, X):
+        """Project CSP features back to sensor space.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_components)
+            The data in CSP power space.
+
+        Returns
+        -------
+        X : ndarray
+            The data in sensor space and shape (n_epochs, n_channels, n_components).
+        """
+        if self.transform_into != "average_power":
+            raise NotImplementedError(
+                "Can only inverse transform CSP features when transform_into is "
+                "'average_power'."
+            )
+        if not (X.ndim == 2 and X.shape[1] == self.n_components):
+            raise ValueError(
+                f"X must be 2D with X[1]={self.n_components}, got {X.shape=}"
+            )
+        return X[:, np.newaxis, :] * self.patterns_[: self.n_components].T
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit CSP to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the CSP.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.CSP.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X_csp : array, shape (n_epochs, n_components[, n_times])
+            If ``self.transform_into == 'average_power'`` then returns the power of CSP
+            features averaged over time and shape is ``(n_epochs, n_components)``. If
+            ``self.transform_into == 'csp_space'`` then returns the data in CSP space
+            and shape is ``(n_epochs, n_components, n_times)``.
+        """
+        # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_patterns()")
     @fill_doc
     def plot_patterns(
         self,
         info,
         components=None,
         *,
-        average=None,
         ch_type=None,
         scalings=None,
         sensors=True,
@@ -303,7 +365,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
@@ -347,21 +408,9 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        patterns = EvokedArray(self.patterns_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = patterns.plot_topomap(
-            times=components,
-            average=average,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_patterns(
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -383,20 +432,19 @@ class CSP(TransformerMixin, BaseEstimator):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
         )
-        return fig
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_filters()")
     @fill_doc
     def plot_filters(
         self,
         info,
         components=None,
         *,
-        average=None,
         ch_type=None,
         scalings=None,
         sensors=True,
@@ -434,7 +482,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
@@ -478,21 +525,9 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        filters = EvokedArray(self.filters_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = filters.plot_topomap(
-            times=components,
-            average=average,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_filters(
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -514,161 +549,11 @@ class CSP(TransformerMixin, BaseEstimator):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
         )
-        return fig
-
-    def _compute_covariance_matrices(self, X, y):
-        _, n_channels, _ = X.shape
-
-        if self.cov_est == "concat":
-            cov_estimator = self._concat_cov
-        elif self.cov_est == "epoch":
-            cov_estimator = self._epoch_cov
-
-        # Someday we could allow the user to pass this, then we wouldn't need to convert
-        # but in the meantime they can use a pipeline with a scaler
-        self._info = create_info(n_channels, 1000.0, "mag")
-        if self.rank is None:
-            self._rank = _compute_rank_raw_array(
-                X.transpose(1, 0, 2).reshape(X.shape[1], -1),
-                self._info,
-                rank=None,
-                scalings=None,
-                log_ch_type="data",
-            )
-        else:
-            self._rank = {"mag": sum(self.rank.values())}
-
-        covs = []
-        sample_weights = []
-        for ci, this_class in enumerate(self._classes):
-            cov, weight = cov_estimator(
-                X[y == this_class],
-                cov_kind=f"class={this_class}",
-                log_rank=ci == 0,
-            )
-
-            if self.norm_trace:
-                cov /= np.trace(cov)
-
-            covs.append(cov)
-            sample_weights.append(weight)
-
-        return np.stack(covs), np.array(sample_weights)
-
-    def _concat_cov(self, x_class, *, cov_kind, log_rank):
-        """Concatenate epochs before computing the covariance."""
-        _, n_channels, _ = x_class.shape
-
-        x_class = x_class.transpose(1, 0, 2).reshape(n_channels, -1)
-        cov = _regularized_covariance(
-            x_class,
-            reg=self.reg,
-            method_params=self.cov_method_params,
-            rank=self._rank,
-            info=self._info,
-            cov_kind=cov_kind,
-            log_rank=log_rank,
-            log_ch_type="data",
-        )
-        weight = x_class.shape[0]
-
-        return cov, weight
-
-    def _epoch_cov(self, x_class, *, cov_kind, log_rank):
-        """Mean of per-epoch covariances."""
-        cov = sum(
-            _regularized_covariance(
-                this_X,
-                reg=self.reg,
-                method_params=self.cov_method_params,
-                rank=self._rank,
-                info=self._info,
-                cov_kind=cov_kind,
-                log_rank=log_rank and ii == 0,
-                log_ch_type="data",
-            )
-            for ii, this_X in enumerate(x_class)
-        )
-        cov /= len(x_class)
-        weight = len(x_class)
-
-        return cov, weight
-
-    def _decompose_covs(self, covs, sample_weights):
-        n_classes = len(covs)
-        n_channels = covs[0].shape[0]
-        assert self._rank is not None  # should happen in _compute_covariance_matrices
-        _, sub_vec, mask = _smart_eigh(
-            covs.mean(0),
-            self._info,
-            self._rank,
-            proj_subspace=True,
-            do_compute_rank=False,
-            log_ch_type="data",
-            verbose=_verbose_safe_false(),
-        )
-        sub_vec = sub_vec[mask]
-        covs = np.array([sub_vec @ cov @ sub_vec.T for cov in covs], float)
-        assert covs[0].shape == (mask.sum(),) * 2
-        if n_classes == 2:
-            eigen_values, eigen_vectors = eigh(covs[0], covs.sum(0))
-        else:
-            # The multiclass case is adapted from
-            # http://github.com/alexandrebarachant/pyRiemann
-            eigen_vectors, D = _ajd_pham(covs)
-            eigen_vectors = self._normalize_eigenvectors(
-                eigen_vectors.T, covs, sample_weights
-            )
-            eigen_values = None
-        # project back
-        eigen_vectors = sub_vec.T @ eigen_vectors
-        assert eigen_vectors.shape == (n_channels, mask.sum())
-        return eigen_vectors, eigen_values
-
-    def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):
-        class_probas = sample_weights / sample_weights.sum()
-
-        mutual_info = []
-        for jj in range(eigen_vectors.shape[1]):
-            aa, bb = 0, 0
-            for cov, prob in zip(covs, class_probas):
-                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov), eigen_vectors[:, jj])
-                aa += prob * np.log(np.sqrt(tmp))
-                bb += prob * (tmp**2 - 1)
-            mi = -(aa + (3.0 / 16) * (bb**2))
-            mutual_info.append(mi)
-
-        return mutual_info
-
-    def _normalize_eigenvectors(self, eigen_vectors, covs, sample_weights):
-        # Here we apply an euclidean mean. See pyRiemann for other metrics
-        mean_cov = np.average(covs, axis=0, weights=sample_weights)
-
-        for ii in range(eigen_vectors.shape[1]):
-            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov), eigen_vectors[:, ii])
-            eigen_vectors[:, ii] /= np.sqrt(tmp)
-        return eigen_vectors
-
-    def _order_components(
-        self, covs, sample_weights, eigen_vectors, eigen_values, component_order
-    ):
-        n_classes = len(self._classes)
-        if component_order == "mutual_info" and n_classes > 2:
-            mutual_info = self._compute_mutual_info(covs, sample_weights, eigen_vectors)
-            ix = np.argsort(mutual_info)[::-1]
-        elif component_order == "mutual_info" and n_classes == 2:
-            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
-        elif component_order == "alternate" and n_classes == 2:
-            i = np.argsort(eigen_values)
-            ix = np.empty_like(i)
-            ix[1::2] = i[: len(i) // 2]
-            ix[0::2] = i[len(i) // 2 :][::-1]
-        return ix
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
@@ -792,6 +677,25 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to None.
+
+        .. versionadded:: 1.11
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.11
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -823,6 +727,9 @@ class SPoC(CSP):
         log=None,
         transform_into="average_power",
         cov_method_params=None,
+        *,
+        restr_type=None,
+        info=None,
         rank=None,
     ):
         """Init of SPoC."""
@@ -833,14 +740,37 @@ class SPoC(CSP):
             cov_est="epoch",
             norm_trace=False,
             transform_into=transform_into,
+            restr_type=restr_type,
+            info=info,
             rank=rank,
             cov_method_params=cov_method_params,
         )
+
+        cov_callable = partial(
+            _spoc_estimate,
+            reg=reg,
+            cov_method_params=cov_method_params,
+            info=info,
+            rank=rank,
+        )
+        super(CSP, self).__init__(
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=_spoc_mod,
+            restr_type=restr_type,
+        )
+
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
         delattr(self, "cov_est")
         delattr(self, "norm_trace")
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.multi_output = False
+        return tags
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
@@ -857,48 +787,10 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
-        self._check_Xy(X, y)
+        X, y = self._check_data(X, y=y, fit=True, return_y=True)
+        self._validate_params(y=y)
 
-        if len(np.unique(y)) < 2:
-            raise ValueError("y must have at least two distinct values.")
-
-        # The following code is directly copied from pyRiemann
-
-        # Normalize target variable
-        target = y.astype(np.float64)
-        target -= target.mean()
-        target /= target.std()
-
-        n_epochs, n_channels = X.shape[:2]
-
-        # Estimate single trial covariance
-        covs = np.empty((n_epochs, n_channels, n_channels))
-        for ii, epoch in enumerate(X):
-            covs[ii] = _regularized_covariance(
-                epoch,
-                reg=self.reg,
-                method_params=self.cov_method_params,
-                rank=self.rank,
-                log_ch_type="data",
-                log_rank=ii == 0,
-            )
-
-        C = covs.mean(0)
-        Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
-
-        # solve eigenvalue decomposition
-        evals, evecs = eigh(Cz, C)
-        evals = evals.real
-        evecs = evecs.real
-        # sort vectors
-        ix = np.argsort(np.abs(evals))[::-1]
-
-        # sort eigenvectors
-        evecs = evecs[:, ix].T
-
-        # spatial patterns
-        self.patterns_ = pinv(evecs).T  # n_channels x n_channels
-        self.filters_ = evecs  # n_channels x n_channels
+        super(CSP, self).fit(X, y)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -924,8 +816,35 @@ class SPoC(CSP):
         -------
         X : ndarray
             If self.transform_into == 'average_power' then returns the power of
-            CSP features averaged over time and shape (n_epochs, n_sources)
+            CSP features averaged over time and shape (n_epochs, n_components)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times).
+            space and shape is (n_epochs, n_components, n_times).
         """
         return super().transform(X)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit SPoC to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the SPoC.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.CSP.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_components[, n_times])
+            If ``self.transform_into == 'average_power'`` then returns the power of CSP
+            features averaged over time and shape is ``(n_epochs, n_components)``. If
+            ``self.transform_into == 'csp_space'`` then returns the data in CSP space
+            and shape is ``(n_epochs, n_components, n_times)``.
+        """
+        # use parent TransformerMixin method but with custom docstring
+        return super().fit_transform(X, y=y, **fit_params)

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f0aa3841b0023d83c96bd2b27ec6f0515cb82719",
+  "authors": [
+    {
+      "n": "vpeterson",
+      "e": "victoriapeterson09@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_sensor_noise_level.py": {
+      "a": 6,
+      "d": 7
+    }
+  }
+}

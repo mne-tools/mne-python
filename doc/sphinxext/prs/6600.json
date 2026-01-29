@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "69d992c03b35b797407c876aa60dd7daabcce053",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 24,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 22,
+      "d": 10
+    }
+  }
+}

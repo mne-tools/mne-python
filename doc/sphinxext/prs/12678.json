@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "caba81b9fb263a409a2c339ba63a148a92415d0d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b66734cf6f174b6806b52d4162830adb8d2a1825",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/_freesurfer.py": {
+      "a": 46,
+      "d": 22
+    },
+    "mne/report.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/viz/misc.py": {
+      "a": 21,
+      "d": 34
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 21,
+      "d": 20
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "51fd3cd93f2017c7c30ac6f47c43ae38c4d7603b",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 87,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 40,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

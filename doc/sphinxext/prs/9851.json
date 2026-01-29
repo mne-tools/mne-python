@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "556751d8e23025deb281902ad04f2c8b40b27171",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 46,
+      "d": 49
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 1,
+      "d": 19
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 10,
+      "d": 11
+    }
+  }
+}

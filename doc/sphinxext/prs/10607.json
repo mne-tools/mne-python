@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9b7fdd11f60debe810e7445c0699d9e6f487e0b1",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

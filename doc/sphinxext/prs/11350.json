@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "d7bcdd526fd64680107dc98e5871fe128ec33079",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/mri.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/evoked_ers_source_power.py": {
+      "a": 32,
+      "d": 95
+    },
+    "mne/gui/__init__.py": {
+      "a": 1,
+      "d": 96
+    },
+    "mne/gui/_core.py": {
+      "a": 33,
+      "d": 33
+    },
+    "mne/gui/_vol_stc.py": {
+      "a": 0,
+      "d": 896
+    },
+    "mne/gui/tests/test_core.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/tests/test_vol_stc.py": {
+      "a": 0,
+      "d": 202
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 31
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 1,
+      "d": 10
+    }
+  }
+}

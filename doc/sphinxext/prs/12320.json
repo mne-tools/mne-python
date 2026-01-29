@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7ccd100310892617dc3c4290465c1eefe1d47282",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "20920d731f1ab6c60b8101290c5212e471f229c1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/proc_history.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tag.py": {
+      "a": 21,
+      "d": 14
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 37,
+      "d": 1
+    },
+    "mne/io/write.py": {
+      "a": 24,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

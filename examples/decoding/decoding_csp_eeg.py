@@ -10,9 +10,11 @@ classifier is then applied to features extracted on CSP-filtered signals.
 
 See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 :footcite:`Koles1991`. The EEGBCI dataset is documented in
-:footcite:`SchalkEtAl2004` and is available at PhysioNet
-:footcite:`GoldbergerEtAl2000`.
+:footcite:`SchalkEtAl2004` and on the
+`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+The dataset is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 """
+
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD-3-Clause
@@ -29,7 +31,7 @@ from sklearn.pipeline import Pipeline
 from mne import Epochs, pick_types
 from mne.channels import make_standard_montage
 from mne.datasets import eegbci
-from mne.decoding import CSP
+from mne.decoding import CSP, get_spatial_filter_from_estimator
 from mne.io import concatenate_raws, read_raw_edf
 
 print(__doc__)
@@ -40,15 +42,15 @@ print(__doc__)
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
 tmin, tmax = -1.0, 4.0
-subject = 1
+subjects = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
-raw_fnames = eegbci.load_data(subject, runs)
+raw_fnames = eegbci.load_data(subjects, runs)
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
 eegbci.standardize(raw)  # set channel names
 montage = make_standard_montage("standard_1005")
 raw.set_montage(montage)
-raw.annotations.rename(dict(T1="hands", T2="feet"))
+raw.annotations.rename(dict(T1="hands", T2="feet"))  # as documented on PhysioNet
 raw.set_eeg_reference(projection=True)
 
 # Apply band-pass filter
@@ -94,10 +96,11 @@ class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1.0 - class_balance)
 print(f"Classification accuracy: {np.mean(scores)} / Chance level: {class_balance}")
 
-# plot CSP patterns estimated on full data for visualization
+# plot eigenvalues and patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
-
-csp.plot_patterns(epochs.info, ch_type="eeg", units="Patterns (AU)", size=1.5)
+spf = get_spatial_filter_from_estimator(csp, info=epochs.info)
+spf.plot_scree()
+spf.plot_patterns(components=np.arange(4))
 
 # %%
 # Look at performance over time

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1e6607ef574f4a57027c048bdb90517232ec9cd4",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 57,
+      "d": 4
+    },
+    "mne/fiff/tests/test_meas_info.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

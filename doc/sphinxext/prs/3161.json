@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b5a7c26f8a843d615dbb63ed3b13aae7d65fde2e",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 22,
+      "d": 28
+    }
+  }
+}

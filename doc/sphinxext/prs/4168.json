@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "a8f7ad3eb49ea540814183635b6bc8a246e7f3ce",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_timefreq.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_unsupervised_spatial_filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_xdawn_denoising.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_whitening.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 3,
+      "d": 6
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/plot_modifying_data_inplace.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,6 +1,4 @@
-# Authors : Alexandre Gramfort, alexandre.gramfort@inria.fr (2011)
-#           Denis A. Engemann <denis.engemann@gmail.com>
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,8 +8,9 @@ from functools import partial
 import numpy as np
 from scipy.signal import spectrogram
 
+from ..fixes import _reshape_view
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, logger, verbose
+from ..utils import _check_option, _ensure_int, logger, verbose, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
@@ -80,24 +79,17 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     """Ensure n_fft, n_per_seg and n_overlap make sense."""
     if n_per_seg is None and n_fft > n:
         raise ValueError(
-            (
-                "If n_per_seg is None n_fft is not allowed to be > "
-                "n_times. If you want zero-padding, you have to set "
-                "n_per_seg to relevant length. Got n_fft of %d while"
-                " signal length is %d."
-            )
-            % (n_fft, n)
+            "If n_per_seg is None n_fft is not allowed to be > "
+            "n_times. If you want zero-padding, you have to set "
+            f"n_per_seg to relevant length. Got n_fft of {n_fft} while"
+            f" signal length is {n}."
         )
     n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
     n_per_seg = n if n_per_seg > n else n_per_seg
     if n_overlap >= n_per_seg:
         raise ValueError(
-            (
-                "n_overlap cannot be greater than n_per_seg (or "
-                "n_fft). Got n_overlap of %d while n_per_seg is "
-                "%d."
-            )
-            % (n_overlap, n_per_seg)
+            "n_overlap cannot be greater than n_per_seg (or n_fft). Got n_overlap "
+            f"of {n_overlap} while n_per_seg is {n_per_seg}."
         )
     return n_fft, n_per_seg, n_overlap
 
@@ -200,7 +192,7 @@ def psd_array_welch(
     # Prep the PSD
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, n_fft, n_per_seg, n_overlap)
     win_size = n_fft / float(sfreq)
-    logger.info("Effective window size : %0.3f (s)" % win_size)
+    logger.info(f"Effective window size : {win_size:0.3f} (s)")
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     if not freq_mask.any():
@@ -208,6 +200,42 @@ def psd_array_welch(
     freq_sl = slice(*(np.where(freq_mask)[0][[0, -1]] + [0, 1]))
     del freq_mask
     freqs = freqs[freq_sl]
+
+    step = max(int(n_per_seg) - int(n_overlap), 1)
+    if n_times >= n_per_seg:
+        n_segments = 1 + (n_times - n_per_seg) // step
+        analyzed_end = step * (n_segments - 1) + n_per_seg
+    else:
+        n_segments = 0
+        analyzed_end = 0
+
+    nan_mask_full = np.isnan(x)
+    nan_present = nan_mask_full.any()
+    if nan_present:
+        good_mask_full = ~nan_mask_full
+        aligned_nan = np.allclose(good_mask_full, good_mask_full[[0]], equal_nan=True)
+    else:
+        aligned_nan = False
+
+    if analyzed_end > 0:
+        # Inf always counts as non-finite per-channel
+        nonfinite_mask = np.isinf(x[..., :analyzed_end])
+        # NaNs count per-channel only if NOT aligned (i.e., not annotations)
+        if nan_present and not aligned_nan:
+            nonfinite_mask |= nan_mask_full[..., :analyzed_end]
+        bad_ch = nonfinite_mask.any(axis=-1)
+    else:
+        bad_ch = np.zeros(x.shape[0], dtype=bool)
+
+    if bad_ch.any():
+        warn(
+            "Non-finite values (NaN/Inf) detected in some channels; PSD for "
+            "those channels will be NaN.",
+        )
+        # avoid downstream NumPy warnings by zeroing bad channels;
+        # will overwrite their PSD rows with NaN at the end
+        x = x.copy()
+        x[bad_ch] = 0.0
 
     # Parallelize across first N-1 dimensions
     logger.debug(
@@ -226,11 +254,9 @@ def psd_array_welch(
         window=window,
         mode=mode,
     )
-    if np.any(np.isnan(x)):
-        good_mask = ~np.isnan(x)
-        # NaNs originate from annot, so must match for all channels. Note that we CANNOT
-        # use np.testing.assert_allclose() here; it is strict about shapes/broadcasting
-        assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
+    if nan_present and aligned_nan:
+        # Aligned NaNs across channels → treat as bad annotations.
+        good_mask = ~nan_mask_full
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
         # weights reflect the number of samples used from each span. For spans longer
@@ -266,6 +292,12 @@ def psd_array_welch(
                 return _func(*args, **kwargs)
 
     else:
+        # Either no NaNs, or NaNs are not aligned across channels.
+        if nan_present and not aligned_nan:
+            logger.info(
+                "NaN masks are not aligned across channels; treating NaNs as "
+                "per-channel contamination."
+            )
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
         func = _func
@@ -277,5 +309,9 @@ def psd_array_welch(
     shape = dshape + (len(freqs),)
     if average is None:
         shape = shape + (-1,)
-    psds.shape = shape
+
+    if bad_ch.any():
+        psds[bad_ch] = np.nan
+
+    psds = _reshape_view(psds, shape)
     return psds, freqs

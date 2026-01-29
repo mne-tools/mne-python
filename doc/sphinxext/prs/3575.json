@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b906cf79f045729615deaeb921345536efd1dd55",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 27,
+      "d": 23
+    },
+    "mne/evoked.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

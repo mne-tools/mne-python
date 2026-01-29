@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5a83eaea91c48c8ac87a443b102b4509f88e8f50",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/visualization/sensor_noise_level.py": {
+      "a": 0,
+      "d": 39
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

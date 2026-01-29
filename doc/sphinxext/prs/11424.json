@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "59125c9182804153729dfb355608457f09cb5bbd",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_annotations.py": {
+      "a": 8,
+      "d": 3
+    }
+  }
+}

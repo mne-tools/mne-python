@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "fd91ebed2e1f69d742e32e40597938fd3b924706",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 105,
+      "d": 0
+    },
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 12,
+      "d": 14
+    },
+    "mne/connectivity/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/connectivity/envelope.py": {
+      "a": 100,
+      "d": 0
+    },
+    "mne/connectivity/tests/test_envelope.py": {
+      "a": 60,
+      "d": 0
+    },
+    "mne/connectivity/tests/test_utils.py": {
+      "a": 34,
+      "d": 1
+    },
+    "mne/connectivity/utils.py": {
+      "a": 47,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/ctf_comp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 25,
+      "d": 19
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 16,
+      "d": 6
+    }
+  }
+}

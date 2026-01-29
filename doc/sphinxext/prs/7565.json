@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9193ce2dd8b892132613fb65b8a4baf959d16230",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 2,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

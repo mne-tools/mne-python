@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "251ec96443f560c3fdac752f1ad36788eed960ba",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/io/meas_info.py": {
+      "a": 30,
+      "d": 8
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 43,
+      "d": 1
+    }
+  }
+}

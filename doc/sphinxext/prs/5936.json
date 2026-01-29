@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a4aac69816a02337ce3448ec58a21f77ce6e2ab5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_ecog.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

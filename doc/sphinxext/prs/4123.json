@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0130bf93adbe6f7efadcac250fc0985fe6f927d4",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_forward.py": {
+      "a": 20,
+      "d": 4
+    }
+  }
+}

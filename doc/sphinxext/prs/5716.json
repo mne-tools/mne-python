@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "56511470c630305ef84895ee6e80043dbecfe8e2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 25,
+      "d": 19
+    }
+  }
+}

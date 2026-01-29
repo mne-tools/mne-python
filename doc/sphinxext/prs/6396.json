@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6e0f8d83b5f5e95ef94aba541c639b213fa104d6",
+  "authors": [
+    {
+      "n": "José C. García Alanis",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

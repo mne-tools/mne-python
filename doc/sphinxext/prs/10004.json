@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "33aa10ec7604b1aabe1c6ef51b11f3638aa0a0f5",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

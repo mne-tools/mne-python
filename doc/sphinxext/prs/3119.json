@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "90c43d7ccaca46dc784b2001cf00e5d990f80e62",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_temporal_whitening.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_topomap_delayed_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_ssp_projs_sensitivity_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_ssp_projs_topomaps.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/proj.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_proj.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

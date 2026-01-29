@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e05151abb5d752cf6bd91fec0dc395ca7aa286fc",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_coreg.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

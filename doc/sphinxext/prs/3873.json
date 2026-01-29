@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "74e1af45de44715ce93455fed74fd27b69a52947",
+  "authors": [
+    {
+      "n": null,
+      "e": "erkkahe@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

@@ -1,8 +1,7 @@
-# Authors: Joan Massich <mailsik@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import csv
 import os.path as op
 from collections import OrderedDict
@@ -67,7 +66,7 @@ def _str_names(ch_names):
 def _safe_np_loadtxt(fname, **kwargs):
     out = np.genfromtxt(fname, **kwargs)
     ch_names = _str_names(out["f0"])
-    others = tuple(out["f%d" % ii] for ii in range(1, len(out.dtype.fields)))
+    others = tuple(out[f"f{ii}"] for ii in range(1, len(out.dtype.fields)))
     return (ch_names,) + others
 
 
@@ -231,6 +230,11 @@ def _check_dupes_odict(ch_names, pos):
 def _read_elc(fname, head_size):
     """Read .elc files.
 
+    The `.elc` files are so-called "asa electrode files". ASA here stands for
+    Advances Source Analysis, and is a software package developed and sold by
+    the ANT Neuro company. They provide a device for sensor digitization, called
+    'xensor', which produces the `.elc` files.
+
     Parameters
     ----------
     fname : str
@@ -242,12 +246,12 @@ def _read_elc(fname, head_size):
     Returns
     -------
     montage : instance of DigMontage
-        The montage in [m].
+        The montage units are [m].
     """
     fid_names = ("Nz", "LPA", "RPA")
 
-    ch_names_, pos = [], []
     with open(fname) as fid:
+        # Read units
         # _read_elc does require to detect the units. (see _mgh_or_standard)
         for line in fid:
             if "UnitPosition" in line:
@@ -255,19 +259,37 @@ def _read_elc(fname, head_size):
                 scale = dict(m=1.0, mm=1e-3)[units]
                 break
         else:
-            raise RuntimeError("Could not detect units in file %s" % fname)
+            raise RuntimeError(f"Could not detect units in file {fname}")
         for line in fid:
             if "Positions\n" in line:
                 break
+
+        # Read positions
+        new_style = False
         pos = []
         for line in fid:
             if "Labels\n" in line:
                 break
-            pos.append(list(map(float, line.split())))
+            if ":" in line:
+                # Of the 'new' format: `E01 : 5.288 -3.658 119.693`
+                pos.append(list(map(float, line.split(":")[1].split())))
+                new_style = True
+            else:
+                # Of the 'old' format: `5.288 -3.658 119.693`
+                pos.append(list(map(float, line.split())))
+
+        # Read labels
+        ch_names_ = []
         for line in fid:
             if not line or not set(line) - {" "}:
                 break
-            ch_names_.append(line.strip(" ").strip("\n"))
+            if new_style:
+                # Not sure how this format would deal with spaces in channel labels,
+                # but none of my test files had this, so let's wait until it comes up.
+                parsed = line.strip(" ").strip("\n").split()
+            else:
+                parsed = [line.strip(" ").strip("\n")]
+            ch_names_.extend(parsed)
 
     pos = np.array(pos) * scale
     if head_size is not None:

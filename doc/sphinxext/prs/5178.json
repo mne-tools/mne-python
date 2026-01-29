@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d7ec5c8e0cb5957fe6249d72f9e0437c4777b9da",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/simulation/raw.py": {
+      "a": 62,
+      "d": 25
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 49,
+      "d": 37
+    }
+  }
+}

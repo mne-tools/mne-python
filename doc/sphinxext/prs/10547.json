@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4e601bcab824e49d9f96eba9c402b75868fe4604",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/io/_digitization.py": {
+      "a": 15,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "cbcbc43e98369622a90b8b025876be5b14f3f287",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

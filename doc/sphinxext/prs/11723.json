@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c19bce34d636285e9ddd14f5c183c81795caaf99",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_qt.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

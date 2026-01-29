@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "105c8b819c08d24262f65d870b55bf0b305340d7",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12535.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -19,7 +19,7 @@ condition. Finally a topographic plot is created which exhibits the temporal
 evolution of the spatial filters.
 """
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Jean-Remi King <jeanremi.king@gmail.com>
+#         Jean-Rémi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.

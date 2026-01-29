@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5843ad17e2a883b5f029731252587ef9d01a8ab8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/tests/test_lof.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

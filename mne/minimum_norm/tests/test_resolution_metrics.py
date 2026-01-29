@@ -1,8 +1,7 @@
-# Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """
 Test the following properties for resolution metrics.
 

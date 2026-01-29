@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "776b203fb323d7d935a4b76d9e20b13541491e59",
+  "authors": [
+    {
+      "n": "rcmdnk",
+      "e": "rcmdnk@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

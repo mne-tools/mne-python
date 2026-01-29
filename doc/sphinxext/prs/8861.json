@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "204720ea7b92831cdf2ca15602d96cf3839e85b4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 19,
+      "d": 10
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/utils/_logging.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

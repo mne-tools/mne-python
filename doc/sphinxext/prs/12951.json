@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "cd6dd5f4db008cdef407298e2e24014e75916693",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/decoding/ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/decoding/search_light.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/decoding/ssd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "43bef6607a48fb272428d2f4a931df97cae688e1",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/cuda.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/filter.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

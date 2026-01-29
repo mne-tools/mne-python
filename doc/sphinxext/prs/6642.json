@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ae266c89814cd8f1ab3f77bbfeb7dfba8eeed295",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "examples/preprocessing/plot_movement_compensation.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 190,
+      "d": 29
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "aca49655b10fc17679142e07c5d46659be1099da",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12071.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 14,
+      "d": 25
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 35,
+      "d": 1
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 69,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 81,
+      "d": 15
+    },
+    "mne/viz/ui_events.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 108,
+      "d": 63
+    }
+  }
+}

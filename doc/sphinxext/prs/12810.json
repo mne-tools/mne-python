@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "af19be0a123735fd6b85e82e01adba86d6574188",
+  "authors": [
+    {
+      "n": "Proloy Das",
+      "e": "proloy@umd.edu"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ant/ant.py": {
+      "a": 57,
+      "d": 6
+    },
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 188,
+      "d": 21
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

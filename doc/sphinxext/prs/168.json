@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "05667f9c5e5f8ce3b55c0e68724a6af6df6d7566",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_ecg_artifacts_from_ica.py": {
+      "a": 103,
+      "d": 0
+    },
+    "examples/preprocessing/plot_eog_artifacts_from_ica.py": {
+      "a": 100,
+      "d": 0
+    },
+    "examples/preprocessing/plot_ica_from_epochs.py": {
+      "a": 66,
+      "d": 9
+    },
+    "examples/preprocessing/plot_ica_from_raw.py": {
+      "a": 78,
+      "d": 23
+    },
+    "mne/artifacts/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/artifacts/eog.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/artifacts/ica.py": {
+      "a": 408,
+      "d": 112
+    },
+    "mne/artifacts/tests/test_ica.py": {
+      "a": 47,
+      "d": 46
+    }
+  }
+}

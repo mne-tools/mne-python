@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "07af2f95fa92427120575f923b588160046a7ca3",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 218,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 138,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/20_rejecting_bad_data.py": {
+      "a": 90,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3b09ed062226bbe017243071f450e0254fc3a769",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "mne/externals/FieldTrip.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

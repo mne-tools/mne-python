@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "cb712f48ed9829bedc535c8c507e293871429a4e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/mixed_norm/optim.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/tests/test_cov.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_label.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_proj.py": {
+      "a": 9,
+      "d": 4
+    }
+  }
+}

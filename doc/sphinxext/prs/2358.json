@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "b6e4658a9a98e0ee934d6e930347406ff6910cc4",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 74,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/__init__.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 60,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 59,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 51,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 46,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e0688805e90d30c74bb1fc17eff1343edada5ce0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/reference.py": {
+      "a": 26,
+      "d": 9
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 16,
+      "d": 10
+    }
+  }
+}

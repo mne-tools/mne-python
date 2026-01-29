@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2e200aa7778a1462b4da6ce7bf4253b99cde3d6a",
+  "authors": [
+    {
+      "n": "nordme",
+      "e": "nordme@uw.edu"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/realign.py": {
+      "a": 14,
+      "d": 10
+    }
+  }
+}

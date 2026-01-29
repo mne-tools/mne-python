@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "90ddfff2dfabffd6d899fa8ff9085ab50d55fac5",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_morph_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/label.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 18,
+      "d": 18
+    },
+    "mne/source_estimate.py": {
+      "a": 57,
+      "d": 50
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "32b686c0416ca5d5751cf2e07befdfcecb6c0bcb",
+  "authors": [
+    {
+      "n": "Giulio",
+      "e": "giulio.gabrieli@iit.it"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "agramfort@fb.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/export/_eeglab.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

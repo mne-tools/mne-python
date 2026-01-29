@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "728b189f7221293affb1aa75ca5b05af8ab37b8a",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 209,
+      "d": 84
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 67,
+      "d": 27
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

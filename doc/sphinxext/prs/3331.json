@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a361dced7663c616ac1fd184f7eed183d2b71580",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

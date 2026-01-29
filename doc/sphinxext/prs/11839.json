@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0d4550b77f2e546f37e69ba4c709cb71132b1848",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    ".git-blame-ignore-revs": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 413
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 424,
+      "d": 2
+    }
+  }
+}

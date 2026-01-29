@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f69e35dbd7b6137fe0cf94838a1deac41245eab8",
+  "authors": [
+    {
+      "n": "Yoursa BEKHTI",
+      "e": "ybekhti@is222485.intra.cea.fr"
+    }
+  ],
+  "changes": {
+    "mne/layouts/layout.py": {
+      "a": 36,
+      "d": 20
+    },
+    "mne/viz.py": {
+      "a": 12,
+      "d": 4
+    }
+  }
+}

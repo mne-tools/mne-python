@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5fb84d6b9ffd7d9d29714795da89cb8be23828b7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/forward/80_fix_bem_in_blender.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

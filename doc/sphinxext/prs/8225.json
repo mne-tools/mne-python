@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b90ca523cef1b3260b4a3d69db4b7871b64d11e5",
+  "authors": [
+    {
+      "n": "Steven Bierer",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 28,
+      "d": 28
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

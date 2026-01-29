@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4fd5b1d8dc0e89de4b0953cb4ca1825774e27588",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/evoked_topomap.py": {
+      "a": 31,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

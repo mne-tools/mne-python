@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "63ce95d4f0928e2ad035cb67c70ea06db44bd19f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/_fiff/meas_info.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/info.html.jinja": {
+      "a": 80,
+      "d": 10
+    },
+    "mne/html_templates/repr/raw.html.jinja": {
+      "a": 1,
+      "d": 12
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/utils/tests/test_misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/30_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/10_raw_overview.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

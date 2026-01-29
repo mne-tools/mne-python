@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "350416249589047f117f1194e8d8cf6061258f0c",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

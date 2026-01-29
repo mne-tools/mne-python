@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "21c61576c2dce056a40946af0820d56e2259ec5f",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 39,
+      "d": 19
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 31,
+      "d": 15
+    }
+  }
+}

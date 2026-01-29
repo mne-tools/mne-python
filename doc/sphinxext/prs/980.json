@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c493a447f7415b961bf187db8615dc77bc00ffbf",
+  "authors": [
+    {
+      "n": "Brad Buran",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

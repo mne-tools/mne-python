@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d2600ee084bc884c3cc461cd94bfe25ae9932d4c",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

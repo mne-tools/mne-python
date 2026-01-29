@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fb8c7029ea423722278fc66448e602342841fad9",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

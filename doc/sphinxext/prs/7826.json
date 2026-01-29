@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d96532567f4f8f00e3629123eb4a7de8d01a85ed",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/mne_c.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

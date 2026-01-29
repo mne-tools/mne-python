@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c58069137f800306ef8469b677530dbe14984429",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/io/20_reading_eeg_data.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

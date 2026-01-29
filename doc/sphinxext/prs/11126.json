@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4fda0d849ec8bc10e3c6db18d9e4ba8dfdd1bb7e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/psf_ctf_vertices.py": {
+      "a": 5,
+      "d": 48
+    },
+    "examples/inverse/psf_volume.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

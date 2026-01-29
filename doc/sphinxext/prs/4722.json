@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "40b61be17116fee3f0e96b84f1b2a8eed3028092",
+  "authors": [
+    {
+      "n": "Jon Houck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 14,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/circle.py": {
+      "a": 14,
+      "d": 3
+    }
+  }
+}

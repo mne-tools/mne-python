@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2fe7d512fd08c9993afa5f427ff3cf9808fb6ec1",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 15,
+      "d": 13
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

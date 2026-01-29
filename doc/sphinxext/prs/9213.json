@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "02bb98b35a34d49d22037e3d494ba1e4f83994de",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/workflows/cancel.yml": {
+      "a": 0,
+      "d": 15
+    }
+  }
+}

@@ -1,6 +1,4 @@
-# Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -28,6 +26,7 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
+from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
@@ -35,7 +34,6 @@ from mne.report import report as report_mod
 from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
-    _webp_supported,
 )
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
@@ -286,7 +284,7 @@ def test_add_custom_js(tmp_path):
 
     report = Report()
     report.add_figure(fig=fig, title="Test section")
-    custom_js = "function hello() {\n" '  alert("Hello, report!");\n' "}"
+    custom_js = 'function hello() {\n  alert("Hello, report!");\n}'
     report.add_custom_js(js=custom_js)
 
     assert custom_js in report.include
@@ -354,7 +352,7 @@ def test_report_raw_psd_and_date(tmp_path):
     assert isinstance(report.html, list)
     assert "PSD" in "".join(report.html)
     assert "Unknown" not in "".join(report.html)
-    assert "GMT" in "".join(report.html)
+    assert "UTC" in "".join(report.html)
 
     # test kwargs passed through to underlying array func
     Report(raw_psd=dict(window="boxcar"))
@@ -510,11 +508,37 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs.shape = (len(imgs), -1)
+    imgs = _reshape_view(imgs, (len(imgs), -1))
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
     assert 0.778 < corr < 0.80
+
+
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_add_forward(renderer_interactive_pyvistaqt):
+    """Test add_forward."""
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=True,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 1
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=False,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 0
 
 
 @testing.requires_testing_data
@@ -596,7 +620,8 @@ def test_validate_input():
 
 def test_open_report(tmp_path):
     """Test the open_report function."""
-    pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
+    h5io = pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -607,6 +632,11 @@ def test_open_report(tmp_path):
         report.add_figure(fig=fig1, title="evoked response")
     # Exiting the context block should have triggered saving to HDF5
     assert Path(hdf5).exists()
+
+    # Let's add some companion data to the HDF5 file
+    with h5py.File(hdf5, "r+") as f:
+        h5io.write_hdf5(f, "test", title="companion")
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
@@ -624,7 +654,11 @@ def test_open_report(tmp_path):
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
         with open_report(hdf5, subjects_dir=str(tmp_path)) as report:
+            assert h5io.read_hdf5(hdf5, title="companion") == "test"
             1 / 0
+
+    # Check that our companion data survived
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
 
 def test_remove():
@@ -793,14 +827,18 @@ def test_scraper(tmp_path):
     r.add_figure(fig=fig1, title="a")
     r.add_figure(fig=fig2, title="b")
     # Mock a Sphinx + sphinx_gallery config
-    app = Bunch(builder=Bunch(srcdir=tmp_path, outdir=tmp_path / "_build" / "html"))
+    srcdir = tmp_path
+    outdir = tmp_path / "_build" / "html"
     scraper = _ReportScraper()
-    scraper.app = app
-    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name="html")
-    img_fname = app.builder.srcdir / "auto_examples" / "images" / "sg_img.png"
-    target_file = app.builder.srcdir / "auto_examples" / "sg.py"
+    gallery_conf = dict(builder_name="html", src_dir=srcdir)
+    app = Bunch(
+        builder=Bunch(outdir=outdir),
+        config=Bunch(sphinx_gallery_conf=gallery_conf),
+    )
+    scraper.set_dirs(app)
+    img_fname = srcdir / "auto_examples" / "images" / "sg_img.png"
+    target_file = srcdir / "auto_examples" / "sg.py"
     os.makedirs(img_fname.parent)
-    os.makedirs(app.builder.outdir)
     block_vars = dict(
         image_path_iterator=(img for img in [str(img_fname)]),
         example_globals=dict(a=1),
@@ -815,14 +853,13 @@ def test_scraper(tmp_path):
     rst = scraper(block, block_vars, gallery_conf)
     # Once it's saved, add it
     assert rst == ""
-    fname = tmp_path / "my_html.html"
+    fname = srcdir / "my_html.html"
     r.save(fname, open_browser=False)
-    rst = scraper(block, block_vars, gallery_conf)
-    out_html = app.builder.outdir / "auto_examples" / "my_html.html"
+    out_html = outdir / "auto_examples" / "my_html.html"
     assert not out_html.is_file()
-    scraper.copyfiles()
+    rst = scraper(block, block_vars, gallery_conf)
     assert out_html.is_file()
-    assert rst.count('"') == 6
+    assert rst.count('"') == 8
     assert "<iframe" in rst
     assert img_fname.with_suffix(".svg").is_file()
 
@@ -872,6 +909,7 @@ def test_survive_pickle(tmp_path):
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
@@ -926,6 +964,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
+    # Normally, ICA.find_bads_*() assembles the labels_ dict; since we didn't run any
+    # of these methods, fill in some fake values manually.
+    ica.labels_ = {
+        "ecg/0/fake ECG channel": [0],
+        "eog/0/fake EOG channel": [1],
+    }
+
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)
     r.add_events(events=events_fname, title="my events", sfreq=raw.info["sfreq"])
@@ -945,7 +990,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
     )
-    assert "Metadata" not in r.html[-1]
+    assert "Metadata" in r.html[-1]
+    assert "No metadata set" in r.html[-1]
 
     # Try with metadata
     r.add_epochs(
@@ -955,6 +1001,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         projs=False,
     )
     assert "Metadata" in r.html[-1]
+    assert "25 rows × 7 columns" in r.html[-1]
 
     with pytest.raises(ValueError, match="requested to calculate PSD on a duration"):
         r.add_epochs(
@@ -1059,6 +1106,88 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.save(fname=fname, open_browser=False)
 
 
+def test_report_tweaks(tmp_path, monkeypatch):
+    """Test tweaking of report params."""
+    r = Report(image_format="png")
+    assert r.collapse == ()
+    assert r.img_max_width == 850
+    assert r.img_max_res == 100
+
+    events = np.array([[0, 0, 1], [1, 0, 2], [2, 0, 3]])
+    kwargs = dict(events=events, sfreq=1000.0, title="my events", section="my section")
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+
+    fname = tmp_path / "report.html"
+    r.save(fname, open_browser=False)
+
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 2, fname  # section and element
+
+    r.collapse = ["section"]
+    r.save(fname, open_browser=False, overwrite=True)
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 1, fname  # section collapsed
+
+    # Bad input handling
+    with pytest.raises(ValueError):
+        r.collapse = "foo"
+    with pytest.raises(TypeError):
+        r.collapse = 1
+    with pytest.raises(TypeError):
+        r.img_max_width = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_width = -1
+    with pytest.raises(TypeError):
+        r.img_max_res = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_res = -1
+
+    # Figure out the size of our rendered image (max width 850)
+    img_re = re.compile(r'src="data:image/png;base64([^"]+)"')
+    imgs = img_re.findall(html)
+    assert len(imgs) == 2  # the first is our logo
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (850, 850, 3)
+
+    # Now let's limit it by max resolution (100 dpi)
+    r = Report(image_format="png")
+    r.img_max_width = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (1000, 1000, 3)  # figure.figsize * Report.img_max_res
+
+    # Now let's do unconstrained
+    r = Report(image_format="png")
+    r.img_max_width = r.img_max_res = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
+
+
+def test_report_backward_compat(tmp_path):
+    """Ensure our options are still backward compatible."""
+    h5io = pytest.importorskip("h5io")
+    fname = tmp_path / "report.h5"
+    r = Report()
+    r.img_max_width = 600
+    r.save(fname)
+    h = h5io.read_hdf5(fname, title="mnepython")
+    assert h["img_max_width"] == 600
+    del h["img_max_width"]
+    h5io.write_hdf5(fname, h, title="mnepython", overwrite=True)
+    with open_report(fname) as r2:
+        assert r2.img_max_width == 850
+
+
 @pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
@@ -1069,7 +1198,11 @@ def test_manual_report_3d(tmp_path, renderer):
     with info._unlock():
         dig, info["dig"] = info["dig"], []
     add_kwargs = dict(
-        trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
+        trans=trans_fname,
+        info=info,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        alpha=0.75,
     )
     with (
         _record_warnings(),
@@ -1082,6 +1215,12 @@ def test_manual_report_3d(tmp_path, renderer):
     # use of sparse rather than dense head, and also possibly an arg to specify
     # which views to actually show. Both of these could probably be useful to
     # end-users, too.
+    bad_add_kwargs = add_kwargs.copy()
+    bad_add_kwargs.update(dict(trans="auto", subjects_dir=subjects_dir))
+    with pytest.raises(RuntimeError, match="Could not find"):
+        r.add_trans(title="my coreg", **bad_add_kwargs)
+    add_kwargs.update(trans="fsaverage")  # this is wrong but tests fsaverage code path
+    add_kwargs.update(plot_kwargs=dict(dig="fiducials"))  # test additional plot kwargs
     r.add_trans(title="my coreg", **add_kwargs)
     r.add_bem(subject="sample", subjects_dir=subjects_dir, title="my bem", decim=100)
     r.add_inverse_operator(
@@ -1089,7 +1228,7 @@ def test_manual_report_3d(tmp_path, renderer):
         title="my inverse",
         subject="sample",
         subjects_dir=subjects_dir,
-        trans=trans_fname,
+        plot=True,
     )
     r.add_stc(
         stc=stc_fname,
@@ -1195,11 +1334,6 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
 @pytest.mark.parametrize("image_format", _ALLOWED_IMAGE_FORMATS)
 def test_image_format(image_format):
     """Test image format support."""
-    if image_format == "webp":
-        if not _webp_supported():
-            with pytest.raises(ValueError, match="matplotlib"):
-                Report(image_format="webp")
-            return
     r = Report(image_format=image_format)
     fig1, _ = _get_example_figures()
     r.add_figure(fig1, "fig1")

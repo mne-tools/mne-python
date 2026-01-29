@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "c647bbba5d1f4d943d7645d3c36a88b1eb528834",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 189,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 26,
+      "d": 25
+    },
+    "mne/fiff/constants.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/fiff/tag.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/write.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 22,
+      "d": 3
+    }
+  }
+}

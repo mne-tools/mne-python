@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "7b0468f805c027818e864b92137664364d2a9a1b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/circle_artifacts.yml": {
+      "a": 0,
+      "d": 0
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 1,
+      "d": 3
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 4,
+      "d": 6
+    },
+    "README.rst": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 14,
+      "d": 7
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

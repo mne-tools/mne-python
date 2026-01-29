@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f87be3000ce333ff9ccfddc45b47a2da7d92d69c",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/io/reference.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

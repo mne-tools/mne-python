@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e6ce2be09f57042e895d4affe86c62124a15f140",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 38,
+      "d": 2
+    },
+    "mne/tests/test_report.py": {
+      "a": 15,
+      "d": 5
+    }
+  }
+}

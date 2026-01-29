@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f6cda36272b28f7b3a55b29ac751575b0edc608b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/egi/egi.py": {
+      "a": 27,
+      "d": 15
+    },
+    "mne/fiff/egi/tests/test_egi.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

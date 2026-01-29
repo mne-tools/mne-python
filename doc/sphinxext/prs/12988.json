@@ -1,0 +1,231 @@
+{
+  "merge_commit_sha": "535b401eee7c8c1ce5ce79d99a754af8a374c0fc",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/contrib_avatars.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/_fiff/matrix.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_pick.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_ola.py": {
+      "a": 3,
+      "d": 9
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/channels/layout.py": {
+      "a": 6,
+      "d": 11
+    },
+    "mne/channels/montage.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/cov.py": {
+      "a": 28,
+      "d": 25
+    },
+    "mne/datasets/utils.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/decoding/ssd.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/event.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/filter.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 25,
+      "d": 23
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 32,
+      "d": 23
+    },
+    "mne/io/array/array.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/bti/bti.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/io/ctf/info.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/egi/general.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 14,
+      "d": 15
+    },
+    "mne/label.py": {
+      "a": 32,
+      "d": 31
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 18,
+      "d": 25
+    },
+    "mne/minimum_norm/spatial_resolution.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 18,
+      "d": 11
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 14,
+      "d": 16
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 21,
+      "d": 21
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/rank.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/simulation/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/simulation/source.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 18,
+      "d": 21
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 35,
+      "d": 24
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/surface.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/tests/test_line_endings.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/transforms.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

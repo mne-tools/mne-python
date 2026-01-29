@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7491370569855921981b993c9ca63c3e72046589",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 34,
+      "d": 8
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 27,
+      "d": 1
+    }
+  }
+}

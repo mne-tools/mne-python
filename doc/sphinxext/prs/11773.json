@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "06d396d40a6a925473dcf1451758272d68f64185",
+  "authors": [
+    {
+      "n": "Frostime",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

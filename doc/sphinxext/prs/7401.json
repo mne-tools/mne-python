@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3cc92424a94b7d73f3838732ccf5c8abbb72e652",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 21,
+      "d": 4
+    }
+  }
+}

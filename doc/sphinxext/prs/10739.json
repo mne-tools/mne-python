@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5af527d399571e1ac0c84af29fdfd2b4fd676cbd",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/visualization/montage_sgskip.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d621f50184d10280ef3386e011ad9182c2e50116",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/viz/topo.py": {
+      "a": 32,
+      "d": 10
+    }
+  }
+}

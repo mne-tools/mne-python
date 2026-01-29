@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c1ad98b577de30e93ac96ea99b279069fe435843",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

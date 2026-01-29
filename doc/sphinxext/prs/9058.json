@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c8f0f51b4a747dc3f08128c7c232ce3ac005cdba",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 6,
+      "d": 10
+    },
+    "mne/datasets/kiloword/kiloword.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c8d8c5f72e6714ae147994effcee8efe04c648f4",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 58
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 57
+    },
+    "mne/utils/docs.py": {
+      "a": 61,
+      "d": 0
+    }
+  }
+}

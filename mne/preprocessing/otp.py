@@ -1,6 +1,4 @@
-# Authors: Samu Taulu <staulu@uw.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -111,10 +109,10 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
     return raw_otp
 
 
-def _otp(data, picks_good, picks_bad):
+def _otp(data, picks_good, picks_bad, *, start=0, stop=None):
     """Perform OTP on one segment of data."""
     if not np.isfinite(data).all():
-        raise RuntimeError("non-finite data (inf or nan) found in raw " "instance")
+        raise RuntimeError("non-finite data (inf or nan) found in raw instance")
     # demean our data
     data_means = np.mean(data, axis=-1, keepdims=True)
     data -= data_means

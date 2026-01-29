@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 r"""Create mne report for a folder.
 
 Examples
@@ -80,7 +81,7 @@ from mne.utils import logger, verbose
 @verbose
 def log_elapsed(t, verbose=None):
     """Log elapsed time."""
-    logger.info("Report complete in %s seconds" % round(t, 1))
+    logger.info(f"Report complete in {round(t, 1)} seconds")
 
 
 def run():
@@ -112,13 +113,13 @@ def run():
     parser.add_option(
         "--bmin",
         dest="bmin",
-        help="Time at which baseline correction starts for " "evokeds",
+        help="Time at which baseline correction starts for evokeds",
         default=None,
     )
     parser.add_option(
         "--bmax",
         dest="bmax",
-        help="Time at which baseline correction stops for " "evokeds",
+        help="Time at which baseline correction stops for evokeds",
         default=None,
     )
     parser.add_option(
@@ -138,7 +139,7 @@ def run():
         help="Overwrite html report if it already exists",
     )
     parser.add_option(
-        "-j", "--jobs", dest="n_jobs", help="Number of jobs to" " run in parallel"
+        "-j", "--jobs", dest="n_jobs", help="Number of jobs to run in parallel"
     )
     parser.add_option(
         "-m",
@@ -146,14 +147,14 @@ def run():
         type="int",
         dest="mri_decim",
         default=2,
-        help="Integer factor used to decimate " "BEM plots",
+        help="Integer factor used to decimate BEM plots",
     )
     parser.add_option(
         "--image-format",
         type="str",
         dest="image_format",
         default="png",
-        help="Image format to use " "(can be 'png' or 'svg')",
+        help="Image format to use (can be 'png' or 'svg')",
     )
     _add_verbose_flag(parser)
 

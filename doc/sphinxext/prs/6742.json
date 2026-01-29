@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "21a224062e7f1cc088d94cdaef59aa2ed9efb675",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 9
+    }
+  }
+}

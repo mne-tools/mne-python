@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "05f1fa69fdddc2725bd3099280cd189e96a940f3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 100,
+      "d": 106
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/intro/50_configure_mne.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

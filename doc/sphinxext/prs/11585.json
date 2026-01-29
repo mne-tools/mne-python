@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "51e0b2553a2757a822d0f10f42c236ab4e6faf23",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

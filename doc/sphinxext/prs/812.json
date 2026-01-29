@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8683b15314d53ff3cbd141a80ab7c8afe4b9e56b",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

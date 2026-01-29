@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6a053953470b856254390cf13c2e7c06d82bf0d1",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

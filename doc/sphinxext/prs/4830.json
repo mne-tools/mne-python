@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "5c9d1404904cfdcfd33d4452c6697353e2f24e35",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/chpi.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 42,
+      "d": 34
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_report.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/utils.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 5
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "ff1cfdd8e3ac3c05bfd5987a3e821f13cf7928f9",
+  "authors": [
+    {
+      "n": "Velu Prabhakar Kumaravel",
+      "e": null
+    },
+    {
+      "n": "Velu Prabhakar Kumaravel",
+      "e": "veluprabhakarkumaravel@Velus-MBP.lan"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/api/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/11234.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/_lof.py": {
+      "a": 100,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_lof.py": {
+      "a": 39,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d740e47c8bbce81e6c0beda304748e606f20fc6c",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "janEbert",
+      "e": "janpublicebert@posteo.net"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 14,
+      "d": 12
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/montage.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 34,
+      "d": 18
+    }
+  }
+}

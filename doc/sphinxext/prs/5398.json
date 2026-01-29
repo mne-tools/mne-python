@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "80dfec2b6324c761e4b186d96586ff0d423e4bae",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

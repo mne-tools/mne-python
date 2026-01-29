@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a3c274c2c04346e26f1cb697b3a2561cf9480e15",
+  "authors": [
+    {
+      "n": "Henrich Kolkhorst",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/epochs.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

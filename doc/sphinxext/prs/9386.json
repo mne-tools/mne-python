@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e8727cb016d034263a4f17e68e12b1ebf5dacc8d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

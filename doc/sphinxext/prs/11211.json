@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b486ef18f74d22b7bdcd0cf6f0e1a8fb988d5e35",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".cirrus.yml": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

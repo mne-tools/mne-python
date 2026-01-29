@@ -1,6 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -38,7 +36,7 @@ fname_cov = data_path / "MEG" / "sample" / "sample_audvis-cov.fif"
 fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
 label = "Aud-rh"
-fname_label = data_path / "MEG" / "sample" / "labels" / ("%s.label" % label)
+fname_label = data_path / "MEG" / "sample" / "labels" / f"{label}.label"
 
 
 @pytest.fixture(scope="module", params=[testing._pytest_param])
@@ -308,7 +306,7 @@ def test_mxne_vol_sphere():
     evoked_l21.crop(tmin=0.081, tmax=0.1)
 
     info = evoked.info
-    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
+    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.09)
     src = mne.setup_volume_source_space(
         subject=None,
         pos=15.0,
@@ -366,7 +364,13 @@ def test_mxne_vol_sphere():
         tstep=stc.tstep,
     )
     evoked_dip = mne.simulation.simulate_evoked(
-        fwd, stc, info, cov, nave=1e9, use_cps=True
+        fwd,
+        stc,
+        info,
+        cov,
+        nave=1e9,
+        use_cps=True,
+        random_state=0,
     )
 
     dip_mxne = mixed_norm(
@@ -551,7 +555,7 @@ def test_mxne_inverse_sure_synthetic(
 
 @pytest.mark.slowtest  # slow on Azure
 @testing.requires_testing_data
-def test_mxne_inverse_sure():
+def test_mxne_inverse_sure_meg():
     """Tests SURE criterion for automatic alpha selection on MEG data."""
 
     def data_fun(times):
@@ -560,10 +564,10 @@ def test_mxne_inverse_sure():
         return data
 
     n_dipoles = 2
-    raw = mne.io.read_raw_fif(fname_raw)
-    info = mne.io.read_info(fname_data)
-    with info._unlock():
-        info["projs"] = []
+    raw = mne.io.read_raw_fif(fname_raw).pick_types("grad", exclude="bads")
+    raw.del_proj()
+    info = raw.info
+    del raw
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ["Aud-lh", "Aud-rh"]
     labels = [
@@ -574,10 +578,8 @@ def test_mxne_inverse_sure():
         data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
     )
     forward = mne.read_forward_solution(fname_fwd)
-    forward = mne.pick_types_forward(
-        forward, meg="grad", eeg=False, exclude=raw.info["bads"]
-    )
-    times = np.arange(100, dtype=np.float64) / raw.info["sfreq"] - 0.1
+    forward = mne.pick_channels_forward(forward, info["ch_names"])
+    times = np.arange(100, dtype=np.float64) / info["sfreq"] - 0.1
     stc = simulate_sparse_stc(
         forward["src"],
         n_dipoles=n_dipoles,
@@ -586,13 +588,27 @@ def test_mxne_inverse_sure():
         labels=labels,
         data_fun=data_fun,
     )
+    assert len(stc.vertices) == 2
+    assert_array_equal(stc.vertices[0], [89259])
+    assert_array_equal(stc.vertices[1], [70279])
     nave = 30
     evoked = simulate_evoked(
-        forward, stc, info, noise_cov, nave=nave, use_cps=False, iir_filter=None
+        forward,
+        stc,
+        info,
+        noise_cov,
+        nave=nave,
+        use_cps=False,
+        iir_filter=None,
+        random_state=0,
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
-    stc_ = mixed_norm(evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9)
-    assert_array_equal(stc_.vertices, stc.vertices)
+    stc_ = mixed_norm(
+        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, random_state=1
+    )
+    assert len(stc_.vertices) == len(stc.vertices) == 2
+    for si in range(len(stc_.vertices)):
+        assert_array_equal(stc_.vertices[si], stc.vertices[si], err_msg=f"{si=}")
 
 
 @pytest.mark.slowtest  # slow on Azure
@@ -611,7 +627,13 @@ def test_mxne_inverse_empty():
     cov = read_cov(fname_cov)
     with pytest.warns(RuntimeWarning, match="too big"):
         stc, residual = mixed_norm(
-            evoked, forward, cov, n_mxne_iter=3, alpha=99, return_residual=True
+            evoked,
+            forward,
+            cov,
+            n_mxne_iter=3,
+            alpha=99,
+            return_residual=True,
+            random_state=0,
         )
         assert stc.data.size == 0
         assert stc.vertices[0].size == 0

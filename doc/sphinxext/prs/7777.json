@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3e551c3e07b94655866ab69df4657b0d4e8cb2f9",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 14,
+      "d": 11
+    }
+  }
+}

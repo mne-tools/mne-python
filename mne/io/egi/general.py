@@ -1,4 +1,5 @@
 #
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -113,9 +114,9 @@ def _get_blocks(filepath):
             position = fid.tell()
 
     if any([n != n_channels[0] for n in n_channels]):
-        raise RuntimeError("All the blocks don't have the same amount of " "channels.")
+        raise RuntimeError("All the blocks don't have the same amount of channels.")
     if any([f != sfreq[0] for f in sfreq]):
-        raise RuntimeError("All the blocks don't have the same sampling " "frequency.")
+        raise RuntimeError("All the blocks don't have the same sampling frequency.")
     if len(samples_block) < 1:
         raise RuntimeError("There seems to be no data")
     samples_block = np.array(samples_block)
@@ -155,9 +156,10 @@ def _get_signalfname(filepath):
             "info": infofile,
         }
     if "EEG" not in all_files:
+        infofiles_str = "\n".join(infofiles)
         raise FileNotFoundError(
-            "Could not find any EEG data in the %d file%s found in %s:\n%s"
-            % (len(infofiles), _pl(infofiles), filepath, "\n".join(infofiles))
+            f"Could not find any EEG data in the {len(infofiles)} file{_pl(infofiles)} "
+            f"found in {filepath}:\n{infofiles_str}"
         )
     return all_files
 

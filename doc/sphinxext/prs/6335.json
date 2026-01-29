@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "724d6defd1053e92263250524c4c9c0a4c803f63",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 4
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

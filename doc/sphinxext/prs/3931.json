@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "83b9cedc1d460a20dc20ca9e84f29da01e26c762",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 4,
+      "d": 10
+    }
+  }
+}

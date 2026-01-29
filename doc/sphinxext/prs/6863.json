@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8902d8b9b0d795059779eb4145932ef341177297",
+  "authors": [
+    {
+      "n": "Adonay Nunes",
+      "e": "adonay.s.nunes@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 48,
+      "d": 11
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

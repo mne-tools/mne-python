@@ -1,12 +1,6 @@
 """Functions to make simple plots with M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Cathy Nangini <cnangini@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -38,7 +32,7 @@ from ..filter import estimate_ringing_samples
 from ..fixes import _safe_svd
 from ..rank import compute_rank
 from ..surface import read_surface
-from ..transforms import _frame_to_str, apply_trans
+from ..transforms import _get_trans, apply_trans
 from ..utils import (
     _check_option,
     _mask_to_onsets_offsets,
@@ -81,7 +75,7 @@ def _index_info_cov(info, cov, exclude):
     idx_names = [
         (
             idx_by_type[key],
-            "%s covariance" % DEFAULTS["titles"][key],
+            f"{DEFAULTS['titles'][key]} covariance",
             DEFAULTS["units"][key],
             DEFAULTS["scalings"][key],
             key,
@@ -162,12 +156,10 @@ def plot_cov(
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            logger.info(
-                "    Created an SSP operator (subspace dimension" " = %d)" % ncomp
-            )
+            logger.info(f"    Created an SSP operator (subspace dimension = {ncomp:d})")
             C = np.dot(P, np.dot(C, P.T))
         else:
-            logger.info("    The projection vectors do not apply to these " "channels.")
+            logger.info("    The projection vectors do not apply to these channels.")
 
     if np.iscomplexobj(C):
         C = np.sqrt((C * C.conj()).real)
@@ -225,7 +217,7 @@ def plot_cov(
             axes[0, k].text(
                 this_rank - 1,
                 axes[0, k].get_ylim()[1],
-                "rank ≈ %d" % (this_rank,),
+                f"rank ≈ {this_rank:d}",
                 ha="right",
                 va="top",
                 color="r",
@@ -233,7 +225,7 @@ def plot_cov(
                 zorder=4,
             )
             axes[0, k].set(
-                ylabel="Noise σ (%s)" % unit,
+                ylabel=f"Noise σ ({unit})",
                 yscale="log",
                 xlabel="Eigenvalue index",
                 title=name,
@@ -282,7 +274,7 @@ def plot_source_spectrogram(
     stc = stcs[0]
     if tmin is not None and tmin < stc.times[0]:
         raise ValueError(
-            "tmin cannot be smaller than the first time point " "provided in stcs"
+            "tmin cannot be smaller than the first time point provided in stcs"
         )
     if tmax is not None and tmax > stc.times[-1] + stc.tstep:
         raise ValueError(
@@ -368,6 +360,7 @@ def _plot_mri_contours(
     mri_fname,
     surfaces,
     src,
+    trans=None,
     orientation="coronal",
     slices=None,
     show=True,
@@ -432,7 +425,7 @@ def _plot_mri_contours(
         raise ValueError(
             "slices must be a sorted 1D array of int with unique "
             "elements, at least one element, and no elements "
-            "greater than %d, got %s" % (n_slices - 1, slices)
+            f"greater than {n_slices - 1:d}, got {slices}"
         )
 
     # create of list of surfaces
@@ -447,14 +440,17 @@ def _plot_mri_contours(
     sources = list()
     if src is not None:
         _ensure_src(src, extra=" or None")
-        # Eventually we can relax this by allowing ``trans`` if need be
-        if src[0]["coord_frame"] != FIFF.FIFFV_COORD_MRI:
-            raise ValueError(
-                "Source space must be in MRI coordinates, got "
-                f'{_frame_to_str[src[0]["coord_frame"]]}'
-            )
         for src_ in src:
-            points = src_["rr"][src_["inuse"].astype(bool)]
+            points = src_["rr"][src_["vertno"]]
+            if src_["coord_frame"] != FIFF.FIFFV_COORD_MRI:
+                trans, _ = _get_trans(
+                    trans,
+                    fro="head",
+                    to="mri",
+                    allow_none=False,
+                    extra="when src is in head coordinates",
+                )
+                points = apply_trans(np.linalg.inv(trans["trans"]), points)
             sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
@@ -608,6 +604,8 @@ def plot_bem(
     slices=None,
     brain_surfaces=None,
     src=None,
+    *,
+    trans=None,
     show=True,
     show_indices=True,
     mri="T1.mgz",
@@ -637,6 +635,9 @@ def plot_bem(
         .. versionchanged:: 0.20
            All sources are shown on the nearest slice rather than some
            being omitted.
+    %(trans)s
+
+        .. versionadded:: 1.10
     show : bool
         Show figure if True.
     show_indices : bool
@@ -702,10 +703,10 @@ def plot_bem(
                 if surf_fname.exists():
                     surfaces.append((surf_fname, "#00DD00"))
                 else:
-                    raise OSError("Surface %s does not exist." % surf_fname)
+                    raise OSError(f"Surface {surf_fname} does not exist.")
 
     # TODO: Refactor with / improve _ensure_src to do this
-    if isinstance(src, (str, Path, os.PathLike)):
+    if isinstance(src, str | Path | os.PathLike):
         src = Path(src)
         if not src.exists():
             # convert to Path until get_subjects_dir returns a Path object
@@ -716,8 +717,7 @@ def plot_bem(
         src = read_source_spaces(src)
     elif src is not None and not isinstance(src, SourceSpaces):
         raise TypeError(
-            "src needs to be None, path-like or SourceSpaces instance, "
-            "not %s" % repr(src)
+            f"src needs to be None, path-like or SourceSpaces instance, not {repr(src)}"
         )
 
     if len(surfaces) == 0:
@@ -731,6 +731,7 @@ def plot_bem(
         mri_fname=mri_fname,
         surfaces=surfaces,
         src=src,
+        trans=trans,
         orientation=orientation,
         slices=slices,
         show=show,
@@ -751,7 +752,7 @@ def _get_bem_plotting_surfaces(bem_path):
         surf_fname = glob(op.join(bem_path, surf_name + ".surf"))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
-            logger.info("Using surface: %s" % surf_fname)
+            logger.info(f"Using surface: {surf_fname}")
             surfaces.append((surf_fname, color))
     return surfaces
 
@@ -841,7 +842,7 @@ def plot_events(
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
-                warn("event %s missing from event_id will be ignored" % this_event)
+                warn(f"event {this_event} missing from event_id will be ignored")
 
     else:
         unique_events_id = unique_events
@@ -849,12 +850,18 @@ def plot_events(
     color = _handle_event_colors(color, unique_events, event_id)
     import matplotlib.pyplot as plt
 
+    unique_events_id = np.array(unique_events_id)
+
     fig = None
+    figsize = plt.rcParams["figure.figsize"]
+    # assuming the user did not change matplotlib default params, the figsize of
+    # (6.4, 4.8) becomes too big if scaled beyond twice its size, so maximum 2
+    _scaling = min(max(1, len(unique_events_id) / 10), 2)
+    figsize_scaled = np.array(figsize) * _scaling
     if axes is None:
-        fig = plt.figure(layout="constrained")
+        fig = plt.figure(layout="constrained", figsize=tuple(figsize_scaled))
     ax = axes if axes else plt.gca()
 
-    unique_events_id = np.array(unique_events_id)
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
     max_x = (
@@ -869,9 +876,9 @@ def plot_events(
             continue
         y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = f"{event_id_rev[ev]} ({count})"
+            event_label = f"{event_id_rev[ev]}\n(id:{ev}; N:{count})"
         else:
-            event_label = "N=%d" % (count,)
+            event_label = f"id:{ev}; N:{count:d}"
         labels.append(event_label)
         kwargs = {}
         if ev in color:
@@ -901,11 +908,32 @@ def plot_events(
     # reverse order so that the highest numbers are at the top
     # (match plot order)
     handles, labels = handles[::-1], labels[::-1]
+
+    # spread legend entries over more columns, 25 still ~fit in one column
+    # (assuming non-user supplied fig), max at 3 columns
+    ncols = min(int(np.ceil(len(unique_events_id) / 25)), 3)
+
+    # Make space for legend
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
+    factor -= 0.1 * (ncols - 1)
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
+
+    # Try some adjustments to squeeze as much information into the legend
+    # without cutting off the ends
     ax.legend(
-        handles, labels, loc="center left", bbox_to_anchor=(1, 0.5), fontsize="small"
+        handles,
+        labels,
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+        fontsize="small",
+        borderpad=0,  # default 0.4
+        labelspacing=0.25,  # default 0.5
+        columnspacing=1.0,  # default 2
+        handletextpad=0,  # default 0.8
+        markerscale=2,  # default 1
+        borderaxespad=0.2,  # default 0.5
+        ncols=ncols,
     )
     fig.canvas.draw()
     plt_show(show)
@@ -975,7 +1003,7 @@ def adjust_axes(axes, remove_spines=("top", "right"), grid=True):
     grid : bool
         Turn grid on (True) or off (False).
     """
-    axes = [axes] if not isinstance(axes, (list, tuple, np.ndarray)) else axes
+    axes = [axes] if not isinstance(axes, list | tuple | np.ndarray) else axes
     for ax in axes:
         if grid:
             ax.grid(zorder=0)
@@ -999,7 +1027,7 @@ def _filter_ticks(lims, fscale):
         ticks += (base * (10**exp)).tolist()
     ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
-    ticklabels = [("%g" if t < 1 else "%d") % t for t in ticks]
+    ticklabels = [(f"{t:g}" if t < 1 else f"{t}") for t in ticks]
     return ticks, ticklabels
 
 
@@ -1016,16 +1044,10 @@ def _get_flim(flim, fscale, freq, sfreq=None):
             flim += [freq[-1]]
     if fscale == "log":
         if flim[0] <= 0:
-            raise ValueError("flim[0] must be positive, got %s" % flim[0])
+            raise ValueError(f"flim[0] must be positive, got {flim[0]}")
     elif flim[0] < 0:
-        raise ValueError("flim[0] must be non-negative, got %s" % flim[0])
+        raise ValueError(f"flim[0] must be non-negative, got {flim[0]}")
     return flim
-
-
-def _check_fscale(fscale):
-    """Check for valid fscale."""
-    if not isinstance(fscale, str) or fscale not in ("log", "linear"):
-        raise ValueError(f'fscale must be "log" or "linear", got {fscale}')
 
 
 _DEFAULT_ALIM = (-80, 10)
@@ -1127,7 +1149,7 @@ def plot_filter(
     if isinstance(plot, str):
         plot = [plot]
     for xi, x in enumerate(plot):
-        _check_option("plot[%d]" % xi, x, ("magnitude", "delay", "time"))
+        _check_option(f"plot[{xi}]", x, ("magnitude", "delay", "time"))
 
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == "log":
@@ -1203,8 +1225,8 @@ def plot_filter(
         fig = axes[0].get_figure()
     if len(axes) != len(plot):
         raise ValueError(
-            "Length of axes (%d) must be the same as number of "
-            "requested filter properties (%d)" % (len(axes), len(plot))
+            f"Length of axes ({len(axes)}) must be the same as number of "
+            f"requested filter properties ({len(plot)})"
         )
 
     t = np.arange(len(h))
@@ -1403,8 +1425,8 @@ def _handle_event_colors(color_dict, unique_events, event_id):
                 custom_colors[event_id[key]] = color
             else:  # key not a valid event, warn and ignore
                 warn(
-                    "Event ID %s is in the color dict but is not "
-                    "present in events or event_id." % str(key)
+                    f"Event ID {key} is in the color dict but is not "
+                    "present in events or event_id."
                 )
         # warn if color_dict is missing any entries
         unassigned = sorted(set(unique_events) - set(custom_colors))
@@ -1537,7 +1559,7 @@ def plot_csd(
             if csd._is_sum:
                 ax.set_title(f"{np.min(freq):.1f}-{np.max(freq):.1f} Hz.")
             else:
-                ax.set_title("%.1f Hz." % freq)
+                ax.set_title(f"{freq:.1f} Hz.")
 
         plt.suptitle(title)
         if colorbar:
@@ -1545,7 +1567,7 @@ def plot_csd(
             if mode == "csd":
                 label = "CSD"
                 if ch_type in units:
-                    label += " (%s)" % units[ch_type]
+                    label += f" ({units[ch_type]})"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")

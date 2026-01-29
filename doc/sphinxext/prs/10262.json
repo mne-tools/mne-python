@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cfa92b5119c9acb2293c654585f3b730dce1f19c",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 39,
+      "d": 18
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

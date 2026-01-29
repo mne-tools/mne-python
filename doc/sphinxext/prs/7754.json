@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "807b02405750d7173298f7d1defdf244f70d5488",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 9,
+      "d": 1
+    }
+  }
+}

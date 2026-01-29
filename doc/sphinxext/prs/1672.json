@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6ba8d2988ab2593c9a7446ac19501261dc88d23c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

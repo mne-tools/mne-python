@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "89fbad30af8065fbdbf8a0289f741fa5454330b6",
+  "authors": [
+    {
+      "n": null,
+      "e": "olaf.hauk@mrc-cbu.cam.ac.uk"
+    }
+  ],
+  "changes": {
+    "examples/inverse/psf_ctf_vertices.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

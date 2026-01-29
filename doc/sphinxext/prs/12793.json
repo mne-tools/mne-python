@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "450acb1c33d19b2fe054be9c6b01f8a83f8c7a9b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/credit.yml": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

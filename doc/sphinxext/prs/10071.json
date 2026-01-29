@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "3aad5b1aa7f74ea0f8d927664d8b844afbc40cea",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 0,
+      "d": 1
+    },
+    ".github/workflows/circle_artifacts.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_csp_timefreq.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/decoding/decoding_spoc_CMC.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/inverse/covariance_whitening_dspm.py": {
+      "a": 0,
+      "d": 188
+    },
+    "examples/inverse/mixed_norm_inverse.py": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/inverse/mixed_source_space_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/mne_cov_power.py": {
+      "a": 10,
+      "d": 12
+    },
+    "examples/inverse/vector_mne_solution.py": {
+      "a": 7,
+      "d": 4
+    },
+    "examples/preprocessing/ica_comparison.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 8,
+      "d": 37
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/ieeg/_projection.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 6,
+      "d": 9
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 16,
+      "d": 12
+    },
+    "tutorials/forward/90_compute_covariance.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 30,
+      "d": 25
+    },
+    "tutorials/inverse/40_mne_fixed_free.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 7,
+      "d": 5
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 7,
+      "d": 6
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 13,
+      "d": 9
+    },
+    "tutorials/preprocessing/30_filtering_resampling.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 10,
+      "d": 8
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 13,
+      "d": 13
+    },
+    "tutorials/stats-sensor-space/20_erp_stats.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/30_cluster_ftest_spatiotemporal.py": {
+      "a": 9,
+      "d": 6
+    },
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py": {
+      "a": 9,
+      "d": 9
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

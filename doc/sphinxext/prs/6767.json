@@ -1,0 +1,543 @@
+{
+  "merge_commit_sha": "ff349f356edb04e1b5f0db13deda8d1a20aca351",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/freesurfer.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/index.rst": {
+      "a": 9,
+      "d": 2
+    },
+    "doc/install/mne_c.rst": {
+      "a": 2,
+      "d": 5
+    },
+    "doc/install/pre_install.rst": {
+      "a": 15,
+      "d": 17
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/manual/appendix/c_EULA.rst": {
+      "a": 0,
+      "d": 140
+    },
+    "doc/manual/appendix/c_misc.rst": {
+      "a": 0,
+      "d": 104
+    },
+    "doc/manual/appendix/c_release_notes.rst": {
+      "a": 0,
+      "d": 854
+    },
+    "doc/manual/appendix/martinos.rst": {
+      "a": 0,
+      "d": 117
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 0,
+      "d": 6449
+    },
+    "doc/manual/gui/analyze.rst": {
+      "a": 0,
+      "d": 2681
+    },
+    "doc/manual/gui/browse.rst": {
+      "a": 0,
+      "d": 2267
+    },
+    "doc/manual/gui/mne_analyze/MNE_preferences.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/adjust_alignment.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/adjust_lights.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/adjust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/cont_hpi_data.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/dipole_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/dipole_parameters.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/dipoles_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/epoch_selector.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/field_mapping_pref.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/file_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/hardcopy_controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/help_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/image_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/label_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/labels_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/main_window.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/movie_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/mri_viewer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/open_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/overlay_management.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/patch_selection_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/save_label_timecourse.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/scales_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/surface_controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/surface_selection_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/timecourse_manager.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/view_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/viewer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/viewer_options.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/visualize_hpi.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/windows_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/adjust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/adust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/average_pref.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/channel_selection.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/file_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/filter_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/help_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/main.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/manage_averages_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/new_selection.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/new_ssp.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/open_dialog copy.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/open_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/process_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/process_menu2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/scales_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/scales_dialog2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/toolbar.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-0.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-1.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-10.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-11.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-12.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-13.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-14.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-15.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-16.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-17.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-3.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-4.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-5.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-6.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-7.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-8.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-9.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/index.rst": {
+      "a": 0,
+      "d": 38
+    },
+    "doc/manual/io.rst": {
+      "a": 0,
+      "d": 514
+    },
+    "doc/manual/migrating.rst": {
+      "a": 0,
+      "d": 56
+    },
+    "doc/manual/pics/Flowchart.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/ICA_primer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/cover.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/flat.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/morphed.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/neuromag.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/orig.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/proj-off-on.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/title_page.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/preprocessing/ica.rst": {
+      "a": 0,
+      "d": 118
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 0,
+      "d": 103
+    },
+    "doc/manual/sample_dataset.rst": {
+      "a": 0,
+      "d": 708
+    },
+    "doc/manual/visualization.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/overview/algorithms/bem_model.rst": {
+      "a": 15,
+      "d": 168
+    },
+    "doc/overview/algorithms/channel_interpolation.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/algorithms/forward.rst": {
+      "a": 82,
+      "d": 238
+    },
+    "doc/overview/algorithms/images/CoordinateSystems.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/algorithms/images/HeadCS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/algorithms/inverse.rst": {
+      "a": 23,
+      "d": 150
+    },
+    "doc/overview/algorithms/maxwell.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/algorithms/memory.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "doc/overview/algorithms/morph.rst": {
+      "a": 3,
+      "d": 36
+    },
+    "doc/overview/algorithms/ssp.rst": {
+      "a": 110,
+      "d": 0
+    },
+    "doc/overview/algorithms/time_frequency.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 10,
+      "d": 21
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 65,
+      "d": 3
+    },
+    "doc/overview/faq.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/images/Digitizer-example.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/images/flow_diagram.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/implementation.rst": {
+      "a": 18,
+      "d": 0
+    },
+    "doc/overview/index.rst": {
+      "a": 14,
+      "d": 14
+    },
+    "doc/overview/matlab.rst": {
+      "a": 52,
+      "d": 44
+    },
+    "doc/overview/migrating.rst": {
+      "a": 76,
+      "d": 0
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/discussions/plot_background_ica.py": {
+      "a": 97,
+      "d": 0
+    },
+    "tutorials/epochs/plot_visualize_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_40_projectors_background.py": {
+      "a": 61,
+      "d": 7
+    },
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/plot_creating_data_structures.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_background_freesurfer.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

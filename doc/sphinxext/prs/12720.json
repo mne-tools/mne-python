@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "e299f1efb180968aaf2bb10c1807b8a988124ffa",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12720.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12720.newfeature.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 34,
+      "d": 14
+    },
+    "mne/_fiff/tag.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/_fiff/write.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/export/_edf.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/edf/edf.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/utils/numerics.py": {
+      "a": 12,
+      "d": 53
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 6,
+      "d": 15
+    }
+  }
+}

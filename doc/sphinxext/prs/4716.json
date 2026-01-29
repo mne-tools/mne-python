@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "966e862b95861de47ffe259bd66c86feece524f6",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

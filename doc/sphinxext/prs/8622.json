@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "90f4dec944d6096b0a8860e6923572fedd7728cd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/_digitization.py": {
+      "a": 3,
+      "d": 155
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 115,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 12,
+      "d": 13
+    },
+    "mne/utils/docs.py": {
+      "a": 14,
+      "d": 5
+    }
+  }
+}

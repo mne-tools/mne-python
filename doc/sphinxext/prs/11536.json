@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "295b7c7ee90ea341dab2cc497f7ec6d5eceb2770",
+  "authors": [
+    {
+      "n": "George O'Neill",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/hfc.py": {
+      "a": 100,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_hfc.py": {
+      "a": 149,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/preprocessing/80_opm_processing.py": {
+      "a": 64,
+      "d": 14
+    }
+  }
+}

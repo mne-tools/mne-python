@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "148de1661d5e43cc88d62e27731ce44e78892951",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 12,
+      "d": 13
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

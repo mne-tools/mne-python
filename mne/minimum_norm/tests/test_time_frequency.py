@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -269,6 +271,7 @@ def test_tfr_multi_label():
             assert multi_lab_pow.shape == (2, n_freqs, n_times)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("method", INVERSE_METHODS)
 @pytest.mark.parametrize("pick_ori", (None, "normal"))  # XXX vector someday?

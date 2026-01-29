@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dae99dfa17baba405d2d1068950426f2535ea1ed",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 6,
+      "d": 8
+    }
+  }
+}

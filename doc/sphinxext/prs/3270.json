@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f5b226b3298bccbfe412f2ac5b7d83e762ef2e6f",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 37,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 62,
+      "d": 3
+    }
+  }
+}

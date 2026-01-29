@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7f5b0f1c0d06e8b06eb51363b876c497fab9934f",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/azure_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0b15b60cdadb8512761e20f98511b191dd8ae3fa",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 26,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a1d4eb907b1ed30c8bc713c0f315c7d481e0dd57",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 13,
+      "d": 61
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,16 +1,9 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#          Ana Radanovic <radanovica@protonmail.com>
-#          Erica Peterson <nordme@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os.path as op
 import string
@@ -20,11 +13,10 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_array, lil_array
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
@@ -49,7 +41,7 @@ from .._fiff.pick import (
     pick_info,
     pick_types,
 )
-from .._fiff.proj import setup_proj
+from .._fiff.proj import _has_eeg_average_ref_proj, setup_proj
 from .._fiff.reference import add_reference_channels, set_eeg_reference
 from .._fiff.tag import _rename_list
 from ..bem import _check_origin
@@ -128,8 +120,11 @@ def equalize_channels(instances, copy=True, verbose=None):
     ----------
     instances : list
         A list of MNE-Python objects to equalize the channels for. Objects can
-        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
+        be of type Raw, Epochs, Evoked, Spectrum, AverageTFR, Forward, Covariance,
         CrossSpectralDensity or Info.
+
+        .. versionchanged:: 1.11
+            Added support for :class:`mne.time_frequency.Spectrum` objects.
     copy : bool
         When dropping and/or re-ordering channels, an object will be copied
         when this parameter is set to ``True``. When set to ``False`` (the
@@ -144,9 +139,11 @@ def equalize_channels(instances, copy=True, verbose=None):
         A list of MNE-Python objects that have the same channels defined in the
         same order.
 
-    Notes
-    -----
-    This function operates inplace.
+    See Also
+    --------
+    mne.channels.unify_bad_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
     """
     from ..cov import Covariance
     from ..epochs import BaseEpochs
@@ -154,6 +151,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..forward import Forward
     from ..io import BaseRaw
     from ..time_frequency import BaseTFR, CrossSpectralDensity
+    from ..time_frequency.spectrum import BaseSpectrum
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,6 +159,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
+        BaseSpectrum,
         BaseTFR,
         Forward,
         Covariance,
@@ -168,7 +167,8 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, " "CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, Spectrum, TFR, Forward, Covariance, CrossSpectralDensity "
+        "or Info"
     )
     for inst in instances:
         _validate_type(
@@ -207,7 +207,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         equalized_instances.append(inst)
 
     if dropped:
-        logger.info("Dropped the following channels:\n%s" % dropped)
+        logger.info(f"Dropped the following channels:\n{dropped}")
     elif reordered:
         logger.info("Channels have been re-ordered.")
 
@@ -260,7 +260,7 @@ def unify_bad_channels(insts):
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
         _validate_type(inst, valid_types, "each object in insts")
-        if type(inst) != inst_type:
+        if type(inst) is not inst_type:
             raise ValueError("All insts must be the same type")
 
     # ensure all insts have the same channels and channel order
@@ -472,9 +472,11 @@ class UpdateChannelsMixin:
 
         Notes
         -----
-        The channel names given are assumed to be a set, i.e. the order
-        does not matter. The original order of the channels is preserved.
-        You can use ``reorder_channels`` to set channel order if necessary.
+        If ``ordered`` is ``False``, the channel names given via ``ch_names`` are
+        assumed to be a set, that is, their order does not matter. In that case, the
+        original order of the channels in the data is preserved. Apart from using
+        ``ordered=True``, you may also use ``reorder_channels`` to set channel order,
+        if necessary.
 
         .. versionadded:: 0.9.0
         """
@@ -601,6 +603,8 @@ class UpdateChannelsMixin:
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        if len(idx) == 0:
+            raise ValueError("All channels would be dropped.")
         return self._pick_drop_channels(idx)
 
     @verbose
@@ -665,17 +669,21 @@ class UpdateChannelsMixin:
         return self
 
     def add_channels(self, add_list, force_update_info=False):
-        """Append new channels to the instance.
+        """Append new channels from other MNE objects to the instance.
 
         Parameters
         ----------
         add_list : list
-            A list of objects to append to self. Must contain all the same
-            type as the current object.
+            A list of MNE objects to append to the current instance.
+            The channels contained in the other instances are appended to the
+            channels of the current instance. Therefore, all other instances
+            must be of the same type as the current object.
+            See notes on how to add data coming from an array.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
-            values in ``self``. This should generally only be used when adding
-            stim channels for which important metadata won't be overwritten.
+            values of the current instance. This should generally only be
+            used when adding stim channels for which important metadata won't
+            be overwritten.
 
             .. versionadded:: 0.12
 
@@ -692,10 +700,17 @@ class UpdateChannelsMixin:
         -----
         If ``self`` is a Raw instance that has been preloaded into a
         :obj:`numpy.memmap` instance, the memmap will be resized.
+
+        This function expects an MNE object to be appended (e.g. :class:`~mne.io.Raw`,
+        :class:`~mne.Epochs`, :class:`~mne.Evoked`). If you simply want to add a
+        channel based on values of an np.ndarray, you need to create a
+        :class:`~mne.io.RawArray`.
+        See <https://mne.tools/mne-project-template/auto_examples/plot_mne_objects_from_arrays.html>`_
         """
         # avoid circular imports
         from ..epochs import BaseEpochs
         from ..io import BaseRaw
+        from ..time_frequency import EpochsTFR
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -708,6 +723,9 @@ class UpdateChannelsMixin:
         elif isinstance(self, BaseEpochs):
             con_axis = 1
             comp_class = BaseEpochs
+        elif isinstance(self, EpochsTFR):
+            con_axis = 1
+            comp_class = EpochsTFR
         else:
             con_axis = 0
             comp_class = type(self)
@@ -916,7 +934,7 @@ class InterpolationMixin:
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
-                _interpolate_bads_nan(self, ch_type, exclude=exclude)
+                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
         meg_mne = method.get("meg", "") == "MNE"
@@ -950,16 +968,183 @@ class InterpolationMixin:
 
         return self
 
+    def interpolate_to(self, sensors, origin="auto", method="spline", reg=0.0):
+        """Interpolate EEG data onto a new montage.
+
+        .. warning::
+            Be careful, only EEG channels are interpolated. Other channel types are
+            not interpolated.
+
+        Parameters
+        ----------
+        sensors : DigMontage
+            The target montage containing channel positions to interpolate onto.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
+        method : str
+            Method to use for EEG channels.
+            Supported methods are 'spline' (default) and 'MNE'.
+        reg : float
+            The regularization parameter for the interpolation method
+            (only used when the method is 'spline').
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The instance with updated channel locations and data.
+
+        Notes
+        -----
+        This method is useful for standardizing EEG layouts across datasets.
+        However, some attributes may be lost after interpolation.
+
+        .. versionadded:: 1.10.0
+        """
+        from ..epochs import BaseEpochs, EpochsArray
+        from ..evoked import Evoked, EvokedArray
+        from ..forward._field_interpolation import _map_meg_or_eeg_channels
+        from ..io import RawArray
+        from ..io.base import BaseRaw
+        from .interpolation import _make_interpolation_matrix
+        from .montage import DigMontage
+
+        # Check that the method option is valid.
+        _check_option("method", method, ["spline", "MNE"])
+        _validate_type(sensors, DigMontage, "sensors")
+
+        # Get target positions from the montage
+        ch_pos = sensors.get_positions().get("ch_pos", {})
+        target_ch_names = list(ch_pos.keys())
+        if not target_ch_names:
+            raise ValueError(
+                "The provided sensors configuration has no channel positions."
+            )
+
+        # Get original channel order
+        orig_names = self.info["ch_names"]
+
+        # Identify EEG channel
+        picks_good_eeg = pick_types(self.info, meg=False, eeg=True, exclude="bads")
+        if len(picks_good_eeg) == 0:
+            raise ValueError("No good EEG channels available for interpolation.")
+        # Also get the full list of EEG channel indices (including bad channels)
+        picks_remove_eeg = pick_types(self.info, meg=False, eeg=True, exclude=[])
+        eeg_names_orig = [orig_names[i] for i in picks_remove_eeg]
+
+        # Identify non-EEG channels in original order
+        non_eeg_names_ordered = [ch for ch in orig_names if ch not in eeg_names_orig]
+
+        # Create destination info for new EEG channels
+        sfreq = self.info["sfreq"]
+        info_interp = create_info(
+            ch_names=target_ch_names,
+            sfreq=sfreq,
+            ch_types=["eeg"] * len(target_ch_names),
+        )
+        info_interp.set_montage(sensors)
+        info_interp["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+        # Do not assign "projs" directly.
+
+        # Compute the interpolation mapping
+        if method == "spline":
+            origin_val = _check_origin(origin, self.info)
+            pos_from = self.info._get_channel_positions(picks_good_eeg) - origin_val
+            pos_to = np.stack(list(ch_pos.values()), axis=0)
+
+            def _check_pos_sphere(pos):
+                d = np.linalg.norm(pos, axis=-1)
+                d_norm = np.mean(d / np.mean(d))
+                if np.abs(1.0 - d_norm) > 0.1:
+                    warn("Your spherical fit is poor; interpolation may be inaccurate.")
+
+            _check_pos_sphere(pos_from)
+            _check_pos_sphere(pos_to)
+            mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
+
+        else:
+            assert method == "MNE"
+            info_eeg = pick_info(self.info, picks_good_eeg)
+            # If the original info has an average EEG reference projector but
+            # the destination info does not,
+            # update info_interp via a temporary RawArray.
+            if _has_eeg_average_ref_proj(self.info) and not _has_eeg_average_ref_proj(
+                info_interp
+            ):
+                # Create dummy data: shape (n_channels, 1)
+                temp_data = np.zeros((len(info_interp["ch_names"]), 1))
+                temp_raw = RawArray(temp_data, info_interp, first_samp=0)
+                # Using the public API, add an average reference projector.
+                temp_raw.set_eeg_reference(
+                    ref_channels="average", projection=True, verbose=False
+                )
+                # Extract the updated info.
+                info_interp = temp_raw.info
+            mapping = _map_meg_or_eeg_channels(
+                info_eeg, info_interp, mode="accurate", origin=origin
+            )
+
+        # Interpolate EEG data
+        data_good = self.get_data(picks=picks_good_eeg)
+        data_interp = mapping @ data_good
+
+        # Create a new instance for the interpolated EEG channels
+        # TODO: Creating a new instance leads to a loss of information.
+        #       We should consider updating the existing instance in the future
+        #       by 1) drop channels, 2) add channels, 3) re-order channels.
+        if isinstance(self, BaseRaw):
+            inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
+        elif isinstance(self, BaseEpochs):
+            inst_interp = EpochsArray(data_interp, info_interp)
+        else:
+            assert isinstance(self, Evoked)
+            inst_interp = EvokedArray(data_interp, info_interp)
+
+        # Merge only if non-EEG channels exist
+        if not non_eeg_names_ordered:
+            return inst_interp
+
+        inst_non_eeg = self.copy().pick(non_eeg_names_ordered).load_data()
+        inst_out = inst_non_eeg.add_channels([inst_interp], force_update_info=True)
+
+        # Reorder channels
+        # Insert the entire new EEG block at the position of the first EEG channel.
+        orig_names_arr = np.array(orig_names)
+        mask_eeg = np.isin(orig_names_arr, eeg_names_orig)
+        if mask_eeg.any():
+            first_eeg_index = np.where(mask_eeg)[0][0]
+            pre = orig_names_arr[:first_eeg_index]
+            new_eeg = np.array(info_interp["ch_names"])
+            post = orig_names_arr[first_eeg_index:]
+            post = post[~np.isin(orig_names_arr[first_eeg_index:], eeg_names_orig)]
+            new_order = np.concatenate((pre, new_eeg, post)).tolist()
+        else:
+            new_order = orig_names
+        inst_out.reorder_channels(new_order)
+        return inst_out
+
 
 @verbose
-def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
+def rename_channels(
+    info, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+):
     """Rename channels.
 
     Parameters
     ----------
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
+    %(on_missing_ch_names)s
+
+        .. versionadded:: 1.11.0
     %(verbose)s
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.unify_bad_channels
+    mne.channels.combine_channels
     """
     _validate_type(info, Info, "info")
     info._check_consistency()
@@ -968,14 +1153,30 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
+        if on_missing in ["warn", "ignore"]:
+            new_mapping = {
+                ch_old: ch_new
+                for ch_old, ch_new in mapping.items()
+                if ch_old in ch_names
+            }
+        else:
+            new_mapping = mapping
+
+        if new_mapping != mapping and on_missing == "warn":
+            warn(
+                "Channel rename map contains keys that are not present in the object "
+                "to be renamed. These will be ignored."
+            )
+
         _check_dict_keys(
-            mapping,
+            new_mapping,
             ch_names,
             key_description="channel name(s)",
             valid_key_source="info",
         )
         new_names = [
-            (ch_names.index(ch_name), new_name) for ch_name, new_name in mapping.items()
+            (ch_names.index(ch_name), new_name)
+            for ch_name, new_name in new_mapping.items()
         ]
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
@@ -1028,7 +1229,7 @@ class _BuiltinChannelAdjacency:
     name: str
     description: str
     fname: str
-    source_url: Union[str, None]
+    source_url: str | None
 
 
 _ft_neighbor_url_t = string.Template(
@@ -1277,7 +1478,7 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
 def get_builtin_ch_adjacencies(*, descriptions=False):
     """Get a list of all FieldTrip neighbor definitions shipping with MNE.
 
-    The names of the these neighbor definitions can be passed to
+    The names of these neighbor definitions can be passed to
     :func:`read_ch_adjacency`.
 
     Parameters
@@ -1332,7 +1533,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1372,7 +1573,7 @@ def read_ch_adjacency(fname, picks=None):
             raise ValueError(
                 f"No built-in channel adjacency matrix found with name: "
                 f"{ch_adj_name}. Valid names are: "
-                f'{", ".join(get_builtin_ch_adjacencies())}'
+                f"{', '.join(get_builtin_ch_adjacencies())}"
             )
 
         ch_adj = [a for a in _BUILTIN_CHANNEL_ADJACENCIES if a.name == ch_adj_name][0]
@@ -1418,12 +1619,12 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
         The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
-        raise ValueError("`ch_names` and `neighbors` must " "have the same length")
+        raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError(
-            "Some of your neighbors are not present in the " "list of channel names"
+            "Some of your neighbors are not present in the list of channel names"
         )
 
     for neigh in neighbors:
@@ -1433,7 +1634,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = csr_matrix(ch_adjacency)
+    ch_adjacency = csr_array(ch_adjacency)
     return ch_adjacency
 
 
@@ -1455,7 +1656,7 @@ def find_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1494,7 +1695,7 @@ def find_ch_adjacency(info, ch_type):
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
             raise ValueError(
-                "info must contain only one channel type if " "ch_type is None."
+                "info must contain only one channel type if ch_type is None."
             )
         ch_type = channel_type(info, 0)
     else:
@@ -1568,7 +1769,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1607,9 +1808,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = csr_matrix(ch_adjacency)
+        ch_adjacency = csr_array(ch_adjacency)
     else:
-        ch_adjacency = lil_matrix(neighbors)
+        ch_adjacency = lil_array(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 
@@ -1648,13 +1849,10 @@ def fix_mag_coil_types(info, use_cal=False):
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
-
+    n_mag = len(pick_types(info, meg="mag", exclude=[]))
     for ii in old_mag_inds:
         info["chs"][ii]["coil_type"] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info(
-        "%d of %d magnetometer types replaced with T3."
-        % (len(old_mag_inds), len(pick_types(info, meg="mag", exclude=[])))
-    )
+    logger.info(f"{len(old_mag_inds)} of {n_mag} magnetometer types replaced with T3.")
     info._check_consistency()
 
 
@@ -1822,7 +2020,14 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
 
 @verbose
 def combine_channels(
-    inst, groups, method="mean", keep_stim=False, drop_bad=False, verbose=None
+    inst,
+    groups,
+    method="mean",
+    keep_stim=False,
+    drop_bad=False,
+    *,
+    on_missing="raise",
+    verbose=None,
 ):
     """Combine channels based on specified channel grouping.
 
@@ -1861,6 +2066,8 @@ def combine_channels(
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(on_missing_epochs)s
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     Returns
@@ -1869,6 +2076,12 @@ def combine_channels(
         An MNE-Python object of the same type as the input ``inst``, containing
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.unify_bad_channels
     """
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import Evoked, EvokedArray
@@ -1902,7 +2115,7 @@ def combine_channels(
     # Instantiate channel info and data
     new_ch_names, new_ch_types, new_data = [], [], []
     if not isinstance(keep_stim, bool):
-        raise TypeError('"keep_stim" must be of type bool, not ' f"{type(keep_stim)}.")
+        raise TypeError(f'"keep_stim" must be of type bool, not {type(keep_stim)}.')
     if keep_stim:
         stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
         if stim_ch_idx:
@@ -1915,7 +2128,7 @@ def combine_channels(
     # Get indices of bad channels
     ch_idx_bad = []
     if not isinstance(drop_bad, bool):
-        raise TypeError('"drop_bad" must be of type bool, not ' f"{type(drop_bad)}.")
+        raise TypeError(f'"drop_bad" must be of type bool, not {type(drop_bad)}.')
     if drop_bad and inst.info["bads"]:
         ch_idx_bad = pick_channels(ch_names, inst.info["bads"])
 
@@ -1937,7 +2150,7 @@ def combine_channels(
         this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
         if these_bads:
             logger.info(
-                "Dropped the following channels in group " f"{this_group}: {these_bads}"
+                f"Dropped the following channels in group {this_group}: {these_bads}"
             )
         #  Check if combining less than 2 channel
         if len(set(this_picks)) < 2:
@@ -1970,6 +2183,7 @@ def combine_channels(
             event_id=inst.event_id,
             tmin=inst.times[0],
             baseline=inst.baseline,
+            on_missing=on_missing,
         )
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()
@@ -2099,7 +2313,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         List with channel names in the selection.
     """
     # convert name to list of string
-    if not isinstance(name, (list, tuple)):
+    if not isinstance(name, list | tuple):
         name = [name]
     if isinstance(info, Info):
         picks = pick_types(info, meg=True, exclude=())
@@ -2130,9 +2344,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
             # get the name of the selection in the file
             pos = line.find(":")
             if pos < 0:
-                logger.info(
-                    '":" delimiter not found in selections file, ' "skipping line"
-                )
+                logger.info('":" delimiter not found in selections file, skipping line')
                 continue
             sel_name_file = line[:pos]
             # search for substring match with name provided
@@ -2145,7 +2357,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     # make sure we found at least one match for each name
     for n, found in name_found.items():
         if not found:
-            raise ValueError('No match for selection name "%s" found' % n)
+            raise ValueError(f'No match for selection name "{n}" found')
 
     # make the selection a sorted list with unique elements
     sel = list(set(sel))

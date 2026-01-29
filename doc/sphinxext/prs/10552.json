@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0908c79aca54211d4bef084cd54d772e7bf0ff20",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/decoding_time_generalization_conditions.py": {
+      "a": 4,
+      "d": 1
+    },
+    "examples/decoding/linear_model_patterns.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 17,
+      "d": 7
+    }
+  }
+}

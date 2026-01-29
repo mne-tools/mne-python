@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c495307786db777ecacf0d1ed2465e3de74448a6",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gen_rst.py": {
+      "a": 127,
+      "d": 2
+    },
+    "examples/inverse/plot_dipole_fit_result.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_simulate_evoked_data.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

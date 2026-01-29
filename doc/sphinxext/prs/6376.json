@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f37903d48850a8af4eb6535df7d8dd1b5219385e",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

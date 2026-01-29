@@ -11,10 +11,12 @@ This tutorial shows the different visualization methods for
 As usual we'll start by importing the modules we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-# %%
 
+# %%
+# test
 import numpy as np
 
 import mne
@@ -291,7 +293,11 @@ trans_file = root / "sample_audvis_raw-trans.fif"
 # <mne.Evoked.plot_field>`:
 
 maps = mne.make_field_map(
-    evks["aud/left"], trans=str(trans_file), subject="sample", subjects_dir=subjects_dir
+    evks["aud/left"],
+    trans=str(trans_file),
+    subject="sample",
+    subjects_dir=subjects_dir,
+    origin="auto",
 )
 evks["aud/left"].plot_field(maps, time=0.1)
 
@@ -308,6 +314,7 @@ for ch_type in ("mag", "grad", "eeg"):
         subject="sample",
         subjects_dir=subjects_dir,
         meg_surf="head",
+        origin="auto",
     )
     fig = evk.plot_field(_map, time=0.1)
     mne.viz.set_3d_title(fig, ch_type, size=20)

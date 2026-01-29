@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b0a415d83d90e365e8a60483a0885b3b7ad3609b",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 18,
+      "d": 21
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 6,
+      "d": 8
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

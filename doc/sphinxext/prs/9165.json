@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "856f6122001f34436b2b11bdf7ebcf471c7cef63",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 4,
+      "d": 51
+    },
+    "mne/source_space.py": {
+      "a": 49,
+      "d": 1
+    }
+  }
+}

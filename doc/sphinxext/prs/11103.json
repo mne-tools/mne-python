@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "9555588cb1e0456ab91b016a69740e4db3bff5a4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 58,
+      "d": 43
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 52,
+      "d": 159
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 81,
+      "d": 120
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 62,
+      "d": 51
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 3,
+      "d": 14
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 24,
+      "d": 18
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

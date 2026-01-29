@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "02db0b82d3cc42c1f30fc27a850340d890c4a538",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 36
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 19,
+      "d": 36
+    },
+    "mne/io/pick.py": {
+      "a": 62,
+      "d": 19
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

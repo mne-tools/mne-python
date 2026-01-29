@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e2090d79154ddb3244ed4961544053612af2aa76",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/__init__.py": {
+      "a": 196,
+      "d": 0
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/bootstrap_divs.css": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/bootstrap_divs.js": {
+      "a": 6,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 17,
+      "d": 15
+    },
+    "requirements.txt": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

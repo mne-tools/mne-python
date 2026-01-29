@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "4375989ef05990574bfe70c34cef111340ac2383",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/__init__.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/gui/_ieeg_locate_gui.py": {
+      "a": 883,
+      "d": 0
+    },
+    "mne/gui/tests/test_ieeg_locate_gui.py": {
+      "a": 155,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 54,
+      "d": 34
+    },
+    "mne/tests/test_surface.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 121,
+      "d": 44
+    }
+  }
+}

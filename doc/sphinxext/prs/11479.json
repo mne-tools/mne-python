@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "dfdc5a61333495a575deedf8e773113e1e42a6cf",
+  "authors": [
+    {
+      "n": "tomdstone",
+      "e": "77251489+tomdstone@users.noreply.github.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "Stone",
+      "e": "TASTONE@mgh.harvard.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

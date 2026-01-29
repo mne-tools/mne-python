@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a0d5d76ee35d6a59120f91500dddfda05b02da6d",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 19,
+      "d": 19
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

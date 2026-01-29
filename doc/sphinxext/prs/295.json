@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "20196c73cec697f0d6a9317725e4ac21f6c4d5d1",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/export/plot_epochs_as_data_frame.py": {
+      "a": 21,
+      "d": 24
+    },
+    "mne/utils.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

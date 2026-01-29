@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bb8cd6953757f051a9781f38198e5986511d7329",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 109,
+      "d": 29
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 48,
+      "d": 12
+    }
+  }
+}

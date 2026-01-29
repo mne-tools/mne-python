@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "9c7788a1a40e1476f9d7d94cfdd978812c75d65b",
+  "authors": [
+    {
+      "n": "Yu-Han Luo",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 9,
+      "d": 15
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 17,
+      "d": 7
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 19,
+      "d": 0
+    }
+  }
+}

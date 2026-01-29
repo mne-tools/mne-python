@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "6845038f3e7c0e080986ed83dda618c030a7b08c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/source/whats_new.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "examples/export/plot_epochs_to_nitime.py": {
+      "a": 64,
+      "d": 0
+    },
+    "examples/export/plot_evoked_to_nitime.py": {
+      "a": 34,
+      "d": 0
+    },
+    "examples/export/plot_raw_to_nitime.py": {
+      "a": 83,
+      "d": 0
+    },
+    "examples/inverse/plot_compute_mne_inverse_raw_in_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_read_and_write_raw_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_ica_from_raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 56,
+      "d": 4
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/evoked.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/fiff/raw.py": {
+      "a": 93,
+      "d": 1
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 51,
+      "d": 3
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/proj.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

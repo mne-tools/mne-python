@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3c6a054093d305a98757a97398e5e34988a3aced",
+  "authors": [
+    {
+      "n": "Qian Chu",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12656.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_brainvision.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/export/_edf.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/export/_eeglab.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/export/_export.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 82,
+      "d": 7
+    }
+  }
+}

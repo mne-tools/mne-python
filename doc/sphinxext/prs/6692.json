@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "adb70865accfbf2e473d0f78e5be69c090581c0d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/glossary.md": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b9f18ea32c6e303aaa1e0b0e7aa4f7e3695dfcf4",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

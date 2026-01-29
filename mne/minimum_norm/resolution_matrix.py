@@ -1,24 +1,27 @@
 """Compute resolution matrix for linear estimators."""
 
-# Authors: olaf.hauk@mrc-cbu.cam.ac.uk
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from copy import deepcopy
 
 import numpy as np
 
+from mne.minimum_norm.inverse import InverseOperator
+
+from .._fiff.constants import FIFF
 from .._fiff.pick import pick_channels_forward, pick_types
 from ..evoked import EvokedArray
-from ..forward.forward import convert_forward_solution
-from ..io.constants import FIFF
+from ..forward.forward import Forward, convert_forward_solution
 from ..label import Label
 from ..source_estimate import (
-    SourceEstimate,
-    VectorSourceEstimate,
+    _get_src_type,
+    _make_stc,
     _prepare_label_extraction,
 )
-from ..utils import logger, verbose
+from ..source_space._source_space import SourceSpaces, _get_vertno
+from ..utils import _validate_type, logger, verbose
 from .inverse import apply_inverse, apply_inverse_cov
 from .spatial_resolution import _rectify_resolution_matrix
 
@@ -145,7 +148,6 @@ def make_inverse_resolution_matrix(
         # Add square root of source noise power to every column, scale
         # depending on SNR
         resmat = resmat + (1 / alpha) * np.sqrt(stc.data)
-
     return resmat
 
 
@@ -194,12 +196,25 @@ def _get_psf_ctf(
         norm = "max"
 
     # get relevant vertices in source space
+    src_orig = src
+    _validate_type(src_orig, (InverseOperator, Forward, SourceSpaces), "src")
+    if not isinstance(src, SourceSpaces):
+        src = src["src"]
     verts_all = _vertices_for_get_psf_ctf(idx, src)
-    vertno_lh = src[0]["vertno"]
-    vertno_rh = src[1]["vertno"]
-    vertno = [vertno_lh, vertno_rh]
-
-    n_verts = len(vertno[0]) + len(vertno[1])
+    vertno = _get_vertno(src)
+    n_verts = sum(len(v) for v in vertno)
+    src_type = _get_src_type(src, vertno)
+    subject = src._subject
+    if vector and src_type == "surface":
+        _validate_type(
+            src_orig,
+            (Forward, InverseOperator),
+            "src",
+            extra="when creating a vector surface source estimate",
+        )
+        nn = src_orig["source_nn"]
+    else:
+        nn = np.repeat(np.eye(3, 3)[np.newaxis], n_verts, 0)
 
     n_r, n_c = resmat.shape
     if ((n_verts != n_r) and (n_r / 3 != n_verts)) or (
@@ -251,14 +266,17 @@ def _get_psf_ctf(
                 for i in np.arange(0, n_verts):
                     funcs_vert = funcs[3 * i : 3 * i + 3, :]
                     funcs_int[i, :] = np.sqrt((funcs_vert**2).sum(axis=0))
-                stc = SourceEstimate(funcs_int, vertno, tmin=0.0, tstep=1.0)
-            else:  # use as is
-                stc = SourceEstimate(funcs, vertno, tmin=0.0, tstep=1.0)
-        else:  # STC with orientations
-            # convert to vector source estimate
-            m, n = int(funcs.shape[0] / 3), int(funcs.shape[1])
-            data = funcs.reshape(m, 3, n)
-            stc = VectorSourceEstimate(data, vertno, tmin=0.0, tstep=1.0)
+                funcs = funcs_int
+        stc = _make_stc(
+            funcs,
+            vertno,
+            src_type,
+            tmin=0.0,
+            tstep=1.0,
+            subject=subject,
+            vector=vector,
+            source_nn=nn,
+        )
 
         stcs.append(stc)
         pca_vars.append(pca_var)
@@ -277,11 +295,9 @@ def _get_psf_ctf(
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
     if mode in [None, "sum", "mean"] and n_comp > 1:
-        msg = f"n_comp must be 1 for mode={mode}."
-        raise ValueError(msg)
+        raise ValueError(f"n_comp must be 1 for mode={mode}.")
     if mode != "pca" and return_pca_vars:
-        msg = 'SVD variances can only be returned if mode="pca".'
-        raise ValueError(msg)
+        raise ValueError('SVD variances can only be returned if mode="pca".')
 
 
 def _vertices_for_get_psf_ctf(idx, src):
@@ -397,8 +413,10 @@ def get_point_spread(
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : instance of SourceSpaces
+    src : instance of SourceSpaces | instance of InverseOperator | instance of Forward
         Source space used to compute resolution matrix.
+        Must be an InverseOperator if ``vector=True`` and a surface source space is
+        used.
     %(idx_pctf)s
     %(mode_pctf)s
     %(n_comp_pctf_n)s
@@ -444,8 +462,10 @@ def get_cross_talk(
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : instance of SourceSpaces
+    src : instance of SourceSpaces | instance of InverseOperator | instance of Forward
         Source space used to compute resolution matrix.
+        Must be an InverseOperator if ``vector=True`` and a surface source space is
+        used.
     %(idx_pctf)s
     %(mode_pctf)s
     %(n_comp_pctf_n)s
@@ -478,6 +498,8 @@ def _convert_forward_match_inv(fwd, inv):
     Inverse operator and forward operator must have same surface orientations,
     but can have different source orientation constraints.
     """
+    _validate_type(fwd, Forward, "fwd")
+    _validate_type(inv, InverseOperator, "inverse_operator")
     # did inverse operator use fixed orientation?
     is_fixed_inv = _check_fixed_ori(inv)
     # did forward operator use fixed orientation?
@@ -487,13 +509,11 @@ def _convert_forward_match_inv(fwd, inv):
     # if inv loose: surf_ori must be True
     # if inv free: surf_ori must be False
     if not is_fixed_inv and not is_fixed_fwd:
-        is_loose_inv = not (inv["orient_prior"]["data"] == 1.0).all()
-
-        if is_loose_inv:
-            if not fwd["surf_ori"]:
-                fwd = convert_forward_solution(fwd, surf_ori=True)
-        elif fwd["surf_ori"]:  # free orientation, change fwd
-            fwd = convert_forward_solution(fwd, surf_ori=False)
+        inv_surf_ori = inv._is_surf_ori
+        if inv_surf_ori != fwd["surf_ori"]:
+            fwd = convert_forward_solution(
+                fwd, surf_ori=inv_surf_ori, force_fixed=False
+            )
 
     return fwd
 

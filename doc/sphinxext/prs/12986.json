@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "98f9949ce867a9247a14c508f51fadeb991d4618",
+  "authors": [
+    {
+      "n": "ZIYI ZENG",
+      "e": "ziyizeng@link.cuhk.edu.cn"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12986.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

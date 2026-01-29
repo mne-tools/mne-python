@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3722dd8772941fd1502ea57ec8390fb875156e31",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/circleci_dependencies.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

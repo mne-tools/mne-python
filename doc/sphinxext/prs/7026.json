@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c80badd8939423d9c5dd342a60135bd8ead6cc13",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 30,
+      "d": 9
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

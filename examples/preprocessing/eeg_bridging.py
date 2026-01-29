@@ -22,8 +22,7 @@ the extent of the bridging so as not to introduce bias into the data from this
 effect and exclude subjects with bridging that might effect the outcome of a
 study. Preventing electrode bridging is ideal but awareness of the problem at
 least will mitigate its potential as a confound to a study. This tutorial
-follows
-https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
+follows the eBridge tutorial from https://psychophysiology.cpmc.columbia.edu.
 
 .. _electrodes.tsv: https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/03-electroencephalography.html#electrodes-description-_electrodestsv
 """  # noqa: E501
@@ -66,7 +65,7 @@ ed_data = dict()  # electrical distance/bridging data
 raw_data = dict()  # store infos for electrode positions
 for sub in range(1, 11):
     print(f"Computing electrode bridges for subject {sub}")
-    raw_fname = mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0]
+    raw_fname = mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0]
     raw = mne.io.read_raw(raw_fname, preload=True, verbose=False)
     mne.datasets.eegbci.standardize(raw)  # set channel names
     raw.set_montage(montage, verbose=False)

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5e9d54822d99d85cf8c2d88f6438e78a909f41b8",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 43,
+      "d": 9
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 12,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_dipole_orientations.py": {
+      "a": 7,
+      "d": 16
+    }
+  }
+}

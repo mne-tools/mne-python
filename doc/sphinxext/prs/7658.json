@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b437776e8ebd8bd8295e90b50f0fd8c257ed7f2e",
+  "authors": [
+    {
+      "n": "Yu-Han Luo",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 16,
+      "d": 21
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 23,
+      "d": 8
+    }
+  }
+}

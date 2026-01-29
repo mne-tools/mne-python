@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "8c9a3a8ecbee675c7a2285fcd6b45d343e94c523",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 7,
+      "d": 15
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 12,
+      "d": 25
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 38,
+      "d": 21
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 20,
+      "d": 16
+    },
+    "mne/io/egi/egi.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

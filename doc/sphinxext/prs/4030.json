@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "60a80b77b557d4963de2bd45040b959593bb5043",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/preprocessing/plot_head_positions.py": {
+      "a": 31,
+      "d": 0
+    },
+    "examples/preprocessing/plot_movement_compensation.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 91,
+      "d": 2
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 17,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "98057d96ced28227a1f06f3a432eb129c6442171",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

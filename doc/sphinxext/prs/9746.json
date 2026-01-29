@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a0faac5bbf5d43f5b264444fd7138ea10af1fd13",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/persyst/tests/test_persyst.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

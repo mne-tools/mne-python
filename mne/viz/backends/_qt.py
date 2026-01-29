@@ -1,9 +1,6 @@
 """Qt implementation of _Renderer and GUI."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -28,7 +25,7 @@ from qtpy.QtCore import (
     QObject,
     Qt,
     QTimer,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     Signal,
 )
 from qtpy.QtGui import QCursor, QIcon, QKeyEvent
@@ -36,7 +33,7 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
@@ -105,7 +102,6 @@ from ._pyvista import (
     _check_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
-    _is_mesa,  # noqa: F401
     _PyVistaRenderer,
     _set_3d_title,  # noqa: F401
     _set_3d_view,  # noqa: F401
@@ -846,7 +842,7 @@ class _3DRenderer(_PyVistaRenderer):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 
@@ -968,7 +964,7 @@ class _QtDialog(_AbstractDialog):
                         callback(button_name)
                     finally:
                         widget.unsetCursor()
-                        break
+                    break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -1193,7 +1189,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = QLineEdit(value)
+        widget = QLineEdit(str(value))
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
         if callback is not None:
@@ -1216,6 +1212,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     ):
         layout = self._dock_layout if layout is None else layout
         weakself = weakref.ref(self)
+        if initial_directory is not None:
+            initial_directory = str(initial_directory)
 
         def callback():
             self = weakself()
@@ -1657,7 +1655,7 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWdgt):
     def set_value(self, value):
-        if isinstance(self._widget, (QRadioButton, QToolButton, QPushButton)):
+        if isinstance(self._widget, QRadioButton | QToolButton | QPushButton):
             self._widget.click()
         else:
             if hasattr(self._widget, "setValue"):

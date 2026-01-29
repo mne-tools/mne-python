@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "ec164a09e92b3faf998d5c32dd5ed0343b72edfb",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 85,
+      "d": 18
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 325,
+      "d": 15
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 26,
+      "d": 1
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

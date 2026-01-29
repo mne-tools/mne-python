@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "a867e5cd372ab8ee980efffd14c7d157c5b73bf3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12451.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12451.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 11,
+      "d": 20
+    },
+    "mne/datasets/__init__.pyi": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/_infant/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 28,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 43,
+      "d": 7
+    },
+    "mne/utils/check.py": {
+      "a": 19,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "38f133e51eb8bd74efd7c48e690a610b4d159b99",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_lcmv.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

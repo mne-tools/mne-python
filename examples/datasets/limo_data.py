@@ -107,7 +107,7 @@ fig.suptitle("Distribution of events in LIMO epochs")
 print(limo_epochs.metadata.head())
 
 # %%
-# Now let's take a closer look at the information in the epochs
+# Now let us take a closer look at the information in the epochs
 # metadata.
 
 # We want include all columns in the summary table

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cfada9d37b4f9e2f01657779c1f2f89e7832f763",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 12,
+      "d": 7
+    }
+  }
+}

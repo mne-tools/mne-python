@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a5073bf977b73e9981a2222cc546c93081914a7d",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13145.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/events.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

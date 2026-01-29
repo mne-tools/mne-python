@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "d12520c75882016f7cced853048cc85e78055402",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/decoding/csp.py": {
+      "a": 31,
+      "d": 34
+    },
+    "mne/evoked.py": {
+      "a": 15,
+      "d": 18
+    },
+    "mne/io/base.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 41,
+      "d": 32
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 14,
+      "d": 26
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 12,
+      "d": 9
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 26,
+      "d": 19
+    },
+    "mne/viz/topo.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/viz/topomap.py": {
+      "a": 28,
+      "d": 23
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 5
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

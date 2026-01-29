@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a320b631a7c5b06201505f7f86b1d163074d8420",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/60_maxwell_filtering_sss.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

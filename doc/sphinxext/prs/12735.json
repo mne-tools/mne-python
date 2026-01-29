@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "64f8eaf453b28470af514660ae7a74549b720412",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12735.bugfix.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.pyi": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

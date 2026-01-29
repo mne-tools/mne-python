@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d3aba149f87adb34bdb64e75aa230f7203b0e86d",
+  "authors": [
+    {
+      "n": "Thomas Hartmann",
+      "e": "thomas.hartmann@th-ht.de"
+    }
+  ],
+  "changes": {
+    "mne/externals/pymatreader/__init__.py": {
+      "a": 13,
+      "d": 9
+    },
+    "mne/externals/pymatreader/pymatreader.py": {
+      "a": 109,
+      "d": 64
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

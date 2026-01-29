@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "97b38c9a75c06ffaecf5eef588a689899f86ded2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 2
+    },
+    "circle.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/conf.py": {
+      "a": 6,
+      "d": 1
+    },
+    "doc/faq.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/manual/io.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/tutorials.rst": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 24,
+      "d": 23
+    },
+    "mne/filter.py": {
+      "a": 126,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 31,
+      "d": 73
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 64,
+      "d": 57
+    },
+    "mne/io/meas_info.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/stats/parametric.py": {
+      "a": 7,
+      "d": 5
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 6,
+      "d": 2
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 396,
+      "d": 0
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_forward.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 15,
+      "d": 14
+    }
+  }
+}

@@ -1,6 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,7 +6,7 @@ import numpy as np
 
 from .._fiff.proj import deactivate_proj
 from ..dipole import Dipole
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import (
     _check_reference,
@@ -63,7 +61,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     if len(weights) != gain.shape[1]:
         raise ValueError(
             "weights do not have the correct dimension "
-            " (%d != %d)" % (len(weights), gain.shape[1])
+            f" ({len(weights)} != {gain.shape[1]})"
         )
     if len(source_weighting.shape) == 1:
         source_weighting *= weights
@@ -75,7 +73,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         mask = weights > weights_min
         gain = gain[:, mask]
         n_sources = np.sum(mask) // n_dip_per_pos
-        logger.info("Reducing source space to %d sources" % n_sources)
+        logger.info(f"Reducing source space to {n_sources} sources")
 
     return gain, source_weighting, mask
 
@@ -255,7 +253,9 @@ def _make_dipoles_sparse(
         _, keep = np.unique(active_idx, return_index=True)
         keep.sort()  # maintain old order
         active_idx = active_idx[keep]
-        gof_split.shape = (len(active_idx), n_dip_per_pos, len(times))
+        gof_split = _reshape_view(
+            gof_split, (len(active_idx), n_dip_per_pos, len(times))
+        )
         gof_split = gof_split.sum(1)
         assert (gof_split < 100).all()
     assert gof_split.shape == (len(active_idx), len(times))
@@ -312,7 +312,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
         raise ValueError(
             "Dipoles must be an instance of Dipole or "
             "a list of instances of Dipole. "
-            "Got %s!" % type(dipoles)
+            f"Got {type(dipoles)}!"
         )
     tmin = dipoles[0].times[0]
     tstep = dipoles[0].times[1] - tmin
@@ -324,7 +324,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     for i in range(len(dipoles)):
         if not np.all(dipoles[i].pos == dipoles[i].pos[0]):
             raise ValueError(
-                "Only dipoles with fixed position over time " "are supported!"
+                "Only dipoles with fixed position over time are supported!"
             )
         X[i] = dipoles[i].amplitude
         idx = np.all(source_rr == dipoles[i].pos[0], axis=1)
@@ -460,31 +460,30 @@ def mixed_norm(
         _check_option("alpha", alpha, ("sure",))
     elif not 0.0 <= alpha < 100:
         raise ValueError(
-            'If not equal to "sure" alpha must be in [0, 100). '
-            "Got alpha = %s" % alpha
+            f'If not equal to "sure" alpha must be in [0, 100). Got alpha = {alpha}'
         )
     if n_mxne_iter < 1:
         raise ValueError(
             "MxNE has to be computed at least 1 time. "
-            "Requires n_mxne_iter >= 1, got %d" % n_mxne_iter
+            f"Requires n_mxne_iter >= 1, got {n_mxne_iter}"
         )
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+            f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
     if not (
-        isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
+        isinstance(sure_alpha_grid, np.ndarray | list) or sure_alpha_grid == "auto"
     ):
         raise ValueError(
             'If not equal to "auto" sure_alpha_grid must be an '
-            "array. Got %s" % type(sure_alpha_grid)
+            f"array. Got {type(sure_alpha_grid)}"
         )
     if (isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto") and (
         isinstance(alpha, str) and alpha != "sure"
     ):
         raise Exception(
             "If sure_alpha_grid is manually specified, alpha must "
-            'be "sure". Got %s' % alpha
+            f'be "sure". Got {alpha}'
         )
     pca = True
     if not isinstance(evoked, list):
@@ -553,7 +552,7 @@ def mixed_norm(
             dgap_freq=dgap_freq,
             verbose=verbose,
         )
-        logger.info("Selected alpha: %s" % best_alpha_)
+        logger.info(f"Selected alpha: {best_alpha_}")
     else:
         if n_mxne_iter == 1:
             X, active_set, E = mixed_norm_solver(
@@ -652,7 +651,7 @@ def mixed_norm(
 
 def _window_evoked(evoked, size):
     """Window evoked (size in seconds)."""
-    if isinstance(size, (float, int)):
+    if isinstance(size, float | int):
         lsize = rsize = float(size)
     else:
         lsize, rsize = size
@@ -786,24 +785,22 @@ def tf_mixed_norm(
     info = evoked.info
 
     if not (0.0 <= alpha < 100.0):
-        raise ValueError("alpha must be in [0, 100). " "Got alpha = %s" % alpha)
+        raise ValueError(f"alpha must be in [0, 100). Got alpha = {alpha}")
 
     if not (0.0 <= l1_ratio <= 1.0):
-        raise ValueError(
-            "l1_ratio must be in range [0, 1]." " Got l1_ratio = %s" % l1_ratio
-        )
+        raise ValueError(f"l1_ratio must be in range [0, 1]. Got l1_ratio = {l1_ratio}")
     alpha_space = alpha * (1.0 - l1_ratio)
     alpha_time = alpha * l1_ratio
 
     if n_tfmxne_iter < 1:
         raise ValueError(
             "TF-MxNE has to be computed at least 1 time. "
-            "Requires n_tfmxne_iter >= 1, got %s" % n_tfmxne_iter
+            f"Requires n_tfmxne_iter >= 1, got {n_tfmxne_iter}"
         )
 
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+            f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
 
     tstep = np.atleast_1d(tstep)
@@ -876,9 +873,7 @@ def tf_mixed_norm(
         )
 
     if active_set.sum() == 0:
-        raise Exception(
-            "No active dipoles found. " "alpha_space/alpha_time are too big."
-        )
+        raise Exception("No active dipoles found. alpha_space/alpha_time are too big.")
 
     # Compute estimated whitened sensor data for each dipole (dip, ch, time)
     gain_active = gain[:, active_set]
@@ -1036,7 +1031,7 @@ def _compute_mxne_sure(
         # warm start - first iteration (leverages convexity)
         logger.info("Warm starting...")
         for j, alpha in enumerate(alpha_grid):
-            logger.info("alpha: %s" % alpha)
+            logger.info(f"alpha: {alpha}")
             X, a_set = _run_solver(alpha, M, 1)
             X_eps, a_set_eps = _run_solver(alpha, M_eps, 1)
             coefs_grid_1_0[j][a_set, :] = X
@@ -1051,7 +1046,7 @@ def _compute_mxne_sure(
             coefs_grid_2 = coefs_grid_2_0.copy()
             logger.info("Fitting SURE on grid.")
             for j, alpha in enumerate(alpha_grid):
-                logger.info("alpha: %s" % alpha)
+                logger.info(f"alpha: {alpha}")
                 if active_sets[j].sum() > 0:
                     w = gprime(coefs_grid_1[j])
                     X, a_set = _run_solver(alpha, M, n_mxne_iter - 1, w_init=w)

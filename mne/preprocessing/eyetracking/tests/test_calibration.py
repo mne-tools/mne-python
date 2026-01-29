@@ -1,5 +1,9 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -249,3 +253,35 @@ def test_plot_calibration(fname, axes):
         scatter2.get_offsets(), np.column_stack((gaze_x, gaze_y))
     )
     plt.close(fig)
+
+
+@requires_testing_data
+@pytest.mark.parametrize("fname", [(fname)])
+def test_calibration_newlines(fname, tmp_path):
+    """Test reading a calibration with blank lines between each data line."""
+    # Calibration reading should be robust to what we are about to do to this file
+    want_cals = read_eyelink_calibration(fname)
+
+    # Let's interleave blank lines into this file
+    lines = Path(fname).read_text().splitlines()
+    cal_start = lines.index(">>>>>>> CALIBRATION (HV13,P-CR) FOR LEFT: <<<<<<<<<")
+    cal_end = lines.index("INPUT\t5509657\t0")
+    cal_block = lines[cal_start : cal_end + 1]
+
+    # Inject empty strings between each line in the calibration block
+    interleaved = [elem for line in cal_block for elem in (line, "")]
+
+    # Replace the original calibration block with the interleaved one
+    new_lines = lines[:cal_start] + interleaved + lines[cal_end + 1 :]
+
+    out_fname = tmp_path / "weird_calibration.asc"
+    out_fname.write_text("\n".join(new_lines))
+    cals = read_eyelink_calibration(out_fname)
+
+    # The added blank lines should not affect the values that we read in...
+    assert len(cals) == len(want_cals)
+    assert cals[1]["eye"] == want_cals[1]["eye"]
+    np.testing.assert_allclose(cals[0]["onset"], want_cals[0]["onset"])
+    np.testing.assert_allclose(cals[0]["positions"], want_cals[0]["positions"])
+    np.testing.assert_allclose(cals[1]["offsets"], want_cals[1]["offsets"])
+    np.testing.assert_allclose(cals[0]["gaze"], want_cals[0]["gaze"])

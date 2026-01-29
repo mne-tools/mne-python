@@ -1,0 +1,195 @@
+{
+  "merge_commit_sha": "6860170610654021fc6fbc1431a1215443b93f00",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/README.txt": {
+      "a": 3,
+      "d": 5
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/README.txt": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/forward/plot_bem_contour_mri.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/forward/plot_coregistration_transform.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/forward/plot_decimate_head_surface.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/forward/plot_left_cerebellum_volume_source.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/forward/plot_make_forward.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/forward/plot_read_bem_surfaces.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/forward/plot_read_forward.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/io/plot_epochs_to_data_frame.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/plot_read_and_write_raw_data.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/plot_read_epochs.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/plot_read_evoked.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/plot_read_noise_covariance_matrix.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/io/read_events.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/plot_compute_mne_inverse.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/plot_extract_events_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 13,
+      "d": 16
+    },
+    "examples/plot_from_raw_to_multiple_epochs_to_evoked.py": {
+      "a": 0,
+      "d": 72
+    },
+    "examples/preprocessing/plot_define_target_events.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/plot_estimate_covariance_matrix_baseline.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/plot_estimate_covariance_matrix_raw.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/plot_interpolate_bad_channels.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/plot_shift_evoked.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/preprocessing/plot_virtual_evoked.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/simulation/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_clickable_image.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_delayed_ssp.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_erf_erp.py": {
+      "a": 48,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_topomap_delayed_ssp.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_whitening.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_meg_eeg_fields_3d.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_ssp_projs_sensitivity_map.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_ssp_projs_topomaps.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_channel_epochs_image.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 0,
+      "d": 0
+    },
+    "examples/visualization/plot_topography.py": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fba848755adab14ebc88c2b89cf8cca4b23b6a7e",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 13,
+      "d": 14
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 300,
+      "d": 223
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

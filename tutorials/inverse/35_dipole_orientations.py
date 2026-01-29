@@ -12,11 +12,30 @@ the cortex. These dipoles have both a position and an orientation. In this
 tutorial, we will look at the various options available to restrict the
 orientation of the dipoles and the impact on the resulting source estimate.
 
+.. warning::
+   A common "gotcha!" is that by default, dipole orientation information is discarded
+   in the source estimate. Only the magnitude of the activity is retained. This means
+   that by default, the source-level values are always positive. This has some
+   implications that may not be immediately obvious:
+
+   * Averaging across source estimated epochs does not produce a source estimated
+     evoked response. Since values are always positive, noise does not "cancel out".
+     This means the default settings are probably not suitable for things like
+     performing linear regression or computing correlations across epochs in source
+     space.
+
+   * Oscillatory signals are distorted, as for example a sine wave will become a series
+     of bumps. Hence, frequency analysis in source space is not meaningful when using
+     the default settings.
+
+
 See :ref:`inverse_orientation_constraints` for related information.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 # Load data
 # ---------
@@ -86,7 +105,7 @@ mne.viz.plot_dipole_locations(
     fig=fig,
 )
 
-mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
+mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1, focalpoint="auto")
 
 # %%
 # .. _plot_dipole_orientations_fixed_orientations:
@@ -129,7 +148,7 @@ mne.viz.plot_dipole_locations(
     fig=fig,
 )
 
-mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
+mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1, focalpoint="auto")
 
 # %%
 # Restricting the dipole orientations in this manner leads to the following
@@ -196,7 +215,7 @@ mne.viz.plot_alignment(
     fig=fig,
 )
 
-mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
+mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1, focalpoint="auto")
 
 # %%
 # When computing the source estimate, the activity at each of the three dipoles

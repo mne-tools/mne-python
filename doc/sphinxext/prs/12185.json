@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "14f4f865e6fa28231962b8c7582cac5f41798f9f",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

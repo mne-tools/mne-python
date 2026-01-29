@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import glob
 from importlib import import_module
 from pathlib import Path
@@ -87,7 +89,7 @@ def generate_commands_rst(app=None):
             # Add code styling for the "Usage: " line
             for li, line in enumerate(output):
                 if line.startswith("Usage: mne "):
-                    output[li] = "Usage: ``%s``" % line[7:]
+                    output[li] = f"Usage: ``{line[7:]}``"
                     break
 
             # Turn "Options:" into field list

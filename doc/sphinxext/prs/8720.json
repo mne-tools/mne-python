@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "48d848e8ca0972da9edfaa7701003b3735bdf40e",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/bug_report.md": {
+      "a": 3,
+      "d": 5
+    },
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "a": 2,
+      "d": 5
+    },
+    ".github/ISSUE_TEMPLATE/question.md": {
+      "a": 3,
+      "d": 7
+    },
+    "CONTRIBUTING.rst": {
+      "a": 3,
+      "d": 6
+    },
+    "README.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/install/advanced.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/contributing.rst": {
+      "a": 3,
+      "d": 5
+    },
+    "doc/install/mne_c.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/mne_python.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/pre_install.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 2
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/faq.rst": {
+      "a": 9,
+      "d": 18
+    },
+    "doc/overview/get_help.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "44bac44efbc85f234c1cc642fbb6b6c9524fc101",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 13,
+      "d": 8
+    },
+    "mne/io/pick.py": {
+      "a": 27,
+      "d": 11
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 419,
+      "d": 202
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 72,
+      "d": 24
+    },
+    "tutorials/plot_metadata_epochs.py": {
+      "a": 66,
+      "d": 24
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

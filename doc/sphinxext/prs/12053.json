@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "de3b5a00e3883c010863642c57818d8cb862ca45",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 3,
+      "d": 3
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 r"""
 .. _tut-imorting-eeg-data:
 
@@ -118,6 +120,7 @@ EMG or MISC) are fit to a sphere and assigned a z-value accordingly. If a
 non-data channel does not fit to the sphere, it is assigned a z-value of 0.
 
 .. warning::
+
     Reading channel locations from the file header may be dangerous, as the
     x_coord and y_coord in the ELECTLOC section of the header do not necessarily
     translate to absolute locations. Furthermore, EEG electrode locations that
@@ -125,6 +128,32 @@ non-data channel does not fit to the sphere, it is assigned a z-value of 0.
     If you are not sure about the channel locations in the header, using a
     montage is encouraged.
 
+.. warning::
+
+    ANT Neuro also uses a file format with the ``.cnt`` extension, but it is different
+    from the Neuroscan CNT format. The ANT Neuro format is supported by the function
+    :func:`mne.io.read_raw_ant`.
+
+
+.. _import-ant:
+
+ANT Neuro CNT (.cnt)
+====================
+
+CNT files from the eego software of ANT Neuro can be read using
+:func:`mne.io.read_raw_ant`. The channels can be automatically recognized as auxiliary
+``'misc'`` channels if the regular expression in the argument ``misc`` correctly
+captures the channel names. Same for EOG channels with the regular expression in the
+argument ``eog``. Note that if a montage with specific bipolar channels is applied on
+export, they can be loaded as EEG bipolar channel pairs by providing the argument
+``bipolars``. All other EEG channels will be loaded as regular EEG channels referenced
+to the same electrode.
+
+.. warning::
+
+    Neuroscan also uses a file format with the ``.cnt`` extension, but it is different
+    from the eego CNT format. The Neuroscan CNT format is supported by the function
+    :func:`mne.io.read_raw_cnt`.
 
 .. _import-egi:
 
@@ -246,6 +275,6 @@ provided separately. For that purpose, all raw instances have a
 When using locations of fiducial points, the digitization data are converted to
 the MEG head coordinate system employed in the MNE software, see
 :ref:`coordinate_systems`.
-"""  # noqa:E501
+"""  # noqa: E501
 
 # %%

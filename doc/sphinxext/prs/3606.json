@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ee585e818380436f6d6765dbeaad040dfa35181a",
+  "authors": [
+    {
+      "n": "Johannes Niediek",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/_stockwell.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 28,
+      "d": 1
+    }
+  }
+}

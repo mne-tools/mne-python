@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "edaef78a9a8909decee02486cf7b9585117a7ab1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/datasets/plot_opm_data.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "b9e0d966e564f18220b57af3835adb42ddfc3d16",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 15,
+      "d": 27
+    },
+    "mne/cov.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/io/meas_info.py": {
+      "a": 16,
+      "d": 9
+    },
+    "mne/io/proc_history.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/proj.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/write.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

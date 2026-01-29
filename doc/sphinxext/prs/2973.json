@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a3509ede1c9de56677824c5dae2a718b89872630",
+  "authors": [
+    {
+      "n": "Asish Panda",
+      "e": "asishrocks95@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 18,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c52208bedfb36e9157678d091f4b4e03ec96c96d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "CONTRIBUTING.md": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/development/index.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

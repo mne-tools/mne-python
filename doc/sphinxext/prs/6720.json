@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b3f46657fad1599262b6290b0c97a14d264ffc78",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

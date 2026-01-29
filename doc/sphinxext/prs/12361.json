@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "52a905928d43703f96517b7050f524e5a653a079",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 10,
+      "d": 4
+    },
+    "doc/conf.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/export/_egimff.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

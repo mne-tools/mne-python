@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "12cf8749adfee03caaaa1424b0440a2eaa9886cb",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/visualization.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/eog_regression.py": {
+      "a": 78,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 269,
+      "d": 32
+    },
+    "mne/preprocessing/tests/test_regress.py": {
+      "a": 105,
+      "d": 5
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 83,
+      "d": 0
+    },
+    "tutorials/preprocessing/35_artifact_correction_regression.py": {
+      "a": 165,
+      "d": 105
+    }
+  }
+}

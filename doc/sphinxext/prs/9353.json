@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "286d39c91e79542e79d7ef1707726e860400111d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

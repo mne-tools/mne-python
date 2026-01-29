@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "463cd9be1a773cb1f253e9973bf8a860f6a7cbcc",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_compute_mne_inverse_volume.py": {
+      "a": 10,
+      "d": 15
+    }
+  }
+}

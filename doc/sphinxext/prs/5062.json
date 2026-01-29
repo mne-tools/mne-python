@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2b5aa25eb4a48bbdaec02a2b7eb53075cba186d3",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/csd.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 8,
+      "d": 4
+    }
+  }
+}

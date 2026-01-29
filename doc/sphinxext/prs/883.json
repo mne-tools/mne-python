@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b658f0636df1f118c1831eab4aac72bfd08608e4",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

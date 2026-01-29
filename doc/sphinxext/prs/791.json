@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5d379d65f8378dc3b39b4234e224efe3a02eedca",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

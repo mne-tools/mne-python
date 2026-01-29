@@ -1,0 +1,151 @@
+{
+  "merge_commit_sha": "a3843cc90955db6e25230c3b57cbdc3c04b18f5c",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 5
+    },
+    "doc/source/whats_new.rst": {
+      "a": 16,
+      "d": 8
+    },
+    "examples/plot_ssp_projs_topomaps.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/channels.py": {
+      "a": 54,
+      "d": 2
+    },
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 22,
+      "d": 2
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 25
+    },
+    "mne/cuda.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 16,
+      "d": 15
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/brainvision/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/__init__.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 6,
+      "d": 87
+    },
+    "mne/io/kit/kit.py": {
+      "a": 16,
+      "d": 35
+    },
+    "mne/io/kit/tests/test_coreg.py": {
+      "a": 3,
+      "d": 21
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 146,
+      "d": 4
+    },
+    "mne/io/pick.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/proj.py": {
+      "a": 46,
+      "d": 0
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 54,
+      "d": 2
+    },
+    "mne/stats/regression.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 2,
+      "d": 11
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "386d4cf56551a248637c5291d5b1568dbcd26d1e",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    }
+  ],
+  "changes": {
+    "doc/_includes/forward.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

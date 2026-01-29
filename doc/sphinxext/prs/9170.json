@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "12b43d605332b567382d2a9ed350d37d1e0042a2",
+  "authors": [
+    {
+      "n": "nordme",
+      "e": "nordme@uw.edu"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 6,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

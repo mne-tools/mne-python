@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "ad305e0d51287e66b89e66cfdb49ba7620b5fad8",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/__init__.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 448,
+      "d": 0
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 108,
+      "d": 0
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 184,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 88,
+      "d": 0
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 22,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 32,
+      "d": 18
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

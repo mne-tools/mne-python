@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cef447520ed78dc3849ed78f906a8106eb0885fb",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

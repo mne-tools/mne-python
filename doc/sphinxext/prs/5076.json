@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0813968da09d87ae21d4e88163198c2c8ecc7e55",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/decoding.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 10,
+      "d": 8
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 8,
+      "d": 3
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

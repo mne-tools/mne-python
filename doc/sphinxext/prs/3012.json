@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "06b0f6991d4b575b33cb5978dcbd222290427509",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/data/coil_def.dat": {
+      "a": 28,
+      "d": 1
+    }
+  }
+}

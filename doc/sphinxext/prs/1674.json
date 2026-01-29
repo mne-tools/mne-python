@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "50303fc0b1a979a29a57af686c57cc473f74052d",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

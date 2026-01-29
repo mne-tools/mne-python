@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "45fb777fbc53c88888032d40a14940c985079a93",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/proj.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

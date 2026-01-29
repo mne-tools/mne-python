@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "16a81f211c2c2b4410bb75d55a8e7ceadaf07fea",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 133,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/proj.py": {
+      "a": 4,
+      "d": 41
+    },
+    "mne/proj.py": {
+      "a": 115,
+      "d": 4
+    },
+    "mne/tests/test_proj.py": {
+      "a": 17,
+      "d": 13
+    },
+    "mne/utils.py": {
+      "a": 92,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

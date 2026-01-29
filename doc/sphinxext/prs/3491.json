@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "baf9bf4f8f28725ffe70aa8f8b94281df8fef7f6",
+  "authors": [
+    {
+      "n": "Simon-Shlomo Poil",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/plot_info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

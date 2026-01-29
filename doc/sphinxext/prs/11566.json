@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6384a8901182272c48f3e72a10142ea75184f47f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

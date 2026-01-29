@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "aa33645ada61a3d3f808c61fe7da1f1eac8d849c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/baseline.py": {
+      "a": 19,
+      "d": 8
+    },
+    "mne/epochs.py": {
+      "a": 36,
+      "d": 16
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

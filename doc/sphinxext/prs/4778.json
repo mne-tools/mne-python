@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "723a5ddb885fa76f21b6a12e15e0d6725ca33528",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "971267567b443f5a7d6c9812711ee634bf01e874",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/plot_parcellation.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

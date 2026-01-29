@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4cc4d6907609bd81701eacced142cc8903abc10b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 20,
+      "d": 12
+    }
+  }
+}

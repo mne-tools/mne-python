@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "d44fc4e19ee44ec7f70870842507c282f33b54e5",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 5
+    },
+    "requirements_doc.txt": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "aa4118655e70b57d99262aad70d4fe38ea6ecd63",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 6,
+      "d": 18
+    }
+  }
+}

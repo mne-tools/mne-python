@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8e0a423d9b62268e2dc8e03cbb1810a3cab34391",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_multidict_reweighted_tfmxne.py": {
+      "a": 126,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 22,
+      "d": 8
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 313,
+      "d": 68
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 50,
+      "d": 2
+    }
+  }
+}

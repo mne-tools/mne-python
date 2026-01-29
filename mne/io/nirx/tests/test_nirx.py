@@ -1,6 +1,4 @@
-# Authors: Robert Luke  <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -302,7 +300,7 @@ def test_nirx_15_2_short():
         first_name="MNE",
         middle_name="Test",
         last_name="Recording",
-        birthday=(2014, 8, 23),
+        birthday=dt.date(2014, 8, 23),
         his_id="MNE_Test_Recording",
     )
 
@@ -394,10 +392,10 @@ def test_nirx_15_3_short():
 
     # Test info import
     assert raw.info["subject_info"] == dict(
-        birthday=(2020, 8, 18),
+        birthday=dt.date(2020, 8, 18),
         sex=0,
-        first_name="testMontage\\0A" "TestMontage",
-        his_id="testMontage\\0A" "TestMontage",
+        first_name="testMontage\\0ATestMontage",
+        his_id="testMontage\\0ATestMontage",
     )
 
     # Test distance between optodes matches values from
@@ -515,7 +513,7 @@ def test_nirx_15_2():
     assert raw.info["subject_info"] == dict(
         sex=1,
         first_name="TestRecording",
-        birthday=(1989, 10, 2),
+        birthday=dt.date(1989, 10, 2),
         his_id="TestRecording",
     )
 
@@ -583,7 +581,7 @@ def test_nirx_15_0():
 
     # Test info import
     assert raw.info["subject_info"] == {
-        "birthday": (2004, 10, 27),
+        "birthday": dt.date(2004, 10, 27),
         "first_name": "NIRX",
         "last_name": "Test",
         "sex": FIFF.FIFFV_SUBJ_SEX_UNKNOWN,

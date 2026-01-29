@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b5a6bfc57199f7ecedf9ac11fbeb7674b7b6c46a",
+  "authors": [
+    {
+      "n": "jmontoyam",
+      "e": "montoya.jair.m@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

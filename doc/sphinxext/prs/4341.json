@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "ae380ee984031b9d70bcc4abf9161e0478d10427",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 76,
+      "d": 39
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 16,
+      "d": 10
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

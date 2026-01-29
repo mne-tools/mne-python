@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "7892c081b7b26f100a40e934c22971cbd8bcda46",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.10.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.16.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.18.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.20.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.21.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.23.inc": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/0.24.inc": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/changes/0.9.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 175
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 3,
+      "d": 8
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 0,
+      "d": 44
+    },
+    "mne/report/report.py": {
+      "a": 4,
+      "d": 374
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 0,
+      "d": 51
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 22
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 48
+    }
+  }
+}

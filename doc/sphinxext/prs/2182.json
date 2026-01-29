@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e3b5485591621f3d3c93f5a1a393ac90723f9e1c",
+  "authors": [
+    {
+      "n": "alexandre barachant",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/io/edf/tests/data/test_edf_stim_channel.edf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/data/test_edf_stim_channel.txt": {
+      "a": 717,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 30,
+      "d": 16
+    }
+  }
+}

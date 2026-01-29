@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e5c12b35d7a34ec5ebac73f96e7d5865e83a9883",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/raw.py": {
+      "a": 85,
+      "d": 0
+    },
+    "mne/fiff/tests/data/test_chpi_raw_hp.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/fiff/tests/data/test_chpi_raw_sss.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 21,
+      "d": 1
+    }
+  }
+}

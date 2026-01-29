@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0656d8eef747ecb0d86631c18675feba3ab1fcae",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 7,
+      "d": 15
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 36,
+      "d": 7
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 8,
+      "d": 4
+    }
+  }
+}

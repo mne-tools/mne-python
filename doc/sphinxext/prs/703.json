@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7e037bb095e77528571d07a22879d2415c8a73bb",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/fiff/constants.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/fiff/pick.py": {
+      "a": 30,
+      "d": 3
+    },
+    "mne/viz.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

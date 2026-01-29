@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "bf03e17f323341a877dea62963c86cf140757896",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 26,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 10,
+      "d": 14
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 9,
+      "d": 13
+    },
+    "mne/io/base.py": {
+      "a": 12,
+      "d": 28
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 9,
+      "d": 11
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 43,
+      "d": 56
+    },
+    "mne/io/write.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 8,
+      "d": 10
+    },
+    "mne/tests/test_cov.py": {
+      "a": 13,
+      "d": 16
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 21,
+      "d": 27
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 43,
+      "d": 52
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 34,
+      "d": 18
+    },
+    "mne/utils/misc.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

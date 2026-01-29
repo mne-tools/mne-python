@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "51f38b25034cbe24ebcdf0a1d4158597a64e04e0",
+  "authors": [
+    {
+      "n": "Josh Koen",
+      "e": "koen.joshua@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 35,
+      "d": 0
+    },
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 247,
+      "d": 0
+    }
+  }
+}

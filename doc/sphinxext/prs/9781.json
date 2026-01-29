@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "040a40509ec600e83d572d6bc03a209a05a72a07",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 44,
+      "d": 42
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/datasets/epilepsy_ecog/_data.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/datasets/erp_core/erp_core.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/datasets/fieldtrip_cmc/fieldtrip_cmc.py": {
+      "a": 5,
+      "d": 12
+    },
+    "mne/datasets/fnirs_motor/fnirs_motor.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/datasets/mtrf/mtrf.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/datasets/multimodal/multimodal.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/datasets/opm/opm.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/datasets/phantom_4dbti/phantom_4dbti.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/datasets/refmeg_noise/refmeg_noise.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/datasets/ssvep/ssvep.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/datasets/utils.py": {
+      "a": 31,
+      "d": 13
+    }
+  }
+}

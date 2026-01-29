@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "a218f96927ef06fd8a4e38363b9d98f74a93f1c3",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12844.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/datasets/limo_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/epochs_metadata.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 32,
+      "d": 5
+    },
+    "tutorials/clinical/60_sleep.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/raw/20_event_arrays.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7fdb3819cd76102a257a0b6edc8242a7d2b8ea3b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

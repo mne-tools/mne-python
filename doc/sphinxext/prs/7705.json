@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a837aa3206e7826eb20c92cacebbddda8b0a6f2a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 17,
+      "d": 1
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 12,
+      "d": 13
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 25,
+      "d": 23
+    },
+    "mne/decoding/base.py": {
+      "a": 4,
+      "d": 10
+    },
+    "tutorials/machine-learning/plot_sensors_decoding.py": {
+      "a": 20,
+      "d": 5
+    }
+  }
+}

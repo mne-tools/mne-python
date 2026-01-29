@@ -1,5 +1,4 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -15,14 +14,22 @@ from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
 from ...annotations import Annotations
 from ...transforms import _frame_to_str, apply_trans
-from ...utils import _check_fname, _import_h5py, fill_doc, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _import_h5py,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
 from ..base import BaseRaw
 from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
 def read_raw_snirf(
-    fname, optode_frame="unknown", preload=False, verbose=None
+    fname, optode_frame="unknown", *, sfreq=None, preload=False, verbose=None
 ) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
@@ -42,6 +49,11 @@ def read_raw_snirf(
         in which case the positions are not modified. If a known coordinate
         frame is provided (head, meg, mri), then the positions are transformed
         in to the Neuromag head coordinate frame (head).
+    sfreq : float | None
+        The nominal sampling frequency at which the data were acquired. If ``None``,
+        will be estimated from the time data in the file.
+
+        .. versionadded:: 1.10
     %(preload)s
     %(verbose)s
 
@@ -55,7 +67,7 @@ def read_raw_snirf(
     --------
     mne.io.Raw : Documentation of attributes and methods of RawSNIRF.
     """
-    return RawSNIRF(fname, optode_frame, preload, verbose)
+    return RawSNIRF(fname, optode_frame, sfreq=sfreq, preload=preload, verbose=verbose)
 
 
 def _open(fname):
@@ -75,6 +87,11 @@ class RawSNIRF(BaseRaw):
         in which case the positions are not modified. If a known coordinate
         frame is provided (head, meg, mri), then the positions are transformed
         in to the Neuromag head coordinate frame (head).
+    sfreq : float | None
+        The nominal sampling frequency at which the data were acquired. If ``None``,
+        will be estimated from the time data in the file.
+
+        .. versionadded:: 1.10
     %(preload)s
     %(verbose)s
 
@@ -84,14 +101,16 @@ class RawSNIRF(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, optode_frame="unknown", preload=False, verbose=None):
+    def __init__(
+        self, fname, optode_frame="unknown", *, sfreq=None, preload=False, verbose=None
+    ):
         # Must be here due to circular import error
         from ...preprocessing.nirs import _validate_nirs_info
 
         h5py = _import_h5py()
 
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         with h5py.File(fname, "r") as dat:
             if "data2" in dat["nirs"]:
@@ -121,7 +140,7 @@ class RawSNIRF(BaseRaw):
 
             last_samps = dat.get("/nirs/data1/dataTimeSeries").shape[0] - 1
 
-            sampling_rate = _extract_sampling_rate(dat)
+            sampling_rate = _extract_sampling_rate(dat, sfreq)
 
             if sampling_rate == 0:
                 warn("Unable to extract sample rate from SNIRF file.")
@@ -129,14 +148,13 @@ class RawSNIRF(BaseRaw):
             # Extract wavelengths
             fnirs_wavelengths = np.array(dat.get("nirs/probe/wavelengths"))
             fnirs_wavelengths = [int(w) for w in fnirs_wavelengths]
-            if len(fnirs_wavelengths) != 2:
+            if len(fnirs_wavelengths) < 2:
                 raise RuntimeError(
                     f"The data contains "
                     f"{len(fnirs_wavelengths)}"
                     f" wavelengths: {fnirs_wavelengths}. "
-                    f"MNE only supports reading continuous"
-                    " wave amplitude SNIRF files "
-                    "with two wavelengths."
+                    f"MNE requires at least two wavelengths for "
+                    "continuous wave amplitude SNIRF files."
                 )
 
             # Extract channels
@@ -456,7 +474,7 @@ class RawSNIRF(BaseRaw):
                 )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
-                    birthday = (
+                    birthday = datetime.date(
                         int(birth_matched.groups()[0]),
                         int(birth_matched.groups()[1]),
                         int(birth_matched.groups()[2]),
@@ -493,7 +511,7 @@ class RawSNIRF(BaseRaw):
         """Read a segment of data from a file."""
         import h5py
 
-        with h5py.File(self._filenames[0], "r") as dat:
+        with h5py.File(self.filenames[0], "r") as dat:
             one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)
@@ -532,49 +550,48 @@ def _get_lengthunit_scaling(length_unit):
         )
 
 
-def _extract_sampling_rate(dat):
+def _extract_sampling_rate(dat, user_sfreq):
     """Extract the sample rate from the time field."""
     # This is a workaround to provide support for Artinis data.
     # It allows for a 1% variation in the sampling times relative
     # to the average sampling rate of the file.
     MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE = 1.0
 
+    _validate_type(user_sfreq, ("numeric", None), "sfreq")
     time_data = np.array(dat.get("nirs/data1/time"))
-    sampling_rate = 0
-    if len(time_data) == 2:
-        # specified as onset, samplerate
-        sampling_rate = 1.0 / (time_data[1] - time_data[0])
-    else:
-        # specified as time points
-        periods = np.diff(time_data)
-        uniq_periods = np.unique(periods.round(decimals=4))
-        if uniq_periods.size == 1:
-            # Uniformly sampled data
-            sampling_rate = 1.0 / uniq_periods.item()
-        else:
-            # Hopefully uniformly sampled data with some precision issues.
-            # This is a workaround to provide support for Artinis data.
-            mean_period = np.mean(periods)
-            sampling_rate = 1.0 / mean_period
-            ideal_times = np.linspace(time_data[0], time_data[-1], time_data.size)
-            max_jitter = np.max(np.abs(time_data - ideal_times))
-            percent_jitter = 100.0 * max_jitter / mean_period
-            msg = (
-                f"Found jitter of {percent_jitter:3f}% in sample times. Sampling "
-                f"rate has been set to {sampling_rate:1f}."
-            )
-            if percent_jitter > MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
-                warn(
-                    f"{msg} Note that MNE-Python does not currently support SNIRF "
-                    "files with non-uniformly-sampled data."
-                )
-            else:
-                logger.info(msg)
     time_unit = _get_metadata_str(dat, "TimeUnit")
-    time_unit_scaling = _get_timeunit_scaling(time_unit)
-    sampling_rate *= time_unit_scaling
-
-    return sampling_rate
+    time_unit_scaling = _get_timeunit_scaling(time_unit)  # always 1 (s) or 1000 (ms)
+    if len(time_data) == 2:  # special-cased in the snirf standard as (onset, period)
+        onset, period = time_data
+        file_sfreq = time_unit_scaling / period
+    else:
+        onset = time_data[0]
+        periods = np.diff(time_data)
+        sfreqs = time_unit_scaling / periods
+        file_sfreq = sfreqs.mean()  # our best estimate, likely including some jitter
+    if user_sfreq is not None:
+        logger.info(f"Setting sampling frequency to user-supplied value: {user_sfreq}")
+        if not np.allclose(file_sfreq, user_sfreq, rtol=0.01, atol=0):
+            warn(
+                f"User-supplied sampling frequency ({user_sfreq} Hz) differs by "
+                f"{(user_sfreq - file_sfreq) / file_sfreq:.1%} from the frequency "
+                f"estimated from data in the file ({file_sfreq} Hz)."
+            )
+    sfreq = user_sfreq or file_sfreq  # user-passed value overrides value from file
+    # estimate jitter
+    if len(time_data) > 2:
+        ideal_times = onset + np.arange(len(time_data)) / sfreq
+        max_jitter = np.max(np.abs(time_data - ideal_times))
+        percent_jitter = 100.0 * max_jitter / periods.mean()
+        msg = f"Found jitter of {percent_jitter:3f}% in sample times."
+        if percent_jitter > MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
+            warn(
+                f"{msg} Note that MNE-Python does not currently support SNIRF "
+                "files with non-uniformly-sampled data."
+            )
+        else:
+            logger.info(msg)
+    return sfreq
 
 
 def _get_metadata_str(dat, field):

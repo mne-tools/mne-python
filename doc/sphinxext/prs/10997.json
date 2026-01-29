@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "60087ebe36943f760cafcc10a0e99bc5b3b685bf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 33,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 32,
+      "d": 4
+    }
+  }
+}

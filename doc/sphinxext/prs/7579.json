@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ef9c259733fd5928dc7cf78fdb461d7a30d5fe02",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_eeg_mri_coords.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

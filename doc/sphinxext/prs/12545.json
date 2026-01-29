@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "321825b5e13f771e5ce31d0383609468d0a1d5e8",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "examples/forward/left_cerebellum_volume_source.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

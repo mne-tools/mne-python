@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ae6e55e8eb41f080d6c209c129bb86ecdb2fc30d",
+  "authors": [
+    {
+      "n": "Sophie Herbst",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12454.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 17,
+      "d": 3
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5f0430f81a40803a7d0ae72ec49d8bdcd9be4475",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 10,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

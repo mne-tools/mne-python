@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "02978dfa847d5b089064897c2a22796ea0b1b88d",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/nicolet/nicolet.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

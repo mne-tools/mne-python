@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "cf5698ce79c57d69ec17c41a0808d387dc388aef",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/externals/tempita/__init__.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/_bunch.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

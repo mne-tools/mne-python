@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from functools import reduce
 from glob import glob
@@ -106,6 +108,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     os.remove(fid_path)
     create_default_subject(update=True, subjects_dir=tmp_path, fs_home=fake_home)
     assert fid_path.exists(), "Updating fsaverage"
+    mri_fiducials = read_fiducials(fid_path)[0]
 
     # copy MRI file from sample data (shouldn't matter that it's incorrect,
     # so here choose a small one)
@@ -144,6 +147,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
         True,
         subjects_dir=tmp_path,
         verbose="debug",
+        mri_fiducials=mri_fiducials,
     )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
     spath = tmp_path / "flachkopf" / "bem"
@@ -346,9 +350,7 @@ def test_fit_matched_points():
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation"
-    )
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with rotation")
 
     # rotation & translation
     trans = np.dot(translation(2, -6, 3), rotation(2, 6, 3))
@@ -356,7 +358,7 @@ def test_fit_matched_points():
     trans_est = fit_matched_points(src_pts, tgt_pts, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation and translation."
+        tgt_pts, est_pts, 2, "fit_matched_points with rotation and translation."
     )
 
     # rotation & translation & scaling
@@ -370,7 +372,7 @@ def test_fit_matched_points():
         tgt_pts,
         est_pts,
         2,
-        "fit_matched_points with " "rotation, translation and scaling.",
+        "fit_matched_points with rotation, translation and scaling.",
     )
 
     # test exceeding tolerance

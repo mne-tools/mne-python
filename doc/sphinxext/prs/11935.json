@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "82b2e82e42c5167f30df371f3ca7e18b86a2313a",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/contributing.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

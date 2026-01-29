@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "fea9566c5571f40781568c1f1a43f4c28757545f",
+  "authors": [
+    {
+      "n": "Thomas Hartmann",
+      "e": "thomas.hartmann@th-ht.de"
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/externals/pymatreader/pymatreader.py": {
+      "a": 1,
+      "d": 177
+    },
+    "mne/externals/pymatreader/utils.py": {
+      "a": 230,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fieldtrip/__init__.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 174,
+      "d": 0
+    },
+    "mne/io/fieldtrip/tests/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 270,
+      "d": 0
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 225,
+      "d": 0
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 324,
+      "d": 0
+    }
+  }
+}

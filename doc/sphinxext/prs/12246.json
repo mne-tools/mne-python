@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2a1f7e4929b03c243375551755f5e99618acb5ca",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/utils/misc.py": {
+      "a": 1,
+      "d": 6
+    },
+    "pyproject.toml": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

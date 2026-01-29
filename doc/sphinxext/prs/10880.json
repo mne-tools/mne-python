@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fe9f5a503377bc30683f22a16a4490e54111eb46",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_topomap.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a0ca70901cd7105da03607e7155ae606e18ed195",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

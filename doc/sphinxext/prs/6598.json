@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1d0e34eb53c6f1d979eaf2704d5b440ecea9962d",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

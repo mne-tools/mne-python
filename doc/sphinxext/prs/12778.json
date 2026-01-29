@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6da505591cd76bc7f6579154475c4abb2a5cbb95",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/contrib_avatars.py": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 1,
+      "d": 14
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

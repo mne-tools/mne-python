@@ -151,7 +151,7 @@ Bug
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
-- Fix ``feature_names`` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
+- Fix ``feature_names`` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Rémi King`_
 
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
 
@@ -161,7 +161,7 @@ Bug
 
 - Fix :func:`mne.events_from_annotations` to ignore ``'BAD_'`` and ``'EDGE_'`` annotations by default using a new default ``regexp`` by `Eric Larson`_
 
-- Fix bug in ``mne.preprocessing.mark_flat`` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
+- Fix bug in ``mne.preprocessing.mark_flat`` where ``raw.first_samp`` was not taken into account by `Evgenii Kalenkovich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 

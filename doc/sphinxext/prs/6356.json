@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "580373859af9e65518660a0b8357003e1a5fdb95",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

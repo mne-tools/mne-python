@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "479e4ebfdf297022db64edd27e11d1b6d0fa00ae",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/reference.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

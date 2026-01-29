@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6d1aa1c3017513efaa5c2a9a37b2ed6208dc5255",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

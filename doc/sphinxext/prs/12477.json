@@ -1,0 +1,223 @@
+{
+  "merge_commit_sha": "64901c4e24db697b23930f7557480ca0b97b4f8c",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/sphinxext/unit_role.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/hf_sef_data.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/decoding/decoding_csp_timefreq.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/decoding/ssd_spatial_filters.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/io/elekta_epochs.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/preprocessing/css.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/preprocessing/eog_artifact_histogram.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/preprocessing/xdawn_denoising.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/visualization/eyetracking_plot_heatmap.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/visualization/topo_compare_conditions.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/visualization/topo_customized.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/_read_raw.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/besa/tests/test_besa.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/spatial_resolution.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_lof.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/report/js_and_css/bootstrap-icons/gen_css_for_mne.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 22,
+      "d": 21
+    },
+    "mne/viz/montage.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/ui_events.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/visualization/20_ui_events.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

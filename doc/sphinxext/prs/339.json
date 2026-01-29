@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1db0559c691039a8d1596af0c563d109201e8c42",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 17,
+      "d": 15
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "a76fcb1b4198fa89e16be9a33d93af0c0d958177",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/getting_started.rst": {
+      "a": 9,
+      "d": 2
+    },
+    "doc/source/mne-python.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 329,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/fiff/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/evoked.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/fiff/open.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/tree.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/surface.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

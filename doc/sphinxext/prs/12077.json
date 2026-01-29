@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "812b02ef0808bff97b32be54473de9bb986366db",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/js/contrib-avatars.js": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_templates/homepage.html": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/_templates/layout.html": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/_avatar_template.html": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/sphinxext/contrib_avatars.py": {
+      "a": 34,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

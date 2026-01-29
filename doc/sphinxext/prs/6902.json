@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ab7176a0fc1a9d7b81791ccb9d69f8a29ad3be8e",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "2d1babfeef86f6294d5f7a981026f13489dd3e0b",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/evoked_ers_source_power.py": {
+      "a": 95,
+      "d": 32
+    },
+    "mne/gui/__init__.py": {
+      "a": 96,
+      "d": 1
+    },
+    "mne/gui/_core.py": {
+      "a": 33,
+      "d": 33
+    },
+    "mne/gui/_vol_stc.py": {
+      "a": 896,
+      "d": 0
+    },
+    "mne/gui/tests/test_core.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/tests/test_vol_stc.py": {
+      "a": 202,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

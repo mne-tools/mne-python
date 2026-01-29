@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ce3e0e99f4974eec09701dc239afe30948348dbc",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 75,
+      "d": 26
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/proj.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/fiff/tests/data/test_raw-eve.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/tests/test_cov.py": {
+      "a": 14,
+      "d": 3
+    }
+  }
+}

@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -76,12 +72,12 @@ class Projection(dict):
         )
 
     def __repr__(self):  # noqa: D105
-        s = "%s" % self["desc"]
-        s += ", active : %s" % self["active"]
+        s = str(self["desc"])
+        s += f", active : {self['active']}"
         s += f", n_channels : {len(self['data']['col_names'])}"
         if self["explained_var"] is not None:
-            s += f', exp. var : {self["explained_var"] * 100:0.2f}%'
-        return "<Projection | %s>" % s
+            s += f", exp. var : {self['explained_var'] * 100:0.2f}%"
+        return f"<Projection | {s}>"
 
     # speed up info copy by taking advantage of mutability
     def __deepcopy__(self, memodict):
@@ -256,7 +252,7 @@ class ProjMixin:
         if not isinstance(projs, list) and not all(
             isinstance(p, Projection) for p in projs
         ):
-            raise ValueError("Only projs can be added. You supplied " "something else.")
+            raise ValueError("Only projs can be added. You supplied something else.")
 
         # mark proj as inactive, as they have not been applied
         projs = deactivate_proj(projs, copy=True)
@@ -264,7 +260,7 @@ class ProjMixin:
             # we cannot remove the proj if they are active
             if any(p["active"] for p in self.info["projs"]):
                 raise ValueError(
-                    "Cannot remove projectors that have " "already been applied"
+                    "Cannot remove projectors that have already been applied"
                 )
             with self.info._unlock():
                 self.info["projs"] = projs
@@ -328,8 +324,7 @@ class ProjMixin:
 
         if all(p["active"] for p in self.info["projs"]):
             logger.info(
-                "Projections have already been applied. "
-                "Setting proj attribute to True."
+                "Projections have already been applied. Setting proj attribute to True."
             )
             return self
 
@@ -338,10 +333,10 @@ class ProjMixin:
         )
         # let's not raise a RuntimeError here, otherwise interactive plotting
         if _projector is None:  # won't be fun.
-            logger.info("The projections don't apply to these data." " Doing nothing.")
+            logger.info("The projections don't apply to these data. Doing nothing.")
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, (BaseRaw, Evoked)):
+        if isinstance(self, BaseRaw | Evoked):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
         else:  # BaseEpochs
@@ -491,7 +486,7 @@ class ProjMixin:
                     _projs.remove(_proj)
             if len(_projs) == 0:
                 raise ValueError(
-                    "Nothing to plot (no projectors for channel " f"type {ch_type})."
+                    f"Nothing to plot (no projectors for channel type {ch_type})."
                 )
         # now we have non-empty _projs list with correct channel type(s)
         from ..viz.topomap import plot_projs_topomap
@@ -642,7 +637,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         if data.shape[1] != len(names):
             raise ValueError(
-                "Number of channel names does not match the " "size of data matrix"
+                "Number of channel names does not match the size of data matrix"
             )
 
         # just always use this, we used to have bugs with writing the
@@ -663,13 +658,13 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
         projs.append(one)
 
     if len(projs) > 0:
-        logger.info("    Read a total of %d projection items:" % len(projs))
+        logger.info(f"    Read a total of {len(projs)} projection items:")
         for proj in projs:
             misc = "active" if proj["active"] else " idle"
             logger.info(
-                f'        {proj["desc"]} '
-                f'({proj["data"]["nrow"]} x '
-                f'{len(proj["data"]["col_names"])}) {misc}'
+                f"        {proj['desc']} "
+                f"({proj['data']['nrow']} x "
+                f"{len(proj['data']['col_names'])}) {misc}"
             )
 
     return projs
@@ -728,14 +723,9 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
 
 def _check_projs(projs, copy=True):
     """Check that projs is a list of Projection."""
-    if not isinstance(projs, (list, tuple)):
-        raise TypeError(f"projs must be a list or tuple, got {type(projs)}")
+    _validate_type(projs, (list, tuple), "projs")
     for pi, p in enumerate(projs):
-        if not isinstance(p, Projection):
-            raise TypeError(
-                "All entries in projs list must be Projection "
-                "instances, but projs[%d] is type %s" % (pi, type(p))
-            )
+        _validate_type(p, Projection, f"projs[{pi}]")
     return deepcopy(projs) if copy else projs
 
 
@@ -804,8 +794,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
         if not p["active"] or include_active:
             if len(p["data"]["col_names"]) != len(np.unique(p["data"]["col_names"])):
                 raise ValueError(
-                    "Channel name list in projection item %d"
-                    " contains duplicate items" % k
+                    f"Channel name list in projection item {k} contains duplicate items"
                 )
 
             # Get the two selection vectors to pick correct elements from
@@ -841,7 +830,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
                         )
                     ):
                         warn(
-                            f'Projection vector {repr(p["desc"])} has been '
+                            f"Projection vector {repr(p['desc'])} has been "
                             f"reduced to {100 * psize:0.2f}% of its "
                             "original magnitude by subselecting "
                             f"{len(vecsel)}/{orig_n} of the original "
@@ -882,8 +871,8 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
     proj = np.eye(nchan, nchan) - np.dot(U, U.T)
     if nproj >= nchan:  # e.g., 3 channels and 3 projectors
         raise RuntimeError(
-            "Application of %d projectors for %d channels "
-            "will yield no components." % (nproj, nchan)
+            f"Application of {nproj} projectors for {nchan} channels "
+            "will yield no components."
         )
 
     return proj, nproj, U
@@ -957,7 +946,7 @@ def activate_proj(projs, copy=True, verbose=None):
     for proj in projs:
         proj["active"] = True
 
-    logger.info("%d projection items activated" % len(projs))
+    logger.info(f"{len(projs)} projection items activated")
 
     return projs
 
@@ -988,7 +977,7 @@ def deactivate_proj(projs, copy=True, verbose=None):
     for proj in projs:
         proj["active"] = False
 
-    logger.info("%d projection items deactivated" % len(projs))
+    logger.info(f"{len(projs)} projection items deactivated")
 
     return projs
 
@@ -1105,13 +1094,13 @@ def _has_eeg_average_ref_proj(
     missing = [name for name in want_names if name not in found_names]
     if missing:
         if found_names:  # found some but not all: warn
-            warn(f"Incomplete {ch_type} projector, " f"missing channel(s) {missing}")
+            warn(f"Incomplete {ch_type} projector, missing channel(s) {missing}")
         return False
     return True
 
 
 def _needs_eeg_average_ref_proj(info):
-    """Determine if the EEG needs an averge EEG reference.
+    """Determine if the EEG needs an average EEG reference.
 
     This returns True if no custom reference has been applied and no average
     reference projection is present in the list of projections.
@@ -1164,10 +1153,10 @@ def setup_proj(
     projector, nproj = make_projector_info(info)
     if nproj == 0:
         if verbose:
-            logger.info("The projection vectors do not apply to these " "channels")
+            logger.info("The projection vectors do not apply to these channels")
         projector = None
     else:
-        logger.info("Created an SSP operator (subspace dimension = %d)" % nproj)
+        logger.info(f"Created an SSP operator (subspace dimension = {nproj})")
 
     # The projection items have been activated
     if activate:

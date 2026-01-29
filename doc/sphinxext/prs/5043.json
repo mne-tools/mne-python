@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "2d0d5b95c65674f9dd5b90cd8af55467e7b04c93",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 5,
+      "d": 6
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/io/eximia/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/io/eximia/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/eximia/tests/test_eximia.py": {
+      "a": 45,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 14,
+      "d": 2
+    }
+  }
+}

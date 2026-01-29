@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ab51322a930062375f9b92ab4fac79e44e5a4dc6",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

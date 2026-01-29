@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "61349981d3de5d749043e604790422b6754081b8",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/10_background_freesurfer.py": {
+      "a": 96,
+      "d": 84
+    },
+    "tutorials/intro/20_events_from_raw.py": {
+      "a": 38,
+      "d": 40
+    },
+    "tutorials/raw/20_event_arrays.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/raw/40_visualize_raw.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

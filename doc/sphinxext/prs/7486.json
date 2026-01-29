@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "9e785061f325191b809ade41590887230c1378ec",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/io/pick.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_rank.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/viz/evoked.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_30_info.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "1e7cef13d0e45355114a14beee68db365a91e315",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12962.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

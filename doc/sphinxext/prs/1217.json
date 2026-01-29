@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "43ad3b252ea3561ba182b7a47955bac252f6763f",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/channels.py": {
+      "a": 73,
+      "d": 23
+    },
+    "mne/fiff/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 25,
+      "d": 1
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 25,
+      "d": 0
+    }
+  }
+}

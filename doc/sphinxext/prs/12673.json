@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d082461bcb701fd66b186e92535fb5288f047c38",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

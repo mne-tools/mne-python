@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "edcdaf38efdb436c13860ebdf4b190d4719f8051",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6c15f996b53996534ebbcc0ef8d5fc8ec27d825e",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 7,
+      "d": 44
+    }
+  }
+}

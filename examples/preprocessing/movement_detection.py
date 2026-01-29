@@ -81,6 +81,7 @@ raw.plot(n_channels=100, duration=20)
 ##############################################################################
 # After checking the annotated movement artifacts, calculate the new transform
 # and plot it:
+
 new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
 raw.info["dev_head_t"] = new_dev_head_t
 fig = mne.viz.plot_alignment(

@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "6cb40dbb55eb77938b9557388329bba0e53b3061",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/manual/cookbook.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 9,
+      "d": 7
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 5,
+      "d": 4
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/visualization/plot_xhemi.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/source_estimate.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/tests/test_morph.py": {
+      "a": 26,
+      "d": 26
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 7,
+      "d": 5
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "639b7381d0f3f57bfdeaa94513fece040a3dc8fb",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_eeg_no_mri.py": {
+      "a": 76,
+      "d": 0
+    }
+  }
+}

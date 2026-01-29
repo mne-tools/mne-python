@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "d3c9079798dc9529462fe6f92b41e80bd92e5abc",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 4,
+      "d": 4
+    },
+    "Makefile": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/parallel.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_viz.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

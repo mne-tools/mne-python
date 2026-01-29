@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9627d0965ced345fc5339caeb828e4180afacaa6",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/data/dataset_checksums.txt": {
+      "a": 0,
+      "d": 46
+    },
+    "mne/datasets/config.py": {
+      "a": 267,
+      "d": 120
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 63,
+      "d": 38
+    }
+  }
+}

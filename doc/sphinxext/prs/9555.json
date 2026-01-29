@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3843c36cec7310eb7b7c793e825be608f81af852",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/evoked.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 14,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

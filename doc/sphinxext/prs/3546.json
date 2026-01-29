@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a28f47bf61df9cb7908a511db88de575c99da8c9",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 19,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

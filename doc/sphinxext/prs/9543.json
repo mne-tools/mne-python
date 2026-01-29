@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "3b9ec94e43aed102fe759752b899514c80afc5f5",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/links.inc": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/source_space.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/__init__.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/_freesurfer.py": {
+      "a": 499,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 9,
+      "d": 495
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_freesurfer.py": {
+      "a": 143,
+      "d": 0
+    },
+    "mne/tests/test_morph.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 4,
+      "d": 128
+    },
+    "mne/utils/__init__.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

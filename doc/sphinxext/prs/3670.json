@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "334a3cdd5bedef2ad6e789078b401f683adf3a0f",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

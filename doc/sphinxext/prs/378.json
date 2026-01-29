@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "789cae1ae1901f8899bd313f04a801ecc6cc67af",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/constants.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

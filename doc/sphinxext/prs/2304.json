@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "174edbd8b46d30ce234c21c3d5773cf24447c34d",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 64,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/stats/regression.py": {
+      "a": 205,
+      "d": 2
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 46,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

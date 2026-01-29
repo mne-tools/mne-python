@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7636a58a744bb95b59816144cce7d01746fe6db7",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/50_epochs_to_data_frame.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

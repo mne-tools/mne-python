@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "02334a9ce1ad1547d825028429fa8a5029262e91",
+  "authors": [
+    {
+      "n": "Larry Eisenman",
+      "e": "lneisenman@hotmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_ecog.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

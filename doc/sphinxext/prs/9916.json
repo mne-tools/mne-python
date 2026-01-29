@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4679e87ece4bfd5174e56b595671088a5da6e925",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 0,
+      "d": 11
+    },
+    "doc/_static/versions.json": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/_templates/version-switcher.html": {
+      "a": 0,
+      "d": 11
+    },
+    "doc/conf.py": {
+      "a": 6,
+      "d": 17
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

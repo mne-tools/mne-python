@@ -1,10 +1,9 @@
-# Authors: Federico Raimondo  <federaimondo@gmail.com>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import pytest
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_allclose
 
 from mne.datasets import testing
 from mne.io import read_raw_edf, read_raw_nihon
@@ -28,30 +27,28 @@ def test_nihon_eeg():
     _test_raw_reader(read_raw_nihon, fname=fname, test_scaling=False)
     fname_edf = data_path / "NihonKohden" / "MB0400FU.EDF"
     raw_edf = read_raw_edf(fname_edf, preload=True)
+    raw_edf.drop_channels(["Events/Markers"])
 
     assert raw._data.shape == raw_edf._data.shape
-    assert raw.info["sfreq"] == raw.info["sfreq"]
-    # ch names and order are switched in the EDF
-    edf_ch_names = {x: x.split(" ")[1].replace("-Ref", "") for x in raw_edf.ch_names}
+    assert raw.info["sfreq"] == raw_edf.info["sfreq"]
+    # a couple of ch names differ in the EDF
+    edf_ch_names = {"EEG Mark1": "$A2", "EEG Mark2": "$A1"}
     raw_edf.rename_channels(edf_ch_names)
     assert raw.ch_names == raw_edf.ch_names
 
-    for i, an1 in enumerate(raw.annotations):
-        # EDF has some weird annotations, which are not in the LOG file
-        an2 = raw_edf.annotations[i * 2 + 1]
+    assert len(raw.annotations) == len(raw_edf.annotations)
+    for an1, an2 in zip(raw.annotations, raw_edf.annotations):
         assert an1["onset"] == an2["onset"]
         assert an1["duration"] == an2["duration"]
-        # Also, it prepends 'Segment: ' to some annotations
-        t_desc = an2["description"].replace("Segment: ", "")
-        assert an1["description"] == t_desc
+        assert an1["description"] == an2["description"].rstrip()
 
-    assert_array_almost_equal(raw._data, raw_edf._data)
+    assert_allclose(raw.get_data(), raw_edf.get_data())
 
     with pytest.raises(ValueError, match="Not a valid Nihon Kohden EEG file"):
         raw = read_raw_nihon(fname_edf, preload=True)
 
     with pytest.raises(ValueError, match="Not a valid Nihon Kohden EEG file"):
-        raw = _read_nihon_header(fname_edf)
+        header, _ = _read_nihon_header(fname_edf)
 
     bad_fname = data_path / "eximia" / "text_eximia.nxe"
 
@@ -93,3 +90,38 @@ def test_nihon_duplicate_channels(monkeypatch):
     )
     with pytest.warns(RuntimeWarning, match=msg):
         read_raw_nihon(fname)
+
+
+@testing.requires_testing_data
+def test_nihon_calibration():
+    """Test handling of calibration factor and range in Nihon Kohden EEG files."""
+    fname = data_path / "NihonKohden" / "DA00100E.EEG"
+    raw = read_raw_nihon(fname, preload=True, encoding="cp936")
+
+    Fp1_idx = raw.ch_names.index("Fp1")
+    M1_idx = raw.ch_names.index("M1")
+    M2_idx = raw.ch_names.index("M2")
+
+    Fp1_info = raw.info["chs"][Fp1_idx]
+    M1_info = raw.info["chs"][M1_idx]
+    M2_info = raw.info["chs"][M2_idx]
+
+    # M1, M2 are EEG channels, just like Fp1.
+    # So they should have the same calibration factor and physical range.
+    assert_allclose(M1_info["cal"], Fp1_info["cal"])
+    assert_allclose(M2_info["cal"], Fp1_info["cal"])
+    assert_allclose(M1_info["range"], Fp1_info["range"])
+    assert_allclose(M2_info["range"], Fp1_info["range"])
+
+    fname_edf = data_path / "NihonKohden" / "DA00100E.EDF"
+    raw_edf = read_raw_edf(fname_edf, preload=True)
+    raw_edf.drop_channels(["Events/Markers"])
+    # a couple of ch names differ in the EDF
+    edf_ch_names = {"EEG Mark1": "$M1", "EEG Mark2": "$M2"}
+    raw_edf.rename_channels(edf_ch_names)
+
+    assert raw.ch_names == raw_edf.ch_names
+    assert raw._data.shape == raw_edf._data.shape
+    assert raw.info["sfreq"] == raw_edf.info["sfreq"]
+
+    assert_allclose(raw.get_data(), raw_edf.get_data())

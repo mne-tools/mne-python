@@ -1,7 +1,6 @@
 """Generate the MNE-Python logos."""
 
-# @author: drmccloy
-# Created on Mon Jul 20 11:28:16 2015
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

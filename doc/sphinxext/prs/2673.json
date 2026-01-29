@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1154c9ae04849bf011fa216b9256721dcca1a328",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_time_generalization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 94,
+      "d": 34
+    }
+  }
+}

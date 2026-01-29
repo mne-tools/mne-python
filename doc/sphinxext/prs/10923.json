@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "94433a355fe164dca8154e6a27e0442cb6844801",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_pip.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 4,
+      "d": 0
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

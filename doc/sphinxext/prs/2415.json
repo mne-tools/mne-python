@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "9d7f3947435c22f1f2ec2ee25b17a13c8f623818",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

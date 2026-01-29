@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "465d0ad8f5c6caf635aa37d3c6f1ac6676351cf1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

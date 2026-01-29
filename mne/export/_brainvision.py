@@ -1,5 +1,4 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -108,6 +107,13 @@ def _export_mne_raw(*, raw, fname, events=None, overwrite=False):
 
 def _mne_annots2pybv_events(raw):
     """Convert mne Annotations to pybv events."""
+    # check that raw.annotations.orig_time is the same as raw.info["meas_date"]
+    # so that onsets are relative to the first sample
+    # (after further correction for first_time)
+    if raw.annotations and raw.info["meas_date"] != raw.annotations.orig_time:
+        raise ValueError(
+            "Annotations must have the same orig_time as raw.info['meas_date']"
+        )
     events = []
     for annot in raw.annotations:
         # handle onset and duration: seconds to sample, relative to

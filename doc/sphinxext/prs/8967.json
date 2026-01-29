@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6f64726adffead86cc9397d390f3c0396a3a3615",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

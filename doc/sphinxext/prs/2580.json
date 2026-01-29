@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "e6ec06975cb5be82e0daa1c828ba41f406cf3287",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_help.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 102,
+      "d": 49
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_viewer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/help/kit2fiff.json": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/io/kit/constants.py": {
+      "a": 27,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 52,
+      "d": 30
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 25,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

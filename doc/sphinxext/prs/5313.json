@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d6f2ee670ea89d9d0d43c5d4d3aca58ee0881154",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 42,
+      "d": 5
+    }
+  }
+}

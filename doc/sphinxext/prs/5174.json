@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "ca35ce9923ae9dc02fe55d7b321f71337903a81b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/install_mne_python.rst": {
+      "a": 31,
+      "d": 27
+    },
+    "doc/manual/time_frequency.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/plot_dics.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

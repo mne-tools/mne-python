@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "40b9ce0d74da647960f7ca25c6507e204461dd79",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -16,8 +16,10 @@ uses :mod:`nibabel` under the hood). We'll also use a special :mod:`Matplotlib
 readable on top of an MRI image.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.patheffects as path_effects

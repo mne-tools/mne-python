@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1def4bf8a84b09d465ffd613984ee2badd364a3c",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}
