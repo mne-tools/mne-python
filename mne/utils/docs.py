@@ -1232,7 +1232,7 @@ eeg : bool | str | list | dict
 
 docdict["elevation"] = """
 elevation : float
-    The The zenith angle of the camera rendering the view in degrees.
+    The zenith angle of the camera rendering the view in degrees.
 """
 
 docdict["eltc_mode_notes"] = """
@@ -1559,7 +1559,14 @@ ext_order : int
 docdict["extended_proj_maxwell"] = """
 extended_proj : list
     The empty-room projection vectors used to extend the external
-    SSS basis (i.e., use eSSS).
+    SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+    pure *external* noise that you expect to be present in your signal.
+    Typically, this should be the case during an empty room recording. Get the
+    projections e.g. by calling::
+
+        proj = mne.compute_proj_raw(
+            raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+        )
 
     .. versionadded:: 0.21
 """
@@ -2884,6 +2891,11 @@ The raw unmodified measured values are stored in another file
 called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
 mathematical functions the default behaviour is to return the
 saturated data.
+
+.. note::
+    This function expects ``fname`` to be a path to a directory containing the
+    NIRX data files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.). If you have a
+    ``.snirf`` file, use :func:`mne.io.read_raw_snirf` instead.
 """
 
 docdict["niter"] = """
@@ -3970,7 +3982,8 @@ docdict["scalings_df"] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
     ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
-    magnetometers to fT, and gradiometers to fT/cm.
+    magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+    and :term:`non-data channels` for full list of default scalings.
 """
 
 docdict["scalings_topomap"] = """
@@ -3991,7 +4004,7 @@ scoring : callable | str | None
 
 docdict["sdr_morph"] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
-    The class that applies the the symmetric diffeomorphic registration
+    The class that applies the symmetric diffeomorphic registration
     (SDR) morph.
 """
 

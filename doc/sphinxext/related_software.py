@@ -51,6 +51,11 @@ MANUAL_PACKAGES = {
         "Home-page": "https://users.aalto.fi/~vanvlm1/posthoc/python",
         "Summary": "post-hoc modification of linear models",
     },
+    # https://github.com/freesurfer/surfa/pull/66
+    "surfa": {
+        "Home-page": "https://github.com/freesurfer/surfa",
+        "Summary": "Utilities for medical image and surface processing.",
+    },
     # This package does not provide wheels, so don't force CircleCI to build it.
     # If it eventually provides binary wheels we could add it to
     # `tools/circleci_dependencies.sh` and remove from here.
@@ -60,14 +65,6 @@ MANUAL_PACKAGES = {
         "Summary": "Open-source Python toolkit for MEG and EEG data analysis.",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
-    "python-picard": {  # https://github.com/mind-inria/picard/issues/60
-        "Home-page": "https://github.com/mind-inria/picard",
-        "Summary": "Preconditioned ICA for Real Data",
-    },
-    "mne-features": {
-        "Home-page": "https://mne.tools/mne-features",
-        "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
-    },
     "mffpy": {
         "Home-page": "https://github.com/BEL-Public/mffpy",
         "Summary": "Reader and Writer for Philips' MFF file format.",

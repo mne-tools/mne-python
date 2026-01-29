@@ -19,8 +19,12 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from pytest import StashKey
+from pytest import StashKey, register_assert_rewrite
 
+# Any `assert` statements in our testing functions should be verbose versions
+register_assert_rewrite("mne.utils._testing")
+
+# ruff: noqa: E402
 import mne
 from mne import Epochs, pick_types, read_events
 from mne.channels import read_layout
@@ -39,11 +43,10 @@ from mne.utils import (
     check_version,
     numerics,
 )
-
-# data from sample dataset
 from mne.viz._figure import use_browser_backend
 from mne.viz.backends._utils import _init_mne_qtapp
 
+# data from sample dataset
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, "MEG", "sample")
 fname_evoked = op.join(s_path, "sample_audvis_trunc-ave.fif")
@@ -204,6 +207,9 @@ def pytest_configure(config: pytest.Config):
     ignore:^'.*' deprecated - use '.*'$:DeprecationWarning
     # dipy
     ignore:'where' used without 'out', expect .*:UserWarning
+    # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
+    # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
+    ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

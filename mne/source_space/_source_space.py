@@ -41,7 +41,7 @@ from .._freesurfer import (
     read_freesurfer_lut,
 )
 from ..bem import ConductorModel, read_bem_surfaces
-from ..fixes import _get_img_fdata
+from ..fixes import _get_img_fdata, _reshape_view
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
@@ -2317,7 +2317,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh.shape = old_shape
+        neigh = _reshape_view(neigh, old_shape)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
@@ -2824,7 +2824,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-# XXX this should probably be deprecated because it returns surface Labels,
+# XXX this should probably be removed because it returns surface Labels,
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
 # checking, which might not be the case (could be all volumes)
