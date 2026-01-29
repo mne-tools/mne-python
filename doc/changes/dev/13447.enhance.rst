@@ -1,0 +1,3 @@
+Improve the error message raised when mixed 10–20 EEG electrode naming
+conventions (T3/T4/T5/T6 vs T7/T8/P7/P8) lead to overlapping sensor positions
+during topomap plotting.
