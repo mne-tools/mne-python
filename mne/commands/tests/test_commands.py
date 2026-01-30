@@ -31,6 +31,7 @@ from mne.commands import (
     mne_compute_proj_ecg,
     mne_compute_proj_eog,
     mne_coreg,
+    mne_dipolefit,
     mne_flash_bem,
     mne_kit2fiff,
     mne_make_scalp_surfaces,
@@ -63,6 +64,7 @@ subjects_dir = op.join(testing_path, "subjects")
 bem_model_fname = op.join(
     testing_path, "subjects", "sample", "bem", "sample-320-320-320-bem.fif"
 )
+evokeds_fname = op.join(testing_path, "MEG", "sample", "sample_audvis_trunc-ave.fif")
 
 
 def check_usage(module, force_help=False):
@@ -539,3 +541,10 @@ def test_anonymize(tmp_path):
     info = read_info(out_fname)
     assert op.exists(out_fname)
     assert info["meas_date"] == _stamp_to_dt((946684800, 0))
+
+
+def test_dipolefit():
+    """Test mne dipolefit."""
+    check_usage(mne_dipolefit)
+    with ArgvSetter((evokeds_fname,)):
+        mne_dipolefit.run()

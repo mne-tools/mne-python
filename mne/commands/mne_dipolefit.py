@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-"""Open the dipole fitting GUI.
+"""Open the dipole fitting GUI on the given evoked file ("-ave.fif").
 
 Examples
 --------
@@ -13,6 +13,7 @@ Examples
 """
 
 import os.path as op
+import sys
 
 import mne
 
@@ -21,33 +22,22 @@ def run():
     """Run command."""
     from mne.commands.utils import _add_verbose_flag, get_optparser
 
-    parser = get_optparser(__file__)
+    parser = get_optparser(__file__, usage="mne dipolefit EVOKED_FILE")
 
-    parser.add_option(
-        "-e",
-        "--evoked",
-        default=None,
-        metavar="EVOKED_FILE",
-        help='The evoked file ("-ave.fif") containing the data to fit dipoles to.',
-    )
     parser.add_option(
         "--condition",
         default=0,
         help="The condition to use.",
     )
     parser.add_option(
-        "--baseline-from",
+        "--baseline",
         default=None,
-        type=float,
-        metavar="TIME",
-        help="The earliest timepoint to use as baseline.",
-    )
-    parser.add_option(
-        "--baseline-to",
-        default=None,
-        type=float,
-        metavar="TIME",
-        help="The latest timepoint to use as baseline.",
+        metavar="TIME-START,TIME-END",
+        help=(
+            "The time period to use as baseline, written as two numbers (in seconds, "
+            "relative to the stimulus onset) separated by a comma. "
+            "For example: --baseline=-0.2,0.1"
+        ),
     )
     parser.add_option(
         "-c",
@@ -107,11 +97,14 @@ def run():
         ),
     )
     parser.add_option(
-        "-j", "--cpus", default=-1, type=int, help="Number of CPUs to use."
+        "-j", "--n-jobs", default=-1, type=int, help="Number of CPUs to use."
     )
     _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
+    if len(args) != 1:
+        parser.print_help()
+        sys.exit(1)
 
     # expanduser allows ~ for paths
     subjects_dir = options.subjects_dir
@@ -126,7 +119,6 @@ def run():
     stc = options.stc
     if stc is not None:
         stc = op.expanduser(stc)
-    import faulthandler
 
     # Condition can be specified as integer index or string comment.
     if options.condition is not None:
@@ -137,11 +129,24 @@ def run():
     else:
         condition = None
 
-    faulthandler.enable()
+    # Parse the baseline time period
+    baseline = None
+    if options.baseline:
+        try:
+            baseline = [float(x) for x in options.baseline.split(",")]
+            if len(baseline) != 2:
+                raise ValueError()
+        except ValueError:
+            raise ValueError(
+                "The 'baseline' parameter should be written as two numbers (in seconds,"
+                " relative to the stimulus onset) separated by a comma. "
+                "For example: --baseline=-0.2,0.1"
+            )
+
     mne.gui.dipolefit(
-        evoked=options.evoked,
+        evoked=args[0],
         condition=condition,
-        baseline=(options.baseline_from, options.baseline_to),
+        baseline=baseline,
         cov=options.cov,
         bem=bem,
         subject=options.subject,
@@ -150,7 +155,7 @@ def run():
         ch_type=options.channel_type,
         initial_time=options.initial_time,
         trans=trans,
-        n_jobs=options.cpus,
+        n_jobs=options.n_jobs,
         show_density=not options.hide_density,
         show=True,
         block=True,
