@@ -22,7 +22,7 @@ from ..evoked import Evoked, EvokedArray
 from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
-from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose, warn
+from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
 from ._lead_dots import (
     _do_cross_dots,
     _do_self_dots,
@@ -444,11 +444,11 @@ def make_field_map(
     subject=None,
     subjects_dir=None,
     ch_type=None,
+    *,
     mode="fast",
     meg_surf="helmet",
-    origin=None,
+    origin="auto",
     n_jobs=None,
-    *,
     upsampling=1,
     head_source=("bem", "head"),
     verbose=None,
@@ -504,15 +504,6 @@ def make_field_map(
         The surface maps to be used for field plots. The list contains
         separate ones for MEG and EEG (if both MEG and EEG are present).
     """
-    if origin is None:
-        warn_message = (
-            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 '
-            'but will be changed to "auto" in 1.12. Set the origin parameter '
-            "explicitly to avoid this warning."
-        )
-        warn(warn_message, FutureWarning)
-        origin = (0.0, 0.0, 0.04)
-
     info = evoked.info
 
     if ch_type is None:

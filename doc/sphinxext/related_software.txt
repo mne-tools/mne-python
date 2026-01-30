@@ -5,6 +5,7 @@ autoreject
 bycycle
 conpy
 curryreader
+dcm2niix
 eeg_positions
 emd
 fooof
@@ -12,6 +13,7 @@ meegkit
 meggie
 mne-ari
 mne-bids-pipeline
+mne-denoise
 mne-faster
 mne-features
 mne-icalabel

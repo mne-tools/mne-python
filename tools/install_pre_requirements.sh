@@ -28,9 +28,9 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"scipy>=1.15.0.dev0" \
 	"scikit-learn>=1.6.dev0" \
 	"pandas>=3.0.0.dev0" \
-	"dipy>=1.10.0.dev0" \
-	"tables>=3.10.3.dev0" \
 	"statsmodels>=0.15.0.dev697" \
+	"dipy>=1.12.0.dev0" \
+	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
 	"h5py>=3.13.0"
@@ -59,7 +59,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
 	git+https://github.com/python-quantities/python-quantities \
-	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
+	trame trame-vtk trame-vuetify nest-asyncio2 jupyter ipyevents ipympl openmeeg \
 	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
 	antio curryreader
 echo "::endgroup::"

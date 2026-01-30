@@ -200,7 +200,6 @@ def test_bino_to_mono(tmp_path, fname):
     """Test a file that switched from binocular to monocular mid-recording."""
     out_file = tmp_path / "tmp_eyelink.asc"
     in_file = Path(fname)
-
     lines = in_file.read_text("utf-8").splitlines()
     # We'll also add some binocular velocity data to increase our testing coverage.
     start_idx = [li for li, line in enumerate(lines) if line.startswith("START")][0]
@@ -309,6 +308,18 @@ def _simulate_eye_tracking_data(in_file, out_file):
         "SAMPLES\tPUPIL\tLEFT\tVEL\tRES\tHTARGET\tRATE\t1000.00"
         "\tTRACKING\tCR\tFILTER\t2\tINPUT"
     )
+
+    # Define your known BUTTON events
+    button_events = [
+        (7453390, 1, 1),
+        (7453410, 1, 0),
+        (7453420, 1, 1),
+        (7453430, 1, 0),
+        (7453440, 1, 1),
+        (7453450, 1, 0),
+    ]
+    button_idx = 0
+
     with out_file.open("w") as fp:
         in_recording_block = False
         events = []
@@ -332,6 +343,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     tokens.append("INPUT")
                 elif event_type == "EBLINK":
                     continue  # simulate no blink events
+
                 elif event_type == "END":
                     pass
                 else:
@@ -354,6 +366,22 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 "...\t1497\t5189\t512.5\t.............\n"
             )
 
+        for timestamp in np.arange(7453390, 7453490):  # 100 samples 7453100
+            fp.write(
+                f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
+                "...\t1497\t5189\t512.5\t.............\n"
+            )
+            # Check and insert button events at this timestamp
+            if (
+                button_idx < len(button_events)
+                and button_events[button_idx][0] == timestamp
+            ):
+                t, btn_id, state = button_events[button_idx]
+                fp.write(
+                    f"BUTTON\t{t}\t{btn_id}\t{state}\t100\t20\t45\t45\t127.0\t"
+                    "1497.0\t5189.0\t512.5\t.............\n"
+                )
+                button_idx += 1
         fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
@@ -397,13 +425,23 @@ def test_multi_block_misc_channels(fname, tmp_path):
 
     assert raw.ch_names == chs_in_file
     assert raw.annotations.description[1] == "SYNCTIME"
-    assert raw.annotations.description[-1] == "BAD_ACQ_SKIP"
-    assert np.isclose(raw.annotations.onset[-1], 1.001)
-    assert np.isclose(raw.annotations.duration[-1], 0.1)
+
+    assert raw.annotations.description[-7] == "BAD_ACQ_SKIP"
+    assert np.isclose(raw.annotations.onset[-7], 1.001)
+    assert np.isclose(raw.annotations.duration[-7], 0.1)
 
     data, times = raw.get_data(return_times=True)
     assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
+
+    assert raw.annotations.description[-6] == "button_1_press"
+    button_idx = [
+        ii
+        for ii, desc in enumerate(raw.annotations.description)
+        if "button" in desc.lower()
+    ]
+    assert len(button_idx) == 6
+    assert_allclose(raw.annotations.onset[button_idx[0]], 2.102, atol=1e-3)
 
     # smoke test for reading events with missing samples (should not emit a warning)
     find_events(raw, verbose=True)
@@ -465,6 +503,7 @@ def test_href_eye_events(tmp_path):
     """Test Parsing file where Eye Event Data option was set to 'HREF'."""
     out_file = tmp_path / "tmp_eyelink.asc"
     lines = fname_href.read_text("utf-8").splitlines()
+
     for li, line in enumerate(lines):
         if not line.startswith(("ESACC", "EFIX")):
             continue
@@ -479,6 +518,7 @@ def test_href_eye_events(tmp_path):
         new_line = "\t".join(tokens) + "\n"
         lines[li] = new_line
     out_file.write_text("\n".join(lines), encoding="utf-8")
+
     raw = read_raw_eyelink(out_file)
     # Just check that we actually parsed the Saccade and Fixation events
     assert "saccade" in raw.annotations.description

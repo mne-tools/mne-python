@@ -1427,7 +1427,7 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
 def get_builtin_ch_adjacencies(*, descriptions=False):
     """Get a list of all FieldTrip neighbor definitions shipping with MNE.
 
-    The names of the these neighbor definitions can be passed to
+    The names of these neighbor definitions can be passed to
     :func:`read_ch_adjacency`.
 
     Parameters
