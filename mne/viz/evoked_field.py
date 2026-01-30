@@ -219,7 +219,6 @@ class EvokedField:
             self._in_brain_figure = False
             self._units = "m"
 
-        self.plotter = self._renderer.plotter
         self.interaction = interaction
 
         # Prepare the surface maps
@@ -269,6 +268,10 @@ class EvokedField:
             self._renderer.set_interaction(interaction)
             self._renderer.set_camera(azimuth=10, elevation=60, distance="auto")
             self._renderer.show()
+
+    @property
+    def plotter(self):
+        return self._renderer.plotter
 
     def _prepare_surf_map(self, surf_map, color, alpha):
         """Compute all the data required to render a fieldlines map."""
@@ -436,6 +439,10 @@ class EvokedField:
             )
             r._layout_add_widget(layout, hlayout)
 
+        @_auto_weakref
+        def _rescale():
+            self._rescale()
+
         hlayout = r._dock_add_layout(vertical=False)
         r._dock_add_label(
             value="Rescale",
@@ -444,11 +451,15 @@ class EvokedField:
         )
         r._dock_add_button(
             name="↺",
-            callback=self._rescale,
+            callback=_rescale,
             layout=hlayout,
             style="toolbutton",
         )
         r._layout_add_widget(layout, hlayout)
+
+        @_auto_weakref
+        def _set_contours(n_contours):
+            self.set_contours(n_contours)
 
         self._widgets["contours"] = r._dock_add_spin_box(
             name="Contour lines",
@@ -456,14 +467,19 @@ class EvokedField:
             rng=[0, 99],
             step=1,
             double=False,
-            callback=self.set_contours,
+            callback=_set_contours,
             layout=layout,
         )
+
+        @_auto_weakref
+        def _set_contour_line_width(line_width):
+            self.set_contour_line_width(line_width)
+
         self._widgets["contours_line_width"] = r._dock_add_slider(
             name="Thickness",
             value=1,
             rng=[0, 10],
-            callback=self.set_contour_line_width,
+            callback=_set_contour_line_width,
             double=True,
             layout=layout,
         )

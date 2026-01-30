@@ -25,7 +25,14 @@ from ..source_estimate import (
 from ..source_space import setup_volume_source_space
 from ..surface import _normal_orth
 from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
-from ..utils import _check_option, _validate_type, fill_doc, logger, verbose
+from ..utils import (
+    _auto_weakref,
+    _check_option,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+)
 from ..viz import EvokedField, create_3d_figure
 from ..viz._3d import _plot_head_surface, _plot_sensors_3d
 from ..viz.backends._utils import _qt_app_exec
@@ -196,7 +203,7 @@ class DipoleFitUI:
         self._n_jobs = n_jobs
 
         # Configure the GUI.
-        self._renderer = self._configure_main_display(show)
+        self._configure_main_display(show)  # sets self._fig
         self._configure_dock()
 
         # must be done last
@@ -206,15 +213,19 @@ class DipoleFitUI:
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @property
+    def _renderer(self):
+        return self._fig._renderer
+
+    @property
     def dipoles(self):
         """A list of all the fitted dipoles that are enabled in the GUI."""
         return [d["dip"] for d in self._dipoles.values() if d["active"]]
 
     def _configure_main_display(self, show=True):
         """Configure main 3D display of the GUI."""
-        fig = create_3d_figure((1500, 1020), bgcolor="white", show=show)
+        fig_into = create_3d_figure((1500, 1020), bgcolor="white", show=show)
 
-        self._fig_stc = None
+        self._stc_brain = None
         if self._stc is not None:
             kwargs = dict(
                 subject=self._subject,
@@ -223,15 +234,15 @@ class DipoleFitUI:
                 time_viewer=False,
                 initial_time=self._current_time,
                 brain_kwargs=dict(units="m"),
-                figure=fig,
+                figure=fig_into,
             )
             if isinstance(self._stc, SourceEstimate):
                 kwargs["surface"] = "white"
-            fig = self._stc.plot(**kwargs)  # overwrite "fig" to be the STC plot
-            self._fig_stc = fig
-            self._actors["brain"] = fig._actors["data"]
+            self._stc_brain = self._stc.plot(**kwargs)
+            self._actors["brain"] = self._stc_brain._actors["data"]
+            fig_into = self._stc_brain  # plot into the brain instead
 
-        fig = EvokedField(
+        fig_ef = EvokedField(
             self._evoked,
             self._field_map,
             time=self._current_time,
@@ -240,14 +251,15 @@ class DipoleFitUI:
             show_density=self._show_density,
             foreground="black",
             background="white",
-            fig=fig,
+            fig=fig_into,  # can be Figure3D or Brain instance
         )
-        fig.separate_canvas = False  # needed to plot the timeline later
-        fig.set_contour_line_width(2)
+        del fig_into
+        fig_ef.separate_canvas = False  # needed to plot the timeline later
+        fig_ef.set_contour_line_width(2)
         if self._stc is not None:
-            link(self._fig_stc, fig)
+            link(self._stc_brain, fig_ef)
 
-        for surf_map in fig._surf_maps:
+        for surf_map in fig_ef._surf_maps:
             if surf_map["map_kind"] == "meg":
                 helmet_mesh = surf_map["mesh"]
                 helmet_mesh._polydata.compute_normals()  # needed later
@@ -259,7 +271,7 @@ class DipoleFitUI:
                 # front of the contour lines with frontface culling.
                 occl_surf = deepcopy(surf_map["surf"])
                 occl_surf["rr"] -= 1e-3 * occl_surf["nn"]
-                occl_act, _ = fig._renderer.surface(occl_surf, color="white")
+                occl_act, _ = fig_ef._renderer.surface(occl_surf, color="white")
                 occl_act.prop.culling = "front"
                 occl_act.prop.lighting = False
                 self._actors["occlusion_surf"] = occl_act
@@ -286,7 +298,7 @@ class DipoleFitUI:
                 break
         else:
             self._actors["head"], _, head_surf = _plot_head_surface(
-                renderer=fig._renderer,
+                renderer=fig_ef._renderer,
                 head="head",
                 subject=self._subject,
                 subjects_dir=self._subjects_dir,
@@ -298,7 +310,7 @@ class DipoleFitUI:
             self._actors["head"].prop.culling = "back"
 
         sensors = _plot_sensors_3d(
-            renderer=fig._renderer,
+            renderer=fig_ef._renderer,
             info=self._evoked.info,
             to_cf_t=self._to_cf_t,
             picks=picks,
@@ -320,18 +332,15 @@ class DipoleFitUI:
                 eeg=["white" for _ in eeg_picks],
             ),
         )
-        self._actors["sensors"] = list()
-        for s in sensors.values():
-            self._actors["sensors"].extend(s)
+        self._actors["sensors"] = list(sensors.values())
 
         # Adjust camera
-        fig._renderer.set_camera(
+        fig_ef._renderer.set_camera(
             azimuth=180, elevation=90, roll=90, distance=0.55, focalpoint=[0, 0, 0.03]
         )
 
-        subscribe(fig, "time_change", self._on_time_change)
-        self._fig = fig
-        return fig._renderer
+        subscribe(fig_ef, "time_change", self._on_time_change)
+        self._fig = fig_ef
 
     def _configure_dock(self):
         """Configure the left and right dock areas of the GUI."""
@@ -339,13 +348,18 @@ class DipoleFitUI:
 
         # Toggle buttons for various meshes
         layout = r._dock_add_group_box("Meshes")
-        for actor_name in self._actors.keys():
+
+        @_auto_weakref
+        def _toggle_mesh(name, show=None):
+            self.toggle_mesh(name, show=show)
+
+        for actor_name in self._actors:
             if actor_name == "occlusion_surf":
                 continue
             r._dock_add_check_box(
                 name=actor_name,
                 value=True,
-                callback=partial(self.toggle_mesh, name=actor_name),
+                callback=partial(_toggle_mesh, name=actor_name),
                 layout=layout,
             )
 
@@ -354,18 +368,28 @@ class DipoleFitUI:
         r._dock_add_button("Sensor data", self._on_sensor_data)
         r._dock_add_button("Fit dipole", self._on_fit_dipole)
         methods = ["Multi dipole (MNE)", "Single dipole"]
+
+        @_auto_weakref
+        def _on_select_method(method):
+            self._on_select_method(method)
+
         r._dock_add_combo_box(
             "Dipole model",
             value="Multi dipole (MNE)",
             rng=methods,
-            callback=self._on_select_method,
+            callback=_on_select_method,
         )
         self._dipole_box = r._dock_add_group_box(name="Dipoles")
+
+        @_auto_weakref
+        def _save(fname):
+            return self.save(fname)
+
         self._save_button = r._dock_add_file_button(
             name="save_dipoles",
             desc="Save dipoles",
             save=True,
-            func=self.save,
+            func=_save,
             tooltip="Save the dipoles to disk",
             filter_="Dipole files (*.dip  *.bdip)",
             initial_directory=".",
@@ -493,6 +517,22 @@ class DipoleFitUI:
         # not the case.
         dipole._ori /= np.linalg.norm(dipole._ori, axis=1, keepdims=True)
 
+        @_auto_weakref
+        def _on_dipole_toggle(active, dip_num):
+            return self._on_dipole_toggle(active, dip_num)
+
+        @_auto_weakref
+        def _on_dipole_set_name(name, dip_num):
+            return self._on_dipole_set_name(name, dip_num)
+
+        @_auto_weakref
+        def _on_dipole_toggle_fix_orientation(fix, dip_num):
+            return self._on_dipole_toggle_fix_orientation(fix, dip_num)
+
+        @_auto_weakref
+        def _on_dipole_delete(dip_num):
+            return self._on_dipole_delete(dip_num)
+
         new_dipoles = list()
         for dip, name in zip(dipole, names):
             # Coordinates needed to draw the big arrow on the helmet.
@@ -537,7 +577,7 @@ class DipoleFitUI:
                 r._dock_add_check_box(
                     name="",
                     value=True,
-                    callback=partial(self._on_dipole_toggle, dip_num=dip_num),
+                    callback=partial(_on_dipole_toggle, dip_num=dip_num),
                     layout=hlayout,
                 )
             )
@@ -546,7 +586,7 @@ class DipoleFitUI:
                     name=dip.name,
                     value=dip.name,
                     placeholder="name",
-                    callback=partial(self._on_dipole_set_name, dip_num=dip_num),
+                    callback=partial(_on_dipole_set_name, dip_num=dip_num),
                     layout=hlayout,
                 )
             )
@@ -555,7 +595,7 @@ class DipoleFitUI:
                     name="Fix ori",
                     value=True,
                     callback=partial(
-                        self._on_dipole_toggle_fix_orientation, dip_num=dip_num
+                        _on_dipole_toggle_fix_orientation, dip_num=dip_num
                     ),
                     layout=hlayout,
                 )
@@ -564,7 +604,7 @@ class DipoleFitUI:
                 r._dock_add_button(
                     name="",
                     icon="clear",
-                    callback=partial(self._on_dipole_delete, dip_num=dip_num),
+                    callback=partial(_on_dipole_delete, dip_num=dip_num),
                     layout=hlayout,
                 )
             )

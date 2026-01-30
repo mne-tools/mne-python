@@ -36,9 +36,17 @@ do it using Python code.
 # in ``*-ave.fif``).
 #
 # The GUI can also be started from an interactive python console:
+
 import mne
 
-mne.gui.dipolefit()
+path = mne.datasets.sample.data_path()
+meg_dir = path / "MEG" / "sample"
+subjects_dir = path / "subjects"
+
+evoked = mne.read_evokeds(meg_dir / "sample_audvis-ave.fif", condition="Left Auditory")
+evoked.apply_baseline()
+
+mne.gui.dipolefit(evoked)
 
 # %%
 # Without specifying anything about the head model, the GUI shows the minimal setup that
@@ -52,12 +60,7 @@ mne.gui.dipolefit()
 #
 # In an interactive python console, we can provide the appropriate MNE-Python objects
 # when starting the GUI:
-path = mne.datasets.sample.data_path()
-meg_dir = path / "MEG" / "sample"
-subjects_dir = path / "subjects"
 
-evoked = mne.read_evokeds(meg_dir / "sample_audvis-ave.fif", condition="Left Auditory")
-evoked.apply_baseline()
 cov = mne.read_cov(meg_dir / "sample_audvis-cov.fif")
 bem = mne.read_bem_solution(
     subjects_dir / "sample" / "bem" / "sample-5120-5120-5120-bem-sol.fif"
@@ -150,7 +153,7 @@ fitted_dipoles = fitting_gui.dipoles  # the dipoles we fitted
 dips_to_add = mne.read_dipole(meg_dir / "sample_audvis_set1.dip")
 dips_to_add = dips_to_add[[27, 33]]  # add only two of the 34 dipoles in the file
 name = ["rh", "lh"]  # we can give names to the dipoles if we want
-fitting_gui = mne.gui.dipolefit()
+fitting_gui = mne.gui.dipolefit(evoked)
 fitting_gui.add_dipole(dips_to_add, name=name)
 
 # %%

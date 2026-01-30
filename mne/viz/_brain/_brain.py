@@ -398,7 +398,6 @@ class Brain:
         )
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_set_theme(theme)
-        self.plotter = self._renderer.plotter
         self.widgets = dict()
 
         self._setup_canonical_rotation()
@@ -469,6 +468,10 @@ class Brain:
             self._renderer.set_interaction("rubber_band_2d")
 
         self._renderer._update()
+
+    @property
+    def plotter(self):
+        return self._renderer.plotter
 
     def _setup_canonical_rotation(self):
         self._rigid = np.eye(4)
@@ -641,7 +644,10 @@ class Brain:
             "geo",
             "_data",
         ):
-            setattr(self, key, None)
+            try:
+                setattr(self, key, None)
+            except AttributeError:  # e.g., read-only property
+                pass
         self._cleaned = True
 
     def toggle_interface(self, value=None):
