@@ -30,7 +30,7 @@ __all__ = [
     "read_dig_localite",
     "read_dig_polhemus_isotrak",
     "read_layout",
-    "read_meg_montage",
+    "read_meg_canonical_info",
     "read_polhemus_fastscan",
     "read_vectorview_selection",
     "rename_channels",
@@ -76,7 +76,7 @@ from .montage import (
     read_dig_hpts,
     read_dig_localite,
     read_dig_polhemus_isotrak,
-    read_meg_montage,
+    read_meg_canonical_info,
     read_polhemus_fastscan,
     transform_to_head,
 )

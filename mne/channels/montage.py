@@ -196,6 +196,15 @@ _BUILTIN_STANDARD_MONTAGES = [
 ]
 
 
+# We could eventually add mne/data/helmets/Kernel_Flux_ch_pos.txt if we added
+# the normals and deduplicate... but can wait until someone has a use case!
+_MEG_CANONICAL_FILES = {
+    "neuromag": "neuromag306.csv",
+    "ctf151": "ctf151.csv",
+    "ctf275": "ctf275.csv",
+}
+
+
 def _check_get_coord_frame(dig):
     dig_coord_frames = sorted(set(d["coord_frame"] for d in dig))
     if len(dig_coord_frames) != 1:
@@ -1740,7 +1749,7 @@ def read_custom_montage(
 
 
 @verbose
-def read_meg_montage(system, *, verbose=None):
+def read_meg_canonical_info(system, *, verbose=None):
     """Load canonical MEG sensor definitions from CSV files.
 
     Parameters
@@ -1763,21 +1772,12 @@ def read_meg_montage(system, *, verbose=None):
     .. versionadded:: 1.11
     """
     # Validate system input
-    _check_option("system", system, ["neuromag", "ctf151", "ctf275"])
-
-    # Map system names to CSV filenames
-    system_files = {
-        "neuromag": "neuromag306.csv",
-        "ctf151": "ctf151.csv",
-        "ctf275": "ctf275.csv",
-    }
+    _check_option("system", system, list(_MEG_CANONICAL_FILES))
 
     # Load the CSV file
-    montage_dir = Path(__file__).parent / "data" / "montages"
-    csv_file = montage_dir / system_files[system]
-
-    if not csv_file.exists():
-        raise FileNotFoundError(f"Canonical sensor file not found: {csv_file}. ")
+    montage_dir = Path(__file__).parent / "data" / "canonical_meg"
+    csv_file = montage_dir / _MEG_CANONICAL_FILES[system]
+    assert csv_file.is_file()  # should be guaranteed by packaging
 
     # Read sensor definitions manually
     ch_names = []

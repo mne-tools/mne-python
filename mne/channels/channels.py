@@ -969,7 +969,7 @@ class InterpolationMixin:
         return self
 
     def interpolate_to(
-        self, sensors, origin="auto", method="MNE", mode="accurate", reg=0.0
+        self, sensors, origin="auto", method=None, mode="accurate", reg=0.0
     ):
         """Interpolate data onto a new sensor configuration.
 
@@ -986,10 +986,13 @@ class InterpolationMixin:
             Origin of the sphere in the head coordinate frame and in meters.
             Can be ``'auto'`` (default), which means a head-digitization-based
             origin fit. Used for both EEG and MEG interpolation.
-        method : str
+        method : str | None
             Interpolation method to use.
-            For EEG: ``'MNE'`` (default) or ``'spline'``.
-            For MEG:  ``'MNE'`` (default).
+            For EEG: ``'spline'`` (default, same as None) or ``'MNE'``.
+            For MEG:  ``'MNE'`` (default, same as None).
+
+            .. versionchanged:: 1.10.0
+               Added support for MEG interpolation.
         mode : str
             Either ``'accurate'`` (default) or ``'fast'``, determines the
             quality of the Legendre polynomial expansion used for
@@ -1037,41 +1040,28 @@ class InterpolationMixin:
         _check_preload(self, "interpolation")
 
         # Determine if we're doing EEG or MEG interpolation
+        _validate_type(sensors, (str, DigMontage), "sensors")
+        _validate_type(method, (str, None), "method")
         is_meg_interpolation = isinstance(sensors, str)
         is_eeg_interpolation = isinstance(sensors, DigMontage)
 
         if is_eeg_interpolation:
-            # Check that the method option is valid.
-            _validate_type(sensors, DigMontage, "sensors")
-
-            method = _handle_default("interpolation_method", method)
-
-            # Filter method to only include 'eeg' and 'meg'
-            supported_ch_types = ["eeg", "meg"]
-            keys_to_delete = [key for key in method if key not in supported_ch_types]
-            for key in keys_to_delete:
-                del method[key]
-
-            # Force MEG to always use MNE method,
-            # otherwise when method = "spline", the _handle_default function
-            # forces all channel types to use that method
-            if "meg" in method:
-                method["meg"] = "MNE"
-            valids = {"eeg": ("spline", "MNE"), "meg": ("MNE")}
-            for key in method:
-                _check_option("method[key]", key, tuple(valids))
-                _check_option(f"method['{key}']", method[key], valids[key])
-            logger.info("Setting channel interpolation method to %s.", method)
-
-            return _interpolate_to_eeg(self, sensors, origin, method, reg)
-
-        elif is_meg_interpolation:
-            # MEG interpolation to canonical sensor configuration
+            valid_methods = ["spline", "MNE"]
+            func = partial(_interpolate_to_eeg, method=method, reg=reg)
+            kind = "eeg"
+        else:
+            assert is_meg_interpolation
+            valid_methods = ["MNE"]
             _check_option("sensors", sensors, ["neuromag", "ctf151", "ctf275"])
-            _check_option("method", method, ["MNE"])
-            _check_option("mode", mode, ["accurate", "fast"])
+            func = partial(_interpolate_to_meg, mode=mode)
+            kind = "meg"
 
-            return _interpolate_to_meg(self, sensors, origin, mode)
+        if method is None:
+            method = _handle_default("interpolation_method")[kind]
+        _check_option("mode", mode, ["accurate", "fast"])
+        extra = f"when doing {kind.upper()} interpolation"
+        _check_option("method", method, valid_methods, extra=extra)
+        return func(self, sensors, origin)
 
 
 @verbose

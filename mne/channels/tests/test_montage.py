@@ -1989,7 +1989,7 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_COUNT = 31
+    EXPECTED_COUNT = 28
 
     montages = get_builtin_montages()
     assert len(montages) == EXPECTED_COUNT
