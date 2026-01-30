@@ -200,7 +200,7 @@ def test_duplicate_1020_electrode_names_error():
 
     with pytest.raises(
         ValueError,
-        match="mixed 10-20",
+        match="mixed 10-20 naming conventions",
     ):
         mne.viz.plot_topomap(data, pos=info)
 
