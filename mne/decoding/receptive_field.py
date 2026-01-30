@@ -15,6 +15,7 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
+from ..fixes import _reshape_view
 from ..utils import _validate_type, fill_doc, pinv
 from ._fixes import _check_n_features_3d, validate_data
 from .base import _check_estimator, get_coef
@@ -361,7 +362,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         else:
             extra = 1
         shape = shape[: self._y_dim + extra]
-        y_pred.shape = shape
+        y_pred = _reshape_view(y_pred, shape)
         return y_pred
 
     def score(self, X, y):

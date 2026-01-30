@@ -1,0 +1,1 @@
+Code refactor in :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`, by `Himanshu Mahor`_.

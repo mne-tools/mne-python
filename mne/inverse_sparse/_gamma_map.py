@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
@@ -306,7 +306,7 @@ def gamma_map(
             X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
             idx = np.searchsorted(active_src, idx)
             X_xyz[idx, offset, :] = X
-            X_xyz.shape = (len(active_src) * 3, X.shape[1])
+            X_xyz = _reshape_view(X_xyz, (len(active_src) * 3, X.shape[1]))
             X = X_xyz
         active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
     source_weighting[source_weighting == 0] = 1  # zeros
