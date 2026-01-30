@@ -1782,19 +1782,19 @@ def read_meg_canonical_info(system, *, verbose=None):
     # Read sensor definitions manually
     ch_names = []
     rows = []
-    with open(csv_file) as fid:
-        # Read header to get column names
-        header = fid.readline().strip().split(",")
-        # Create a mapping from column name to index
-        col_idx = {name: i for i, name in enumerate(header)}
+    lines = csv_file.read_text("utf-8").splitlines()
+    # Read header to get column names
+    header = lines[0].strip().split(",")
+    # Create a mapping from column name to index
+    col_idx = {name: i for i, name in enumerate(header)}
 
-        # Read data rows
-        for line in fid:
-            values = line.strip().split(",")
-            if not values[0]:  # skip empty lines
-                continue
-            rows.append(values)
-            ch_names.append(values[col_idx["name"]])
+    # Read data rows
+    for line in lines[1:]:
+        values = line.strip().split(",")
+        if not values[0]:  # skip empty lines
+            continue
+        rows.append(values)
+        ch_names.append(values[col_idx["name"]])
 
     # Create base info structure
     # Use a dummy sample rate; it won't matter for field interpolation
