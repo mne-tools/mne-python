@@ -332,7 +332,7 @@ class DipoleFitUI:
                 eeg=["white" for _ in eeg_picks],
             ),
         )
-        self._actors["sensors"] = list(sensors.values())
+        self._actors["sensors"] = sum(sensors.values(), [])
 
         # Adjust camera
         fig_ef._renderer.set_camera(
