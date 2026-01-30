@@ -169,7 +169,6 @@ def coregistration(
 def dipolefit(
     evoked,
     *,
-    condition=0,
     baseline=(None, 0),
     cov=None,
     bem=None,
