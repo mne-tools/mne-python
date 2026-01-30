@@ -1559,7 +1559,14 @@ ext_order : int
 docdict["extended_proj_maxwell"] = """
 extended_proj : list
     The empty-room projection vectors used to extend the external
-    SSS basis (i.e., use eSSS).
+    SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+    pure *external* noise that you expect to be present in your signal.
+    Typically, this should be the case during an empty room recording. Get the
+    projections e.g. by calling::
+
+        proj = mne.compute_proj_raw(
+            raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+        )
 
     .. versionadded:: 0.21
 """
@@ -3975,7 +3982,8 @@ docdict["scalings_df"] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
     ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
-    magnetometers to fT, and gradiometers to fT/cm.
+    magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+    and :term:`non-data channels` for full list of default scalings.
 """
 
 docdict["scalings_topomap"] = """

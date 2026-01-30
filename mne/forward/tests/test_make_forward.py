@@ -270,6 +270,9 @@ def test_make_forward_solution_kit(tmp_path, fname_src_small):
     )
     _compare_forwards(fwd, fwd_py, 157, n_src_small, meg_rtol=1e-3, meg_atol=1e-7)
 
+    # NEW TEST: ensure kit_system_id survives the forward-info rewrite
+    assert "kit_system_id" in fwd_py["info"]
+
 
 @requires_mne
 def test_make_forward_solution_bti(fname_src_small):
