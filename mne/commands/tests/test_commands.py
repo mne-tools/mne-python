@@ -60,11 +60,10 @@ base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
 raw_fname = op.join(base_dir, "test_raw.fif")
 
 testing_path = testing.data_path(download=False)
-subjects_dir = op.join(testing_path, "subjects")
-bem_model_fname = op.join(
-    testing_path, "subjects", "sample", "bem", "sample-320-320-320-bem.fif"
+subjects_dir = testing_path / "subjects"
+bem_model_fname = (
+    testing_path / "subjects" / "sample" / "bem" / "sample-320-320-320-bem.fif"
 )
-evokeds_fname = op.join(testing_path, "MEG", "sample", "sample_audvis_trunc-ave.fif")
 
 
 def check_usage(module, force_help=False):
