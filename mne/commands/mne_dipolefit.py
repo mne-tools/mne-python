@@ -32,7 +32,7 @@ def run():
     parser.add_option(
         "--baseline",
         default=None,
-        metavar="TIME-START,TIME-END",
+        metavar="BASELINE",  # docutils doesn't like commas in rendered metavar
         help=(
             "The time period to use as baseline, written as two numbers (in seconds, "
             "relative to the stimulus onset) separated by a comma. "
