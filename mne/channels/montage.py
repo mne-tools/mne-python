@@ -1769,7 +1769,7 @@ def read_meg_canonical_info(system, *, verbose=None):
     This function loads pre-defined canonical sensor positions and
     orientations from CSV files stored in mne/channels/data/montages/.
 
-    .. versionadded:: 1.11
+    .. versionadded:: 1.12
     """
     # Validate system input
     _check_option("system", system, list(_MEG_CANONICAL_FILES))

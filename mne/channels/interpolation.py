@@ -475,6 +475,30 @@ def _interpolate_to_eeg(inst, sensors, origin, method, reg):
     return _remap_add(inst, mapping, info_to, ch_type="eeg")
 
 
+def _interpolate_to_meg(inst, sensors, origin, mode):
+    """Interpolate MEG data to a canonical sensor configuration."""
+    from ..bem import _check_origin
+    from ..forward._field_interpolation import _map_meg_or_eeg_channels
+    from .montage import read_meg_canonical_info
+
+    # Get MEG channels from source
+    picks_meg_good = pick_types(inst.info, meg=True, ref_meg=False, exclude="bads")
+    if len(picks_meg_good) == 0:
+        raise ValueError("No good MEG channels available for interpolation.")
+
+    # Load target sensor configuration
+    info_to = read_meg_canonical_info(sensors)
+    info_to["dev_head_t"] = deepcopy(inst.info["dev_head_t"])
+
+    # Get source MEG info
+    info_from = pick_info(inst.info, picks_meg_good)
+
+    # Compute field interpolation mapping
+    origin_val = _check_origin(origin, inst.info)
+    mapping = _map_meg_or_eeg_channels(info_from, info_to, mode=mode, origin=origin_val)
+    return _remap_add(inst, mapping, info_to, ch_type="meg")
+
+
 def _remap_add(inst, mapping, info_to, ch_type):
     # Comments here refer to EEG, but in principle it could instead be MEG!
     assert ch_type in ("eeg", "meg")
@@ -529,27 +553,3 @@ def _remap_add(inst, mapping, info_to, ch_type):
         new_order = orig_names
     inst_out.reorder_channels(new_order)
     return inst_out
-
-
-def _interpolate_to_meg(inst, sensors, origin, mode):
-    """Interpolate MEG data to a canonical sensor configuration."""
-    from ..bem import _check_origin
-    from ..forward._field_interpolation import _map_meg_or_eeg_channels
-    from .montage import read_meg_canonical_info
-
-    # Get MEG channels from source
-    picks_meg_good = pick_types(inst.info, meg=True, ref_meg=False, exclude="bads")
-    if len(picks_meg_good) == 0:
-        raise ValueError("No good MEG channels available for interpolation.")
-
-    # Load target sensor configuration
-    info_to = read_meg_canonical_info(sensors)
-    info_to["dev_head_t"] = deepcopy(inst.info["dev_head_t"])
-
-    # Get source MEG info
-    info_from = pick_info(inst.info, picks_meg_good)
-
-    # Compute field interpolation mapping
-    origin_val = _check_origin(origin, inst.info)
-    mapping = _map_meg_or_eeg_channels(info_from, info_to, mode=mode, origin=origin_val)
-    return _remap_add(inst, mapping, info_to, ch_type="meg")

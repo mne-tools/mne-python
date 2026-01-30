@@ -1033,6 +1033,8 @@ class InterpolationMixin:
             head position may affect interpolation accuracy.
 
         .. versionadded:: 1.10.0
+        .. versionchanged:: 1.12.0
+           Added support for MEG interpolation to canonical systems.
         """
         from .interpolation import _interpolate_to_eeg, _interpolate_to_meg
         from .montage import DigMontage
