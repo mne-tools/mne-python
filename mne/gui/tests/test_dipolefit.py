@@ -17,13 +17,15 @@ subjects_dir = data_path / "subjects"
 fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 fname_evokeds = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 
 
 def _gui_with_two_dipoles():
     """Create a dipolefit GUI and add two dipoles to it."""
     from mne.gui import dipolefit
 
-    g = dipolefit(fname_evokeds)
+    evoked = mne.read_evokeds(fname_evokeds, condition=0)
+    g = dipolefit(evoked)
     dip = mne.read_dipole(fname_dip)[[12, 15]]  # 80ms and 90ms
     g.add_dipole(dip, name=["rh", "lh"])
     return g
@@ -36,8 +38,8 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     from mne.gui import dipolefit
 
     # Test basic interface elements.
-    g = dipolefit(fname_evokeds)
-    evoked = g._evoked
+    evoked = mne.read_evokeds(fname_evokeds, condition=0)
+    g = dipolefit(evoked)
     assert evoked.comment == "Left Auditory"  # MNE-Sample data should be loaded
     assert g._current_time == evoked.times[84]  # time of max GFP
 
@@ -110,7 +112,8 @@ def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
     """Test toggling the visibility of the meshes the dipole fitting GUI."""
     from mne.gui import dipolefit
 
-    g = dipolefit(fname_evokeds)
+    evoked = mne.read_evokeds(fname_evokeds, condition=0)
+    g = dipolefit(evoked)
     assert list(g._actors.keys()) == ["helmet", "occlusion_surf", "head", "sensors"]
     g.toggle_mesh("helmet", show=True)
     assert g._actors["helmet"].visibility
@@ -192,3 +195,31 @@ def test_dipolefit_gui_save_load(tmpdir, renderer_interactive_pyvistaqt):
     assert_allclose(
         np.vstack([d.pos for d in g.dipoles[4:]]), dip_from_file.pos, atol=0
     )
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_dipolefit_cov(renderer_interactive_pyvistaqt):
+    """Test setting the covariance matrix in the dipole fitting GUI."""
+    from mne.gui import dipolefit
+
+    # Test different type of covariance estimators.
+    evoked = mne.read_evokeds(fname_evokeds, condition=0)
+    g = dipolefit(evoked, cov=None)  # ah-hoc cov
+    assert g._cov["diag"]
+    assert_allclose(  # default ad-hoc variation for grads, mags and eeg
+        g._cov["data"][[0, 1, 2, 306]], [2.5e-25, 2.5e-25, 4e-28, 4e-14], atol=0
+    )
+
+    g = dipolefit(evoked, cov="baseline")
+    assert_allclose(  # compute var on baseline period
+        g._cov["data"][[0, 1, 2, 306]],
+        [3.5e-24, 3.5e-24, 3.0e-27, 2.3e-12],
+        rtol=0.1,
+        atol=0,
+    )
+
+    # Specify custom covariance.
+    cov = mne.read_cov(fname_cov)
+    g = dipolefit(evoked, cov=cov)
+    assert_allclose(g._cov["data"], cov["data"], atol=0)
