@@ -82,7 +82,7 @@ class DipoleFitUI:
 
     def __init__(
         self,
-        evoked=None,
+        evoked,
         *,
         baseline=None,
         cov=None,

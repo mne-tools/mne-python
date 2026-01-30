@@ -167,7 +167,7 @@ def coregistration(
 
 @verbose
 def dipolefit(
-    evoked=None,
+    evoked,
     *,
     condition=0,
     baseline=(None, 0),
@@ -237,7 +237,7 @@ def dipolefit(
     gradiometers, magnetometers, and EEG channels respectively.
     """
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-    from ._xfit import DipoleFitUI
+    from ._dipolefit import DipoleFitUI
 
     if MNE_3D_BACKEND_TESTING:
         show = block = False
