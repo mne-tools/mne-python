@@ -269,8 +269,9 @@ class _GUIScraper:
 
     def __call__(self, block, block_vars, gallery_conf):
         from ._coreg import CoregistrationUI
+        from ._dipolefit import DipoleFitUI
 
-        gui_classes = (CoregistrationUI,)
+        gui_classes = (CoregistrationUI, DipoleFitUI)
         try:
             from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator
         except Exception:

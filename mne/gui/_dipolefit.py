@@ -897,6 +897,14 @@ class DipoleFitUI:
             )
         return self._renderer._mplcanvas
 
+    def close(self):
+        """Close the dipole fitting GUI."""
+        if self._renderer is not None:
+            try:
+                self._renderer.close()
+            except AttributeError:  # maybe already closed
+                pass
+
 
 def _arrow_mesh():
     """Obtain a mesh of an arrow."""
