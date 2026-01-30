@@ -17,7 +17,7 @@ from ..bem import (
 )
 from ..cov import _ensure_cov, make_ad_hoc_cov
 from ..dipole import Dipole, fit_dipole
-from ..evoked import Evoked, read_evokeds
+from ..evoked import Evoked
 from ..forward import convert_forward_solution, make_field_map
 from ..forward._make_forward import _ForwardModeler
 from ..minimum_norm import apply_inverse, make_inverse_operator
@@ -45,12 +45,7 @@ class DipoleFitUI:
     ----------
     evoked : instance of Evoked | path-like
         Evoked data to show fieldmap of and fit dipoles to.
-    condition : int | str
-        When ``evoked`` is given as a filename, use this to select which evoked to use
-        in the file by either specifying the index or the string comment field of the
-        evoked. By default, the first evoked is used.
     %(baseline_evoked)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until time point zero.
     cov : instance of Covariance | "baseline" | None
         Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
         default values for the diagonal elements (see Notes). If ``"baseline"``, the
@@ -93,8 +88,7 @@ class DipoleFitUI:
         self,
         evoked=None,
         *,
-        condition=0,
-        baseline=(None, 0),
+        baseline=None,
         cov=None,
         bem=None,
         initial_time=None,
@@ -110,10 +104,7 @@ class DipoleFitUI:
         block=False,
         verbose=None,
     ):
-        _validate_type(evoked, ("path-like", Evoked), "evoked")
-        if not isinstance(evoked, Evoked):
-            evoked = read_evokeds(evoked, condition=condition)
-
+        _validate_type(evoked, Evoked, "evoked")
         evoked.apply_baseline(baseline)
 
         if cov is None:

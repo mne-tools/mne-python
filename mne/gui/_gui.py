@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ..datasets import sample
 from ..utils import get_config, verbose
 
 
@@ -193,10 +192,6 @@ def dipolefit(
     ----------
     evoked : instance of Evoked | path-like | None
         Evoked data to show fieldmap of and fit dipoles to.
-    condition : int | str
-        When ``evoked`` is given as a filename, use this to select which evoked to use
-        in the file by either specifying the index or the string comment field of the
-        evoked. By default, the first evoked is used.
     %(baseline_evoked)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until time point zero.
     cov : instance of Covariance | path-like | "baseline" | None
@@ -247,18 +242,8 @@ def dipolefit(
     if MNE_3D_BACKEND_TESTING:
         show = block = False
 
-    if evoked is None:
-        evoked = (
-            sample.data_path(
-                download=False,
-            )
-            / "MEG"
-            / "sample"
-            / "sample_audvis-ave.fif"
-        )
     return DipoleFitUI(
         evoked=evoked,
-        condition=condition,
         baseline=baseline,
         cov=cov,
         bem=bem,

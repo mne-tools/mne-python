@@ -128,6 +128,7 @@ def run():
             condition = options.condition
     else:
         condition = None
+    evoked = mne.read_evokeds(args[0], condition=condition)
 
     # Parse the baseline time period
     baseline = None
@@ -144,8 +145,7 @@ def run():
             )
 
     mne.gui.dipolefit(
-        evoked=args[0],
-        condition=condition,
+        evoked=evoked,
         baseline=baseline,
         cov=options.cov,
         bem=bem,

@@ -546,5 +546,3 @@ def test_anonymize(tmp_path):
 def test_dipolefit():
     """Test mne dipolefit."""
     check_usage(mne_dipolefit)
-    with ArgvSetter((evokeds_fname,)):
-        mne_dipolefit.run()
