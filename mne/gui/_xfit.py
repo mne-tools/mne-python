@@ -10,11 +10,7 @@ import numpy as np
 import pyvista
 
 from .._fiff.pick import pick_types
-from ..bem import (
-    ConductorModel,
-    _ensure_bem_surfaces,
-    make_sphere_model,
-)
+from ..bem import ConductorModel, _ensure_bem_surfaces, make_sphere_model
 from ..cov import _ensure_cov, make_ad_hoc_cov
 from ..dipole import Dipole, fit_dipole
 from ..evoked import Evoked
@@ -423,7 +419,6 @@ class DipoleFitUI:
             for act in self._actors["sensors"]:
                 act.prop.SetColor(1, 1, 1)
             self._renderer._update()
-        print("sensor window closed.")
 
     def _on_channels_select(self, event):
         """Color selected sensor meshes."""
@@ -632,8 +627,6 @@ class DipoleFitUI:
             return
 
         if self._multi_dipole_method == "Multi dipole (MNE)":
-            for d in active_dips:
-                print(d["dip"], d["dip"].pos, d["dip"].ori)
             this_src = setup_volume_source_space(
                 "sample",
                 pos=dict(
@@ -648,13 +641,6 @@ class DipoleFitUI:
                 ),
             )
             this_fwd = self.fwd.compute(this_src)
-            # this_fwd, _ = make_forward_dipole(
-            #     [d["dip"] for d in active_dips],
-            #     self._bem,
-            #     self._evoked.info,
-            #     trans=self._head_mri_t,
-            #     n_jobs=self._n_jobs,
-            # )
             this_fwd = convert_forward_solution(this_fwd, surf_ori=False)
 
             inv = make_inverse_operator(
@@ -688,7 +674,8 @@ class DipoleFitUI:
                 else:
                     dip["timecourse"] = timecourses[i]
                     dip["orientation"] = orientations[i]
-        elif self._multi_dipole_method == "Single dipole":
+        else:
+            assert self._multi_dipole_method == "Single dipole"  # only other option
             for dip in active_dips:
                 dip_with_timecourse, _ = fit_dipole(
                     self._evoked,
@@ -730,7 +717,6 @@ class DipoleFitUI:
         self._update_arrows()
 
     @verbose
-    @fill_doc
     def save(self, fname, verbose=None):
         """Save the fitted dipoles to a file.
 
