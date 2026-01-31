@@ -1,0 +1,8 @@
+Updated minimum for:
+
+- Core dependency ``scipy >= 1.12``
+- Optional dependency ``pandas >= 2.2``
+- Optional dependency ``pyobjc-framework-Cocoa >= 5.2.0; platform_system == "Darwin"``
+- Optional dependency ``scikit-learn >= 1.4``
+
+Changed implemented via CI action created by `Thomas Binns`_.
