@@ -24,6 +24,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	else
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
+		STD_ARGS="$STD_ARGS pip"  # upgrade pip version
 	fi
 elif [[ ${MNE_CI_KIND} == "old" ]]; then
 	GROUP=""  # group "test" already included when pylock file generated
