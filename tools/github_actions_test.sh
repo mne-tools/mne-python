@@ -2,9 +2,6 @@
 
 set -eo pipefail
 
-if [[ ${MNE_CI_KIND} == "old" ]]; then
-    source .venv/bin/activate
-fi
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
 else  # macOS or Windows
