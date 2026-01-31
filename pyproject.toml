@@ -54,7 +54,7 @@ test = [
   "wheel >= 0.21",
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
-# Changes here should be reflected in the mne/utils/config.py dev dependencies section
+# Changes here should be reflected in the mne/utils/config.py dev dependencies sectio
 test_extra = [
   "edfio >= 0.4.10",
   "eeglabio",
