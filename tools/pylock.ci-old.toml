@@ -107,9 +107,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/98/a7/4fe7da308224102
 
 [[packages]]
 name = "decorator"
-version = "4.0.0"
-sdist = { url = "https://files.pythonhosted.org/packages/57/07/f22e2c41d23d71d482b1c4e45fa3e51af4d521da17c5cca0ffd7b30f6789/decorator-4.0.0.tar.gz", upload-time = 2015-07-24T10:03:23Z, size = 80262, hashes = { sha256 = "c32004e17a1eddc3daee4a4941e04321fdd9fe4622642a01c70b5d530ea74534" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/62/ad/ecdc6b1d0241bf4bf3d7f65b1576c4d8ff1d057bea786e080ae843c991b0/decorator-4.0.0-py2.py3-none-any.whl", upload-time = 2015-07-24T10:03:27Z, size = 8588, hashes = { sha256 = "8a4197daa7c41211406cf17bb34d07096ab1b574c25f088f9b022f6e0aba0c1d" } }]
+version = "5.1.0"
+sdist = { url = "https://files.pythonhosted.org/packages/92/3c/34f8448b61809968052882b830f7d8d9a8e1c07048f70deb039ae599f73c/decorator-5.1.0.tar.gz", upload-time = 2021-09-11T05:30:17Z, size = 34900, hashes = { sha256 = "e59913af105b9860aa2c8d3272d9de5a56a4e608db9a2f167a8480b323d529a7" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/3d/cc/d7b758e54779f7e465179427de7e78c601d3330d6c411ea7ba9ae2f38102/decorator-5.1.0-py3-none-any.whl", upload-time = 2021-09-11T05:30:14Z, size = 9061, hashes = { sha256 = "7b12e7c3c6ab203a29e157335e9122cb03de9ab7264b137594103fd4a683b374" } }]
 
 [[packages]]
 name = "distlib"
@@ -138,9 +138,10 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/c1/ea/53f2148663b321f
 
 [[packages]]
 name = "filelock"
-version = "3.18.0"
-sdist = { url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", upload-time = 2025-03-14T07:11:40Z, size = 18075, hashes = { sha256 = "adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl", upload-time = 2025-03-14T07:11:39Z, size = 16215, hashes = { sha256 = "c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de" } }]
+version = "3.20.3"
+marker = "python_full_version >= '3.10'"
+sdist = { url = "https://files.pythonhosted.org/packages/1d/65/ce7f1b70157833bf3cb851b556a37d4547ceafc158aa9b34b36782f23696/filelock-3.20.3.tar.gz", upload-time = 2026-01-09T17:55:05Z, size = 19485, hashes = { sha256 = "18c57ee915c7ec61cff0ecf7f0f869936c7c30191bb0cf406f1341778d0834e1" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/b5/36/7fb70f04bf00bc646cd5bb45aa9eddb15e19437a28b8fb2b4a5249fac770/filelock-3.20.3-py3-none-any.whl", upload-time = 2026-01-09T17:55:04Z, size = 16701, hashes = { sha256 = "4b0dda527ee31078689fc205ec4f1c1bf7d56cf88b6dc9426c4f230e46c2dce1" } }]
 
 [[packages]]
 name = "fonttools"
@@ -181,12 +182,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/c5/d1/187474d64bdefcb68
 wheels = [{ url = "https://files.pythonhosted.org/packages/db/04/1bf767de3ee9e462a09efb1eab3074d715ef5ab582b8a0cb6d5d5615212d/ipython-8.20.0-py3-none-any.whl", upload-time = 2024-01-08T10:11:36Z, size = 809179, hashes = { sha256 = "bc9716aad6f29f36c449e30821c9dd0c1c1a7b59ddcc26931685b87b4c569619" } }]
 
 [[packages]]
-name = "ipython-genutils"
-version = "0.2.0"
-sdist = { url = "https://files.pythonhosted.org/packages/e8/69/fbeffffc05236398ebfcfb512b6d2511c622871dca1746361006da310399/ipython_genutils-0.2.0.tar.gz", upload-time = 2017-03-13T22:12:26Z, size = 22208, hashes = { sha256 = "eb2e116e75ecef9d4d228fdc66af54269afa26ab4463042e33785b887c628ba8" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/fa/bc/9bd3b5c2b4774d5f33b2d544f1460be9df7df2fe42f352135381c347c69a/ipython_genutils-0.2.0-py2.py3-none-any.whl", upload-time = 2017-03-13T22:12:25Z, size = 26343, hashes = { sha256 = "72dd37233799e619666c9f639a9da83c34013a73e8bbc79a7a6348d93c61fab8" } }]
-
-[[packages]]
 name = "jedi"
 version = "0.19.2"
 sdist = { url = "https://files.pythonhosted.org/packages/72/3a/79a912fbd4d8dd6fbb02bf69afd3bb72cf0c729bb3063c6f4498603db17a/jedi-0.19.2.tar.gz", upload-time = 2024-11-11T01:41:42Z, size = 1231287, hashes = { sha256 = "4770dc3de41bde3966b02eb84fbcf557fb33cce26ad23da12c742fb50ecb11f0" } }
@@ -194,9 +189,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/c0/5a/9cac0c82afec3d0
 
 [[packages]]
 name = "jinja2"
-version = "3.0.0"
-sdist = { url = "https://files.pythonhosted.org/packages/7a/0c/23cbcf515b5394e9f59a3e6629f26e1142b92d474ee0725a26aa5a3bcf76/Jinja2-3.0.0.tar.gz", upload-time = 2021-05-11T21:08:18Z, size = 267417, hashes = { sha256 = "ea8d7dd814ce9df6de6a761ec7f1cac98afe305b8cdc4aaae4e114b8d8ce24c5" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/48/9b/dc3bbfc44d851632df958acf9d47e4de662c6bbd238e46798d555d427b27/Jinja2-3.0.0-py3-none-any.whl", upload-time = 2021-05-11T21:08:16Z, size = 133357, hashes = { sha256 = "2f2de5285cf37f33d33ecd4a9080b75c87cd0c1994d5a9c6df17131ea1f049c6" } }]
+version = "2.10"
+sdist = { url = "https://files.pythonhosted.org/packages/56/e6/332789f295cf22308386cf5bbd1f4e00ed11484299c5d7383378cf48ba47/Jinja2-2.10.tar.gz", upload-time = 2017-11-08T20:13:44Z, size = 261631, hashes = { sha256 = "f84be1bb0040caca4cea721fcbbbbd61f9be9464ca236387158b0feea01914a4" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/7f/ff/ae64bacdfc95f27a016a7bed8e8686763ba4d277a78ca76f32659220a731/Jinja2-2.10-py2.py3-none-any.whl", upload-time = 2017-11-08T20:13:42Z, size = 126381, hashes = { sha256 = "74c935a1b8bb9a3947c50a54766a969d4846290e1e788ea44c1392163723c3bd" } }]
 
 [[packages]]
 name = "jsonschema"
@@ -276,9 +271,9 @@ sdist = { url = "https://files.pythonhosted.org/packages/53/25/ef88e8e45db141faa
 
 [[packages]]
 name = "packaging"
-version = "21.0"
-sdist = { url = "https://files.pythonhosted.org/packages/df/86/aef78bab3afd461faecf9955a6501c4999933a48394e90f03cd512aad844/packaging-21.0.tar.gz", upload-time = 2021-07-03T12:32:32Z, size = 83544, hashes = { sha256 = "7dc96269f53a4ccec5c0670940a4281106dd0bb343f47b7471f779df49c2fbe7" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/3c/77/e2362b676dc5008d81be423070dd9577fa03be5da2ba1105811900fda546/packaging-21.0-py3-none-any.whl", upload-time = 2021-07-03T12:32:30Z, size = 40357, hashes = { sha256 = "c86254f9220d55e31cc94d69bade760f0847da8000def4dfe1c6b872fd14ff14" } }]
+version = "20.0"
+sdist = { url = "https://files.pythonhosted.org/packages/c7/cf/d84b72480a556d9bd4a191a91b0a8ea71cb48e6f6132f12d9d365c51bdb6/packaging-20.0.tar.gz", upload-time = 2020-01-06T06:25:08Z, size = 72663, hashes = { sha256 = "fe1d8331dfa7cc0a883b49d75fc76380b2ab2734b220fbb87d774e4fd4b851f8" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/d8/5b/3098db49a61ccc8583ffead6aedc226f08ff56dc03106b6ec54451e27a30/packaging-20.0-py2.py3-none-any.whl", upload-time = 2020-01-06T06:25:04Z, size = 36915, hashes = { sha256 = "aec3fdbb8bc9e4bb65f0634b9f551ced63983a529d6a8931817d52fdd0816ddb" } }]
 
 [[packages]]
 name = "parso"
@@ -364,9 +359,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593
 
 [[packages]]
 name = "pygments"
-version = "2.13.0"
-sdist = { url = "https://files.pythonhosted.org/packages/e0/ef/5905cd3642f2337d44143529c941cc3a02e5af16f0f65f81cbef7af452bb/Pygments-2.13.0.tar.gz", upload-time = 2022-08-15T16:03:23Z, size = 4324285, hashes = { sha256 = "56a8508ae95f98e2b9bdf93a6be5ae3f7d8af858b43e02c5a2ff083726be40c1" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/4f/82/672cd382e5b39ab1cd422a672382f08a1fb3d08d9e0c0f3707f33a52063b/Pygments-2.13.0-py3-none-any.whl", upload-time = 2022-08-15T16:03:20Z, size = 1098748, hashes = { sha256 = "f643f331ab57ba3c9d89212ee4a2dabc6e94f117cf4eefde99a0574720d14c42" } }]
+version = "2.19.2"
+sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", upload-time = 2025-06-21T13:39:12Z, size = 4968631, hashes = { sha256 = "636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", upload-time = 2025-06-21T13:39:07Z, size = 1225217, hashes = { sha256 = "86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b" } }]
 
 [[packages]]
 name = "pyparsing"
@@ -447,9 +442,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/f5/aa/8e6071a5e4dca4e
 
 [[packages]]
 name = "setuptools"
-version = "80.10.1"
-sdist = { url = "https://files.pythonhosted.org/packages/86/ff/f75651350db3cf2ef767371307eb163f3cc1ac03e16fdf3ac347607f7edb/setuptools-80.10.1.tar.gz", upload-time = 2026-01-21T09:42:03Z, size = 1229650, hashes = { sha256 = "bf2e513eb8144c3298a3bd28ab1a5edb739131ec5c22e045ff93cd7f5319703a" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/e0/76/f963c61683a39084aa575f98089253e1e852a4417cb8a3a8a422923a5246/setuptools-80.10.1-py3-none-any.whl", upload-time = 2026-01-21T09:42:00Z, size = 1099859, hashes = { sha256 = "fc30c51cbcb8199a219c12cc9c281b5925a4978d212f84229c909636d9f6984e" } }]
+version = "80.10.2"
+sdist = { url = "https://files.pythonhosted.org/packages/76/95/faf61eb8363f26aa7e1d762267a8d602a1b26d4f3a1e758e92cb3cb8b054/setuptools-80.10.2.tar.gz", upload-time = 2026-01-25T22:38:17Z, size = 1200343, hashes = { sha256 = "8b0e9d10c784bf7d262c4e5ec5d4ec94127ce206e8738f29a437945fbc219b70" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/94/b8/f1f62a5e3c0ad2ff1d189590bfa4c46b4f3b6e49cef6f26c6ee4e575394d/setuptools-80.10.2-py3-none-any.whl", upload-time = 2026-01-25T22:38:15Z, size = 1064234, hashes = { sha256 = "95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173" } }]
 
 [[packages]]
 name = "simplejson"
@@ -474,9 +469,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/c8/78/3565d011c61f5a4
 
 [[packages]]
 name = "sphinx"
-version = "6.0.0"
-sdist = { url = "https://files.pythonhosted.org/packages/46/dd/afcd33ecf25b04b6b18bfd7cedf635875fbe9b06de28268e81ecede904eb/Sphinx-6.0.0.tar.gz", upload-time = 2022-12-29T15:19:08Z, size = 6658981, hashes = { sha256 = "58c140ecd9aa0abbc8ff6da48a266648eac9e5bfc8e49576efd2979bf46f5961" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/d4/a3/83304f734ba5b5b400af0de3d31d1844ea295c1652435668c9aa2b8650c0/sphinx-6.0.0-py3-none-any.whl", upload-time = 2022-12-29T15:19:02Z, size = 3023906, hashes = { sha256 = "c2aeebfcb0e7474f5a820eac6177c7492b1d3c9c535aa21d5ae77cab2f3600e4" } }]
+version = "5.1.1"
+sdist = { url = "https://files.pythonhosted.org/packages/3a/30/ac07935542607c876f3fcee1c1ab043d253332567009994a1bf71d9b55cd/Sphinx-5.1.1.tar.gz", upload-time = 2022-07-26T21:23:37Z, size = 6755784, hashes = { sha256 = "ba3224a4e206e1fbdecf98a4fae4992ef9b24b85ebf7b584bb340156eaf08d89" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/83/74/318d8cd70cbde2164e3035f9e9ba0807e2de7d384e03784ad0afc98b891b/Sphinx-5.1.1-py3-none-any.whl", upload-time = 2022-07-26T21:23:09Z, size = 3152688, hashes = { sha256 = "309a8da80cb6da9f4713438e5b55861877d5d7976b69d87e336733637ea12693" } }]
 
 [[packages]]
 name = "sphinxcontrib-applehelp"
@@ -558,15 +553,14 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/b5/11/87d6d29fb5d2372
 
 [[packages]]
 name = "tqdm"
-version = "4.30.0"
-sdist = { url = "https://files.pythonhosted.org/packages/df/85/1b4a823ee751ae69d028f2b65f5127b03218dfab3289b6d720578fb724f2/tqdm-4.30.0.tar.gz", upload-time = 2019-01-26T18:16:23Z, size = 120513, hashes = { sha256 = "dd60ea2567baa013c625153ce41fd274209c69a5814513e1d635f20e5cd61b97" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/76/4c/103a4d3415dafc1ddfe6a6624333971756e2d3dd8c6dc0f520152855f040/tqdm-4.30.0-py2.py3-none-any.whl", upload-time = 2019-01-26T18:16:16Z, size = 47229, hashes = { sha256 = "13f018038711256ed27aae118a80d63929588e90f00d072a0f4eb7aa3333b4dc" } }]
+version = "1.0"
+sdist = { url = "https://files.pythonhosted.org/packages/ba/50/e6c90ecbc3a736ca8af22a52b3e665d32797b9f0cf6a79b7f4bd95dc2153/tqdm-1.0.tar.gz", upload-time = 2013-10-26T20:06:45Z, size = 1756, hashes = { sha256 = "d4972cfd62cf50bf88f20749b536258a3f48b31515dea3ad5edd5fe52e742c6c" } }
 
 [[packages]]
 name = "traitlets"
-version = "5.0.0"
-sdist = { url = "https://files.pythonhosted.org/packages/d5/07/1f3ff5b83cbe922f71cf313d58e1d90bb94f6c1da11115eceb5c44ce030c/traitlets-5.0.0.tar.gz", upload-time = 2020-08-31T16:16:26Z, size = 127282, hashes = { sha256 = "0d9c4005506b306b0a99551e96174b8bedc675c2dd048f92b3bbbb7d86ac93a9" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/17/f4/edd52954ff5da5d38391b78d1f7e4f8d6de376e222cabdeec86a8e46dd99/traitlets-5.0.0-py3-none-any.whl", upload-time = 2020-08-31T16:16:24Z, size = 97589, hashes = { sha256 = "62a037f12ccb823fb05823afbe35fe0273bc18fa3202d0cf0ea8f24e97e464be" } }]
+version = "5.14.3"
+sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", upload-time = 2024-04-19T11:11:49Z, size = 161621, hashes = { sha256 = "9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", upload-time = 2024-04-19T11:11:46Z, size = 85359, hashes = { sha256 = "b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f" } }]
 
 [[packages]]
 name = "twine"
@@ -589,9 +583,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8
 
 [[packages]]
 name = "virtualenv"
-version = "20.35.4"
-sdist = { url = "https://files.pythonhosted.org/packages/20/28/e6f1a6f655d620846bd9df527390ecc26b3805a0c5989048c210e22c5ca9/virtualenv-20.35.4.tar.gz", upload-time = 2025-10-29T06:57:40Z, size = 6028799, hashes = { sha256 = "643d3914d73d3eeb0c552cbb12d7e82adf0e504dbf86a3182f8771a153a1971c" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/79/0c/c05523fa3181fdf0c9c52a6ba91a23fbf3246cc095f26f6516f9c60e6771/virtualenv-20.35.4-py3-none-any.whl", upload-time = 2025-10-29T06:57:37Z, size = 6005095, hashes = { sha256 = "c21c9cede36c9753eeade68ba7d523529f228a403463376cf821eaae2b650f1b" } }]
+version = "20.36.1"
+sdist = { url = "https://files.pythonhosted.org/packages/aa/a3/4d310fa5f00863544e1d0f4de93bddec248499ccf97d4791bc3122c9d4f3/virtualenv-20.36.1.tar.gz", upload-time = 2026-01-09T18:21:01Z, size = 6032239, hashes = { sha256 = "8befb5c81842c641f8ee658481e42641c68b5eab3521d8e092d18320902466ba" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/6a/2a/dc2228b2888f51192c7dc766106cd475f1b768c10caaf9727659726f7391/virtualenv-20.36.1-py3-none-any.whl", upload-time = 2026-01-09T18:20:59Z, size = 6008258, hashes = { sha256 = "575a8d6b124ef88f6f51d56d656132389f961062a9177016a50e4f507bbcc19f" } }]
 
 [[packages]]
 name = "vulture"
@@ -600,9 +594,9 @@ sdist = { url = "https://files.pythonhosted.org/packages/de/3d/4b8f053a92cb7c6ca
 
 [[packages]]
 name = "wcwidth"
-version = "0.3.5"
-sdist = { url = "https://files.pythonhosted.org/packages/95/fc/44799c4a51ff0da0de0ff27e68c9dea3454f3d9bf15ffb606aeb6943e672/wcwidth-0.3.5.tar.gz", upload-time = 2026-01-25T04:37:23Z, size = 234185, hashes = { sha256 = "7c3463f312540cf21ddd527ea34f3ae95c057fa191aa7a9e043898d20d636e59" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/7a/86/7f461495625145a99d60f14cdac142a11db5d501c86d48aad165575d1e06/wcwidth-0.3.5-py3-none-any.whl", upload-time = 2026-01-25T04:37:22Z, size = 86681, hashes = { sha256 = "b0a0245130566939a24ab8432e625b38272fbc62ecbe5aecbdcb50b8f02ce993" } }]
+version = "0.5.3"
+sdist = { url = "https://files.pythonhosted.org/packages/c2/62/a7c072fbfefb2980a00f99ca994279cb9ecf310cb2e6b2a4d2a28fe192b3/wcwidth-0.5.3.tar.gz", upload-time = 2026-01-31T03:52:10Z, size = 157587, hashes = { sha256 = "53123b7af053c74e9fe2e92ac810301f6139e64379031f7124574212fb3b4091" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/3c/c1/d73f12f8cdb1891334a2ccf7389eed244d3941e74d80dd220badb937f3fb/wcwidth-0.5.3-py3-none-any.whl", upload-time = 2026-01-31T03:52:09Z, size = 92981, hashes = { sha256 = "d584eff31cd4753e1e5ff6c12e1edfdb324c995713f75d26c29807bb84bf649e" } }]
 
 [[packages]]
 name = "weberror"

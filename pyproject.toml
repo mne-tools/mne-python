@@ -91,8 +91,8 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
-  "decorator >= 3.5",
-  "jinja2 >= 2.7",
+  "decorator >= 5.1",
+  "jinja2 >= 2.10",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
