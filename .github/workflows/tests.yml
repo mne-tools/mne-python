@@ -161,6 +161,8 @@ jobs:
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
+      - run: source .venv/bin/activate
+        if: matrix.kind == 'old'
       - run: source ./tools/github_actions_infos.sh
       # Check Qt
       - run: source ./tools/check_qt_import.sh $MNE_QT_BACKEND
