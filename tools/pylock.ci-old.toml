@@ -189,9 +189,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/c0/5a/9cac0c82afec3d0
 
 [[packages]]
 name = "jinja2"
-version = "2.10"
-sdist = { url = "https://files.pythonhosted.org/packages/56/e6/332789f295cf22308386cf5bbd1f4e00ed11484299c5d7383378cf48ba47/Jinja2-2.10.tar.gz", upload-time = 2017-11-08T20:13:44Z, size = 261631, hashes = { sha256 = "f84be1bb0040caca4cea721fcbbbbd61f9be9464ca236387158b0feea01914a4" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/7f/ff/ae64bacdfc95f27a016a7bed8e8686763ba4d277a78ca76f32659220a731/Jinja2-2.10-py2.py3-none-any.whl", upload-time = 2017-11-08T20:13:42Z, size = 126381, hashes = { sha256 = "74c935a1b8bb9a3947c50a54766a969d4846290e1e788ea44c1392163723c3bd" } }]
+version = "3.1.0"
+sdist = { url = "https://files.pythonhosted.org/packages/1f/93/99a76d0fa1a8fc14442a6421abee323f8d15964979336eabd2a1834e9118/Jinja2-3.1.0.tar.gz", upload-time = 2022-03-24T14:14:03Z, size = 266923, hashes = { sha256 = "a2f09a92f358b96b5f6ca6ecb4502669c4acb55d8733bbb2b2c9c4af5564c605" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/7b/82/743248f82f147e54a404163c7e12969f4c2436bdfe7c39bf6b5c7a273f3f/Jinja2-3.1.0-py3-none-any.whl", upload-time = 2022-03-24T14:14:01Z, size = 132565, hashes = { sha256 = "da424924c069a4013730d8dd010cbecac7e7bb752be388db3741688bffb48dc6" } }]
 
 [[packages]]
 name = "jsonschema"
@@ -553,8 +553,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/b5/11/87d6d29fb5d2372
 
 [[packages]]
 name = "tqdm"
-version = "1.0"
-sdist = { url = "https://files.pythonhosted.org/packages/ba/50/e6c90ecbc3a736ca8af22a52b3e665d32797b9f0cf6a79b7f4bd95dc2153/tqdm-1.0.tar.gz", upload-time = 2013-10-26T20:06:45Z, size = 1756, hashes = { sha256 = "d4972cfd62cf50bf88f20749b536258a3f48b31515dea3ad5edd5fe52e742c6c" } }
+version = "4.66.0"
+sdist = { url = "https://files.pythonhosted.org/packages/f1/fb/6f40278d3b74f1486147aebf828ad081226f4f80b5b31a042386acc76dde/tqdm-4.66.0.tar.gz", upload-time = 2023-08-09T10:45:13Z, size = 169029, hashes = { sha256 = "cc6e7e52202d894e66632c5c8a9330bd0e3ff35d2965c93ca832114a3d865362" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/a5/d6/502a859bac4ad5e274255576cd3e15ca273cdb91731bc39fb840dd422ee9/tqdm-4.66.0-py3-none-any.whl", upload-time = 2023-08-09T10:45:10Z, size = 78149, hashes = { sha256 = "39d459c7140b7890174e69d4d68d6291bc774a55b4bc5d93c0b760798ac5a03e" } }]
 
 [[packages]]
 name = "traitlets"

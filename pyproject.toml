@@ -92,14 +92,14 @@ classifiers = [
 ]
 dependencies = [
   "decorator >= 5.1",
-  "jinja2 >= 2.10",
+  "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
   "scipy >= 1.12",  # released 2024-01-20, will become 1.13 on 2026-04-02
-  "tqdm",
+  "tqdm >= 4.66",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
 dynamic = ["version"]
