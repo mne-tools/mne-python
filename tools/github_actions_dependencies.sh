@@ -20,8 +20,10 @@ if [ ! -z "$CONDA_ENV" ]; then
 	if [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 		GROUP="test"
 		EXTRAS=""
-		STD_ARGS="--progress-bar off"
-		python -m pip install --upgrade $STD_ARGS pip  # upgrade pip to support --group
+		STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
+		echo "::group::Upgrading pip installation"
+		python -m pip install --upgrade pip  # upgrade pip to support --group
+		echo "::endgroup::"
 	else
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
