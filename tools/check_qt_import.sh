@@ -1,5 +1,9 @@
 #!/bin/bash -ef
 
+if [[ ${MNE_CI_KIND} == "old" ]]; then
+    source .venv/bin/activate
+fi
+
 if [[ "$1" == "" ]]; then
     echo "Qt library must be provided as first argument"
     exit 1
