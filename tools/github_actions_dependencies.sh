@@ -7,7 +7,7 @@ STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	# This will fail if mne-base is not in the env (like in our minimial/old envs, so ||true them):
+	# This will fail if mne-base is not in the env (like in our minimal env, so ||true them):
 	echo "::group::Uninstalling MNE"
 	conda remove -c conda-forge --force -yq mne-base || true
 	python -m pip uninstall -y mne || true
@@ -16,24 +16,24 @@ if [ ! -z "$CONDA_ENV" ]; then
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
 	fi
-	# If on minimal or old, just install testing deps
-	if [[ "${CONDA_ENV}" == *'environment_'* ]]; then
+	# If on minimal, just install testing deps
+	if [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 		GROUP="test"
 		EXTRAS=""
-		STD_ARGS="--progress-bar off"
 	else
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
-		STD_ARGS="$STD_ARGS pip"  # upgrade pip version
 	fi
-elif [[ ${MNE_CI_KIND} == "old" ]]; then
+elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	GROUP=""  # group "test" already included when pylock file generated
 	EXTRAS=""
 	STD_ARGS="--progress-bar off"
+	echo "::group::Syncing old environment dependencies from lockfile using uv"
 	uv venv --python 3.10
 	source .venv/bin/activate
 	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
 	uv pip install pip ${MNE_QT_BACKEND}
+	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
@@ -58,7 +58,11 @@ else
 	GROUP_ARG="--group=$GROUP"
 fi
 
-echo "::group::Installing test dependencies using pip"
+if [[ "${MNE_CI_KIND}" != "old" ]]; then
+	echo "::group::Installing test dependencies using pip"
+else
+	echo "::group::Installing MNE in development mode using pip"
+fi
 set -x
 python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
