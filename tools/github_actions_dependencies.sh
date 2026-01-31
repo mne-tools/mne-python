@@ -20,6 +20,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	if [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 		GROUP="test"
 		EXTRAS=""
+		STD_ARGS="$STD_ARGS pip"  # upgrade pip version to support --group
 	else
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
