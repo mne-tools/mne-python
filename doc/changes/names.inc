@@ -226,6 +226,7 @@
 .. _Nabil Alibou: https://github.com/nabilalibou
 .. _Natalie Klein: https://github.com/natalieklein
 .. _Nathalie Gayraud: https://github.com/ngayraud
+.. _Natneal B: https://github.com/natinew77-creator
 .. _Naveen Srinivasan: https://github.com/naveensrinivasan
 .. _Nick Foti: https://nfoti.github.io
 .. _Nick Ward: https://profiles.ucl.ac.uk/10827-nick-ward
