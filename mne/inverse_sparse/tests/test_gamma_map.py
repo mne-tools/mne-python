@@ -151,6 +151,13 @@ def test_gamma_map_standard():
     )
     _check_stc(stc, evoked, 85739, "lh", fwd=forward, ratio=20.0, res=res)
 
+    # force fixed orientation
+    stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                         xyz_same_gamma=False, update_mode=3,
+                         loose=0, return_residual=True)
+    _check_stc(stc, evoked, 85739, 'lh', fwd=forward, ratio=20., res=res)
+
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
