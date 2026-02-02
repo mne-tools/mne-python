@@ -2410,6 +2410,7 @@ def make_scalp_surfaces(
         dec_fname = str(fname_template).format(level)
         if overwrite:
             if os.path.exists(dec_fname):
+                logger.info("Removing previously existing %s" % dec_fname)
                 os.remove(dec_fname)
         else:
             if no_decimate:
@@ -2417,7 +2418,7 @@ def make_scalp_surfaces(
                     raise OSError(
                         f"Trying to generate new scalp surfaces"
                         f"but {dec_fname} already exists."
-                        f"To avoid mixing different scalp surface solutions,"
+                        f"To avoid mixing different scalp surface solutions, "
                         f"delete this file or use overwrite to automatically delete it."
                     )
             else:
@@ -2469,7 +2470,6 @@ def make_scalp_surfaces(
         [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], incomplete=incomplete, extra=msg
     )[0]
     write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
-
     if os.getenv("_MNE_TESTING_SCALP", "false") == "true":
         tris = [len(surf["tris"])]  # don't actually decimate
     for ii, (level, n_tri) in enumerate(_tri_levels.items(), 3):
