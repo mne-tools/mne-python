@@ -21,6 +21,7 @@ from ..._fiff.pick import pick_types
 from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ...event import read_events
+from ...fixes import _reshape_view
 from ...transforms import Transform, als_ras_trans, apply_trans
 from ...utils import (
     _check_fname,
@@ -672,7 +673,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]["offset"])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
         sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
-        sensitivity.shape = (channel_count, 2)
+        sensitivity = _reshape_view(sensitivity, (channel_count, 2))
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
 

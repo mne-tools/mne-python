@@ -21,6 +21,9 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+    defaults:
+      run:
+        shell: bash -el {0}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -49,14 +52,21 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
+      - name: Run pre-commit hooks to update other files
+        run: |
+          pip install pre-commit
+          pre-commit run --all || true
+        if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         run: |
           set -xeo pipefail
+          git diff
           git config --global user.email "50266005+mne-bot@users.noreply.github.com"
           git config --global user.name "mne[bot]"
           git checkout -b spec_zero
+          git add doc/changes/dev/dependency.rst  # one new file, others changed
           git commit -am "mne[bot]: Update dependency specifiers"
           git push origin spec_zero
-          PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` in this or another PR. \`git grep TODO VERSION\` is a good starting point for finding potential updates.*" --label "no-changelog-entry-needed")
+          PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *It is very likely that \`tools/environment_old.yml\` needs to be updated.* <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` and elswhere in this or another PR. \`git grep TODO VERSION\` is a good starting point for finding potential updates.*")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'

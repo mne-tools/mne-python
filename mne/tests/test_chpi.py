@@ -51,6 +51,7 @@ from mne.utils import (
     _record_warnings,
     assert_meg_snr,
     catch_logging,
+    check_version,
     object_diff,
     verbose,
 )
@@ -73,6 +74,7 @@ chpi5_pos_fname = data_path / "SSS" / "chpi5_raw_mc.pos"
 ctf_chpi_fname = data_path / "CTF" / "testdata_ctf_mc.ds"
 ctf_chpi_pos_fname = data_path / "CTF" / "testdata_ctf_mc.pos"
 chpi_problem_fname = data_path / "SSS" / "chpi_problematic-info.fif"
+chpi_bad_gof_fname = data_path / "SSS" / "chpi_bad_gof-info.fif"
 
 art_fname = (
     data_path
@@ -883,6 +885,9 @@ def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
 @testing.requires_testing_data
 def test_refit_hpi_locs_basic():
     """Test that HPI locations can be refit."""
+    if not check_version("scipy", "1.13"):
+        # TODO VERSION remove when scipy >= 1.13 is required
+        pytest.xfail("SciPy 1.12 has an lwork bug affecting this test")
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
     # These should be similar (and both should work)
     locs = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1)
@@ -1011,3 +1016,19 @@ def test_refit_hpi_locs_problematic():
     )
     assert 3 < ang < 6
     assert 82 < dist < 87
+
+
+@testing.requires_testing_data
+def test_refit_hpi_locs_bad_gof():
+    """Test that we can handle bad GOF HPI fits."""
+    # gh-13524
+    info = read_info(chpi_bad_gof_fname)
+    assert_array_equal(info["hpi_results"][-1]["used"], [2, 3, 4])
+    info_new = refit_hpi(info.copy(), amplitudes=False, locs=False)
+    assert_array_equal(info_new["hpi_results"][-1]["used"], [1, 2, 3, 4])
+    assert_trans_allclose(
+        info["dev_head_t"],
+        info_new["dev_head_t"],
+        dist_tol=1e-3,
+        angle_tol=1,
+    )

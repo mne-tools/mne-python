@@ -1,0 +1,1 @@
+Fix deprecation of setting a shape on an array directly in ``numpy`` 2.5+, by `Mathieu Scheltienne`_.

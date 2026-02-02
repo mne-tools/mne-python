@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import re
 from functools import partial
 
@@ -26,7 +27,7 @@ from mne.time_frequency.spectrum import (
     SpectrumArray,
     combine_spectrum,
 )
-from mne.utils import _record_warnings
+from mne.utils import _import_h5io_funcs, _record_warnings
 
 
 def test_compute_psd_errors(raw):
@@ -178,6 +179,7 @@ def _get_inst(inst, request, *, evoked=None, average_tfr=None):
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked=evoked)
     if isinstance(inst, BaseEpochs):
@@ -190,6 +192,25 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     orig.save(fname)
     loaded = read_spectrum(fname)
     assert orig == loaded
+    # Only check following for one type
+    if not isinstance(inst, BaseEpochs):
+        return
+    # Test loading with old-style birthday format
+    fname_subject_info = tmp_path / "subject-info.h5"
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname_subject_info, dict(birthday=(2000, 1, 1)), title="subject_info")
+    with h5py.File(fname, "r+") as f:
+        del f["mnepython/key_info/key_subject_info"]
+        f["mnepython/key_info/key_subject_info"] = h5py.ExternalLink(
+            fname_subject_info, "subject_info"
+        )
+    loaded = read_spectrum(fname)
+    assert isinstance(loaded.info["subject_info"]["birthday"], datetime.date)
+    # Test Spectrum from EpochsSpectrum.average() can be read (gh-13521)
+    origavg = orig.average()
+    origavg.save(fname, overwrite=True)
+    loadedavg = read_spectrum(fname)
+    assert origavg == loadedavg
 
 
 def test_spectrum_copy(raw_spectrum):
@@ -320,6 +341,7 @@ def test_epochs_spectrum_average(epochs_spectrum, method):
     avg_spect = epochs_spectrum.average(method=method)
     assert avg_spect.shape == epochs_spectrum.shape[1:]
     assert avg_spect._dims == ("channel", "freq")  # no 'epoch'
+    assert repr(avg_spect).startswith("<Averaged Power Spectrum (from Epochs")
 
 
 @pytest.mark.parametrize("inst", ("raw_spectrum", "epochs_spectrum", "evoked"))
