@@ -13,6 +13,7 @@ from scipy.spatial.distance import pdist, squareform
 from .._fiff.meas_info import _simplify_info, create_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
+from ..bem import _check_origin
 from ..surface import _normalize_vectors
 from ..utils import _validate_type, logger, verbose, warn
 
@@ -422,9 +423,7 @@ def _interpolate_bads_seeg(
 
 def _interpolate_to_eeg(inst, sensors, origin, method, reg):
     """Interpolate EEG data to a new montage."""
-    from ..bem import _check_origin
     from ..forward._field_interpolation import _map_meg_or_eeg_channels
-    from ..utils import warn
 
     # Get target positions from the montage
     ch_pos = sensors.get_positions().get("ch_pos", {})
@@ -477,7 +476,6 @@ def _interpolate_to_eeg(inst, sensors, origin, method, reg):
 
 def _interpolate_to_meg(inst, sensors, origin, mode):
     """Interpolate MEG data to a canonical sensor configuration."""
-    from ..bem import _check_origin
     from ..forward._field_interpolation import _map_meg_or_eeg_channels
     from .montage import read_meg_canonical_info
 
