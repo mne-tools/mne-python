@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 
+import mne
 from mne import (
     concatenate_raws,
     read_bem_solution,
@@ -180,6 +181,12 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     has = "SUBJECTS_DIR" in os.environ
     freesurfer_home = os.environ.get("FREESURFER_HOME")
 
+    monkeypatch.setattr(
+        mne.bem,
+        "decimate_surface",
+        lambda points, triangles, n_triangles: (points, triangles),
+    )
+
     tempdir = str(tmp_path)
     t1_path = op.join(subjects_dir, "sample", "mri", "T1.mgz")
     t1_path_new = op.join(tempdir, "sample", "mri", "T1.mgz")
@@ -223,6 +230,14 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         assert op.isfile(medium_fname)
         assert op.isfile(sparse_fname)
 
+    os.remove(headseg_path)
+    os.remove(surf_path)
+    os.remove(dense_fname)
+    cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate")
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        with pytest.raises(OSError, match="Trying to generate new scalp surfaces"):
+            mne_make_scalp_surfaces.run()
+
     cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate", "--overwrite")
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         mne_make_scalp_surfaces.run()
@@ -232,14 +247,6 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         assert not op.isfile(medium_fname)
         assert not op.isfile(sparse_fname)
 
-    os.remove(headseg_path)
-    os.remove(surf_path)
-    os.remove(dense_fname)
-    cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate")
-    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-        with pytest.raises(RuntimeError, match="Trying to generate new scalp surfaces"):
-            mne_make_scalp_surfaces.run()
-
     # actually check the outputs
     head_py = read_bem_surfaces(dense_fname)
     assert_equal(len(head_py), 1)
@@ -248,6 +255,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         op.join(subjects_dir, "sample", "bem", "sample-head-dense.fif")
     )[0]
     assert_allclose(head_py["rr"], head_c["rr"])
+
     if not has:
         assert "SUBJECTS_DIR" not in os.environ
 
