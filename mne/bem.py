@@ -2410,7 +2410,7 @@ def make_scalp_surfaces(
         dec_fname = str(fname_template).format(level)
         if overwrite:
             if os.path.exists(dec_fname):
-                logger.info("Removing previously existing %s" % dec_fname)
+                logger.info(f"Removing previously existing {dec_fname}.")
                 os.remove(dec_fname)
         else:
             if no_decimate:
