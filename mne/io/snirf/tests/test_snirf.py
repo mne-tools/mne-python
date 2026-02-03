@@ -285,6 +285,33 @@ def test_snirf_nonstandard(tmp_path):
 
 
 @requires_testing_data
+def test_snirf_empty_landmark_labels(tmp_path):
+    """Test reading SNIRF files with empty landmarkLabels (gh-13627)."""
+    shutil.copy(sfnirs_homer_103_wShort, tmp_path / "empty_labels.snirf")
+    fname = tmp_path / "empty_labels.snirf"
+
+    # Modify file to have landmarkPos3D but empty/scalar landmarkLabels
+    with h5py.File(fname, "r+") as f:
+        # Remove existing landmark data if present
+        if "landmarkPos3D" in f["nirs/probe"]:
+            del f["nirs/probe/landmarkPos3D"]
+        if "landmarkLabels" in f["nirs/probe"]:
+            del f["nirs/probe/landmarkLabels"]
+
+        # Add non-empty landmarkPos3D
+        f.create_dataset(
+            "nirs/probe/landmarkPos3D",
+            data=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        )
+        # Add empty scalar landmarkLabels (this triggers the bug in gh-13627)
+        f.create_dataset("nirs/probe/landmarkLabels", data=b"")
+
+    # This should not raise "TypeError: iteration over a 0-d array"
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["dig"] is not None
+
+
+@requires_testing_data
 def test_snirf_nirsport2():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(nirx_nirsport2_103, preload=True)
