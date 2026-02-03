@@ -12,13 +12,17 @@ Maintainer Team
 
 * `Alex Gramfort`_
 * `Britta Westner`_
+* `Carina Forster`_
 * `Clemens Brunner`_
 * `Daniel McCloy`_
 * `Eric Larson`_
+* `Erica Peterson`_
 * `Marijn van Vliet`_
 * `Mathieu Scheltienne`_
 * `Richard Höchenberger`_
+* `Scott Huberty`_
 * `Stefan Appelhoff`_
+* `Thomas Binns`_
 
 Past Maintainers
 ----------------
