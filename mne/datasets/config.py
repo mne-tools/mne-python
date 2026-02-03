@@ -211,8 +211,8 @@ MNE_DATASETS["sample"] = dict(
 
 MNE_DATASETS["somato"] = dict(
     archive_name="MNE-somato-data.tar.gz",
-    hash="md5:32fd2f6c8c7eb0784a1de6435273c48b",
-    url="https://osf.io/download/tp4sg?version=7",
+    hash="md5:9a191907b326b9402341ee7a0d1240d8",
+    url="https://osf.io/download/tp4sg?version=8",
     folder_name="MNE-somato-data",
     config_key="MNE_DATASETS_SOMATO_PATH",
 )
