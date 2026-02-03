@@ -180,6 +180,7 @@ def pytest_configure(config: pytest.Config):
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     ignore:Python binding for RankQuantileOptions.*:
+    ignore:Substitution is deprecated and will be removed.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
