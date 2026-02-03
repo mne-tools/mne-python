@@ -66,7 +66,7 @@ from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannel
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
-from .fixes import rng_uniform
+from .fixes import _reshape_view, rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
@@ -4497,7 +4497,7 @@ class EpochsFIF(BaseEpochs):
         else:
             data = data.astype(np.float64)
 
-        data.shape = raw.epoch_shape
+        data = _reshape_view(data, raw.epoch_shape)
         data *= raw.cals
         return data
 
