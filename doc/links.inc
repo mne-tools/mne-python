@@ -40,7 +40,7 @@
 .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
 .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
 .. _ft_cluster: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test
-.. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/024644.html
+.. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/011773.html
 .. _ft_exch: https://mailman.science.ru.nl/pipermail/fieldtrip/2008-October/001794.html
 
 

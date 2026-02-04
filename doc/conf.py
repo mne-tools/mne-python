@@ -727,6 +727,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
+    "https://www.crnl.fr",
     # Not rendered by linkcheck builder
     r"ides\.html",
 ]
