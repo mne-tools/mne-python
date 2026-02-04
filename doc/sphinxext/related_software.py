@@ -33,6 +33,7 @@ PYPI_PACKAGES = {
     "meggie",
     "niseq",
     "sesameeg",
+    "mne-kit-gui",  # moved to its own env in the installers
 }
 
 # If it's not available on PyPI, add it to this dict:
