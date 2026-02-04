@@ -19,6 +19,7 @@ from unittest import mock
 
 import numpy as np
 import pytest
+from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
 
 # Any `assert` statements in our testing functions should be verbose versions
@@ -180,7 +181,6 @@ def pytest_configure(config: pytest.Config):
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     ignore:Python binding for RankQuantileOptions.*:
-    ignore:Substitution is deprecated and will be removed.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
@@ -216,6 +216,20 @@ def pytest_configure(config: pytest.Config):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
+    try:
+        import pandas
+    except Exception:
+        pass
+    else:
+        if Version(pandas.__version__) >= Version("3.1.0.dev0"):
+            # TODO VERSION once statsmodels dev has updated for pip-pre
+            # (failing as of 2026/02/04)
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:"
+                ".+ is deprecated and will be removed in a future version.*:"
+                "pandas.errors.Pandas4Warning",
+            )
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]):
