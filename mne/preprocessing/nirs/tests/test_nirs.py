@@ -40,12 +40,18 @@ fname_labnirs_multi_wavelength = (
 )
 
 
+def read_raw_snirf_safe(fname):
+    """Wrap to read_raw_snirf, skipping if h5py is not installed."""
+    pytest.importorskip("h5py")
+    return read_raw_snirf(fname)
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "fname, readerfn",
     [
         (fname_nirx_15_0, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_picks(fname, readerfn):
@@ -121,7 +127,7 @@ def _fnirs_check_bads(info):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_check_bads(fname, readerfn):
@@ -166,7 +172,7 @@ def test_fnirs_check_bads(fname, readerfn):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_spread_bads(fname, readerfn):
@@ -210,7 +216,7 @@ def test_fnirs_spread_bads(fname, readerfn):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_channel_frequency_ordering(fname, readerfn):
@@ -598,7 +604,7 @@ def test_order_agnostic(nirx_snirf):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_nirs_channel_grouping(fname, readerfn):
