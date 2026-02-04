@@ -1612,11 +1612,9 @@ class BaseEpochs(
 
         # handle tmin/tmax as start and stop indices into data array
         n_times = self.times.size
-        # QUI c'è la fix specifica per le Epochs
         start = 0 if tmin is None else self.time_as_index(tmin, use_rounding=True)[0]
-        stop = (
-            n_times if tmax is None else self.time_as_index(tmax, use_rounding=True)[0]
-        )
+        stop = n_times if tmax is None else self.time_as_index(tmax, use_rounding=True)[0]
+
 
         # truncate start/stop to the open interval [0, n_times]
         start = min(max(0, start), n_times)
