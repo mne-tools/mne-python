@@ -1,0 +1,1 @@
+Add support for :meth:`mne.io.Raw.interpolate_to` and related methods (and :func:`mne.channels.read_meg_canonical_info`) for interpolating MEG data across systems, by :newcontrib:`Konstantinos Tsilimparis`.
