@@ -20,6 +20,8 @@ fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 _no_parse = pytest.warns(RuntimeWarning, match="Could not parse")
 inconsistent = pytest.warns(RuntimeWarning, match="Inconsistent file information")
+outside = pytest.warns(RuntimeWarning, match="outside the data")
+omitted = pytest.warns(RuntimeWarning, match="Omitted 4 annot")
 
 
 @testing.requires_testing_data
@@ -50,7 +52,7 @@ def test_old_data():
 @testing.requires_testing_data
 def test_new_data():
     """Test reading raw cnt files with different header."""
-    with pytest.warns(RuntimeWarning):
+    with inconsistent, outside, omitted:
         raw = read_raw_cnt(
             input_fname=fname_bad_spans, header="new", data_format="int32"
         )
@@ -61,8 +63,6 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
-    outside = pytest.warns(RuntimeWarning, match="outside the data")
-    omitted = pytest.warns(RuntimeWarning, match="Omitted 4 annot")
     with inconsistent, outside, omitted:
         raw = read_raw_cnt(
             input_fname=fname_bad_spans, data_format="int16", verbose="debug"
@@ -107,11 +107,12 @@ def test_compare_events_and_annotations():
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_reading_bytes():
     """Test reading raw cnt files with different header."""
-    raw_16 = read_raw_cnt(fname, preload=True, data_format="int16")
-    raw_32 = read_raw_cnt(fname_bad_spans, preload=True, data_format="int32")
+    with _no_parse:
+        raw_16 = read_raw_cnt(fname, preload=True, data_format="int16")
+    with inconsistent, outside, omitted:
+        raw_32 = read_raw_cnt(fname_bad_spans, preload=True, data_format="int32")
 
     # Verify that the number of bytes read is correct
     assert len(raw_16) == 3070
