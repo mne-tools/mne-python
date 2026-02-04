@@ -142,8 +142,6 @@ evoked_ctf.plot(
 )
 axes[2].set_title("Transformed to CTF275 Axial Gradiometers", fontsize=14)
 
-plt.show()
-
 # %%
 # References
 # ----------

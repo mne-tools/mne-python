@@ -61,6 +61,8 @@ from ..utils import (
     warn,
 )
 
+_ALLOWED_INTERPOLATION_MODES = ("accurate", "fast")
+
 
 def _get_meg_system(info):
     """Educated guess for the helmet type based on channels."""
@@ -1060,7 +1062,7 @@ class InterpolationMixin:
 
         if method is None:
             method = _handle_default("interpolation_method")[kind]
-        _check_option("mode", mode, ["accurate", "fast"])
+        _check_option("mode", mode, _ALLOWED_INTERPOLATION_MODES)
         extra = f"when doing {kind.upper()} interpolation"
         _check_option("method", method, valid_methods, extra=extra)
         return func(self, sensors, origin)
