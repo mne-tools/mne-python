@@ -36,7 +36,7 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	uv venv --python 3.10
 	source .venv/bin/activate
 	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
-	uv pip install pip ${MNE_QT_BACKEND}
+	uv pip install pip tomlkit ${MNE_QT_BACKEND}
 	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
