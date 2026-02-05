@@ -127,6 +127,11 @@ scripts = {mne = "mne.commands.utils:main"}
 # Leave this one here for backward-compat
 data = []
 full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
+# Dependencies for full MNE-Python functionality (other than raw/epochs export)
+# We first define a variant without any Qt bindings. The "complete" variant, mne[full],
+# makes an opinionated choice and installs PyQt6.
+# We also offter two more variants: mne[full-qt6] (which is equivalent to mne[full]),
+# and mne[full-pyside6], which will install PySide6 instead of PyQt6.
 full-no-qt = [
   "antio >= 0.5.0",
   "curryreader >= 0.1.2",
@@ -179,11 +184,6 @@ full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
-# Dependencies for full MNE-Python functionality (other than raw/epochs export)
-# We first define a variant without any Qt bindings. The "complete" variant, mne[full],
-# makes an opinionated choice and installs PyQt6.
-# We also offter two more variants: mne[full-qt6] (which is equivalent to mne[full]),
-# and mne[full-pyside6], which will install PySide6 instead of PyQt6.
 ver-auto-bumped = [
   "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
