@@ -132,7 +132,12 @@ full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # makes an opinionated choice and installs PyQt6.
 # We also offter two more variants: mne[full-qt6] (which is equivalent to mne[full]),
 # and mne[full-pyside6], which will install PySide6 instead of PyQt6.
+ver-auto-bumped = [
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+]
 full-no-qt = [
+  "mne[ver-auto-bumped]",
   "antio >= 0.5.0",
   "curryreader >= 0.1.2",
   "darkdetect",
@@ -159,7 +164,6 @@ full-no-qt = [
   "nilearn",
   "numba >= 0.35",
   "openmeeg >= 2.5.7",
-  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
@@ -169,7 +173,6 @@ full-no-qt = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "sip",
   "snirf",
   "statsmodels >= 0.6",
