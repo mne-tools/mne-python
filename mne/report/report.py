@@ -4261,6 +4261,19 @@ class Report:
 
         # Drop log
         if epochs._bad_dropped:
+            # Add rejection and flat thresholds automatically
+            for attr, label in (("reject", "Rejection"), ("flat", "Flat")):
+                val = getattr(epochs, attr, None)
+                if val is not None:
+                    self._add_html_element(
+                        html=f"<code>{val}</code>",
+                        title=f"{label} thresholds",
+                        tags=tags,
+                        section=section,
+                        replace=replace,
+                        div_klass="epochs",
+                    )
+
             title = "Drop log"
 
             if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops
