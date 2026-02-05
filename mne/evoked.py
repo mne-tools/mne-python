@@ -254,7 +254,7 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=("bads"))
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
