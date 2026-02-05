@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a0973c2a14eae0b95dfc58854b91533f1de2625b",
+  "authors": [
+    {
+      "n": "varshaa-1616",
+      "e": "varshaa.1616@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/14_quality_control_report.py": {
+      "a": 267,
+      "d": 0
+    }
+  }
+}
