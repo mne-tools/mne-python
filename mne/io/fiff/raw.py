@@ -232,20 +232,11 @@ class Raw(BaseRaw):
             nchan = int(info["nchan"])
             first = 0
             first_samp = 0
-            first_skip = 0
 
             #   Get first sample tag if it is there
             if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, directory[first].pos)
                 first_samp = int(tag.data.item())
-                first += 1
-                _check_entry(first, nent)
-
-            #   Omit initial skip
-            if directory[first].kind == FIFF.FIFF_DATA_SKIP:
-                # This first skip can be applied only after we know the bufsize
-                tag = read_tag(fid, directory[first].pos)
-                first_skip = int(tag.data.item())
                 first += 1
                 _check_entry(first, nent)
 
@@ -282,6 +273,9 @@ class Raw(BaseRaw):
                 FIFF.FIFFT_COMPLEX_DOUBLE: "double",
             }
 
+            nskip = 0
+            nskip_in_samples = 0
+            first_data_buffer = True
             for k in range(first, nent):
                 ent = directory[k]
                 # There can be skips in the data (e.g., if the user unclicked)
@@ -298,24 +292,29 @@ class Raw(BaseRaw):
                     if orig_format is None:
                         orig_format = _orig_format_dict[ent.type]
 
-                    #  Do we have an initial skip pending?
-                    if first_skip > 0:
-                        first_samp += nsamp * first_skip
-                        raw.first_samp = first_samp
-                        first_skip = 0
-
                     #  Do we have a skip pending?
                     if nskip > 0:
-                        raw_extras.append(
-                            dict(
-                                ent=None,
-                                first=first_samp,
-                                nsamp=nskip * nsamp,
-                                last=first_samp + nskip * nsamp - 1,
-                            )
-                        )
-                        first_samp += nskip * nsamp
+                        nskip_in_samples += nskip * nsamp
                         nskip = 0
+
+                    if nskip_in_samples > 0:
+                        if not first_data_buffer:
+                            raw_extras.append(
+                                dict(
+                                    ent=None,
+                                    first=first_samp,
+                                    nsamp=nskip_in_samples,
+                                    last=first_samp + nskip_in_samples - 1,
+                                )
+                            )
+                        first_samp += nskip_in_samples
+                        nskip_in_samples = 0
+
+                    #  Handle an initial skip.
+
+                    if first_data_buffer:
+                        raw.first_samp = first_samp
+                        first_data_buffer = False
 
                     #  Add a data buffer
                     raw_extras.append(
@@ -329,7 +328,10 @@ class Raw(BaseRaw):
                     first_samp += nsamp
                 elif ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
-                    nskip = int(tag.data.item())
+                    nskip += int(tag.data.item())
+                elif ent.kind == FIFF.FIFF_DATA_SKIP_SAMP:
+                    tag = read_tag(fid, ent.pos)
+                    nskip_in_samples += int(tag.data.item())
 
             next_fname = _get_next_fname(fid, _path_from_fname(fname), tree)
 
