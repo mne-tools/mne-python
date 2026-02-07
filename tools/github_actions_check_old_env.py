@@ -28,8 +28,6 @@ bad_missing = []
 bad_version = []
 for dep in check_deps:
     mod_name, pyproject_ver = _get_min_pinned_ver(dep)
-    if pyproject_ver is None:
-        continue  # no min version specified, so no check needed
     mod_import_name = mod_name_mapping.get(mod_name, mod_name)
 
     # Need to handle logic for checking Python version vs. module versions differently.
@@ -45,7 +43,7 @@ for dep in check_deps:
         env_ver = ".".join(str(x) for x in env_ver)
     else:
         try:
-            mod = importlib.import_module(mod_import_name)
+            importlib.import_module(mod_import_name)
         except Exception as exc:
             bad_missing.append(f"{mod_name}: ({type(exc).__name__}: {exc})")
             continue
@@ -53,6 +51,8 @@ for dep in check_deps:
         # Also requires the true module name, not the import variant (if different)
         env_ver = metadata.version(mod_name)
 
+    if pyproject_ver is None:
+        continue  # no min version specified, so no check needed
     if Version(env_ver) != Version(pyproject_ver):
         bad_version.append(
             f"{mod_name}: is {env_ver}; {pyproject_ver} expected from `pyproject.toml`"
