@@ -50,7 +50,7 @@ jobs:
         # uv pip compile requires setting the python version explicitly in the command :(
         run: |
           uv pip compile pyproject.toml --python "3.10" --python-platform "x86_64-unknown-linux-gnu" --group test --extra ver-auto-bumped --resolution lowest-direct --format pylock.toml --output-file tools/pylock.ci-old.toml
-          python tools/check_old_lockfile.py
+          python tools/github_actions_check_old_lockfile.py
       - name: check if files changed
         run: |
           git diff && git status --porcelain
