@@ -158,9 +158,9 @@ jobs:
           version: ">=0.9"
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
-      - run: |
-          source .venv/bin/activate
-          python ./tools/github_actions_check_old_env.py
+      - run: bash ./tools/github_actions_setup_uv_bash.sh
+        if: matrix.kind == 'old'
+      - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
