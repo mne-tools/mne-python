@@ -173,7 +173,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
-              python -m pip install --progress-bar off --upgrade -ve .[full] --group=test_extra
+              python -m pip install --progress-bar off --upgrade -ve .[full] --group=test_extra "git+https://github.com/python-quantities/python-quantities"
             displayName: 'Install dependencies with pip'
           - bash: |
               set -e
