@@ -392,7 +392,7 @@ def _read_nihon_comments(fname, encoding="utf-8"):
         n_commentblocks = (filesize - 0x429) // 0x230
         all_comments = []
         for t_block in range(n_commentblocks):
-            fid.seek(0x42D + t_block * 0x230 + 0x30)
+            fid.seek(0x429 + t_block * 0x230 + 0x30)
             # As the number of comments needs to match number of placeholders, we cannot
             # fail softly if the decoding fails, as we do in other places.
             all_comments.append(np.fromfile(fid, "|S384", 1)[0].decode(encoding))
