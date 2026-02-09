@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e997d084a07882851bbb1639140de09749ecd408",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gh_substitutions.py": {
+      "a": 18,
+      "d": 2
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

@@ -38,7 +38,9 @@ data_dir = doc_root / "sphinxext"
 # preferring GitHub profile info (when complete!) is probably preferable.
 
 # Allowed singletons
-single_names = "btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot]".split()
+single_names = """
+btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot] varshaa-1616
+""".strip().split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
     Bailey=2,
@@ -52,6 +54,7 @@ name_counts = dict(
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
+    "Natneal B",
     "T. Wang",
     "Ziyi ZENG",
 ]
@@ -68,6 +71,7 @@ manual_renames = {
     "enzo": "Enzo Altamiranda",  # 11351
     "Emma": "Emma Zhang",  # 13486
     "Frostime": "Yiping Zuo",  # 11773
+    "FT": "Tamas Fehervari",  # 13408
     "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Genuster": "Gennadiy Belonosov",  # 12936
     "GreasyCat": "Rongfei Jin",  # 13113

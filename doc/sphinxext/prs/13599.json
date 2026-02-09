@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ed9497d88a24ec0a03cd55db17bd057e79268418",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13596.other.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

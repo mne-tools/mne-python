@@ -1,0 +1,1 @@
+Created a quality control report tutorial :ref:`tut-qc-report`, by :newcontrib:`varshaa-1616`.
