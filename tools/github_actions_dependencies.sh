@@ -36,10 +36,6 @@ else
 	EXTRAS=""
 fi
 echo ""
-# until quantities releases...
-if [[ "${MNE_CI_KIND}" != "old" ]]; then
-	STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
-fi
 
 echo "::group::Installing test dependencies using pip"
 set -x
