@@ -65,4 +65,5 @@ dependencies:
   - xlrd
   - pip:
       - nest-asyncio2
+      - pymef
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'

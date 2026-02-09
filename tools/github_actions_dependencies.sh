@@ -50,11 +50,6 @@ else
 fi
 echo ""
 
-# until quantities releases...
-if [[ "${MNE_CI_KIND}" != "old" ]]; then
-	STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
-fi
-
 # Make sure we only pass non-empty groups argument
 if [ -z "$GROUP" ]; then
 	GROUP_ARG=""

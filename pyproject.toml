@@ -19,6 +19,7 @@ doc = [
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
+  "pymef",
   "pytest",
   "pyvistaqt",
   "pyxdf",
@@ -67,6 +68,7 @@ test_extra = [
   "neo",
   "nitime >= 0.7",
   "pybv",
+  "pymef",
   "snirf",
   "sphinx-gallery",
   "statsmodels",
@@ -163,6 +165,7 @@ full-no-qt = [
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
+  "pymef",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard >= 0.4",
   "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
