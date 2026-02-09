@@ -306,6 +306,7 @@ numpydoc_xref_aliases = {
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
@@ -727,6 +728,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
+    "https://www.crnl.fr",
     # Not rendered by linkcheck builder
     r"ides\.html",
 ]

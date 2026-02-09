@@ -170,6 +170,7 @@
 .. _Katarina Slama: https://github.com/katarinaslama
 .. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Keith Doelling: https://github.com/kdoelling1919
+.. _Konstantinos Tsilimparis: https://contsili.github.io/
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 .. _Kristijan Armeni: https://github.com/kristijanarmeni
 .. _Kyle Mathewson: https://github.com/kylemath
@@ -337,7 +338,7 @@
 .. _Tom Ma: https://github.com/myd7349
 .. _Tom Stone: https://github.com/tomdstone
 .. _Tommy Clausner: https://github.com/TommyClausner
-.. _Toomas Erik Anijärv: https://www.toomaserikanijarv.com/
+.. _Toomas Erik Anijärv: https://github.com/teanijarv
 .. _Tristan Stenner: https://github.com/tstenner/
 .. _Tziona NessAiver: https://github.com/TzionaN
 .. _user27182: https://github.com/user27182
