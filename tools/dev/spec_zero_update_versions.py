@@ -211,7 +211,7 @@ def _prettify_requirement(req):
     specifiers = specifiers.rstrip(",")  # remove trailing comma
     req.specifier = SpecifierSet()  # remove ugly specifiers (from str repr)
     # Add pretty specifiers to name alongside trailing info (extras, markers, url)
-    return req.name + specifiers + str(req)[len(req.name) :]
+    return (req.name + specifiers + str(req)[len(req.name) :]).replace('"', "'")
 
 
 def _add_date_comment(dependency, min_ver_release, next_ver, next_ver_release):
