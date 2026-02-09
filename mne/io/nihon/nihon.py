@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -310,18 +311,14 @@ def _read_event_log_block(fid, t_block, version):
     return np.fromfile(fid, "|S45", n_logs)
 
 
-def parse_onset(onset_string):
-    hour, minute, second = (
-        int(onset_string[0:2]),
-        int(onset_string[2:4]),
-        int(onset_string[4:6]),
-    )
-    return hour * 3600 + minute * 60 + second
-
-
 def _parse_event_log(event_log):
     t_desc = event_log[:20]
-    t_onset = parse_onset(event_log[20:26])
+    hour, minute, second = (
+        int(event_log[20:22]),
+        int(event_log[22:24]),
+        int(event_log[24:26]),
+    )
+    t_onset = hour * 3600 + minute * 60 + second
     return t_desc, t_onset
 
 
@@ -384,34 +381,22 @@ def _read_nihon_comments(fname, encoding="utf-8"):
     cmt_fname = fname.with_suffix(".CMT")
     if not cmt_fname.exists():
         warn("No CMT file exists. Comments will not be read")
-        return dict(onset=[], comment=[])
+        return list()
     logger.info("Found CMT file, reading comments.")
     with open(cmt_fname, "rb") as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
             raise ValueError(f"Not a valid Nihon Kohden CMT file ({version})")
 
-        fid.seek(0x415)
-        n_commentblocks = np.fromfile(fid, np.uint8, 1)[0]
-        logger.info(f"Reading {n_commentblocks} comments.")
-        all_onsets = []
+        filesize = fid.seek(0, os.SEEK_END)
+        n_commentblocks = (filesize - 0x429) // 0x230
         all_comments = []
         for t_block in range(n_commentblocks):
-            fid.seek(0x42D + t_block * 0x230)
-            onset = parse_onset(np.fromfile(fid, "|S20", 1)[0])
-            fid.seek(0x42D + t_block * 0x230 + 0x2C)
-            try:
-                comment = np.fromfile(fid, "|S384", 1)[0].decode(encoding)
-            except UnicodeDecodeError:
-                warn(f"Could not decode comment as {encoding}")
-                continue
-            all_onsets.append(onset)
-            all_comments.append(comment)
-    comments = dict(
-        onset=all_onsets,
-        comment=all_comments,
-    )
-    return comments
+            fid.seek(0x42D + t_block * 0x230 + 0x30)
+            # As the number of comments needs to match number of placeholders, we cannot
+            # fail softly if the decoding fails, as we do in other places.
+            all_comments.append(np.fromfile(fid, "|S384", 1)[0].decode(encoding))
+    return all_comments
 
 
 def _map_ch_to_type(ch_name):
@@ -529,13 +514,14 @@ class RawNihon(BaseRaw):
         to_replace = [
             i for i, desc in enumerate(annots["description"]) if desc == "P_COMMENT"
         ]
-        if len(to_replace) != len(comments["comment"]):
+        if len(to_replace) != len(comments):
             warn(
-                f"Corrupted .CMT file. Not loading comments. {len(to_replace)} "
-                f"{len(comments['comment'])}"
+                f"The number of comments in the .CMT file ({len(comments)}) does not "
+                "match the number of placeholders in the .LOG file "
+                f"({len(to_replace)}). Not reading comments."
             )
         for i, comment in zip(to_replace, comments):
-            annots["description"][i] = comment["comment"]
+            annots["description"][i] = comment
 
         # Annotate acquisition skips
         controlblock = header["controlblocks"][0]
