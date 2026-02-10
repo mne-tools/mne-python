@@ -249,8 +249,9 @@ Specifically for each of the following we use:
 - meas_date, file_id, meas_id
         A default value, or as specified by ``daysback``.
 - subject_info
-        Default values, except for 'birthday' which is adjusted
-        to maintain the subject age.
+        Default values, except for 'birthday', which is adjusted to maintain the subject
+        age. If ``keep_his`` is not ``False``, then the fields 'his_id', 'sex', and
+        'hand' are not anonymized, depending on the value of ``keep_his``.
 - experimenter, proj_name, description
         Default strings.
 - utc_offset
@@ -2276,12 +2277,14 @@ joint : bool
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool
-    If ``True``, ``his_id`` of ``subject_info`` will **not** be overwritten.
-    Defaults to ``False``.
+keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+    If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
+    overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
+    ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
+    fields will **not** be anonymized. Defaults to ``False``.
 
-    .. warning:: This could mean that ``info`` is not fully
-                 anonymized. Use with caution.
+    .. warning:: Setting ``keep_his`` to anything other than ``False`` may result in
+                 ``info`` not being fully anonymized. Use with caution.
 """
 
 docdict["kit_badcoils"] = """
