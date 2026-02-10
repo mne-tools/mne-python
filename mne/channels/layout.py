@@ -987,15 +987,15 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
 
         if duplicate_pairs:
             raise ValueError(
-                "Duplicate EEG electrode positions detected due to mixed 10–20 "
+                "Duplicate EEG electrode positions detected due to mixed 10-20 "
                 "naming conventions.\n"
-                "You appear to have both old (T3/T4/T5/T6) and new (T7/T8/P7/P8) "
-                "electrode names present.\n\n"
-                "Please drop one set before plotting, for example:\n"
-                "    inst.drop_channels(['T3', 'T4', 'T5', 'T6'])\n"
-                "or\n"
-                "    inst.drop_channels(['T7', 'T8', 'P7', 'P8'])"
+                "You appear to have both legacy (T3/T4/T5/T6) and modern "
+                "(T7/T8/P7/P8) electrode names present. The modern convention "
+                "(T7/T8/P7/P8) is recommended.\n\n"
+                "Please drop the legacy channels before plotting, for example:\n"
+                "    inst.drop_channels(['T3', 'T4', 'T5', 'T6'])"
             )
+
         else:
             raise ValueError(
                 "The following electrodes have overlapping positions, which causes "
