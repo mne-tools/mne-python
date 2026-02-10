@@ -6,7 +6,7 @@ Source alignment and coordinate frames
 ======================================
 
 This tutorial shows how to visually assess the spatial alignment of MEG sensor
-locations, digitized scalp landmark and sensor locations, and MRI volumes. This
+locations, MRI volumes, and digitized scalp landmark and sensor locations. This
 alignment process is crucial for computing the forward solution, as is
 understanding the different coordinate frames involved in this process.
 
@@ -21,10 +21,8 @@ Let's start out by loading some data.
 
 import nibabel as nib
 import numpy as np
-from scipy import linalg
 
 import mne
-from mne.io.constants import FIFF
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path / "subjects"
@@ -62,41 +60,43 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 # .. role:: red
 #
 #
-# Understanding coordinate frames
-# -------------------------------
-# For M/EEG source imaging, there are three **coordinate frames** must be
+# Visualize elements requiring alignment and their coordinate frames
+# ------------------------------------------------------------------
+# Recall that a **coordinate frame** is a system for specifying locations using
+# a framework described by an origin, a set of axes, and a scale of measurement.
+# MEG data, MRI volumes, and digitized locations on a subject's head (such as
+# fiducial points or EEG sensors) are all obtained using the coordinate frames
+# of their respective acquisition devices, so they all start out in different
+# frames. To perform source localization with M/EEG, these frames must be
 # brought into alignment using two 3D `transformation matrices <wiki_xform_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another. The three main coordinate frames are:
 #
 # * :blue:`"meg"`: the coordinate frame for the physical locations of MEG sensors
-# * :gray:`"mri"`: the coordinate frame for MRI images, and scalp/skull/brain
-#   surfaces derived from the MRI images
-# * :pink:`"head"`: the coordinate frame for digitized sensor locations and
+# * :gray:`"mri"`: the coordinate frame for MRI images, as well as surfaces
+#   derived from MRI images like the scalp, skull, and brain
+# * :red:`"head"`: the coordinate frame for digitized sensor locations and
 #   scalp landmarks ("fiducials")
+
 #
+# Elements that require alignment (for example, MEG sensors and MRI-derived
+# surfaces) and their coordinate frames may be visualized with the
+# `mne.viz.plot_alignment` function. Passing ``show_axes=True`` to
+# `~mne.viz.plot_alignment` will draw coordinate frame axes of the
+# appropriate color for the frame types above, using arrow length
+# to differentiate the positive direction for each axis as follows:
 #
-# Each of these are described in more detail in the next section.
-#
-# A good way to start visualizing these coordinate frames is to use the
-# `mne.viz.plot_alignment` function, which is used for creating or inspecting
-# the transformations that bring these coordinate frames into alignment, and
-# displaying the resulting alignment of EEG sensors, MEG sensors, brain
-# sources, and conductor models. If you provide ``subjects_dir`` and
-# ``subject`` parameters, the function automatically loads the subject's
-# Freesurfer MRI surfaces. Important for our purposes, passing
-# ``show_axes=True`` to `~mne.viz.plot_alignment` will draw the origin of each
-# coordinate frame in a different color, with axes indicated by different sized
-# arrows:
-#
-# * shortest arrow: (**R**)ight / X
-# * medium arrow: forward / (**A**)nterior / Y
-# * longest arrow: up / (**S**)uperior / Z
+# * shortest arrow: (**R**)ight / X axis
+# * medium arrow: forward / (**A**)nterior / Y axis
+# * longest arrow: up / (**S**)uperior / Z axis
 #
 # Note that all three coordinate systems are **RAS** coordinate frames and
-# hence are also `right-handed`_ coordinate systems. Finally, note that the
-# ``coord_frame`` parameter sets which coordinate frame the camera
-# should initially be aligned with. Let's have a look:
+# hence are also `right-handed` coordinate systems (i.e. positive rotation
+# around the z axis is counter-clockwise when viewing the x-y plane from a
+# positive location on the z axis). When plotting, the viewer camera aligns
+# with the coordinate frame passed to the 'coord_frame' parameter such that the
+# origin of the given frame is centered and the y-axis points directly at the
+# camera. Let's have a look, aligning the camera to the MEG coordinate frame:
 
 fig = mne.viz.plot_alignment(
     raw.info,
@@ -111,6 +111,32 @@ fig = mne.viz.plot_alignment(
     coord_frame="meg",
     mri_fiducials="estimated",
 )
+
+
+# For comparison, let's see what happens when we align the camera view with
+# head coordinates:
+
+fig = mne.viz.plot_alignment(
+    raw.info,
+    trans=trans,
+    subject="sample",
+    subjects_dir=subjects_dir,
+    surfaces="head-dense",
+    show_axes=True,
+    dig=True,
+    eeg=[],
+    meg="sensors",
+    coord_frame="head",
+    mri_fiducials="estimated",
+)
+
+# Aligning the camera view to the head coordinate system makes the MEG sensors
+# appear tilted as the sample subject's head leaned right during acquisition.
+#
+# The camera view can be manually set to optimize visibility of specific
+# features required to check alignment. A side view of the face makes it easy
+# to check that the head position inside the MEG helmet is appropriate.
+
 mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0.0, 0.0, 0.0))
 print(
     "Distance from head origin to MEG origin: "
@@ -126,282 +152,73 @@ print(
     f"{1000 * np.mean(dists):0.1f} mm"
 )
 
-# %%
-# Coordinate frame definitions
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# 1. Neuromag/Elekta/MEGIN head coordinate frame ("head", :pink:`pink axes`)
-#      The head coordinate frame is defined through the coordinates of
-#      anatomical landmarks on the subject's head: usually the Nasion (`NAS`_),
-#      and the left and right preauricular points (`LPA`_ and `RPA`_).
-#      Different MEG manufacturers may have different definitions of the head
-#      coordinate frame. A good overview can be seen in the
-#      `FieldTrip FAQ on coordinate systems`_.
-#
-#      For Neuromag/Elekta/MEGIN, the head coordinate frame is defined by the
-#      intersection of
-#
-#      1. the line between the LPA (:red:`red sphere`) and RPA
-#         (:purple:`purple sphere`), and
-#      2. the line perpendicular to this LPA-RPA line one that goes through
-#         the Nasion (:green:`green sphere`).
-#
-#      The axes are oriented as **X** origin→RPA, **Y** origin→NAS,
-#      **Z** origin→upward (orthogonal to X and Y).
-#
-#      .. note:: The required 3D coordinates for defining the head coordinate
-#                frame (NAS, LPA, RPA) are measured at a stage separate from
-#                the MEG data recording. There exist numerous devices to
-#                perform such measurements, usually called "digitizers". For
-#                example, see the devices by the company `Polhemus`_.
-#
-# 2. MEG device coordinate frame ("meg", :blue:`blue axes`)
-#      The MEG device coordinate frame is defined by the respective MEG
-#      manufacturers. All MEG data is acquired with respect to this coordinate
-#      frame. To account for the anatomy and position of the subject's head, we
-#      use so-called head position indicator (HPI) coils. The HPI coils are
-#      placed at known locations on the scalp of the subject and emit
-#      high-frequency magnetic fields used to coregister the head coordinate
-#      frame with the device coordinate frame.
-#
-#      From the Neuromag/Elekta/MEGIN user manual:
-#
-#          The origin of the device coordinate system is located at the center
-#          of the posterior spherical section of the helmet with X axis going
-#          from left to right and Y axis pointing front. The Z axis is, again
-#          normal to the plane with positive direction up.
-#
-#      .. note:: The HPI coils are shown as :magenta:`magenta spheres`.
-#                Coregistration happens at the beginning of the recording and
-#                the head↔meg transformation matrix is stored in
-#                ``raw.info['dev_head_t']``.
-#
-# 3. MRI coordinate frame ("mri", :gray:`gray axes`)
-#      Defined by Freesurfer, the "MRI surface RAS" coordinate frame has its
-#      origin at the center of a 256×256×256 1mm anisotropic volume (though the
-#      center may not correspond to the anatomical center of the subject's
-#      head).
-#
-#      .. note:: We typically align the MRI coordinate frame to the head
-#                coordinate frame through a `rotation and translation matrix
-#                <wiki_xform_>`_, that we refer to in MNE as ``trans``.
-#
-# A bad example
-# ^^^^^^^^^^^^^
-# Let's try using `~mne.viz.plot_alignment` by making ``trans`` the identity
-# transform. This (incorrectly!) equates the MRI and head coordinate frames.
+# Screenshots of the 3D alignment plots from various camera perspectives
+# can be saved using the figure plotter's 'save_graphic' method.
 
-identity_trans = mne.transforms.Transform("head", "mri")
-mne.viz.plot_alignment(
-    raw.info,
-    trans=identity_trans,
-    subject="sample",
-    src=src,
-    subjects_dir=subjects_dir,
-    dig=True,
-    surfaces=["head-dense", "white"],
-    coord_frame="meg",
-)
+# TO-DO: tmp path creation for example
+# mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
+# save_path2 = Path("profile_view.eps")
+# fig.plotter.save_graphic(save_path2)
 
-# %%
-# A good example
-# ^^^^^^^^^^^^^^
-# Here is the same plot, this time with the ``trans`` properly defined
-# (using a precomputed transformation matrix).
 
-mne.viz.plot_alignment(
-    raw.info,
+# Visually assess alignment quality
+# ---------------------------------
+#
+# Plotting alignment makes it easy to identify various alignment problems.
+
+# **Alignment problem #1: Bad MEG -> head transform**
+# If digitized points map correctly to the head surface, but both head and dig
+# points are misaligned to the MEG sensors, there may be a problem with the
+# transform relating the MEG sensor locations to the head coordinate frame.
+# This can happen, for example, when cHPI coils are mis-localized. We
+# can visualize bad MEG -> head transforms by corrupting the raw data's correct
+# transform with a 90 degree rotation around the x-axis and plotting the result.
+
+rot_matrix = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+
+# construct an info instance with a corrupted dev_head_t
+bad_info = raw.info.copy()
+orig_dev_head_t = raw.info["dev_head_t"]["trans"]
+bad_dev_head_t = orig_dev_head_t @ rot_matrix
+bad_info["dev_head_t"]["trans"] = bad_dev_head_t
+
+# visualize results
+fig = mne.viz.plot_alignment(
+    bad_info,
     trans=trans,
     subject="sample",
-    src=src,
+    src=None,
     subjects_dir=subjects_dir,
     dig=True,
-    surfaces=["head-dense", "white"],
-    coord_frame="meg",
-)
-
-# %%
-# Visualizing the transformations
-# -------------------------------
-# Let's visualize these coordinate frames using just the scalp surface; this
-# will make it easier to see their relative orientations. To do this we'll
-# first load the Freesurfer scalp surface, then apply a few different
-# transforms to it. In addition to the three coordinate frames discussed above,
-# we'll also show the "mri_voxel" coordinate frame. Unlike MRI Surface RAS,
-# "mri_voxel" has its origin in the corner of the volume (the left-most,
-# posterior-most coordinate on the inferior-most MRI slice) instead of at the
-# center of the volume. "mri_voxel" is also **not** an RAS coordinate system:
-# rather, its XYZ directions are based on the acquisition order of the T1 image
-# slices.
-
-# The head surface is stored in "mri" coordinate frame
-# (origin at center of volume, units=mm)
-seghead_rr, seghead_tri = mne.read_surface(
-    subjects_dir / "sample" / "surf" / "lh.seghead"
-)
-
-# To put the scalp in the "head" coordinate frame, we apply the inverse of
-# the precomputed `trans` (which maps head → mri)
-mri_to_head = linalg.inv(trans["trans"])
-scalp_pts_in_head_coord = mne.transforms.apply_trans(mri_to_head, seghead_rr, move=True)
-
-# To put the scalp in the "meg" coordinate frame, we use the inverse of
-# raw.info['dev_head_t']
-head_to_meg = linalg.inv(raw.info["dev_head_t"]["trans"])
-scalp_pts_in_meg_coord = mne.transforms.apply_trans(
-    head_to_meg, scalp_pts_in_head_coord, move=True
-)
-
-# The "mri_voxel"→"mri" transform is embedded in the header of the T1 image
-# file. We'll invert it and then apply it to the original `seghead_rr` points.
-# No unit conversion necessary: this transform expects mm and the scalp surface
-# is defined in mm.
-vox_to_mri = t1_mgh.header.get_vox2ras_tkr()
-mri_to_vox = linalg.inv(vox_to_mri)
-scalp_points_in_vox = mne.transforms.apply_trans(mri_to_vox, seghead_rr, move=True)
-
-# %%
-# Now that we've transformed all the points, let's plot them. We'll use the
-# same colors used by `~mne.viz.plot_alignment` and use :green:`green` for the
-# "mri_voxel" coordinate frame:
-
-
-def add_head(renderer, points, color, opacity=0.95):
-    renderer.mesh(*points.T, triangles=seghead_tri, color=color, opacity=opacity)
-
-
-renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(600, 600), bgcolor="w", scene=False
-)
-add_head(renderer, seghead_rr, "gray")
-add_head(renderer, scalp_pts_in_meg_coord, "blue")
-add_head(renderer, scalp_pts_in_head_coord, "pink")
-add_head(renderer, scalp_points_in_vox, "green")
-mne.viz.set_3d_view(
-    figure=renderer.figure,
-    distance=800,
-    focalpoint=(0.0, 30.0, 30.0),
-    elevation=105,
-    azimuth=180,
-)
-renderer.show()
-
-# %%
-# The relative orientations of the coordinate frames can be inferred by
-# observing the direction of the subject's nose. Notice also how the origin of
-# the :green:`mri_voxel` coordinate frame is in the corner of the volume
-# (above, behind, and to the left of the subject), whereas the other three
-# coordinate frames have their origin roughly in the center of the head.
-#
-# Example: MRI defacing
-# ^^^^^^^^^^^^^^^^^^^^^
-# For a real-world example of using these transforms, consider the task of
-# defacing the MRI to preserve subject anonymity. If you know the points in
-# the "head" coordinate frame (as you might if you're basing the defacing on
-# digitized points) you would need to transform them into "mri" or "mri_voxel"
-# in order to apply the blurring or smoothing operations to the MRI surfaces or
-# images. Here's what that would look like (we'll use the nasion landmark as a
-# representative example):
-
-# Get the nasion:
-nasion = [
-    p
-    for p in raw.info["dig"]
-    if p["kind"] == FIFF.FIFFV_POINT_CARDINAL and p["ident"] == FIFF.FIFFV_POINT_NASION
-][0]
-assert nasion["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-nasion = nasion["r"]  # get just the XYZ values
-
-# Transform it from head to MRI space (recall that `trans` is head → mri)
-nasion_mri = mne.transforms.apply_trans(trans, nasion, move=True)
-# Then transform to voxel space, after converting from meters to millimeters
-nasion_vox = mne.transforms.apply_trans(mri_to_vox, nasion_mri * 1e3, move=True)
-# Plot it to make sure the transforms worked
-renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(400, 400), bgcolor="w", scene=False
-)
-add_head(renderer, scalp_points_in_vox, "green", opacity=1)
-renderer.sphere(center=nasion_vox, color="orange", scale=10)
-mne.viz.set_3d_view(
-    figure=renderer.figure,
-    distance=600.0,
-    focalpoint=(0.0, 125.0, 250.0),
-    elevation=45,
-    azimuth=180,
-)
-renderer.show()
-
-# %%
-# .. _creating-trans:
-#
-# Defining the head↔MRI ``trans`` using the GUI
-# ---------------------------------------------
-# You can try creating the head↔MRI transform yourself using
-# :func:`mne.gui.coregistration`.
-#
-# * To set the MRI fiducials, make sure ``Lock Fiducials`` is toggled off.
-# * Set the landmarks by clicking the radio button (LPA, Nasion, RPA) and then
-#   clicking the corresponding point in the image.
-#
-# .. note::
-#    The position of each fiducial used is the center of the octahedron icon.
-#
-# * After doing this for all the landmarks, toggle ``Lock Fiducials`` radio
-#   button and optionally pressing ``Save MRI Fid.`` which will save to a
-#   default location in the ``bem`` folder of the Freesurfer subject directory.
-# * Then you can load the digitization data from the raw file
-#   (``Path to info``).
-# * Click ``Fit ICP``. This will align the digitization points to the
-#   head surface. Sometimes the fitting algorithm doesn't find the correct
-#   alignment immediately. You can try first fitting using LPA/RPA or fiducials
-#   and then align according to the digitization. You can also finetune
-#   manually with the controls on the right side of the panel.
-# * Click ``Save`` (lower right corner of the panel), set the filename
-#   and read it with :func:`mne.read_trans`.
-#
-# For more information, see this video:
-#
-# .. youtube:: ALV5qqMHLlQ
-#
-# .. note::
-#     Coregistration can also be automated as shown in :ref:`tut-auto-coreg`.
-
-mne.gui.coregistration(subject="sample", subjects_dir=subjects_dir)
-
-# %%
-# .. _tut-source-alignment-without-mri:
-#
-# Alignment without MRI
-# ---------------------
-# The surface alignments above are possible if you have the surfaces available
-# from Freesurfer. :func:`mne.viz.plot_alignment` automatically searches for
-# the correct surfaces from the provided ``subjects_dir``. Another option is
-# to use a :ref:`spherical conductor model <eeg_sphere_model>`. It is
-# passed through ``bem`` parameter.
-
-sphere = mne.make_sphere_model(info=raw.info, r0="auto", head_radius="auto")
-src = mne.setup_volume_source_space(sphere=sphere, pos=10.0)
-mne.viz.plot_alignment(
-    raw.info,
-    trans=trans,
-    eeg="projected",
-    bem=sphere,
-    src=src,
-    dig=True,
-    surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
+    surfaces=[
+        "head-dense",
+    ],
     coord_frame="meg",
     show_axes=True,
 )
+mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 
-# %%
-# It is also possible to use :func:`mne.gui.coregistration`
-# to warp a subject (usually ``fsaverage``) to subject digitization data, see
-# `these slides
-# <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
-#
-# .. _right-handed: https://en.wikipedia.org/wiki/Right-hand_rule
-# .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
-# .. _NAS: https://en.wikipedia.org/wiki/Nasion
-# .. _LPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
-# .. _RPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
-# .. _Polhemus: https://polhemus.com/scanning-digitizing/digitizing-products/
-# .. _FieldTrip FAQ on coordinate systems: http://www.fieldtriptoolbox.org/faq/how_are_the_different_head_and_mri_coordinate_systems_defined/  # noqa:E501
+# **Alignment problem #2: Bad MRI -> head transform**
+# If digitized points float off the surface of the head, or fiducial points are
+# misplaced, this suggests a bad coregistration.
+
+# construct a corrupt trans
+bad_trans = trans.copy()
+bad_trans["trans"] = trans["trans"] @ rot_matrix
+
+# visualize results
+mne.viz.plot_alignment(
+    raw.info,
+    trans=bad_trans,
+    subject="sample",
+    src=src,
+    subjects_dir=subjects_dir,
+    dig=True,
+    surfaces=["head-dense", "white"],
+    coord_frame="meg",
+)
+mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
+
+# Note that, while both types of alignment errors make the head look misaligned
+# to the MEG sensors, they can be differentiated by whether or not digitized
+# points sit properly on the head surface.
