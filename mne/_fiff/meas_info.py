@@ -3742,8 +3742,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             if subject_info.get("sex") is not None:
                 subject_info["sex"] = default_sex
         if "hand" not in keep_fields:
-            if subject_info.get("hand") is not None:
-                del subject_info["hand"]  # there's no "unknown" setting
+            subject_info.pop("hand", None)  # there's no "unknown" setting
 
         for key in ("last_name", "first_name", "middle_name"):
             if subject_info.get(key) is not None:
