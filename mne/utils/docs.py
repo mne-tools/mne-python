@@ -2285,6 +2285,8 @@ keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "han
 
     .. warning:: Setting ``keep_his`` to anything other than ``False`` may result in
                  ``info`` not being fully anonymized. Use with caution.
+    .. versionchanged:: 1.12
+       Added support for sequence of ``str``.
 """
 
 docdict["kit_badcoils"] = """
