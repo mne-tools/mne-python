@@ -2,3 +2,4 @@
 cross-domain-saliency-maps
 fsleyes
 mne-kit-gui
+mne-videobrowser
