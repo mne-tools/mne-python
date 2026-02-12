@@ -647,8 +647,8 @@ def plot_alignment(
         .. versionchanged:: 1.6
             Support for passing a ``dict`` was added.
     %(sensor_scales)s
-        .. versionadded:: 1.9
 
+        .. versionadded:: 1.9
     show_channel_names : bool
         If True, overlay channel names at sensor locations.
         Default is False.
