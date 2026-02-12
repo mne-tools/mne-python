@@ -1,0 +1,1 @@
+Fix bug in :meth:`mne.Epochs.plot` where clicking on the scrollbar would not scroll to the last epoch, by `Clemens Brunner`_.
