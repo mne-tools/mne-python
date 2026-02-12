@@ -122,10 +122,12 @@ class RawHitachi(BaseRaw):
                     this_probe["keep_mask"],
                     this_probe["bounds"],
                     sep=",",
-                    replace=lambda x: x.replace("\r", "\n")
-                    .replace("\n\n", "\n")
-                    .replace("\n", ",")
-                    .replace(":", ""),
+                    replace=lambda x: (
+                        x.replace("\r", "\n")
+                        .replace("\n\n", "\n")
+                        .replace("\n", ",")
+                        .replace(":", "")
+                    ),
                 ).T
             )
         this_data = np.concatenate(this_data, axis=0)

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "16c75424d5493ae2369685627b3196f445d1b665",
+  "authors": [
+    {
+      "n": "Varun Kasyap Pentamaraju",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13566.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 1,
+      "d": 6
+    }
+  }
+}
