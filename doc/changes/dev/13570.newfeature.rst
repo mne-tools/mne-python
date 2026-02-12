@@ -1,5 +1,3 @@
 Add an optional ``show_channel_names`` parameter to
 :meth:`mne.viz.plot_alignment` to overlay channel labels at sensor
-locations in the 3D alignment view.
-
-By :newcontrib:`Aman Srivastava`. (:gh:`13570`)
+locations in the 3D alignment view, by :newcontrib:`Aman Srivastava`.
