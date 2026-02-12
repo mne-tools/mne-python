@@ -16,10 +16,8 @@ if [ ! -z "$CONDA_ENV" ]; then
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
 	fi
-	# TODO: Until a PyVista release supports VTK 9.5+
-	STD_ARGS="$STD_ARGS https://github.com/pyvista/pyvista/archive/refs/heads/main.zip"
 	# If on minimal or old, just install testing deps
-	if [[ "${CONDA_ENV}" == "environment_"* ]]; then
+	if [[ "${CONDA_ENV}" == *'environment_'* ]]; then
 		GROUP="test"
 		EXTRAS=""
 		STD_ARGS="--progress-bar off"
@@ -38,8 +36,6 @@ else
 	EXTRAS=""
 fi
 echo ""
-# until quantities releases...
-STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
 
 echo "::group::Installing test dependencies using pip"
 set -x

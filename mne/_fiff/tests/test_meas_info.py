@@ -743,7 +743,7 @@ def _test_anonymize_info(base_info, tmp_path):
         base_info["subject_info"].update(
             birthday=date(1987, 4, 8),
             his_id="foobar",
-            sex=0,
+            sex=1,
         )
 
     # generate expected info...
@@ -812,7 +812,7 @@ def _test_anonymize_info(base_info, tmp_path):
     exp_info_2 = exp_info.copy()
     with exp_info_2._unlock():
         exp_info_2["subject_info"]["his_id"] = "foobar"
-        exp_info_2["subject_info"]["sex"] = 0
+        exp_info_2["subject_info"]["sex"] = 1
         exp_info_2["subject_info"]["hand"] = 1
 
     # exp 3 tests is a supplied daysback
@@ -842,12 +842,54 @@ def _test_anonymize_info(base_info, tmp_path):
     new_info = anonymize_info(base_info.copy(), keep_his=True)
     _check_equiv(new_info, exp_info_2, err_msg="anon keep_his mismatch")
 
+    # keep only his_id
+    new_info = anonymize_info(base_info.copy(), keep_his="his_id")
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only sex
+    new_info = anonymize_info(base_info.copy(), keep_his="sex")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his="hand")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and sex
+    new_info = anonymize_info(base_info.copy(), keep_his=["his_id", "sex"])
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his=["hand"])
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and hand
+    new_info = anonymize_info(base_info.copy(), keep_his=("his_id", "hand"))
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # invalid keep_his values
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his="invalid_field")
+
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his=["his_id", "invalid"])
+
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     _check_equiv(new_info, exp_info_3, err_msg="anon daysback mismatch")
 
     with pytest.raises(RuntimeError, match="anonymize_info generated"):
         anonymize_info(base_info.copy(), daysback=delta_t_3.days)
-    # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
     with base_info._unlock():
