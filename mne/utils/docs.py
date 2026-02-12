@@ -3466,7 +3466,9 @@ picks_base = f"""{_picks_header}
     {_picks_desc} {_picks_int} {_picks_str}"""
 picks_base_notypes = f"""picks : list of int | list of str | slice | None
     {_picks_desc} {_picks_int} {_picks_str_notypes}"""
-docdict["picks_all"] = _reflow_param_docstring(f"{picks_base} all channels. {reminder}")
+docdict["picks_all"] = _reflow_param_docstring(
+    f"{picks_base} all channels. Bad channels are included by default. {reminder}"
+)
 docdict["picks_all_data"] = _reflow_param_docstring(
     f"{picks_base} all data channels. {reminder}"
 )
