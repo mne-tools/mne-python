@@ -1587,13 +1587,9 @@ def plot_evoked_white(
         evoked.del_proj(idx)
 
     evoked.pick_types(ref_meg=False, exclude="bads", **_PICK_TYPES_DATA_DICT)
-    n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
+    n_ch_used, rank_list, picks_list, meg_combined = _triage_rank_sss(
         evoked.info, noise_cov, rank, scalings=None
     )
-    if has_sss:
-        logger.info(
-            "SSS has been applied to data. Showing mag and grad whitening jointly."
-        )
 
     # get one whitened evoked per cov
     evokeds_white = [
@@ -1663,8 +1659,8 @@ def plot_evoked_white(
     # hacks to get it to plot all channels in the same axes, namely setting
     # the channel unit (most important) and coil type (for consistency) of
     # all MEG channels to be the same.
-    meg_idx = sss_title = None
-    if has_sss:
+    meg_idx = combined_title = None
+    if meg_combined:
         titles_["meg"] = "MEG (combined)"
         meg_idx = [
             pi for pi, (ch_type, _) in enumerate(picks_list) if ch_type == "meg"
@@ -1675,7 +1671,7 @@ def plot_evoked_white(
             use = evokeds_white[0].info["chs"][picks[0]][key]
             for pick in picks:
                 evokeds_white[0].info["chs"][pick][key] = use
-        sss_title = f"{titles_['meg']} ({len(picks)} channel{_pl(picks)})"
+        combined_title = f"{titles_['meg']} ({len(picks)} channel{_pl(picks)})"
     evokeds_white[0].plot(
         unit=False,
         axes=axes_evoked,
@@ -1684,8 +1680,8 @@ def plot_evoked_white(
         time_unit=time_unit,
         spatial_colors=spatial_colors,
     )
-    if has_sss:
-        axes_evoked[meg_idx].set(title=sss_title)
+    if meg_combined:
+        axes_evoked[meg_idx].set(title=combined_title)
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:

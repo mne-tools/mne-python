@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6c1e9a054513fb86ba8edf4e4ceaf6ba08bf7eab",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}
