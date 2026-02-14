@@ -306,6 +306,7 @@ numpydoc_xref_aliases = {
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
@@ -699,8 +700,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cogsci.nl/smathot",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
-    # TODO https://github.com/mne-tools/curry-python-reader/issues/5
-    "https://github.com/mne-tools/curry-python-reader/README.md",
+    "http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -710,6 +710,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
     "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize",
     "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
@@ -726,6 +727,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
+    "https://www.crnl.fr",
     # Not rendered by linkcheck builder
     r"ides\.html",
 ]

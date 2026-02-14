@@ -1,0 +1,191 @@
+{
+  "merge_commit_sha": "f133bea61c63486b4ab6cc7611173af514dd1751",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13585.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/_digitization.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/_fiff/tag.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_external.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/chpi.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/decoding/transformer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/fixes.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

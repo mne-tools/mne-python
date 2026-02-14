@@ -1051,6 +1051,8 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
 @pytest.mark.parametrize("with_extras", [True, False])
 def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extras):
     """Test CSV, TXT, and FIF input/output (which support ch_names)."""
+    if with_extras:
+        pytest.importorskip("pandas")
     annot = read_annotations(dummy_annotation_file)
     assert annot.orig_time == _ORIG_TIME
     kwargs = dict(orig_time=_ORIG_TIME)

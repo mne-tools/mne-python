@@ -31,6 +31,7 @@ from mne import (
 )
 from mne.channels import make_dig_montage
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
@@ -1466,7 +1467,7 @@ def _create_testing_brain(
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
         stc_data.size // 20
     )
-    stc_data.shape = (n_verts, n_time)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     if diverging:
         stc_data -= 0.5
     stc = klass(stc_data, vertices, 1, 1)

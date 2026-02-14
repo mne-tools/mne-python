@@ -14,10 +14,10 @@ jobs:
     name: Update
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
-      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: true
       - uses: actions/setup-python@v6
@@ -35,11 +35,12 @@ jobs:
       - name: Create PR
         run: |
           set -xeo pipefail
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git checkout -b credit
-          git commit -am "MAINT: Update code credit"
-          git push origin credit
-          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to \`doc/changes/credit_tools.py\` or \`.mailmap\` etc. to get CircleCI to pass.*" --label "no-changelog-entry-needed")
+          git config --global user.email "50266005+mne-bot@users.noreply.github.com"
+          git config --global user.name "mne[bot]"
+          BRANCH=credit/$GITHUB_RUN_ID
+          git checkout -b $BRANCH
+          git commit -am "mne[bot]: Update code credit"
+          git push origin $BRANCH
+          PR_NUM=$(gh pr create --base main --head $BRANCH --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to \`doc/changes/credit_tools.py\` or \`.mailmap\` etc. to get CircleCI to pass.*" --label "no-changelog-entry-needed")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'

@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.5
+    rev: v0.15.0
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -33,7 +33,7 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
@@ -82,10 +82,12 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.16.3
+    rev: v1.22.0
     hooks:
       - id: zizmor
         args: [--fix]
+        # We correctly use pull_request_trigger, and need Zizmor 2.0+ to configure the ignore
+        exclude: ^.github/workflows/automerge.yml
 
 # these should *not* be run on CIs:
 ci:

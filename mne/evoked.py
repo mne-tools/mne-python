@@ -369,7 +369,7 @@ class Evoked(
         Parameters
         ----------
         %(baseline_evoked)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -2006,6 +2006,8 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
 
     if not isinstance(evoked, list | tuple):
         evoked = [evoked]
+    if not len(evoked):
+        raise ValueError("No evoked data to write")
 
     warned = False
     # Create the file and save the essentials

@@ -29,6 +29,10 @@ else  # conda-like
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
         # TODO: Also need "|unreliable on GitHub Actions conda" on macOS, but omit for now to make sure the failure actually shows up
         echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults|Accelerate|Flakey verbose behavior).*" | tee -a $GITHUB_ENV
+        # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
+        fi
     fi
 fi
 set +x

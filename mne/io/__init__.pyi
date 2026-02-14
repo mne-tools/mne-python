@@ -37,6 +37,7 @@ __all__ = [
     "read_raw_gdf",
     "read_raw_hitachi",
     "read_raw_kit",
+    "read_raw_mef",
     "read_raw_nedf",
     "read_raw_neuralynx",
     "read_raw_nicolet",
@@ -81,6 +82,7 @@ from .fiff import Raw, read_raw_fif
 from .fil import read_raw_fil
 from .hitachi import read_raw_hitachi
 from .kit import read_epochs_kit, read_raw_kit
+from .mef import read_raw_mef
 from .nedf import read_raw_nedf
 from .neuralynx import read_raw_neuralynx
 from .nicolet import read_raw_nicolet

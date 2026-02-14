@@ -51,7 +51,7 @@ from mne.time_frequency.tfr import (
     tfr_multitaper,
     write_tfrs,
 )
-from mne.utils import catch_logging, grand_average
+from mne.utils import _import_h5io_funcs, catch_logging, grand_average
 from mne.utils._testing import _get_suptitle
 from mne.viz.utils import (
     _channel_type_prettyprint,
@@ -620,6 +620,7 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
     pytest.importorskip("h5io")
     pd = pytest.importorskip("pandas")
+    h5py = pytest.importorskip("h5py")
 
     tfr = _get_inst(inst, request, average_tfr=average_tfr)
     fname = tmp_path / "temp_tfr.hdf5"
@@ -674,6 +675,27 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
     with tfr.info._unlock():
         tfr.info["meas_date"] = want
     assert tfr_loaded == tfr
+    # test AverageTFR from EpochsTFR.average() can be read (gh-13521)
+    tfravg = tfr.average()
+    tfravg.save(fname, overwrite=True)
+    tfravg_loaded = read_tfrs(fname)
+    assert tfravg == tfravg_loaded
+    # test loading with old-style birthday format
+    fname_multi = tmp_path / "temp_multi_tfr.hdf5"
+    write_tfrs(fname_multi, tfr)  # also check for multiple files from write_tfrs
+    fname_subject_info = tmp_path / "subject-info.hdf5"
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname_subject_info, dict(birthday=(2000, 1, 1)), title="subject_info")
+    for this_fname in (fname, fname_multi):
+        with h5py.File(this_fname, "r+") as f:
+            if f.get("mnepython/key_info/key_subject_info"):
+                path = "mnepython/key_info/key_subject_info"
+            else:  # multi-files on linux have different path to attrs
+                path = "mnepython/idx_0/idx_1/key_info/key_subject_info"
+            del f[path]
+            f[path] = h5py.ExternalLink(fname_subject_info, "subject_info")
+        tfr_loaded = read_tfrs(this_fname)
+        assert isinstance(tfr_loaded.info["subject_info"]["birthday"], datetime.date)
     # test with taper dimension and weights
     n_tapers = 3  # anything >= 1 should do
     weights = np.ones((n_tapers, tfr.shape[2]))  # tapers x freqs
@@ -1216,6 +1238,10 @@ def test_averaging_epochsTFR():
         NotImplementedError, match=r"Averaging multitaper tapers .* is not supported."
     ):
         tapered.average()
+
+    # Test repr from original instance info is preserved
+    avgpower = power.average()
+    assert repr(avgpower).startswith("<Average Power from Epochs")
 
 
 def test_averaging_freqsandtimes_epochsTFR():

@@ -141,7 +141,7 @@ def test_import_nesting_hierarchy():
         ("mne/utils/docs.py", "    import mne", "non-relative mne import"),
         (
             "mne/io/_read_raw.py",
-            "    from . import read_raw_ant, read_raw_artemis123, read_raw_bdf, read_raw_boxy, read_raw_brainvision, read_raw_cnt, read_raw_ctf, read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia, read_raw_eyelink, read_raw_fieldtrip, read_raw_fif, read_raw_fil, read_raw_gdf, read_raw_kit, read_raw_nedf, read_raw_nicolet, read_raw_nihon, read_raw_nirx, read_raw_nsx, read_raw_persyst, read_raw_snirf",  # noqa: E501
+            "    from . import read_raw_ant, read_raw_artemis123, read_raw_bdf, read_raw_boxy, read_raw_brainvision, read_raw_cnt, read_raw_ctf, read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia, read_raw_eyelink, read_raw_fieldtrip, read_raw_fif, read_raw_fil, read_raw_gdf, read_raw_kit, read_raw_mef, read_raw_nedf, read_raw_nicolet, read_raw_nihon, read_raw_nirx, read_raw_nsx, read_raw_persyst, read_raw_snirf",  # noqa: E501
             "non-explicit relative import",
         ),
         (
@@ -242,7 +242,7 @@ scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        and sys.modules[x] is not None)
 bad = scipy_submodules - ok_scipy_submodules
 if len(bad) > 0:
-    out |= {'scipy submodules: %s' % list(bad)}
+    out |= {f'scipy submodules: {list(bad)}'}
 
 # check sklearn and others
 for x in sys.modules.keys():
@@ -253,7 +253,7 @@ for x in sys.modules.keys():
             x = '.'.join(x.split('.')[:2])
             out |= {x}
 if len(out) > 0:
-    print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
+    print(f'\\nFound un-nested import(s) for {sorted(out)}', end='')
 exit(len(out))
 
 # but this should still work

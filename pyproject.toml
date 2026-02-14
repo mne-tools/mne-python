@@ -19,6 +19,7 @@ doc = [
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
+  "pymef",
   "pytest",
   "pyvistaqt",
   "pyxdf",
@@ -66,6 +67,7 @@ test_extra = [
   "neo",
   "nitime",
   "pybv",
+  "pymef",
   "snirf",
   "sphinx-gallery",
   "statsmodels",
@@ -97,7 +99,7 @@ dependencies = [
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.11",  # released 2023-06-28, will become 1.12 on 2026-01-19
+  "scipy >= 1.12",  # released 2024-01-20, will become 1.13 on 2026-04-02
   "tqdm",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -155,17 +157,18 @@ full-no-qt = [
   "nilearn",
   "numba",
   "openmeeg >= 2.5.7",
-  "pandas >= 2.1",  # released 2023-08-30, will become 2.2 on 2026-01-19
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
+  "pymef",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard",
-  "pyvista >= 0.42.1",  # released 2023-09-06, will become 0.43 on 2025-12-06
+  "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn >= 1.3",  # released 2023-06-30, will become 1.4 on 2026-01-17
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "sip",
   "snirf",
   "statsmodels",
@@ -400,7 +403,7 @@ directory = "doc/changes/dev/"
 filename = "doc/changes/dev.rst"
 issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 package = "mne"
-title_format = "Version {version} ({project_date})"
+title_format = "{version} ({project_date})"
 
 [[tool.towncrier.type]]
 directory = "notable"

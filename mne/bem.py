@@ -1177,7 +1177,14 @@ def make_watershed_bem(
     %(subjects_dir)s
     %(overwrite)s
     volume : str
-        Defaults to T1.
+        The name of the MRI volume (without file extension) that
+        will be used as input to mri_watershed_. The volume is expected to
+        be full-head (non-skull-stripped), as the watershed algorithm relies on tissue
+        intensity gradients to estimate the inner skull, outer skull, and
+        outer skin surfaces. Defaults to ``"T1"``, corresponding to
+        ``$SUBJECTS_DIR/$SUBJECT/mri/T1.mgz`` in a typical FreeSurfer subject directory.
+        This volume is typically produced by the recon-all_ pipeline after the intensity
+        normalization step.
     atlas : bool
         Specify the ``--atlas option`` for ``mri_watershed``.
     gcaatlas : bool
@@ -2176,11 +2183,11 @@ def make_flash_bem(
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
     T1_dir = mri_dir / "T1"
-    if not T1_dir.is_dir() or next(T1_dir.glob("COR*")) is None:
+    if not T1_dir.is_dir() or len(list(T1_dir.glob("COR*"))) == 0:
         convert_T1 = True
     convert_brain = False
     brain_dir = mri_dir / "brain"
-    if not brain_dir.is_dir() or next(brain_dir.glob("COR*")) is None:
+    if not brain_dir.is_dir() or len(list(brain_dir.glob("COR*"))) == 0:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
