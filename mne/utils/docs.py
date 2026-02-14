@@ -249,8 +249,9 @@ Specifically for each of the following we use:
 - meas_date, file_id, meas_id
         A default value, or as specified by ``daysback``.
 - subject_info
-        Default values, except for 'birthday' which is adjusted
-        to maintain the subject age.
+        Default values, except for 'birthday', which is adjusted to maintain the subject
+        age. If ``keep_his`` is not ``False``, then the fields 'his_id', 'sex', and
+        'hand' are not anonymized, depending on the value of ``keep_his``.
 - experimenter, proj_name, description
         Default strings.
 - utc_offset
@@ -1559,7 +1560,14 @@ ext_order : int
 docdict["extended_proj_maxwell"] = """
 extended_proj : list
     The empty-room projection vectors used to extend the external
-    SSS basis (i.e., use eSSS).
+    SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+    pure *external* noise that you expect to be present in your signal.
+    Typically, this should be the case during an empty room recording. Get the
+    projections e.g. by calling::
+
+        proj = mne.compute_proj_raw(
+            raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+        )
 
     .. versionadded:: 0.21
 """
@@ -2269,12 +2277,16 @@ joint : bool
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool
-    If ``True``, ``his_id`` of ``subject_info`` will **not** be overwritten.
-    Defaults to ``False``.
+keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+    If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
+    overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
+    ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
+    fields will **not** be anonymized. Defaults to ``False``.
 
-    .. warning:: This could mean that ``info`` is not fully
-                 anonymized. Use with caution.
+    .. warning:: Setting ``keep_his`` to anything other than ``False`` may result in
+                 ``info`` not being fully anonymized. Use with caution.
+    .. versionchanged:: 1.12
+       Added support for sequence of ``str``.
 """
 
 docdict["kit_badcoils"] = """
@@ -3459,7 +3471,9 @@ picks_base = f"""{_picks_header}
     {_picks_desc} {_picks_int} {_picks_str}"""
 picks_base_notypes = f"""picks : list of int | list of str | slice | None
     {_picks_desc} {_picks_int} {_picks_str_notypes}"""
-docdict["picks_all"] = _reflow_param_docstring(f"{picks_base} all channels. {reminder}")
+docdict["picks_all"] = _reflow_param_docstring(
+    f"{picks_base} all channels. Bad channels are included by default. {reminder}"
+)
 docdict["picks_all_data"] = _reflow_param_docstring(
     f"{picks_base} all data channels. {reminder}"
 )
@@ -3975,7 +3989,8 @@ docdict["scalings_df"] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
     ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
-    magnetometers to fT, and gradiometers to fT/cm.
+    magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+    and :term:`non-data channels` for full list of default scalings.
 """
 
 docdict["scalings_topomap"] = """

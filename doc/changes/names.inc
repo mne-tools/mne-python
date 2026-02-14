@@ -14,6 +14,7 @@
 .. _Alex Rockhill: https://github.com/alexrockhill/
 .. _Alexander Rudiuk: https://github.com/ARudiuk
 .. _Alexandre Barachant: https://alexandre.barachant.org
+.. _Aman Srivastava: https://github.com/aman-coder03
 .. _Andrea Brovelli: https://brovelli.github.io/
 .. _Andreas Hojlund: https://github.com/ahoejlund
 .. _Andres Rodriguez: https://github.com/infinitejest/
@@ -106,6 +107,7 @@
 .. _Gennadiy Belonosov: https://github.com/Genuster
 .. _Geoff Brookshire: https://github.com/gbrookshire
 .. _George O'Neill: https://georgeoneill.github.io
+.. _Gnaneswar Lopinti: https://github.com/flying-spagetti
 .. _Gonzalo Reina: https://orcid.org/0000-0003-4219-2306
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
@@ -117,6 +119,7 @@
 .. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
+.. _Himanshu Mahor: https://github.com/1himan
 .. _Hongjiang Ye: https://github.com/ye-hongjiang
 .. _Hubert Banville: https://github.com/hubertjb
 .. _Hyonyoung Shin: https://github.com/mcvain
@@ -168,6 +171,7 @@
 .. _Katarina Slama: https://github.com/katarinaslama
 .. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Keith Doelling: https://github.com/kdoelling1919
+.. _Konstantinos Tsilimparis: https://contsili.github.io/
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 .. _Kristijan Armeni: https://github.com/kristijanarmeni
 .. _Kyle Mathewson: https://github.com/kylemath
@@ -224,6 +228,7 @@
 .. _Nabil Alibou: https://github.com/nabilalibou
 .. _Natalie Klein: https://github.com/natalieklein
 .. _Nathalie Gayraud: https://github.com/ngayraud
+.. _Natneal B: https://github.com/natinew77-creator
 .. _Naveen Srinivasan: https://github.com/naveensrinivasan
 .. _Nick Foti: https://nfoti.github.io
 .. _Nick Ward: https://profiles.ucl.ac.uk/10827-nick-ward
@@ -300,6 +305,7 @@
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral
+.. _Shruti Bhale: https://github.com/shruti423
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
@@ -324,6 +330,7 @@
 .. _Teon Brooks: https://github.com/teonbrooks
 .. _Tharupahan Jayawardana: https://github.com/tharu-jwd
 .. _Thomas Binns: https://github.com/tsbinns
+.. _Thomas Caswell: https://tacaswell.github.io
 .. _Thomas Hartmann: https://github.com/thht
 .. _Thomas Radman: https://github.com/tradman
 .. _Théodore Papadopoulo: https://github.com/papadop
@@ -333,11 +340,12 @@
 .. _Tom Ma: https://github.com/myd7349
 .. _Tom Stone: https://github.com/tomdstone
 .. _Tommy Clausner: https://github.com/TommyClausner
-.. _Toomas Erik Anijärv: https://www.toomaserikanijarv.com/
+.. _Toomas Erik Anijärv: https://github.com/teanijarv
 .. _Tristan Stenner: https://github.com/tstenner/
 .. _Tziona NessAiver: https://github.com/TzionaN
 .. _user27182: https://github.com/user27182
 .. _Valerii Chirkov: https://github.com/vagechirkov
+.. _varshaa-1616: https://github.com/varshaa-1616
 .. _Varun Kasyap Pentamaraju: https://github.com/varunkasyap
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 .. _Victor Ferat: https://github.com/vferat

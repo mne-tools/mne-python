@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.viz.plot_evoked_white` did not accept a single "meg" rank value like those returned from :func:`mne.compute_rank`, by `Eric Larson`_.

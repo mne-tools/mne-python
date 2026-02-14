@@ -114,7 +114,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" "git+https://github.com/python-quantities/python-quantities" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e . --group=test
             displayName: 'Install dependencies with pip'
@@ -173,7 +173,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
-              python -m pip install --progress-bar off --upgrade -ve .[full] --group=test_extra "git+https://github.com/python-quantities/python-quantities"
+              python -m pip install --progress-bar off --upgrade -ve .[full] --group=test_extra
             displayName: 'Install dependencies with pip'
           - bash: |
               set -e
@@ -245,6 +245,7 @@ stages:
           PYTHONIOENCODING: 'utf-8'
           AZURE_CI_WINDOWS: 'true'
           PYTHON_ARCH: 'x64'
+          MNE_CI_KIND: $(TEST_MODE)
         timeoutInMinutes: 95
         strategy:
           maxParallel: 4

@@ -25,7 +25,8 @@ from mne_doc_utils import sphinx_logger
 from sphinx.errors import ExtensionError
 from sphinx.util.display import status_iterator
 
-# If a package is in MNE-Installers, it will be automatically added!
+# If a package is in MNE-Installers (preferred method), no need to add it here.
+# But still add it to doc/sphinxext/related_software.txt!
 
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
@@ -33,6 +34,7 @@ PYPI_PACKAGES = {
     "meggie",
     "niseq",
     "sesameeg",
+    "mne-kit-gui",  # moved to its own env in the installers
 }
 
 # If it's not available on PyPI, add it to this dict:
