@@ -44,7 +44,7 @@ raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname)
 
 # %%
-# Let's first get an idea of the data structure we are working with:
+# Let's first get an idea of the data structure we are working with.
 
 raw.info
 
@@ -53,33 +53,34 @@ raw.info
 # 102 axial magnetometers, and 3 stimulus channels.
 
 # Next, let's look at the events in the phantom data for one stimulus channel.
+# %%
 events = find_events(raw, "STI201")
 raw.info["bads"] = ["MEG1933", "MEG2421"]  # known bad channels
-
-# we have 32 artificial dipoles stored as events
-# the remaining event IDs are not relevant for this tutorial (256, 768 and so on)
 # %%
-# Let's explore the phantom data by plotting power spectral density for each sensor.
-# Here, we use only the first 30 seconds to save memory
+# we have 32 artificial dipoles stored as events
+# the remaining event IDs are not relevant for this tutorial (256, 768 ... ).
 
+# Let's explore the phantom data by plotting power spectral density for each sensor.
+
+# Here, we use only the first 30 seconds to save memory
+# %%
 raw.compute_psd(tmax=30).plot(
     average=False, amplitude=False, picks="data", exclude="bads"
 )
-
+# %%
 # We can see that the data has strong line frequency (60 Hz, 120 Hz ...) noise
 # and cHPI (continuous head position indicator) coil noise (peaks around 300 Hz).
-# %%
+
 # Next we plot the dipole events
-
-raw.plot(events=events, n_channels=10)
-
-# We can see that the simulated dipoles produce sinusoidal bursts at 20 Hz
 # %%
-# Next, we epoch the the data based on the dipoles events (1:32).
+raw.plot(events=events, n_channels=10)
+# %%
+# We can see that the simulated dipoles produce sinusoidal bursts at 20 Hz.
 
+# Next, we epoch the the data based on the dipoles events (1:32).
+# %%
 # We select 100 ms before and after the event trigger
 # and baseline correct the epochs from -100 ms to -0.05 ms before stimulus onset.
-
 tmin, tmax = -0.1, 0.1
 bmax = -0.05  # Avoid capture filter ringing into baseline
 event_id = list(range(1, 33))
@@ -91,15 +92,12 @@ epochs = mne.Epochs(
 # and plot the evoked signal
 epochs["1"].average().plot(time_unit="s")
 # %%
-
+# .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
 # We averaged over 640 simulated events for the first dipole.
 # The first peak in the data appears close to the trigger onset
-# at around 3ms, with a peak repeating every 3ms.
-# Thus the burst repetition rate is 3Hz.
+# at around 3 ms. The burst envelope repeats at approximately 3 Hz.
 
-# %%
-# .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
-#
+
 # Finally, we source reconstruct the evoked simulated dipole.
 # To do this we use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # and visualise the coordinate alignment and the sphere location. The phantom
@@ -130,9 +128,7 @@ mne.viz.plot_alignment(
 )
 # %%
 # We can see that our head model aligns with the phantom head model.
-# %%
 # Let's do some dipole fits.
-
 # First we compute the noise covariance for the baseline window.
 # See covariance/whitening tutorial for details :ref:`tut-compute-covariance`.
 # %%
@@ -156,16 +152,12 @@ del epochs  # save memory
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 # %%
 # Whitened global field power (GFP):
-
 # most baseline activity should fall roughly within ±1 (unit variance).
-
-# %%
 # Let's visualize the explained variance.
-
 # To do this, we need to make sure that the
 # data and the residuals are on the same scale
 # (here the "time points" are the 32 dipole peak values that we fit).
-
+# %%
 fig, axes = plt.subplots(2, 1)
 evoked.plot(axes=axes)
 for ax in axes:
@@ -178,8 +170,8 @@ residual.plot(axes=axes)
 # Here we visualise how well the dipole explains the evoked response (green line).
 # The red lines represent the residuals, the leftover noise after dipole fitting.
 # A good fit: green lines are strong and residuals are small and roughly flat.
-
 # Finally, we compare the estimated to the true dipole locations.
+# %%
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.0  # nAm
 
@@ -210,9 +202,8 @@ ax3.bar(event_id, amps)
 ax3.set_xlabel("Dipole index")
 ax3.set_ylabel("Amplitude error (nAm)")
 # %%
-# The dipole fits closely match the true phantom data.
-# We can achieve sub-centimeter accuracy with a mean position error of 2.6 mm.
-# This demonstrates that the fitting procedure is accurate.
+# The dipole fits closely match the true phantom data,
+# achieving sub-centimeter accuracy (mean position error 2.6 mm).
 
 # Finally, we can plot the positions and the orientations
 # of the estimated and true dipoles.
@@ -246,6 +237,7 @@ fig = mne.viz.plot_dipole_locations(
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
 # %%
 # The dipoles overlap and point in the same direction.
+
 # %%
 # References
 # ----------
