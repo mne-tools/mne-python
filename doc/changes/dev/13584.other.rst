@@ -1,0 +1,1 @@
+Adopting the diataxis framework by improving the phantom dipole tutorial, by `Carina Forster`_.
