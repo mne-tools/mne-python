@@ -38,7 +38,7 @@ from mne.transforms import apply_trans
 # Let's start out by looking at the ``sample`` subject MRI. Following standard
 # FreeSurfer convention, we look at :file:`T1.mgz`, which gets created from the
 # original MRI :file:`sample/mri/orig/001.mgz` when you run the FreeSurfer
-# command `recon-all <https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all>`_.
+# command recon-all_.
 # Here we use :mod:`nibabel` to load the T1 image, and the resulting object's
 # :meth:`~nibabel.spatialimages.SpatialImage.orthoview` method to view it.
 
