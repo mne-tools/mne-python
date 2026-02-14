@@ -1515,7 +1515,7 @@ class BaseEpochs(
         )
 
     @verbose
-    def drop(self, indices, reason="USER", verbose=None, on_drop_all="ignore"):
+    def drop(self, indices, reason="USER", verbose=None, on_drop_all="warn"):
         """Drop epochs based on indices or boolean mask.
 
         .. note:: The indices refer to the current set of undropped epochs
