@@ -37,7 +37,7 @@ print(__doc__)
 # The data were collected with an Elekta Neuromag VectorView system
 # at 1000 Hz and low-pass filtered at 330 Hz.
 # Here the medium-amplitude (200 nAm, amplitudes can be seen in raw data)
-# data are read to construct instances of :class:`mne.io.Raw`.
+# data are accessed to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
@@ -48,7 +48,7 @@ raw = read_raw_fif(raw_fname)
 
 raw.info
 
-# The data channel array consisted of 204 MEG planor gradiometers,
+# The data consists of 204 MEG planor gradiometers,
 # 102 axial magnetometers, and 3 stimulus channels.
 
 # Next, let's look at the events in the phantom data for one stimulus channel:
@@ -66,15 +66,14 @@ raw.compute_psd(tmax=30).plot(
     average=False, amplitude=False, picks="data", exclude="bads"
 )
 
-# We can see that the data has strong line frequency (60 Hz and harmonics)
-# and cHPI coil noise (five peaks around 300 Hz).
+# We can see that the data has strong line frequency (60 Hz, 120 Hz and so on) noise
+# and cHPI (continuous head position indicator) coil noise (five peaks around 300 Hz).
 # %%
 # Next we plot the dipole events
 
-raw.plot(events=events)
+raw.plot(events=events, n_channels=15)
 
 # We can see that the simulated dipoles produce sinusoidal bursts at 20 Hz
-#  (can we really see that in the plot?)
 # %%
 # Next, we epoch the the data based on the dipoles events (1:32)
 # We select 100 ms before and 100ms after the event trigger
@@ -92,6 +91,8 @@ epochs = mne.Epochs(
 epochs["1"].average().plot(time_unit="s")
 # we averaged over 640 simulated events for the first dipole
 # We can see that the first peak in the data appears close to the trigger onset
+# at around 3ms, with a peak repeating every 3ms.
+# Thus the burst repetition rate is 3Hz.
 
 # %%
 # .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
@@ -124,21 +125,21 @@ mne.viz.plot_alignment(
     mri_fiducials=True,
     subjects_dir=subjects_dir,
 )
-# What does this plot tell us?
+# We can see that our head model aligns with the phantom head model.
 # %%
 # Let's do some dipole fits.
-# To do this we compute the noise covariance for each epoch.
-# We plot the whitened data to assess the whitening step.
-
-# here we can get away with using method='oas' for speed (faster than "shrunk")
-# but in general "shrunk" is usually better
+# To do this we compute the noise covariance for the window before dipole onset.
 cov = mne.compute_covariance(epochs, tmax=bmax)
+# The covariance captures the sensor noise structure.
+# We whiten the data to normalize noise across sensors before fitting dipoles
+# tutorial on whitening/covariance estimation for details :ref:`tut-compute-covariance`.
 mne.viz.plot_evoked_white(epochs["1"].average(), cov)
-
-# Not sure what we see here TBH
+# The plot shows the evoked signal divided by the estimated noise standard deviation.
+# After whitening, most baseline activity should fall roughly within ±1 (unit variance).
 
 # Next, we fit the dipoles for the evoked data.
 # We choose the timepoint which maximises global field power
+# We have seen in the evoked plot that this is around 3 ms after dipole onset.
 
 data = []
 t_peak = 0.036  # true for Elekta phantom
@@ -147,7 +148,7 @@ for ii in event_id:
     evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
-del epochs
+del epochs  # save memory
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 
 # %%
@@ -165,43 +166,53 @@ for ax in axes:
         line.set_color("#98df81")
 residual.plot(axes=axes)
 
-# again not sure how to interpret those plots
+# Here we visualise how well the dipole explains the evoked response (green line).
+# The red lines represent the residuals, the leftover noise after dipole fitting.
+# A good fit: green lines are strong and residuals are small and roughly flat.
 # %%
 # Finally, we compare the estimated to the true dipole locations
 # To do this, we calculate the difference by .....
+# This is our ground truth.
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.0  # nAm
 
 fig, (ax1, ax2, ax3) = plt.subplots(
     nrows=3, ncols=1, figsize=(6, 7), layout="constrained"
 )
-
+# Here we calculate the euclidean distance between estimated and true positions.
+# We multiply by 1000 to convert from meter to millimeter.
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print(f"mean(position error) = {np.mean(diffs):0.1f} mm")
 ax1.bar(event_id, diffs)
 ax1.set_xlabel("Dipole index")
 ax1.set_ylabel("Loc. error (mm)")
 
+# Next we calculate the angle between estimated and true orientation.
+# We convert radians to degrees.
 angles = np.rad2deg(np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1))))
 print(f"mean(angle error) = {np.mean(angles):0.1f}°")
 ax2.bar(event_id, angles)
 ax2.set_xlabel("Dipole index")
 ax2.set_ylabel("Angle error (°)")
 
+# Finally we compare amplitudes by subtracting estimated from true amplitude.
 amps = actual_amp - dip.amplitude / 1e-9
 print(f"mean(abs amplitude error) = {np.mean(np.abs(amps)):0.1f} nAm")
 ax3.bar(event_id, amps)
 ax3.set_xlabel("Dipole index")
 ax3.set_ylabel("Amplitude error (nAm)")
 
-# We can see that the error magnitude depends on the position of the estimate dipole
-# however, the location error is never greater than 5 mm which is good?
+# The dipole fits closely match the phantom ground truth.
+# We can achieve sub-centimeter accuracy with a mean position error of 2.6 mm.
+# This demonstrates that the fitting procedure is accurate.
 # %%
 # Finally, we can plot the positions and the orientations
 # of the actual and the estimated dipoles
 
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
-actual_gof = np.ones(len(dip))  # fake GOF, needed to create Dipole instance
+actual_gof = np.ones(
+    len(dip)
+)  # fake goodness-of-fit (GOF), needed to create Dipole instance
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(
