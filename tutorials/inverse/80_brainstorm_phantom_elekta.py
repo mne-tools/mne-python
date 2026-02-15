@@ -68,10 +68,10 @@ raw.compute_psd(tmax=30).plot(
 # We can see that the data has strong line frequency noise (60 Hz, 120 Hz ...)
 # and cHPI (continuous head position indicator) coil noise (peaks around 300 Hz).
 #
-# Next we plot the dipole events.
+# Here we plot the dipole events.
 raw.plot(events=events, n_channels=10)
 # %%
-# We can see that the simulated dipoles produce sinusoidal bursts at 20 Hz.
+# The simulated dipoles produce sinusoidal bursts at 20 Hz.
 #
 # Next, we epoch the the data based on the dipoles events (1:32).
 #
@@ -148,6 +148,7 @@ dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 # %%
 # Whitened global field power (GFP):
 # most baseline activity should fall roughly within ±1 (unit variance).
+#
 # Let's visualize the explained variance.
 # To do this, we need to make sure that the
 # data and the residuals are on the same scale
@@ -163,6 +164,7 @@ residual.plot(axes=axes)
 # %%
 # Here we visualise how well the dipole explains the evoked response (green line).
 # The red lines represent the residuals, the leftover noise after dipole fitting.
+#
 # What is a good fit? The green lines are strong and residuals are small and
 # roughly flat.
 #
