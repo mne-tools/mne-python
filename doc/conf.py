@@ -116,13 +116,11 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
-    
     # Documentation interactivity (roadmap item)
     # Placeholder for potential JupyterLite integration to enable interactive
     # examples directly in the browser via sphinx-gallery.
     # See roadmap: https://mne.tools/stable/development/roadmap.html
     # "jupyterlite_sphinx",
-    
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     "sphinxcontrib.towncrier.ext",
