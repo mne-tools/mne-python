@@ -1177,7 +1177,14 @@ def make_watershed_bem(
     %(subjects_dir)s
     %(overwrite)s
     volume : str
-        Defaults to T1.
+        The name of the MRI volume (without file extension) that
+        will be used as input to mri_watershed_. The volume is expected to
+        be full-head (non-skull-stripped), as the watershed algorithm relies on tissue
+        intensity gradients to estimate the inner skull, outer skull, and
+        outer skin surfaces. Defaults to ``"T1"``, corresponding to
+        ``$SUBJECTS_DIR/$SUBJECT/mri/T1.mgz`` in a typical FreeSurfer subject directory.
+        This volume is typically produced by the recon-all_ pipeline after the intensity
+        normalization step.
     atlas : bool
         Specify the ``--atlas option`` for ``mri_watershed``.
     gcaatlas : bool
