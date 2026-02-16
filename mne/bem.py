@@ -2424,18 +2424,13 @@ def make_scalp_surfaces(
             else:
                 _check_file(dec_fname, overwrite)
 
-    logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
+    fs_home = _check_freesurfer_home()
 
+    logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
     this_env = deepcopy(os.environ)
     this_env["SUBJECTS_DIR"] = str(subjects_dir)
     this_env["SUBJECT"] = subject
     this_env["subjdir"] = str(subj_path)
-    if "FREESURFER_HOME" not in this_env:
-        raise RuntimeError(
-            "The FreeSurfer environment needs to be set up to use "
-            "make_scalp_surfaces to create the outer skin surface "
-            "lh.seghead"
-        )
     run_subprocess(
         [
             "mkheadsurf",
