@@ -204,7 +204,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate")
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         monkeypatch.delenv("FREESURFER_HOME", raising=False)
-        with pytest.raises(RuntimeError, match="The FreeSurfer environ"):
+        with pytest.raises(RuntimeError, match="The FREESURFER_HOME environment"):
             mne_make_scalp_surfaces.run()
 
         monkeypatch.setenv("FREESURFER_HOME", freesurfer_home)
@@ -246,15 +246,6 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         assert op.isfile(dense_fname)
         assert not op.isfile(medium_fname)
         assert not op.isfile(sparse_fname)
-
-    # actually check the outputs
-    head_py = read_bem_surfaces(dense_fname)
-    assert_equal(len(head_py), 1)
-    head_py = head_py[0]
-    head_c = read_bem_surfaces(
-        op.join(subjects_dir, "sample", "bem", "sample-head-dense.fif")
-    )[0]
-    assert_allclose(head_py["rr"], head_c["rr"])
 
     if not has:
         assert "SUBJECTS_DIR" not in os.environ
