@@ -237,3 +237,4 @@ mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
 #
 # .. footbibliography::
 #
+#
