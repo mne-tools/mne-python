@@ -2431,7 +2431,7 @@ def make_scalp_surfaces(
             else:
                 _check_file(dec_fname, overwrite)
 
-    fs_home = _check_freesurfer_home()
+    _check_freesurfer_home()
 
     logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
     this_env = deepcopy(os.environ)
