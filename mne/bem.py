@@ -2458,8 +2458,7 @@ def make_scalp_surfaces(
         raise ValueError("mkheadsurf did not produce the standard output file.")
 
     logger.info(f"2. Creating {dense_fname} ...")
-    if not bem_dir.is_dir():
-        os.mkdir(bem_dir)
+    bem_dir.mkdir(exist_ok=True)
 
     # Helpful message if we get a topology error
     msg = (
