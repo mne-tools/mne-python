@@ -454,7 +454,8 @@ class BrowserBase(ABC):
 
     def _get_epoch_num_from_time(self, time):
         epoch_nums = self.mne.inst.selection
-        return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
+        epoch_ix = np.searchsorted(self.mne.boundary_times[1:-1], time)
+        return epoch_nums[epoch_ix]
 
     def _redraw(self, update_data=True, annotations=False):
         """Redraws backend if necessary."""
