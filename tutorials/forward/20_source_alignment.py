@@ -222,3 +222,9 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # Note that, while both types of alignment errors make the head look misaligned
 # to the MEG sensors, they can be differentiated by whether or not digitized
 # points sit properly on the head surface.
+#
+# With the skills from this tutorial,
+# you can plot elements that require alignment, set the view to perform the
+# checks you need, and finally assess the quality of the fits you see. For a
+# more detailed explanation of using MRI-generated surfaces in MNE, see the
+# `background_freesurfer_mne`_ tutorial.
