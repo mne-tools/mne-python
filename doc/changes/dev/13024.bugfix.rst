@@ -1,1 +1,1 @@
-Fix bug where outdated ``seghead.mgz`` files were reused in :func:`mne.bem.mne_make_scalp_surfaces`. Add a new parameter ``reuse_seghead`` to control whether to reuse existing ``seghead.mgz`` files, by `Victor Ferat`_.
+Fix bug where outdated ``seghead.mgz`` files were reused in :func:`mne.bem.make_scalp_surfaces`. Add a new parameter ``reuse_seghead`` to control whether to reuse existing ``seghead.mgz`` files, by `Victor Ferat`_.
