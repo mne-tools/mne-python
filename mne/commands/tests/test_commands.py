@@ -170,51 +170,129 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @testing.requires_testing_data
+@requires_freesurfer("mkheadsurf")
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
     pytest.importorskip("nibabel")
     pytest.importorskip("pyvista")
     check_usage(mne_make_scalp_surfaces)
     has = "SUBJECTS_DIR" in os.environ
-    # Copy necessary files to avoid FreeSurfer call
-    tempdir = str(tmp_path)
-    surf_path = op.join(subjects_dir, "sample", "surf")
-    surf_path_new = op.join(tempdir, "sample", "surf")
-    os.mkdir(op.join(tempdir, "sample"))
-    os.mkdir(surf_path_new)
-    subj_dir = op.join(tempdir, "sample", "bem")
-    os.mkdir(subj_dir)
+    freesurfer_home = os.environ.get("FREESURFER_HOME")
 
-    cmd = ("-s", "sample", "--subjects-dir", tempdir)
     monkeypatch.setattr(
         mne.bem,
         "decimate_surface",
         lambda points, triangles, n_triangles: (points, triangles),
     )
-    dense_fname = op.join(subj_dir, "sample-head-dense.fif")
-    medium_fname = op.join(subj_dir, "sample-head-medium.fif")
+
+    tempdir = str(tmp_path)
+    t1_path = op.join(subjects_dir, "sample", "mri", "T1.mgz")
+    t1_path_new = op.join(tempdir, "sample", "mri", "T1.mgz")
+
+    headseg_path = op.join(subjects_dir, "sample", "mri", "seghead.mgz")
+    headseg_path_new = op.join(tempdir, "sample", "mri", "seghead.mgz")
+
+    surf_path = op.join(subjects_dir, "sample", "surf", "lh.seghead")
+    surf_path_new = op.join(tempdir, "sample", "surf", "lh.seghead")
+
+    dense_fname = op.join(tempdir, "sample", "bem", "sample-head-dense.fif")
+    medium_fname = op.join(tempdir, "sample", "bem", "sample-head-medium.fif")
+    sparse_fname = op.join(tempdir, "sample", "bem", "sample-head-sparse.fif")
+
+    os.makedirs(op.join(tempdir, "sample", "mri"), exist_ok=True)
+    os.makedirs(op.join(tempdir, "sample", "surf"), exist_ok=True)
+
+    shutil.copy(t1_path, t1_path_new)
+    shutil.copy(headseg_path, headseg_path_new)
+    shutil.copy(surf_path, surf_path_new)
+
+    cmd = (
+        "-s",
+        "sample",
+        "--subjects-dir",
+        tempdir,
+        "--no-decimate",
+        "--reuse-seghead",
+    )
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         monkeypatch.delenv("FREESURFER_HOME", raising=False)
-        with pytest.raises(RuntimeError, match="The FreeSurfer environ"):
+        with pytest.raises(RuntimeError, match="The FREESURFER_HOME environment"):
             mne_make_scalp_surfaces.run()
-        shutil.copy(op.join(surf_path, "lh.seghead"), surf_path_new)
-        monkeypatch.setenv("FREESURFER_HOME", tempdir)
+
+        monkeypatch.setenv("FREESURFER_HOME", freesurfer_home)
         mne_make_scalp_surfaces.run()
+
+        assert op.isfile(headseg_path_new)
+        assert op.isfile(surf_path_new)
+        assert op.isfile(dense_fname)
+        assert not op.isfile(medium_fname)
+        assert not op.isfile(sparse_fname)
+
+        # actually check the outputs
+        head_py = read_bem_surfaces(dense_fname)
+        assert_equal(len(head_py), 1)
+        head_py = head_py[0]
+        head_c = read_bem_surfaces(
+            op.join(subjects_dir, "sample", "bem", "sample-head-dense.fif")
+        )[0]
+        assert_allclose(head_py["rr"], head_c["rr"])
+
+    cmd = ("-s", "sample", "--subjects-dir", tempdir)
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        with pytest.raises(OSError, match="use --overwrite to overwrite it"):
+            mne_make_scalp_surfaces.run()
+
+    cmd = ("-s", "sample", "--subjects-dir", tempdir, "--overwrite")
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        mne_make_scalp_surfaces.run()
+        assert op.isfile(headseg_path_new)
+        assert op.isfile(surf_path_new)
         assert op.isfile(dense_fname)
         assert op.isfile(medium_fname)
-        with pytest.raises(OSError, match="overwrite"):
+        assert op.isfile(sparse_fname)
+
+    os.remove(headseg_path_new)
+    os.remove(surf_path_new)
+    os.remove(dense_fname)
+    cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate")
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        with pytest.raises(OSError, match="Trying to generate new scalp surfaces"):
             mne_make_scalp_surfaces.run()
-    # actually check the outputs
-    head_py = read_bem_surfaces(dense_fname)
-    assert_equal(len(head_py), 1)
-    head_py = head_py[0]
-    head_c = read_bem_surfaces(
-        op.join(subjects_dir, "sample", "bem", "sample-head-dense.fif")
-    )[0]
-    assert_allclose(head_py["rr"], head_c["rr"])
+
+    os.remove(medium_fname)
+    os.remove(sparse_fname)
+    cmd = (
+        "-s",
+        "sample",
+        "--subjects-dir",
+        tempdir,
+        "--no-decimate",
+        "--reuse-seghead",
+    )
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        with pytest.raises(ValueError, match="No existing scalp surface found"):
+            mne_make_scalp_surfaces.run()
+
+    cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate", "--overwrite")
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        mne_make_scalp_surfaces.run()
+        assert op.isfile(headseg_path_new)
+        assert op.isfile(surf_path_new)
+        assert op.isfile(dense_fname)
+        assert not op.isfile(medium_fname)
+        assert not op.isfile(sparse_fname)
+
+    cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate", "--overwrite")
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        mne_make_scalp_surfaces.run()
+        assert op.isfile(headseg_path_new)
+        assert op.isfile(surf_path_new)
+        assert op.isfile(dense_fname)
+        assert not op.isfile(medium_fname)
+        assert not op.isfile(sparse_fname)
+
     if not has:
         assert "SUBJECTS_DIR" not in os.environ
 
