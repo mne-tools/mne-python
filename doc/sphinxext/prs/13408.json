@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "ff1092b42de1021a9d40ddd95788741e4eb125e7",
+  "authors": [
+    {
+      "n": "FT",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13408.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 27,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 69,
+      "d": 23
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 28,
+      "d": 8
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 81,
+      "d": 50
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 58,
+      "d": 43
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 139,
+      "d": 48
+    },
+    "mne/preprocessing/nirs/tests/test_optical_density.py": {
+      "a": 25,
+      "d": 10
+    },
+    "mne/preprocessing/nirs/tests/test_scalp_coupling_index.py": {
+      "a": 89,
+      "d": 8
+    }
+  }
+}
