@@ -94,6 +94,7 @@
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
+.. _Fabrice Guibert: https/github.com/shrecki
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
