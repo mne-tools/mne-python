@@ -1760,6 +1760,7 @@ jupyterlite_config = {
 
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
+
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
