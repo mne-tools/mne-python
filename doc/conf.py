@@ -130,6 +130,16 @@ extensions = [
     "related_software",
     "directive_formatting",
 ]
+# Optional JupyterLite support prototype (roadmap item: documentation interactivity)
+if os.getenv("MNE_ENABLE_JUPYTERLITE", "false").lower() == "true":
+    try:
+        import jupyterlite_sphinx  # noqa: F401
+    except ImportError:
+        sphinx_logger.warning(
+            "MNE_ENABLE_JUPYTERLITE is true but jupyterlite_sphinx is not installed."
+        )
+    else:
+        extensions.append("jupyterlite_sphinx")
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -1740,8 +1750,15 @@ def make_version(app, exception):
     sphinx_logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
 
 
-# -- Connect our handlers to the main Sphinx app ---------------------------
+# -- JupyterLite configuration ---------------------------------------------
 
+jupyterlite_config = {
+    "LiteBuildConfig": {
+        "apps": ["lab"],
+    },
+}
+
+# -- Connect our handlers to the main Sphinx app ---------------------------
 
 def setup(app):
     """Set up the Sphinx app."""
