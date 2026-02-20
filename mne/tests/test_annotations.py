@@ -1901,3 +1901,56 @@ def test_hed_annotations():
     # test __repr__
     _repr = repr(ann)
     assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
+    # test crop()
+    ann_crop = HEDAnnotations(
+        onset=[1, 3, 5, 7],
+        duration=[0.5, 0.5, 0.5, 0.5],
+        description=["a", "b", "c", "d"],
+        hed_string=[
+            good_values["press"],
+            good_values["tone"],
+            good_values["square"],
+            good_values["word"],
+        ],
+    )
+    # crop keeping middle two annotations
+    cropped = ann_crop.copy()
+    cropped.crop(tmin=2, tmax=6)
+    assert len(cropped) == 2
+    assert_array_equal(cropped.description, ["b", "c"])
+    assert list(cropped.hed_string) == [good_values["tone"], good_values["square"]]
+    assert isinstance(cropped.hed_string, mne.annotations._HEDStrings)
+    # crop that clips annotation at boundary
+    cropped2 = ann_crop.copy()
+    cropped2.crop(tmin=0.5, tmax=1.25)
+    assert len(cropped2) == 1
+    assert_allclose(cropped2.onset, [1.0])
+    assert_allclose(cropped2.duration, [0.25])
+    assert list(cropped2.hed_string) == [good_values["press"]]
+    # crop on empty HEDAnnotations
+    empty_ann = HEDAnnotations(
+        onset=[1],
+        duration=[0.5],
+        description=["a"],
+        hed_string=[good_values["press"]],
+    )
+    empty_ann.crop(tmin=5, tmax=10)
+    assert len(empty_ann) == 0
+    assert list(empty_ann.hed_string) == []
+    # test to_data_frame()
+    ann_df = HEDAnnotations(
+        onset=[1, 3, 5],
+        duration=[0.5, 0.5, 0.5],
+        description=["a", "b", "c"],
+        hed_string=[good_values["press"], good_values["tone"], good_values["square"]],
+    )
+    pytest.importorskip("pandas")
+    df = ann_df.to_data_frame()
+    assert "hed_string" in df.columns
+    assert list(df["hed_string"]) == [
+        good_values["press"],
+        good_values["tone"],
+        good_values["square"],
+    ]
+    assert list(df["description"]) == ["a", "b", "c"]
+    assert_allclose(df["duration"], [0.5, 0.5, 0.5])

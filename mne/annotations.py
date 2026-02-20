@@ -978,12 +978,6 @@ class HEDAnnotations(Annotations):
             onset=onset, duration=duration, description=description, ch_names=ch_names
         )
 
-    def crop(
-        self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
-    ):
-        """TODO."""
-        pass
-
     def delete(self, idx):
         """Remove an annotation. Operates inplace.
 
@@ -997,9 +991,101 @@ class HEDAnnotations(Annotations):
         _ = self.hed_string.pop(idx)
         super().delete(idx)
 
+    @verbose
+    def crop(
+        self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
+    ):
+        """Remove all annotation that are outside of [tmin, tmax].
+
+        The method operates inplace.
+
+        Parameters
+        ----------
+        tmin : float | datetime | None
+            Start time of selection in seconds.
+        tmax : float | datetime | None
+            End time of selection in seconds.
+        emit_warning : bool
+            Whether to emit warnings when limiting or omitting annotations.
+            Defaults to False.
+        use_orig_time : bool
+            Whether to use orig_time as an offset.
+            Defaults to True.
+        %(verbose)s
+
+        Returns
+        -------
+        self : instance of HEDAnnotations
+            The cropped HEDAnnotations object.
+        """
+        if len(self) == 0:
+            return self
+        if not use_orig_time or self.orig_time is None:
+            offset = _handle_meas_date(0)
+        else:
+            offset = self.orig_time
+        if tmin is None:
+            tmin = timedelta(seconds=self.onset.min()) + offset
+        if tmax is None:
+            tmax = timedelta(seconds=(self.onset + self.duration).max()) + offset
+        for key, val in [("tmin", tmin), ("tmax", tmax)]:
+            _validate_type(
+                val, ("numeric", _datetime), key, "numeric, datetime, or None"
+            )
+        absolute_tmin = _handle_meas_date(tmin)
+        absolute_tmax = _handle_meas_date(tmax)
+        del tmin, tmax
+        if absolute_tmin > absolute_tmax:
+            raise ValueError(
+                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
+                f"{absolute_tmax})."
+            )
+
+        keep = []
+        hed_strings = list(self.hed_string)
+        for idx, (onset, duration) in enumerate(zip(self.onset, self.duration)):
+            if np.isnan(duration):
+                duration = 0.0
+            absolute_onset = timedelta(seconds=onset) + offset
+            absolute_offset = absolute_onset + timedelta(seconds=duration)
+            out_of_bounds = (
+                absolute_onset > absolute_tmax or absolute_offset < absolute_tmin
+            )
+            if not out_of_bounds:
+                keep.append(idx)
+
+        super().crop(
+            tmin=absolute_tmin,
+            tmax=absolute_tmax,
+            emit_warning=emit_warning,
+            use_orig_time=use_orig_time,
+            verbose=verbose,
+        )
+        self.hed_string = _HEDStrings(
+            [hed_strings[idx] for idx in keep], hed_version=self._hed_version
+        )
+        return self
+
+    @fill_doc
     def to_data_frame(self, time_format="datetime"):
-        """TODO."""
-        pass
+        """Export annotations in tabular structure as a pandas DataFrame.
+
+        Parameters
+        ----------
+        %(time_format_df_raw)s
+
+            .. versionadded:: 1.7
+
+        Returns
+        -------
+        result : pandas.DataFrame
+            Returns a pandas DataFrame with onset, duration, description,
+            and hed_string columns. A column named ch_names is added if any
+            annotations are channel-specific.
+        """
+        df = super().to_data_frame(time_format=time_format)
+        df["hed_string"] = list(self.hed_string)
+        return df
 
 
 class EpochAnnotationsMixin:
