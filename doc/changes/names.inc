@@ -14,6 +14,7 @@
 .. _Alex Rockhill: https://github.com/alexrockhill/
 .. _Alexander Rudiuk: https://github.com/ARudiuk
 .. _Alexandre Barachant: https://alexandre.barachant.org
+.. _Aman Srivastava: https://github.com/aman-coder03
 .. _Andrea Brovelli: https://brovelli.github.io/
 .. _Andreas Hojlund: https://github.com/ahoejlund
 .. _Andres Rodriguez: https://github.com/infinitejest/
