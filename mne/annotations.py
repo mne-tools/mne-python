@@ -69,7 +69,7 @@ class _AnnotationsExtrasDict(UserDict):
 
     def __setitem__(self, key: str, value: str | int | float | None) -> None:
         _validate_type(key, str, "key")
-        if key in ("onset", "duration", "description", "ch_names"):
+        if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
             value,
@@ -952,6 +952,11 @@ class _HEDStrings(list):
 
     def __setitem__(self, key, value):
         """Validate value first, before assigning."""
+        if isinstance(key, slice):
+            hss = [self._validate_hed_string(v, self._schema) for v in value]
+            super().__setitem__(key, [hs.get_original_hed_string() for hs in hss])
+            self._objs[key] = hss
+            return
         hs = self._validate_hed_string(value, self._schema)
         super().__setitem__(key, hs.get_original_hed_string())
         self._objs[key] = hs
@@ -1030,6 +1035,10 @@ class HEDAnnotations(Annotations):
         *,
         extras=None,
     ):
+        onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
+            onset, duration, description, ch_names, extras
+        )
+        hed_string = self._check_hed_strings(hed_string, len(onset))
         self._hed_version = hed_version
         self.hed_string = _HEDStrings(hed_string, hed_version=self._hed_version)
         super().__init__(
@@ -1041,8 +1050,24 @@ class HEDAnnotations(Annotations):
             extras=extras,
         )
 
+    @staticmethod
+    def _check_hed_strings(hed_string, n_annot):
+        """Check HED string container length and allow scalar broadcast."""
+        _validate_type(hed_string, (str, list, tuple, np.ndarray), "hed_string")
+        if isinstance(hed_string, str):
+            return [hed_string] * n_annot
+        hed_string = list(hed_string)
+        if len(hed_string) != n_annot:
+            raise ValueError(
+                "Onset, duration, description, ch_names, hed_string, and extras "
+                f"must be equal in sizes, got {n_annot} != {len(hed_string)}."
+            )
+        return hed_string
+
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
+        if not isinstance(other, type(self)):
+            return False
         _slf = self.hed_string
         _oth = other.hed_string
 
@@ -1090,19 +1115,18 @@ class HEDAnnotations(Annotations):
         if isinstance(result, OrderedDict):
             result["hed_string"] = self.hed_string[key]
             return result
-        else:
-            key = list(key) if isinstance(key, tuple) else key
-            hed_string = [self.hed_string[key]]
-            return HEDAnnotations(
-                result.onset,
-                result.duration,
-                result.description,
-                hed_string=hed_string,
-                hed_version=self._hed_version,
-                orig_time=self.orig_time,
-                ch_names=result.ch_names,
-                extras=result.extras,
-            )
+        key = np.arange(len(self.hed_string))[key]
+        hed_string = [self.hed_string[idx] for idx in np.atleast_1d(key)]
+        return HEDAnnotations(
+            result.onset,
+            result.duration,
+            result.description,
+            hed_string=hed_string,
+            hed_version=self._hed_version,
+            orig_time=self.orig_time,
+            ch_names=result.ch_names,
+            extras=result.extras,
+        )
 
     def __getstate__(self):
         """Make serialization work, by removing module reference."""
@@ -1159,13 +1183,51 @@ class HEDAnnotations(Annotations):
         self : mne.HEDAnnotations
             The modified HEDAnnotations object.
         """
-        self.hed_string.append(hed_string)
-        super().append(
-            onset=onset,
-            duration=duration,
-            description=description,
-            ch_names=ch_names,
-            extras=extras,
+        onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
+            onset, duration, description, ch_names, extras
+        )
+        hed_string = self._check_hed_strings(hed_string, len(onset))
+        hed_objs = [
+            self.hed_string._validate_hed_string(v, self.hed_string._schema)
+            for v in hed_string
+        ]
+        start = len(self.hed_string)
+        self.hed_string.extend([hs.get_original_hed_string() for hs in hed_objs])
+        self.hed_string._objs.extend(hed_objs)
+        try:
+            super().append(
+                onset=onset,
+                duration=duration,
+                description=description,
+                ch_names=ch_names,
+                extras=extras,
+            )
+        except Exception:
+            del self.hed_string[start:]
+            del self.hed_string._objs[start:]
+            raise
+        return self
+
+    def __iadd__(self, other):
+        """Add (concatenate) two HEDAnnotations objects in-place."""
+        if not isinstance(other, type(self)):
+            raise TypeError(
+                f"Cannot concatenate {type(self).__name__} and {type(other).__name__}."
+            )
+        if len(self) == 0:
+            self._orig_time = other.orig_time
+        if self.orig_time != other.orig_time:
+            raise ValueError(
+                "orig_time should be the same to add/concatenate 2 annotations (got "
+                f"{self.orig_time} != {other.orig_time})"
+            )
+        return self.append(
+            onset=other.onset,
+            duration=other.duration,
+            description=other.description,
+            hed_string=list(other.hed_string),
+            ch_names=other.ch_names,
+            extras=other.extras,
         )
 
     def delete(self, idx):
@@ -1177,9 +1239,14 @@ class HEDAnnotations(Annotations):
             Index of the annotation to remove. Can be array-like to remove multiple
             indices.
         """
-        _ = self.hed_string._objs.pop(idx)
-        _ = self.hed_string.pop(idx)
         super().delete(idx)
+        if isinstance(idx, int_like):
+            del self.hed_string._objs[idx]
+            del self.hed_string[idx]
+        else:
+            for i in np.sort(np.arange(len(self.hed_string))[idx])[::-1]:
+                del self.hed_string._objs[i]
+                del self.hed_string[i]
 
     @verbose
     def crop(

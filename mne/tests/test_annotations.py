@@ -1991,6 +1991,23 @@ def test_hed_annotations():
         word="Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
         "Visual-presentation",
     )
+    # single string should broadcast to all annotations
+    ann_single = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.1],
+        description=["x", "y"],
+        hed_string=good_values["tone"],
+    )
+    assert list(ann_single.hed_string) == [good_values["tone"], good_values["tone"]]
+    # extras cannot override reserved field names
+    with pytest.raises(ValueError, match="reserved"):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=[good_values["tone"]],
+            extras=[{"hed_string": "bad"}],
+        )
     ann = HEDAnnotations(
         onset=[3, 2, 1],
         duration=[0.1, 0.0, 0.3],
@@ -2039,9 +2056,47 @@ def test_hed_annotations():
     first["hed_string"] = "foo"
     # ...and won't affect the original object
     assert ann.hed_string[0] == good_values["word"]
+    # slice/list indexing should preserve HED string alignment
+    subset = ann[:2]
+    assert list(subset.hed_string) == [good_values["word"], good_values["tone"]]
+    picked = ann[[0, 2]]
+    assert list(picked.hed_string) == [good_values["word"], good_values["square"]]
     # test __repr__
     _repr = repr(ann)
     assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
+    # test vectorized append with extras and list-like delete
+    ann_extra = ann.copy()
+    ann_extra.append(
+        onset=[10, 11],
+        duration=[0.1, 0.1],
+        description=["e", "f"],
+        hed_string=[good_values["tone"], good_values["press"]],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    assert ann_extra.extras[-2]["run"] == 1
+    assert ann_extra.extras[-1]["run"] == 2
+    ann_extra.delete([0, 3])
+    assert len(ann_extra) == 3
+    assert len(ann_extra.hed_string) == 3
+    # test concatenation
+    lhs = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[good_values["tone"]],
+        extras=[{"side": "lhs"}],
+    )
+    rhs = HEDAnnotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        hed_string=[good_values["press"]],
+        extras=[{"side": "rhs"}],
+    )
+    lhs += rhs
+    assert len(lhs) == 2
+    assert list(lhs.hed_string) == [good_values["tone"], good_values["press"]]
+    assert lhs.extras[1]["side"] == "rhs"
     # test crop()
     ann_crop = HEDAnnotations(
         onset=[1, 3, 5, 7],
@@ -2104,6 +2159,7 @@ def test_hed_annotations():
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),
@@ -2129,6 +2185,7 @@ def test_extras_dict_raises(key, value, expected_error, match):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),
