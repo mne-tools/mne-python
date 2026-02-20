@@ -1191,21 +1191,15 @@ class HEDAnnotations(Annotations):
             self.hed_string._validate_hed_string(v, self.hed_string._schema)
             for v in hed_string
         ]
-        start = len(self.hed_string)
         self.hed_string.extend([hs.get_original_hed_string() for hs in hed_objs])
         self.hed_string._objs.extend(hed_objs)
-        try:
-            super().append(
-                onset=onset,
-                duration=duration,
-                description=description,
-                ch_names=ch_names,
-                extras=extras,
-            )
-        except Exception:
-            del self.hed_string[start:]
-            del self.hed_string._objs[start:]
-            raise
+        super().append(
+            onset=onset,
+            duration=duration,
+            description=description,
+            ch_names=ch_names,
+            extras=extras,
+        )
         return self
 
     def __iadd__(self, other):
