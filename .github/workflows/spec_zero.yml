@@ -1,0 +1,72 @@
+name: SPEC0
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '0 0 * * 1'  # At 00:00 every Monday
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Enable ssh debugging'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  update_versions:
+    permissions:
+      contents: write
+      pull-requests: write
+    name: Update dependency versions
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - name: Triage SSH
+        run: |
+          if [[ "${{ inputs.ssh }}" == "true" ]] || [[ "$COMMIT_MESSAGE" == *"[actions ssh]"* ]]; then
+            echo "ENABLE_SSH=true" | tee -a $GITHUB_ENV
+          else
+            echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
+          fi
+      - name: Setup Remote SSH Connection
+        if: env.ENABLE_SSH == 'true'
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 10
+        with:
+          detached: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install packaging requests tomlkit
+      - run: python tools/dev/spec_zero_update_versions.py
+      - run: |
+          git diff && git status --porcelain
+          if [[ $(git status --porcelain) ]]; then
+            echo "dirty=true" >> $GITHUB_OUTPUT
+          fi
+        id: status
+      - name: Run pre-commit hooks to update other files
+        run: |
+          pip install pre-commit
+          pre-commit run --all || true
+        if: steps.status.outputs.dirty == 'true'
+      - name: Create PR
+        run: |
+          set -xeo pipefail
+          git diff
+          git config --global user.email "50266005+mne-bot@users.noreply.github.com"
+          git config --global user.name "mne[bot]"
+          git checkout -b spec_zero
+          git add doc/changes/dev/dependency.rst  # one new file, others changed
+          git commit -am "mne[bot]: Update dependency specifiers"
+          git push origin spec_zero
+          PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *It is very likely that \`tools/environment_old.yml\` needs to be updated.* <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` and elswhere in this or another PR. \`git grep TODO VERSION\` is a good starting point for finding potential updates.*")
+          echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+        if: steps.status.outputs.dirty == 'true'

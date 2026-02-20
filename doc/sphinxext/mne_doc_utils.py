@@ -13,10 +13,13 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
+from sphinx.errors import ExtensionError
 
 import mne
 from mne.utils import (
-    _assert_no_instances,
+    _assert_no_instances as _assert_no_instances_mne,
+)
+from mne.utils import (
     _get_extra_data_path,
     sizeof_fmt,
 )
@@ -67,14 +70,32 @@ def reset_warnings(gallery_conf, fname):
         "\nImplementing implicit namespace packages",
         # latexcodec
         r"open_text is deprecated\. Use files",
+        # dipy etc.
+        "The `disp` and `iprint` options of the L-BFGS-B solver",
+        # statsmodels<->pandas
+        "Substitution is deprecated and will be removed",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
+        )
+    # ignore (PendingDeprecationWarning)
+    for key in (
+        # sphinx
+        "The mapping interface for autodoc options",
+        # sphinxcontrib-bibtex
+        "sphinx.environment.BuildEnvironment.app' is deprecated",
+    ):
+        warnings.filterwarnings(  # deal with other modules having bad imports
+            "ignore", message=f".*{key}.*", category=PendingDeprecationWarning
         )
     # ignore (UserWarning)
     for message in (
         # Matplotlib
         ".*is non-interactive, and thus cannot.*",
+        # nilearn
+        r"You are using the.*matplotlib backend that[.\n]*",
+        # pybtex
+        ".*pkg_resources is deprecated as an API.*",
     ):
         warnings.filterwarnings(
             "ignore",
@@ -98,6 +119,14 @@ def reset_warnings(gallery_conf, fname):
 
 
 t0 = time.time()
+
+
+def _assert_no_instances(cls, when):
+    """Wrap our internal one but make the traceback nicer when it fails."""
+    try:
+        _assert_no_instances_mne(cls, when)
+    except Exception as exc:
+        raise ExtensionError(str(exc)) from None
 
 
 def reset_modules(gallery_conf, fname, when):

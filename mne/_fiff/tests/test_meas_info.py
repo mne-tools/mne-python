@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import json
 import pickle
 import string
 from datetime import date, datetime, timedelta, timezone
@@ -61,7 +62,7 @@ from mne.channels import (
 )
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_fif
+from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_edf, read_raw_fif
 from mne.minimum_norm import (
     apply_inverse,
     make_inverse_operator,
@@ -354,6 +355,136 @@ def test_read_write_info(tmp_path):
 
 
 @testing.requires_testing_data
+def test_info_serialization_roundtrip(tmp_path):
+    """Test Info JSON serialization with real MEG data."""
+    # Test with real MEG/FIF file
+    raw = read_raw_fif(raw_fname, preload=False, verbose=False)
+    _complete_info(raw.info)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
+
+
+def test_info_serialization_edf(tmp_path):
+    """Test Info JSON serialization with EDF data."""
+    edf_path = root_dir / "io" / "edf" / "tests" / "data" / "test.edf"
+    raw = read_raw_edf(edf_path, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info_edf.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
+
+
+def test_info_serialization_special_types():
+    """Test that special types (NamedInt, dates, etc.) are preserved correctly."""
+    from mne.utils._bunch import NamedInt
+
+    # Create info with various special types
+    info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
+
+    # Test meas_date (datetime)
+    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=timezone.utc)
+    with info._unlock():
+        info["meas_date"] = meas_date
+
+    # Test subject_info with birthday (date)
+    info["subject_info"] = {
+        "id": 1,
+        "his_id": "SUBJ001",
+        "birthday": date(1990, 1, 15),
+        "sex": 1,
+    }
+
+    # Roundtrip through JSON
+    info_dict = info.to_json_dict()
+    json_str = json.dumps(info_dict)
+    info_restored = Info.from_json_dict(json.loads(json_str))
+
+    # Verify special types are preserved
+    assert isinstance(info_restored["meas_date"], datetime)
+    assert info_restored["meas_date"] == meas_date
+    assert isinstance(info_restored["subject_info"]["birthday"], date)
+    assert info_restored["subject_info"]["birthday"] == date(1990, 1, 15)
+    assert isinstance(info_restored["custom_ref_applied"], NamedInt)
+    assert repr(info["custom_ref_applied"]) == repr(info_restored["custom_ref_applied"])
+
+
+@testing.requires_testing_data
+def test_info_serialization_numpy_arrays(tmp_path):
+    """Test that numpy arrays (e.g., compensation matrices) serialize correctly."""
+    # Use CTF data which has compensation matrices
+    raw = read_raw_ctf(ctf_fname, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Verify we have compensation data with matrices
+    assert len(info["comps"]) > 0, "CTF data should have compensation matrices"
+
+    # Check the structure of compensation matrices before serialization
+    for comp in info["comps"]:
+        assert "data" in comp
+        assert "data" in comp["data"]
+        comp_matrix = comp["data"]["data"]
+        assert isinstance(comp_matrix, np.ndarray), (
+            "Compensation matrix should be numpy array"
+        )
+        assert comp_matrix.ndim == 2, "Compensation matrix should be 2D"
+        assert comp_matrix.shape[0] > 0 and comp_matrix.shape[1] > 0
+
+    # Save to JSON
+    json_path = tmp_path / "info_with_comps.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify compensation matrices are preserved correctly
+    assert len(info_restored["comps"]) == len(info["comps"])
+
+    for orig_comp, rest_comp in zip(info["comps"], info_restored["comps"]):
+        orig_matrix = orig_comp["data"]["data"]
+        rest_matrix = rest_comp["data"]["data"]
+
+        # Verify it's a numpy array with correct shape
+        assert isinstance(rest_matrix, np.ndarray)
+        assert rest_matrix.shape == orig_matrix.shape
+        assert rest_matrix.ndim == 2
+
+        # Verify the actual values are preserved
+        assert_allclose(rest_matrix, orig_matrix, rtol=1e-10)
+
+        # Verify row and column names are preserved
+        assert orig_comp["data"]["row_names"] == rest_comp["data"]["row_names"]
+        assert orig_comp["data"]["col_names"] == rest_comp["data"]["col_names"]
+
+    # Use assert_object_equal for comprehensive check
+    assert_object_equal(info, info_restored)
+
+
+@testing.requires_testing_data
 def test_dir_warning():
     """Test that trying to read a bad filename emits a warning before an error."""
     with (
@@ -612,7 +743,7 @@ def _test_anonymize_info(base_info, tmp_path):
         base_info["subject_info"].update(
             birthday=date(1987, 4, 8),
             his_id="foobar",
-            sex=0,
+            sex=1,
         )
 
     # generate expected info...
@@ -637,7 +768,7 @@ def _test_anonymize_info(base_info, tmp_path):
         for lev in tp[:-1]:
             this = this[lev]
         this[tp[-1]] = default_str
-    exp_info["proj_id"] = np.array([0])
+    exp_info["proj_id"] = 0
     for key in ("sex", "id", "height", "weight"):
         exp_info["subject_info"][key] = 0
     exp_info["subject_info"]["his_id"] = str(default_subject_id)
@@ -681,7 +812,7 @@ def _test_anonymize_info(base_info, tmp_path):
     exp_info_2 = exp_info.copy()
     with exp_info_2._unlock():
         exp_info_2["subject_info"]["his_id"] = "foobar"
-        exp_info_2["subject_info"]["sex"] = 0
+        exp_info_2["subject_info"]["sex"] = 1
         exp_info_2["subject_info"]["hand"] = 1
 
     # exp 3 tests is a supplied daysback
@@ -711,12 +842,54 @@ def _test_anonymize_info(base_info, tmp_path):
     new_info = anonymize_info(base_info.copy(), keep_his=True)
     _check_equiv(new_info, exp_info_2, err_msg="anon keep_his mismatch")
 
+    # keep only his_id
+    new_info = anonymize_info(base_info.copy(), keep_his="his_id")
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only sex
+    new_info = anonymize_info(base_info.copy(), keep_his="sex")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his="hand")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and sex
+    new_info = anonymize_info(base_info.copy(), keep_his=["his_id", "sex"])
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his=["hand"])
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and hand
+    new_info = anonymize_info(base_info.copy(), keep_his=("his_id", "hand"))
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # invalid keep_his values
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his="invalid_field")
+
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his=["his_id", "invalid"])
+
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     _check_equiv(new_info, exp_info_3, err_msg="anon daysback mismatch")
 
     with pytest.raises(RuntimeError, match="anonymize_info generated"):
         anonymize_info(base_info.copy(), daysback=delta_t_3.days)
-    # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
     with base_info._unlock():
@@ -773,6 +946,27 @@ def test_meas_date_convert(stamp, dt):
     assert str(dt[0]) in repr(info)
 
 
+def test_birthday_input():
+    """Test that birthday input is handled correctly."""
+    pd = pytest.importorskip("pandas")
+
+    # Test valid date
+    info = create_info(ch_names=["EEG 001"], sfreq=1000.0, ch_types="eeg")
+    info["subject_info"] = {}
+    info["subject_info"]["birthday"] = date(2000, 1, 1)
+    assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+
+    # pandas Timestamp should convert to datetime date
+    info["subject_info"]["birthday"] = pd.Timestamp("2000-01-01")
+    assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+    # Ensure we've converted it during setting
+    assert not isinstance(info["subject_info"]["birthday"], pd.Timestamp)
+
+    # Test invalid date raises error
+    with pytest.raises(TypeError, match="must be an instance of date"):
+        info["subject_info"]["birthday"] = "not a date"
+
+
 def _complete_info(info):
     """Complete the meas info fields."""
     for key in ("file_id", "meas_id"):
@@ -798,7 +992,7 @@ def _complete_info(info):
     info["experimenter"] = "f"
     info["description"] = "g"
     with info._unlock():
-        info["proj_id"] = np.ones(1, int)
+        info["proj_id"] = 1
         info["proj_name"] = "h"
         info["utc_offset"] = "i"
         d = (1717707794, 2)
@@ -932,6 +1126,7 @@ def test_csr_csc(tmp_path):
     assert_array_equal(ct_read.toarray(), ct.toarray())
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_check_compensation_consistency():
     """Test check picks compensation."""
@@ -980,6 +1175,19 @@ def test_field_round_trip(tmp_path):
     assert_object_equal(info, info_read)
     with pytest.raises(TypeError, match="datetime"):
         info["helium_info"]["meas_date"] = (1, 2)
+    # should allow it to be None, though (checking gh-13154)
+    info["helium_info"]["meas_date"] = None
+    info.save(fname, overwrite=True)
+    info_read = read_info(fname)
+    assert_object_equal(info, info_read)
+    assert info_read["helium_info"]["meas_date"] is None
+    # not 100% sure how someone could end up with it deleted, but should still be
+    # writeable
+    del info["helium_info"]["meas_date"]
+    info.save(fname, overwrite=True)
+    info_read = read_info(fname)
+    info["helium_info"]["meas_date"] = None  # we always set it (which is reasonable)
+    assert_object_equal(info, info_read)
 
 
 def test_equalize_channels():
@@ -1033,6 +1241,14 @@ def test_invalid_subject_birthday():
     assert "birthday" not in raw.info["subject_info"]
 
 
+def test_invalid_set_meas_date():
+    """Test set_meas_date catches invalid str input."""
+    info = create_info(1, 1000, "eeg")
+    with pytest.raises(TypeError, match=r"meas_date must be an instance of"):
+        info.set_meas_date("2025-01-01 00:00:00.000000")
+
+
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "fname",
     [
@@ -1217,6 +1433,7 @@ def test_info_bad():
     info["line_freq"] = 50.0
     info["bads"] = info["ch_names"][:1]
     info["temp"] = ("whatever", 1.0)
+
     with pytest.raises(RuntimeError, match=r"info\['temp'\]"):
         info["bad_key"] = 1.0
     for key, match in [("sfreq", r"inst\.resample"), ("chs", r"inst\.add_channels")]:
@@ -1277,3 +1494,15 @@ def test_tag_consistency():
     assert call_set == call_names, "Mismatch between _call_dict and _call_dict_names"
     # TODO: This was inspired by FIFF_DIG_STRING gh-13083, we should ideally add a test
     # that those dig points can actually be read in correctly at some point.
+
+
+def test_proj_id_entries():
+    """Test that proj_id entries are the right type."""
+    info = create_info(5, 1000.0, "eeg")
+    info["proj_id"] = 123
+    # Boolean should be cast into an int
+    info["proj_id"] = True
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = "bad"
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = np.array([123])

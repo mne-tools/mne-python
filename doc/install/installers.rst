@@ -17,7 +17,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-linux
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -31,14 +31,14 @@ Platform-specific installers
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.9.0_0-Linux.sh
+            $ sh ./MNE-Python-1.11.0_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
         :name: install-macos-intel
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -54,7 +54,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-macos-apple
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -70,7 +70,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-windows
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
@@ -156,7 +156,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /home/username/mne-python/1.9.0_0/bin/python
+               /home/username/mne-python/1.11.0_0/bin/python
                $ rm -Rf /home/$USER/mne-python
                $ rm /home/$USER/.local/share/applications/mne-python-*.desktop
 
@@ -170,7 +170,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /Users/username/Applications/MNE-Python/1.9.0_0/.mne-python/bin/python
+               /Users/username/Applications/MNE-Python/1.11.0_0/.mne-python/bin/python
                $ rm -Rf /Users/$USER/Applications/MNE-Python  # if user-specific
                $ rm -Rf /Applications/MNE-Python              # if system-wide
 

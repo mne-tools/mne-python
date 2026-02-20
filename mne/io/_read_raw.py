@@ -42,6 +42,7 @@ def _get_supported():
         read_raw_fil,
         read_raw_gdf,
         read_raw_kit,
+        read_raw_mef,
         read_raw_nedf,
         read_raw_nicolet,
         read_raw_nihon,
@@ -58,6 +59,7 @@ def _get_supported():
         ".gdf": dict(GDF=read_raw_gdf),
         ".vhdr": dict(brainvision=read_raw_brainvision),
         ".ahdr": dict(brainvision=read_raw_brainvision),
+        ".mefd": dict(MEF=read_raw_mef),
         ".fif": dict(FIF=read_raw_fif),
         ".fif.gz": dict(FIF=read_raw_fif),
         ".set": dict(EEGLAB=read_raw_eeglab),
@@ -144,6 +146,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     * `~mne.io.read_raw_fil`
     * `~mne.io.read_raw_gdf`
     * `~mne.io.read_raw_kit`
+    * `~mne.io.read_raw_mef`
     * `~mne.io.read_raw_nedf`
     * `~mne.io.read_raw_nicolet`
     * `~mne.io.read_raw_nihon`

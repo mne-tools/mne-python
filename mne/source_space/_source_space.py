@@ -41,10 +41,11 @@ from .._freesurfer import (
     read_freesurfer_lut,
 )
 from ..bem import ConductorModel, read_bem_surfaces
-from ..fixes import _get_img_fdata
+from ..fixes import _get_img_fdata, _reshape_view
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
+    _CheckInsideSphere,
     _compute_nearest,
     _create_surf_spacing,
     _get_ico_surface,
@@ -67,6 +68,7 @@ from ..transforms import (
     apply_trans,
     combine_transforms,
     invert_transform,
+    transform_surface_to,
 )
 from ..utils import (
     _check_fname,
@@ -329,6 +331,8 @@ class SourceSpaces(list):
         skull=None,
         subjects_dir=None,
         trans=None,
+        *,
+        fig=None,
         verbose=None,
     ):
         """Plot the source space.
@@ -358,6 +362,11 @@ class SourceSpaces(list):
             produced during coregistration. If trans is None, an identity
             matrix is assumed. This is only needed when the source space is in
             head coordinates.
+        fig : Figure3D | None
+            PyVista scene in which to plot the alignment.
+            If ``None``, creates a new 600x600 pixel figure with black background.
+
+            .. versionadded:: 1.10
         %(verbose)s
 
         Returns
@@ -427,6 +436,7 @@ class SourceSpaces(list):
             ecog=False,
             bem=bem,
             src=self,
+            fig=fig,
         )
 
     def __getitem__(self, *args, **kwargs):
@@ -463,7 +473,7 @@ class SourceSpaces(list):
 
     @property
     def _subject(self):
-        return self[0].get("subject_his_id", None)
+        return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
         """Combine source spaces."""
@@ -777,6 +787,16 @@ class SourceSpaces(list):
 
         # write image to file
         nib.save(img, fname)
+
+    def _transform_to(self, cf, mri_head_t):
+        # NOTE: the function transform_surface_to will also work on discrete and
+        # volume sources
+        try:
+            for s in self:
+                transform_surface_to(s, cf, mri_head_t, copy=False)
+        except Exception as inst:
+            raise RuntimeError(f"Could not transform source space ({inst})")
+        return self
 
 
 def _add_patch_info(s):
@@ -1899,7 +1919,9 @@ def setup_volume_source_space(
             surf["rr"] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info("Setting up the sphere...")
-            surf = dict(R=sphere[3], r0=sphere[:3])
+            surf = ConductorModel(
+                layers=[dict(rad=sphere[3])], r0=sphere[:3], is_sphere=True
+            )
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(
             surf,
@@ -2055,10 +2077,10 @@ def _make_volume_source_space(
         cm = np.mean(surf["rr"], axis=0)  # center of mass
         maxdist = np.linalg.norm(surf["rr"] - cm, axis=1).max()
     else:
-        mins = surf["r0"] - surf["R"]
-        maxs = surf["r0"] + surf["R"]
+        mins = surf["r0"] - surf.radius
+        maxs = surf["r0"] + surf.radius
         cm = surf["r0"].copy()
-        maxdist = surf["R"]
+        maxdist = surf.radius
 
     # Define the sphere which fits the surface
     logger.info(
@@ -2128,18 +2150,15 @@ def _make_volume_source_space(
         1000 * exclude,
         1000 * maxdist,
     )
+    kwargs = dict(limit=mindist, mri_head_t=None, src=[sp])
+    assert sp["coord_frame"] == FIFF.FIFFV_COORD_MRI
     if "rr" in surf:
-        _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
-    else:  # sphere
-        vertno = np.where(sp["inuse"])[0]
-        bads = (
-            np.linalg.norm(sp["rr"][vertno] - surf["r0"], axis=-1)
-            >= surf["R"] - mindist / 1000.0
-        )
-        sp["nuse"] -= bads.sum()
-        sp["inuse"][vertno[bads]] = False
-        sp["vertno"] = np.where(sp["inuse"])[0]
-        del vertno
+        # If it's a surface passed as a dict, it might not have a coord_frame,
+        # assume it's been read by read_surface and is in mri coords
+        assert surf.get("coord_frame", FIFF.FIFFV_COORD_MRI) == FIFF.FIFFV_COORD_MRI
+    else:
+        assert surf["is_sphere"]
+    _filter_source_spaces(surf, n_jobs=n_jobs, **kwargs)
     del surf
     logger.info(
         "%d sources remaining after excluding the sources outside "
@@ -2298,7 +2317,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh.shape = old_shape
+        neigh = _reshape_view(neigh, old_shape)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
@@ -2526,7 +2545,9 @@ def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
 
 
 @verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=None):
+def _filter_source_spaces(
+    surf_or_check_inside, *, limit, mri_head_t, src, n_jobs=None, verbose=None
+):
     """Remove all source space points closer than a given limit (in mm)."""
     if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError(
@@ -2550,7 +2571,14 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
     logger.info(out_str + " (will take a few...)")
 
     # fit a sphere to a surf quickly
-    check_inside = _CheckInside(surf)
+    if isinstance(surf_or_check_inside, _CheckInside | _CheckInsideSphere):
+        check_inside = surf_or_check_inside
+    else:
+        if "rr" in surf_or_check_inside:
+            check_inside = _CheckInside(surf_or_check_inside)
+        else:
+            check_inside = _CheckInsideSphere(surf_or_check_inside)
+    del surf_or_check_inside
 
     # Check that the source is inside surface (often the inner skull)
     for s in src:
@@ -2560,7 +2588,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
         if s["coord_frame"] == FIFF.FIFFV_COORD_HEAD:
             r1s = apply_trans(inv_trans["trans"], r1s)
 
-        inside = check_inside(r1s, n_jobs)
+        inside = check_inside(r1s, n_jobs=n_jobs)
         omit_outside = (~inside).sum()
 
         # vectorized nearest using BallTree (or cdist)
@@ -2570,16 +2598,14 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
             idx = np.where(inside)[0]
             check_r1s = r1s[idx]
             if check_inside.inner_r is not None:
-                # ... and those that are at least inner_sphere + limit away
+                # ... and those that are at least inner_sphere - limit away
                 mask = (
-                    np.linalg.norm(check_r1s - check_inside.cm, axis=-1)
+                    np.linalg.norm(check_r1s - check_inside.center, axis=-1)
                     >= check_inside.inner_r - limit / 1000.0
                 )
                 idx = idx[mask]
                 check_r1s = check_r1s[mask]
-            dists = _compute_nearest(
-                surf["rr"], check_r1s, return_dists=True, method="KDTree"
-            )[1]
+            dists = check_inside.query(check_r1s)[0]
             close = dists < limit / 1000.0
             omit_limit = np.sum(close)
             inside[idx[close]] = False
@@ -2798,7 +2824,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-# XXX this should probably be deprecated because it returns surface Labels,
+# XXX this should probably be removed because it returns surface Labels,
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
 # checking, which might not be the case (could be all volumes)

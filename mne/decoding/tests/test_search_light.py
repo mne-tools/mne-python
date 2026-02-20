@@ -354,13 +354,5 @@ def test_cross_val_predict():
     ]
 )
 def test_sklearn_compliance(estimator, check):
-    """Test LinearModel compliance with sklearn."""
-    ignores = (
-        # TODO: we don't handle singleton right (probably)
-        "check_classifiers_one_label_sample_weights",
-        "check_classifiers_classes",
-        "check_classifiers_train",
-    )
-    if any(ignore in str(check) for ignore in ignores):
-        return
+    """Test searchlights compliance with sklearn."""
     check(estimator)

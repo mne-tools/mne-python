@@ -17,6 +17,7 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
+from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,
@@ -356,11 +357,7 @@ class Raw(BaseRaw):
         raw.orig_format = orig_format
 
         #   Add the calibration factors
-        cals = np.zeros(info["nchan"])
-        for k in range(info["nchan"]):
-            cals[k] = info["chs"][k]["range"] * info["chs"][k]["cal"]
-
-        raw._cals = cals
+        raw._cals = info._cals
         raw._raw_extras = raw_extras
         logger.info(
             "    Range : %d ... %d =  %9.3f ... %9.3f secs",
@@ -428,7 +425,7 @@ class Raw(BaseRaw):
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
                 try:
-                    one.shape = (nsamp, nchan)
+                    one = _reshape_view(one, (nsamp, nchan))
                 except AttributeError:  # one is None
                     n_bad += picksamp
                 else:

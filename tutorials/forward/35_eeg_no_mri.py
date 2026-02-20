@@ -6,7 +6,7 @@ EEG forward operator with a template MRI
 ========================================
 
 This tutorial explains how to compute the forward operator from EEG data
-using the standard template MRI subject ``fsaverage``.
+using the standard template MRI subject :ref:`fsaverage <fsaverage_background>`.
 
 .. caution:: Source reconstruction without an individual T1 MRI from the
              subject will be less accurate. Do not over interpret activity

@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "e65a55965958829a0cfc66d45a57175214241d16",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/sphinxext/prs/13135.json": {
+      "a": 107,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13140.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13141.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13143.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13145.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13146.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13147.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13148.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13149.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13152.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13153.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13155.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13162.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13163.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13164.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13171.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13174.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13178.json": {
+      "a": 63,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

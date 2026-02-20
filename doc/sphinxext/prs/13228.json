@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "80a20717e912ee2a7982225e7e2c5ed6b70032f5",
+  "authors": [
+    {
+      "n": "Pierre Guetschel",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13228.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 319,
+      "d": 30
+    },
+    "mne/epochs.py": {
+      "a": 19,
+      "d": 5
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 170,
+      "d": 11
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 14,
+      "d": 10
+    }
+  }
+}

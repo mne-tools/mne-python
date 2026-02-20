@@ -42,8 +42,9 @@ from ..parallel import parallel_func
 from ..preprocessing.ica import read_ica
 from ..proj import read_proj
 from ..source_estimate import SourceEstimate, read_source_estimate
+from ..source_space._source_space import _ensure_src
 from ..surface import dig_mri_distances
-from ..transforms import Transform, read_trans
+from ..transforms import _find_trans
 from ..utils import (
     _check_ch_locs,
     _check_fname,
@@ -53,6 +54,7 @@ from ..utils import (
     _import_nibabel,
     _path_like,
     _pl,
+    _record_warnings,
     _safe_input,
     _validate_type,
     _verbose_safe_false,
@@ -188,11 +190,14 @@ def _html_toc_element(*, titles, dom_ids, tags):
     return _renderer("toc.html.jinja")(titles=titles, dom_ids=dom_ids, tags=tags)
 
 
-def _html_forward_sol_element(*, id_, repr_, sensitivity_maps, title, tags):
+def _html_forward_sol_element(
+    *, id_, repr_, sensitivity_maps, source_space, title, tags
+):
     return _renderer("forward.html.jinja")(
         id=id_,
         repr=repr_,
         sensitivity_maps=sensitivity_maps,
+        source_space=source_space,
         tags=tags,
         title=title,
     )
@@ -200,7 +205,11 @@ def _html_forward_sol_element(*, id_, repr_, sensitivity_maps, title, tags):
 
 def _html_inverse_operator_element(*, id_, repr_, source_space, title, tags):
     return _renderer("inverse.html.jinja")(
-        id=id_, repr=repr_, source_space=source_space, tags=tags, title=title
+        id=id_,
+        repr=repr_,
+        source_space=source_space,
+        tags=tags,
+        title=title,
     )
 
 
@@ -228,7 +237,17 @@ def _html_slider_element(
 
 
 def _html_image_element(
-    *, id_, img, image_format, caption, show, div_klass, img_klass, title, tags
+    *,
+    id_,
+    img,
+    image_format,
+    caption,
+    show,
+    div_klass,
+    img_klass,
+    title,
+    tags,
+    embedded=False,
 ):
     return _renderer("image.html.jinja")(
         id=id_,
@@ -239,6 +258,7 @@ def _html_image_element(
         image_format=image_format,
         div_klass=div_klass,
         img_klass=img_klass,
+        embedded=embedded,
         show="show" if show else "",
     )
 
@@ -475,7 +495,17 @@ def _fig_to_img(
 
 
 def _get_bem_contour_figs_as_arrays(
-    *, sl, n_jobs, mri_fname, surfaces, orientation, src, show, show_orientation, width
+    *,
+    sl,
+    n_jobs,
+    mri_fname,
+    surfaces,
+    orientation,
+    src,
+    trans,
+    show,
+    show_orientation,
+    width,
 ):
     """Render BEM surface contours on MRI slices.
 
@@ -494,6 +524,7 @@ def _get_bem_contour_figs_as_arrays(
             surfaces=surfaces,
             orientation=orientation,
             src=src,
+            trans=trans,
             show=show,
             show_orientation=show_orientation,
             width=width,
@@ -507,6 +538,21 @@ def _get_bem_contour_figs_as_arrays(
     return out
 
 
+def _iterate_alignment_views(function, alpha, **kwargs):
+    """Auxiliary function to iterate over views in trans fig."""
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+
+    # TODO: Eventually maybe we should expose the size option?
+    size = (80, 80) if MNE_3D_BACKEND_TESTING else (800, 800)
+    fig = create_3d_figure(size, bgcolor=(0.5, 0.5, 0.5))
+    from ..viz.backends.renderer import backend
+
+    try:
+        return _itv(function, fig, **kwargs)
+    finally:
+        backend._close_3d_figure(fig)
+
+
 def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -518,9 +564,10 @@ def _iterate_trans_views(function, alpha, **kwargs):
 
     try:
         try:
-            return _itv(function, fig, surfaces={"head-dense": alpha}, **kwargs)
+            return _itv(function, fig, **kwargs)
         except OSError:
-            return _itv(function, fig, surfaces={"head": alpha}, **kwargs)
+            kwargs["surfaces"] = {"head": alpha}
+            return _itv(function, fig, **kwargs)
     finally:
         backend._close_3d_figure(fig)
 
@@ -530,7 +577,18 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
 
     function(fig=fig, **kwargs)
 
-    views = ("frontal", "lateral", "medial", "axial", "rostral", "coronal")
+    views = (
+        "right_lateral",
+        "right_anterolateral",
+        "anterior",
+        "left_anterolateral",
+        "left_lateral",
+        "superior",
+        "right_posterolateral",
+        "posterior",
+        "left_posterolateral",
+        "inferior",
+    )
 
     images = []
     for view in views:
@@ -543,24 +601,27 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
         images.append(im)
 
     images = np.concatenate(
-        [np.concatenate(images[:3], axis=1), np.concatenate(images[3:], axis=1)], axis=0
+        [np.concatenate(images[:5], axis=1), np.concatenate(images[5:], axis=1)], axis=0
     )
 
-    try:
-        dists = dig_mri_distances(
-            info=kwargs["info"],
-            trans=kwargs["trans"],
-            subject=kwargs["subject"],
-            subjects_dir=kwargs["subjects_dir"],
-            on_defects="ignore",
-        )
-        caption = (
-            f"Average distance from {len(dists)} digitized points to "
-            f"head: {1e3 * np.mean(dists):.2f} mm"
-        )
-    except BaseException as e:
-        caption = "Distances could not be calculated from digitized points"
-        warn(f"{caption}: {e}")
+    if "info" in kwargs:  # fwd/inv do not have dig points
+        try:
+            dists = dig_mri_distances(
+                info=kwargs["info"],
+                trans=kwargs["trans"],
+                subject=kwargs["subject"],
+                subjects_dir=kwargs["subjects_dir"],
+                on_defects="ignore",
+            )
+            caption = (
+                f"Average distance from {len(dists)} digitized points to "
+                f"head: {1e3 * np.mean(dists):.2f} mm"
+            )
+        except BaseException as e:
+            caption = "Distances could not be calculated from digitized points"
+            warn(f"{caption}: {e}")
+    else:
+        caption = None
     img = _fig_to_img(images, image_format="png", max_width=max_width, max_res=max_res)
 
     return img, caption
@@ -654,12 +715,11 @@ def open_report(fname, **params):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
         state = read_hdf5(fname, title="mnepython")
+        for param, default in _backward_compat_map.items():
+            state.setdefault(param, default)
         for param in params:
             if param not in state:
-                if param in _backward_compat_map:
-                    state[param] = _backward_compat_map[param]
-                else:
-                    raise ValueError(f"The loaded report has no attribute {param}")
+                raise ValueError(f"The loaded report has no attribute {param}")
             if params[param] != state[param]:
                 raise ValueError(
                     f"Attribute '{param}' of loaded report ({params[param]}) does not "
@@ -1485,6 +1545,7 @@ class Report:
         *,
         subject=None,
         subjects_dir=None,
+        plot=False,
         tags=("forward-solution",),
         section=None,
         replace=False,
@@ -1498,12 +1559,14 @@ class Report:
         title : str
             The title corresponding to forward solution.
         subject : str | None
-            The name of the FreeSurfer subject ``forward`` belongs to. If
-            provided, the sensitivity maps of the forward solution will
-            be visualized. If ``None``, will use the value of ``subject``
-            passed on report creation. If supplied, also pass ``subjects_dir``.
+            The name of the FreeSurfer subject ``forward`` belongs to.
+            If ``None``, will use the value of ``subject`` passed on report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
+        plot : bool
+            If True, plot the source space of the forward solution.
+
+            .. versionadded:: 1.10
         %(tags_report)s
         %(section_report)s
 
@@ -1525,6 +1588,7 @@ class Report:
             section=section,
             tags=tags,
             replace=replace,
+            plot=plot,
         )
 
     @fill_doc
@@ -1535,7 +1599,7 @@ class Report:
         *,
         subject=None,
         subjects_dir=None,
-        trans=None,
+        plot=False,
         tags=("inverse-operator",),
         section=None,
         replace=False,
@@ -1549,15 +1613,15 @@ class Report:
         title : str
             The title corresponding to the inverse operator object.
         subject : str | None
-            The name of the FreeSurfer subject ``inverse_op`` belongs to. If
-            provided, the source space the inverse solution is based on will
-            be visualized. If ``None``, will use the value of ``subject``
-            passed on report creation. If supplied, also pass ``subjects_dir``
-            and ``trans``.
+            The name of the FreeSurfer subject ``inverse_op`` belongs to
+            If ``None``, will use the value of ``subject``
+            passed on report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        trans : path-like | instance of Transform | None
-            The ``head -> MRI`` transformation for ``subject``.
+        plot : bool
+            If True, plot the source space of the inverse operator.
+
+            .. versionadded:: 1.10
         %(tags_report)s
         %(section_report)s
 
@@ -1569,19 +1633,13 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-
-        if (subject is not None and trans is None) or (
-            trans is not None and subject is None
-        ):
-            raise ValueError("Please pass subject AND trans, or neither.")
-
         self._add_inverse_operator(
             inverse_operator=inverse_operator,
             subject=subject,
             subjects_dir=subjects_dir,
-            trans=trans,
             title=title,
             image_format=self.image_format,
+            plot=plot,
             section=section,
             tags=tags,
             replace=replace,
@@ -1597,17 +1655,21 @@ class Report:
         subject=None,
         subjects_dir=None,
         alpha=None,
+        coord_frame="mri",
+        plot_kwargs=None,
         tags=("coregistration",),
         section=None,
-        coord_frame="mri",
         replace=False,
     ):
         """Add a coregistration visualization to the report.
 
         Parameters
         ----------
-        trans : path-like | instance of Transform
-            The ``head -> MRI`` transformation to render.
+        %(trans)s "auto" will load trans from the FreeSurfer directory
+            specified by ``subject`` and ``subjects_dir`` parameters.
+
+            .. versionchanged:: 1.10
+                Support for 'fsaverage' argument.
         info : path-like | instance of Info
             The `~mne.Info` corresponding to ``trans``.
         title : str
@@ -1622,13 +1684,23 @@ class Report:
         alpha : float | None
             The level of opacity to apply to the head surface. If a float, must
             be between 0 and 1 (inclusive), where 1 means fully opaque. If
-            ``None``, will use the MNE-Python default value.
+            ``None``, will use the MNE-Python default value. See also ``plot_kwargs``.
+        coord_frame : 'auto' | 'head' | 'meg' | 'mri'
+            Coordinate frame used for plotting. See :func:`mne.viz.plot_alignment`
+            and ``plot_kwargs``.
+        plot_kwargs : dict | None
+            Plotting arguments to be passed to :func:`mne.viz.plot_alignment`.
+            If ``alpha`` is not ``None``, it will override a potential
+            ``plot_kwargs["alpha"]``. The ``coord_frame`` key word argument always
+            overrides a potential ``plot_kwargs["coord_frame"]``. If ``None``,
+            this defaults to
+            ``dict(dig=True, meg=("helmet", "sensors"), show_axes=True)``.
+
+            .. versionadded:: 1.10
         %(tags_report)s
         %(section_report)s
 
             .. versionadded:: 1.9
-        coord_frame : 'auto' | 'head' | 'meg' | 'mri'
-            Coordinate frame used for plotting. See :func:`mne.viz.plot_alignment`.
         %(replace_report)s
 
         Notes
@@ -1642,6 +1714,7 @@ class Report:
             subject=subject,
             subjects_dir=subjects_dir,
             alpha=alpha,
+            plot_kwargs=plot_kwargs,
             title=title,
             section=section,
             tags=tags,
@@ -2639,6 +2712,8 @@ class Report:
         self._add_bem(
             subject=subject,
             subjects_dir=subjects_dir,
+            src=None,
+            trans=None,
             decim=decim,
             n_jobs=n_jobs,
             width=width,
@@ -2778,6 +2853,7 @@ class Report:
         on_error,
         stc_plot_kwargs,
         topomap_kwargs,
+        plot_src,
     ):
         """Parallel process in batch mode."""
         assert self.data_path is not None
@@ -2801,10 +2877,15 @@ class Report:
                         title=title,
                         subject=self.subject,
                         subjects_dir=self.subjects_dir,
+                        plot=plot_src,
                     )
                 elif _endswith(fname, "inv"):
                     # XXX if we pass trans, we can plot the source space, too…
-                    self.add_inverse_operator(inverse_operator=fname, title=title)
+                    self.add_inverse_operator(
+                        inverse_operator=fname,
+                        title=title,
+                        plot=plot_src,
+                    )
                 elif _endswith(fname, "ave"):
                     evokeds = read_evokeds(fname)
                     titles = [f"{Path(fname).name}: {e.comment}" for e in evokeds]
@@ -2881,6 +2962,7 @@ class Report:
         on_error="warn",
         image_format=None,
         render_bem=True,
+        plot_src=False,
         n_time_points_evokeds=None,
         n_time_points_stcs=None,
         raw_butterfly=True,
@@ -2922,6 +3004,11 @@ class Report:
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
+        plot_src : bool
+            If True (default False), plot the source space when adding a forward
+            or inverse.
+
+            .. versionadded:: 1.10
         n_time_points_evokeds, n_time_points_stcs : int | None
             The number of equidistant time points to render for :class:`~mne.Evoked`
             and :class:`~mne.SourceEstimate` data, respectively. If ``None``,
@@ -3041,6 +3128,7 @@ class Report:
                 on_error=on_error,
                 stc_plot_kwargs=stc_plot_kwargs,
                 topomap_kwargs=topomap_kwargs,
+                plot_src=plot_src,
             )
             for fname in np.array_split(fnames, n_jobs)
         )
@@ -3181,7 +3269,7 @@ class Report:
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter("ignore")
                     footer_html = _html_footer_element(
-                        mne_version=MNE_VERSION, date=time.strftime("%B %d, %Y")
+                        mne_version=MNE_VERSION, date=time.strftime("%Y-%m-%d %H:%M:%S")
                     )
 
                 html = [header_html, toc_html, *self.html, footer_html]
@@ -3229,6 +3317,8 @@ class Report:
         surfaces,
         image_format,
         orientation,
+        src=None,
+        trans=None,
         decim=2,
         n_jobs=None,
         width=512,
@@ -3249,7 +3339,8 @@ class Report:
             mri_fname=mri_fname,
             surfaces=surfaces,
             orientation=orientation,
-            src=None,
+            src=src,
+            trans=trans,
             show=False,
             show_orientation="always",
             width=width,
@@ -3411,9 +3502,8 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
-            with warnings.catch_warnings():
+            with _record_warnings():
                 # SciPy warning about too short a data segment given the window size
-                warnings.simplefilter(action="ignore", category=FutureWarning)
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             self._add_figure(
                 fig=fig,
@@ -3456,7 +3546,7 @@ class Report:
         evoked = None
         if isinstance(info, Info):  # no-op
             pass
-        elif hasattr(info, "info"):  # try to get the file name
+        elif isinstance(getattr(info, "info", None), Info):  # try to get the file name
             if isinstance(info, Evoked):
                 evoked = info
             info = info.info
@@ -3525,6 +3615,7 @@ class Report:
         subjects_dir,
         title,
         image_format,
+        plot,
         section,
         tags,
         replace,
@@ -3534,19 +3625,26 @@ class Report:
             forward = read_forward_solution(forward)
 
         subject = self.subject if subject is None else subject
-        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
+        subject = forward["src"][0]["subject_his_id"] if subject is None else subject
 
         # XXX Todo
         # Render sensitivity maps
-        if subject is not None:
-            sensitivity_maps_html = ""
-        else:
-            sensitivity_maps_html = ""
+        sensitivity_maps_html = ""
+        source_space_html = ""
+        if plot:
+            source_space_html = self._src_html(
+                subject=subject,
+                subjects_dir=subjects_dir,
+                src=forward["src"],
+                trans=forward["mri_head_t"],
+                image_format=image_format,
+            )
 
         html_partial = partial(
             _html_forward_sol_element,
             repr_=forward._repr_html_(),
             sensitivity_maps=sensitivity_maps_html,
+            source_space=source_space_html,
             title=title,
             tags=tags,
         )
@@ -3558,15 +3656,62 @@ class Report:
             replace=replace,
         )
 
+    def _src_html(
+        self,
+        *,
+        subject,
+        subjects_dir,
+        src,
+        trans,
+        image_format,
+    ):
+        src = _ensure_src(src)
+        subject = self.subject if subject is None else subject
+        subject = src[0]["subject_his_id"] if subject is None else subject
+        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
+        trans, _ = _find_trans(trans=trans, subject=subject, subjects_dir=subjects_dir)
+        if src.kind == "surface" or src.kind == "mixed":
+            surfaces = dict(head=0.1, white=0.5)
+        else:
+            surfaces = dict(head=0.1)
+        kwargs = dict(
+            trans=trans,
+            src=src,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            show_axes=False,
+            coord_frame="mri",
+            surfaces=surfaces,
+        )
+        img, _ = _iterate_alignment_views(
+            function=plot_alignment,
+            alpha=0.5,
+            max_width=self.img_max_width,
+            max_res=self.img_max_res,
+            **kwargs,
+        )
+        return _html_image_element(
+            embedded=True,  # because it's embedded in an existing section...
+            id_=None,  # a bunch of options are not used (they are part of "section")
+            tags=None,
+            div_klass=None,
+            img_klass=None,
+            show=None,
+            img=img,
+            title="Source space",  # just the alt text
+            caption="Source space",
+            image_format=image_format,
+        )
+
     def _add_inverse_operator(
         self,
         *,
         inverse_operator,
         subject,
         subjects_dir,
-        trans,
         title,
         image_format,
+        plot,
         section,
         tags,
         replace,
@@ -3575,42 +3720,19 @@ class Report:
         if not isinstance(inverse_operator, InverseOperator):
             inverse_operator = read_inverse_operator(inverse_operator)
 
-        if trans is not None and not isinstance(trans, Transform):
-            trans = read_trans(trans)
-
-        subject = self.subject if subject is None else subject
-        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
-
-        # XXX Todo Render source space?
-        # if subject is not None and trans is not None:
-        #     src = inverse_operator['src']
-
-        #     fig = plot_alignment(
-        #         subject=subject,
-        #         subjects_dir=subjects_dir,
-        #         trans=trans,
-        #         surfaces='white',
-        #         src=src
-        #     )
-        #     set_3d_view(fig, focalpoint=(0., 0., 0.06))
-        #     img = self._fig_to_img(fig=fig, image_format=image_format)
-
-        #     src_img_html = partial(
-        #         _html_image_element,
-        #         img=img,
-        #         div_klass='inverse-operator source-space',
-        #         img_klass='inverse-operator source-space',
-        #         title='Source space', caption=None, show=True,
-        #         image_format=image_format,
-        #         tags=tags
-        #     )
-        # else:
-        src_img_html = ""
-
+        source_space_html = ""
+        if plot:
+            source_space_html = self._src_html(
+                subject=subject,
+                subjects_dir=subjects_dir,
+                src=inverse_operator["src"],
+                trans=inverse_operator["mri_head_t"],
+                image_format=image_format,
+            )
         html_partial = partial(
             _html_inverse_operator_element,
             repr_=inverse_operator._repr_html_(),
-            source_space=src_img_html,
+            source_space=source_space_html,
             title=title,
             tags=tags,
         )
@@ -4217,6 +4339,7 @@ class Report:
         subject,
         subjects_dir,
         alpha,
+        plot_kwargs,
         title,
         section,
         tags,
@@ -4224,27 +4347,45 @@ class Report:
         replace,
     ):
         """Render trans (only PNG)."""
-        if not isinstance(trans, Transform):
-            trans = read_trans(trans)
+        trans, _ = _find_trans(trans=trans, subject=subject, subjects_dir=subjects_dir)
+
         if not isinstance(info, Info):
             info = read_info(info)
 
-        kwargs = dict(
-            info=info,
-            trans=trans,
-            subject=subject,
-            subjects_dir=subjects_dir,
-            dig=True,
-            meg=["helmet", "sensors"],
-            show_axes=True,
-            coord_frame=coord_frame,
+        plot_kwargs = _handle_default("report_coreg", plot_kwargs)
+
+        plot_kwargs.update(
+            dict(
+                info=info,
+                trans=trans,
+                subject=subject,
+                subjects_dir=subjects_dir,
+            )
         )
+
+        # This potentially overwrites information
+        plot_kwargs["coord_frame"] = coord_frame
+
+        if alpha is not None:
+            # if not available, fall back to plot_alignment default: 'auto'
+            surfaces = plot_kwargs.get("surfaces", "auto")
+            if isinstance(surfaces, dict):
+                surfaces = list(surfaces.keys())
+            elif isinstance(surfaces, list):
+                pass
+            elif isinstance(surfaces, str) and surfaces != "auto":
+                surfaces = [surfaces]
+            else:
+                surfaces = ["head-dense"]  # "auto"
+
+            surfaces = {surf: alpha for surf in surfaces}
+
         img, caption = _iterate_trans_views(
             function=plot_alignment,
             alpha=alpha,
             max_width=self.img_max_width,
             max_res=self.img_max_res,
-            **kwargs,
+            **plot_kwargs,
         )
         self._add_image(
             img=img,
@@ -4405,13 +4546,15 @@ class Report:
         *,
         subject,
         subjects_dir,
+        src,
+        trans,
         decim,
         n_jobs,
         width=512,
         image_format,
         title,
-        tags,
         section,
+        tags,
         replace,
     ):
         """Render mri+bem (only PNG)."""
@@ -4437,6 +4580,8 @@ class Report:
                 mri_fname=mri_fname,
                 surfaces=surfaces,
                 orientation=orientation,
+                src=src,
+                trans=trans,
                 decim=decim,
                 n_jobs=n_jobs,
                 width=width,

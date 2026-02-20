@@ -26,6 +26,7 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
+from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
@@ -507,11 +508,37 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs.shape = (len(imgs), -1)
+    imgs = _reshape_view(imgs, (len(imgs), -1))
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
     assert 0.778 < corr < 0.80
+
+
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_add_forward(renderer_interactive_pyvistaqt):
+    """Test add_forward."""
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=True,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 1
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=False,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 0
 
 
 @testing.requires_testing_data
@@ -882,6 +909,7 @@ def test_survive_pickle(tmp_path):
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
@@ -1145,6 +1173,21 @@ def test_report_tweaks(tmp_path, monkeypatch):
     assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
 
 
+def test_report_backward_compat(tmp_path):
+    """Ensure our options are still backward compatible."""
+    h5io = pytest.importorskip("h5io")
+    fname = tmp_path / "report.h5"
+    r = Report()
+    r.img_max_width = 600
+    r.save(fname)
+    h = h5io.read_hdf5(fname, title="mnepython")
+    assert h["img_max_width"] == 600
+    del h["img_max_width"]
+    h5io.write_hdf5(fname, h, title="mnepython", overwrite=True)
+    with open_report(fname) as r2:
+        assert r2.img_max_width == 850
+
+
 @pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
@@ -1155,7 +1198,11 @@ def test_manual_report_3d(tmp_path, renderer):
     with info._unlock():
         dig, info["dig"] = info["dig"], []
     add_kwargs = dict(
-        trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
+        trans=trans_fname,
+        info=info,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        alpha=0.75,
     )
     with (
         _record_warnings(),
@@ -1168,6 +1215,12 @@ def test_manual_report_3d(tmp_path, renderer):
     # use of sparse rather than dense head, and also possibly an arg to specify
     # which views to actually show. Both of these could probably be useful to
     # end-users, too.
+    bad_add_kwargs = add_kwargs.copy()
+    bad_add_kwargs.update(dict(trans="auto", subjects_dir=subjects_dir))
+    with pytest.raises(RuntimeError, match="Could not find"):
+        r.add_trans(title="my coreg", **bad_add_kwargs)
+    add_kwargs.update(trans="fsaverage")  # this is wrong but tests fsaverage code path
+    add_kwargs.update(plot_kwargs=dict(dig="fiducials"))  # test additional plot kwargs
     r.add_trans(title="my coreg", **add_kwargs)
     r.add_bem(subject="sample", subjects_dir=subjects_dir, title="my bem", decim=100)
     r.add_inverse_operator(
@@ -1175,7 +1228,7 @@ def test_manual_report_3d(tmp_path, renderer):
         title="my inverse",
         subject="sample",
         subjects_dir=subjects_dir,
-        trans=trans_fname,
+        plot=True,
     )
     r.add_stc(
         stc=stc_fname,

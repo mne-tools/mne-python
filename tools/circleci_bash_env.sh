@@ -12,7 +12,6 @@ echo "set -e" >> $BASH_ENV
 echo "set -o pipefail" >> $BASH_ENV
 echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
 echo "export MNE_FULL_DATE=true" >> $BASH_ENV
-source tools/get_minimal_commands.sh
 echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
 echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
 echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV

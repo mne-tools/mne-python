@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1c9ac7c145f55416661a912a1de66302d2433ba6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/misc.py": {
+      "a": 30,
+      "d": 12
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 0,
+      "d": 15
+    }
+  }
+}

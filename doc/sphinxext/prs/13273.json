@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4033b3a339c1226e248953eeee30e7488d50659f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/martinos.rst": {
+      "a": 0,
+      "d": 37
+    }
+  }
+}

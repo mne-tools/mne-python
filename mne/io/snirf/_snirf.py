@@ -148,14 +148,13 @@ class RawSNIRF(BaseRaw):
             # Extract wavelengths
             fnirs_wavelengths = np.array(dat.get("nirs/probe/wavelengths"))
             fnirs_wavelengths = [int(w) for w in fnirs_wavelengths]
-            if len(fnirs_wavelengths) != 2:
+            if len(fnirs_wavelengths) < 2:
                 raise RuntimeError(
                     f"The data contains "
                     f"{len(fnirs_wavelengths)}"
                     f" wavelengths: {fnirs_wavelengths}. "
-                    f"MNE only supports reading continuous"
-                    " wave amplitude SNIRF files "
-                    "with two wavelengths."
+                    f"MNE requires at least two wavelengths for "
+                    "continuous wave amplitude SNIRF files."
                 )
 
             # Extract channels
@@ -389,6 +388,11 @@ class RawSNIRF(BaseRaw):
                 diglocs = np.array(dat.get("/nirs/probe/landmarkPos3D"))
                 diglocs /= length_scaling
                 digname = np.array(dat.get("/nirs/probe/landmarkLabels"))
+                # Handle empty or scalar landmarkLabels (see gh-13627)
+                if digname.ndim == 0 or digname.size == 0:
+                    digname = []
+                else:
+                    digname = _correct_shape(digname)
                 nasion, lpa, rpa, hpi = None, None, None, None
                 extra_ps = dict()
                 for idx, dign in enumerate(digname):

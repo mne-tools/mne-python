@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "3fbf9865c8e27f6cffe15fa5335e922e82933af7",
+  "authors": [
+    {
+      "n": "Emmanuel Ferdman",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13350.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 33,
+      "d": 7
+    },
+    "mne/decoding/_covs_ged.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/rank.py": {
+      "a": 54,
+      "d": 8
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_rank.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

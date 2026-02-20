@@ -31,8 +31,6 @@ from mne.simulation import (
     simulate_sparse_stc,
 )
 
-print(__doc__)
-
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"
 raw_fname = meg_path / "sample_audvis_raw.fif"

@@ -5,24 +5,47 @@
 Current Project Leadership and Institutional Partners
 =====================================================
 
+.. _maintainer-team-people:
+
 Maintainer Team
 ---------------
 
-* `Adam Li`_
 * `Alex Gramfort`_
-* `Alex Rockhill`_
 * `Britta Westner`_
+* `Carina Forster`_
 * `Clemens Brunner`_
 * `Daniel McCloy`_
-* `Denis Engemann`_
 * `Eric Larson`_
-* `Mainak Jas`_
+* `Erica Peterson`_
 * `Marijn van Vliet`_
 * `Mathieu Scheltienne`_
-* `Mikołaj Magnuski`_
 * `Richard Höchenberger`_
-* `Robert Luke`_
+* `Scott Huberty`_
 * `Stefan Appelhoff`_
+* `Thomas Binns`_
+
+Past Maintainers
+----------------
+
+* `Adam Li`_
+* `Alex Rockhill`_
+* `Denis Engemann`_
+* `Chris Holdgraf`_
+* `Christian Brodbeck`_
+* `Guillaume Favelier`_
+* `Jaakko Leppakangas`_
+* `Jean-Rémi King`_
+* `Joan Massich`_
+* `Jona Sassenhagen`_
+* `Luke Bloy`_
+* `Mainak Jas`_
+* `Martin Luessi`_
+* `Mikołaj Magnuski`_
+* `Robert Luke`_
+* `Roman Goj`_
+* `Teon Brooks`_
+
+.. _steering-council-people:
 
 Steering Council
 ----------------
@@ -31,10 +54,17 @@ Steering Council
 * `Daniel McCloy`_ (chair)
 * `Eric Larson`_
 
+.. _advisory-board-people:
+
 Advisory Board
 --------------
 
-The advisory board is currently unfilled.
+* `Alex Gramfort`_
+* `Bradley Voytek`_
+* `Jan-Mathijs Schoeffelen`_
+* `Liberty Hamilton`_
+* `Matti Hämäläinen`_
+* `Ole Jensen`_
 
 
 .. _governance-cpgrl:

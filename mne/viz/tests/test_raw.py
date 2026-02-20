@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from matplotlib import backend_bases
+from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
@@ -23,6 +23,7 @@ from mne.utils import (
     _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
+    catch_logging,
     check_version,
     get_config,
     set_config,
@@ -49,6 +50,8 @@ def _get_button_xy(buttons, idx):
 
 def _annotation_helper(raw, browse_backend, events=False):
     """Test interactive annotations."""
+    from cycler import cycler  # dep of matplotlib, should be okay but nest just in case
+
     ismpl = browse_backend.name == "matplotlib"
     # Some of our checks here require modern mpl to work properly
     n_anns = len(raw.annotations)
@@ -60,7 +63,27 @@ def _annotation_helper(raw, browse_backend, events=False):
     else:
         events = None
         n_events = 0
-    fig = raw.plot(events=events)
+    # matplotlib 2.0 default cycler
+    default_cycler = cycler(
+        "color",
+        [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ],
+    )  # noqa: E501
+    with catch_logging("debug") as log, rc_context({"axes.prop_cycle": default_cycler}):
+        fig = raw.plot(events=events)
+    log = log.getvalue()
+    assert "Removing from color cycle: #d62728" in log
+    assert log.count("Removing from color cycle") == 1
     if ismpl:
         assert browse_backend._get_n_figs() == 1
 
@@ -298,6 +321,9 @@ def test_scale_bar(browser_backend):
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
+    if ismpl and os.getenv("MNE_CI_KIND") == "pip-pre":
+        # TODO VERSION FIX SOON AFTER 2026/01/26!
+        pytest.xfail("Needs mpl gh-31031")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
@@ -498,7 +524,7 @@ def _monkeypatch_fig(fig, browser_backend):
         fig.showNormal = _norm
 
 
-def test_plot_raw_keypresses(raw, browser_backend, monkeypatch):
+def test_plot_raw_keypresses(raw, browser_backend):
     """Test keypress interactivity of plot_raw()."""
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
@@ -742,6 +768,9 @@ def test_plot_misc_auto(browser_backend):
 def test_plot_annotations(raw, browser_backend):
     """Test annotation mode of the plotter."""
     ismpl = browser_backend.name == "matplotlib"
+    if ismpl and os.getenv("MNE_CI_KIND") == "pip-pre":
+        # TODO VERSION FIX SOON AFTER 2026/01/26!
+        pytest.xfail("Needs mpl gh-31031")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0
     _annotation_helper(raw, browser_backend)
@@ -779,6 +808,23 @@ def test_plot_annotations(raw, browser_backend):
     ch_pick = fig.mne.inst.ch_names[0]
     fig._toggle_single_channel_annotation(ch_pick, 0)
     assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
+
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([42, 50], [1, 1], ["test", "test2"], raw.info["meas_date"])
+    with pytest.warns(RuntimeWarning, match="expanding outside"):
+        raw.set_annotations(annot)
+
+    fig = raw.plot()
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = raw.plot(annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
 
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
@@ -964,6 +1010,15 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
     RawArray(np.zeros((1, 100)), create_info(1, 20.0, "stim")).plot(lowpass=5)
 
 
+def _check_ylabel_psd(ylabel, amplitude, dB, unit):
+    """Check that the ylabel is correct."""
+    numerator = "dB" if dB else unit
+    denominator = r"\sqrt{\mathrm{Hz}}" if amplitude else r"\mathrm{Hz}"
+    reference_val = rf"\ \mathrm{{re}}\ 1\ \mathrm{{{unit}}}" if dB else ""
+    pattern = rf"\mathrm{{{numerator}}}/{denominator}{reference_val}"
+    assert pattern in ylabel, ylabel
+
+
 def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
@@ -1015,24 +1070,20 @@ def test_plot_raw_psd(raw, raw_orig):
     with pytest.warns(UserWarning, match="[Infinite|Zero]"):
         spectrum = raw.compute_psd()
     for dB, amplitude in itertools.product((True, False), (True, False)):
-        with pytest.warns(UserWarning, match="[Infinite|Zero]"):
+        with pytest.warns(UserWarning, match="(Infinite|Zero)"):
             fig = spectrum.plot(average=True, dB=dB, amplitude=amplitude)
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
+        unit = "fT/cm" if amplitude else "(fT/cm)^2"
         assert title == "Gradiometers", title
-        assert unit in ylabel, ylabel
-        if dB:
-            assert "dB" in ylabel
-        else:
-            assert "dB" not in ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
-        unit = r"fT/\sqrt{Hz}" if amplitude else "fT²/Hz"
+        unit = "fT" if amplitude else "fT^2"
         assert title == "Magnetometers", title
-        assert unit in ylabel, ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
 
     # test xscale value checking
     raw = raw_unchanged

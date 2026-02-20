@@ -38,38 +38,46 @@ data_dir = doc_root / "sphinxext"
 # preferring GitHub profile info (when complete!) is probably preferable.
 
 # Allowed singletons
-single_names = "btkcodedev buildqa sviter Akshay".split()
+single_names = """
+btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot] varshaa-1616
+""".strip().split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
     Bailey=2,
     Das=2,
     Drew=2,
+    Jin=2,
     Li=2,
     Peterson=2,
     Wong=2,
-    Zhang=2,
+    Zhang=3,
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
+    "Natneal B",
     "T. Wang",
     "Ziyi ZENG",
 ]
 # Manual renames
 manual_renames = {
-    "alexandra": "Alexandra Corneyllie",  # 7600
-    "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
+    "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
+    "alexandra": "Alexandra Corneyllie",  # 7600
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
     "Basile": "Basile Pinsard",  # 1791
+    "Bru": "Bruno Aristimunha",  # 13489
     "ChristinaZhao": "Christina Zhao",  # 9075
     "Drew, J.": "Jordan Drew",  # 10861
     "enzo": "Enzo Altamiranda",  # 11351
+    "Emma": "Emma Zhang",  # 13486
     "Frostime": "Yiping Zuo",  # 11773
+    "FT": "Tamas Fehervari",  # 13408
     "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Genuster": "Gennadiy Belonosov",  # 12936
     "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
+    "Katia": "Katia Al-Amir",  # 13225
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -80,6 +88,7 @@ manual_renames = {
     "Sena": "Sena Er",  # 11029
     "TzionaN": "Tziona NessAiver",  # 10953
     "Valerii": "Valerii Chirkov",  # 9043
+    "Wei": "Wei Xu",  # 13218
     "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
 }
 
@@ -88,6 +97,8 @@ def _good_name(name):
     if name is None:
         return False
     assert isinstance(name, str), type(name)
+    if name == "mne[bot]":
+        return True
     if not name.strip():
         return False
     if " " not in name and name not in single_names:  # at least two parts
@@ -259,6 +270,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "pre-commit-ci[bot]" not in email
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
+        and "50266005+mne-bot" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
@@ -289,7 +301,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         mne/_version.py mne/externals/* */__init__.py* */resources.py paper.bib
         mne/html/*.css mne/html/*.js mne/io/bti/tests/data/* */SHA1SUMS *__init__py
         AUTHORS.rst CITATION.cff CONTRIBUTING.rst codemeta.json mne/tests/*.* jr-tools
-        */whats_new.rst */latest.inc */devel.rst */changelog.rst */manual/* doc/*.json
+        */whats_new.rst */latest.inc */dev.rst */changelog.rst */manual/* doc/*.json
         logo/LICENSE doc/credit.rst
     """.strip().split():
         globs[key] = "null"

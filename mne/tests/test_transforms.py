@@ -19,7 +19,7 @@ from numpy.testing import (
 import mne
 from mne import read_trans, write_trans
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata
+from mne.fixes import _get_img_fdata, _reshape_view
 from mne.io import read_info
 from mne.transforms import (
     _angle_between_quats,
@@ -41,6 +41,7 @@ from mne.transforms import (
     _topo_to_sph,
     _validate_pipeline,
     _write_fs_xfm,
+    angle_distance_between_rigid,
     apply_trans,
     combine_transforms,
     get_ras_to_neuromag_trans,
@@ -75,7 +76,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph.shape = (3, -1)
+    sph = _reshape_view(sph, (3, -1))
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()
@@ -103,11 +104,16 @@ def test_get_trans():
 def test_io_trans(tmp_path):
     """Test reading and writing of trans files."""
     os.mkdir(tmp_path / "sample")
-    pytest.raises(RuntimeError, _find_trans, "sample", subjects_dir=tmp_path)
+    pytest.raises(
+        RuntimeError, _find_trans, trans="auto", subject="sample", subjects_dir=tmp_path
+    )
     trans0 = read_trans(fname)
     fname1 = tmp_path / "sample" / "test-trans.fif"
     trans0.save(fname1)
-    assert fname1 == _find_trans("sample", subjects_dir=tmp_path)
+    trans1, got_fname = _find_trans(
+        trans="auto", subject="sample", subjects_dir=tmp_path
+    )
+    assert fname1 == got_fname
     trans1 = read_trans(fname1)
 
     # check all properties
@@ -558,6 +564,12 @@ def test_fit_matched_points(quats, scaling, do_scale):
             dist = np.linalg.norm(est[3:] - translation)
             assert_array_less(dist_bounds[0], dist)
             assert_array_less(dist, dist_bounds[1])
+            # check our public function as well
+            a = _quat_to_affine(est)
+            b = _quat_to_affine(np.r_[quat, translation])
+            angle_, dist_ = angle_distance_between_rigid(a, b, angle_units="deg")
+            assert_allclose(angle, angle_)
+            assert_allclose(dist, dist_)
 
 
 def test_euler(quats):

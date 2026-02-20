@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "823463e744a65b6c5b424ad092331d27a5b31215",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Dev Parikh",
+      "e": "dev.dpparikh@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13497.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

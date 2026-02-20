@@ -1,4 +1,6 @@
+{% if not embedded %}
 {% extends "section.html.jinja" %}
+{% endif %}
 {% block html_content %}
       <figure class="figure mx-auto d-block">
         {% if image_format == 'svg' %}

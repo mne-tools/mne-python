@@ -36,7 +36,9 @@ def _scale_dataframe_data(inst, data, picks, scalings):
     return data
 
 
-def _convert_times(times, time_format, meas_date=None, first_time=0):
+def _convert_times(
+    times, time_format, *, meas_date=None, first_time=0, drop_nano=False
+):
     """Convert vector of time in seconds to ms, datetime, or timedelta."""
     # private function; pandas already checked in calling function
     from pandas import to_timedelta
@@ -47,10 +49,16 @@ def _convert_times(times, time_format, meas_date=None, first_time=0):
         times = to_timedelta(times, unit="s")
     elif time_format == "datetime":
         times = to_timedelta(times + first_time, unit="s") + meas_date
+        if drop_nano:
+            tz_name = ""
+            if meas_date is not None and meas_date.tzinfo is not None:
+                tz_name = f", {meas_date.tzinfo.tzname(meas_date)}"  # timezone as str
+            times = times.astype(f"datetime64[us{tz_name}]")  # cap at microseconds
     return times
 
 
 def _inplace(df, method, **kwargs):
+    # TODO VERSION can be removed once pandas>=3.0 is required
     # Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)
     # and 3.0 warning:
     # E   DeprecationWarning: The copy keyword is deprecated and will be removed in a

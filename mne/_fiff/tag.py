@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 from scipy.sparse import csc_array, csr_array
 
+from ..fixes import _reshape_view
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_date
 from .constants import (
@@ -177,7 +178,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data.shape = dims
+        data = _reshape_view(data, dims)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
@@ -363,7 +364,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
     """Read dir entry struct tag."""
     pos = tag.pos + 16
     entries = list()
-    for offset in range(1, tag.size // 16):
+    for offset in range(tag.size // 16):
         ent = _read_tag_header(fid, pos + offset * 16)
         # The position of the real tag on disk is stored in the "next" entry within the
         # directory, so we need to overwrite ent.pos. For safety let's also overwrite

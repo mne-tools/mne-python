@@ -920,8 +920,9 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     assert len(src) == n_use
     assert src.kind == "volume"
     n_src = sum(s["nuse"] for s in src)
-    sphere = make_sphere_model("auto", "auto", evoked.info)
+    sphere = make_sphere_model((0.0, 0.0, 0.04), 0.1)
     fwd = make_forward_solution(evoked.info, fname_trans, src, sphere)
+    assert fwd["nsource"] == n_src
     assert fwd["sol"]["data"].shape == (n_ch, n_src * 3)
     inv = make_inverse_operator(
         evoked.info, fwd, make_ad_hoc_cov(evoked.info), loose=1.0

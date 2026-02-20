@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f6c6bd78ac21b3433d5066e6ac8e539a9756e24c",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/zizmor.yml": {
+      "a": 5,
+      "d": 0
+    },
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# deps with onerous requirements (tensorflow, wxPython, mayavi, opencv)
+cross-domain-saliency-maps
+fsleyes
+mne-kit-gui
+mne-videobrowser

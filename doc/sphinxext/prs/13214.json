@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a0dda10cd84d6b122b2f8e83efc091df8f4dc025",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

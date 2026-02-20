@@ -398,7 +398,8 @@ fsaverage
 :func:`mne.datasets.fetch_fsaverage`
 
 For convenience, we provide a function to separately download and extract the
-(or update an existing) fsaverage subject.
+(or update an existing) fsaverage subject. See also the
+:ref:`background information on fsaverage <fsaverage_background>`.
 
 .. topic:: Examples
 

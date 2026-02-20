@@ -149,6 +149,6 @@ brain = stc.plot(
     subjects_dir=subjects_dir,
     initial_time=dip_opm.times[idx],
     clim=dict(kind="percent", lims=[99, 99.9, 99.99]),
-    size=(400, 300),
+    size=(800, 600),
     background="w",
 )

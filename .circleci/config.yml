@@ -36,7 +36,8 @@ jobs:
       - restore_cache:
           keys:
             - source-cache
-      - checkout
+      - checkout:
+          method: full
       - run:
           name: Complete checkout
           command: |
@@ -92,11 +93,6 @@ jobs:
       - run:
           name: Set BASH_ENV
           command: ./tools/circleci_bash_env.sh
-
-      - run:
-          name: check neuromag2ft
-          command: |
-            neuromag2ft --version
 
       - run:
           name: Install fonts needed for diagrams
@@ -244,6 +240,7 @@ jobs:
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
       # Build docs
       - run:
@@ -288,6 +285,15 @@ jobs:
       - store_artifacts:
           path: doc/_build/test-results
           destination: test-results
+      # Upload test results to Codecov
+      - run:
+          name: Upload test results to Codecov
+          environment:
+            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
+          command: |
+            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            fi
       # Save the SG RST
       - store_artifacts:
           path: doc/auto_examples.zip
@@ -456,7 +462,11 @@ jobs:
           at: /tmp/build
       - restore_cache:
           keys:
-            - website-cache
+            - website-cache-1
+      - add_ssh_keys:
+          fingerprints:
+            # SHA256:N4qvp6MSbXcTz/27xz96VPsNuTDRT92zoRP8EW0I/8I
+            - "19:fe:1d:c3:c7:af:7e:16:94:4c:e1:e7:0a:56:13:bd"
       - run:
           name: Set BASH_ENV
           command: |
@@ -484,6 +494,7 @@ jobs:
           command: |
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
+            ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
             cd ~/mne-tools.github.io;
             git checkout main
             git remote -v
@@ -505,9 +516,9 @@ jobs:
             fi;
             git push origin main;
       - save_cache:
-          key: website-cache
+          key: website-cache-1
           paths:
-            - ~/mne_data/MNE-visual_92_categories-data
+            - ~/mne-tools.github.io
 
 workflows:
   default:

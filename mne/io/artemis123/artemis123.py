@@ -398,6 +398,8 @@ class RawArtemis123(BaseRaw):
                     self, tmin=0, tmax=0.25, t_window=0.25, t_step_min=0.25
                 )
                 assert len(coil_amplitudes["times"]) == 1
+                # Need an ititial dev_head_t to compute coil locations
+                self.info["dev_head_t"] = Transform("meg", "head")
                 coil_locs = compute_chpi_locs(self.info, coil_amplitudes)
                 with info._unlock():
                     info["hpi_results"] = None
@@ -432,13 +434,13 @@ class RawArtemis123(BaseRaw):
                         )
 
                     # compute initial head to dev transform and hpi ordering
-                    head_to_dev_t, order, trans_g = _fit_coil_order_dev_head_trans(
+                    dev_head_t, order, trans_g = _fit_coil_order_dev_head_trans(
                         hpi_dev, hpi_head
                     )
 
                     # set the device to head transform
                     self.info["dev_head_t"] = Transform(
-                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, head_to_dev_t
+                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, dev_head_t
                     )
 
                     # add hpi_meg_dev to dig...

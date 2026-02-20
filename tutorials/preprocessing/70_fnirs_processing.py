@@ -30,7 +30,6 @@ fnirs_cw_amplitude_dir = fnirs_data_folder / "Participant-1"
 raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
 raw_intensity.load_data()
 
-
 # %%
 # Providing more meaningful annotation information
 # ------------------------------------------------
@@ -47,7 +46,6 @@ raw_intensity.annotations.rename(
 )
 unwanted = np.nonzero(raw_intensity.annotations.description == "15.0")
 raw_intensity.annotations.delete(unwanted)
-
 
 # %%
 # Viewing location of sensors over brain surface
@@ -89,7 +87,6 @@ raw_intensity.plot(
     n_channels=len(raw_intensity.ch_names), duration=500, show_scrollbars=False
 )
 
-
 # %%
 # Converting from raw intensity to optical density
 # ------------------------------------------------
@@ -98,7 +95,6 @@ raw_intensity.plot(
 
 raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
 raw_od.plot(n_channels=len(raw_od.ch_names), duration=500, show_scrollbars=False)
-
 
 # %%
 # Evaluating the quality of the data
@@ -118,13 +114,11 @@ fig, ax = plt.subplots(layout="constrained")
 ax.hist(sci)
 ax.set(xlabel="Scalp Coupling Index", ylabel="Count", xlim=[0, 1])
 
-
 # %%
 # In this example we will mark all channels with a SCI less than 0.5 as bad
 # (this dataset is quite clean, so no channels are marked as bad).
 
 raw_od.info["bads"] = list(compress(raw_od.ch_names, sci < 0.5))
-
 
 # %%
 # At this stage it is appropriate to inspect your data
@@ -133,7 +127,6 @@ raw_od.info["bads"] = list(compress(raw_od.ch_names, sci < 0.5))
 # to ensure that channels with poor scalp coupling have been removed.
 # If your data contains lots of artifacts you may decide to apply
 # artifact reduction techniques as described in :ref:`ex-fnirs-artifacts`.
-
 
 # %%
 # Converting from optical density to haemoglobin
@@ -144,7 +137,6 @@ raw_od.info["bads"] = list(compress(raw_od.ch_names, sci < 0.5))
 
 raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od, ppf=0.1)
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500, show_scrollbars=False)
-
 
 # %%
 # Removing heart rate from signal
@@ -178,7 +170,6 @@ for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
 events, event_dict = mne.events_from_annotations(raw_haemo)
 fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw_haemo.info["sfreq"])
 
-
 # %%
 # Next we define the range of our epochs, the rejection criteria,
 # baseline correction, and extract the epochs. We visualize the log of which
@@ -203,7 +194,6 @@ epochs = mne.Epochs(
 )
 epochs.plot_drop_log()
 
-
 # %%
 # View consistency of responses across trials
 # -------------------------------------------
@@ -221,7 +211,6 @@ epochs["Tapping"].plot_image(
     ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])),
 )
 
-
 # %%
 # We can also view the epoched data for the control condition and observe
 # that it does not show the expected morphology.
@@ -232,7 +221,6 @@ epochs["Control"].plot_image(
     vmax=30,
     ts_args=dict(ylim=dict(hbo=[-15, 15], hbr=[-15, 15])),
 )
-
 
 # %%
 # View consistency of responses across channels
@@ -249,7 +237,6 @@ epochs["Tapping"].average().plot_image(axes=axes[:, 1], clim=clims)
 for column, condition in enumerate(["Control", "Tapping"]):
     for ax in axes[:, column]:
         ax.set_title(f"{condition}: {ax.get_title()}")
-
 
 # %%
 # Plot standard fNIRS response image
@@ -277,7 +264,6 @@ mne.viz.plot_compare_evokeds(
     evoked_dict, combine="mean", ci=0.95, colors=color_dict, styles=styles_dict
 )
 
-
 # %%
 # View topographic representation of activity
 # -------------------------------------------
@@ -289,7 +275,6 @@ topomap_args = dict(extrapolate="local")
 epochs["Tapping"].average(picks="hbo").plot_joint(
     times=times, topomap_args=topomap_args
 )
-
 
 # %%
 # Compare tapping of left and right hands

@@ -6,6 +6,7 @@
 
 import importlib
 import inspect
+import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -167,7 +168,8 @@ class BrowserBase(ABC):
         """Set up colors for annotations; init some annotation vars."""
         segment_colors = getattr(self.mne, "annotation_segment_colors", dict())
         labels = self._get_annotation_labels()
-        colors, red = _get_color_list(annotations=True)
+        red = "#ff0000"
+        colors = _get_color_list(remove=("#fa8174", "#d62728", "#ff0000"))
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
             if color != red and key in labels:
@@ -181,7 +183,10 @@ class BrowserBase(ABC):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        self.mne.visible_annotations = {label: True for label in labels}
+        annot_regex = re.compile(self.mne.annotation_regex)
+        self.mne.visible_annotations = {
+            label: True if annot_regex.findall(label) else False for label in labels
+        }
         self.mne.show_hide_annotation_checkboxes = None
 
     def _update_annotation_segments(self):
