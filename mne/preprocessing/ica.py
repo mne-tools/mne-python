@@ -443,7 +443,7 @@ class ICA(ContainsMixin):
         random_state=None,
         method="fastica",
         fit_params=None,
-        max_iter="auto",
+        max_iter: int | Literal["auto"] = "auto",
         allow_ref_meg=False,
         verbose=None,
     ):
