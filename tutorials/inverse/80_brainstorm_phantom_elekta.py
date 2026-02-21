@@ -89,6 +89,7 @@ epochs = mne.Epochs(
 epochs["1"].average().plot(time_unit="s")
 # %%
 # .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
+#
 # We averaged over 640 simulated events for the first dipole.
 # The first peak in the data appears close to the trigger onset
 # at around 3 ms. The burst envelope repeats at approximately 3 Hz.
@@ -132,7 +133,7 @@ cov = mne.compute_covariance(epochs, tmax=bmax)
 
 # The plot shows the evoked signal divided by the estimated noise standard deviation.
 mne.viz.plot_evoked_white(epochs["1"].average(), cov)
-
+# %%
 # Next, we fit the dipoles for the evoked data.
 # We choose the timepoint which maximises global field power
 # We have seen in the evoked plot that this is around 3 ms after dipole onset.
@@ -234,7 +235,4 @@ mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
 # %%
 # References
 # ----------
-#
 # .. footbibliography::
-#
-#
