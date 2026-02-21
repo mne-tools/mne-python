@@ -1,5 +1,3 @@
-"""File opening utilities for EDF/BDF/GDF formats."""
-
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
