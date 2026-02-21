@@ -13,7 +13,6 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ._open import _gdf_edf_get_fid
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
@@ -30,6 +29,7 @@ from ...utils import (
     warn,
 )
 from ..base import BaseRaw, _get_scaling
+from ._open import _gdf_edf_get_fid
 
 
 class FileType(Enum):

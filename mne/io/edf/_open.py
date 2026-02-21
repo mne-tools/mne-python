@@ -5,7 +5,6 @@
 from pathlib import Path
 
 from ..._fiff.open import _NoCloseRead
-
 from ...utils import _file_like, _validate_type, logger
 
 

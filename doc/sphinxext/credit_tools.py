@@ -397,7 +397,9 @@ def generate_credit_rst(app=None, *, verbose=False):
     mod_stats.pop("null")  # stuff we shouldn't give credit for
     # Assert no private (_-prefixed) submodule names remain after null-removal
     private_mods = [
-        m for m in mod_stats if m.startswith("mne.") and m.split(".")[-1].startswith("_")
+        m
+        for m in mod_stats
+        if m.startswith("mne.") and m.split(".")[-1].startswith("_")
     ]
     if private_mods:
         raise RuntimeError(
