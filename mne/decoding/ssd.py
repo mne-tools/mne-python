@@ -2,30 +2,26 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import collections.abc as abc
+from functools import partial
+
 import numpy as np
-from scipy.linalg import eigh
-from sklearn.base import BaseEstimator
-from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
-from ..cov import Covariance, _regularized_covariance
-from ..defaults import _handle_default
 from ..filter import filter_data
-from ..rank import compute_rank
-from ..time_frequency import psd_array_welch
 from ..utils import (
-    _time_mask,
     _validate_type,
-    _verbose_safe_false,
     fill_doc,
     logger,
 )
-from .transformer import MNETransformerMixin
+from ._covs_ged import _ssd_estimate
+from ._mod_ged import _get_spectral_ratio, _ssd_mod
+from .base import _GEDTransformer
 
 
 @fill_doc
-class SSD(MNETransformerMixin, BaseEstimator):
+class SSD(_GEDTransformer):
     """
     Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 
@@ -71,6 +67,16 @@ class SSD(MNETransformerMixin, BaseEstimator):
     cov_method_params : dict | None (default None)
         As in :class:`mne.decoding.SPoC`
         The default is None.
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to "whitening".
+
+        .. versionadded:: 1.11
     rank : None | dict | ‘info’ | ‘full’
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
@@ -81,9 +87,9 @@ class SSD(MNETransformerMixin, BaseEstimator):
 
     Attributes
     ----------
-    filters_ : array, shape (n_channels, n_components)
+    filters_ : array, shape (``n_channels or less``, n_channels)
         The spatial filters to be multiplied with the signal.
-    patterns_ : array, shape (n_components, n_channels)
+    patterns_ : array, shape (``n_channels or less``, n_channels)
         The patterns for reconstructing the signal from the filtered data.
 
     References
@@ -103,6 +109,8 @@ class SSD(MNETransformerMixin, BaseEstimator):
         return_filtered=False,
         n_fft=None,
         cov_method_params=None,
+        *,
+        restr_type="whitening",
         rank=None,
     ):
         """Initialize instance."""
@@ -116,7 +124,27 @@ class SSD(MNETransformerMixin, BaseEstimator):
         self.return_filtered = return_filtered
         self.n_fft = n_fft
         self.cov_method_params = cov_method_params
+        self.restr_type = restr_type
         self.rank = rank
+
+        cov_callable = partial(
+            _ssd_estimate,
+            reg=reg,
+            cov_method_params=cov_method_params,
+            info=info,
+            picks=picks,
+            n_fft=n_fft,
+            filt_params_signal=filt_params_signal,
+            filt_params_noise=filt_params_noise,
+            rank=rank,
+            sort_by_spectral_ratio=sort_by_spectral_ratio,
+        )
+        super().__init__(
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=_ssd_mod,
+            restr_type=restr_type,
+        )
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -166,6 +194,7 @@ class SSD(MNETransformerMixin, BaseEstimator):
                     "At this point SSD only supports fitting "
                     f"single channel types. Your info has {len(ch_types)} types."
                 )
+        _validate_type(self.cov_method_params, (abc.Mapping, None), "cov_method_params")
 
     def _check_X(self, X, *, y=None, fit=False):
         """Check input data."""
@@ -202,52 +231,9 @@ class SSD(MNETransformerMixin, BaseEstimator):
         else:
             info = create_info(X.shape[-2], self.sfreq_, ch_types="eeg")
         self.picks_ = _picks_to_idx(info, self.picks, none="data", exclude="bads")
-        X_aux = X[..., self.picks_, :]
 
-        X_signal = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
-        X_noise = filter_data(X_aux, self.sfreq_, **self.filt_params_noise)
-        X_noise -= X_signal
-        if X.ndim == 3:
-            X_signal = np.hstack(X_signal)
-            X_noise = np.hstack(X_noise)
+        super().fit(X, y)
 
-        # prevent rank change when computing cov with rank='full'
-        cov_signal = _regularized_covariance(
-            X_signal,
-            reg=self.reg,
-            method_params=self.cov_method_params,
-            rank="full",
-            info=info,
-        )
-        cov_noise = _regularized_covariance(
-            X_noise,
-            reg=self.reg,
-            method_params=self.cov_method_params,
-            rank="full",
-            info=info,
-        )
-
-        # project cov to rank subspace
-        cov_signal, cov_noise, rank_proj = _dimensionality_reduction(
-            cov_signal, cov_noise, info, self.rank
-        )
-
-        eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
-        # sort in descending order
-        ix = np.argsort(eigvals_)[::-1]
-        self.eigvals_ = eigvals_[ix]
-        # project back to sensor space
-        self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
-        self.patterns_ = np.linalg.pinv(self.filters_)
-
-        # We assume that ordering by spectral ratio is more important
-        # than the initial ordering. This ordering should be also learned when
-        # fitting.
-        X_ssd = self.filters_.T @ X[..., self.picks_, :]
-        sorter_spec = slice(None)
-        if self.sort_by_spectral_ratio:
-            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
-        self.sorter_spec_ = sorter_spec
         logger.info("Done.")
         return self
 
@@ -266,13 +252,15 @@ class SSD(MNETransformerMixin, BaseEstimator):
         X_ssd : array, shape ([n_epochs, ]n_components, n_times)
             The processed data.
         """
-        check_is_fitted(self, "filters_")
         X = self._check_X(X)
+        # For the case where n_epochs dimension is absent.
+        if X.ndim == 2:
+            X = np.expand_dims(X, axis=0)
+        X_aux = X[..., self.picks_, :]
         if self.return_filtered:
-            X_aux = X[..., self.picks_, :]
-            X = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
-        X_ssd = self.filters_.T @ X[..., self.picks_, :]
-        X_ssd = X_ssd[..., self.sorter_spec_, :][..., : self.n_components, :]
+            X_aux = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
+        X_ssd = super().transform(X_aux).squeeze()
+
         return X_ssd
 
     def fit_transform(self, X, y=None, **fit_params):
@@ -322,18 +310,13 @@ class SSD(MNETransformerMixin, BaseEstimator):
         ----------
         .. footbibliography::
         """
-        psd, freqs = psd_array_welch(ssd_sources, sfreq=self.sfreq_, n_fft=self.n_fft_)
-        sig_idx = _time_mask(freqs, *self.freqs_signal_)
-        noise_idx = _time_mask(freqs, *self.freqs_noise_)
-        if psd.ndim == 3:
-            mean_sig = psd[:, :, sig_idx].mean(axis=2).mean(axis=0)
-            mean_noise = psd[:, :, noise_idx].mean(axis=2).mean(axis=0)
-            spec_ratio = mean_sig / mean_noise
-        else:
-            mean_sig = psd[:, sig_idx].mean(axis=1)
-            mean_noise = psd[:, noise_idx].mean(axis=1)
-            spec_ratio = mean_sig / mean_noise
-        sorter_spec = spec_ratio.argsort()[::-1]
+        spec_ratio, sorter_spec = _get_spectral_ratio(
+            ssd_sources=ssd_sources,
+            sfreq=self.sfreq_,
+            n_fft=self.n_fft_,
+            freqs_signal=self.freqs_signal_,
+            freqs_noise=self.freqs_noise_,
+        )
         return spec_ratio, sorter_spec
 
     def inverse_transform(self):
@@ -364,68 +347,6 @@ class SSD(MNETransformerMixin, BaseEstimator):
             The processed data.
         """
         X_ssd = self.transform(X)
-        pick_patterns = self.patterns_[self.sorter_spec_][: self.n_components].T
+        pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
-
-
-def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
-    """Perform dimensionality reduction on the covariance matrices."""
-    n_channels = cov_signal.shape[0]
-
-    # find ranks of covariance matrices
-    rank_signal = list(
-        compute_rank(
-            Covariance(
-                cov_signal,
-                info.ch_names,
-                list(),
-                list(),
-                0,
-                verbose=_verbose_safe_false(),
-            ),
-            rank,
-            _handle_default("scalings_cov_rank", None),
-            info,
-        ).values()
-    )[0]
-    rank_noise = list(
-        compute_rank(
-            Covariance(
-                cov_noise,
-                info.ch_names,
-                list(),
-                list(),
-                0,
-                verbose=_verbose_safe_false(),
-            ),
-            rank,
-            _handle_default("scalings_cov_rank", None),
-            info,
-        ).values()
-    )[0]
-    rank = np.min([rank_signal, rank_noise])  # should be identical
-
-    if rank < n_channels:
-        eigvals, eigvects = eigh(cov_signal)
-        # sort in descending order
-        ix = np.argsort(eigvals)[::-1]
-        eigvals = eigvals[ix]
-        eigvects = eigvects[:, ix]
-        # compute rank subspace projection matrix
-        rank_proj = np.matmul(
-            eigvects[:, :rank], np.eye(rank) * (eigvals[:rank] ** -0.5)
-        )
-        logger.info(
-            "Projecting covariance of %i channels to %i rank subspace",
-            n_channels,
-            rank,
-        )
-    else:
-        rank_proj = np.eye(n_channels)
-        logger.info("Preserving covariance rank (%i)", rank)
-
-    # project covariance matrices to rank subspace
-    cov_signal = np.matmul(rank_proj.T, np.matmul(cov_signal, rank_proj))
-    cov_noise = np.matmul(rank_proj.T, np.matmul(cov_noise, rank_proj))
-    return cov_signal, cov_noise, rank_proj

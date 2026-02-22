@@ -553,16 +553,17 @@ def make_ad_hoc_cov(info, std=None, *, verbose=None):
     return Covariance(data, ch_names, info["bads"], info["projs"], nfree=0)
 
 
-def _check_n_samples(n_samples, n_chan):
+def _check_n_samples(n_samples, n_chan, on_few_samples="warn"):
     """Check to see if there are enough samples for reliable cov calc."""
     n_samples_min = 10 * (n_chan + 1) // 2
     if n_samples <= 0:
         raise ValueError("No samples found to compute the covariance matrix")
     if n_samples < n_samples_min:
-        warn(
-            f"Too few samples (required : {n_samples_min} got : {n_samples}), "
-            "covariance estimate may be unreliable"
+        msg = (
+            f"Too few samples (required {n_samples_min} but got {n_samples} for "
+            f"{n_chan} channels), covariance estimate may be unreliable"
         )
+        _on_missing(on_few_samples, msg, "on_few_samples")
 
 
 @verbose
@@ -574,6 +575,8 @@ def compute_raw_covariance(
     reject=None,
     flat=None,
     picks=None,
+    *,
+    on_few_samples="warn",
     method="empirical",
     method_params=None,
     cv=3,
@@ -623,6 +626,12 @@ def compute_raw_covariance(
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     %(picks_good_data_noref)s
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate
+        covariance or rank estimates.
+
+        .. versionadded:: 1.11
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -736,7 +745,7 @@ def compute_raw_covariance(
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
-        _check_n_samples(n_samples, len(picks))
+        _check_n_samples(n_samples, len(picks), on_few_samples)
         data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= n_samples - 1.0
         logger.info("Number of samples used : %d", n_samples)
@@ -864,6 +873,8 @@ def compute_covariance(
     tmin=None,
     tmax=None,
     projs=None,
+    *,
+    on_few_samples="warn",
     method="empirical",
     method_params=None,
     cv=3,
@@ -909,6 +920,12 @@ def compute_covariance(
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate
+        covariance or rank estimates.
+
+        .. versionadded:: 1.11
     method : str | list | None (default 'empirical')
         The method used for covariance estimation. If 'empirical' (default),
         the sample covariance will be computed. A list can be passed to
@@ -1144,7 +1161,7 @@ def compute_covariance(
 
     epochs = np.hstack(epochs)
     n_samples_tot = epochs.shape[-1]
-    _check_n_samples(n_samples_tot, len(picks_meeg))
+    _check_n_samples(n_samples_tot, len(picks_meeg), on_few_samples)
 
     epochs = epochs.T  # sklearn | C-order
     cov_data = _compute_covariance_auto(
@@ -1158,6 +1175,7 @@ def compute_covariance(
         picks_list=picks_list,
         scalings=scalings,
         rank=rank,
+        on_few_samples=on_few_samples,
     )
 
     if keep_sample_mean is False:
@@ -1221,7 +1239,7 @@ def _eigvec_subspace(eig, eigvec, mask):
 
 @verbose
 def _compute_rank_raw_array(
-    data, info, rank, scalings, *, log_ch_type=None, verbose=None
+    data, info, rank, scalings, *, log_ch_type=None, on_few_samples="warn", verbose=None
 ):
     from .io import RawArray
 
@@ -1231,6 +1249,7 @@ def _compute_rank_raw_array(
         scalings,
         info,
         log_ch_type=log_ch_type,
+        on_few_samples=on_few_samples,
     )
 
 
@@ -1249,6 +1268,7 @@ def _compute_covariance_auto(
     cov_kind="",
     log_ch_type=None,
     log_rank=True,
+    on_few_samples="warn",
 ):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
@@ -1258,6 +1278,7 @@ def _compute_covariance_auto(
         info,
         rank=rank,
         scalings=scalings,
+        on_few_samples=on_few_samples,
         verbose=_verbose_safe_false(),
     )
     with _scaled_array(data.T, picks_list, scalings):
@@ -1729,6 +1750,7 @@ def prepare_noise_cov(
     rank=None,
     scalings=None,
     on_rank_mismatch="ignore",
+    *,
     verbose=None,
 ):
     """Prepare noise covariance matrix.
@@ -2108,6 +2130,7 @@ def regularize(
     return cov
 
 
+@verbose
 def _regularized_covariance(
     data,
     reg=None,
@@ -2118,6 +2141,10 @@ def _regularized_covariance(
     log_ch_type=None,
     log_rank=None,
     cov_kind="",
+    # backward-compat default for decoding (maybe someday we want to expose this but
+    # it's likely too invasive and since it's usually regularized, unnecessary):
+    on_few_samples="ignore",
+    verbose=None,
 ):
     """Compute a regularized covariance from data using sklearn.
 
@@ -2164,6 +2191,7 @@ def _regularized_covariance(
         cov_kind=cov_kind,
         log_ch_type=log_ch_type,
         log_rank=log_rank,
+        on_few_samples=on_few_samples,
     )[reg]["data"]
     return cov
 

@@ -2,9 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import json
 import os
 import platform
+import random
 import re
+import time
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -16,6 +19,7 @@ import mne.utils.config
 from mne.utils import (
     ClosingStringIO,
     _get_stim_channel,
+    _record_warnings,
     get_config,
     get_config_path,
     get_subjects_dir,
@@ -127,7 +131,11 @@ def test_sys_info_complete():
     sys_info(fid=out, check_version=False, dependencies="developer")
     out = out.getvalue()
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
-    deps = pyproject["project"]["optional-dependencies"]["test_extra"]
+    deps = [
+        dep
+        for dep in pyproject["dependency-groups"]["test_extra"]
+        if not isinstance(dep, dict)
+    ]
     for dep in deps:
         dep = dep.split("[")[0].split(">")[0].strip()
         assert f" {dep}" in out, f"Missing in dev config: {dep}"
@@ -170,7 +178,8 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
         get_subjects_dir(raise_error=True)
 
 
-@pytest.mark.slowtest
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.ultraslowtest  # not ultraslow, just flaky and not changed often
 @requires_good_network
 def test_sys_info_check_outdated(monkeypatch):
     """Test sys info checking."""
@@ -225,10 +234,112 @@ def test_sys_info_check_other(monkeypatch):
     out = out.getvalue()
     assert " 1.5.1 (latest release)" in out
 
-    # Devel
+    # Development version
     monkeypatch.setattr(mne, "__version__", "1.6.dev0")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
-    assert "devel, " in out
+    assert "development, " in out
     assert "updating.html" not in out
+
+
+def _worker_update_config_loop(home_dir, worker_id, iterations=10):
+    """Util function to update config in parallel.
+
+    Worker function that repeatedly reads the config (via get_config)
+    and then updates it (via set_config) with a unique key/value pair.
+    A short random sleep is added to encourage interleaving.
+
+    Dummy function to simulate a worker that reads and updates the config.
+
+    Parameters
+    ----------
+    home_dir : str
+        The home directory where the config file is located.
+    worker_id : int
+        The ID of the worker (for creating unique keys).
+    iterations : int
+        The number of iterations to run the loop.
+
+    """
+    for i in range(iterations):
+        # Read current configuration (to simulate a read-modify cycle)
+        _ = get_config(home_dir=home_dir)
+        # Create a unique key/value pair.
+        new_key = f"worker_{worker_id}_{i}"
+        new_value = f"value_{worker_id}_{i}"
+        # Update the configuration (our set_config holds the lock over the full cycle)
+        with _record_warnings():  # ignore non-standard key warning
+            set_config(new_key, new_value, home_dir=home_dir)
+        time.sleep(random.uniform(0, 0.05))
+    return worker_id
+
+
+@pytest.mark.slowtest
+def test_parallel_get_set_config(tmp_path: Path):
+    """Test that uses parallel workers to get and set config.
+
+    All the workers update the same configuration file concurrently. In a
+    correct implementation with proper path file locking, the final
+    config file remains valid JSON and includes all expected updates.
+
+    """
+    pytest.importorskip("joblib")
+    pytest.importorskip("filelock")
+    from joblib import Parallel, delayed
+
+    # Use the temporary directory as our home directory.
+    home_dir = str(tmp_path)
+    # get_config_path will return home_dir/.mne/mne-python.json
+    config_file = get_config_path(home_dir=home_dir)
+
+    # if the config file already exists, remove it
+    if os.path.exists(config_file):
+        os.remove(config_file)
+
+    # Ensure that the .mne directory exists.
+    config_dir = tmp_path / ".mne"
+    config_dir.mkdir(exist_ok=True)
+
+    # Write an initial (valid) config file.
+    initial_config = {"initial": "True"}
+    with open(config_file, "w") as f:
+        json.dump(initial_config, f)
+
+    n_workers = 50
+    iterations = 10
+
+    # Launch multiple workers concurrently using joblib.
+    Parallel(n_jobs=10)(
+        delayed(_worker_update_config_loop)(home_dir, worker_id, iterations)
+        for worker_id in range(n_workers)
+    )
+
+    # Now, read back the config file.
+    final_config = get_config(home_dir=home_dir)
+    expected_keys = set()
+    expected_values = set()
+    # For each worker and iteration, check that the expected key/value pair is present.
+    for worker_id in range(n_workers):
+        for i in range(iterations):
+            expected_key = f"worker_{worker_id}_{i}"
+            expected_value = f"value_{worker_id}_{i}"
+
+            assert final_config.get(expected_key) == expected_value, (
+                f"Missing or incorrect value for key {expected_key}"
+            )
+            expected_keys.add(expected_key)
+            expected_values.add(expected_value)
+
+    # include the initial key/value pair
+    # that was written before the workers started
+
+    assert len(expected_keys - set(final_config.keys())) == 0
+    assert len(expected_values - set(final_config.values())) == 0
+
+    # Check that the final config is valid JSON.
+    with open(config_file) as f:
+        try:
+            json.load(f)
+        except json.JSONDecodeError as e:
+            pytest.fail(f"Config file is not valid JSON: {e}")

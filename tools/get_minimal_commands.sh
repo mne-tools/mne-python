@@ -25,7 +25,7 @@ fi;
 if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 	echo "Getting files for Linux..."
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
-		curl -L https://osf.io/g7dzs/download?version=5 | tar xz
+		curl -L https://osf.io/download/g7dzs?version=5 | tar xz
 	else
 		echo "Minimal commands already downloaded"
 	fi;
@@ -50,7 +50,7 @@ if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 else
 	echo "Getting files for macOS Intel..."
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
-		curl -L https://osf.io/rjcz4/download?version=2 | tar xz
+		curl -L https://osf.io/download/rjcz4?version=2 | tar xz
 	else
 		echo "Minimal commands already downloaded"
 	fi;

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "29435fbc4f5b8e4983fd2b6e558ad5955ae2f584",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/13579.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/mixed_source_space_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

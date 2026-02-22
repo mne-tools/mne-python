@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.datasets.somato.data_path` where the archive couldn't be extracted due to an absolute path issue, by `Eric Larson`_.

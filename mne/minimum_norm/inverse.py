@@ -39,7 +39,7 @@ from .._fiff.write import (
 from ..cov import Covariance, _read_cov, _write_cov, compute_whitener, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import (
     _read_forward_meas_info,
     _select_orient_forward,
@@ -62,7 +62,7 @@ from ..source_space._source_space import (
 )
 from ..surface import _normal_orth
 from ..time_frequency.tfr import _check_tfr_complex
-from ..transforms import _ensure_trans, transform_surface_to
+from ..transforms import _ensure_trans
 from ..utils import (
     _check_compensation_grade,
     _check_depth,
@@ -381,16 +381,7 @@ def read_inverse_operator(fname, *, verbose=None):
         inv["reginv"] = []
         inv["noisenorm"] = []  # These are the noise-normalization factors
         #
-        nuse = 0
-        for k in range(len(inv["src"])):
-            try:
-                inv["src"][k] = transform_surface_to(
-                    inv["src"][k], inv["coord_frame"], mri_head_t
-                )
-            except Exception as inst:
-                raise Exception(f"Could not transform source space ({inst})")
-
-            nuse += inv["src"][k]["nuse"]
+        inv["src"]._transform_to(inv["coord_frame"], mri_head_t)
 
         logger.info(
             "    Source spaces transformed to the inverse solution coordinate frame"
@@ -844,8 +835,8 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             # No need to rotate source_cov because it should be uniform
             # (loose=1., and depth weighting is uniform across columns)
             offset = sl.stop
-        eigen_leads.shape = (-1, eigen_leads.shape[2])
-        source_nn.shape = (-1, 3)
+        eigen_leads = _reshape_view(eigen_leads, (-1, eigen_leads.shape[2]))
+        source_nn = _reshape_view(source_nn, (-1, 3))
 
     if pick_ori == "normal":
         if not inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -1682,7 +1673,7 @@ def apply_inverse_cov(
     sol = cov.data[sel][:, sel] @ K.T
     sol = np.sum(K * sol.T, axis=1, keepdims=True)
     # Reshape back to (n_src, ..., 1)
-    sol.shape = stc.data.shape[:-1] + (1,)
+    sol = _reshape_view(sol, stc.data.shape[:-1] + (1,))
     stc = stc.__class__(sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info("    Combining the current components...")

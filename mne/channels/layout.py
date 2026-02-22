@@ -82,7 +82,7 @@ class Layout:
         Parameters
         ----------
         fname : path-like
-            The file name (e.g. ``'my_layout.lout'``).
+            The file name (must end with either ``.lout`` or ``.lay``).
         overwrite : bool
             If True, overwrites the destination file if it exists.
 
@@ -306,7 +306,7 @@ def read_layout(fname=None, *, scale=True):
     ----------
     fname : path-like | str
         Either the path to a ``.lout`` or ``.lay`` file or the name of a
-        built-in layout. c.f. Notes for a list of the available built-in
+        built-in layout. See Notes for a list of the available built-in
         layouts.
     scale : bool
         Apply useful scaling for out the box plotting using ``layout.pos``.
@@ -405,7 +405,7 @@ def read_layout(fname=None, *, scale=True):
 def make_eeg_layout(
     info, radius=0.5, width=None, height=None, exclude="bads", csd=False
 ):
-    """Create .lout file from EEG electrode digitization.
+    """Make a Layout object based on EEG electrode digitization.
 
     Parameters
     ----------
@@ -486,7 +486,9 @@ def make_eeg_layout(
 
 @fill_doc
 def make_grid_layout(info, picks=None, n_col=None):
-    """Generate .lout file for custom data, i.e., ICA sources.
+    """Make a grid Layout object.
+
+    This can be helpful to plot custom data such as ICA sources.
 
     Parameters
     ----------
@@ -1190,7 +1192,7 @@ def _merge_opm_data(data, merged_names):
     """Merge data from multiple opm channel by just using the radial component.
 
     Channel names that end in "MERGE_REMOVE" (ie non-radial channels) will be
-    removed. Only the the radial channel is kept.
+    removed. Only the radial channel is kept.
 
     Parameters
     ----------

@@ -1,18 +1,18 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.7
+    rev: v0.15.1
     hooks:
-      - id: ruff
+      - id: ruff-check
         name: ruff lint mne
         args: ["--fix"]
         files: ^mne/|^tools/
         exclude: vulture_allowlist.py
-      - id: ruff
+      - id: ruff-check
         name: ruff lint mne preview
         args: ["--fix", "--preview", "--select=NPY201"]
         files: ^mne/|^tools/
-      - id: ruff
+      - id: ruff-check
         name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
@@ -33,14 +33,14 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.0
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.4
+    rev: v6.2.5
     hooks:
       - id: rstcheck
         additional_dependencies:
@@ -51,14 +51,14 @@ repos:
 
   # sorting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/changes/names.inc|^.mailmap
+        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.2
+    rev: v0.24.3
     hooks:
       - id: toml-sort-fix
         files: pyproject.toml
@@ -78,13 +78,16 @@ repos:
         language: python
         entry: ./tools/hooks/sync_dependencies.py
         files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
-        additional_dependencies: ["mne==1.9.0"]
+        additional_dependencies: ["mne==1.11.0"]
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.6.0
+    rev: v1.22.0
     hooks:
       - id: zizmor
+        args: [--fix]
+        # We correctly use pull_request_trigger, and need Zizmor 2.0+ to configure the ignore
+        exclude: ^.github/workflows/automerge.yml
 
 # these should *not* be run on CIs:
 ci:

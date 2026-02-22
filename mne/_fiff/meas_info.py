@@ -35,6 +35,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils._bunch import NamedFloat, NamedInt
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -626,12 +627,17 @@ class SetChannelsMixin(MontageMixin):
         return self
 
     @verbose
-    def rename_channels(self, mapping, allow_duplicates=False, *, verbose=None):
+    def rename_channels(
+        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+    ):
         """Rename channels.
 
         Parameters
         ----------
         %(mapping_rename_channels_duplicates)s
+        %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
         %(verbose)s
 
         Returns
@@ -652,7 +658,7 @@ class SetChannelsMixin(MontageMixin):
         info = self if isinstance(self, Info) else self.info
 
         ch_names_orig = list(info["ch_names"])
-        rename_channels(info, mapping, allow_duplicates)
+        rename_channels(info, mapping, allow_duplicates, on_missing=on_missing)
 
         # Update self._orig_units for Raw
         if isinstance(self, BaseRaw):
@@ -826,6 +832,10 @@ class SetChannelsMixin(MontageMixin):
         .. versionadded:: 0.20
         """
         from ..annotations import _handle_meas_date
+
+        _validate_type(
+            meas_date, (datetime.datetime, "numeric", tuple, None), "meas_date"
+        )
 
         info = self if isinstance(self, Info) else self.info
 
@@ -1011,6 +1021,19 @@ def _check_types(x, *, info, name, types, cast=None):
     return x
 
 
+def _check_bday(birthday_input, *, info):
+    date = _check_types(
+        birthday_input,
+        info=info,
+        name='subject_info["birthday"]',
+        types=(datetime.date, None),
+    )
+    # test if we have a pd.Timestamp
+    if hasattr(date, "date"):
+        date = date.date()
+    return date
+
+
 class SubjectInfo(ValidatedDict):
     _attributes = {
         "id": partial(_check_types, name='subject_info["id"]', types=int),
@@ -1022,9 +1045,7 @@ class SubjectInfo(ValidatedDict):
         "middle_name": partial(
             _check_types, name='subject_info["middle_name"]', types=str
         ),
-        "birthday": partial(
-            _check_types, name='subject_info["birthday"]', types=(datetime.date, None)
-        ),
+        "birthday": partial(_check_bday),
         "sex": partial(_check_types, name='subject_info["sex"]', types=int),
         "hand": partial(_check_types, name='subject_info["hand"]', types=int),
         "weight": partial(
@@ -1156,6 +1177,89 @@ def _check_dev_head_t(dev_head_t, *, info):
     return dev_head_t
 
 
+def _restore_mne_types(info):
+    """Restore MNE-specific types after unpickling/deserialization.
+
+    This function handles the restoration of MNE-specific object types
+    that need to be reconstructed from their serialized representations.
+    These correspond to the "cast" entries in Info._attributes: bads,
+    dev_head_t, dig, helium_info, line_freq, proj_id, projs, and
+    subject_info. However, this function is specifically for types that
+    need restoration because h5io and other serialization formats cast
+    them to native Python types (e.g., MNEBadsList -> list, Projection
+    -> dict, DigPoint -> dict).
+
+    This function should be called in Info.__init__ and Info.__setstate__.
+    If new MNE-specific types are added to Info._attributes, they
+    should be handled here if they need type restoration after
+    deserialization.
+
+    Parameters
+    ----------
+    info : Info
+        The Info object whose types need to be restored. Modified in-place.
+
+    Notes
+    -----
+    This function restores:
+    - MNEBadsList for the bads field (see Info._attributes["bads"])
+    - DigPoint objects for digitization points (see Info._attributes["dig"])
+    - Projection objects for SSP projectors (see Info._attributes["projs"])
+    - Transform objects for device/head transformations
+    - meas_date from tuple to datetime
+    - helium_info and subject_info with proper casting
+    - proc_history date field from numpy array to tuple (JSON limitation)
+    """
+    # Restore MNEBadsList (corresponds to Info._attributes["bads"])
+    if "bads" in info:
+        info["bads"] = MNEBadsList(bads=info["bads"], info=info)
+
+    # Format Transform objects
+    for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
+        _format_trans(info, key)
+    for res in info.get("hpi_results", []):
+        _format_trans(res, "coord_trans")
+
+    # Restore DigPoint objects (corresponds to Info._attributes["dig"])
+    if info.get("dig", None) is not None and len(info["dig"]):
+        if isinstance(info["dig"], dict):  # needs to be unpacked
+            info["dig"] = _dict_unpack(info["dig"], _DIG_CAST)
+        if not isinstance(info["dig"][0], DigPoint):
+            info["dig"] = _format_dig_points(info["dig"])
+
+    # Unpack chs if needed
+    if isinstance(info.get("chs", None), dict):
+        info["chs"]["ch_name"] = [
+            str(x) for x in np.char.decode(info["chs"]["ch_name"], encoding="utf8")
+        ]
+        info["chs"] = _dict_unpack(info["chs"], _CH_CAST)
+
+    # Restore Projection objects (corresponds to Info._attributes["projs"])
+    for pi, proj in enumerate(info.get("projs", [])):
+        if not isinstance(proj, Projection):
+            info["projs"][pi] = Projection(**proj)
+
+    # Old files could have meas_date as tuple instead of datetime
+    try:
+        meas_date = info["meas_date"]
+    except KeyError:
+        pass
+    else:
+        info["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
+
+    # with validation and casting
+    for key in ("helium_info", "subject_info"):
+        if key in info:
+            info[key] = info[key]
+
+    # Restore proc_history[*]['date'] as tuple
+    # JSON converts tuples to lists, so we need to convert back
+    for entry in info.get("proc_history", []):
+        if "date" in entry and isinstance(entry["date"], np.ndarray):
+            # Convert numpy array back to tuple with Python types
+            entry["date"] = tuple(int(x) for x in entry["date"])
+
+
 # TODO: Add fNIRS convention to loc
 class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     """Measurement information.
@@ -1173,10 +1277,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     .. warning::
         The only entries that should be manually changed by the user are:
-        ``info['bads']``, ``info['description']``, ``info['device_info']``
-        ``info['dev_head_t']``, ``info['experimenter']``,
-        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
-        and ``info['subject_info']``.
+        ``info['bads']``, ``info['description']``, ``info['device_info']``,
+        ``info['proj_id']``, ``info['proj_name']``, ``info['dev_head_t']``,
+        ``info['experimenter']``, ``info['helium_info']``,
+        ``info['line_freq']``, ``info['temp']``, and ``info['subject_info']``.
 
         All other entries should be considered read-only, though they can be
         modified by various MNE-Python functions or methods (which have
@@ -1357,7 +1461,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Eyetrack
                 Element ``[3]`` contains information about which eye was tracked
                 (-1 for left, 1 for right), and element ``[4]`` contains information
-                about the the axis of coordinate data (-1 for x-coordinate data, 1 for
+                about the axis of coordinate data (-1 for x-coordinate data, 1 for
                 y-coordinate data).
             Dipole
                 Elements ``[3:6]`` contain dipole orientation information.
@@ -1440,7 +1544,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : datetime.datetime
+        meas_date : datetime.datetime | None
             The helium level meas date.
 
             .. versionchanged:: 1.8
@@ -1634,8 +1738,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "Please use methods inst.add_channels(), "
         "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
-        "proj_id": "proj_id cannot be set directly.",
-        "proj_name": "proj_name cannot be set directly.",
+        "proj_id": partial(_check_types, name="proj_id", types=(int, None), cast=int),
+        "proj_name": partial(_check_types, name="proj_name", types=(str, None)),
         "projs": "projs cannot be set directly. "
         "Please use methods inst.add_proj() and inst.del_proj() "
         "instead.",
@@ -1652,39 +1756,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._unlocked = True
-        # Deal with h5io writing things as dict
-        if "bads" in self:
-            self["bads"] = MNEBadsList(bads=self["bads"], info=self)
-        for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
-            _format_trans(self, key)
-        for res in self.get("hpi_results", []):
-            _format_trans(res, "coord_trans")
-        if self.get("dig", None) is not None and len(self["dig"]):
-            if isinstance(self["dig"], dict):  # needs to be unpacked
-                self["dig"] = _dict_unpack(self["dig"], _DIG_CAST)
-            if not isinstance(self["dig"][0], DigPoint):
-                self["dig"] = _format_dig_points(self["dig"])
-        if isinstance(self.get("chs", None), dict):
-            self["chs"]["ch_name"] = [
-                str(x) for x in np.char.decode(self["chs"]["ch_name"], encoding="utf8")
-            ]
-            self["chs"] = _dict_unpack(self["chs"], _CH_CAST)
-        for pi, proj in enumerate(self.get("projs", [])):
-            if not isinstance(proj, Projection):
-                self["projs"][pi] = Projection(**proj)
-        # Old files could have meas_date as tuple instead of datetime
-        try:
-            meas_date = self["meas_date"]
-        except KeyError:
-            pass
-        else:
-            self["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
-        self._unlocked = False
-        # with validation and casting
-        for key in ("helium_info", "subject_info"):
-            if key in self:
-                self[key] = self[key]
+        with self._unlock():
+            _restore_mne_types(self)
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
@@ -1930,6 +2003,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         return ch_names
 
+    @property
+    def _cals(self):
+        return np.array([ch["range"] * ch["cal"] for ch in self["chs"]], float)
+
     @repr_html
     def _repr_html_(self):
         """Summarize info for HTML representation."""
@@ -1954,6 +2031,166 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         mne.io.write_info
         """
         write_info(fname, self, overwrite=overwrite)
+
+    def to_json_dict(self) -> dict:
+        """Convert Info to a JSON-serializable dictionary.
+
+        This method converts the Info object to a standard Python dictionary
+        containing only JSON-serializable types (dict, list, str, int, float,
+        bool, None). Numpy arrays are converted to nested lists, and datetime
+        objects to ISO format strings.
+
+        Returns
+        -------
+        dict
+            A JSON-serializable dictionary representation of the Info object.
+
+        See Also
+        --------
+        from_json_dict : Reconstruct Info object from dictionary.
+
+        Notes
+        -----
+        This method is useful for serializing Info objects to JSON or other
+        formats that don't support numpy arrays or custom objects.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_json_dict()
+        >>> import json
+        >>> json_str = json.dumps(info_dict)  # Save to JSON
+        """
+        return _make_serializable(self)
+
+    @classmethod
+    def from_json_dict(cls, data_dict) -> "Info":
+        """Reconstruct Info object from a dictionary.
+
+        Parameters
+        ----------
+        data_dict : dict
+            A dictionary representation of an Info object, typically
+            created by the :meth:`to_json_dict` method.
+
+        Returns
+        -------
+        Info
+            The reconstructed Info object.
+
+        See Also
+        --------
+        to_json_dict : Convert Info to dictionary.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_json_dict()
+        >>> info_restored = mne.Info.from_json_dict(info_dict)
+        """
+        data_dict = data_dict.copy()
+        # Restore all nested objects (Transform, NamedInt, etc.)
+        restored_dict = _restore_objects(data_dict)
+
+        info = cls()
+        with info._unlock():
+            info.update(restored_dict)
+            _restore_mne_types(info)
+
+        return info
+
+
+def _make_serializable(obj):
+    """Recursively convert objects to JSON-serializable types."""
+    from ..transforms import Transform
+
+    if obj is None:
+        return None
+    elif isinstance(obj, bool):
+        return obj
+    elif isinstance(obj, NamedInt):
+        # Preserve NamedInt with its name
+        return {"_mne_type": "NamedInt", "value": int(obj), "name": obj._name}
+    elif isinstance(obj, NamedFloat):
+        # Preserve NamedFloat with its name
+        return {"_mne_type": "NamedFloat", "value": float(obj), "name": obj._name}
+    elif isinstance(obj, (str, int, float)):
+        return obj
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, datetime.datetime):
+        # Tag datetime objects for proper reconstruction
+        return {"_mne_type": "datetime", "value": obj.isoformat()}
+    elif isinstance(obj, datetime.date):
+        # Tag date objects for proper reconstruction
+        return {"_mne_type": "date", "value": obj.isoformat()}
+    elif isinstance(obj, Transform):
+        # Tag Transform objects for proper reconstruction
+        return {
+            "_mne_type": "Transform",
+            "from": obj["from"],
+            "to": obj["to"],
+            "trans": obj["trans"].tolist(),
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [_make_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: _make_serializable(val) for key, val in obj.items()}
+    else:
+        # Try to convert to string as fallback
+        return str(obj)
+
+
+def _restore_objects(obj) -> object:
+    """Recursively restore objects from JSON-serializable types."""
+    if obj is None:
+        return None
+    elif isinstance(obj, (bool, int, float)):
+        return obj
+    elif isinstance(obj, str):
+        # Regular strings are returned as-is
+        return obj
+    elif isinstance(obj, list):
+        # Check if all elements are numbers - convert to numpy array
+        # (JSON doesn't distinguish between tuples and lists, so 1D numeric
+        # lists that came from numpy arrays should be restored as numpy arrays,
+        # while tuple fields like proc_history[date] are handled separately)
+        if len(obj) > 0 and all(isinstance(x, (int, float)) for x in obj):
+            # 1D numeric arrays should be converted to numpy arrays
+            return np.array(obj)
+        elif len(obj) > 0 and all(isinstance(x, list) for x in obj):
+            # 2D or higher dimensional arrays
+            return np.array(obj)
+        else:
+            # Mixed types - recursively restore elements
+            return [_restore_objects(item) for item in obj]
+    elif isinstance(obj, dict):
+        # Check if this is a tagged MNE type
+        if "_mne_type" in obj:
+            if obj["_mne_type"] == "Transform":
+                # Actually create the Transform object now
+                from ..transforms import Transform
+
+                return Transform(obj["from"], obj["to"], np.array(obj["trans"]))
+            elif obj["_mne_type"] == "NamedInt":
+                return NamedInt(obj["name"], obj["value"])
+            elif obj["_mne_type"] == "NamedFloat":
+                return NamedFloat(obj["name"], obj["value"])
+            elif obj["_mne_type"] == "datetime":
+                # Restore datetime object from ISO format string
+                return datetime.datetime.fromisoformat(obj["value"])
+            elif obj["_mne_type"] == "date":
+                # Restore date object from ISO format string
+                return datetime.date.fromisoformat(obj["value"])
+            # Add more types here if needed in the future
+        else:
+            return {key: _restore_objects(val) for key, val in obj.items()}
+    else:
+        return obj
 
 
 def _simplify_info(info, *, keep=()):
@@ -2206,7 +2443,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             description = tag.data
         elif kind == FIFF.FIFF_PROJ_ID:
             tag = read_tag(fid, pos)
-            proj_id = tag.data
+            proj_id = int(tag.data.item())
         elif kind == FIFF.FIFF_PROJ_NAME:
             tag = read_tag(fid, pos)
             proj_name = tag.data
@@ -2873,7 +3110,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        if hi["meas_date"] is not None:
+        if hi.get("meas_date", None) is not None:
             write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
@@ -3009,6 +3246,21 @@ def _merge_info_values(infos, key, verbose=None):
             return values[int(idx)]
         elif len(idx) > 1:
             raise RuntimeError(msg)
+    # proj_id
+    elif _check_isinstance(values, (int, type(None)), all) and key == "proj_id":
+        unique_values = set(values)
+        if len(unique_values) != 1:
+            logger.info("Found multiple proj_ids, using the first one.")
+        return list(unique_values)[0]
+
+    elif key == "experimenter" or key == "proj_name":
+        if _check_isinstance(values, (str, type(None)), all):
+            unique_values = set(values)
+            unique_values.discard(None)
+            if len(unique_values) == 1:
+                return list(unique_values)[0]
+            else:
+                return None
     # other
     else:
         unique_values = set(values)
@@ -3018,7 +3270,7 @@ def _merge_info_values(infos, key, verbose=None):
             logger.info("Found multiple StringIO instances. Setting value to `None`")
             return None
         elif isinstance(list(unique_values)[0], str):
-            logger.info("Found multiple filenames. Setting value to `None`")
+            logger.info(f"Found multiple {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3300,13 +3552,12 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
-    from ..transforms import Transform
-
     _none_keys = (
         "acq_pars",
         "acq_stim",
         "ctf_head_t",
         "description",
+        "dev_head_t",
         "dev_ctf_t",
         "dig",
         "experimenter",
@@ -3347,7 +3598,6 @@ def _empty_info(sfreq):
     info["highpass"] = 0.0
     info["sfreq"] = float(sfreq)
     info["lowpass"] = info["sfreq"] / 2.0
-    info["dev_head_t"] = Transform("meg", "head")
     info._update_redundant()
     info._check_consistency()
     return info
@@ -3418,6 +3668,18 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     """
     _validate_type(info, "info", "self")
 
+    valid_fields = {"his_id", "sex", "hand"}
+    if isinstance(keep_his, bool):  # True means keep all fields, False means keep none
+        keep_fields = valid_fields if keep_his else set()
+    elif isinstance(keep_his, str):
+        _check_option("keep_his", keep_his, valid_fields)
+        keep_fields = {keep_his}
+    else:
+        _validate_type(keep_his, (list, tuple, set), "keep_his")
+        keep_fields = set(keep_his)
+        for field in keep_fields:
+            _check_option("keep_his", field, valid_fields)
+
     default_anon_dos = datetime.datetime(
         2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
     )
@@ -3468,17 +3730,19 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     if subject_info is not None:
         if subject_info.get("id") is not None:
             subject_info["id"] = default_subject_id
-        if keep_his:
+        if keep_fields:
             logger.info(
-                "Not fully anonymizing info - keeping his_id, sex, and hand info"
+                f"Not fully anonymizing info - keeping {', '.join(sorted(keep_fields))}"
+                " of subject_info"
             )
-        else:
+        if "his_id" not in keep_fields:
             if subject_info.get("his_id") is not None:
                 subject_info["his_id"] = str(default_subject_id)
+        if "sex" not in keep_fields:
             if subject_info.get("sex") is not None:
                 subject_info["sex"] = default_sex
-            if subject_info.get("hand") is not None:
-                del subject_info["hand"]  # there's no "unknown" setting
+        if "hand" not in keep_fields:
+            subject_info.pop("hand", None)  # there's no "unknown" setting
 
         for key in ("last_name", "first_name", "middle_name"):
             if subject_info.get(key) is not None:
@@ -3498,7 +3762,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     info["description"] = default_desc
     with info._unlock():
         if info["proj_id"] is not None:
-            info["proj_id"] = np.zeros_like(info["proj_id"])
+            info["proj_id"] = 0
         if info["proj_name"] is not None:
             info["proj_name"] = default_str
         if info["utc_offset"] is not None:

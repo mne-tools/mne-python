@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "5df1721b488070e3b3928dface9dd0b8c39a3bef",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/credit_tools.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13120.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13144.json": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13172.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13173.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13179.json": {
+      "a": 75,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13180.json": {
+      "a": 95,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13183.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13184.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13197.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13198.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13202.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13205.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13207.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13210.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13212.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13214.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13217.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13218.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13222.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13225.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13226.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13233.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13235.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13236.json": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

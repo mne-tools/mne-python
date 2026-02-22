@@ -118,6 +118,8 @@ brain.add_annotation("aparc.a2009s", borders=False)
 # MNE-Python and FreeSurfer are integrated.
 #
 #
+# .. _fsaverage_background:
+#
 # 'fsaverage'
 # ===========
 #

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c31ae1d9bd5f69660d1e94931ff6dff412a23dfd",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/js/custom-icons.js": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 11,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 17,
+      "d": 4
+    }
+  }
+}

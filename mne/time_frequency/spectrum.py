@@ -46,7 +46,11 @@ from ..utils.check import (
     check_fname,
 )
 from ..utils.misc import _pl
-from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
+from ..utils.spectrum import (
+    _convert_old_birthday_format,
+    _get_instance_type_string,
+    _split_psd_kwargs,
+)
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
@@ -391,7 +395,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = state["freqs"]
         self._dims = state["dims"]
         self._sfreq = state["sfreq"]
-        self.info = Info(**state["info"])
+        self.info = Info(**_convert_old_birthday_format(state["info"]))
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
         self._weights = state.get("weights")  # objs saved before #12747 won't have
@@ -503,6 +507,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     def nave(self):
         return self._nave
 
+    @nave.setter
+    def nave(self, nave):
+        self._nave = nave
+
     @property
     def weights(self):
         return self._weights
@@ -606,8 +614,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Whether to plot an amplitude spectrum (``True``) or power spectrum
             (``False``).
 
-                .. versionchanged:: 1.8
-                    In version 1.8, the default changed to ``amplitude=False``.
+            .. versionchanged:: 1.8
+                In version 1.8, the default changed to ``amplitude=False``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
             Type of confidence band drawn around the mean when ``average=True``. If
@@ -1380,7 +1388,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
     %(info_not_none)s
-    method : ``'welch'``| ``'multitaper'``
+    method : ``'welch'`` | ``'multitaper'``
         The method used to compute the spectrum.
     weights : array | None
         The weights for each taper. Only present if spectra computed with
@@ -1748,7 +1756,7 @@ def read_spectrum(fname):
         n_jobs=None,
         verbose=None,
     )
-    Klass = EpochsSpectrum if hdf5_dict["inst_type_str"] == "Epochs" else Spectrum
+    Klass = EpochsSpectrum if "epoch" in hdf5_dict["dims"] else Spectrum
     return Klass(hdf5_dict, **defaults)
 
 

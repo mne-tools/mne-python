@@ -1272,13 +1272,16 @@ def _plot_topomap(
 
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = pos.get_channel_types(picks=None, unique=True)
-        info_help = "Pick Info with e.g. mne.pick_info and mne.channel_indices_by_type."
+        info_help = (
+            "Pick the Info object "
+            "(e.g., using mne.pick_info and mne.channel_indices_by_type)."
+        )
         if len(ch_type) > 1:
-            raise ValueError("Multiple channel types in Info structure. " + info_help)
+            raise ValueError(f"Multiple channel types in Info object. {info_help}")
         elif len(pos["chs"]) != data.shape[0]:
             raise ValueError(
                 f"Number of channels in the Info object ({len(pos['chs'])}) and the "
-                f"data array ({data.shape[0]}) do not match." + info_help
+                f"data array ({data.shape[0]}) do not match. {info_help}"
             )
         else:
             ch_type = ch_type.pop()
@@ -1419,11 +1422,8 @@ def _plot_topomap(
     if isinstance(outlines, dict):
         _draw_outlines(axes, outlines)
 
-    if names is not None:
-        show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
-        for ii, (_pos, _name) in enumerate(zip(pos, names)):
-            if ii not in show_idx:
-                continue
+    if names is not None and sensors:
+        for _pos, _name in zip(pos, names):
             axes.text(
                 _pos[0],
                 _pos[1],

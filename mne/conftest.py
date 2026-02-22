@@ -19,8 +19,13 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from pytest import StashKey
+from packaging.version import Version
+from pytest import StashKey, register_assert_rewrite
 
+# Any `assert` statements in our testing functions should be verbose versions
+register_assert_rewrite("mne.utils._testing")
+
+# ruff: noqa: E402
 import mne
 from mne import Epochs, pick_types, read_events
 from mne.channels import read_layout
@@ -39,11 +44,10 @@ from mne.utils import (
     check_version,
     numerics,
 )
-
-# data from sample dataset
 from mne.viz._figure import use_browser_backend
 from mne.viz.backends._utils import _init_mne_qtapp
 
+# data from sample dataset
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, "MEG", "sample")
 fname_evoked = op.join(s_path, "sample_audvis_trunc-ave.fif")
@@ -78,18 +82,19 @@ fname_evoked_io = op.join(base_dir, "test-ave.fif")
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout("Vectorview-all")
 
-collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
+collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf_bdf.py"]
 
 
 def pytest_configure(config: pytest.Config):
     """Configure pytest options."""
     # Markers
+    # can be queried with `pytest --markers` for example
     for marker in (
-        "slowtest",
-        "ultraslowtest",
-        "pgtest",
-        "pvtest",
-        "allow_unclosed",
+        "slowtest: mark a test as slow",
+        "ultraslowtest: mark a test as ultraslow or to be run rarely",
+        "pgtest: mark a test as relevant for mne-qt-browser",
+        "pvtest: mark a test as relevant for pyvistaqt",
+        "allow_unclosed: allow unclosed pyvistaqt instances",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -179,7 +184,7 @@ def pytest_configure(config: pytest.Config):
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
-    ignore:Call to deprecated method GetInputAsDataSet.*:DeprecationWarning
+    ignore:Call to deprecated method Get.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
@@ -195,11 +200,43 @@ def pytest_configure(config: pytest.Config):
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
+    ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
+    # matplotlib<->nilearn
+    ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
+    # matplotlib<->pyparsing
+    ignore:^'.*' argument is deprecated, use '.*'$:DeprecationWarning
+    ignore:^'.*' deprecated - use '.*'$:DeprecationWarning
+    # dipy
+    ignore:'where' used without 'out', expect .*:UserWarning
+    # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
+    # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
+    ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
+    try:
+        import pandas
+    except Exception:
+        pass
+    else:
+        if Version(pandas.__version__) >= Version("3.1.0.dev0"):
+            # TODO VERSION once statsmodels dev has updated for pip-pre
+            # (failing as of 2026/02/04)
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:"
+                ".+ is deprecated and will be removed in a future version.*:"
+                "pandas.errors.Pandas4Warning",
+            )
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]):
+    """Add slowtest marker automatically to anything marked ultraslow."""
+    for item in items:
+        if len(list(item.iter_markers("ultraslowtest"))):
+            item.add_marker(pytest.mark.slowtest)
 
 
 # Have to be careful with autouse=True, but this is just an int comparison
@@ -661,6 +698,7 @@ def _check_skip_backend(name):
         assert name == "notebook", name
         pytest.importorskip("jupyter")
         pytest.importorskip("ipympl")
+        pytest.importorskip("ipyevents")
         pytest.importorskip("trame")
         pytest.importorskip("trame_vtk")
         pytest.importorskip("trame_vuetify")
@@ -720,14 +758,16 @@ def _evoked_cov_sphere(_evoked):
     evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model(
+        (0.0, 0.0, 0.04), 0.1, relative_radii=(0.995, 0.997, 0.998, 1.0)
+    )
     return evoked, cov, sphere
 
 
 @pytest.fixture(scope="session")
 def _fwd_surf(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     src_surf = mne.read_source_spaces(fname_src)
     return mne.make_forward_solution(
         evoked.info, fname_trans, src_surf, sphere, mindist=5.0
@@ -738,7 +778,7 @@ def _fwd_surf(_evoked_cov_sphere):
 def _fwd_subvolume(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
     pytest.importorskip("nibabel")
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     volume_labels = ["Left-Cerebellum-Cortex", "right-Cerebellum-Cortex"]
     with pytest.raises(ValueError, match=r"Did you mean one of \['Right-Cere"):
         mne.setup_volume_source_space(
@@ -752,9 +792,12 @@ def _fwd_subvolume(_evoked_cov_sphere):
         subjects_dir=subjects_dir,
         add_interpolator=False,
     )
-    return mne.make_forward_solution(
-        evoked.info, fname_trans, src_vol, sphere, mindist=5.0
+    fwd = mne.make_forward_solution(
+        evoked.info, fname_trans, src_vol, sphere, mindist=1.0
     )
+    nsrc = sum(s["nuse"] for s in src_vol)
+    assert fwd["nsource"] == nsrc
+    return fwd
 
 
 @pytest.fixture
@@ -1196,7 +1239,8 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
-    _modify_report_skips(rep)
+    if rep.outcome == "passed":  # only check for skips etc. if otherwise green
+        _modify_report_skips(rep)
     return rep
 
 

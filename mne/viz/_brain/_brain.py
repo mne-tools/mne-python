@@ -28,6 +28,7 @@ from ..._freesurfer import (
     vertex_to_mni,
 )
 from ...defaults import DEFAULTS, _handle_default
+from ...fixes import _reshape_view
 from ...surface import _marching_cubes, _mesh_borders, mesh_edges
 from ...transforms import (
     Transform,
@@ -441,8 +442,6 @@ class Brain:
                         name="curv",
                     )
                     self._layered_meshes[h] = mesh
-                    # add metadata to the mesh for picking
-                    mesh._polydata._hemi = h
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor, render=False)
@@ -537,10 +536,8 @@ class Brain:
         self.mpl_canvas = None
         self.help_canvas = None
         self.rms = None
-        self.picked_patches = {key: list() for key in all_keys}
-        self.picked_points = {key: list() for key in all_keys}
-        self.pick_table = dict()
-        self._spheres = list()
+        self._picked_patches = {key: list() for key in all_keys}
+        self._picked_points = dict()
         self._mouse_no_mvt = -1
 
         # Derived parameters:
@@ -624,6 +621,8 @@ class Brain:
         self.plotter._Iren = _FakeIren()
         if getattr(self.plotter, "picker", None) is not None:
             self.plotter.picker = None
+        if getattr(self._renderer, "_picker", None) is not None:
+            self._renderer._picker = None
         # XXX end PyVista
         for key in (
             "plotter",
@@ -927,7 +926,7 @@ class Brain:
         def _set_label_mode(mode):
             if self.traces_mode != "label":
                 return
-            glyphs = copy.deepcopy(self.picked_patches)
+            glyphs = copy.deepcopy(self._picked_patches)
             self.label_extract_mode = mode
             self.clear_glyphs()
             for hemi in self._hemis:
@@ -1050,7 +1049,7 @@ class Brain:
             # simulate a picked renderer
             if self._hemi in ("both", "rh") or hemi == "vol":
                 idx = 0
-            self.picked_renderer = self._renderer._all_renderers[idx]
+            self._picked_renderer = self._renderer._all_renderers[idx]
 
             # initialize the default point
             if self._data["initial_time"] is not None:
@@ -1203,16 +1202,9 @@ class Brain:
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # programmatically detect the picked renderer
-            try:
-                # pyvista<0.30.0
-                self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
-            except AttributeError:
-                # pyvista>=0.30.0
-                self.picked_renderer = self.plotter.iren.interactor.FindPokedRenderer(
-                    x, y
-                )
+            self._picked_renderer = self.plotter.iren.interactor.FindPokedRenderer(x, y)
             # trigger the pick
-            self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
+            self._renderer._picker.Pick(x, y, 0, self._picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -1226,34 +1218,23 @@ class Brain:
         if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
             return  # don't pick
 
-        # 1) Check to see if there are any spheres along the ray
-        if len(self._spheres):
+        # 1) Check to see if there are any spheres along the ray and remove if so
+        if len(self._picked_points):
             collection = vtk_picker.GetProp3Ds()
-            found_sphere = None
             for ii in range(collection.GetNumberOfItems()):
                 actor = collection.GetItemAsObject(ii)
-                for sphere in self._spheres:
-                    if any(a is actor for a in sphere._actors):
-                        found_sphere = sphere
-                        break
-                if found_sphere is not None:
-                    break
-            if found_sphere is not None:
-                assert found_sphere._is_glyph
-                mesh = found_sphere
+                for (hemi, vertex_id), spheres in self._picked_points.items():
+                    if any(sphere["actor"] is actor for sphere in spheres):
+                        self._remove_vertex_glyph(hemi=hemi, vertex_id=vertex_id)
+                        return
 
-        # 2) Remove sphere if it's what we have
-        if hasattr(mesh, "_is_glyph"):
-            self._remove_vertex_glyph(mesh)
-            return
-
-        # 3) Otherwise, pick the objects in the scene
-        try:
-            hemi = mesh._hemi
-        except AttributeError:  # volume
-            hemi = "vol"
+        # 2) Otherwise, pick the objects in the scene
+        for hemi, this_mesh in self._layered_meshes.items():
+            assert hemi in ("lh", "rh"), f"Unexpected {hemi=}"
+            if this_mesh._polydata is mesh:
+                break
         else:
-            assert hemi in ("lh", "rh")
+            hemi = "vol"
         if self.act_data_smooth[hemi][0] is None:  # no data to add for hemi
             return
         pos = np.array(vtk_picker.GetPickPosition())
@@ -1361,13 +1342,13 @@ class Brain:
         label = self._annotation_labels[hemi][label_id]
 
         # remove the patch if already picked
-        if label_id in self.picked_patches[hemi]:
+        if label_id in self._picked_patches[hemi]:
             self._remove_label_glyph(hemi, label_id)
             return
 
         if hemi == label.hemi:
             self.add_label(label, borders=True)
-            self.picked_patches[hemi].append(label_id)
+            self._picked_patches[hemi].append(label_id)
 
     def _remove_label_glyph(self, hemi, label_id):
         label = self._annotation_labels[hemi][label_id]
@@ -1375,10 +1356,11 @@ class Brain:
         self.color_cycle.restore(label._color)
         self.mpl_canvas.update_plot()
         self._layered_meshes[hemi].remove_overlay(label.name)
-        self.picked_patches[hemi].remove(label_id)
+        self._picked_patches[hemi].remove(label_id)
 
     def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
-        if vertex_id in self.picked_points[hemi]:
+        _ensure_int(vertex_id)
+        if (hemi, vertex_id) in self._picked_points:
             return
 
         # skip if the wrong hemi is selected
@@ -1402,10 +1384,9 @@ class Brain:
             lst = self._renderer._all_renderers._renderers
         except AttributeError:
             lst = self._renderer._all_renderers
-        rindex = lst.index(self.picked_renderer)
+        rindex = lst.index(self._picked_renderer)
         row, col = self._renderer._index_to_loc(rindex)
 
-        actors = list()
         spheres = list()
         for _ in self._iter_views(hemi):
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
@@ -1414,39 +1395,28 @@ class Brain:
             #    mitigated with synchronization/delay?)
             # 2) the glyph filter is used in renderer.sphere() but only one
             #    sphere is required in this function.
-            actor, sphere = self._renderer._sphere(
+            actor, mesh = self._renderer._sphere(
                 center=np.array(center),
                 color=color,
                 radius=4.0,
             )
-            actors.append(actor)
-            spheres.append(sphere)
+            spheres.append(dict(mesh=mesh, actor=actor))
 
         # add metadata for picking
         for sphere in spheres:
-            sphere._is_glyph = True
-            sphere._hemi = hemi
-            sphere._line = line
-            sphere._actors = actors
-            sphere._color = color
-            sphere._vertex_id = vertex_id
+            sphere.update(hemi=hemi, line=line, color=color, vertex_id=vertex_id)
 
-        self.picked_points[hemi].append(vertex_id)
-        self._spheres.extend(spheres)
-        self.pick_table[vertex_id] = spheres
+        _ensure_int(vertex_id)
+        self._picked_points[(hemi, vertex_id)] = spheres
         return sphere
 
-    def _remove_vertex_glyph(self, mesh, render=True):
-        vertex_id = mesh._vertex_id
-        if vertex_id not in self.pick_table:
-            return
-
-        hemi = mesh._hemi
-        color = mesh._color
-        spheres = self.pick_table[vertex_id]
-        spheres[0]._line.remove()
+    def _remove_vertex_glyph(self, *, hemi, vertex_id, render=True):
+        _ensure_int(vertex_id)
+        assert isinstance(hemi, str), f"got {type(hemi)} for {hemi=}"
+        spheres = self._picked_points.pop((hemi, vertex_id))
+        color, line = spheres[0]["color"], spheres[0]["line"]
+        line.remove()
         self.mpl_canvas.update_plot()
-        self.picked_points[hemi].remove(vertex_id)
 
         with warnings.catch_warnings(record=True):
             # We intentionally ignore these in case we have traversed the
@@ -1455,26 +1425,21 @@ class Brain:
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self.plotter.remove_actor(sphere._actors, render=False)
-            sphere._actors = None
-            self._spheres.pop(self._spheres.index(sphere))
+            self.plotter.remove_actor(sphere.pop("actor"), render=False)
         if render:
             self._renderer._update()
-        self.pick_table.pop(vertex_id)
 
     def clear_glyphs(self):
         """Clear the picking glyphs."""
         if not self.time_viewer:
             return
-        for sphere in list(self._spheres):  # will remove itself, so copy
-            self._remove_vertex_glyph(sphere, render=False)
-        assert sum(len(v) for v in self.picked_points.values()) == 0
-        assert len(self.pick_table) == 0
-        assert len(self._spheres) == 0
+        for hemi, vertex_id in list(self._picked_points):
+            self._remove_vertex_glyph(hemi=hemi, vertex_id=vertex_id, render=False)
+        assert len(self._picked_points) == 0
         for hemi in self._hemis:
-            for label_id in list(self.picked_patches[hemi]):
+            for label_id in list(self._picked_patches[hemi]):
                 self._remove_label_glyph(hemi, label_id)
-        assert sum(len(v) for v in self.picked_patches.values()) == 0
+        assert sum(len(v) for v in self._picked_patches.values()) == 0
         if self.rms is not None:
             self.rms.remove()
             self.rms = None
@@ -2266,7 +2231,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].faces.shape
+                    keep_idx = _reshape_view(keep_idx, self.geo[hemi].faces.shape)
                     keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
@@ -4014,7 +3979,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].orig_faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].orig_faces.shape
+                    keep_idx = _reshape_view(keep_idx, self.geo[hemi].orig_faces.shape)
                     keep_idx = self.geo[hemi].orig_faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:
@@ -4027,11 +3992,14 @@ class Brain:
 
         Returns
         -------
-        points : list of int | None
-            The vertices picked by the time viewer.
+        points : dict | None
+            The vertices picked by the time viewer, one key per hemisphere with
+            a list of vertex indices.
         """
-        if hasattr(self, "time_viewer"):
-            return self.picked_points
+        out = dict(lh=[], rh=[], vol=[])
+        for hemi, vertex_id in self._picked_points:
+            out[hemi].append(vertex_id)
+        return out
 
     def __hash__(self):
         """Hash the object."""

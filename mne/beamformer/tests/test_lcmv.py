@@ -42,6 +42,7 @@ from mne.beamformer import (
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
@@ -809,6 +810,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
         assert_allclose(stc_cov.data.std(), 0.187, rtol=0.2)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, weight_norm, use_cov, depth, lower, upper",
     [
@@ -851,6 +853,7 @@ def test_localization_bias_fixed(
 
 
 # Changes here should be synced with test_dics.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
@@ -1044,7 +1047,7 @@ def test_orientation_max_power(
     "weight_norm, pick_ori",
     [
         pytest.param("nai", "max-power", marks=pytest.mark.slowtest),
-        ("unit-noise-gain", "vector"),
+        pytest.param("unit-noise-gain", "vector", marks=pytest.mark.slowtest),
         ("unit-noise-gain", "max-power"),
         pytest.param("unit-noise-gain", None, marks=pytest.mark.slowtest),
     ],
@@ -1183,7 +1186,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     )
     n_channels, n_sources = G.shape
     n_sources //= 3
-    G.shape = (n_channels, n_sources, 3)
+    G = _reshape_view(G, (n_channels, n_sources, 3))
     G = G.transpose(1, 2, 0)  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

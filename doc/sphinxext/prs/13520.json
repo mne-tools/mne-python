@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2eefeb96b0e240d2fdb5db0595b2c8c2a1e024be",
+  "authors": [
+    {
+      "n": "yaylim",
+      "e": "melihyayli@hotmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13520.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f7df4e5cc88bfb6795932ebbd7a3e72fdaff39d1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 8
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 7
+    }
+  }
+}

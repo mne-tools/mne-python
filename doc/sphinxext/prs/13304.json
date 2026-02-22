@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d193166134dcc30c3c2bf154ec188f63913d6ea6",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

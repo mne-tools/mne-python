@@ -19,7 +19,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _eye_array, _safe_svd
+from .fixes import _eye_array, _reshape_view, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -697,7 +697,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         Parameters
         ----------
         %(baseline_stc)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -3742,7 +3742,9 @@ def _gen_extract_label_time_course(
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
                     this_data = vertidx @ this_data
-                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                    this_data = _reshape_view(
+                        this_data, (this_data.shape[0],) + stc.data.shape[1:]
+                    )
                 else:
                     this_data = stc.data[vertidx]
                 label_tc[i] = func(flip, this_data)

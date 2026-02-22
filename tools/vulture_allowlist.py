@@ -40,9 +40,15 @@ verbose_debug
 metadata_routing
 
 # Decoding
-_._more_tags
 _.multi_class
 _.preserves_dtype
+_.one_d_labels
+_.two_d_labels
+_.two_d_array
+_.three_d_array
+_.requires_fit
+_.regressor_tags
+
 deep
 
 # Backward compat or rarely used
@@ -76,6 +82,7 @@ _download_all_example_data  # CIs
 _cleanup_agg
 _notebook_vtk_works
 _.drop_inds_
+_.required
 
 # mne/io/ant/tests/test_ant.py
 andy_101

@@ -48,6 +48,7 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
+from ..fixes import _reshape_view
 from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label
@@ -62,7 +63,7 @@ from ..source_space._source_space import (
     find_source_space_hemi,
 )
 from ..surface import _normal_orth
-from ..transforms import invert_transform, transform_surface_to, write_trans
+from ..transforms import invert_transform, write_trans
 from ..utils import (
     _check_compensation_grade,
     _check_fname,
@@ -318,7 +319,6 @@ def _get_tag_int(fid, node, name, id_):
     """Check we have an appropriate tag."""
     tag = find_tag(fid, node, id_)
     if tag is None:
-        fid.close()
         raise ValueError(name + " tag not found")
     return int(tag.data.item())
 
@@ -649,7 +649,6 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 mri_head_t["from"] != FIFF.FIFFV_COORD_MRI
                 or mri_head_t["to"] != FIFF.FIFFV_COORD_HEAD
             ):
-                fid.close()
                 raise ValueError("MRI/head coordinate transformation not found")
         fwd["mri_head_t"] = mri_head_t
 
@@ -682,16 +681,8 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
 
     # Transform each source space to the HEAD or MRI coordinate frame,
     # depending on the coordinate frame of the forward solution
-    # NOTE: the function transform_surface_to will also work on discrete and
-    # volume sources
-    nuse = 0
-    for s in src:
-        try:
-            s = transform_surface_to(s, fwd["coord_frame"], mri_head_t)
-        except Exception as inst:
-            raise ValueError(f"Could not transform source space ({inst})")
-
-        nuse += s["nuse"]
+    src._transform_to(fwd["coord_frame"], mri_head_t)
+    nuse = sum(s["nuse"] for s in src)
 
     # Make sure the number of sources match after transformation
     if nuse != fwd["nsource"]:
@@ -954,16 +945,9 @@ def _write_forward_solution(fid, fwd):
     write_forward_meas_info(fid, fwd["info"])
 
     # invert our original source space transform
-    src = list()
-    for s in fwd["src"]:
-        s = deepcopy(s)
-        try:
-            # returns source space to original coordinate frame
-            # usually MRI
-            s = transform_surface_to(s, fwd["mri_head_t"]["from"], fwd["mri_head_t"])
-        except Exception as inst:
-            raise ValueError(f"Could not transform source space ({inst})")
-        src.append(s)
+    src = fwd["src"].copy()
+    # returns source space to original coordinate frame, usually MRI
+    src._transform_to(fwd["mri_head_t"]["from"], fwd["mri_head_t"])
 
     #
     # Write the source spaces (again)
@@ -1124,7 +1108,6 @@ def write_forward_meas_info(fid, info):
     # get transformation from CTF and DEVICE to HEAD coordinate frame
     meg_head_t = info.get("dev_head_t", info.get("ctf_head_t"))
     if meg_head_t is None:
-        fid.close()
         raise ValueError("Head<-->sensor transform not found")
     write_coord_trans(fid, meg_head_t)
 
@@ -1448,13 +1431,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G.shape = (G.shape[0], -1, 3)
+        G = _reshape_view(G, (G.shape[0], -1, 3))
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G.shape = (G.shape[0], -1)
+        G = _reshape_view(G, (G.shape[0], -1))
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:

@@ -206,7 +206,7 @@ def read_raw_cnt(
         - Standard montages with :func:`mne.channels.make_standard_montage`
         - Montages for `Compumedics systems
           <https://compumedicsneuroscan.com>`__ with
-          :func:`mne.channels.read_dig_dat`
+          :func:`mne.channels.read_dig_curry`
         - Other reader functions are listed under *See Also* at
           :class:`mne.channels.DigMontage`
 

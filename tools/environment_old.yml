@@ -4,11 +4,11 @@ channels:
   - conda-forge
 dependencies:
   - python =3.10
-  - numpy =1.25
-  - scipy =1.11
-  - matplotlib =3.7
-  - pandas =2.0
-  - scikit-learn
+  - numpy =1.26
+  - scipy =1.12
+  - matplotlib =3.8
+  - pandas =2.2
+  - scikit-learn =1.4
   - nibabel
   - tqdm
   - pooch =1.5

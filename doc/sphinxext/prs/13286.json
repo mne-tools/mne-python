@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8df70aea97c42a58d02e1c121679e9c1b2c62869",
+  "authors": [
+    {
+      "n": "Ankang Hu",
+      "e": "23111220065@m.fudan.edu.cn"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13286.bugfix.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

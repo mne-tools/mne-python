@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "58618f756d0c83dc5d57979ac14e87165394397d",
+  "authors": [
+    {
+      "n": "user27182",
+      "e": "89109579+user27182@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13277.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

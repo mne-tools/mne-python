@@ -2,14 +2,18 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from copy import deepcopy
+
 import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy.interpolate import RectBivariateSpline
 from scipy.linalg import pinv
 from scipy.spatial.distance import pdist, squareform
 
-from .._fiff.meas_info import _simplify_info
+from .._fiff.meas_info import _simplify_info, create_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
+from .._fiff.proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
+from ..bem import _check_origin
 from ..surface import _normalize_vectors
 from ..utils import _validate_type, logger, verbose, warn
 
@@ -172,25 +176,25 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
 
 
 @verbose
-def _interpolate_bads_ecog(inst, origin, exclude=None, verbose=None):
+def _interpolate_bads_ecog(inst, *, origin, exclude=None, verbose=None):
     _interpolate_bads_eeg(inst, origin, exclude=exclude, ecog=True, verbose=verbose)
 
 
 def _interpolate_bads_meg(
-    inst, mode="accurate", origin=(0.0, 0.0, 0.04), verbose=None, ref_meg=False
+    inst, mode="accurate", *, origin, verbose=None, ref_meg=False
 ):
     return _interpolate_bads_meeg(
-        inst, mode, origin, ref_meg=ref_meg, eeg=False, verbose=verbose
+        inst, mode, ref_meg=ref_meg, eeg=False, origin=origin, verbose=verbose
     )
 
 
 @verbose
 def _interpolate_bads_nan(
     inst,
+    *,
     ch_type,
     ref_meg=False,
     exclude=(),
-    *,
     verbose=None,
 ):
     info = _simplify_info(inst.info)
@@ -208,12 +212,12 @@ def _interpolate_bads_nan(
 def _interpolate_bads_meeg(
     inst,
     mode="accurate",
-    origin=(0.0, 0.0, 0.04),
+    *,
     meg=True,
     eeg=True,
     ref_meg=False,
     exclude=(),
-    *,
+    origin,
     method=None,
     verbose=None,
 ):
@@ -253,7 +257,7 @@ def _interpolate_bads_meeg(
 
 @verbose
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
-    from mne.preprocessing.nirs import _validate_nirs_info
+    from ..preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
         return
@@ -415,3 +419,135 @@ def _interpolate_bads_seeg(
             out = out.reshape(bads_shaft.size, inst._data.shape[0], -1)
             out = out.swapaxes(0, 1)
         inst._data[..., bads_shaft, :] = out
+
+
+def _interpolate_to_eeg(inst, sensors, origin, method, reg):
+    """Interpolate EEG data to a new montage."""
+    from ..forward._field_interpolation import _map_meg_or_eeg_channels
+
+    # Get target positions from the montage
+    ch_pos = sensors.get_positions().get("ch_pos", {})
+    target_ch_names = list(ch_pos)
+    if not target_ch_names:
+        raise ValueError("The provided sensors configuration has no channel positions.")
+
+    # Identify EEG channel
+    picks_good_eeg = pick_types(inst.info, eeg=True, exclude="bads")
+    if len(picks_good_eeg) == 0:
+        raise ValueError("No good EEG channels available for interpolation.")
+
+    # Create destination info for new EEG channels
+    # TODO: Maybe copy? This will remove potentially useful metadata...
+    info_to = create_info(target_ch_names, sfreq=inst.info["sfreq"], ch_types="eeg")
+    info_to.set_montage(sensors)
+
+    # Compute the interpolation mapping
+    if method == "spline":
+        origin_val = _check_origin(origin, inst.info)
+        pos_from = inst.info._get_channel_positions(picks_good_eeg) - origin_val
+        pos_to = np.stack(list(ch_pos.values()), axis=0)
+
+        def _check_pos_sphere(pos):
+            d = np.linalg.norm(pos, axis=-1)
+            d_norm = np.mean(d / np.mean(d))
+            if np.abs(1.0 - d_norm) > 0.1:
+                warn("Your spherical fit is poor; interpolation may be inaccurate.")
+
+        _check_pos_sphere(pos_from)
+        _check_pos_sphere(pos_to)
+        mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
+
+    else:
+        assert method == "MNE"
+        info_eeg = pick_info(inst.info, picks_good_eeg)
+        # If the original info has an average EEG reference projector but
+        # the destination info does not, update info_interp via a temporary RawArray.
+        if _has_eeg_average_ref_proj(inst.info) and not _has_eeg_average_ref_proj(
+            info_to
+        ):
+            # add an average reference projector.
+            info_to["projs"].append(make_eeg_average_ref_proj(info_to))
+        mapping = _map_meg_or_eeg_channels(
+            info_eeg, info_to, mode="accurate", origin=origin
+        )
+
+    return _remap_add(inst, mapping, info_to, ch_type="eeg")
+
+
+def _interpolate_to_meg(inst, sensors, origin, mode):
+    """Interpolate MEG data to a canonical sensor configuration."""
+    from ..forward._field_interpolation import _map_meg_or_eeg_channels
+    from .montage import read_meg_canonical_info
+
+    # Get MEG channels from source
+    picks_meg_good = pick_types(inst.info, meg=True, ref_meg=False, exclude="bads")
+    if len(picks_meg_good) == 0:
+        raise ValueError("No good MEG channels available for interpolation.")
+
+    # Load target sensor configuration
+    info_to = read_meg_canonical_info(sensors)
+    info_to["dev_head_t"] = deepcopy(inst.info["dev_head_t"])
+
+    # Get source MEG info
+    info_from = pick_info(inst.info, picks_meg_good)
+
+    # Compute field interpolation mapping
+    origin_val = _check_origin(origin, inst.info)
+    mapping = _map_meg_or_eeg_channels(info_from, info_to, mode=mode, origin=origin_val)
+    return _remap_add(inst, mapping, info_to, ch_type="meg")
+
+
+def _remap_add(inst, mapping, info_to, ch_type):
+    # Comments here refer to EEG, but in principle it could instead be MEG!
+    assert ch_type in ("eeg", "meg")
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..evoked import Evoked, EvokedArray
+    from ..io import RawArray
+    from ..io.base import BaseRaw
+
+    # Get original channel order
+    orig_names = inst.info["ch_names"]
+
+    # Get the full list of EEG channel indices (including bad channels)
+    pick_kwargs = {ch_type: True}
+    picks_interp_all = pick_types(inst.info, exclude=[], **pick_kwargs)
+    picks_interp_good = pick_types(inst.info, exclude="bads", **pick_kwargs)
+    interp_names_orig = [orig_names[i] for i in picks_interp_all]
+
+    # Interpolate EEG data
+    data_interp = mapping @ inst.get_data(picks=picks_interp_good)
+
+    # Create a new instance for the interpolated EEG channels
+    if isinstance(inst, BaseRaw):
+        inst_interp = RawArray(data_interp, info_to, first_samp=inst.first_samp)
+    elif isinstance(inst, BaseEpochs):
+        inst_interp = EpochsArray(data_interp, info_to, tmin=inst.tmin)
+    else:
+        assert isinstance(inst, Evoked)
+        inst_interp = EvokedArray(data_interp, info_to, tmin=inst.tmin)
+
+    # Identify non-EEG channels in original order
+    non_interp_names_ordered = [ch for ch in orig_names if ch not in interp_names_orig]
+
+    # Merge only if non-EEG channels exist
+    if not non_interp_names_ordered:
+        return inst_interp
+
+    inst_non_interp = inst.copy().pick(non_interp_names_ordered).load_data()
+    inst_out = inst_non_interp.add_channels([inst_interp], force_update_info=True)
+
+    # Reorder channels
+    # Insert the entire new EEG block at the position of the first EEG channel.
+    orig_names_arr = np.array(orig_names)
+    mask_interp = np.isin(orig_names_arr, interp_names_orig)
+    if mask_interp.any():
+        first_interp_index = np.where(mask_interp)[0][0]
+        pre = orig_names_arr[:first_interp_index]
+        new_interp = np.array(info_to["ch_names"])
+        post = orig_names_arr[first_interp_index:]
+        post = post[~np.isin(orig_names_arr[first_interp_index:], interp_names_orig)]
+        new_order = np.concatenate((pre, new_interp, post)).tolist()
+    else:
+        new_order = orig_names
+    inst_out.reorder_channels(new_order)
+    return inst_out

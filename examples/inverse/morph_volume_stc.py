@@ -6,10 +6,9 @@ Morph volumetric source estimate
 ================================
 
 This example demonstrates how to morph an individual subject's
-:class:`mne.VolSourceEstimate` to a common reference space. We achieve this
-using :class:`mne.SourceMorph`. Data will be morphed based on
-an affine transformation and a nonlinear registration method
-known as Symmetric Diffeomorphic Registration (SDR) by
+:class:`mne.VolSourceEstimate` to a common reference space. We achieve this using
+:class:`mne.SourceMorph`. Data will be morphed based on an affine transformation and
+a nonlinear registration method known as Symmetric Diffeomorphic Registration (SDR) by
 :footcite:`AvantsEtAl2008`.
 
 Transformation is estimated from the subject's anatomical T1 weighted MRI
@@ -139,7 +138,7 @@ display = plot_glass_brain(
 )
 
 # Add functional data as overlay
-display.add_overlay(img_fsaverage, alpha=0.75)
+display.add_overlay(img_fsaverage, transparency=0.75)
 
 
 # %%

@@ -26,7 +26,7 @@
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
 .. _`MNE-NIRS`: https://github.com/mne-tools/mne-nirs
-.. _PICARD: https://pierreablin.github.io/picard/
+.. _PICARD: https://mind-inria.github.io/picard/
 .. _OpenMEEG: https://openmeeg.github.io
 .. _openneuro-py: https://pypi.org/project/openneuro-py
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
@@ -40,7 +40,7 @@
 .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
 .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
 .. _ft_cluster: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test
-.. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/024644.html
+.. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/011773.html
 .. _ft_exch: https://mailman.science.ru.nl/pipermail/fieldtrip/2008-October/001794.html
 
 
@@ -72,6 +72,8 @@
 .. _python: http://www.python.org
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
 .. _SPEC0: https://scientific-python.org/specs/spec-0000
+.. _mri_watershed: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_watershed
+.. _recon-all: https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all
 
 .. python packages
 

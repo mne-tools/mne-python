@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0c0e72efe1f062cce5fb2aaa9509cf77036ae6f9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 11,
+      "d": 10
+    }
+  }
+}

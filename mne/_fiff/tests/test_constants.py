@@ -117,7 +117,9 @@ _aliases = dict(
 )
 
 
+@pytest.mark.flaky
 @requires_good_network
+@pytest.mark.ultraslowtest  # not that slow, just doesn't need to run very often
 def test_constants(tmp_path):
     """Test compensation."""
     fname = "fiff.zip"

@@ -31,6 +31,7 @@ __all__ = [
     "apply_forward_raw",
     "average_forward_solutions",
     "beamformer",
+    "bem",
     "channel_indices_by_type",
     "channel_type",
     "channels",
@@ -203,6 +204,7 @@ __all__ = [
 ]
 from . import (
     beamformer,
+    bem,
     channels,
     chpi,
     commands,

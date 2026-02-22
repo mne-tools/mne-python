@@ -21,14 +21,16 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   INSTALL_PATH=$(python -c "import mne, pathlib; print(str(pathlib.Path(mne.__file__).parents[1]))")
   echo "Copying tests from ${PROJ_PATH}/mne-python/mne/ to ${INSTALL_PATH}/mne/"
   echo "::group::rsync mne"
-  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ${PROJ_PATH}/mne/ ${INSTALL_PATH}/mne/
+  set -x
+  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="*/" --include="tests/**" --include="**/tests/**" --exclude="**" ${PROJ_PATH}/mne/ ${INSTALL_PATH}/mne/
   echo "::endgroup::"
   echo "::group::rsync doc"
   mkdir -p ${INSTALL_PATH}/doc/
-  rsync -a --partial --progress --prune-empty-dirs --include="**/" --include="**/api/*" --exclude="**" ${PROJ_PATH}/doc/ ${INSTALL_PATH}/doc/
+  rsync -a --partial --progress --prune-empty-dirs --include="api/" --include="api/*.rst" --exclude="*" ${PROJ_PATH}/doc/ ${INSTALL_PATH}/doc/
   test -f ${INSTALL_PATH}/doc/api/reading_raw_data.rst
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
+  set +x
   echo "::endgroup::"
 fi
 
