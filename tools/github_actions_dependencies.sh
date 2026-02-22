@@ -25,6 +25,9 @@ if [ ! -z "$CONDA_ENV" ]; then
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
 	fi
+elif [[ "${MNE_CI_KIND}" == "pixi" ]]; then
+	GROUP="test_extra"
+	EXTRAS="[hdf5]"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"

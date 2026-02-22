@@ -81,7 +81,7 @@ jobs:
             kind: mamba
           - os: macos-15-intel  # intel: Sequoia
             python: '3.13'
-            kind: mamba
+            kind: pixi
           - os: windows-latest
             python: '3.11'
             kind: mamba
@@ -123,6 +123,13 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          activate-environment: true
+          cache: true  # skip installation, use cached environment built from pixi.lock
+          # suggested constraint of cache-use to main, so we dont blow GH's cache limit.
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        if: matrix.kind == 'pixi'
       # Python (if conda)
       - name: Fixes for conda
         run: |
@@ -142,7 +149,7 @@ jobs:
               echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
             fi
           fi
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == "pixi"
       - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
@@ -151,8 +158,18 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: ${{ !startswith(matrix.kind, 'pip') }}
+        if: ${{ !startswith(matrix.kind, 'pip') && matrix.kind != 'pixi' }}
         timeout-minutes: 20
+      - name: Create pixi.toml
+        if: matrix.kind == 'pixi'
+        # environment.yml specifies the same python version as macos-intel CI (3.13)
+        # but let's expliclty set the version, in case these ever diverge in the future?
+        run: |
+          pixi init --import environment.yml
+          pixi add "python ==${{ matrix.python }}"
+      - name: Setup pixi environment
+        if: matrix.kind == 'pixi'
+        run: pixi install
       - run: bash ./tools/github_actions_dependencies.sh
       - run: python ./tools/github_actions_check_old.py
         if: matrix.kind == 'old'

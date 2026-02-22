@@ -24,7 +24,14 @@ else  # conda-like
         echo "CONDA_ENV=tools/environment_minimal.yml" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     else  # conda, mamba (use warning level for completeness)
-        echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
+        # Pixi is treated as Conda-like (it uses environment.yaml) but it should not export
+        # CONDA_ENV because github_actions_dependencies.sh uses the existence of the
+        # CONDA_ENV environment variable to assume that the conda/mamba command is on
+        # PATH, which it is not for pixi jobs.
+        if [[ "$MNE_CI_KIND" != "pixi" ]]; then
+            echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
+        fi
+
         echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
         # TODO: Also need "|unreliable on GitHub Actions conda" on macOS, but omit for now to make sure the failure actually shows up
