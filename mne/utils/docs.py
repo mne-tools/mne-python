@@ -4103,6 +4103,15 @@ Some common referencing schemes and the corresponding value for the
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
     automatically excluded if they are properly set in ``info['bads']``.
 
+    For sensor-space analyses, if the original reference electrode is not
+    present as a channel, the resulting average reference is biased because
+    the subtracted signal is divided by n channels instead of n + 1
+    (including the reference). For a correct average reference, add a
+    zero-filled reference channel with :func:`~mne.add_reference_channels`
+    before calling :func:`~mne.set_eeg_reference`. For further discussion,
+    see Kim et al. (2023) `Frontiers in Signal Processing
+    <https://doi.org/10.3389/frsip.2023.1064138>`__.
+
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
     will act as the new reference, for example ``ref_channels=['Cz']``.

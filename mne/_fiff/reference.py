@@ -405,17 +405,6 @@ def set_eeg_reference(
         ``None`` if ``projection=True``, or if ``ref_channels`` is ``"REST"`` or a
         :class:`dict`.
 
-    Notes
-    -----
-    When using ``ref_channels="average"`` with ``projection=False`` (the
-    default), the average reference is computed over the EEG channels present
-    in the data. If the original reference electrode was not recorded as a
-    channel (or was removed during acquisition or preprocessing), it is not
-    implicitly accounted for in the average.
-    For sensor-space analyses where this distinction matters, consider adding
-    a zero-filled reference channel using :func:`add_reference_channel` before
-    applying the average reference.
-
     %(set_eeg_reference_see_also_notes)s
     """
     from ..forward import Forward
