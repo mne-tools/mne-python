@@ -165,6 +165,7 @@ jobs:
         run: |
           pixi init --format pixi --import environment.yml
           pixi add "python==${{ matrix.python }}"
+          ls -la pixi.toml
       - name: Setup pixi environment
         if: matrix.kind == 'pixi'
         run: pixi install
