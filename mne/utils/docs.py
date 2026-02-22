@@ -4109,7 +4109,7 @@ Some common referencing schemes and the corresponding value for the
     (including the reference). For a correct average reference, add a
     zero-filled reference channel with :func:`~mne.add_reference_channels`
     before calling :func:`~mne.set_eeg_reference`. For further discussion,
-    see :footcite:t:`KimEtAl2023`.
+    see Kim et al. (2023, doi:10.3389/frsip.2023.1064138).
 
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
