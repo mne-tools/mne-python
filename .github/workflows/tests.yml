@@ -125,7 +125,8 @@ jobs:
         if: startswith(matrix.kind, 'pip')
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          activate-environment: false
+          activate-environment: true
+          run-install: false
           cache: false  # caching depends on existence of a pixi.lock file
         if: matrix.kind == 'pixi'
       # Python (if conda)
