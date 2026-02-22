@@ -164,7 +164,7 @@ jobs:
         # environment.yml specifies the same python version as macos-intel CI (3.13)
         # but let's expliclty set the version, in case these ever diverge in the future?
         run: |
-          pixi init --format pixi --import environment.yml
+          pixi init --import environment.yml
           pixi add "python==${{ matrix.python }}" --no-install
           ls -la pixi.toml
       - name: Setup pixi environment
