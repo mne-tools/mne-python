@@ -170,6 +170,13 @@ jobs:
       - name: Setup pixi environment
         if: matrix.kind == 'pixi'
         run: pixi install
+      # Now run setup-pixi again in order to activate the enviroment
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        if: matrix.kind == 'pixi'
+        with:
+          run-install: false
+          activate-environment: true
+          cache: false
       - run: bash ./tools/github_actions_dependencies.sh
       - run: python ./tools/github_actions_check_old.py
         if: matrix.kind == 'old'
