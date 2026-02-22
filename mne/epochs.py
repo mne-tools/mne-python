@@ -97,6 +97,7 @@ from .utils import (
     check_fname,
     check_random_state,
     copy_function_doc_to_method_doc,
+    legacy,
     logger,
     object_size,
     repr_html,
@@ -702,6 +703,7 @@ class BaseEpochs(
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
 
+    @legacy(alt="mne.Epochs.reset_index()")
     def reset_drop_log_selection(self):
         """Reset the drop_log and selection entries.
 
@@ -710,6 +712,19 @@ class BaseEpochs(
         integers, respectively). This can be useful when concatenating
         many Epochs instances, as ``drop_log`` can accumulate many entries
         which can become problematic when saving.
+        """
+        self.selection = np.arange(len(self.events))
+        self.drop_log = (tuple(),) * len(self.events)
+        self._check_consistency()
+
+    def reset_index(self):
+        """Reset the epochs index.
+
+        This resets the epochs indexing and drop log so that ``self.selection`` becomes
+        a simple increasing sequence starting at zero and ``self.drop_log`` becomes a
+        tuple of empty tuples of the same length. The operation is in-place and is
+        useful when creating epochs from a subset of events (using ``event_id``) and the
+        original event indexes are not relevant anymore.
         """
         self.selection = np.arange(len(self.events))
         self.drop_log = (tuple(),) * len(self.events)
