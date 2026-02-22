@@ -149,7 +149,7 @@ jobs:
               echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
             fi
           fi
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == "pixi"
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == 'pixi'
       - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
