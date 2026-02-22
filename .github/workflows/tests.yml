@@ -125,7 +125,7 @@ jobs:
         if: startswith(matrix.kind, 'pip')
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          activate-environment: true
+          activate-environment: false
           cache: false  # caching depends on existence of a pixi.lock file
         if: matrix.kind == 'pixi'
       # Python (if conda)
@@ -164,7 +164,7 @@ jobs:
         # but let's expliclty set the version, in case these ever diverge in the future?
         run: |
           pixi init --format pixi --import environment.yml
-          pixi add "python==${{ matrix.python }}"
+          pixi add "python==${{ matrix.python }}" --no-install
           ls -la pixi.toml
       - name: Setup pixi environment
         if: matrix.kind == 'pixi'
