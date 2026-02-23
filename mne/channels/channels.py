@@ -911,15 +911,19 @@ class InterpolationMixin:
                 invalid_chs.append(ch)
 
         if invalid_chs:
-            msg = (
-                f"Channel(s) {invalid_chs} have invalid sensor position(s). "
-                "Interpolation cannot proceed correctly. If you want to continue "
-                "despite missing positions, set on_bad_position='warn' or 'ignore', "
-                "which outputs all NaN values (np.nan) for the interpolated "
-                "channel(s)."
+            _on_missing(
+                on_bad_position,
+                (
+                    f"Channel(s) {invalid_chs} have invalid sensor position(s). "
+                    "Interpolation cannot proceed correctly. If you want to continue "
+                    "despite missing positions, set on_bad_position='warn' or 'ignore', "
+                    "which outputs all NaN values (np.nan) for the interpolated channel(s)."
+                    if on_bad_position == "raise"
+                    else f"Channel(s) {invalid_chs} have invalid sensor position(s) and "
+                    "cannot be interpolated. The values of these channels will be all NaN. "
+                    "To ignore this warning, pass on_bad_position='ignore'."
+                ),
             )
-            _on_missing(on_bad_position, msg)
-
         method = _handle_default("interpolation_method", method)
         ch_types = self.get_channel_types(unique=True)
         # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
