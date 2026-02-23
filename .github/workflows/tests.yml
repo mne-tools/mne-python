@@ -177,6 +177,8 @@ jobs:
           run-install: false
           activate-environment: true
           cache: false
+      - name: Verify Environment
+        run: echo $PATH
       - name: Debug Qt availability
         if: matrix.kind == 'pixi'
         run: |
