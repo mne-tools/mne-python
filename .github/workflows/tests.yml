@@ -157,6 +157,8 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
+          generate-run-shell: true
+          init-shell: none
         if: ${{ !startswith(matrix.kind, 'pip') && matrix.kind != 'pixi' }}
         timeout-minutes: 20
       - name: Create pixi.toml
@@ -185,6 +187,8 @@ jobs:
           python -c "from importlib.metadata import version; print('pip version', version('pip'))"
           python -c "from importlib import util; print('PySide6', util.find_spec('PySide6'))"
       - run: bash ./tools/github_actions_dependencies.sh
+        if: ${{ matrix.kind != 'pixi' && !startswith(matrix.kind, 'pip') && runner.os != 'Windows' }}
+        shell: micromamba-shell {0}
       - run: python ./tools/github_actions_check_old.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
@@ -209,6 +213,8 @@ jobs:
           pixi run python -c "import sys; print(sys.executable)"
           pixi run python -c "import PySide6; print(PySide6.__version__)"
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
+        if: ${{ matrix.kind != 'pixi' && !startswith(matrix.kind, 'pip') && runner.os != 'Windows' }}
+        shell: micromamba-shell {0}
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
