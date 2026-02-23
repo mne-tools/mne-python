@@ -37,7 +37,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: Warpbuilds/action-debugger@v1.3
         timeout-minutes: 10
         with:
           detached: true
