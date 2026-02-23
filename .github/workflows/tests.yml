@@ -202,6 +202,11 @@ jobs:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
+      - name: Debug interpreter + Qt
+        if: matrix.kind == 'pixi'
+        run: |
+          pixi run python -c "import sys; print(sys.executable)"
+          pixi run python -c "import PySide6; print(PySide6.__version__)"
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
       - uses: codecov/codecov-action@v5
         with:
