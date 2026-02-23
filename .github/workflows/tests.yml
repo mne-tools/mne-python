@@ -106,6 +106,8 @@ jobs:
             echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
           fi
       - run: ./tools/github_actions_env_vars.sh
+      - run: exit 1  # TODO: Remove before merge (this short-circuits other jobs)
+        if: env.MNE_CI_KIND != 'old'
       # Xvfb/OpenGL
       - uses: pyvista/setup-headless-display-action@v4
         with:
