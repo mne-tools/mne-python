@@ -177,12 +177,6 @@ jobs:
           run-install: true
           activate-environment: true
           cache: false
-      - name: Prepend pixi env to PATH
-        if: matrix.kind == 'pixi'
-        run: |
-          echo "PATH=${{ github.workspace }}/.pixi/envs/default/bin:${PATH}" >> "$GITHUB_PATH"
-          which python
-          python -c "import sys; print(sys.executable)"
       - name: Verify Environment
         run: echo $PATH
       - name: Debug Qt availability
