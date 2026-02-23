@@ -191,10 +191,13 @@ jobs:
         shell: micromamba-shell {0}
       - run: python ./tools/github_actions_check_old.py
         if: matrix.kind == 'old'
+        shell: micromamba-shell {0}
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
       - run: bash ./tools/github_actions_infos.sh
+        if: ${{ matrix.kind != 'pixi' && !startswith(matrix.kind, 'pip') && runner.os != 'Windows' }}
+        shell: micromamba-shell {0}
       # Check Qt
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
