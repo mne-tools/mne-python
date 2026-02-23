@@ -160,7 +160,7 @@ jobs:
       - run: bash ./tools/github_actions_dependencies.sh
       - run: source ./tools/github_actions_setup_uv_bash.sh
         if: matrix.kind == 'old'
-      - run: python ./tools/github_actions_check_old_env.py
+      - run: bash ./tools/github_actions_check_old_env.sh
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
