@@ -149,14 +149,13 @@ jobs:
             -v
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
         timeout-minutes: 20
+      # Python (if old)
       - uses: astral-sh/setup-uv@v7
         with:
           version: ">=0.9"
           activate-environment: true
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
-      - run: bash ./tools/github_actions_setup_uv_bash.sh && exec bash
-        if: matrix.kind == 'old'
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
         uses: Warpbuilds/action-debugger@v1.3
