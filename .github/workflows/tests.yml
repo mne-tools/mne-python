@@ -179,7 +179,7 @@ jobs:
       - name: Verify Environment
         run: echo $PATH
       - name: Debug Qt availability
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == "old" || matrix.kind == "minimal"
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == 'old' || matrix.kind == 'minimal'
         run: |
           python -c "import sys; print(sys.executable)"
           python -c "from importlib.metadata import version; print('pip version', version('pip'))"
