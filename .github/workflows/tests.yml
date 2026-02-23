@@ -105,9 +105,13 @@ jobs:
           else
             echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
           fi
+      - name: Setup Remote SSH Connection
+        if: env.ENABLE_SSH == 'true'
+        uses: Warpbuilds/action-debugger@v1.3
+        timeout-minutes: 80
+        with:
+          detached: true
       - run: ./tools/github_actions_env_vars.sh
-      - run: exit 1  # TODO: Remove before merge (this short-circuits other jobs)
-        if: env.MNE_CI_KIND != 'old'
       # Xvfb/OpenGL
       - uses: pyvista/setup-headless-display-action@v4
         with:
@@ -159,12 +163,6 @@ jobs:
           python-version: ${{ matrix.python }}
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
-      - name: Setup Remote SSH Connection
-        if: env.ENABLE_SSH == 'true'
-        uses: Warpbuilds/action-debugger@v1.3
-        timeout-minutes: 80
-        with:
-          detached: false
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
