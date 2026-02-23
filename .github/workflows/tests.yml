@@ -183,6 +183,7 @@ jobs:
           python -c "import sys; print(sys.executable)"
           python -c "from importlib import util; print('PySide6', util.find_spec('PySide6'))"
           pixi list | grep -i side || true
+          python -c "import sys; assert '/.pixi/envs/default/bin/python' in sys.executable"
       - run: bash ./tools/github_actions_dependencies.sh
       - run: python ./tools/github_actions_check_old.py
         if: matrix.kind == 'old'
