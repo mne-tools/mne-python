@@ -5,14 +5,16 @@
 Deface MRI and MEG data for identity protection
 ================================================
 
-Because facial information can be identifying, subject privacy can be protected
-by removing facial information in MEG and MRI data before data sharing.
+Because facial information can be identifying, it is sometimes necessary to
+clean MEG and MRI data of facial detail. This example shows how to do deface
+MRI and MEG data without altering head volume or coregistration.
 
 To learn more about coordinate frames, see :ref:`tut-source-alignment`.
 """
 
 import nibabel as nib
 import numpy as np
+from pyvista import PolyData
 from scipy import linalg
 
 import mne
@@ -34,14 +36,21 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 
 
 def apply_smoothing(points, tris):
-    # TO DO: implement simple smoothing step
-    out_points = points
-    out_tris = tris
+    surf = PolyData.from_regular_faces(points, tris)
+    # taubin smoothing conserves volume
+    smooth_surf = surf.smooth_taubin(n_iter=10, pass_band=0.05)
+    out_points = smooth_surf.points
+    out_tris = smooth_surf.faces
     return out_points, out_tris
 
 
-def add_head(renderer, points, color, opacity=0.95):
-    renderer.mesh(*points.T, triangles=seghead_tri, color=color, opacity=opacity)
+def smooth_digitization(dig_p):
+    out_dig = dig_p
+    return out_dig
+
+
+def add_head(renderer, points, tris, color, opacity=0.95):
+    renderer.mesh(*points.T, triangles=tris, color=color, opacity=opacity)
 
 
 # Smooth MRI
@@ -51,39 +60,83 @@ seghead_rr, seghead_tri = mne.read_surface(
     subjects_dir / "sample" / "surf" / "lh.seghead"
 )
 
-smooth_rr, smooth_tri = apply_smoothing(seghead_rr, seghead_tri)
-
 # The "mri_voxel"→"mri" transform is embedded in the header of the T1 image
 # file. We'll invert it and then apply it to the original `seghead_rr` points.
 # No unit conversion necessary: this transform expects mm and the scalp surface
 # is defined in mm.
 vox_to_mri = t1_mgh.header.get_vox2ras_tkr()
 mri_to_vox = linalg.inv(vox_to_mri)
-scalp_points_in_vox = mne.transforms.apply_trans(mri_to_vox, smooth_rr, move=True)
+scalp_points_in_vox = mne.transforms.apply_trans(mri_to_vox, seghead_rr, move=True)
 
-# Get the nasion:
-nasion = [
-    p
-    for p in raw.info["dig"]
-    if p["kind"] == FIFF.FIFFV_POINT_CARDINAL and p["ident"] == FIFF.FIFFV_POINT_NASION
-][0]
-assert nasion["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-nasion = nasion["r"]  # get just the XYZ values
-smooth_nasion, _ = apply_smoothing(nasion, None)
 
-# Transform it from head to MRI space (recall that `trans` is head → mri)
-nasion_mri = mne.transforms.apply_trans(trans, smooth_nasion, move=True)
-# Then transform to voxel space, after converting from meters to millimeters
-nasion_vox = mne.transforms.apply_trans(mri_to_vox, nasion_mri * 1e3, move=True)
+# Get fiducial points and extras:
+# "r" selects just the XYZ values
+fids = [p["r"] for p in raw.info["dig"] if p["kind"] == FIFF.FIFFV_POINT_CARDINAL]
+assert raw.info["dig"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
+extra = [e["r"] for e in raw.info["dig"] if e["kind"] == FIFF.FIFFV_POINT_EXTRA]
 
+dig_points = fids + extra
+for dpi, dp in enumerate(dig_points):
+    # Transform it from head to MRI space (recall that `trans` is head → mri)
+    trans_dp = mne.transforms.apply_trans(trans, dp, move=True)
+    # Then transform to voxel space, after converting from meters to millimeters
+    dig_points[dpi] = mne.transforms.apply_trans(mri_to_vox, trans_dp * 1e3, move=True)
+
+dig_points = np.array(dig_points)
+
+# smooth the whole head
+
+smooth_scalp_points, smooth_scalp_tris = apply_smoothing(
+    scalp_points_in_vox, seghead_tri
+)
+
+# choose facial points from smooth head
+fid_y = np.mean([dig_points[0, 1], dig_points[2, 1]])
+nasion_z = dig_points[1, 2]
+
+ahead_of_ears = scalp_points_in_vox[:, 1] > fid_y
+under_eyebrows = scalp_points_in_vox[:, 2] < nasion_z + 5
+idxs_to_smooth = np.where(ahead_of_ears & under_eyebrows)[0]
+
+# tri_mask = np.isin(seghead_tri, idxs_to_smooth).any(axis=1)
+tris_to_smooth = np.isin(seghead_tri, idxs_to_smooth).all(axis=1)
+
+
+# choose dig to smooth
+dig_ahead_of_ears = dig_points[:, 1] > fid_y
+dig_under_brows = dig_points[:, 2] < nasion_z + 5
+dig_to_smooth = np.where(dig_ahead_of_ears & dig_under_brows)[0]
+
+smooth_dig = smooth_digitization(dig_points[dig_to_smooth])
 
 # Plot smoothed results to make sure the transforms worked
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(400, 400), bgcolor="w", scene=False
 )
-add_head(renderer, scalp_points_in_vox, "green", opacity=1)
-# plot nasion location
-renderer.sphere(center=nasion_vox, color="orange", scale=10)
+
+original_head_surf = scalp_points_in_vox.copy()
+
+defaced_surf = scalp_points_in_vox.copy()
+defaced_surf[idxs_to_smooth, :] = smooth_scalp_points[idxs_to_smooth, :]
+defaced_tri = seghead_tri.copy()
+defaced_tri[tris_to_smooth, :] = smooth_scalp_tris[tris_to_smooth, :]
+
+defaced_dig = dig_points.copy()
+defaced_dig[dig_to_smooth] = smooth_dig
+
+# plot original head surface in grey
+# add_head(renderer, original_head_surf, seghead_tri, "grey", opacity=0.4)
+
+add_head(renderer, defaced_surf, defaced_tri, "green", opacity=0.4)
+
+# plot fiducials
+renderer.sphere(center=defaced_dig[0], color="orange", scale=10)
+renderer.sphere(center=defaced_dig[1], color="orange", scale=10)
+renderer.sphere(center=defaced_dig[2], color="orange", scale=10)
+# plot dig points
+for sd in defaced_dig[3:]:
+    renderer.sphere(center=sd, color="red", scale=3)
+# show the plot
 mne.viz.set_3d_view(
     figure=renderer.figure,
     distance=600.0,
