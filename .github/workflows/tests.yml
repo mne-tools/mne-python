@@ -174,7 +174,7 @@ jobs:
       - uses: prefix-dev/setup-pixi@v0.9.4
         if: matrix.kind == 'pixi'
         with:
-          run-install: false
+          run-install: true
           activate-environment: true
           cache: false
       - name: Verify Environment
