@@ -148,7 +148,7 @@ jobs:
               echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
             fi
           fi
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == 'pixi'
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
@@ -166,7 +166,6 @@ jobs:
         run: |
           pixi init --import environment.yml
           pixi add "python==${{ matrix.python }}" --no-install
-          ls -la pixi.toml
       - name: Setup pixi environment
         if: matrix.kind == 'pixi'
         run: pixi install
@@ -180,12 +179,11 @@ jobs:
       - name: Verify Environment
         run: echo $PATH
       - name: Debug Qt availability
-        if: matrix.kind == 'pixi'
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == "old" || matrix.kind == "minimal"
         run: |
           python -c "import sys; print(sys.executable)"
+          python -c "from importlib.metadata import version; print('pip version', version('pip'))"
           python -c "from importlib import util; print('PySide6', util.find_spec('PySide6'))"
-          pixi list | grep -i side || true
-          python -c "import sys; assert '/.pixi/envs/default/bin/python' in sys.executable"
       - run: bash ./tools/github_actions_dependencies.sh
       - run: python ./tools/github_actions_check_old.py
         if: matrix.kind == 'old'
