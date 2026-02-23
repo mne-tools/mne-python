@@ -713,9 +713,7 @@ class BaseEpochs(
         many Epochs instances, as ``drop_log`` can accumulate many entries
         which can become problematic when saving.
         """
-        self.selection = np.arange(len(self.events))
-        self.drop_log = (tuple(),) * len(self.events)
-        self._check_consistency()
+        self.reset_index()
 
     def reset_index(self):
         """Reset the epochs index.
