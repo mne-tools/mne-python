@@ -154,6 +154,9 @@ jobs:
         with:
           version: ">=0.9"
           activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: ${{ matrix.python }}
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
       - name: Setup Remote SSH Connection

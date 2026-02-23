@@ -33,8 +33,6 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	EXTRAS=""
 	STD_ARGS="--progress-bar off"
 	echo "::group::Syncing old environment dependencies from lockfile using uv"
-	uv venv --python 3.10
-	source .venv/bin/activate
 	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
 	uv pip install pip tomlkit ${MNE_QT_BACKEND}
 	echo "::endgroup::"
