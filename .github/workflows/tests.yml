@@ -158,7 +158,7 @@ jobs:
           version: ">=0.9"
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
-      - run: source ./tools/github_actions_setup_uv_bash.sh
+      - run: bash ./tools/github_actions_setup_uv_bash.sh && source ~/.bashrc
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_check_old_env.sh
         if: matrix.kind == 'old'
