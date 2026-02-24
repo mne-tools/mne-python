@@ -236,9 +236,7 @@ spectrum = mne.time_frequency.SpectrumArray(
 
 spectrum.plot(spatial_colors=False, amplitude=False)
 
-Now I have everything I need. Your conf.py is well set up — the jupyterlite_sphinx extension is conditionally loaded and there's already a jupyterlite_config dict at the bottom. The directive to use is replite (lightweight, no full notebook UI needed for a prototype).
-Here's exactly what to append to the bottom of tutorials/simulation/10_array_objs.py:
-python# %%
+# %%
 # Try it interactively
 # ^^^^^^^^^^^^^^^^^^^^
 #
@@ -254,7 +252,6 @@ python# %%
 #
 #    import numpy as np
 #
-#    # Reproduce the core Raw simulation from the tutorial
 #    sampling_freq = 200
 #    times = np.linspace(0, 1, sampling_freq, endpoint=False)
 #    sine = np.sin(20 * np.pi * times)
