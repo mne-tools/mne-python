@@ -520,13 +520,16 @@ def _test_raw_reader(
     # make sure that dig points in head coords implies that fiducials are
     # present
     if len(raw.info["dig"] or []) > 0:
-        card_pts = [
-            d for d in raw.info["dig"] if d["kind"] == _dig_kind_dict["cardinal"]
+        card_pts_head = [
+            d
+            for d in raw.info["dig"]
+            if d["kind"] == _dig_kind_dict["cardinal"]
+            and d["coord_frame"] == FIFF.FIFFV_COORD_HEAD
         ]
         eeg_dig_head = [d for d in eeg_dig if d["coord_frame"] == FIFF.FIFFV_COORD_HEAD]
         if len(eeg_dig_head):
-            assert len(card_pts) == 3, "Cardinal points missing"
-        if len(card_pts) == 3:  # they should all be in head coords then
+            assert len(card_pts_head) == 3, "Cardinal points missing"
+        if len(card_pts_head) == 3:  # they should all be in head coords then
             assert len(eeg_dig_head) == len(eeg_dig)
 
     return raw
