@@ -1,0 +1,6 @@
+Other
+=====
+
+* Document return values more clearly, noting that most routines return the
+  original instance type for chaining (see issue :issue:`10965`).  Thanks to
+  `Eric Larson <https://larsoner.com>`_ for the idea and original discussion.
