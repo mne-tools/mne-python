@@ -1817,11 +1817,18 @@ def plot_evoked_joint(
     ----------
     evoked : instance of Evoked
         The evoked instance.
-    times : float | array of float | "auto" | "peaks"
+    times : float | array of float | "auto" | "peaks" | dict
         The time point(s) to plot. If ``"auto"``, 5 evenly spaced topographies
         between the first and last time instant will be shown. If ``"peaks"``,
         finds time points automatically by checking for 3 local maxima in
         Global Field Power. Defaults to ``"peaks"``.
+        If a dict, the key must be ``"peaks"`` and the value
+        can be :
+        * an int (number of peaks to find over the whole epoch)
+        * a list of tuples (time windows to find one peak in each)
+
+        Defaults to ``"peaks"``. If you want to use evenly spaced time points in
+        an interval, use :func:`numpy.linspace`.
     title : str | None
         The title. If ``None``, suppress printing channel type title. If an
         empty string, a default title is created. Defaults to ''. If custom
@@ -1886,6 +1893,20 @@ def plot_evoked_joint(
 
         if times in (None, "peaks"):
             n_topomaps = 3 + 1
+        elif isinstance(times, dict) and "peaks" in times:
+            if len(times) != 1:
+                raise ValueError(
+                    "If 'times' is a dict, it must have only one key 'peaks'."
+                )
+            val = times["peaks"]
+            if isinstance(val, int):
+                n_topomaps = val + 1
+            elif isinstance(val, (list, tuple)):
+                n_topomaps = len(val) + 1
+            else:
+                raise ValueError(
+                    "Values for 'peaks' must be int or list/tuple of tuples."
+                )
         else:
             assert not isinstance(times, str)
             n_topomaps = len(times) + 1
