@@ -388,7 +388,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
             else ""
         )
         meth_file = (
-            f'mne.utils.set_config("{key}", VALUE, set_env=True) for  a permanent one'
+            f'mne.utils.set_config("{key}", VALUE, set_env=True) for a permanent one'
         )
         raise KeyError(
             f'Key "{key}" not found in {loc_env}'
