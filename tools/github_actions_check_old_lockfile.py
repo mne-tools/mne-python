@@ -15,12 +15,14 @@ project_root = Path(__file__).parent.parent
 
 sys.path.append(project_root / "tools")
 from check_pyproject_helpers import (  # noqa: E402
-    _get_deps_to_check,
-    _get_min_pinned_ver,
+    get_bad_deps_message,
+    get_deps_to_check,
+    get_min_pinned_ver,
+    raise_bad_deps_messages,
 )
 
 # Get dependencies to check from pyproject.toml
-check_deps = _get_deps_to_check()
+check_deps = get_deps_to_check()
 
 # Get 'old' lockfile pins for dependencies
 lockfile = TOMLFile(project_root / "tools/pylock.ci-old.toml")
@@ -40,7 +42,7 @@ mod_name_mapping = {"lazy_loader": "lazy-loader"}
 bad_missing = []
 bad_version = []
 for dep in check_deps:
-    mod_name, pyproject_ver = _get_min_pinned_ver(dep)
+    mod_name, pyproject_ver = get_min_pinned_ver(dep)
     if pyproject_ver is None:
         continue  # no min version specified, so no check needed
     name = mod_name_mapping.get(mod_name, mod_name)
@@ -56,21 +58,11 @@ for dep in check_deps:
             f"`pylock.ci-old.toml` has {lockfile_ver}"
         )
 
-if bad_missing:
-    bad_missing = (
-        "The following module(s) are missing from the `pylock.ci-old.toml` lockfile: "
-        + ", ".join(bad_missing)
-    )
-else:
-    bad_missing = ""
-
-if bad_version:
-    bad_version = (
-        "The following module(s) have incorrect versions in the `pylock.ci-old.toml` "
-        "lockfile:\n" + "\n".join(bad_version)
-    )
-else:
-    bad_version = ""
-
-if bad_missing or bad_version:
-    raise RuntimeError("\n\n".join([bad_missing, bad_version]))
+# Format bad messages and raise if there are any bads
+bad_missing = get_bad_deps_message(
+    bad_missing, "are missing from the `pylock.ci-old.toml` lockfile"
+)
+bad_version = get_bad_deps_message(
+    bad_version, "have incorrect versions in the `pylock.ci-old.toml` lockfile"
+)
+raise_bad_deps_messages([bad_missing, bad_version])

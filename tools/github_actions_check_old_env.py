@@ -15,19 +15,21 @@ project_root = Path(__file__).parent.parent
 
 sys.path.append(project_root / "tools")
 from check_pyproject_helpers import (  # noqa: E402
-    _get_deps_to_check,
-    _get_min_pinned_ver,
+    get_bad_deps_message,
+    get_deps_to_check,
+    get_min_pinned_ver,
+    raise_bad_deps_messages,
 )
 
 # Get dependencies to check from pyproject.toml
-check_deps = _get_deps_to_check()
+check_deps = get_deps_to_check()
 
 # Check that the versions in the env match the minimum versions in pyproject.toml
 mod_name_mapping = {"scikit-learn": "sklearn"}
 bad_missing = []
 bad_version = []
 for dep in check_deps:
-    mod_name, pyproject_ver = _get_min_pinned_ver(dep)
+    mod_name, pyproject_ver = get_min_pinned_ver(dep)
     mod_import_name = mod_name_mapping.get(mod_name, mod_name)
 
     # Need to handle logic for checking Python version vs. module versions differently.
@@ -58,20 +60,9 @@ for dep in check_deps:
             f"{mod_name}: is {env_ver}; {pyproject_ver} expected from `pyproject.toml`"
         )
 
-if bad_missing:
-    bad_missing = "The following module(s) could not be imported:\n" + "\n".join(
-        bad_missing
-    )
-else:
-    bad_missing = ""
-
-if bad_version:
-    bad_version = (
-        "The following module(s) have incorrect versions in the environment:\n"
-        + "\n".join(bad_version)
-    )
-else:
-    bad_version = ""
-
-if bad_missing or bad_version:
-    raise RuntimeError("\n\n".join([bad_missing, bad_version]))
+# Format bad messages and raise if there are any bads
+bad_missing = get_bad_deps_message(bad_missing, "are missing from the environment")
+bad_version = get_bad_deps_message(
+    bad_version, "have incorrect versions in the environment"
+)
+raise_bad_deps_messages([bad_missing, bad_version])

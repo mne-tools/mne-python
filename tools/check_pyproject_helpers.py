@@ -12,15 +12,14 @@ from tomlkit.toml_file import TOMLFile
 project_root = Path(__file__).parent.parent
 
 
-def _get_deps_to_check():
+def get_deps_to_check():
     """Get the dependencies whose versions should be checked from `pyproject.toml`."""
     pyproject = TOMLFile(project_root / "pyproject.toml")
     pyproject_data = pyproject.read()
-    project_info = pyproject_data["project"]
     check_deps = (
-        [f"python {project_info['requires-python']}"]
-        + project_info["dependencies"]
-        + project_info["optional-dependencies"]["ver-auto-bumped"]
+        [f"python {pyproject_data['project']['requires-python']}"]
+        + pyproject_data["project"]["dependencies"]
+        + pyproject_data["dependency-groups"]["lockfile_extras"]
     )
     n_want_deps = 12  # update when we add more core deps or auto-bumped pins!
     assert len(check_deps) == n_want_deps, (
@@ -31,7 +30,7 @@ def _get_deps_to_check():
     return check_deps
 
 
-def _get_min_pinned_ver(req):
+def get_min_pinned_ver(req):
     """Get the min pinned version from a dep specification in `pyproject.toml`."""
     req = Requirement(req)
     name = req.name
@@ -46,3 +45,17 @@ def _get_min_pinned_ver(req):
     )  # can't use \ to break f-string statements until python 3.12
 
     return name, ge_specs[0].version
+
+
+def get_bad_deps_message(bads, bads_reason):
+    """Format a message about bad deps (e.g., missing, wrong version), if any."""
+    if len(bads) == 0:
+        return ""
+    return f"The following module(s) {bads_reason}:\n" + "\n".join(bads)
+
+
+def raise_bad_deps_messages(bad_messages):
+    """Raise a RuntimeError if there are any bad messages to report."""
+    bad_messages = [message for message in bad_messages if message != ""]
+    if len(bad_messages) > 0:
+        raise RuntimeError("\n\n".join(bad_messages))
