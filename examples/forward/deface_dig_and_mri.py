@@ -16,6 +16,7 @@ import nibabel as nib
 import numpy as np
 from pyvista import Plotter, PolyData
 from scipy import linalg
+from scipy.spatial.distance import cdist
 
 import mne
 from mne.io.constants import FIFF
@@ -44,8 +45,13 @@ def apply_smoothing(points, tris):
     return out_points
 
 
-def smooth_digitization(dig_p):
-    out_dig = dig_p
+def smooth_digitization(dig_p, orig_scalp, smooth_scalp):
+    out_dig = dig_p.copy()
+    all_dists = cdist(dig_p, orig_scalp)
+    closest_point_idxs = all_dists.argmin(axis=1)
+    diffs = orig_scalp[closest_point_idxs, :] - smooth_scalp[closest_point_idxs, :]
+    for ppi, pp in enumerate(dig_p):
+        out_dig[ppi] = pp - diffs[ppi]
     return out_dig
 
 
@@ -93,16 +99,28 @@ smooth_scalp_points = apply_smoothing(scalp_points_in_vox, seghead_tri)
 fid_y = np.mean([dig_points[0, 2], dig_points[2, 2]])
 nasion_z = dig_points[1, 1]
 
-ahead_of_ears = scalp_points_in_vox[:, 2] > fid_y
-under_eyebrows = scalp_points_in_vox[:, 1] > nasion_z - 25
+ahead_of_ears = scalp_points_in_vox[:, 2] > fid_y + 10
+under_eyebrows = scalp_points_in_vox[:, 1] > nasion_z - 15
 idxs_to_smooth = np.where(ahead_of_ears & under_eyebrows)[0]
 
 tris_to_smooth = np.isin(seghead_tri, idxs_to_smooth).all(axis=1)
 
+# choose dig to smooth
+# dig_ahead_of_ears = dig_points[:, 1] > fid_y
+# dig_under_brows = dig_points[:, 2] < nasion_z + 5
+dig_ahead_of_ears = dig_points[:, 2] > fid_y + 10
+dig_under_brows = dig_points[:, 1] > nasion_z - 15
+dig_to_smooth = np.where(dig_ahead_of_ears & dig_under_brows)[0]
+
+smooth_dig = smooth_digitization(
+    dig_points[dig_to_smooth], scalp_points_in_vox, smooth_scalp_points
+)
+
+# preview the smoothed face and facial dig points
 preview = Plotter()
 
 preview.add_mesh(
-    scalp_points_in_vox[idxs_to_smooth, :],
+    smooth_dig,
     color="red",
     render_points_as_spheres=True,
     point_size=2,
@@ -115,13 +133,6 @@ preview.add_mesh(
     point_size=2,
 )
 preview.show()
-
-# choose dig to smooth
-dig_ahead_of_ears = dig_points[:, 1] > fid_y
-dig_under_brows = dig_points[:, 2] < nasion_z + 5
-dig_to_smooth = np.where(dig_ahead_of_ears & dig_under_brows)[0]
-
-smooth_dig = smooth_digitization(dig_points[dig_to_smooth])
 
 # Plot smoothed results to make sure the transforms worked
 renderer = mne.viz.backends.renderer.create_3d_figure(
