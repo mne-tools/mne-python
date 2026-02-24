@@ -35,6 +35,12 @@ doc = [
   "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
+# Dependencies in a separate group for uv lockfile generation, currently only used for
+# the 'old' environment CI test run
+lockfile_extras = [
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+]
 test = [
   "codespell",
   "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
@@ -73,12 +79,6 @@ test_extra = [
   "sphinx-gallery",
   "statsmodels",
   {include-group = "test"},
-]
-# Dependencies in a separate group for uv lockfile generation, currently only used for
-# the 'old' environment CI test run
-lockfile_extras = [
-  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
 ]
 
 [project]
