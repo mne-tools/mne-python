@@ -54,8 +54,8 @@ for dep in check_deps:
 
     if Version(lockfile_ver) != Version(pyproject_ver):
         bad_version.append(
-            f"`pyproject.toml` expects {name} == {pyproject_ver}, but "
-            f"`pylock.ci-old.toml` has {lockfile_ver}"
+            f"lower pin on {name} in `pyproject.toml` is {pyproject_ver}, "
+            f"but `pylock.ci-old.toml` has {lockfile_ver}"
         )
 
 # Format bad messages and raise if there are any bads
