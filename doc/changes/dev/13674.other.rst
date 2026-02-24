@@ -1,6 +1,1 @@
-Other
-=====
-
-* Document return values more clearly, noting that most routines return the
-  original instance type for chaining (see issue :issue:`10965`).  Thanks to
-  `Eric Larson <https://larsoner.com>`_ for the idea and original discussion.
+Improve documentation of return values to clarify that methods typically return the original instance type for chaining purposes, by `Aniket Singh Yadav`_.
