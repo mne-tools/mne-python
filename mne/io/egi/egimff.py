@@ -482,7 +482,7 @@ def _read_locs(filepath, egi_info, channel_naming):
 
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
-        logger.warn("File coordinates.xml not found, not setting channel locations")
+        warn("File coordinates.xml not found, not setting channel locations")
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
         return ch_names, None
     dig_ident_map = {
