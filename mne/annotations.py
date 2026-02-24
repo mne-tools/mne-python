@@ -406,15 +406,15 @@ class Annotations:
                     RuntimeWarning,
                 )
         self._onset, self._duration, self._description, self._ch_names, self._extras = (
-    _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
-)
+            _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
+        )
         self._sort()  # ensure we're sorted
 
     @property
     def orig_time(self):
         """The time base of the Annotations."""
         return self._orig_time
-    
+
     @property
     def onset(self):
         """Onset of each annotation (in seconds).
