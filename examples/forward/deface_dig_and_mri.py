@@ -14,7 +14,7 @@ To learn more about coordinate frames, see :ref:`tut-source-alignment`.
 
 import nibabel as nib
 import numpy as np
-from pyvista import PolyData
+from pyvista import Plotter, PolyData
 from scipy import linalg
 
 import mne
@@ -37,11 +37,11 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 
 def apply_smoothing(points, tris):
     surf = PolyData.from_regular_faces(points, tris)
-    # taubin smoothing conserves volume
-    smooth_surf = surf.smooth_taubin(n_iter=10, pass_band=0.05)
+    surf.clean()
+    # taubin smoothing conserves volume and triangle face relationships
+    smooth_surf = surf.smooth_taubin(n_iter=1000, pass_band=0.0005)
     out_points = smooth_surf.points
-    out_tris = smooth_surf.faces
-    return out_points, out_tris
+    return out_points
 
 
 def smooth_digitization(dig_p):
@@ -86,21 +86,35 @@ dig_points = np.array(dig_points)
 
 # smooth the whole head
 
-smooth_scalp_points, smooth_scalp_tris = apply_smoothing(
-    scalp_points_in_vox, seghead_tri
-)
+smooth_scalp_points = apply_smoothing(scalp_points_in_vox, seghead_tri)
 
 # choose facial points from smooth head
-fid_y = np.mean([dig_points[0, 1], dig_points[2, 1]])
-nasion_z = dig_points[1, 2]
+# voxel points are in x, z, y
+fid_y = np.mean([dig_points[0, 2], dig_points[2, 2]])
+nasion_z = dig_points[1, 1]
 
-ahead_of_ears = scalp_points_in_vox[:, 1] > fid_y
-under_eyebrows = scalp_points_in_vox[:, 2] < nasion_z + 5
+ahead_of_ears = scalp_points_in_vox[:, 2] > fid_y
+under_eyebrows = scalp_points_in_vox[:, 1] > nasion_z - 25
 idxs_to_smooth = np.where(ahead_of_ears & under_eyebrows)[0]
 
-# tri_mask = np.isin(seghead_tri, idxs_to_smooth).any(axis=1)
 tris_to_smooth = np.isin(seghead_tri, idxs_to_smooth).all(axis=1)
 
+preview = Plotter()
+
+preview.add_mesh(
+    scalp_points_in_vox[idxs_to_smooth, :],
+    color="red",
+    render_points_as_spheres=True,
+    point_size=2,
+)
+
+preview.add_mesh(
+    smooth_scalp_points[idxs_to_smooth, :],
+    color="blue",
+    render_points_as_spheres=True,
+    point_size=2,
+)
+preview.show()
 
 # choose dig to smooth
 dig_ahead_of_ears = dig_points[:, 1] > fid_y
@@ -118,8 +132,6 @@ original_head_surf = scalp_points_in_vox.copy()
 
 defaced_surf = scalp_points_in_vox.copy()
 defaced_surf[idxs_to_smooth, :] = smooth_scalp_points[idxs_to_smooth, :]
-defaced_tri = seghead_tri.copy()
-defaced_tri[tris_to_smooth, :] = smooth_scalp_tris[tris_to_smooth, :]
 
 defaced_dig = dig_points.copy()
 defaced_dig[dig_to_smooth] = smooth_dig
@@ -127,7 +139,7 @@ defaced_dig[dig_to_smooth] = smooth_dig
 # plot original head surface in grey
 # add_head(renderer, original_head_surf, seghead_tri, "grey", opacity=0.4)
 
-add_head(renderer, defaced_surf, defaced_tri, "green", opacity=0.4)
+add_head(renderer, defaced_surf, seghead_tri, "green", opacity=0.4)
 
 # plot fiducials
 renderer.sphere(center=defaced_dig[0], color="orange", scale=10)
