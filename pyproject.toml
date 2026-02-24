@@ -21,10 +21,10 @@ doc = [
   "pygments >= 2.13",
   "pymef",
   "pytest",
-  "pyvistaqt",
+  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "pyxdf",
   "pyzmq != 24.0.0",
-  "scikit-learn",
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
@@ -32,7 +32,7 @@ doc = [
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
-  "sphinxcontrib-towncrier >=0.5.0a0",
+  "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
 test = [
@@ -49,7 +49,7 @@ test = [
   "pytest-timeout >= 2.2",
   "ruff >= 0.1",
   "toml-sort",
-  "tomli; python_version<'3.11'",
+  "tomli; python_version < '3.11'",
   "twine",
   "vulture",
   "wheel >= 0.21",
@@ -73,6 +73,12 @@ test_extra = [
   "sphinx-gallery",
   "statsmodels",
   {include-group = "test"},
+]
+# Dependencies in a separate group for uv lockfile generation, currently only used for
+# the 'old' environment CI test run
+lockfile_extras = [
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
 ]
 
 [project]
@@ -155,13 +161,13 @@ full-no-qt = [
   "mffpy >= 0.5.7",
   "mne-qt-browser",
   "mne[hdf5]",
-  "mne[ver-auto-bumped]",
   "neo",
   "nest-asyncio2",
   "nibabel >= 2.0",
   "nilearn",
   "numba >= 0.35",
   "openmeeg >= 2.5.7",
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
@@ -172,6 +178,7 @@ full-no-qt = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
   "qtpy",
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "sip",
   "snirf",
   "statsmodels >= 0.6",
@@ -187,10 +194,6 @@ full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
-ver-auto-bumped = [
-  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
-]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
