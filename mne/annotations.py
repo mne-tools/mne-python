@@ -433,7 +433,47 @@ class Annotations:
 
     @onset.setter
     def onset(self, onset):
+        onset = np.atleast_1d(np.array(onset, dtype=float))
+        if len(onset) != len(self._duration):
+            raise ValueError(
+                f"onset length ({len(onset)}) must match "
+                f"duration length ({len(self._duration)})."
+            )
         self._onset = onset
+
+    @property
+    def duration(self):
+        """Duration of each annotation (in seconds).
+        ...
+        """
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        duration = np.atleast_1d(np.array(duration, dtype=float))
+        if len(duration) != len(self._onset):
+            raise ValueError(
+                f"duration length ({len(duration)}) must match "
+                f"onset length ({len(self._onset)})."
+            )
+        self._duration = duration
+
+    @property
+    def description(self):
+        """Description of each annotation.
+        ...
+        """
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        description = np.atleast_1d(np.array(description, dtype=str))
+        if len(description) != len(self._onset):
+            raise ValueError(
+                f"description length ({len(description)}) must match "
+                f"onset length ({len(self._onset)})."
+            )
+        self._description = description
 
     @property
     def duration(self):
