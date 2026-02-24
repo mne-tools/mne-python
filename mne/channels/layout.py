@@ -971,29 +971,21 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 
-        duplicates_1020 = {
-            "T3": "T7",
-            "T4": "T8",
-            "T5": "P7",
-            "T6": "P8",
-        }
-
+       # Check for duplicate 10-20 channels that are aliases for the same position
+        LEGACY_TO_MODERN_1020 = {"T3": "T7", "T4": "T8", "T5": "P7", "T6": "P8"}
         names = set(problematic_electrodes)
-        duplicate_pairs = [
-            (old, new)
-            for old, new in duplicates_1020.items()
+        conflicts = {
+            old: new
+            for old, new in LEGACY_TO_MODERN_1020.items()
             if old in names and new in names
-        ]
-
-        if duplicate_pairs:
+        }
+        if conflicts:
+            overlap_info = ", ".join(f"{old}/{new}" for old, new in conflicts.items())
+            drop_list = ', '.join(repr(old) for old in conflicts)
             raise ValueError(
-                "Duplicate EEG electrode positions detected due to mixed 10-20 "
-                "naming conventions.\n"
-                "You appear to have both legacy (T3/T4/T5/T6) and modern "
-                "(T7/T8/P7/P8) electrode names present. The modern convention "
-                "(T7/T8/P7/P8) is recommended.\n\n"
-                "Please drop the legacy channels before plotting, for example:\n"
-                "    inst.drop_channels(['T3', 'T4', 'T5', 'T6'])"
+                "The following electrodes are aliases for the same physical location "
+                f"(10-20 vs 10-10): {overlap_info}\n. To fix this call "
+                f"`.drop_channels([{drop_list}])` on your Raw/Epochs/Evoked object."
             )
 
         else:
