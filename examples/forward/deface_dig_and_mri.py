@@ -12,6 +12,10 @@ MRI and MEG data without altering head volume or coregistration.
 To learn more about coordinate frames, see :ref:`tut-source-alignment`.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import nibabel as nib
 import numpy as np
 from pyvista import Plotter, PolyData
