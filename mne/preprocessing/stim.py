@@ -94,7 +94,7 @@ def fix_stim_artifact(
 
     Returns
     -------
-    inst : instance of Raw or Evoked or Epochs
+    inst : same type as the input data
         Instance with modified data.
     """
     _check_option("mode", mode, ["linear", "window", "constant"])
