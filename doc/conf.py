@@ -329,6 +329,7 @@ numpydoc_xref_ignore = {
     "same",
     "shape",
     "or",
+    "the",
     "with",
     "length",
     "pair",
