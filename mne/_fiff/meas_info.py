@@ -397,7 +397,7 @@ class MontageMixin:
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
             The instance, modified in-place.
 
         See Also
@@ -539,7 +539,7 @@ class SetChannelsMixin(MontageMixin):
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
             The instance (modified in place).
 
             .. versionchanged:: 0.20
@@ -642,7 +642,7 @@ class SetChannelsMixin(MontageMixin):
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
             The instance (modified in place).
 
             .. versionchanged:: 0.20
@@ -787,7 +787,7 @@ class SetChannelsMixin(MontageMixin):
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
             The modified instance.
 
         Notes
@@ -816,8 +816,8 @@ class SetChannelsMixin(MontageMixin):
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
-            The modified raw instance. Operates in place.
+        inst : same type as the input data
+            The modified instance. Operates in place.
 
         See Also
         --------
