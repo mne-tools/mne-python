@@ -200,7 +200,7 @@ def test_duplicate_1020_electrode_names_error():
 
     with pytest.raises(
         ValueError,
-        match="Duplicate EEG electrode positions detected due to mixed 10-20",
+        match="aliases for the same physical location",
     ):
         mne.viz.plot_topomap(data, pos=info)
 
