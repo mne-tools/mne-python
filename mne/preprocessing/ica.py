@@ -446,7 +446,7 @@ class ICA(ContainsMixin):
         fit_params: dict | None = None,
         max_iter: int | Literal["auto"] = "auto",
         allow_ref_meg: bool = False,
-        verbose=None,
+        verbose: bool | str | int | None = None,
     ):
         _validate_type(method, str, "method")
         _validate_type(n_components, (float, "int-like", None))
@@ -604,7 +604,7 @@ class ICA(ContainsMixin):
         flat: dict | None = None,
         tstep: float = 2.0,
         reject_by_annotation: bool = True,
-        verbose=None,
+        verbose: bool | str | int | None = None,
     ):
         """Run the ICA decomposition on raw data.
 
@@ -1409,7 +1409,7 @@ class ICA(ContainsMixin):
         l_freq: float | None = None,
         h_freq: float | None = None,
         reject_by_annotation: bool = True,
-        verbose=None,
+        verbose: bool | str | int | None = None,
     ):
         """Assign score to components based on statistic or metric.
 
