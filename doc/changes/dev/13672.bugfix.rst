@@ -1,0 +1,1 @@
+Allow reading alternative nasion label ("Nz") in SNIRF files when parsing landmarkPos3D, by :newcontrib:`Aniket Singh Yadav`.
