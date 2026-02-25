@@ -7,32 +7,32 @@ dependencies:
   - antio >=0.5.0
   - curryreader >=0.1.2
   - darkdetect
-  - decorator
+  - decorator >=5.1
   - defusedxml
-  - dipy
+  - dipy >=0.8
   - edfio >=0.4.10
   - eeglabio
   - filelock >=3.18.0
   - h5io >=0.2.4
-  - h5py
+  - h5py >=2.4
   - imageio >=2.6.1
   - imageio-ffmpeg >=0.4.1
   - ipyevents
   - ipympl
-  - ipython !=8.7.0
+  - ipython >=2.0,!=8.7.0
   - ipywidgets
-  - jinja2
-  - joblib
+  - jinja2 >=3.1
+  - joblib >=0.8
   - jupyter
   - lazy_loader >=0.3
   - mamba
   - matplotlib >=3.8
   - mffpy >=0.5.7
   - mne-qt-browser
-  - nibabel
+  - nibabel >=2.0
   - nilearn
   - nomkl
-  - numba
+  - numba >=0.35
   - numpy >=1.26,<3
   - openmeeg >=2.5.7
   - packaging
@@ -45,7 +45,7 @@ dependencies:
   - pymatreader
   - PySide6 !=6.9.1
   - python-neo
-  - python-picard
+  - python-picard >=0.4
   - pyvista >=0.43
   - pyvistaqt >=0.11
   - qdarkstyle !=3.2.2
@@ -54,9 +54,9 @@ dependencies:
   - scipy >=1.12
   - sip
   - snirf
-  - statsmodels
+  - statsmodels >=0.6
   - threadpoolctl
-  - tqdm
+  - tqdm >=4.66
   - traitlets
   - trame
   - trame-vtk
