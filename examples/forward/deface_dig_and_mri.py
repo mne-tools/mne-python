@@ -6,7 +6,7 @@ Deface MRI and MEG data for identity protection
 ================================================
 
 Because facial information can be identifying, it is sometimes necessary to
-clean MEG and MRI data of facial detail. This example shows how to do deface
+obscure facial detail in MEG and MRI data. This example shows how to do deface
 MRI and MEG data without altering head volume or coregistration.
 
 To learn more about coordinate frames, see :ref:`tut-source-alignment`.
@@ -94,8 +94,11 @@ dig_points = np.array(dig_points)
 
 smooth_scalp_points = apply_smoothing(scalp_points_in_vox, seghead_tri)
 
+# The voxel frame origin is located at the top right corner behind the
+# subject's head with coordinates in the following order:
+# right-to-left axis, superior-to-inferior axis, posterior-to-anterior axis.
 # choose facial points from smooth head
-# voxel points are in x, z, y
+
 fid_y = np.mean([dig_points[0, 2], dig_points[2, 2]])
 nasion_z = dig_points[1, 1]
 
@@ -106,8 +109,6 @@ idxs_to_smooth = np.where(ahead_of_ears & under_eyebrows)[0]
 tris_to_smooth = np.isin(seghead_tri, idxs_to_smooth).all(axis=1)
 
 # choose dig to smooth
-# dig_ahead_of_ears = dig_points[:, 1] > fid_y
-# dig_under_brows = dig_points[:, 2] < nasion_z + 5
 dig_ahead_of_ears = dig_points[:, 2] > fid_y + 10
 dig_under_brows = dig_points[:, 1] > nasion_z - 15
 dig_to_smooth = np.where(dig_ahead_of_ears & dig_under_brows)[0]
@@ -116,14 +117,14 @@ smooth_dig = smooth_digitization(
     dig_points[dig_to_smooth], scalp_points_in_vox, smooth_scalp_points
 )
 
-# preview the smoothed face and facial dig points
+# preview point selection from face and facial dig
 preview = Plotter()
 
 preview.add_mesh(
     smooth_dig,
     color="red",
     render_points_as_spheres=True,
-    point_size=2,
+    point_size=8,
 )
 
 preview.add_mesh(
@@ -133,6 +134,7 @@ preview.add_mesh(
     point_size=2,
 )
 preview.show()
+preview.close()
 
 # Plot smoothed results to make sure the transforms worked
 renderer = mne.viz.backends.renderer.create_3d_figure(
@@ -148,9 +150,9 @@ defaced_dig = dig_points.copy()
 defaced_dig[dig_to_smooth] = smooth_dig
 
 # plot original head surface in grey
-# add_head(renderer, original_head_surf, seghead_tri, "grey", opacity=0.4)
+add_head(renderer, original_head_surf, seghead_tri, "grey", opacity=0.3)
 
-add_head(renderer, defaced_surf, seghead_tri, "green", opacity=0.4)
+add_head(renderer, defaced_surf, seghead_tri, "green", opacity=0.5)
 
 # plot fiducials
 renderer.sphere(center=defaced_dig[0], color="orange", scale=10)
