@@ -1,1 +1,1 @@
-Raise warning implementation in interpolate_bads() method when interpolation of channels with invalid position is done, by `Himanshu Mahor`_.
+Make :meth:`~mne.io.Raw.interpolate_bads` method flexible (ignore, warn, raise) about how to handle interpolation of channels with invalid positions, by `Himanshu Mahor`_.
