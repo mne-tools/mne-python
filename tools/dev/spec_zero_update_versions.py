@@ -104,9 +104,26 @@ def get_release_and_drop_dates(package):
     return releases
 
 
-def update_specifiers(dependencies, releases):
+def update_specifiers(dependencies, releases, changed=None, label=None):
+    """Update dependency version specifiers inplace and optionally track changes."""
+    old_deps = deepcopy(dependencies)
+    _update_specifiers(dependencies, releases)
+    if changed is not None:
+        changed.extend(
+            [
+                f"{label} dependency ``{new}``"
+                for new, old in zip(dependencies, old_deps)
+                if new != old
+            ]
+        )
+    return changed
+
+
+def _update_specifiers(dependencies, releases):
     """Update dependency version specifiers inplace."""
     for idx, dep in enumerate(dependencies):
+        if isinstance(dep, dict):
+            continue  # skip nested dependency groups (e.g., `{'include-group': 'doc'}`)
         req = Requirement(dep)
         pkg_name = req.name
         pkg_spec = req.specifier
@@ -246,31 +263,21 @@ package_releases = {
 # Get dependencies from pyproject.toml
 pyproject = TOMLFile(project_root / "pyproject.toml")
 pyproject_data = pyproject.read()
-project_info = pyproject_data["project"]
-core_dependencies = project_info["dependencies"]
-opt_dependencies = project_info["optional-dependencies"]
+core_dependencies = pyproject_data["project"]["dependencies"]
+opt_dependencies = pyproject_data["project"]["optional-dependencies"]
+dep_groups = pyproject_data["dependency-groups"]
 
-# Update version specifiers
+# Update version specifiers in-place
 changed = []
-old_deps = deepcopy(core_dependencies)
-update_specifiers(core_dependencies, package_releases)
-changed.extend(
-    [
-        f"Core dependency ``{new}``"
-        for new, old in zip(core_dependencies, old_deps)
-        if new != old
-    ]
+changed = update_specifiers(
+    core_dependencies, package_releases, changed=changed, label="Core"
 )
-for key in opt_dependencies:
-    old_deps = deepcopy(opt_dependencies[key])
-    update_specifiers(opt_dependencies[key], package_releases)
-    changed.extend(
-        [
-            f"Optional dependency ``{new}``"
-            for new, old in zip(opt_dependencies[key], old_deps)
-            if new != old
-        ]
+for opt_deps in opt_dependencies.values():
+    changed = update_specifiers(
+        opt_deps, package_releases, changed=changed, label="Optional"
     )
+for opt_deps in dep_groups.values():  # don't add dev deps to changelog
+    update_specifiers(opt_deps, package_releases)
 
 # Need to write a changelog entry if versions were updated
 if changed:
