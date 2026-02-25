@@ -1568,7 +1568,15 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, reset_first_samp=False, verbose=None):
+    def crop(
+        self,
+        tmin=0.0,
+        tmax=None,
+        include_tmax=True,
+        *,
+        reset_first_samp=False,
+        verbose=None,
+    ):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1596,7 +1604,7 @@ class BaseRaw(
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
-        
+
         Notes
         -----
         After cropping, :term:`first_samp` is updated to reflect the new
