@@ -399,7 +399,7 @@ class RawSNIRF(BaseRaw):
                     dign = dign.lower()
                     if dign in [b"lpa", b"al"]:
                         lpa = diglocs[idx, :3]
-                    elif dign in [b"nasion"]:
+                    elif dign in [b"nasion", b"nz"]:
                         nasion = diglocs[idx, :3]
                     elif dign in [b"rpa", b"ar"]:
                         rpa = diglocs[idx, :3]
