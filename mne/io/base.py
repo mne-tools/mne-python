@@ -1568,7 +1568,7 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
+    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, reset_first_samp=False, verbose=None):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1585,6 +1585,11 @@ class BaseRaw(
         %(tmin_raw)s
         %(tmax_raw)s
         %(include_tmax)s
+        reset_first_samp : bool
+            If True, reset :term:`first_samp` to 0 after cropping, treating
+            the cropped segment as an independent recording. Note that this
+            can break things if you extracted events before cropping and try
+            to use them afterward. Default is False.
         %(verbose)s
 
         Returns
@@ -1660,7 +1665,11 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
-
+        if reset_first_samp:
+            delta = self._first_samps[0]
+            self._first_samps -= delta
+            self._last_samps -= delta
+            self._cropped_samp -= delta
         return self
 
     @verbose
