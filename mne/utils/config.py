@@ -504,6 +504,10 @@ def set_config(
             this_value = str(this_value)
             if set_env:
                 os.environ[this_key] = this_value
+            elif this_key in os.environ:
+                # set_env=False: remove the stale env var so that get_config
+                # reads the freshly-written file value instead.
+                del os.environ[this_key]
             if this_key == "MNE_BROWSER_BACKEND":
                 from ..viz._figure import set_browser_backend
 

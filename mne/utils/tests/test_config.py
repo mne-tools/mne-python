@@ -109,6 +109,9 @@ def test_config(tmp_path):
 def test_set_config_keyword_api(tmp_path):
     """Test keyword-only set_config API (mne.set_config(use_cuda=True) etc.)."""
     tempdir = str(tmp_path)
+    sdir1 = str(tmp_path / "subjects1")
+    sdir2 = str(tmp_path / "subjects2")
+    sdir3 = str(tmp_path / "subjects3")
 
     mne.set_config(home_dir=tempdir, use_cuda=True)
     assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
@@ -118,19 +121,24 @@ def test_set_config_keyword_api(tmp_path):
     assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "false"
 
     # Multiple kwargs at once; Path is coerced to str
-    set_config(home_dir=tempdir, use_cuda=True, subjects_dir=Path("/tmp/subjects"))
+    set_config(home_dir=tempdir, use_cuda=True, subjects_dir=Path(sdir1), set_env=False)
     assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
-    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == "/tmp/subjects"
+    # Use str(Path(...)) so the comparison uses OS-normalised separators on
+    # every platform (avoids forward-slash vs. backslash mismatch on Windows
+    # when tmp_path returns a POSIX-style path in Git Bash / MSYS2 CI).
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == str(Path(sdir1))
 
     # Preserve semantics: omitting a kwarg leaves existing value untouched
-    set_config(home_dir=tempdir, subjects_dir="/tmp/subjects2")
+    set_config(home_dir=tempdir, subjects_dir=sdir2, set_env=False)
     assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"  # unchanged
-    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == "/tmp/subjects2"
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == sdir2
 
     # Explicit "-preserve-" sentinel does the same thing
-    set_config(home_dir=tempdir, use_cuda="-preserve-", subjects_dir="/tmp/subjects3")
+    set_config(
+        home_dir=tempdir, use_cuda="-preserve-", subjects_dir=sdir3, set_env=False
+    )
     assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"  # still unchanged
-    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == "/tmp/subjects3"
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == sdir3
 
     # Remove a key by passing None
     set_config(home_dir=tempdir, use_cuda=None)
