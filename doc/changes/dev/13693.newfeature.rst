@@ -1,0 +1,1 @@
+Add :func:`mne.preprocessing.nirs.motion_correct_spline` (alias :func:`mne.preprocessing.nirs.spline`) for spline interpolation-based motion correction of fNIRS data, based on Homer3 ``hmrR_tInc_baselineshift_Ch_Nirs``, by :newcontrib:`Leonardo Zaggia`.
