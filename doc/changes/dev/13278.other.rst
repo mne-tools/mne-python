@@ -1,0 +1,1 @@
+Document the behavior of :term:`first_samp` after :meth:`~mne.io.Raw.crop` and explain how to reset it using :class:`~mne.io.RawArray`, by `Famous077 <https://github.com/Famous077>`__.

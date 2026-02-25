@@ -1591,6 +1591,18 @@ class BaseRaw(
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+        
+        Notes
+        -----
+        After cropping, :term:`first_samp` is updated to reflect the new
+        start of the data, preserving the original recording timeline.
+        This means ``raw.times`` will still start at ``0.0``, but
+        ``raw.first_samp`` will reflect the offset from the original
+        recording. If you want to treat the cropped segment as an
+        independent signal with ``first_samp=0``, you can convert it
+        to a :class:`~mne.io.RawArray`::
+
+            raw_array = mne.io.RawArray(raw.get_data(), raw.info)
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
         if tmax is None:
