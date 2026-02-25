@@ -441,7 +441,7 @@ class ICA(ContainsMixin):
         n_components: int | float | None = None,
         *,
         noise_cov: Covariance | None = None,
-        random_state: Any = None,
+        random_state=None,
         method: Literal["fastica", "infomax", "picard"] = "fastica",
         fit_params: dict | None = None,
         max_iter: int | Literal["auto"] = "auto",
@@ -596,7 +596,7 @@ class ICA(ContainsMixin):
     def fit(
         self,
         inst: BaseRaw | BaseEpochs,
-        picks: Any = None,
+        picks=None,
         start: int | None = None,
         stop: int | None = None,
         decim: int | None = None,
@@ -3053,7 +3053,7 @@ def _write_ica(fid, ica):
 
 @verbose
 def read_ica(
-    # TODO: matplotlib.path.Path or pathlib.Path
+    # TODO: matplotlib.path.Path or pathlib.Path - which one to chose?
     fname: str,
     verbose: bool | str | int | None = None,
 ) -> ICA:
