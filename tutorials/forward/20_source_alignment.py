@@ -179,6 +179,7 @@ print(
 # Plotting alignment makes it easy to identify various alignment problems.
 #
 # **Alignment problem #1: Bad MEG -> head transform**
+#
 # If digitized points map correctly to the head surface, but both head and dig
 # points are misaligned to the MEG sensors, there may be a problem with the
 # transform relating the MEG sensor locations to the head coordinate frame.
@@ -212,6 +213,7 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 
 # %%
 # **Alignment problem #2: Bad MRI -> head transform**
+#
 # If digitized points float off the surface of the head, or fiducial points are
 # misplaced, this suggests a bad coregistration.
 
@@ -241,6 +243,6 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # you can plot elements that require alignment, set the view to perform the
 # checks you need, and finally assess the quality of the fits you see. For a
 # more detailed explanation of using MRI-generated surfaces in MNE, see the
-# :ref:`_tut-freesurfer-reconstruction` tutorial.
-
+# :ref:`tut-freesurfer-reconstruction` tutorial.
+#
 # .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
