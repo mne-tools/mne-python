@@ -1,0 +1,1 @@
+Add :func:`mne.preprocessing.nirs.motion_correct_wavelet` (alias :func:`mne.preprocessing.nirs.wavelet`) for wavelet-based motion correction of fNIRS data (spike removal via SWT and IQR thresholding), based on Homer3 ``hmrR_MotionCorrectWavelet`` :footcite:t:`MolaviDumont2012`, by :newcontrib:`Leonardo Zaggia`.
