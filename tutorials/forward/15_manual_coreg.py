@@ -13,6 +13,10 @@ coregistration for subjects using a template source space instead of an MRI.
 Let's start out by loading some data.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import mne
 
 data_path = mne.datasets.sample.data_path()
