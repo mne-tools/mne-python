@@ -123,9 +123,6 @@ def test_set_config_keyword_api(tmp_path):
     # Multiple kwargs at once; Path is coerced to str
     set_config(home_dir=tempdir, use_cuda=True, subjects_dir=Path(sdir1), set_env=False)
     assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
-    # Use str(Path(...)) so the comparison uses OS-normalised separators on
-    # every platform (avoids forward-slash vs. backslash mismatch on Windows
-    # when tmp_path returns a POSIX-style path in Git Bash / MSYS2 CI).
     assert get_config("SUBJECTS_DIR", home_dir=tempdir) == str(Path(sdir1))
 
     # Preserve semantics: omitting a kwarg leaves existing value untouched
