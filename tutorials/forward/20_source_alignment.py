@@ -77,7 +77,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 #   derived from MRI images like the scalp, skull, and brain
 # * :red:`"head"`: the coordinate frame for digitized sensor locations and
 #   scalp landmarks ("fiducials")
-
+#
 #
 # Elements that require alignment (for example, MEG sensors and MRI-derived
 # surfaces) and their coordinate frames may be visualized with the
@@ -112,7 +112,7 @@ fig = mne.viz.plot_alignment(
     mri_fiducials="estimated",
 )
 
-
+# %%
 # For comparison, let's see what happens when we align the camera view with
 # head coordinates:
 
@@ -130,6 +130,7 @@ fig = mne.viz.plot_alignment(
     mri_fiducials="estimated",
 )
 
+# %%
 # Aligning the camera view to the head coordinate system makes the MEG sensors
 # appear tilted as the sample subject's head leaned right during acquisition.
 #
@@ -153,19 +154,16 @@ print(
 )
 
 # Screenshots of the 3D alignment plots from various camera perspectives
-# can be saved using the figure plotter's 'save_graphic' method.
-
-# TO-DO: tmp path creation for example
-# mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
-# save_path2 = Path("profile_view.eps")
-# fig.plotter.save_graphic(save_path2)
+# can be saved using the figure plotter's 'save_graphic' method, e.g.
+# `fig.plotter.save_graphic(save_path)`.
 
 
+# %%
 # Visually assess alignment quality
 # ---------------------------------
 #
 # Plotting alignment makes it easy to identify various alignment problems.
-
+#
 # **Alignment problem #1: Bad MEG -> head transform**
 # If digitized points map correctly to the head surface, but both head and dig
 # points are misaligned to the MEG sensors, there may be a problem with the
@@ -198,6 +196,7 @@ fig = mne.viz.plot_alignment(
 )
 mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 
+# %%
 # **Alignment problem #2: Bad MRI -> head transform**
 # If digitized points float off the surface of the head, or fiducial points are
 # misplaced, this suggests a bad coregistration.
@@ -219,6 +218,7 @@ mne.viz.plot_alignment(
 )
 mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 
+# %%
 # Note that, while both types of alignment errors make the head look misaligned
 # to the MEG sensors, they can be differentiated by whether or not digitized
 # points sit properly on the head surface.
