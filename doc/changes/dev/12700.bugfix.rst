@@ -1,0 +1,1 @@
+Fix sensor name ordering in :func:`~mne.viz.plot_topomap` when passing an :class:`~mne.Info` object as ``pos`` with ``names`` argument, by `Famous077 <https://github.com/Famous077>`__.
