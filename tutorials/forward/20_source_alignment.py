@@ -132,11 +132,17 @@ fig = mne.viz.plot_alignment(
 
 # %%
 # Aligning the camera view to the head coordinate system makes the MEG sensors
-# appear tilted as the sample subject's head leaned right during acquisition.
+# appear tilted because the sample subject's head leaned right during the MEG
+# recording.
 #
 # The camera view can be manually set to optimize visibility of specific
-# features required to check alignment. A side view of the face makes it easy
-# to check that the head position inside the MEG helmet is appropriate.
+# features required to check alignment. For example, a side view of the face
+# makes it easy to check that the subject's head is sufficiently far up inside
+# the helmet for good SNR during the recording. Since screenshots of the 3D
+# alignment plots from various camera perspectives can be saved using the
+# figure plotter's `save_graphic` method, e.g. `fig.plotter.save_graphic(path)`,
+# plots allow you to check and document alignment quality when performing
+# source localization analyses.
 
 fig = mne.viz.plot_alignment(
     raw.info,
@@ -166,10 +172,6 @@ print(
     f"Distance from {len(dists)} digitized points to head surface: "
     f"{1000 * np.mean(dists):0.1f} mm"
 )
-
-# Screenshots of the 3D alignment plots from various camera perspectives
-# can be saved using the figure plotter's 'save_graphic' method, e.g.
-# `fig.plotter.save_graphic(save_path)`.
 
 
 # %%
