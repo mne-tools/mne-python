@@ -91,7 +91,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 # * longest arrow: up / (**S**)uperior / Z axis
 #
 # Note that all three coordinate systems are **RAS** coordinate frames and
-# hence are also `right-handed` coordinate systems (i.e. positive rotation
+# hence are also right-handed coordinate systems (i.e. positive rotation
 # around the z axis is counter-clockwise when viewing the x-y plane from a
 # positive location on the z axis). When plotting, the viewer camera aligns
 # with the coordinate frame passed to the 'coord_frame' parameter such that the
@@ -220,7 +220,7 @@ bad_trans = trans.copy()
 bad_trans["trans"] = trans["trans"] @ rot_matrix
 
 # visualize results
-mne.viz.plot_alignment(
+fig = mne.viz.plot_alignment(
     raw.info,
     trans=bad_trans,
     subject="sample",
@@ -241,6 +241,6 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # you can plot elements that require alignment, set the view to perform the
 # checks you need, and finally assess the quality of the fits you see. For a
 # more detailed explanation of using MRI-generated surfaces in MNE, see the
-# :ref:`10_background_freesurfer.py` tutorial.
+# :ref:`_tut-freesurfer-reconstruction` tutorial.
 
 # .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
