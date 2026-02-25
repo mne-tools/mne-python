@@ -1,0 +1,1 @@
+Add :func:`mne.preprocessing.nirs.motion_correct_pca` (alias :func:`mne.preprocessing.nirs.pca`) for PCA-based motion correction of fNIRS data, based on Homer3 ``hmrR_MotionCorrectPCA``, by :newcontrib:`Leonardo Zaggia`.
