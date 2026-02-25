@@ -81,7 +81,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 #
 # Elements that require alignment (for example, MEG sensors and MRI-derived
 # surfaces) and their coordinate frames may be visualized with the
-# `mne.viz.plot_alignment` function. Passing ``show_axes=True`` to
+# `~mne.viz.plot_alignment` function. Passing ``show_axes=True`` to
 # `~mne.viz.plot_alignment` will draw coordinate frame axes of the
 # appropriate color for the frame types above, using arrow length
 # to differentiate the positive direction for each axis as follows:
@@ -137,6 +137,20 @@ fig = mne.viz.plot_alignment(
 # The camera view can be manually set to optimize visibility of specific
 # features required to check alignment. A side view of the face makes it easy
 # to check that the head position inside the MEG helmet is appropriate.
+
+fig = mne.viz.plot_alignment(
+    raw.info,
+    trans=trans,
+    subject="sample",
+    subjects_dir=subjects_dir,
+    surfaces="head-dense",
+    show_axes=True,
+    dig=True,
+    eeg=[],
+    meg="sensors",
+    coord_frame="head",
+    mri_fiducials="estimated",
+)
 
 mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0.0, 0.0, 0.0))
 print(
@@ -227,4 +241,6 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # you can plot elements that require alignment, set the view to perform the
 # checks you need, and finally assess the quality of the fits you see. For a
 # more detailed explanation of using MRI-generated surfaces in MNE, see the
-# `background_freesurfer_mne`_ tutorial.
+# :ref:`10_background_freesurfer.py` tutorial.
+
+# .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
