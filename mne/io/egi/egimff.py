@@ -61,6 +61,7 @@ def _get_mff_startdatetime(mff_reader):
         # mffpy has a bug parsing timestamps with 9 decimal places (nanoseconds)
         # Workaround: manually parse the timestamp from the info.xml file
         import xml.etree.ElementTree as ET
+
         info_file = op.join(mff_reader.directory._mffname, "info.xml")
         tree = ET.parse(info_file)
         root = tree.getroot()
@@ -72,12 +73,12 @@ def _get_mff_startdatetime(mff_reader):
         # Handle timestamps with up to 9 decimal places by truncating to 6
         # e.g., "2017-09-20T09:55:44.072000000+01:00" -> "2017-09-20T09:55:44.072000+01:00"
         # Both formats: +0100 (without colon) and +01:00 (with colon)
-        if '+' in time_str or '-' in time_str[-6:]:
+        if "+" in time_str or "-" in time_str[-6:]:
             # Truncate nanoseconds in decimal part (keep only 6 digits)
-            time_str = re.sub(r'\.(\d{6})\d+([+-])', r'.\1\2', time_str)
+            time_str = re.sub(r"\.(\d{6})\d+([+-])", r".\1\2", time_str)
         # Python's %z can't always handle colons, so remove them
-        time_str = re.sub(r'([+-]\d{2}):(\d{2})$', r'\1\2', time_str)
-        return datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+        time_str = re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", time_str)
+        return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f%z")
 
 
 def _get_mff_reader(input_fname):
@@ -90,7 +91,7 @@ def _get_mff_reader(input_fname):
 def _get_montage(mff_reader):
     mffpy = _import_mffpy()
     xml_files = mff_reader.directory.files_by_type[".xml"]
-    
+
     # Read coordinates.xml for fiducial positions
     coords_fname = fnmatch.filter(xml_files, "coordinates")
     coords_sensors = dict()
@@ -98,23 +99,24 @@ def _get_montage(mff_reader):
         with mff_reader.directory.filepointer(coords_fname[0]) as fp:
             coords_content = mffpy.XML.from_file(fp).get_content()
             coords_sensors = coords_content.get("sensors", dict())
-    
+
     n_eeg_channels = mff_reader.num_channels["EEG"]  # XXX: PNS?
     ch_pos = dict()
     hsp_list = []  # Extra headshape points
     lpa, rpa, nasion = None, None, None
-    
+
     # Extract channel positions and fiducials from coordinates.xml
     for ch in coords_sensors.values():
         # XXX: the y coordinate seems to be inverted? Need to investigate
         # Convert from cm to m
         loc = np.array([ch["x"], -(ch["y"]), ch["z"]]) / 100.0
         name = ch.get("name", "None")
-        
+
         # Check if this is a fiducial point
         if name == "Nasion":
             nasion = loc
-        elif name == "Left periauricular point":            lpa = loc
+        elif name == "Left periauricular point":
+            lpa = loc
         elif name == "Right periauricular point":
             rpa = loc
         elif name in REFERENCE_NAMES or "VREF" in name or "Vertex" in name:
@@ -124,10 +126,10 @@ def _get_montage(mff_reader):
             # EEG channel
             ch_name = name if name != "None" else f"E{ch['number']}"
             ch_pos[ch_name] = loc
-    
+
     # Convert hsp list to array if not empty
     hsp = np.array(hsp_list) if hsp_list else None
-    
+
     montage = make_dig_montage(
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, hsp=hsp, coord_frame="unknown"
     )
@@ -147,7 +149,7 @@ def _get_info(mff_reader):
     info.set_meas_date(meas_date)
     with info._unlock():
         info["utc_offset"] = utc_offset
-    
+
     # Populate reference location (loc[3:6]) for each EEG channel
     # The reference is VREF (Vertex Reference), which is the last dig point
     if len(info["dig"]) > 0:
@@ -155,13 +157,15 @@ def _get_info(mff_reader):
         for ch in info["chs"]:
             if ch["kind"] == FIFF.FIFFV_EEG_CH:
                 ch["loc"][3:6] = ref_loc
-    
+
     return info
 
 
 def _get_eeg_data(mff_reader):
     sfreq = mff_reader.sampling_rates["EEG"]  # XXX: check PNS sfreq
-    n_channels = mff_reader.num_channels["EEG"]  # Only EEG channels, not all signal types
+    n_channels = mff_reader.num_channels[
+        "EEG"
+    ]  # Only EEG channels, not all signal types
     epochs = mff_reader.epochs
 
     data_blocks, start_secs, end_secs = [], [], []
@@ -179,7 +183,7 @@ def _get_eeg_data(mff_reader):
         end_samp = start_samp + this_chunk.shape[1]
         max_end_samp = max(max_end_samp, end_samp)
     n_samps = max_end_samp - first_samp
-    
+
     eeg = np.zeros((n_channels, n_samps), dtype=np.float64)
     for this_chunk, start in zip(data_blocks, start_secs):
         start_idx = int(start * sfreq) - first_samp
@@ -309,7 +313,7 @@ def _read_mff_header(filepath):
     if bad:
         raise RuntimeError(
             "EGI epoch first/last samps could not be parsed:\n"
-            f'{list(epochs["first_samps"])}\n{list(epochs["last_samps"])}'
+            f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
         )
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not
@@ -628,7 +632,8 @@ class RawMff(BaseRaw):
                         next_id += 1
                 events_ids = np.array(events_ids, int)
                 egi_info["new_trigger"] = _combine_triggers(
-                    egi_events[[c in include for c in event_codes]], remapping=events_ids
+                    egi_events[[c in include for c in event_codes]],
+                    remapping=events_ids,
                 )
                 self.event_id = dict(zip(included_codes, events_ids))
             else:
@@ -712,7 +717,9 @@ class RawMff(BaseRaw):
         if not np.array_equal(
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
-            raise ValueError("Currently interlacing EEG and PNS channels is not supported")
+            raise ValueError(
+                "Currently interlacing EEG and PNS channels is not supported"
+            )
 
         egi_info["kind_bounds"] = [0]
         for key in keys:
@@ -1184,18 +1191,18 @@ def _import_mffpy(why="read averaged .mff files"):
     # Monkey-patch mffpy to handle timestamps with 9 decimal places (nanoseconds)
     # This is needed because some MFF files have timestamps like
     # "2006-04-28T15:32:00.000000000+0100" which Python's %f can't parse
-    if not hasattr(mffpy.XML, '_mne_patched'):
+    if not hasattr(mffpy.XML, "_mne_patched"):
         original_parse_time_str = mffpy.XML._parse_time_str
-        
+
         @classmethod
         def _patched_parse_time_str(cls, txt):
             """Parse time string with support for 9-decimal nanoseconds."""
             # Truncate nanoseconds to 6 decimal places if present
             # e.g., "2017-09-20T09:55:44.072000000+01:00" -> "2017-09-20T09:55:44.072000+01:00"
-            if txt and '.' in txt:
-                txt = re.sub(r'\.(\d{6})\d+([+-])', r'.\1\2', txt)
+            if txt and "." in txt:
+                txt = re.sub(r"\.(\d{6})\d+([+-])", r".\1\2", txt)
             return original_parse_time_str(txt)
-        
+
         mffpy.XML._parse_time_str = _patched_parse_time_str
         mffpy.XML._mne_patched = True
 
