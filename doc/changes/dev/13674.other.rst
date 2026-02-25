@@ -1,0 +1,1 @@
+Improve documentation of return values to clarify that methods typically return the original instance type for chaining purposes, by `Aniket Singh Yadav`_.

@@ -318,13 +318,18 @@ numpydoc_xref_aliases = {
 numpydoc_xref_ignore = {
     # words
     "and",
+    "as",
     "between",
+    "data",
     "instance",
     "instances",
+    "input",
     "of",
     "default",
+    "same",
     "shape",
     "or",
+    "the",
     "with",
     "length",
     "pair",

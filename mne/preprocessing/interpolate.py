@@ -101,7 +101,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
 
     Returns
     -------
-    inst : instance of Epochs, Evoked, or Raw
+    inst : same type as the input data
         The modified data object.
 
     See Also
