@@ -325,7 +325,7 @@ class ReferenceMixin(MontageMixin):
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
             Data with EEG channels re-referenced. If ``ref_channels='average'``
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
@@ -388,7 +388,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -463,7 +463,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -501,7 +501,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
@@ -532,7 +532,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -569,7 +569,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -691,7 +691,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -812,7 +812,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
                The modified instance.
         """
         return add_reference_channels(self, ref_channels, copy=False)
@@ -878,7 +878,7 @@ class InterpolationMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         Notes
@@ -1006,7 +1006,7 @@ class InterpolationMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             A new instance with interpolated data and updated channel
             information.
 
@@ -2015,7 +2015,7 @@ def combine_channels(
 
     Returns
     -------
-    combined_inst : instance of Raw, Epochs, or Evoked
+    combined_inst : same type as the input data
         An MNE-Python object of the same type as the input ``inst``, containing
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).
