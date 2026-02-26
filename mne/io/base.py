@@ -2214,11 +2214,11 @@ class BaseRaw(
         pass  # noqa
 
     def copy(self):
-        """Return copy of Raw instance.
+        """Return copy of the instance.
 
         Returns
         -------
-        inst : instance of Raw
+        inst : same type as the input data
             A copy of the instance.
         """
         return deepcopy(self)
