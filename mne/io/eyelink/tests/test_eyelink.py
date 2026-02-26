@@ -172,7 +172,7 @@ def test_fill_times(fname):
 
 
 def test_find_overlaps():
-    """Test finding overlapping occular events between the left and right eyes.
+    """Test finding overlapping ocular events between the left and right eyes.
 
     In the simulated blink df below, the first two rows
     will be considered an overlap because the diff() of both the 'time' and
@@ -360,7 +360,13 @@ def _simulate_eye_tracking_data(in_file, out_file):
         fp.write("START\t7452389\tRIGHT\tSAMPLES\tEVENTS\n")
         fp.write(f"{new_samples_line}\n")
 
-        for timestamp in np.arange(7452389, 7453390):  # simulate a second block
+        # simulate a second block that starts with empty samples
+        for timestamp in np.arange(7452389, 7453154):
+            # samples without last status column
+            # see https://github.com/mne-tools/mne-python/issues/13567
+            fp.write(f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t...\t.\t.\t.\n")
+
+        for timestamp in np.arange(7453154, 7453390):  # second block continues
             fp.write(
                 f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
                 "...\t1497\t5189\t512.5\t.............\n"
@@ -382,13 +388,22 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     "1497.0\t5189.0\t512.5\t.............\n"
                 )
                 button_idx += 1
-        fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write("END\t7453490\tRIGHT\tSAMPLES\tEVENTS\n")
+
+        # simulate a third block with no samples at all
+        fp.write("START\t7454490\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write(f"{new_samples_line}\n")
+        for timestamp in np.arange(7454490, 7454990):
+            fp.write(
+                f"{timestamp}\t.\t.\t0.0\t.\t.\t.\t.\t0.0\t...\t.\t.\t.\n"  # All empty
+            )
+        fp.write("END\t7454990\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
 @requires_testing_data
 @pytest.mark.parametrize("fname", [fname_href])
 def test_multi_block_misc_channels(fname, tmp_path):
-    """Test a file with many edge casses.
+    """Test a file with many edge cases.
 
     This file has multiple acquisition blocks, each tracking a different eye.
     The coordinates are in raw units (not pixels or radians).
@@ -399,7 +414,7 @@ def test_multi_block_misc_channels(fname, tmp_path):
 
     with (
         _record_warnings(),
-        pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
+        pytest.warns(RuntimeWarning, match="Raw pupil position data detected"),
         pytest.warns(RuntimeWarning, match="The eye being tracked changed"),
     ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)
@@ -426,15 +441,15 @@ def test_multi_block_misc_channels(fname, tmp_path):
     assert raw.ch_names == chs_in_file
     assert raw.annotations.description[1] == "SYNCTIME"
 
-    assert raw.annotations.description[-7] == "BAD_ACQ_SKIP"
-    assert np.isclose(raw.annotations.onset[-7], 1.001)
-    assert np.isclose(raw.annotations.duration[-7], 0.1)
+    assert raw.annotations.description[-8] == "BAD_ACQ_SKIP"
+    assert np.isclose(raw.annotations.onset[-8], 1.001)
+    assert np.isclose(raw.annotations.duration[-8], 0.1)
 
     data, times = raw.get_data(return_times=True)
     assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
 
-    assert raw.annotations.description[-6] == "button_1_press"
+    assert raw.annotations.description[-7] == "button_1_press"
     button_idx = [
         ii
         for ii, desc in enumerate(raw.annotations.description)
@@ -442,6 +457,9 @@ def test_multi_block_misc_channels(fname, tmp_path):
     ]
     assert len(button_idx) == 6
     assert_allclose(raw.annotations.onset[button_idx[0]], 2.102, atol=1e-3)
+
+    assert raw.annotations.description[-1] == "BAD_ACQ_SKIP"
+    assert_allclose(raw.annotations.duration[-1], 1.0, atol=1e-3)
 
     # smoke test for reading events with missing samples (should not emit a warning)
     find_events(raw, verbose=True)
