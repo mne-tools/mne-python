@@ -256,6 +256,74 @@ def _read_header(input_fname):
     )
     info.update(mff_hdr)
     return info
+def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
+    """Read event tracks using mffpy XML parsing and return dense event matrix."""
+    from mffpy.xml_files import XML, EventTrack
+
+    mff_events = OrderedDict()
+    basenames = mff_reader.directory.listdir()
+    for basename in basenames:
+        lower_name = basename.lower()
+        if not lower_name.endswith(".xml") or basename.startswith("._"):
+            continue
+        stem = Path(basename).stem
+        try:
+            with mff_reader.directory.filepointer(stem) as fp:
+                xml_obj = XML.from_file(fp, recover=False)
+        except Exception as err:
+            if "XMLSyntaxError" in type(err).__name__:
+                warn(f"Could not parse the XML file {basename}. Skipping it.")
+            continue
+        if not isinstance(xml_obj, EventTrack):
+            continue
+        try:
+            events_iter = xml_obj.events
+            for event in events_iter:
+                code = event.get("code") or event.get("label") or xml_obj.name
+                begin_time = event.get("beginTime")
+                if code is None or begin_time is None:
+                    continue
+                sample = int(np.floor((begin_time - start_dt).total_seconds() * sfreq))
+                if 0 <= sample < n_samples:
+                    mff_events.setdefault(code, []).append(sample)
+        except Exception:
+            _soft_import("defusedxml", "reading EGI MFF event tracks")
+            from defusedxml import ElementTree as ET
+
+            xml_path = op.join(str(input_fname), basename)
+            try:
+                root = ET.parse(xml_path).getroot()
+            except Exception as err:
+                if (
+                    "ParseError" in type(err).__name__
+                    or "XMLSyntaxError" in type(err).__name__
+                ):
+                    warn(f"Could not parse the XML file {basename}. Skipping it.")
+                continue
+            for event_el in root.iter():
+                if event_el.tag.split("}")[-1] != "event":
+                    continue
+                event_fields = {}
+                for child in event_el:
+                    event_fields[child.tag.split("}")[-1]] = child.text
+                code = (
+                    event_fields.get("code")
+                    or event_fields.get("label")
+                    or xml_obj.name
+                )
+                begin_time = _parse_egi_datetime(event_fields.get("beginTime"))
+                if code is None or begin_time is None:
+                    continue
+                sample = int(np.floor((begin_time - start_dt).total_seconds() * sfreq))
+                if 0 <= sample < n_samples:
+                    mff_events.setdefault(code, []).append(sample)
+
+    event_codes = list(mff_events.keys())
+    egi_events = np.zeros((len(event_codes), n_samples))
+    for event_idx, code in enumerate(event_codes):
+        if len(mff_events[code]):
+            egi_events[event_idx, np.array(mff_events[code], dtype=int)] = 1
+    return egi_events, event_codes, mff_events
 
 
 def _get_eeg_calibration_info(filepath, egi_info):
@@ -582,7 +650,6 @@ class RawMff(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
         logger.debug(f"Reading MFF {start:6d} ... {stop:6d} ...")
-        dtype = "<f4"  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
         one = np.zeros((egi_info["kind_bounds"][-1], stop - start))
