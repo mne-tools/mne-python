@@ -201,7 +201,7 @@ def _get_info_from_mff_reader(input_fname, mff_reader):
 
 def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
     """Read event tracks using mffpy XML parsing and return dense event matrix."""
-    from mffpy.xml_files import EventTrack, XML
+    from mffpy.xml_files import XML, EventTrack
 
     mff_events = OrderedDict()
     basenames = mff_reader.directory.listdir()
@@ -237,7 +237,10 @@ def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
             try:
                 root = ET.parse(xml_path).getroot()
             except Exception as err:
-                if "ParseError" in type(err).__name__ or "XMLSyntaxError" in type(err).__name__:
+                if (
+                    "ParseError" in type(err).__name__
+                    or "XMLSyntaxError" in type(err).__name__
+                ):
                     warn(f"Could not parse the XML file {basename}. Skipping it.")
                 continue
             for event_el in root.iter():
@@ -246,7 +249,11 @@ def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
                 event_fields = {}
                 for child in event_el:
                     event_fields[child.tag.split("}")[-1]] = child.text
-                code = event_fields.get("code") or event_fields.get("label") or xml_obj.name
+                code = (
+                    event_fields.get("code")
+                    or event_fields.get("label")
+                    or xml_obj.name
+                )
                 begin_time = _parse_egi_datetime(event_fields.get("beginTime"))
                 if code is None or begin_time is None:
                     continue
