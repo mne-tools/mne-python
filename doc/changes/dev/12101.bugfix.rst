@@ -1,1 +1,0 @@
-Fix :attr:`~mne.SourceMorph.spacing` attribute inconsistency in :func:`~mne.compute_source_morph` when ``src_to`` is provided, by `Famous077 <https://github.com/Famous077>`__.

@@ -1,0 +1,1 @@
+Fix bug in :func:`~mne.compute_source_morph` where :attr:`mne.SourceMorph.spacing` was set incorrectly in some cases, by `Famous077`_.

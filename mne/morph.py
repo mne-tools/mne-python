@@ -295,15 +295,8 @@ def compute_source_morph(
 
     if src_to is not None:
         assert len(vertices_to) == len(src_to)
-        # derive spacing from src_to instead of using the default
-        if src_to.kind in ("surface", "mixed"):
-            _ico_map = {10242: 5, 2562: 4, 642: 3, 162: 2}
-            _oct_map = {4098: 6, 1026: 5, 258: 4, 66: 3}
-            _nuse = src_to[0]["nuse"]
-            if _nuse in _ico_map:
-                spacing = _ico_map[_nuse]
-            elif _nuse in _oct_map:
-                spacing = _oct_map[_nuse]
+        # set spacing to None when src_to is provided
+        spacing = None
     morph = SourceMorph(
         subject_from,
         subject_to,
