@@ -4,6 +4,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations
+
 import json
 import operator
 import os.path as op
@@ -12,8 +14,10 @@ from copy import deepcopy
 from functools import partial
 from inspect import getfullargspec
 from pathlib import Path
+from typing import Callable, Literal, overload
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 
 from ._fiff.constants import FIFF
@@ -1077,21 +1081,47 @@ class BaseEpochs(
 
         return self
 
+    @overload
+    def average(
+        self,
+        picks=None,
+        method: Literal["mean", "median"]
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]] = "mean",
+        by_event_type: Literal[False] = False,
+    ) -> EvokedArray: ...
+
+    @overload
+    def average(
+        self,
+        picks=None,
+        method: Literal["mean", "median"]
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]] = "mean",
+        by_event_type: Literal[True] = True,
+    ) -> list[EvokedArray]: ...
+
     @fill_doc
-    def average(self, picks=None, method="mean", by_event_type=False):
+    def average(
+        self,
+        picks=None,
+        method: Literal["mean", "median"]
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]] = "mean",
+        by_event_type: bool = False,
+    ) -> EvokedArray | list[EvokedArray]:
         """Compute an average over epochs.
 
         Parameters
         ----------
         %(picks_all_data)s
-        method : str | callable
-            How to combine the data. If "mean"/"median", the mean/median
-            are returned.
-            Otherwise, must be a callable which, when passed an array of shape
-            (n_epochs, n_channels, n_time) returns an array of shape
-            (n_channels, n_time).
-            Note that due to file type limitations, the kind for all
-            these will be "average".
+        method : "mean" | "median" | callable
+            How to average the data across epochs, time-point by time-point.
+            Pass ``"mean"`` for the arithmeic mean, or ``"median"`` for the median.
+
+            .. note:: In typical ERP and ERF analyses, ``"mean"`` (the default) should
+                      be used.
+
+            Can also be a function accepting an array of shape
+            ``(n_epochs, n_channels, n_time)`` and returning an array of shape
+            ``(n_channels, n_time)`` (i.e., collapsing the epochs dimensioon).
         %(by_event_type)s
 
         Returns
@@ -1104,7 +1134,7 @@ class BaseEpochs(
         they correspond to different conditions. To average by condition,
         do ``epochs[condition].average()`` for each condition separately.
 
-        When picks is None and epochs contain only ICA channels, no channels
+        When ``picks`` is ``None`` and epochs contain only ICA channels, no channels
         are selected, resulting in an error. This is because ICA channels
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
@@ -1117,6 +1147,10 @@ class BaseEpochs(
             >>> epochs.average(method=trim)  # doctest:+SKIP
 
         This would compute the trimmed mean.
+
+        The "kind" for all these operations, including custom functions, will be
+        labeled as "average" when writing the data to disk, due to limitations of the
+        FIFF file format.
         """
         self._handle_empty("raise", "average")
         if by_event_type:
@@ -4238,7 +4272,7 @@ def _read_one_epoch_file(f, tree, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
+def read_epochs(fname, proj=True, preload=True, verbose=None) -> EpochsFIF:
     """Read epochs from a fif file.
 
     Parameters
