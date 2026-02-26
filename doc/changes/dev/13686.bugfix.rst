@@ -1,0 +1,2 @@
+Fix sensor name ordering in :func:`~mne.viz.plot_topomap` when using an
+:class:`~mne.Info` object to specify channel positions (:gh:`13686` by :ghuser:`Famous077`).
