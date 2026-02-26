@@ -46,6 +46,7 @@ __all__ = [
     "read_raw_nsx",
     "read_raw_persyst",
     "read_raw_snirf",
+    "read_raw_bci2k",
     "show_fiff",
     "write_fiducials",
     "write_info",
@@ -91,3 +92,4 @@ from .nirx import read_raw_nirx
 from .nsx import read_raw_nsx
 from .persyst import read_raw_persyst
 from .snirf import read_raw_snirf
+from .bci2k import read_raw_bci2k
