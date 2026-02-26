@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from .eyetracking import set_channel_types_eyetrack, convert_units
+from .eyetracking import set_channel_types_eyetrack, convert_units, find_blinks
 from .calibration import Calibration, read_eyelink_calibration
 from ._pupillometry import interpolate_blinks
 from .utils import get_screen_visual_angle

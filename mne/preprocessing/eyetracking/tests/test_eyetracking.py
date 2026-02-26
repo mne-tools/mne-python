@@ -8,7 +8,13 @@ from numpy.testing import assert_allclose
 
 import mne
 from mne._fiff.constants import FIFF
+from mne.preprocessing.eyetracking import find_blinks
 from mne.utils import _record_warnings
+
+
+def test_find_blinks():
+    """Test creating blink annotations."""
+    find_blinks
 
 
 def test_set_channel_types_eyetrack(eyetrack_raw):
