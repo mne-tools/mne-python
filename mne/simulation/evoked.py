@@ -117,7 +117,7 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
 
     Returns
     -------
-    inst : instance of Evoked, Epochs, or Raw
+    inst : same type as the input data
         The instance, modified to have additional noise.
 
     Notes
