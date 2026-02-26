@@ -1366,7 +1366,12 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
+    fname,
+    sfreq="auto",
+    uint16_codec=None,
+    encoding="utf8",
+    ignore_marker_types=False,
+    data_format="auto",
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1400,6 +1405,8 @@ def read_annotations(
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
         descriptions). Defaults to ``False``.
+    data_format : str
+        Only used by CNT files, see :func:`mne.io.read_raw_cnt` for details.
 
     Returns
     -------
@@ -1444,6 +1451,7 @@ def read_annotations(
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
         ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".cnt": {"data_format": data_format},
         ".dat": {"sfreq": sfreq},
         ".cdt": {"sfreq": sfreq},
         ".cef": {"sfreq": sfreq},

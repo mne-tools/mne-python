@@ -4,8 +4,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from os import path
-
 import numpy as np
 
 from ..._fiff._digitization import _make_dig_points
@@ -14,40 +12,37 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, _explain_exception, _validate_type, fill_doc, warn
+from ...utils import (
+    _check_fname,
+    _check_option,
+    _explain_exception,
+    _validate_type,
+    _verbose_safe_false,
+    fill_doc,
+    verbose,
+)
 from ..base import BaseRaw
 from ._utils import (
+    _CH_SIZE,
+    _DATA_OFFSET,
+    _RATE_OFFSET,
     CNTEventType3,
-    _compute_robust_event_table_position,
+    _compute_robust_sizes,
     _get_event_parser,
     _read_teeg,
     _session_date_2_meas_date,
 )
 
 
-def _read_annotations_cnt(fname, data_format="int16"):
+@verbose
+def _read_annotations_cnt(fname, *, data_format, verbose=None):
     """CNT Annotation File Reader.
 
     This method opens the .cnt files, searches all the metadata to construct
     the annotations and parses the event table. Notice that CNT files, can
     point to a different file containing the events. This case when the
     event table is separated from the main .cnt is not supported.
-
-    Parameters
-    ----------
-    fname: path-like
-        Path to CNT file containing the annotations.
-    data_format : 'int16' | 'int32'
-        Defines the data format the data is read in.
-
-    Returns
-    -------
-    annot : instance of Annotations
-        The annotations.
     """
-    # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
-    SETUP_NCHANNELS_OFFSET = 370
-    SETUP_RATE_OFFSET = 376
 
     def _accept_reject_function(keypad_accept):
         accept_list = []
@@ -60,11 +55,10 @@ def _read_annotations_cnt(fname, data_format="int16"):
                 accept_list.append("NA")
         return np.array(accept_list)
 
-    def _translating_function(offset, n_channels, event_type, data_format=data_format):
-        n_bytes = 2 if data_format == "int16" else 4
+    def _translating_function(offset, n_channels, event_type, *, n_bytes):
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
-        event_time = offset - 900 - (75 * n_channels)
+        event_time = offset - _DATA_OFFSET - (_CH_SIZE * n_channels)
         event_time //= n_channels * n_bytes
         event_time = event_time - 1
         # Prevent negative event times
@@ -113,22 +107,18 @@ def _read_annotations_cnt(fname, data_format="int16"):
         )
 
     with open(fname, "rb") as fid:
-        fid.seek(SETUP_NCHANNELS_OFFSET)
-        (n_channels,) = np.frombuffer(fid.read(2), dtype="<u2")
+        fid.seek(_RATE_OFFSET)
+        sfreq = float(np.frombuffer(fid.read(2), dtype="<u2").item())
 
-        fid.seek(SETUP_RATE_OFFSET)
-        (sfreq,) = np.frombuffer(fid.read(2), dtype="<u2")
-
-        event_table_pos = _compute_robust_event_table_position(
+        n_channels, _, n_bytes, event_table_pos = _compute_robust_sizes(
             fid=fid, data_format=data_format
         )
+        del data_format
 
-    with open(fname, "rb") as fid:
         teeg = _read_teeg(fid, teeg_offset=event_table_pos)
 
-    event_parser = _get_event_parser(event_type=teeg.event_type)
+        event_parser = _get_event_parser(event_type=teeg.event_type)
 
-    with open(fname, "rb") as fid:
         fid.seek(event_table_pos + 9)  # the real table stats at +9
         buffer = fid.read(teeg.total_length)
 
@@ -141,7 +131,7 @@ def _read_annotations_cnt(fname, data_format="int16"):
             np.array([e.Offset for e in my_events], dtype=float),
             n_channels=n_channels,
             event_type=type(my_events[0]),
-            data_format=data_format,
+            n_bytes=n_bytes,
         )
         # There is a Latency field but it's not useful for durations, see
         # https://github.com/mne-tools/mne-python/pull/11828
@@ -175,16 +165,16 @@ def _read_annotations_cnt(fname, data_format="int16"):
         )
 
 
-@fill_doc
+@verbose
 def read_raw_cnt(
     input_fname,
     eog=(),
     misc=(),
     ecg=(),
     emg=(),
+    *,
     data_format="auto",
     date_format="mm/dd/yy",
-    *,
     header="auto",
     preload=False,
     verbose=None,
@@ -276,7 +266,6 @@ def read_raw_cnt(
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
-    data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
     # http://paulbourke.net/dataformats/eeg/
@@ -309,66 +298,28 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         session_date = f"{read_str(fid, 10)} {read_str(fid, 12)}"
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
-        fid.seek(370)
-        n_channels = np.fromfile(fid, dtype="<u2", count=1).item()
-        fid.seek(376)
-        sfreq = np.fromfile(fid, dtype="<u2", count=1).item()
+        fid.seek(_RATE_OFFSET)
+        sfreq = float(np.fromfile(fid, dtype="<u2", count=1).item())
         if eog == "header":
             fid.seek(402)
             eog = [idx for idx in np.fromfile(fid, dtype="i2", count=2) if idx >= 0]
         fid.seek(438)
-        lowpass_toggle = np.fromfile(fid, "i1", count=1).item()
-        highpass_toggle = np.fromfile(fid, "i1", count=1).item()
-
-        # Header has a field for number of samples, but it does not seem to be
-        # too reliable. That's why we have option for setting n_bytes manually.
-        fid.seek(864)
-        n_samples = np.fromfile(fid, dtype="<u4", count=1).item()
-        n_samples_header = n_samples
-        fid.seek(869)
-        lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
-        fid.seek(2, 1)
-        highcutoff = np.fromfile(fid, dtype="f4", count=1).item()
-
-        event_offset = _compute_robust_event_table_position(
-            fid=fid, data_format=data_format
+        lowpass_toggle = bool(np.fromfile(fid, "i1", count=1).item())
+        highpass_toggle = bool(np.fromfile(fid, "i1", count=1).item())
+        n_channels, n_samples, n_bytes, _ = _compute_robust_sizes(
+            fid=fid,
+            data_format=data_format,
         )
+        del data_format
+        fid.seek(869)
+        lowcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
+        fid.seek(2, 1)
+        highcutoff = float(np.fromfile(fid, dtype="f4", count=1).item())
         fid.seek(890)
-        cnt_info["continuous_seconds"] = np.fromfile(fid, dtype="<f4", count=1).item()
+        cnt_info["continuous_seconds"] = float(
+            np.fromfile(fid, dtype="<f4", count=1).item()
+        )
 
-        if event_offset < data_offset:  # no events
-            data_size = n_samples * n_channels
-        else:
-            data_size = event_offset - (data_offset + 75 * n_channels)
-
-        _check_option("data_format", data_format, ["auto", "int16", "int32"])
-        if data_format == "auto":
-            if n_samples == 0 or data_size // (n_samples * n_channels) not in [2, 4]:
-                warn(
-                    "Could not define the number of bytes automatically. "
-                    "Defaulting to 2."
-                )
-                n_bytes = 2
-                n_samples = data_size // (n_bytes * n_channels)
-                # See: PR #12393
-                annotations = _read_annotations_cnt(input_fname, data_format="int16")
-                # See: PR #12986
-                if len(annotations) and annotations.onset[-1] * sfreq > n_samples:
-                    n_bytes = 4
-                    n_samples = n_samples_header
-                    warn(
-                        "Annotations are outside data range. "
-                        "Changing data format to 'int32'."
-                    )
-            else:
-                n_bytes = data_size // (n_samples * n_channels)
-        else:
-            n_bytes = 2 if data_format == "int16" else 4
-            n_samples = data_size // (n_bytes * n_channels)
-
-            # See PR #12393
-            if n_samples_header != 0:
-                n_samples = n_samples_header
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info["channel_offset"] = np.fromfile(fid, dtype="<i4", count=1).item()
         if cnt_info["channel_offset"] > 1:
@@ -382,37 +333,37 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         _validate_type(header, str, "header")
         _check_option("header", header, ("auto", "new", "old"))
         for ch_idx in range(n_channels):  # ELECTLOC fields
-            fid.seek(data_offset + 75 * ch_idx)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
 
             # Some files have bad channels marked differently in the header.
             if header in ("new", "auto"):
-                fid.seek(data_offset + 75 * ch_idx + 14)
+                fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 14)
                 if np.fromfile(fid, dtype="u1", count=1).item():
                     bads.append(ch_name)
             if header in ("old", "auto"):
-                fid.seek(data_offset + 75 * ch_idx + 4)
+                fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 4)
                 if np.fromfile(fid, dtype="u1", count=1).item():
                     bads.append(ch_name)
 
-            fid.seek(data_offset + 75 * ch_idx + 19)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 19)
             xy = np.fromfile(fid, dtype="f4", count=2)
             xy[1] *= -1  # invert y-axis
             pos.append(xy)
-            fid.seek(data_offset + 75 * ch_idx + 47)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 47)
             # Baselines are subtracted before scaling the data.
             baselines.append(np.fromfile(fid, dtype="i2", count=1).item())
-            fid.seek(data_offset + 75 * ch_idx + 59)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype="f4", count=1).item()
-            fid.seek(data_offset + 75 * ch_idx + 71)
+            fid.seek(_DATA_OFFSET + _CH_SIZE * ch_idx + 71)
             cal = np.fromfile(fid, dtype="f4", count=1).item()
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
     info = _empty_info(sfreq)
-    if lowpass_toggle == 1:
+    if lowpass_toggle and highcutoff > 0:
         info["lowpass"] = highcutoff
-    if highpass_toggle == 1:
+    if highpass_toggle and lowcutoff > 0:
         info["highpass"] = lowcutoff
     subject_info = {
         "hand": hand,
@@ -520,6 +471,7 @@ class RawCNT(BaseRaw):
     mne.io.Raw : Documentation of attributes and methods.
     """
 
+    @verbose
     def __init__(
         self,
         input_fname,
@@ -540,7 +492,9 @@ class RawCNT(BaseRaw):
         else:
             _date_format = "%m/%d/%y %H:%M:%S"
 
-        input_fname = path.abspath(input_fname)
+        input_fname = _check_fname(
+            input_fname, overwrite="read", must_exist=True, name="input_fname"
+        )
         try:
             info, cnt_info = _get_cnt_info(
                 input_fname, eog, ecg, emg, misc, data_format, _date_format, header
@@ -565,7 +519,9 @@ class RawCNT(BaseRaw):
 
         data_format = "int32" if cnt_info["n_bytes"] == 4 else "int16"
         self.set_annotations(
-            _read_annotations_cnt(input_fname, data_format=data_format)
+            _read_annotations_cnt(
+                input_fname, data_format=data_format, verbose=_verbose_safe_false()
+            )
         )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -594,7 +550,9 @@ class RawCNT(BaseRaw):
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
         with open(self.filenames[fi], "rb", buffering=0) as fid:
-            fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
+            fid.seek(
+                _DATA_OFFSET + f_channels * (_CH_SIZE + (start - s_offset) * n_bytes)
+            )
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
                 # Earlier comment says n_samples is unreliable, but I think it
                 # is because it needed to be changed to unsigned int
