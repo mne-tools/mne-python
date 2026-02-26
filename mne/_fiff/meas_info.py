@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations
+
 import contextlib
 import datetime
 import operator
@@ -13,11 +15,14 @@ from copy import deepcopy
 from functools import partial
 from io import BytesIO
 from textwrap import shorten
+from typing import Any, Literal, TypedDict
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
+from ..transforms import Transform
 from ..utils import (
     _check_fname,
     _check_on_missing,
@@ -1258,6 +1263,178 @@ def _restore_mne_types(info):
         if "date" in entry and isinstance(entry["date"], np.ndarray):
             # Convert numpy array back to tuple with Python types
             entry["date"] = tuple(int(x) for x in entry["date"])
+
+
+# Define the types for the nested structures
+class ChInfo(TypedDict):
+    cal: float
+    ch_name: str
+    coil_type: int
+    coord_frame: int
+    kind: int
+    loc: NDArray[np.floating]
+    logno: int
+    range: float
+    scanno: int
+    unit: int
+    unit_mul: int
+
+
+class CompInfo(TypedDict):
+    ctfkind: int
+    colcals: NDArray[np.floating]
+    mat: dict[str, Any]
+    rowcals: NDArray[np.floating]
+    save_calibrated: bool
+
+
+class DeviceInfo(TypedDict):
+    type: str
+    model: str
+    serial: str
+    site: str
+
+
+class DigInfo(TypedDict):
+    kind: int
+    r: NDArray[np.floating]
+    ident: int
+    coord_frame: int
+
+
+class EventInfo(TypedDict):
+    channels: list[int]
+    list: NDArray[np.int_]
+
+
+class FileID(TypedDict):
+    version: int
+    machid: NDArray[np.int_]
+    secs: int
+    usecs: int
+
+
+class HeliumInfo(TypedDict):
+    he_level_raw: float
+    helium_level: float
+    orig_file_guid: str
+    meas_date: datetime.datetime
+
+
+class HpiCoil(TypedDict):
+    number: int
+    epoch: NDArray[np.floating]
+    slopes: NDArray[np.floating]
+    corr_coeff: NDArray[np.floating]
+    coil_freq: float
+
+
+class HpiMeas(TypedDict):
+    creator: str
+    sfreq: float
+    nchan: int
+    nave: int
+    ncoil: int
+    first_samp: int
+    last_samp: int
+    hpi_coils: list[HpiCoil]
+
+
+class HpiResults(TypedDict):
+    dig_points: list[DigInfo]
+    order: NDArray[np.int_]
+    used: NDArray[np.int_]
+    moments: NDArray[np.int_]
+    goodness: NDArray[np.int_]
+    good_limit: float
+    dist_limit: float
+    accept: int
+    coord_trans: Transform
+
+
+class HpiSubsystem(TypedDict):
+    ncoil: int
+    event_channel: str
+    hpi_coils: list[NDArray[np.int_]]
+
+
+MriID = FileID
+
+
+class MaxInfo(TypedDict):
+    sss_info: dict
+    max_st: dict
+    sss_ctc: dict
+    sss_cal: dict
+
+
+class ProcHistory(TypedDict, total=False):
+    block_id: FileID
+    date: list[int]
+    experimenter: str
+    creator: str
+    max_info: MaxInfo
+    smartshield: dict
+
+
+class SubjectInfo(TypedDict, total=False):
+    id: int
+    his_id: str
+    last_name: str
+    first_name: str
+    middle_name: str
+    birthday: datetime.datetime
+    sex: Literal[0, 1, 2]
+    hand: Literal[1, 2, 3]
+    weight: float
+    height: float
+
+
+# Define the main Info type
+class InfoDict(TypedDict):
+    acq_pars: str | None
+    acq_stim: str | None
+    bads: list[str]
+    ch_names: list[str]
+    chs: list[ChInfo]
+    command_line: str
+    comps: list[CompInfo]
+    ctf_head_t: dict[str, Any] | None
+    custom_ref_applied: int
+    description: str | None
+    dev_ctf_t: dict[str, Any] | None
+    dev_head_t: dict[str, Any] | None
+    device_info: DeviceInfo | None
+    dig: list[DigInfo] | None
+    events: list[EventInfo]
+    experimenter: str | None
+    file_id: FileID | None
+    gantry_angle: float | None
+    helium_info: HeliumInfo | None
+    highpass: float
+    hpi_meas: list[HpiMeas]
+    hpi_results: list[HpiResults]
+    hpi_subsystem: HpiSubsystem | None
+    kit_system_id: int
+    line_freq: float | None
+    lowpass: float
+    maxshield: bool
+    meas_date: datetime.datetime
+    meas_file: str | None
+    meas_id: FileID | None
+    mri_file: str | None
+    mri_head_t: dict[str, Any] | None
+    mri_id: MriID | None
+    nchan: int
+    proc_history: list[ProcHistory]
+    proj_id: int | None
+    proj_name: str | None
+    projs: list[dict[str, Any]]
+    sfreq: float
+    subject_info: SubjectInfo | None
+    temp: Any | None
+    utc_offset: str
+    working_dir: str
 
 
 # TODO: Add fNIRS convention to loc
@@ -3404,7 +3581,12 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
 
 @verbose
-def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
+def create_info(
+    ch_names: list[str] | int,
+    sfreq: float,
+    ch_types: str | list[str] = "misc",
+    verbose=None,
+) -> Info:
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
