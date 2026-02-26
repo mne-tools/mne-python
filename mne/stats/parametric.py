@@ -119,27 +119,33 @@ def f_oneway(*args, sigma=0.0, method="absolute"):
     more groups, possibly with differing sizes :footcite:`Lowry2014`.
 
     This is a modified version of :func:`scipy.stats.f_oneway` that avoids
-    computing the associated p-value, and can adjust for implausibly small
-    variance values :footcite:`RidgwayEtAl2012`.
+    computing the associated p-value.
 
     Parameters
     ----------
     *args : array_like
         The sample measurements should be given as arguments.
     sigma : float
-        The within-group variance estimate (``MS_within``) will be
-        regularized as ``MS_within + sigma`` (``method='absolute'``) or
-        ``MS_within + sigma * mean(MS_within)`` (``method='relative'``).
-        By default this is 0 (no adjustment). See Notes for details.
-    method : {'absolute', 'relative'}
-        Controls how ``sigma`` is applied when ``sigma > 0``:
+        Regularization parameter applied to the within-group variance
+        (``MS_within``) to mitigate inflation of the F-statistic under
+        low-variance conditions.
 
-        - ``'absolute'``: adds ``sigma`` directly to ``MS_within``.
-        - ``'relative'``: adds ``sigma * mean(MS_within)`` to ``MS_within``.
+        The adjustment is:
+
+        - ``MS_within + sigma`` when ``method='absolute'``
+        - ``MS_within * (1 + sigma)`` when ``method='relative'``
+
+        Defaults to 0 (no regularization).
+    method : {'absolute', 'relative'}
+        Strategy used to regularize the within-group variance when
+        ``sigma > 0``:
+
+        - ``'absolute'`` adds a constant term
+        - ``'relative'`` scales the variance multiplicatively
 
     Returns
     -------
-    F : float
+    F-value : float
         The computed F-value of the test.
 
     Notes
@@ -147,8 +153,8 @@ def f_oneway(*args, sigma=0.0, method="absolute"):
     The ANOVA test has important assumptions that must be satisfied in order
     for the associated p-value to be valid.
 
-    1. The samples are independent.
-    2. Each sample is from a normally distributed population.
+    1. The samples are independent
+    2. Each sample is from a normally distributed population
     3. The population standard deviations of the groups are all equal. This
        property is known as homoscedasticity.
 
@@ -157,11 +163,6 @@ def f_oneway(*args, sigma=0.0, method="absolute"):
     although with some loss of power.
 
     The algorithm is from Heiman :footcite:`Heiman2002`, pp.394-7.
-
-    To use the "hat" adjustment method :footcite:`RidgwayEtAl2012` for
-    low-variance regularization, a value of ``sigma=1e-3`` may be a
-    reasonable choice. This mirrors the ``sigma`` parameter in
-    :func:`ttest_1samp_no_p`.
 
     References
     ----------
@@ -188,8 +189,10 @@ def f_oneway(*args, sigma=0.0, method="absolute"):
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
     if sigma > 0:
-        limit = sigma * np.mean(msw) if method == "relative" else sigma
-        msw = msw + limit
+        if method == "absolute":
+            msw = msw + sigma
+        else:
+            msw = msw * (1.0 + sigma)
     f = msb / msw
     return f
 
