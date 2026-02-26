@@ -250,7 +250,7 @@ design = design[predictor_vars]
 
 # %%
 # Now we can set up the linear model to be used in the analysis using
-# MNE-Python's func:`~mne.stats.linear_regression` function.
+# MNE-Python's :func:`~mne.stats.linear_regression` function.
 
 reg = linear_regression(limo_epochs, design_matrix=design, names=predictor_vars)
 
