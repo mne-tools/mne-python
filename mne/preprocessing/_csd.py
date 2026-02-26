@@ -90,7 +90,7 @@ def compute_current_source_density(
 
     Returns
     -------
-    inst_csd : instance of Raw, Epochs or Evoked
+    inst_csd : same type as the input data
         The transformed data. Output type will match input type.
 
     Notes
