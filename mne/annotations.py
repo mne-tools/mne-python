@@ -1012,6 +1012,9 @@ class HEDAnnotations(Annotations):
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
     %(ch_names_annot)s
+    extras : list[dict[str, int | float | str | None] | None] | None
+        Optional list of dicts containing extra fields for each annotation.
+        The number of items must match the number of annotations.
 
     See Also
     --------
@@ -1125,7 +1128,7 @@ class HEDAnnotations(Annotations):
             hed_version=self._hed_version,
             orig_time=self.orig_time,
             ch_names=result.ch_names,
-            extras=result.extras,
+            extras=result.extras if with_extras else None,
         )
 
     def __getstate__(self):
@@ -1324,8 +1327,6 @@ class HEDAnnotations(Annotations):
         Parameters
         ----------
         %(time_format_df_raw)s
-
-            .. versionadded:: 1.7
 
         Returns
         -------

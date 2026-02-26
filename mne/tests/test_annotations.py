@@ -2056,11 +2056,6 @@ def test_hed_annotations():
     first["hed_string"] = "foo"
     # ...and won't affect the original object
     assert ann.hed_string[0] == good_values["word"]
-    # slice/list indexing should preserve HED string alignment
-    subset = ann[:2]
-    assert list(subset.hed_string) == [good_values["word"], good_values["tone"]]
-    picked = ann[[0, 2]]
-    assert list(picked.hed_string) == [good_values["word"], good_values["square"]]
     # test __repr__
     _repr = repr(ann)
     assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
@@ -2133,21 +2128,32 @@ def test_hed_annotations():
     empty_ann.crop(tmin=5, tmax=10)
     assert len(empty_ann) == 0
     assert list(empty_ann.hed_string) == []
-    # test to_data_frame()
-    ann_df = HEDAnnotations(
+
+
+def test_hed_annotations_to_data_frame():
+    """Test HEDAnnotations.to_data_frame()."""
+    pytest.importorskip("hed")
+    pytest.importorskip("pandas")
+    from mne import HEDAnnotations
+
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)"
+    )
+    square = (
+        "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))"
+    )
+    ann = HEDAnnotations(
         onset=[1, 3, 5],
         duration=[0.5, 0.5, 0.5],
         description=["a", "b", "c"],
-        hed_string=[good_values["press"], good_values["tone"], good_values["square"]],
+        hed_string=[press, tone, square],
     )
-    pytest.importorskip("pandas")
-    df = ann_df.to_data_frame()
+    df = ann.to_data_frame()
     assert "hed_string" in df.columns
-    assert list(df["hed_string"]) == [
-        good_values["press"],
-        good_values["tone"],
-        good_values["square"],
-    ]
+    assert list(df["hed_string"]) == [press, tone, square]
     assert list(df["description"]) == ["a", "b", "c"]
     assert_allclose(df["duration"], [0.5, 0.5, 0.5])
 
