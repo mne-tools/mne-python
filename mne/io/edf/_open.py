@@ -2,12 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# Maybe we can move this one to utils or something like that.
 from pathlib import Path
 
-from mne._fiff.open import _NoCloseRead
-
-from ..utils import _file_like, _validate_type, logger
+from ..._fiff.open import _NoCloseRead
+from ...utils import _file_like, _validate_type, logger
 
 
 def _gdf_edf_get_fid(fname, **kwargs):
