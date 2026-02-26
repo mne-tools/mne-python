@@ -15,7 +15,7 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from scipy import stats
@@ -437,15 +437,15 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(
         self,
-        n_components=None,
+        n_components: int | float | None = None,
         *,
-        noise_cov=None,
-        random_state=None,
-        method="fastica",
-        fit_params=None,
-        max_iter="auto",
-        allow_ref_meg=False,
-        verbose=None,
+        noise_cov: Covariance | None = None,
+        random_state: Any = None,
+        method: Literal["fastica", "infomax", "picard"] = "fastica",
+        fit_params: dict | None = None,
+        max_iter: int | Literal["auto"] = "auto",
+        allow_ref_meg: bool = False,
+        verbose: Any = None,
     ):
         _validate_type(method, str, "method")
         _validate_type(n_components, (float, "int-like", None))
@@ -594,16 +594,16 @@ class ICA(ContainsMixin):
     @verbose
     def fit(
         self,
-        inst,
-        picks=None,
-        start=None,
-        stop=None,
-        decim=None,
-        reject=None,
-        flat=None,
-        tstep=2.0,
-        reject_by_annotation=True,
-        verbose=None,
+        inst: BaseRaw | BaseEpochs,
+        picks: Any = None,
+        start: int | None = None,
+        stop: int | None = None,
+        decim: int | None = None,
+        reject: dict | None = None,
+        flat: dict | None = None,
+        tstep: float = 2.0,
+        reject_by_annotation: bool = True,
+        verbose: Any = None,
     ):
         """Run the ICA decomposition on raw data.
 
@@ -2176,15 +2176,15 @@ class ICA(ContainsMixin):
     @verbose
     def apply(
         self,
-        inst,
-        include=None,
-        exclude=None,
-        n_pca_components=None,
-        start=None,
-        stop=None,
+        inst: BaseRaw | BaseEpochs | Evoked,
+        include: list | None = None,
+        exclude: list | None = None,
+        n_pca_components: int | None = None,
+        start: int | None = None,
+        stop: int | None = None,
         *,
-        on_baseline="warn",
-        verbose=None,
+        on_baseline: str = "warn",
+        verbose: Any = None,
     ):
         """Remove selected components from the signal.
 
