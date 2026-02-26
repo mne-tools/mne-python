@@ -111,7 +111,7 @@ def ttest_ind_no_p(a, b, equal_var=True, sigma=0.0):
     return t
 
 
-def f_oneway(*args):
+def f_oneway(*args, sigma=0.0, method="absolute"):
     """Perform a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
@@ -119,16 +119,27 @@ def f_oneway(*args):
     more groups, possibly with differing sizes :footcite:`Lowry2014`.
 
     This is a modified version of :func:`scipy.stats.f_oneway` that avoids
-    computing the associated p-value.
+    computing the associated p-value, and can adjust for implausibly small
+    variance values :footcite:`RidgwayEtAl2012`.
 
     Parameters
     ----------
     *args : array_like
         The sample measurements should be given as arguments.
+    sigma : float
+        The within-group variance estimate (``MS_within``) will be
+        regularized as ``MS_within + sigma`` (``method='absolute'``) or
+        ``MS_within + sigma * mean(MS_within)`` (``method='relative'``).
+        By default this is 0 (no adjustment). See Notes for details.
+    method : {'absolute', 'relative'}
+        Controls how ``sigma`` is applied when ``sigma > 0``:
+
+        - ``'absolute'``: adds ``sigma`` directly to ``MS_within``.
+        - ``'relative'``: adds ``sigma * mean(MS_within)`` to ``MS_within``.
 
     Returns
     -------
-    F-value : float
+    F : float
         The computed F-value of the test.
 
     Notes
@@ -136,8 +147,8 @@ def f_oneway(*args):
     The ANOVA test has important assumptions that must be satisfied in order
     for the associated p-value to be valid.
 
-    1. The samples are independent
-    2. Each sample is from a normally distributed population
+    1. The samples are independent.
+    2. Each sample is from a normally distributed population.
     3. The population standard deviations of the groups are all equal. This
        property is known as homoscedasticity.
 
@@ -147,10 +158,18 @@ def f_oneway(*args):
 
     The algorithm is from Heiman :footcite:`Heiman2002`, pp.394-7.
 
+    To use the "hat" adjustment method :footcite:`RidgwayEtAl2012` for
+    low-variance regularization, a value of ``sigma=1e-3`` may be a
+    reasonable choice. This mirrors the ``sigma`` parameter in
+    :func:`ttest_1samp_no_p`.
+
     References
     ----------
     .. footbibliography::
     """
+    _check_option("method", method, ["absolute", "relative"])
+    if sigma < 0:
+        raise ValueError(f"sigma must be >= 0, got {sigma}")
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -168,6 +187,9 @@ def f_oneway(*args):
     dfwn = n_samples - n_classes
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
+    if sigma > 0:
+        limit = sigma * np.mean(msw) if method == "relative" else sigma
+        msw = msw + limit
     f = msb / msw
     return f
 
