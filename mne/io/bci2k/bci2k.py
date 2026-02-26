@@ -1,11 +1,12 @@
 import os
 import re
+
 import numpy as np
+
 import mne
 
-from ..base import BaseRaw
-from ...annotations import Annotations
 from ...utils import verbose
+from ..base import BaseRaw
 
 
 def _parse_bci2k_header(fname):
@@ -43,11 +44,12 @@ def _parse_bci2k_header(fname):
                 k, v = token.split("=", 1)
                 header[k] = v
 
-        missing = [k for k in ("HeaderLen", "SourceCh", "StatevectorLen") if k not in header]
+        missing = [
+            k for k in ("HeaderLen", "SourceCh", "StatevectorLen") if k not in header
+        ]
         if missing:
             raise ValueError(
-                "BCI2000 header is missing required key(s): "
-                f"{', '.join(missing)}"
+                f"BCI2000 header is missing required key(s): {', '.join(missing)}"
             )
 
         header_len = int(header["HeaderLen"])
@@ -112,7 +114,6 @@ def _parse_bci2k_header(fname):
 
 def _read_bci2k_data(fname, info_dict):
     """Read binary signal + state data."""
-
     header_len = info_dict["header_len"]
     n_channels = info_dict["n_channels"]
     state_vec_len = info_dict["state_vec_len"]
@@ -193,7 +194,7 @@ def _decode_bci2k_states(state_bytes, state_defs):
                 continue
             mask = 1 << this_bit
             bit_vals = (state_bytes[this_byte] & mask) >> this_bit
-            vals |= (bit_vals.astype(np.int32) << bit)
+            vals |= bit_vals.astype(np.int32) << bit
 
         states[name] = vals
 
@@ -201,7 +202,6 @@ def _decode_bci2k_states(state_bytes, state_defs):
 
 
 class RawBCI2k(BaseRaw):
-
     @verbose
     def __init__(self, input_fname, preload=False, verbose=None):
         # For now we always preload; non-preload would require chunked reading.
@@ -252,7 +252,7 @@ class RawBCI2k(BaseRaw):
             verbose=verbose,
         )
 
-        self._bci2k_states = states 
+        self._bci2k_states = states
 
 
 def read_raw_bci2k(input_fname, preload=False, verbose=None):

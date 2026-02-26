@@ -4,10 +4,18 @@ import struct
 import numpy as np
 import pytest
 
-from mne.io.bci2k import read_raw_bci2k, RawBCI2k
+from mne.io.bci2k import RawBCI2k, read_raw_bci2k
 
-def _write_demo_bci2k(fname, n_channels=2, n_samples=100, sfreq=256,
-                      state_vec_len=1, data_format="int16", header_len=1024):
+
+def _write_demo_bci2k(
+    fname,
+    n_channels=2,
+    n_samples=100,
+    sfreq=256,
+    state_vec_len=1,
+    data_format="int16",
+    header_len=1024,
+):
     """Write a minimal BCI2000 .dat demo file compatible with our reader."""
     header_lines = []
 
@@ -39,8 +47,7 @@ def _write_demo_bci2k(fname, n_channels=2, n_samples=100, sfreq=256,
     rng = np.random.default_rng(42)
     if data_format != "int16":
         raise RuntimeError("Demo writer currently assumes int16 data_format")
-    signal = rng.integers(-100, 100, size=(n_samples, n_channels),
-                          dtype=np.int16)
+    signal = rng.integers(-100, 100, size=(n_samples, n_channels), dtype=np.int16)
 
     # StimulusCode: increases every 10 samples
     state = np.zeros((n_samples,), dtype=np.uint8)
