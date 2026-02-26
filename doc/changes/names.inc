@@ -257,6 +257,7 @@
 .. _Pierre Guetschel: https://github.com/PierreGtch
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 .. _Ping-Keng Jao: https://github.com/nafraw
+.. _Pragnya Khandelwal: https://github.com/PragnyaKhandelwal
 .. _Proloy Das: https://github.com/proloyd
 .. _Pragnya Khandelwal: https://github.com/PragnyaKhandelwal
 .. _Qian Chu: https://github.com/qian-chu
