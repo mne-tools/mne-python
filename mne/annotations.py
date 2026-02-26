@@ -1023,7 +1023,7 @@ class HEDAnnotations(Annotations):
     Notes
     -----
 
-    .. versionadded:: 1.10
+    .. versionadded:: 1.12
     """
 
     def __init__(
