@@ -3,8 +3,7 @@ import re
 
 import numpy as np
 
-import mne
-
+from ... import create_info
 from ...utils import verbose
 from ..base import BaseRaw
 
@@ -45,7 +44,10 @@ def _parse_bci2k_header(fname):
                 header[k] = v
 
         missing = [
-            k for k in ("HeaderLen", "SourceCh", "StatevectorLen") if k not in header
+
+            k
+            for k in ("HeaderLen", "SourceCh", "StatevectorLen")
+            if k not in header
         ]
         if missing:
             raise ValueError(
@@ -202,6 +204,18 @@ def _decode_bci2k_states(state_bytes, state_defs):
 
 
 class RawBCI2k(BaseRaw):
+    """Raw object for BCI2000 .dat files.
+
+    Parameters
+    ----------
+    input_fname : path-like
+        Path to the BCI2000 .dat file.
+    preload : bool
+        Must be True. preload=False is not supported.
+    verbose : bool | str | int | None
+        Control verbosity.
+    """
+
     @verbose
     def __init__(self, input_fname, preload=False, verbose=None):
         # For now we always preload; non-preload would require chunked reading.
@@ -231,7 +245,7 @@ class RawBCI2k(BaseRaw):
             ch_types.append("stim")
             signal = np.vstack([signal, stim_data])
 
-        info = mne.create_info(
+        info = create_info(
             ch_names=ch_names,
             sfreq=sfreq,
             ch_types=ch_types,
