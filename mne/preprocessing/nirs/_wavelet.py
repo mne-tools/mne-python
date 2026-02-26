@@ -2,6 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+# The core logic for this implementation was adapted from the Cedalion project
+# (https://github.com/ibs-lab/cedalion), which is originally based on Homer3
+# (https://github.com/BUNPC/Homer3).
+
 import numpy as np
 
 from ...io import BaseRaw
