@@ -1,1 +1,1 @@
-Add :class:`mne.HEDAnnotations` for attaching `HED (Hierarchical Event Descriptors) <https://www.hedtags.org>`__ tags to annotations, by :newcontrib:`Kay Robbins` and `Bruno Aristimunha`_.
+Add :class:`mne.HEDAnnotations` for attaching `HED (Hierarchical Event Descriptors) <https://www.hedtags.org>`__ tags to annotations, by :newcontrib:`Kay Robbins`, `Bruno Aristimunha`_, and `Daniel McCloy`_.

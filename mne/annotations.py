@@ -753,7 +753,7 @@ class Annotations:
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
-        """Remove all annotation that are outside of [tmin, tmax].
+        """Remove all annotations that are outside of [tmin, tmax].
 
         The method operates inplace.
 
@@ -1118,6 +1118,7 @@ class HEDAnnotations(Annotations):
         if isinstance(result, OrderedDict):
             result["hed_string"] = self.hed_string[key]
             return result
+        # result not an odict; must be an Annotations obj
         key = np.arange(len(self.hed_string))[key]
         hed_string = [self.hed_string[idx] for idx in np.atleast_1d(key)]
         return HEDAnnotations(
@@ -1249,7 +1250,7 @@ class HEDAnnotations(Annotations):
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
-        """Remove all annotation that are outside of [tmin, tmax].
+        """Remove all annotations that are outside of [tmin, tmax].
 
         The method operates inplace.
 

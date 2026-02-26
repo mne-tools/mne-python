@@ -2134,8 +2134,6 @@ def test_hed_annotations_to_data_frame():
     """Test HEDAnnotations.to_data_frame()."""
     pytest.importorskip("hed")
     pytest.importorskip("pandas")
-    from mne import HEDAnnotations
-
     press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
     tone = (
         "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
