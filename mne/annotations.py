@@ -29,6 +29,7 @@ from ._fiff.write import (
     write_name_list_sanitized,
     write_string,
 )
+from .fixes import _compare_version
 from .utils import (
     _check_dict_keys,
     _check_dt,
@@ -52,6 +53,7 @@ from .utils import (
     verbose,
     warn,
 )
+from .utils.check import _soft_import
 
 # For testing windows_like_datetime, we monkeypatch "datetime" in this module.
 # Keep the true datetime object around for _validate_type use.
@@ -67,7 +69,7 @@ class _AnnotationsExtrasDict(UserDict):
 
     def __setitem__(self, key: str, value: str | int | float | None) -> None:
         _validate_type(key, str, "key")
-        if key in ("onset", "duration", "description", "ch_names"):
+        if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
             value,
@@ -257,6 +259,7 @@ class Annotations:
     --------
     mne.annotations_from_events
     mne.events_from_annotations
+    mne.HEDAnnotations
 
     Notes
     -----
@@ -436,7 +439,7 @@ class Annotations:
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
-        if not isinstance(other, Annotations):
+        if not isinstance(other, type(self)):
             return False
         return (
             np.array_equal(self.onset, other.onset)
@@ -738,13 +741,19 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
+        if hasattr(self, "hed_string"):
+            self.hed_string._objs = [self.hed_string._objs[i] for i in order]
+            for i in order:
+                self.hed_string.__setitem__(
+                    i, self.hed_string._objs[i].get_original_hed_string()
+                )
         self.extras = [self.extras[i] for i in order]
 
     @verbose
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
-        """Remove all annotation that are outside of [tmin, tmax].
+        """Remove all annotations that are outside of [tmin, tmax].
 
         The method operates inplace.
 
@@ -930,6 +939,406 @@ class Annotations:
         )
         self.description = np.array([str(mapping.get(d, d)) for d in self.description])
         return self
+
+
+class _HEDStrings(list):
+    """Subclass of list that will validate before __setitem__."""
+
+    def __init__(self, *args, hed_version, **kwargs):
+        self._hed = _soft_import("hed", "validation of HED tags in annotations")
+        self._schema = self._hed.load_schema_version(hed_version)
+        super().__init__(*args, **kwargs)
+        self._objs = [self._validate_hed_string(item, self._schema) for item in self]
+
+    def __setitem__(self, key, value):
+        """Validate value first, before assigning."""
+        if isinstance(key, slice):
+            hss = [self._validate_hed_string(v, self._schema) for v in value]
+            super().__setitem__(key, [hs.get_original_hed_string() for hs in hss])
+            self._objs[key] = hss
+            return
+        hs = self._validate_hed_string(value, self._schema)
+        super().__setitem__(key, hs.get_original_hed_string())
+        self._objs[key] = hs
+
+    def _validate_hed_string(self, value, schema):
+        # create HedString object and validate it
+        hs = self._hed.HedString(value, schema)
+        # handle any errors
+        error_handler = self._hed.errors.ErrorHandler(check_for_warnings=False)
+        issues = hs.validate(allow_placeholders=False, error_handler=error_handler)
+        error_string = self._hed.get_printable_issue_string(issues)
+        if len(error_string):
+            raise ValueError(f"A HED string failed to validate:\n  {error_string}")
+        hs.sort()
+        return hs
+
+    def append(self, item):
+        """Append an item to the end of the HEDString list."""
+        hs = self._validate_hed_string(item, self._schema)
+        super().append(hs.get_original_hed_string())
+        self._objs.append(hs)
+
+
+@fill_doc
+class HEDAnnotations(Annotations):
+    """Annotations object for annotating segments of raw data with HED tags.
+
+    Parameters
+    ----------
+    onset : array of float, shape (n_annotations,)
+        The starting time of annotations in seconds after ``orig_time``.
+    duration : array of float, shape (n_annotations,) | float
+        Durations of the annotations in seconds. If a float, all the
+        annotations are given the same duration.
+    description : array of str, shape (n_annotations,) | str
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
+    hed_string : array of str, shape (n_annotations,) | str
+        Sequence of strings containing a HED tag (or comma-separated list of HED tags)
+        for each annotation. If a single string is provided, all annotations are
+        assigned the same HED string.
+    hed_version : str
+        The HED schema version against which to validate the HED strings.
+    orig_time : float | str | datetime | tuple of int | None
+        A POSIX Timestamp, datetime or a tuple containing the timestamp as the
+        first element and microseconds as the second element. Determines the
+        starting time of annotation acquisition. If None (default),
+        starting time is determined from beginning of raw data acquisition.
+        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
+        the annotations with raw data if their acquisition is started at the
+        same time. If it is a string, it should conform to the ISO8601 format.
+        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
+        the ISO8601 format where the delimiter between date and time is ' '.
+    %(ch_names_annot)s
+    extras : list[dict[str, int | float | str | None] | None] | None
+        Optional list of dicts containing extra fields for each annotation.
+        The number of items must match the number of annotations.
+
+    See Also
+    --------
+    mne.Annotations
+
+    Notes
+    -----
+
+    .. versionadded:: 1.12
+    """
+
+    def __init__(
+        self,
+        onset,
+        duration,
+        description,
+        hed_string,
+        hed_version="8.3.0",
+        orig_time=None,
+        ch_names=None,
+        *,
+        extras=None,
+    ):
+        onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
+            onset, duration, description, ch_names, extras
+        )
+        hed_string = self._check_hed_strings(hed_string, len(onset))
+        self._hed_version = hed_version
+        self.hed_string = _HEDStrings(hed_string, hed_version=self._hed_version)
+        super().__init__(
+            onset=onset,
+            duration=duration,
+            description=description,
+            orig_time=orig_time,
+            ch_names=ch_names,
+            extras=extras,
+        )
+
+    @staticmethod
+    def _check_hed_strings(hed_string, n_annot):
+        """Check HED string container length and allow scalar broadcast."""
+        _validate_type(hed_string, (str, list, tuple, np.ndarray), "hed_string")
+        if isinstance(hed_string, str):
+            return [hed_string] * n_annot
+        hed_string = list(hed_string)
+        if len(hed_string) != n_annot:
+            raise ValueError(
+                "Onset, duration, description, ch_names, hed_string, and extras "
+                f"must be equal in sizes, got {n_annot} != {len(hed_string)}."
+            )
+        return hed_string
+
+    def __eq__(self, other):
+        """Compare to another HEDAnnotations instance."""
+        if not isinstance(other, type(self)):
+            return False
+        _slf = self.hed_string
+        _oth = other.hed_string
+
+        if _compare_version(self._hed_version, "<", other._hed_version):
+            _slf = [_slf._validate_hed_string(v, _oth._schema) for v in _slf._objs]
+        elif _compare_version(self._hed_version, ">", other._hed_version):
+            _oth = [_oth._validate_hed_string(v, _slf._schema) for v in _oth._objs]
+        return super().__eq__(other) and _slf == _oth
+
+    def __repr__(self):
+        """Show a textual summary of the object."""
+        counter = Counter([hs.get_as_short() for hs in self.hed_string._objs])
+
+        # textwrap.shorten won't work: we remove all spaces and shouldn't split on `-`
+        def _shorten(text, width=74, placeholder=" ..."):
+            parts = text.split(",")
+            out = parts[0]
+            for part in parts[1:]:
+                # +1 for the comma   ↓↓↓
+                if width < len(out) + 1 + len(part) + len(placeholder):
+                    break
+                out = f"{out},{part}"
+            return out + placeholder
+
+        kinds = [
+            f"{_shorten(k, width=74):<74} ({v})" for k, v in sorted(counter.items())
+        ]
+        if len(kinds) > 5:
+            kinds = [*kinds[:5], f"... and {len(kinds) - 5} more"]
+        kinds = "\n ".join(kinds)
+        if len(kinds):
+            kinds = f":\n {kinds}\n"
+        ch_specific = ", channel-specific" if self._any_ch_names() else ""
+        s = (
+            f"HEDAnnotations | {len(self.onset)} segment"
+            f"{_pl(len(self.onset))}{ch_specific}{kinds}"
+        )
+        return f"<{s}>"
+
+    def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
+        """Propagate indexing and slicing to the underlying structure."""
+        result = super().__getitem__(
+            key, with_ch_names=with_ch_names, with_extras=with_extras
+        )
+        if isinstance(result, OrderedDict):
+            result["hed_string"] = self.hed_string[key]
+            return result
+        # result not an odict; must be an Annotations obj
+        key = np.arange(len(self.hed_string))[key]
+        hed_string = [self.hed_string[idx] for idx in np.atleast_1d(key)]
+        return HEDAnnotations(
+            result.onset,
+            result.duration,
+            result.description,
+            hed_string=hed_string,
+            hed_version=self._hed_version,
+            orig_time=self.orig_time,
+            ch_names=result.ch_names,
+            extras=result.extras if with_extras else None,
+        )
+
+    def __getstate__(self):
+        """Make serialization work, by removing module reference."""
+        return dict(
+            _orig_time=self._orig_time,
+            onset=self.onset,
+            duration=self.duration,
+            description=self.description,
+            ch_names=self.ch_names,
+            _extras=self.extras,
+            hed_string=list(self.hed_string),
+            _hed_version=self._hed_version,
+        )
+
+    def __setstate__(self, state):
+        """Unpack from serialized format."""
+        self._orig_time = state["_orig_time"]
+        self.onset = state["onset"]
+        self.duration = state["duration"]
+        self.description = state["description"]
+        self.ch_names = state["ch_names"]
+        self.extras = state.get("_extras", [None] * len(self.onset))
+        self._hed_version = state["_hed_version"]
+        self.hed_string = _HEDStrings(
+            state["hed_string"], hed_version=self._hed_version
+        )
+
+    @fill_doc
+    def append(
+        self, *, onset, duration, description, hed_string, ch_names=None, extras=None
+    ):
+        """Add an annotated segment. Operates inplace.
+
+        Parameters
+        ----------
+        onset : float | array-like
+            Annotation time onset from the beginning of the recording in
+            seconds.
+        duration : float | array-like
+            Duration of the annotation in seconds.
+        description : str | array-like
+            Description for the annotation. To reject epochs, use description
+            starting with keyword 'bad'.
+        hed_string : array of str, shape (n_annotations,) | str
+            Sequence of strings containing a HED tag (or comma-separated list of HED
+            tags) for each annotation. If a single string is provided, all annotations
+            are assigned the same HED string.
+        %(ch_names_annot)s
+        extras : list[dict[str, int | float | str | None] | None] | None
+            Optional list of dicts containing extras fields for each annotation.
+
+        Returns
+        -------
+        self : mne.HEDAnnotations
+            The modified HEDAnnotations object.
+        """
+        onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
+            onset, duration, description, ch_names, extras
+        )
+        hed_string = self._check_hed_strings(hed_string, len(onset))
+        hed_objs = [
+            self.hed_string._validate_hed_string(v, self.hed_string._schema)
+            for v in hed_string
+        ]
+        self.hed_string.extend([hs.get_original_hed_string() for hs in hed_objs])
+        self.hed_string._objs.extend(hed_objs)
+        super().append(
+            onset=onset,
+            duration=duration,
+            description=description,
+            ch_names=ch_names,
+            extras=extras,
+        )
+        return self
+
+    def __iadd__(self, other):
+        """Add (concatenate) two HEDAnnotations objects in-place."""
+        if not isinstance(other, type(self)):
+            raise TypeError(
+                f"Cannot concatenate {type(self).__name__} and {type(other).__name__}."
+            )
+        if len(self) == 0:
+            self._orig_time = other.orig_time
+        if self.orig_time != other.orig_time:
+            raise ValueError(
+                "orig_time should be the same to add/concatenate 2 annotations (got "
+                f"{self.orig_time} != {other.orig_time})"
+            )
+        return self.append(
+            onset=other.onset,
+            duration=other.duration,
+            description=other.description,
+            hed_string=list(other.hed_string),
+            ch_names=other.ch_names,
+            extras=other.extras,
+        )
+
+    def delete(self, idx):
+        """Remove an annotation. Operates inplace.
+
+        Parameters
+        ----------
+        idx : int | array-like of int
+            Index of the annotation to remove. Can be array-like to remove multiple
+            indices.
+        """
+        super().delete(idx)
+        if isinstance(idx, int_like):
+            del self.hed_string._objs[idx]
+            del self.hed_string[idx]
+        else:
+            for i in np.sort(np.arange(len(self.hed_string))[idx])[::-1]:
+                del self.hed_string._objs[i]
+                del self.hed_string[i]
+
+    @verbose
+    def crop(
+        self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
+    ):
+        """Remove all annotations that are outside of [tmin, tmax].
+
+        The method operates inplace.
+
+        Parameters
+        ----------
+        tmin : float | datetime | None
+            Start time of selection in seconds.
+        tmax : float | datetime | None
+            End time of selection in seconds.
+        emit_warning : bool
+            Whether to emit warnings when limiting or omitting annotations.
+            Defaults to False.
+        use_orig_time : bool
+            Whether to use orig_time as an offset.
+            Defaults to True.
+        %(verbose)s
+
+        Returns
+        -------
+        self : instance of HEDAnnotations
+            The cropped HEDAnnotations object.
+        """
+        if len(self) == 0:
+            return self
+        if not use_orig_time or self.orig_time is None:
+            offset = _handle_meas_date(0)
+        else:
+            offset = self.orig_time
+        if tmin is None:
+            tmin = timedelta(seconds=self.onset.min()) + offset
+        if tmax is None:
+            tmax = timedelta(seconds=(self.onset + self.duration).max()) + offset
+        for key, val in [("tmin", tmin), ("tmax", tmax)]:
+            _validate_type(
+                val, ("numeric", _datetime), key, "numeric, datetime, or None"
+            )
+        absolute_tmin = _handle_meas_date(tmin)
+        absolute_tmax = _handle_meas_date(tmax)
+        del tmin, tmax
+        if absolute_tmin > absolute_tmax:
+            raise ValueError(
+                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
+                f"{absolute_tmax})."
+            )
+
+        keep = []
+        hed_strings = list(self.hed_string)
+        for idx, (onset, duration) in enumerate(zip(self.onset, self.duration)):
+            if np.isnan(duration):
+                duration = 0.0
+            absolute_onset = timedelta(seconds=onset) + offset
+            absolute_offset = absolute_onset + timedelta(seconds=duration)
+            out_of_bounds = (
+                absolute_onset > absolute_tmax or absolute_offset < absolute_tmin
+            )
+            if not out_of_bounds:
+                keep.append(idx)
+
+        super().crop(
+            tmin=absolute_tmin,
+            tmax=absolute_tmax,
+            emit_warning=emit_warning,
+            use_orig_time=use_orig_time,
+            verbose=verbose,
+        )
+        self.hed_string = _HEDStrings(
+            [hed_strings[idx] for idx in keep], hed_version=self._hed_version
+        )
+        return self
+
+    @fill_doc
+    def to_data_frame(self, time_format="datetime"):
+        """Export annotations in tabular structure as a pandas DataFrame.
+
+        Parameters
+        ----------
+        %(time_format_df_raw)s
+
+        Returns
+        -------
+        result : pandas.DataFrame
+            Returns a pandas DataFrame with onset, duration, description,
+            and hed_string columns. A column named ch_names is added if any
+            annotations are channel-specific.
+        """
+        df = super().to_data_frame(time_format=time_format)
+        df["hed_string"] = list(self.hed_string)
+        return df
 
 
 class EpochAnnotationsMixin:
@@ -2047,5 +2456,6 @@ def count_annotations(annotations):
         >>> count_annotations(annotations)
         {'T0': 2, 'T1': 1}
     """
-    types, counts = np.unique(annotations.description, return_counts=True)
+    field = "hed_string" if isinstance(annotations, HEDAnnotations) else "description"
+    types, counts = np.unique(getattr(annotations, field), return_counts=True)
     return {str(t): int(count) for t, count in zip(types, counts)}

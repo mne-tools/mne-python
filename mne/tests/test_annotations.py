@@ -22,6 +22,7 @@ import mne
 from mne import (
     Annotations,
     Epochs,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     create_info,
@@ -1968,6 +1969,193 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert_allclose(raw.annotations.onset, [onset] * 2)
 
 
+def test_hed_annotations():
+    """Test hed_strings validation."""
+    pytest.importorskip("hed")
+    # test initting with bad value
+    validation_fail_msg = "A HED string failed to validate"
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=["foo"],
+        )
+    # test initting with good values
+    good_values = dict(
+        square="Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))",  # extra spaces intentional
+        tone="Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)",
+        press="Agent-action, (Experiment-participant, (Press, Mouse-button))",
+        word="Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
+        "Visual-presentation",
+    )
+    # single string should broadcast to all annotations
+    ann_single = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.1],
+        description=["x", "y"],
+        hed_string=good_values["tone"],
+    )
+    assert list(ann_single.hed_string) == [good_values["tone"], good_values["tone"]]
+    # extras cannot override reserved field names
+    with pytest.raises(ValueError, match="reserved"):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=[good_values["tone"]],
+            extras=[{"hed_string": "bad"}],
+        )
+    ann = HEDAnnotations(
+        onset=[3, 2, 1],
+        duration=[0.1, 0.0, 0.3],
+        description=["d", "c", "a"],
+        hed_string=[good_values["square"], good_values["tone"], good_values["press"]],
+    )
+    # make sure sorting by onset worked correctly
+    assert ann.hed_string[0] == good_values["press"]
+    assert ann.hed_string._objs[0].get_original_hed_string() == good_values["press"]
+    # test appending
+    foo = ann.copy()
+    ons_dur_desc = dict(onset=1.5, duration=0.2, description="b")
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        foo.append(**ons_dur_desc, hed_string="foo")
+    foo.append(**ons_dur_desc, hed_string=good_values["word"])
+    # make sure sorting by onset also works for .append()
+    assert list(foo.hed_string) == [
+        x.get_original_hed_string() for x in foo.hed_string._objs
+    ]
+    # make sure we didn't mess up the type of the HEDStrings
+    assert isinstance(foo.hed_string, mne.annotations._HEDStrings)
+    # test modifying with bad value
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        ann.hed_string[0] = "foo"
+    # test modifying, __eq__, and delete()
+    foo = ann.copy()
+    assert ann == foo
+    foo.hed_string[0] = good_values["word"]
+    assert ann != foo
+    ann.hed_string[0] = good_values["word"]
+    assert ann == foo
+    foo.delete(0)
+    assert ann != foo
+    assert foo.hed_string[0] == ann.hed_string[1]
+    # test .count()
+    want_counts = {
+        good_values["word"]: 1,
+        good_values["tone"]: 1,
+        good_values["square"]: 1,
+    }
+    assert ann.count() == want_counts
+    # test __getitem__
+    first = ann[0]
+    assert first["hed_string"] == good_values["word"]
+    # setting bad value on extracted OrderedDict won't try to validate:
+    first["hed_string"] = "foo"
+    # ...and won't affect the original object
+    assert ann.hed_string[0] == good_values["word"]
+    # test __repr__
+    _repr = repr(ann)
+    assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
+    # test vectorized append with extras and list-like delete
+    ann_extra = ann.copy()
+    ann_extra.append(
+        onset=[10, 11],
+        duration=[0.1, 0.1],
+        description=["e", "f"],
+        hed_string=[good_values["tone"], good_values["press"]],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    assert ann_extra.extras[-2]["run"] == 1
+    assert ann_extra.extras[-1]["run"] == 2
+    ann_extra.delete([0, 3])
+    assert len(ann_extra) == 3
+    assert len(ann_extra.hed_string) == 3
+    # test concatenation
+    lhs = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[good_values["tone"]],
+        extras=[{"side": "lhs"}],
+    )
+    rhs = HEDAnnotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        hed_string=[good_values["press"]],
+        extras=[{"side": "rhs"}],
+    )
+    lhs += rhs
+    assert len(lhs) == 2
+    assert list(lhs.hed_string) == [good_values["tone"], good_values["press"]]
+    assert lhs.extras[1]["side"] == "rhs"
+    # test crop()
+    ann_crop = HEDAnnotations(
+        onset=[1, 3, 5, 7],
+        duration=[0.5, 0.5, 0.5, 0.5],
+        description=["a", "b", "c", "d"],
+        hed_string=[
+            good_values["press"],
+            good_values["tone"],
+            good_values["square"],
+            good_values["word"],
+        ],
+    )
+    # crop keeping middle two annotations
+    cropped = ann_crop.copy()
+    cropped.crop(tmin=2, tmax=6)
+    assert len(cropped) == 2
+    assert_array_equal(cropped.description, ["b", "c"])
+    assert list(cropped.hed_string) == [good_values["tone"], good_values["square"]]
+    assert isinstance(cropped.hed_string, mne.annotations._HEDStrings)
+    # crop that clips annotation at boundary
+    cropped2 = ann_crop.copy()
+    cropped2.crop(tmin=0.5, tmax=1.25)
+    assert len(cropped2) == 1
+    assert_allclose(cropped2.onset, [1.0])
+    assert_allclose(cropped2.duration, [0.25])
+    assert list(cropped2.hed_string) == [good_values["press"]]
+    # crop on empty HEDAnnotations
+    empty_ann = HEDAnnotations(
+        onset=[1],
+        duration=[0.5],
+        description=["a"],
+        hed_string=[good_values["press"]],
+    )
+    empty_ann.crop(tmin=5, tmax=10)
+    assert len(empty_ann) == 0
+    assert list(empty_ann.hed_string) == []
+
+
+def test_hed_annotations_to_data_frame():
+    """Test HEDAnnotations.to_data_frame()."""
+    pytest.importorskip("hed")
+    pytest.importorskip("pandas")
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)"
+    )
+    square = (
+        "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))"
+    )
+    ann = HEDAnnotations(
+        onset=[1, 3, 5],
+        duration=[0.5, 0.5, 0.5],
+        description=["a", "b", "c"],
+        hed_string=[press, tone, square],
+    )
+    df = ann.to_data_frame()
+    assert "hed_string" in df.columns
+    assert list(df["hed_string"]) == [press, tone, square]
+    assert list(df["description"]) == ["a", "b", "c"]
+    assert_allclose(df["duration"], [0.5, 0.5, 0.5])
+
+
 @pytest.mark.parametrize(
     "key, value, expected_error, match",
     (
@@ -1975,6 +2163,7 @@ def test_append_splits_boundary(tmp_path, split_size):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),
@@ -2000,6 +2189,7 @@ def test_extras_dict_raises(key, value, expected_error, match):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),

@@ -9,6 +9,7 @@ Events
 
    Annotations
    AcqParserFIF
+   HEDAnnotations
    concatenate_events
    count_events
    find_events
