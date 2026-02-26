@@ -44,10 +44,7 @@ def _parse_bci2k_header(fname):
                 header[k] = v
 
         missing = [
-
-            k
-            for k in ("HeaderLen", "SourceCh", "StatevectorLen")
-            if k not in header
+            k for k in ("HeaderLen", "SourceCh", "StatevectorLen") if k not in header
         ]
         if missing:
             raise ValueError(
