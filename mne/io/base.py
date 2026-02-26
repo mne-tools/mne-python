@@ -1568,7 +1568,15 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
+    def crop(
+        self,
+        tmin=0.0,
+        tmax=None,
+        include_tmax=True,
+        *,
+        reset_first_samp=False,
+        verbose=None,
+    ):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1585,12 +1593,29 @@ class BaseRaw(
         %(tmin_raw)s
         %(tmax_raw)s
         %(include_tmax)s
+        reset_first_samp : bool
+            If True, reset :term:`first_samp` to 0 after cropping, treating
+            the cropped segment as an independent recording. Note that this
+            can break things if you extracted events before cropping and try
+            to use them afterward. Default is False.
         %(verbose)s
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+
+        Notes
+        -----
+        After cropping, :term:`first_samp` is updated to reflect the new
+        start of the data, preserving the original recording timeline.
+        This means ``raw.times`` will still start at ``0.0``, but
+        ``raw.first_samp`` will reflect the offset from the original
+        recording. If you want to treat the cropped segment as an
+        independent signal with ``first_samp=0``, you can convert it
+        to a :class:`~mne.io.RawArray`::
+
+            raw_array = mne.io.RawArray(raw.get_data(), raw.info)
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
         if tmax is None:
@@ -1648,7 +1673,11 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
-
+        if reset_first_samp:
+            delta = self._first_samps[0]
+            self._first_samps -= delta
+            self._last_samps -= delta
+            self._cropped_samp -= delta
         return self
 
     @verbose
