@@ -3,7 +3,7 @@ import re
 
 import numpy as np
 
-from ... import create_info
+from ..._fiff.meas_info import create_info
 from ...utils import verbose
 from ..base import BaseRaw
 
