@@ -162,6 +162,25 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
     assert "test2" not in mesh._overlays
     mesh.update()
     assert len(mesh._overlays) == 1
+
+    opacity = np.array([0.0, 0.5, 1.0, 0.25])
+    mesh.add_overlay(
+        scalars=np.array([0, 1, 1, 0]),
+        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 1)]),
+        rng=[0, 1],
+        opacity=opacity,
+        name="test3",
+    )
+    assert_allclose(mesh._current_colors[:, 3], opacity)
+
+    with pytest.raises(ValueError, match="one value per vertex"):
+        mesh.add_overlay(
+            scalars=np.array([0, 1, 1, 0]),
+            colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 1)]),
+            rng=[0, 1],
+            opacity=np.array([0.1, 0.2, 0.3]),
+            name="bad-opacity",
+        )
     mesh._clean()
 
 
