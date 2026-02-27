@@ -1752,11 +1752,7 @@ def make_version(app, exception):
 
 # -- JupyterLite configuration ---------------------------------------------
 
-jupyterlite_config = {
-    "LiteBuildConfig": {
-        "apps": ["lab"],
-    },
-}
+jupyterlite_config = "jupyter_lite_config.json"
 
 # -- Connect our handlers to the main Sphinx app ---------------------------
 

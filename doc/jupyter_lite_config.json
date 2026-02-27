@@ -1,0 +1,5 @@
+{
+  "LiteBuildConfig": {
+    "apps": ["lab"]
+  }
+}
