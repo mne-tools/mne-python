@@ -1389,14 +1389,6 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     # determine if needed to add an extra EEG REF DigPoint
     if custom_eeg_ref_dig:
         # ref_name = 'EEG000' if match_case else 'eeg000'
-        if not info["dig"]:
-            raise RuntimeError(
-                "Cannot determine EEG reference digitization coordinate "
-                "frame: info['dig'] is empty. This may happen when a "
-                "MEG+EEG recording has EEG reference positions set to a "
-                "placeholder value [1, 0, 0] (digitization was not "
-                "performed)."
-            )
         ref_dig_dict = {
             "kind": FIFF.FIFFV_POINT_EEG,
             "r": eeg_ref_pos,
