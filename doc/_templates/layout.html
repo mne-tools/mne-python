@@ -17,4 +17,15 @@
 {%- block scripts_end %}
     {{ super() }}
     <script src="https://mne.tools/versionwarning.js"></script>
+    <script src="https://demo.osc.earth/osa-chat-widget.js"></script>
+    <script>
+      OSAChatWidget.setConfig({
+        communityId: 'mne',
+        suggestedQuestions: [
+          'How do I read raw EEG data in MNE?',
+          'How do I filter and preprocess my data?',
+          'How do I run ICA for artifact removal?'
+        ]
+      });
+    </script>
 {%- endblock %}
