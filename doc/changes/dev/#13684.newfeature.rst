@@ -1,1 +1,1 @@
-The EGI MFF reader has been refactored to use the :func:`mffpy` backend, improving support for multi-stream files and high-precision metadata, by :newcontrib:`Pragnya Khandelwal`.
+The EGI MFF reader has been refactored to use the ``mffpy`` backend, improving support for multi-stream files and high-precision metadata, by :newcontrib:`Pragnya Khandelwal`.
