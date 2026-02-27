@@ -1042,6 +1042,38 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         picks=[0],
     )
     r.add_ica(ica=ica, title="my ica with picks=None", inst=epochs_baseline, picks=None)
+
+    # plot_sources=True with a valid inst should add a "Sources" subsection
+    r.add_ica(
+        ica=ica,
+        title="my ica with sources raw",
+        inst=raw,
+        picks=[0],
+        plot_sources=True,
+    )
+    assert "Sources" in r._content[-1].html
+
+    # plot_sources=True with an epochs inst should also work
+    r.add_ica(
+        ica=ica,
+        title="my ica with sources epochs",
+        inst=epochs_baseline,
+        picks=[0],
+        plot_sources=True,
+    )
+    assert "Sources" in r._content[-1].html
+
+    # plot_sources=True with inst=None should warn and not raise
+    with pytest.warns(
+        RuntimeWarning, match="Cannot plot ICA sources because inst=None"
+    ):
+        r.add_ica(
+            ica=ica,
+            title="my ica sources no inst",
+            inst=None,
+            plot_sources=True,
+        )
+
     r.add_covariance(cov=cov, info=raw_fname, title="my cov")
     r.add_forward(
         forward=fwd_fname,

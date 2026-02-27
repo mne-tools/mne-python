@@ -1,0 +1,1 @@
+Add ICA source timecourse plots to :func:`mne.Report.add_ica`, by `Aniket Singh Yadav`_.
