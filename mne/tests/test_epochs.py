@@ -4855,6 +4855,40 @@ def test_apply_function():
     assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
 
 
+def test_get_data_rounding():
+    """Test that get_data respects rounding for tmin/tmax (gh-13634)."""
+    # Data setup mirroring the issue report
+    data = np.linspace(-3.5, 1, 451).reshape((1, 1, 451))
+    info = create_info(["test"], 100.0, "eeg")
+    epochs = EpochsArray(data, info, tmin=-3.5, verbose=False)
+
+    t = 0.77
+
+    # compare crop() vs get_data()
+    # crop() uses proper rounding internally, get_data() should match it.
+    val_crop = epochs.copy().crop(tmin=t).get_data()[0, 0, 0]
+    val_get_data = epochs.get_data(tmin=t)[0, 0, 0]
+
+    assert_allclose(
+        val_get_data,
+        val_crop,
+        atol=1e-12,
+        err_msg="get_data(tmin) does not match crop(tmin)",
+    )
+
+    # verification on time consistency
+    # ensure we are getting the sample corresponding exactly to time 't'
+    idx = np.where(epochs.times == t)[0][0]
+    val_direct = epochs.get_data()[0, 0, idx]
+
+    assert_allclose(
+        val_get_data,
+        val_direct,
+        atol=1e-12,
+        err_msg="get_data(tmin) does not match direct indexing",
+    )
+
+
 def test_apply_function_epo_ch_access():
     """Test ch-access within apply function to epoch objects."""
 

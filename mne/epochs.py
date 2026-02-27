@@ -1608,6 +1608,34 @@ class BaseEpochs(
             )
             _on_missing(on_empty, msg, error_klass=RuntimeError)
 
+    def _handle_tmin_tmax(self, tmin, tmax):
+        """Convert seconds to index into data."""
+        _validate_type(
+            tmin,
+            types=("numeric", None),
+            item_name="tmin",
+            type_name="int, float, None",
+        )
+        _validate_type(
+            tmax,
+            types=("numeric", None),
+            item_name="tmax",
+            type_name="int, float, None",
+        )
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin, use_rounding=True)[0]
+        stop = (
+            n_times if tmax is None else self.time_as_index(tmax, use_rounding=True)[0]
+        )
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        return start, stop
+
     @verbose
     def _get_data(
         self,
