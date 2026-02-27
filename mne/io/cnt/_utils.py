@@ -147,4 +147,4 @@ def _compute_robust_event_table_position(fid, data_format="int32"):
         )
 
     fid.seek(fid_origin)  # restore the state
-    return event_table_pos
+    return int(event_table_pos)
