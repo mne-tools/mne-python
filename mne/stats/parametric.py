@@ -129,19 +129,9 @@ def f_oneway(*args, sigma=0.0, method="absolute"):
         Regularization parameter applied to the within-group variance
         (``MS_within``) to mitigate inflation of the F-statistic under
         low-variance conditions.
-
-        The adjustment is:
-
-        - ``MS_within + sigma`` when ``method='absolute'``
-        - ``MS_within * (1 + sigma)`` when ``method='relative'``
-
-        Defaults to 0 (no regularization).
     method : {'absolute', 'relative'}
         Strategy used to regularize the within-group variance when
         ``sigma > 0``:
-
-        - ``'absolute'`` adds a constant term
-        - ``'relative'`` scales the variance multiplicatively
 
     Returns
     -------
