@@ -11,7 +11,7 @@ import scipy.stats
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_less
 
 import mne
-from mne.stats.parametric import _map_effects, f_mway_rm, f_threshold_mway_rm
+from mne.stats.parametric import _map_effects, f_mway_rm, f_oneway, f_threshold_mway_rm
 
 # hardcoded external test results, manually transferred
 test_external = {
@@ -175,3 +175,51 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
         # something to the divisor (var)
         assert_allclose(got, want, rtol=2e-1, atol=1e-2)
         assert_array_less(np.abs(got), np.abs(want))
+
+
+@pytest.mark.parametrize("sigma", [0.0, 1e-3])
+@pytest.mark.parametrize("method", ["absolute", "relative"])
+@pytest.mark.parametrize("seed", [0, 42, 1337])
+def test_f_oneway_hat(sigma, method, seed):
+    """Test f_oneway hat (low-variance) regularization."""
+    rng = np.random.RandomState(seed)
+    X1 = rng.randn(10, 50)
+    X2 = rng.randn(10, 50)
+
+    f_ours = f_oneway(X1, X2, sigma=0.0, method=method)
+    f_scipy = scipy.stats.f_oneway(X1, X2)[0]
+    assert_allclose(f_ours, f_scipy, rtol=1e-7, atol=1e-6)
+
+    if sigma > 0:
+        f_reg = f_oneway(X1, X2, sigma=sigma, method=method)
+        f_unreg = f_oneway(X1, X2, sigma=0.0)
+        pos = f_unreg > 0
+        assert_array_less(f_reg[pos], f_unreg[pos] + 1e-10)
+
+
+def test_f_oneway_hat_small_variance():
+    """Test that f_oneway hat stabilizes F-values for near-zero variance."""
+    rng = np.random.RandomState(0)
+    X1 = rng.normal(0, 1e-6, (10, 100))
+    X2 = rng.normal(1, 1e-6, (10, 100))
+
+    f_unreg = f_oneway(X1, X2, sigma=0.0)
+    f_abs = f_oneway(X1, X2, sigma=1e-3, method="absolute")
+    f_rel = f_oneway(X1, X2, sigma=1e-3, method="relative")
+
+    assert np.median(f_unreg) > 1e6
+    assert np.median(f_abs) < np.median(f_unreg)
+    assert np.median(f_rel) < np.median(f_unreg)
+
+
+def test_f_oneway_hat_input_validation():
+    """Test f_oneway input validation for sigma and method."""
+    rng = np.random.RandomState(0)
+    X1 = rng.randn(5, 10)
+    X2 = rng.randn(5, 10)
+
+    with pytest.raises(ValueError, match="sigma must be >= 0"):
+        f_oneway(X1, X2, sigma=-0.1)
+
+    with pytest.raises(ValueError, match="method"):
+        f_oneway(X1, X2, sigma=1e-3, method="invalid")

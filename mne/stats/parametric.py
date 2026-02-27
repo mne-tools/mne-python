@@ -111,7 +111,7 @@ def ttest_ind_no_p(a, b, equal_var=True, sigma=0.0):
     return t
 
 
-def f_oneway(*args):
+def f_oneway(*args, sigma=0.0, method="absolute"):
     """Perform a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
@@ -125,6 +125,13 @@ def f_oneway(*args):
     ----------
     *args : array_like
         The sample measurements should be given as arguments.
+    sigma : float
+        Regularization parameter applied to the within-group variance
+        (``MS_within``) to mitigate inflation of the F-statistic under
+        low-variance conditions.
+    method : {'absolute', 'relative'}
+        Strategy used to regularize the within-group variance when
+        ``sigma > 0``:
 
     Returns
     -------
@@ -151,6 +158,9 @@ def f_oneway(*args):
     ----------
     .. footbibliography::
     """
+    _check_option("method", method, ["absolute", "relative"])
+    if sigma < 0:
+        raise ValueError(f"sigma must be >= 0, got {sigma}")
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -168,6 +178,11 @@ def f_oneway(*args):
     dfwn = n_samples - n_classes
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
+    if sigma > 0:
+        if method == "absolute":
+            msw = msw + sigma
+        else:
+            msw = msw * (1.0 + sigma)
     f = msb / msw
     return f
 
