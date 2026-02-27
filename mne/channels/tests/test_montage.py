@@ -2145,6 +2145,8 @@ def test_fnirs_montage():
     raw.set_channel_types({ch_name: "eeg" for ch_name in raw.ch_names[-2:]})
     with pytest.raises(ValueError, match="mix of fNIRS"):
         raw.get_montage()
+
+
 def test_set_montage_meg_eeg_no_digitization():
     """Regression test for GH-12011.
 
@@ -2152,7 +2154,8 @@ def test_set_montage_meg_eeg_no_digitization():
     positions set to the [1, 0, 0] sentinel (digitization was skipped).
     """
     import numpy as np
-    from mne import create_info, EpochsArray
+
+    from mne import EpochsArray, create_info
     from mne.channels import make_standard_montage
 
     ch_names = [f"EEG{i:03d}" for i in range(1, 11)] + ["MEG0111"]
