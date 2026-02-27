@@ -7,6 +7,7 @@ import os
 import shutil
 from copy import deepcopy
 from datetime import datetime, timezone
+from importlib.util import find_spec
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +37,11 @@ egi_mff_evoked_fname = egi_path / "test_egi_evoked.mff"
 egi_txt_evoked_cat1_fname = egi_path / "test_egi_evoked_cat1.txt"
 egi_txt_evoked_cat2_fname = egi_path / "test_egi_evoked_cat2.txt"
 
+requires_mffpy = pytest.mark.skipif(
+    find_spec("mffpy") is None,
+    reason="Test requires mffpy",
+)
+
 # absolute event times from NetStation
 egi_pause_events = {
     "AM40": [7.224, 11.928, 14.413, 16.848],
@@ -59,6 +65,7 @@ egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 
 
 @requires_testing_data
+@requires_mffpy
 @pytest.mark.parametrize(
     "fname, skip_times, event_times",
     [
@@ -121,6 +128,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
 
 
 @requires_testing_data
+@requires_mffpy
 @pytest.mark.parametrize(
     "fname",
     [
@@ -143,6 +151,7 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 
 
 @requires_testing_data
+@requires_mffpy
 @pytest.mark.parametrize("events_as_annotations", (True, False))
 def test_io_egi_mff(events_as_annotations):
     """Test importing EGI MFF simple binary files."""
@@ -290,6 +299,7 @@ def test_io_egi():
 
 
 @requires_testing_data
+@requires_mffpy
 def test_io_egi_pns_mff(tmp_path):
     """Test importing EGI MFF with PNS data."""
     pytest.importorskip("defusedxml")
@@ -346,6 +356,7 @@ def test_io_egi_pns_mff(tmp_path):
 
 
 @requires_testing_data
+@requires_mffpy
 @pytest.mark.parametrize("preload", (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
@@ -390,6 +401,7 @@ def test_io_egi_pns_mff_bug(preload):
 
 
 @requires_testing_data
+@requires_mffpy
 def test_io_egi_crop_no_preload():
     """Test crop non-preloaded EGI MFF data (BUG)."""
     pytest.importorskip("defusedxml")
@@ -503,6 +515,7 @@ def test_read_evokeds_mff_bad_input():
 
 
 @requires_testing_data
+@requires_mffpy
 def test_egi_coord_frame():
     """Test that EGI coordinate frame is changed to head."""
     pytest.importorskip("defusedxml")
@@ -532,6 +545,7 @@ def test_egi_coord_frame():
 
 
 @requires_testing_data
+@requires_mffpy
 @pytest.mark.parametrize(
     "fname, timestamp, utc_offset",
     [
@@ -556,6 +570,7 @@ def test_meas_date(fname, timestamp, utc_offset):
 
 
 @requires_testing_data
+@requires_mffpy
 @pytest.mark.parametrize(
     "fname, standard_montage",
     [
@@ -590,6 +605,7 @@ def test_set_standard_montage_mff(fname, standard_montage):
 
 
 @requires_testing_data
+@requires_mffpy
 def test_egi_mff_bad_xml(tmp_path):
     """Test that corrupt XML files are gracefully handled."""
     pytest.importorskip("defusedxml")
