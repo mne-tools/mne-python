@@ -83,7 +83,7 @@ def _index_info_cov(info, cov, exclude):
         for key in _DATA_CH_TYPES_SPLIT
         if len(idx_by_type[key]) > 0
     ]
-    C = cov.data[ch_idx][:, ch_idx]
+    C = cov._get_square()[ch_idx][:, ch_idx]
     return info, C, ch_names, idx_names
 
 

@@ -1,0 +1,1 @@
+Fix bug where plotting covariance matrices created by :func:`mne.cov.make_ad_hoc_cov` would raise an IndexError, by :newcontrib:`Arnav Kumar` (:gh:`13582`).

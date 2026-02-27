@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 
 from mne import (
     SourceEstimate,
+    create_info,
     pick_events,
     read_cov,
     read_dipole,
@@ -19,6 +20,7 @@ from mne import (
     read_source_spaces,
 )
 from mne.chpi import compute_chpi_snr
+from mne.cov import make_ad_hoc_cov
 from mne.datasets import testing
 from mne.filter import create_filter
 from mne.io import read_raw_fif
@@ -134,6 +136,19 @@ def test_plot_cov():
     # test complex numbers
     cov["data"] = cov.data * (1 + 1j)
     fig1, fig2 = cov.plot(raw.info)
+
+
+def test_plot_cov_diagonal():
+    """Test plotting of diagonal covariances (e.g., from make_ad_hoc_cov)."""
+    n_channels = 10
+    sfreq = 100
+    info = create_info(
+        [f"EEG{i:03d}" for i in range(n_channels)], sfreq, ch_types="eeg"
+    )
+    cov = make_ad_hoc_cov(info, std={"eeg": 1})
+    # This should not raise an IndexError
+    fig1, fig2 = cov.plot(info)
+    plt.close("all")
 
 
 @testing.requires_testing_data
