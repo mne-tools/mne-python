@@ -226,7 +226,8 @@ def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
                 begin_time = event.get("beginTime")
                 if code is None or begin_time is None:
                     continue
-                sample = int(np.floor((begin_time - start_dt).total_seconds() * sfreq))
+                delta = (begin_time - start_dt).total_seconds()
+                sample = int(np.floor(delta * sfreq))
                 if 0 <= sample < n_samples:
                     mff_events.setdefault(code, []).append(sample)
         except Exception:
@@ -257,7 +258,8 @@ def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
                 begin_time = _parse_egi_datetime(event_fields.get("beginTime"))
                 if code is None or begin_time is None:
                     continue
-                sample = int(np.floor((begin_time - start_dt).total_seconds() * sfreq))
+                delta = (begin_time - start_dt).total_seconds()
+                sample = int(np.floor(delta * sfreq))
                 if 0 <= sample < n_samples:
                     mff_events.setdefault(code, []).append(sample)
 
@@ -265,7 +267,8 @@ def _read_mff_events(input_fname, mff_reader, sfreq, n_samples, start_dt):
     egi_events = np.zeros((len(event_codes), n_samples))
     for event_idx, code in enumerate(event_codes):
         if len(mff_events[code]):
-            egi_events[event_idx, np.array(mff_events[code], dtype=int)] = 1
+            event_samples = np.asarray(mff_events[code], dtype=int)
+            egi_events[event_idx, event_samples] = 1
     return egi_events, event_codes, mff_events
 
 
@@ -624,7 +627,7 @@ class RawMff(BaseRaw):
             idx = np.arange(bounds[-1])
         if isinstance(idx, slice):
             idx = np.arange(bounds[-1])[idx]
-        idx = np.array(idx, dtype=int)
+        idx = np.asarray(idx, dtype=int)
         eeg_out = np.where(idx < bounds[1])[0]
         eeg_one = idx[eeg_out]
         eeg_in = idx[eeg_out]
