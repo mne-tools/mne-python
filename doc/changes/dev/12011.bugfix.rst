@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.channels.DigMontage.set_montage` raised an :exc:`IndexError` on MEG+EEG recordings when EEG reference positions were set to the placeholder value ``[1, 0, 0]`` (i.e., digitization was not performed), by :gh:`Famous077`.

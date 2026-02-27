@@ -1256,7 +1256,12 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     # keep reference location from EEG-like channels if they
     # already exist and are all the same.
     # Note: ref position is an empty list for fieldtrip data
-    if len(ref_pos) and ref_pos[0].any() and (ref_pos[0] == ref_pos).all():
+    if (
+        len(ref_pos)
+        and ref_pos[0].any()
+        and (ref_pos[0] == ref_pos).all()
+        and not np.array_equal(ref_pos[0], [1.0, 0.0, 0.0])
+    ):
         eeg_ref_pos = ref_pos[0]
         # since we have an EEG reference position, we have
         # to add it into the info['dig'] as EEG000
@@ -1384,6 +1389,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     # determine if needed to add an extra EEG REF DigPoint
     if custom_eeg_ref_dig:
         # ref_name = 'EEG000' if match_case else 'eeg000'
+        if not info["dig"]:
+            raise RuntimeError(
+                "Cannot determine EEG reference digitization coordinate "
+                "frame: info['dig'] is empty. This may happen when a "
+                "MEG+EEG recording has EEG reference positions set to a "
+                "placeholder value [1, 0, 0] (digitization was not "
+                "performed)."
+            )
         ref_dig_dict = {
             "kind": FIFF.FIFFV_POINT_EEG,
             "r": eeg_ref_pos,
@@ -1968,7 +1981,7 @@ def make_standard_montage(kind, head_size="auto"):
         The name of the montage to use.
 
         .. note::
-            You can retrieve the names of all
+            You can retrieve the name of all
             built-in montages via :func:`mne.channels.get_builtin_montages`.
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
