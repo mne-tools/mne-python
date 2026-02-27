@@ -1,0 +1,1 @@
+Add ability to read comments to :func:`~mne.io.read_raw_nihon`, by `Marijn van Vliet`_ and `Dariush Karamati`_
