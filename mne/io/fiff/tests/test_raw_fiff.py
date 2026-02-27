@@ -488,6 +488,22 @@ def test_concatenate_raws_order():
     assert np.all(ch0 == 0)
 
 
+def test_concatenate_raws_different_subtypes(tmp_path):
+    """Test concatenating raws with different subtypes."""
+    sfreq = 100.0
+    ch_names = ["EEG 001", "EEG 002"]
+    ch_types = ["eeg"] * 2
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    data = np.random.randn(len(ch_names), 1000)
+
+    raw_array = RawArray(data, info)
+    raw_array.save(tmp_path / "temp_raw.fif", overwrite=True)
+    raw_fiff = read_raw_fif(tmp_path / "temp_raw.fif", preload=True)
+
+    with pytest.warns(RuntimeWarning, match="raw files do not all have the same"):
+        concatenate_raws([raw_fiff, raw_array])
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "mod",
