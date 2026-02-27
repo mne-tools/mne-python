@@ -1738,7 +1738,7 @@ def make_version(app, exception):
     try:
         stdout, _ = run_subprocess(["git", "rev-parse", "HEAD"], verbose=False)
     except Exception as exc:
-        sphinx_logger.warning(f"Failed to write _version.txt: {exc}")
+        sphinx_logger.warning("Failed to write _version.txt: %s", exc)
         return
     with open(os.path.join(app.outdir, "_version.txt"), "w") as fid:
         fid.write(stdout)
