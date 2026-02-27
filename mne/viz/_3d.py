@@ -83,6 +83,7 @@ from ..utils import (
 )
 from ._dipole import _check_concat_dipoles, _plot_dipole_3d, _plot_dipole_mri_outlines
 from .evoked_field import EvokedField
+from .ui_events import subscribe
 from .utils import (
     _check_time_unit,
     _get_cmap,
@@ -4324,3 +4325,159 @@ def _get_3d_option(key):
         else:
             opt = opt.lower() == "true"
     return opt
+
+
+def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", width=1):
+    """Plot the spatial extent of a cluster on top of a brain.
+
+    Parameters
+    ----------
+    cluster : tuple
+        The cluster to plot. A cluster is a tuple of two elements:
+            an array of time indices
+            and an array of vertex indices.
+    src : SourceSpaces
+        The source space that was used for the inverse computation.
+    brain : Brain
+        The brain figure on which to plot the cluster.
+    time : float | "interactive" | "max-extent"
+        The time (in seconds) at which to plot the spatial extent of the cluster.
+        If set to ``"interactive"`` the time will follow the selected time in the brain
+        figure.
+        By default, ``"max-extent"``, the time of maximal spatial extent is chosen.
+    color : str
+        A maplotlib-style color specification indicating the color to use when plotting
+        the spatial extent of the cluster.
+    width : int
+        The width of the lines used to draw the outlines.
+
+    Returns
+    -------
+    brain : Brain
+        The brain figure, now with the cluster plotted on top of it.
+    """
+    # Here due to circular import
+    from ..label import Label
+
+    # args check
+    if not isinstance(cluster, tuple):
+        raise TypeError(f"Tuple expected, got {type(cluster)} instead.")
+    elif len(cluster) != 2:
+        raise ValueError(
+            "A cluster is a tuple of two elements,  a list time indices "
+            "and list of vertex indices."
+        )
+    else:
+        cluster_time_idx, cluster_vertex_index = cluster
+
+    # A cluster is defined both in space and time. If we want to plot the boundaries of
+    # the cluster in space, we must choose a specific time for which to show the
+    # boundaries (as they change over time).
+    if time == "max-extent":
+        time_idx, n_vertices = np.unique(cluster_time_idx, return_counts=True)
+        time_idx = time_idx[np.argmax(n_vertices)]
+    elif time == "interactive":
+        time_idx = brain._data["time_idx"]
+    elif isinstance(time, float):
+        time_idx = np.searchsorted(brain._times[:-1], time)
+    else:
+        raise ValueError(
+            "Time should be 'max-extent', 'interactive', or floating point"
+            f" value, got '{time}' instead."
+        )
+
+    # Select only the vertex indices at the chosen time
+    draw_vertex_index = [
+        v for v, t in zip(cluster_vertex_index, cluster_time_idx) if t == time_idx
+    ]
+
+    # Create the anatomical label containing the vertex indices belonging to the
+    # cluster. A label cannot span both hemispheres.
+    # So we must filter the vertices based on their hemisphere.
+
+    # The source space object is actually a list of two source spaces, left and right
+    # hemisphere.
+    src_lh, src_rh = src
+
+    # Split the vertices based on the hemisphere in which they are located.
+    lh_verts, rh_verts = src_lh["vertno"], src_rh["vertno"]
+    n_lh_verts = len(lh_verts)
+    draw_lh_verts = [lh_verts[v] for v in draw_vertex_index if v < n_lh_verts]
+    draw_rh_verts = [
+        rh_verts[v - n_lh_verts] for v in draw_vertex_index if v >= n_lh_verts
+    ]
+
+    # Vertices in a label must be unique and in increasing order
+    draw_lh_verts = np.unique(draw_lh_verts)
+    draw_rh_verts = np.unique(draw_rh_verts)
+
+    # We are now ready to create the anatomical label objects
+    cluster_index = 0
+    for label in brain.labels["lh"] + brain.labels["rh"]:
+        if label.name.startswith("cluster-"):
+            try:
+                cluster_index = max(cluster_index, int(label.name.split("-", 1)[1]))
+            except ValueError:
+                pass
+    lh_label = Label(draw_lh_verts, hemi="lh", name=f"cluster-{cluster_index}")
+    rh_label = Label(draw_rh_verts, hemi="rh", name=f"cluster-{cluster_index}")
+
+    # Transform vertex indices into proper vertex numbers.
+    # Not every vertex in the original high-resolution brain mesh is a
+    # source point in the source estimate. Do draw nice smooth curves, we need to
+    # interpolate the vertex indices.
+
+    # Here, we interpolate the vertices in each label to the full resolution mesh
+    if len(lh_label) > 0:
+        lh_label = lh_label.smooth(
+            smooth=3, subject=brain._subject, subjects_dir=brain._subjects_dir
+        )
+        brain.add_label(lh_label, borders=width, color=color)
+    if len(rh_label) > 0:
+        rh_label = rh_label.smooth(
+            smooth=3, subject=brain._subject, subjects_dir=brain._subjects_dir
+        )
+        brain.add_label(rh_label, borders=width, color=color)
+
+    def on_time_change(event):
+        time_idx = np.searchsorted(brain._times, event.time)
+        for hemi in brain._hemis:
+            mesh = brain._layered_meshes[hemi]
+            for i, label in enumerate(brain.labels[hemi]):
+                if label.name == f"cluster-{cluster_index}":
+                    del brain.labels[hemi][i]
+                    mesh.remove_overlay(label.name)
+
+        # Select only the vertex indices at the chosen time
+        draw_vertex_index = [
+            v for v, t in zip(cluster_vertex_index, cluster_time_idx) if t == time_idx
+        ]
+        draw_lh_verts = [lh_verts[v] for v in draw_vertex_index if v < n_lh_verts]
+        draw_rh_verts = [
+            rh_verts[v - n_lh_verts] for v in draw_vertex_index if v >= n_lh_verts
+        ]
+
+        # Vertices in a label must be unique and in increasing order
+        draw_lh_verts = np.unique(draw_lh_verts)
+        draw_rh_verts = np.unique(draw_rh_verts)
+        lh_label = Label(draw_lh_verts, hemi="lh", name=f"cluster-{cluster_index}")
+        rh_label = Label(draw_rh_verts, hemi="rh", name=f"cluster-{cluster_index}")
+        if len(lh_label) > 0:
+            lh_label = lh_label.smooth(
+                smooth=3,
+                subject=brain._subject,
+                subjects_dir=brain._subjects_dir,
+                verbose=False,
+            )
+            brain.add_label(lh_label, borders=width, color=color)
+        if len(rh_label) > 0:
+            rh_label = rh_label.smooth(
+                smooth=3,
+                subject=brain._subject,
+                subjects_dir=brain._subjects_dir,
+                verbose=False,
+            )
+            brain.add_label(rh_label, borders=width, color=color)
+
+    if time == "interactive":
+        subscribe(brain, "time_change", on_time_change)
