@@ -405,7 +405,7 @@ class Annotations:
                     f"' '. Got: {orig_time}. Defaulting `orig_time` to None.",
                     RuntimeWarning,
                 )
-        self.onset, self.duration, self.description, self.ch_names, self._extras = (
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
             _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
         self._sort()  # ensure we're sorted
@@ -414,6 +414,80 @@ class Annotations:
     def orig_time(self):
         """The time base of the Annotations."""
         return self._orig_time
+
+    @property
+    def onset(self):
+        """Onset of each annotation (in seconds).
+
+        Returns
+        -------
+        onset : array of shape (n_annotations,)
+            The onset of each annotation in seconds from the start of
+            the recording.
+
+        See Also
+        --------
+        duration, description
+        """
+        return self._onset
+
+    @onset.setter
+    def onset(self, onset):
+        self._onset = np.atleast_1d(np.array(onset, dtype=float))
+
+    @property
+    def duration(self):
+        """Duration of each annotation (in seconds).
+
+        Returns
+        -------
+        duration : array of shape (n_annotations,)
+            The duration of each annotation in seconds.
+
+        See Also
+        --------
+        onset, description
+        """
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        self._duration = duration
+
+    @property
+    def description(self):
+        """Description of each annotation.
+
+        Returns
+        -------
+        description : array of shape (n_annotations,)
+            A string description for each annotation (e.g., event
+            label or condition name).
+
+        See Also
+        --------
+        onset, duration
+        """
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        self._description = description
+
+    @property
+    def ch_names(self):
+        """Channel names associated with each annotation.
+
+        Returns
+        -------
+        ch_names : list of tuple
+            Channel names associated with each annotation.
+        """
+        return self._ch_names
+
+    @ch_names.setter
+    def ch_names(self, ch_names):
+        self._ch_names = ch_names
 
     @property
     def extras(self):

@@ -1,0 +1,1 @@
+Document :attr:`~mne.Annotations.onset`, :attr:`~mne.Annotations.duration`, :attr:`~mne.Annotations.description`, and :attr:`~mne.Annotations.ch_names` attributes of :class:`mne.Annotations`, by `Famous077 <https://github.com/Famous077>`__.
