@@ -1709,8 +1709,9 @@ class Brain:
             between 0 and 255), the default "auto" chooses a default divergent
             colormap, if "center" is given (currently "icefire"), otherwise a
             default sequential colormap (currently "rocket").
-        alpha : float in [0, 1]
-            Alpha level to control opacity of the overlay.
+        alpha : float in [0, 1] | array, shape (n_vertices,)
+            Alpha level to control opacity of the overlay. A scalar applies
+            globally, while a 1D array applies per-vertex opacity.
         vertices : numpy array
             Vertices for which the data is defined (needed if
             ``len(data) < nvtx``).
