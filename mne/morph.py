@@ -292,8 +292,11 @@ def compute_source_morph(
             assert morph_mat.shape[0] == n_verts
 
     vertices_to = vertices_to_surf + vertices_to_vol
+
     if src_to is not None:
         assert len(vertices_to) == len(src_to)
+        # set spacing to None when src_to is provided
+        spacing = None
     morph = SourceMorph(
         subject_from,
         subject_to,
