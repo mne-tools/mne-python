@@ -8,8 +8,6 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from string import ascii_lowercase
-from mne import create_info, EpochsArray
-from mne.channels import make_standard_montage
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,12 +21,13 @@ from numpy.testing import (
 
 import mne.channels.montage
 from mne import (
-    __file__ as _mne_file,
-)
-from mne import (
+    EpochsArray,
     create_info,
     pick_types,
     read_evokeds,
+)
+from mne import (
+    __file__ as _mne_file,
 )
 from mne._fiff._digitization import (
     _count_points_by_type,
@@ -2155,7 +2154,6 @@ def test_set_montage_meg_eeg_no_digitization():
     set_montage() must not crash when MEG+EEG info has EEG reference
     positions set to the [1, 0, 0] sentinel (digitization was skipped).
     """
-
     ch_names = [f"EEG{i:03d}" for i in range(1, 11)] + ["MEG0111"]
     ch_types = ["eeg"] * 10 + ["grad"]
     info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types=ch_types)
