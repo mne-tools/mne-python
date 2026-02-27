@@ -7,6 +7,8 @@ from functools import partial
 
 import numpy as np
 
+from mne import __version__ as mne_version
+
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
@@ -15,6 +17,7 @@ from ..utils import (
     fill_doc,
     logger,
 )
+from ..utils.check import _check_fname, _import_h5io_funcs, check_fname
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
@@ -146,6 +149,14 @@ class SSD(_GEDTransformer):
             restr_type=restr_type,
         )
 
+    def __setstate__(self, state):
+        """Restore state from serialization."""
+        # Since read_ssd creates a new instance via __init__ first,
+        # callables are already set correctly. We just restore fitted attributes.
+        # Don't call super().__setstate__() as it would set callables to None.
+        self.__dict__.update(state)
+        return self
+
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
             self.sfreq_ = self.info
@@ -236,6 +247,33 @@ class SSD(_GEDTransformer):
 
         logger.info("Done.")
         return self
+
+    @fill_doc
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the SSD decomposition to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            Path of file to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        mne.decoding.read_ssd
+        """
+        _, write_hdf5 = _import_h5io_funcs()
+        check_fname(fname, "SSD", (".h5", ".hdf5"))
+        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
+        state = self.__getstate__()
+        state.update(
+            class_name="SSD",
+            mne_version=mne_version,
+        )
+        write_hdf5(
+            fname, state, overwrite=overwrite, title="mnepython", slash="replace"
+        )
 
     def transform(self, X):
         """Estimate epochs sources given the SSD filters.
@@ -350,3 +388,26 @@ class SSD(_GEDTransformer):
         pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+def read_ssd(fname):
+    """Read an SSD object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to an SSD file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+
+    Returns
+    -------
+    ssd : SSD
+        The loaded SSD object.
+    """
+    read_hdf5, _ = _import_h5io_funcs()
+    _validate_type(fname, "path-like", "fname")
+    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
+    state = read_hdf5(fname, title="mnepython", slash="replace")
+    return SSD(info=None, filt_params_signal=None, filt_params_noise=None).__setstate__(
+        state
+    )
