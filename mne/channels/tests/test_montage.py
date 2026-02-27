@@ -2155,14 +2155,6 @@ def test_set_montage_meg_eeg_no_digitization():
     set_montage() must not crash when MEG+EEG info has EEG reference
     positions set to the [1, 0, 0] sentinel (digitization was skipped).
     """
-<<<<<<< HEAD
-    import numpy as np
-
-    from mne import EpochsArray, create_info
-    from mne.channels import make_standard_montage
-=======
-2b4010a01 (Address review feedback: remove dead code, fix imports, rename changelog)
->>>>>>>
 
     ch_names = [f"EEG{i:03d}" for i in range(1, 11)] + ["MEG0111"]
     ch_types = ["eeg"] * 10 + ["grad"]
