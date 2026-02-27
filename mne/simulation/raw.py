@@ -41,7 +41,7 @@ from ..source_space._source_space import (
     setup_volume_source_space,
 )
 from ..surface import _CheckInside
-from ..transforms import _get_trans, transform_surface_to
+from ..transforms import Transform, _get_trans, transform_surface_to
 from ..utils import (
     _check_preload,
     _pl,
@@ -131,15 +131,16 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
                 f"s), found {bad.sum()}/{len(bad)} bad values (is this a split "
                 "file?)"
             )
+    dev_head_t = info["dev_head_t"] or Transform("meg", "head")  # deal with None
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info["sfreq"]):
         ts[0] = 0.0
     # If it doesn't start at zero, insert one at t=0
     elif len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.0], ts]
-        dev_head_ts.insert(0, info["dev_head_t"]["trans"])
+        dev_head_ts.insert(0, dev_head_t["trans"])
     dev_head_ts = [
-        {"trans": d, "to": info["dev_head_t"]["to"], "from": info["dev_head_t"]["from"]}
+        {"trans": d, "to": dev_head_t["to"], "from": dev_head_t["from"]}
         for d in dev_head_ts
     ]
     offsets = np.round(ts * info["sfreq"]).astype(int)
@@ -290,7 +291,8 @@ def simulate_raw(
                 "If forward is not None then trans, src, bem, "
                 "and head_pos must all be None"
             )
-        if not np.allclose(
+        ch_types = info.get_channel_types(unique=True)
+        if ("mag" in ch_types or "grad" in ch_types) and not np.allclose(
             forward["info"]["dev_head_t"]["trans"],
             info["dev_head_t"]["trans"],
             atol=1e-6,
