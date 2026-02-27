@@ -267,7 +267,22 @@ class RawBCI2k(BaseRaw):
 
 
 def read_raw_bci2k(input_fname, preload=False, verbose=None):
-    """Reader for BCI2000 .dat files."""
+    """Read a BCI2000 ``.dat`` file.
+
+    Parameters
+    ----------
+    input_fname : path-like
+        Path to the BCI2000 ``.dat`` file.
+    preload : bool
+        If True, preload the data into memory. Must be True.
+    verbose : bool | str | int | None
+        Control verbosity.
+
+    Returns
+    -------
+    raw : instance of RawBCI2k
+        The raw object containing the data.
+    """
     return RawBCI2k(
         input_fname=input_fname,
         preload=preload,
