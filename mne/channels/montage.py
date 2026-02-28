@@ -1256,7 +1256,12 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     # keep reference location from EEG-like channels if they
     # already exist and are all the same.
     # Note: ref position is an empty list for fieldtrip data
-    if len(ref_pos) and ref_pos[0].any() and (ref_pos[0] == ref_pos).all():
+    if (
+        len(ref_pos)
+        and ref_pos[0].any()
+        and (ref_pos[0] == ref_pos).all()
+        and not np.array_equal(ref_pos[0], [1.0, 0.0, 0.0])
+    ):
         eeg_ref_pos = ref_pos[0]
         # since we have an EEG reference position, we have
         # to add it into the info['dig'] as EEG000
