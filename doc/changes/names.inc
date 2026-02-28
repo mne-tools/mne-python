@@ -96,6 +96,7 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
+.. _Famous Raj Bhat: https://github.com/Famous077
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
@@ -364,5 +365,3 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz
-
-.. _Famous Raj Bhat: https://github.com/Famous077
