@@ -472,10 +472,7 @@ def test_plot_topomap_basic():
     fig1 = evoked.plot_topomap(
         "interactive", ch_type="mag", proj="interactive", **fast_test
     )
-    # TODO: Clicking the slider creates a *new* image rather than updating
-    # the data directly. This makes it so that the projection is not applied
-    # to the correct matplotlib Image object.
-    # _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
+    _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
     data_max = np.max(fig1.axes[0].images[0]._A)
     proj_fig = plt.figure(plt.get_fignums()[-1])
     assert fig1.mne.proj_checkboxes.get_status() == [False, False, False]
