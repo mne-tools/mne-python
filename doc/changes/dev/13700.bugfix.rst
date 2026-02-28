@@ -1,0 +1,1 @@
+Fix axis label overlap and rendering issues in :func:`~mne.viz.plot_volume_source_estimates` by replacing ``canvas.draw()`` with ``canvas.draw_idle()`` to avoid blitting artifacts, by :newcontrib:`Famous Raj Bhat`.
