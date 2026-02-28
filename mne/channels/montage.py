@@ -1973,7 +1973,7 @@ def make_standard_montage(kind, head_size="auto"):
         The name of the montage to use.
 
         .. note::
-            You can retrieve the name of all
+            You can retrieve the names of all
             built-in montages via :func:`mne.channels.get_builtin_montages`.
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
