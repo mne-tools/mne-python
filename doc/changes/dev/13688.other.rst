@@ -1,0 +1,1 @@
+﻿Fix index mismatch in :meth:~mne.Epochs.drop when epochs are auto-dropped.
