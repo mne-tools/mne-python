@@ -838,8 +838,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     # (ax_main.collections only includes *visible* annots, so we offset)
                     visible_zorders = [span.zorder for span in spans]
                     zorders = np.zeros_like(is_onscreen).astype(int)
-                    offset = np.where(is_onscreen)[0][0]
-                    zorders[offset : (offset + len(visible_zorders))] = visible_zorders
+                    zorders[is_onscreen] = visible_zorders
                     # among overlapping clicked spans, prefer removing spans whose label
                     # is the active label; then fall back to zorder as deciding factor
                     active_clicked = was_clicked & is_active_label
