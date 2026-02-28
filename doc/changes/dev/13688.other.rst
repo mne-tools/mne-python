@@ -1,1 +1,1 @@
-﻿Fix index mismatch in :meth:~mne.Epochs.drop when epochs are auto-dropped.
+Add a note to :meth:`~mne.Epochs.drop` describing a potential mismatch between indices expected by :meth:`~mne.Epochs.drop` and those found in :attr:`~mne.Epochs.selection` when epochs have been automatically dropped, by :newcontrib:`Famous Raj Bhat`.
