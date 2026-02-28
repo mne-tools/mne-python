@@ -691,6 +691,57 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
+    def drop_bad_epochs_by_channel(self, reject_mask=None):
+        """Drop bad epochs for individual channels.
+
+        Parameters
+        ----------
+        reject_mask : np.ndarray, shape (n_epochs, n_channels) | None
+            Boolean mask where True indicates a bad epoch for that channel.
+            If None, no epochs are marked as bad.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with bad epochs marked with NaNs. Operates in-place.
+        """
+        if reject_mask is None:
+            return self
+
+        if not self.preload:
+            raise ValueError("Epochs must be preloaded.")
+
+        data = self.get_data()
+        n_epochs, n_channels, n_times = data.shape
+
+        if reject_mask.shape != (n_epochs, n_channels):
+            raise ValueError(
+                f"reject_mask must have shape ({n_epochs}, {n_channels}), "
+                f"got {reject_mask.shape}"
+            )
+
+        # mask needs to contain integer or boolean
+        if not np.issubdtype(reject_mask.dtype, np.bool_):
+            reject_mask = reject_mask.astype(bool)
+
+        # Set bad epochs to NaN
+        # We need to add a dimension for time to the array
+        mask_3d = reject_mask[:, :, np.newaxis]  # shape: (n_epochs, n_channels, 1)
+
+        # Broadcast to (n_epochs, n_channels, n_times) and set to NaN
+        data[mask_3d.repeat(n_times, axis=2)] = np.nan
+
+        # store mask for updating nave
+        self.reject_mask = reject_mask
+
+        # store nave per channel for updating nave
+        valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
+        self.nave_per_channel = valid_epochs_per_channel
+
+        # Update data
+        self._data = data
+        return self
+
     def _check_consistency(self):
         """Check invariants of epochs object."""
         if hasattr(self, "events"):
@@ -1261,12 +1312,23 @@ class BaseEpochs(
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
         # don't apply baseline correction; we'll set evoked.baseline manually
+
+        # does the epoch object have a attribute nave_per_channel?
+        nave_per_channel = getattr(self, "nave_per_channel", None)
+
+        if nave_per_channel is None:
+            # Default behavior
+            nave = n_events
+        else:
+            # reset nave to minimum of epochs of all channel
+            nave = int(nave_per_channel.min())
+
         evoked = EvokedArray(
             data,
             info,
             tmin=self.times[0],
             comment=comment,
-            nave=n_events,
+            nave=nave,
             kind=kind,
             baseline=None,
         )
@@ -1276,9 +1338,9 @@ class BaseEpochs(
         # due to numerical precision issues
         evoked._set_times(self.times.copy())
 
-        # pick channels
-        picks = _picks_to_idx(self.info, picks, "data_or_ica", ())
-        ch_names = [evoked.ch_names[p] for p in picks]
+        # Apply picks
+        picks_idx = _picks_to_idx(info, picks, "data_or_ica", ())
+        ch_names = [evoked.ch_names[p] for p in picks_idx]
         evoked.pick(ch_names)
 
         if len(evoked.info["ch_names"]) == 0:

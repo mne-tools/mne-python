@@ -505,7 +505,12 @@ class UpdateChannelsMixin:
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
+        # get channel names
+        ch_names = [self.ch_names[p] for p in picks]
         self._pick_drop_channels(picks)
+
+        # how many epochs per channel after channel specific epoch rejection
+        nave_per_channel = getattr(self, "nave_per_channel", None)
 
         # remove dropped channel types from reject and flat
         if getattr(self, "reject", None) is not None:
@@ -519,6 +524,13 @@ class UpdateChannelsMixin:
             for ch_type in list(self.flat):
                 if ch_type not in self:
                     del self.flat[ch_type]
+
+        if nave_per_channel is not None:
+            # self is the epochs object, always has the same number of channels
+            nave_dict = dict(zip(self.info["ch_names"], nave_per_channel))
+            self.nave_per_channel = np.array(
+                [nave_dict[ch] for ch in ch_names if ch in nave_dict]
+            )
 
         return self
 
@@ -831,7 +843,7 @@ class InterpolationMixin:
         exclude=(),
         verbose=None,
     ):
-        """Interpolate bad MEG and EEG channels.
+        """Interpolate bad MEG, EEG and fNIRS channels.
 
         Operates in place.
 
