@@ -318,13 +318,18 @@ numpydoc_xref_aliases = {
 numpydoc_xref_ignore = {
     # words
     "and",
+    "as",
     "between",
+    "data",
     "instance",
     "instances",
+    "input",
     "of",
     "default",
+    "same",
     "shape",
     "or",
+    "the",
     "with",
     "length",
     "pair",
@@ -987,7 +992,7 @@ html_context = {
             klass="only-dark",
         ),
         dict(
-            name="Commissariat à l´énergie atomique et aux énergies alternatives",  # noqa E501
+            name="Commissariat à l´énergie atomique et aux énergies alternatives",
             img="CEA.png",
             url="http://www.cea.fr/",
             size=md,
@@ -1092,7 +1097,7 @@ html_context = {
             klass="only-dark",
         ),
         dict(
-            name="Institut national de recherche en informatique et en automatique",  # noqa E501
+            name="Institut national de recherche en informatique et en automatique",
             img="inria.png",
             url="https://www.inria.fr/",
             size=xl,
@@ -1212,7 +1217,7 @@ html_context = {
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
@@ -1226,14 +1231,14 @@ html_context = {
         ),
         dict(
             title="Statistics",
-            text="Parametric and non-parametric, permutation tests and clustering.",  # noqa E501
+            text="Parametric and non-parametric, permutation tests and clustering.",
             url="auto_tutorials/stats-source-space/index.html",
             img="sphx_glr_20_cluster_1samp_spatiotemporal_001.png",
             alt="Clusters",
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",

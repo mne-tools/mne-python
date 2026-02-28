@@ -40,7 +40,7 @@ def set_channel_types_eyetrack(inst, mapping):
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         The instance, modified in place.
 
     Notes
@@ -179,7 +179,7 @@ def convert_units(inst, calibration, to="radians"):
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         The Raw, Epochs, or Evoked instance, modified in place.
 
     Notes
