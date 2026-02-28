@@ -106,6 +106,63 @@ def test_config(tmp_path):
     pytest.raises(TypeError, _get_stim_channel, [1], None)
 
 
+def test_set_config_keyword_api(tmp_path):
+    """Test keyword-only set_config API (mne.set_config(use_cuda=True) etc.)."""
+    tempdir = str(tmp_path)
+    sdir1 = str(tmp_path / "subjects1")
+    sdir2 = str(tmp_path / "subjects2")
+    sdir3 = str(tmp_path / "subjects3")
+
+    mne.set_config(home_dir=tempdir, use_cuda=True)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
+
+    # bool False -- "false" (not "False")
+    set_config(home_dir=tempdir, use_cuda=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "false"
+
+    # Multiple kwargs at once; Path is coerced to str
+    set_config(home_dir=tempdir, use_cuda=True, subjects_dir=Path(sdir1), set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == str(Path(sdir1))
+
+    # Preserve semantics: omitting a kwarg leaves existing value untouched
+    set_config(home_dir=tempdir, subjects_dir=sdir2, set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"  # unchanged
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == sdir2
+
+    # Explicit "-preserve-" sentinel does the same thing
+    set_config(
+        home_dir=tempdir, use_cuda="-preserve-", subjects_dir=sdir3, set_env=False
+    )
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"  # still unchanged
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == sdir3
+
+    # Remove a key by passing None
+    set_config(home_dir=tempdir, use_cuda=None)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) is None
+
+    # set_env=False: written to config file but not to environment
+    set_config(home_dir=tempdir, use_cuda=True, set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
+    assert "MNE_USE_CUDA" not in os.environ
+
+    # Old positional key/value API is still fully backward-compatible
+    set_config("MNE_USE_CUDA", "false", home_dir=tempdir, set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "false"
+
+    with pytest.raises(TypeError, match="at least one key/value update"):
+        set_config(home_dir=tempdir)
+
+    with pytest.raises(TypeError, match="value must be provided"):
+        set_config("MNE_USE_CUDA", home_dir=tempdir)
+
+    with pytest.raises(TypeError, match="value can only be set"):
+        set_config(value="true", home_dir=tempdir)
+
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        set_config(home_dir=tempdir, not_a_real_key=True)
+
+
 def test_sys_info_basic():
     """Test info-showing utility."""
     out = ClosingStringIO()

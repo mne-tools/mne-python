@@ -35,6 +35,7 @@ from .docs import fill_doc
 from .misc import _pl
 
 _temp_home_dir = None
+_VALUE_MISSING = object()
 
 
 class UnknownPlatformError(Exception):
@@ -225,6 +226,17 @@ _known_config_wildcards = (
 )
 
 
+def _config_key_to_kwarg(key):
+    """Convert a config key like ``MNE_USE_CUDA`` to a kwarg name like ``use_cuda``."""
+    lower = key.lower()
+    if lower.startswith("mne_") and not lower[4].isdigit():
+        return lower[4:]
+    return lower
+
+
+_KWARG_TO_CONFIG_KEY = {_config_key_to_kwarg(k): k for k in _known_config_types}
+
+
 @contextlib.contextmanager
 def _open_lock(path, *args, **kwargs):
     """
@@ -387,60 +399,123 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
         return config.get(key, default)
 
 
-def set_config(key, value, home_dir=None, set_env=True):
+def set_config(
+    key=None,
+    value=_VALUE_MISSING,
+    home_dir=None,
+    set_env=True,
+    *,
+    use_cuda="-preserve-",
+    subjects_dir="-preserve-",
+    **config_kwargs,
+):
     """Set a MNE-Python preference key in the config file and environment.
+
+    When setting values using keyword-only parameters (anything after the ``*``
+    in the signature):
+
+    - The special string value ``"-preserve-"`` means "do not change the
+      existing value (if present)".
+    - Any keyword-only parameter set to ``None`` will be removed from the
+      config file.
 
     Parameters
     ----------
-    key : str
-        The preference key to set.
-    value : str |  None
-        The value to assign to the preference key. If None, the key is
-        deleted.
+    key : str | None
+        The preference key to set. If ``None``, no explicit key/value update is
+        done unless keyword-only parameters are used.
+    value : str | None
+        The value to assign to ``key``. If ``None``, the key is deleted.
+        This must be explicitly provided when ``key`` is not ``None``.
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
     set_env : bool
         If True (default), update :data:`os.environ` in addition to
         updating the MNE-Python config file.
+    use_cuda : bool | str | None
+        Controls CUDA availability. Bool values (including string-like
+        equivalents, e.g., ``"false"``) are accepted. Corresponds to the
+        ``MNE_USE_CUDA`` environment variable.
+    subjects_dir : path-like | str | None
+        Path to the FreeSurfer subjects directory. Corresponds to the
+        ``SUBJECTS_DIR`` environment variable.
+    **config_kwargs
+        Any other key from ``_known_config_types`` using
+        the pythonic snake_case name derived by lower-casing the config key and
+        stripping the ``MNE_`` prefix when the remainder does not start with a
+        digit (e.g. ``cache_dir`` → ``MNE_CACHE_DIR``,
+        ``mne_3d_option_antialias`` → ``MNE_3D_OPTION_ANTIALIAS``).
 
     See Also
     --------
     get_config
     """
-    _validate_type(key, "str", "key")
-    # While JSON allow non-string types, we allow users to override config
-    # settings using env, which are strings, so we enforce that here
-    _validate_type(value, (str, "path-like", type(None)), "value")
-    if value is not None:
-        value = str(value)
+    updates = list()
+    if key is not None:
+        _validate_type(key, "str", "key")
+        if value is _VALUE_MISSING:
+            raise TypeError("value must be provided when key is not None")
+        # While JSON allow non-string types, we allow users to override config
+        # settings using env, which are strings, so we enforce that here
+        _validate_type(value, (str, "path-like", type(None)), "value")
+        if value is not None:
+            value = str(value)
+        updates.append((key, value))
+    elif value is not _VALUE_MISSING:
+        raise TypeError("value can only be set when key is not None")
 
-    if key not in _known_config_types and not any(
-        key.startswith(k) for k in _known_config_wildcards
-    ):
-        warn(f'Setting non-standard config type: "{key}"')
+    all_named = {"use_cuda": use_cuda, "subjects_dir": subjects_dir}
+    all_named.update(config_kwargs)
 
-    # Read all previous values
+    # Process pythonic keyword only config kwargs (e.g. use_cuda=True).
+    for kwarg_name, kwarg_val in all_named.items():
+        if kwarg_name not in _KWARG_TO_CONFIG_KEY:
+            valid = ", ".join(sorted(_KWARG_TO_CONFIG_KEY))
+            raise TypeError(
+                f"set_config() got an unexpected keyword argument {kwarg_name!r}. "
+                f"Valid config keyword arguments are: {valid}"
+            )
+        if kwarg_val == "-preserve-":
+            continue
+        config_key = _KWARG_TO_CONFIG_KEY[kwarg_name]
+        _validate_type(kwarg_val, (bool, str, "path-like", type(None)), kwarg_name)
+        if isinstance(kwarg_val, bool):
+            # bool must come before str since bool is a subclass of int, not str
+            kwarg_val = str(kwarg_val).lower()
+        elif kwarg_val is not None:
+            kwarg_val = str(kwarg_val)
+        updates.append((config_key, kwarg_val))
+
+    if len(updates) == 0:
+        raise TypeError("set_config requires at least one key/value update")
+
+    for this_key, _ in updates:
+        if this_key not in _known_config_types and not any(
+            this_key.startswith(k) for k in _known_config_wildcards
+        ):
+            warn(f'Setting non-standard config type: "{this_key}"')
+
+    for this_key, this_value in updates:
+        if this_value is None:
+            if set_env and this_key in os.environ:
+                del os.environ[this_key]
+        else:
+            this_value = str(this_value)
+            if set_env:
+                os.environ[this_key] = this_value
+            elif this_key in os.environ:
+                del os.environ[this_key]
+            if this_key == "MNE_BROWSER_BACKEND":
+                from ..viz._figure import set_browser_backend
+
+                set_browser_backend(this_value)
+
     config_path = get_config_path(home_dir=home_dir)
-    if op.isfile(config_path):
-        config = _load_config(config_path, raise_error=True)
-    else:
-        config = dict()
+    if not op.isfile(config_path):
         logger.info(
             f"Attempting to create new mne-python configuration file:\n{config_path}"
         )
-    if value is None:
-        config.pop(key, None)
-        if set_env and key in os.environ:
-            del os.environ[key]
-    else:
-        config[key] = value
-        if set_env:
-            os.environ[key] = value
-        if key == "MNE_BROWSER_BACKEND":
-            from ..viz._figure import set_browser_backend
-
-            set_browser_backend(value)
 
     # Write all values. This may fail if the default directory is not
     # writeable.
@@ -456,16 +531,19 @@ def set_config(key, value, home_dir=None, set_env=True):
         try:
             data = json.load(fid)
         except (ValueError, json.JSONDecodeError) as exc:
-            logger.info(
-                f"Could not read the {config_path} json file during the writing."
-                f" Assuming it is empty. Got: {exc}"
-            )
+            fid.seek(0)
+            if fid.read().strip():
+                raise RuntimeError(
+                    f"The MNE-Python config file ({config_path}) is not a "
+                    "valid JSON file and might be corrupted"
+                ) from exc
             data = {}
 
-        if value is None:
-            data.pop(key, None)
-        else:
-            data[key] = value
+        for this_key, this_value in updates:
+            if this_value is None:
+                data.pop(this_key, None)
+            else:
+                data[this_key] = str(this_value)
 
         fid.seek(0)
         fid.truncate()

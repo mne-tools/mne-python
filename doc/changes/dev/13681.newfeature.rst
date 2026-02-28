@@ -1,0 +1,1 @@
+Enhanced :func:`mne.set_config` to support a more Pythonic keyword-based interface (e.g., ``use_cuda=True``) in addition to the existing key-value API, by `Aniket Singh Yadav`_.
