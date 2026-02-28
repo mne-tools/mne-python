@@ -1656,7 +1656,6 @@ class SelectFromCollection:
         from matplotlib.widgets import LassoSelector
 
         self.fig = ax.figure
-        self.canvas = ax.figure.canvas
         self.collection = collection
         self.names = names
         self.alpha_selected = alpha_selected
@@ -1722,14 +1721,14 @@ class SelectFromCollection:
 
         # Don't respond to single clicks without extra keys being hold down.
         # Figures like plot_evoked_topo want to do something else with them.
-        if len(verts) <= 3 and self.canvas._key not in ["control", "ctrl+shift"]:
+        if len(verts) <= 3 and self.fig.canvas._key not in ["control", "ctrl+shift"]:
             return
 
         path = Path(verts)
         inds = np.nonzero([path.intersects_path(p) for p in self.paths])[0]
-        if self.canvas._key == "control":  # Appending selection.
+        if self.fig.canvas._key == "control":  # Appending selection.
             self.selection_inds = np.union1d(self.selection_inds, inds).astype("int")
-        elif self.canvas._key == "ctrl+shift":
+        elif self.fig.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, inds).astype("int")
         else:
             self.selection_inds = inds
@@ -1739,9 +1738,9 @@ class SelectFromCollection:
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
-        if self.canvas._key == "control":
+        if self.fig.canvas._key == "control":
             self.selection_inds = np.union1d(self.selection_inds, [ind])
-        elif self.canvas._key == "ctrl+shift":
+        elif self.fig.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, [ind])
         else:
             return  # don't notify()
@@ -1768,7 +1767,7 @@ class SelectFromCollection:
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.collection.set_linewidths(self.lw)
-        self.canvas.draw_idle()
+        self.fig.canvas.draw_idle()
 
     def disconnect(self):
         """Disconnect the lasso selector."""
@@ -1777,7 +1776,7 @@ class SelectFromCollection:
         self.ec[:, -1] = self.alpha_selected
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
-        self.canvas.draw_idle()
+        self.fig.canvas.draw_idle()
 
 
 def _get_color_list(*, remove=None):
@@ -1926,7 +1925,7 @@ def _setup_ax_spines(
 
         def log_fix(tval):
             exp = np.log10(np.abs(tval))
-            return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
+            return np.sign(tval) * 10 ** (np.trunc(exp) - (exp < 0))
 
         xlims = np.array([xmin, xmax])
         temp_ticks = log_fix(xlims)
@@ -2046,13 +2045,13 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True, nave=1
 def _check_sss(info):
     """Check SSS history in info."""
     ch_used = [ch for ch in _DATA_CH_TYPES_SPLIT if _contains_ch_type(info, ch)]
-    has_meg = "mag" in ch_used and "grad" in ch_used
-    has_sss = (
-        has_meg
+    has_mag_and_grad = "mag" in ch_used and "grad" in ch_used
+    needs_meg_combined = (
+        has_mag_and_grad
         and len(info["proc_history"]) > 0
         and info["proc_history"][0].get("max_info") is not None
     )
-    return ch_used, has_meg, has_sss
+    return ch_used, has_mag_and_grad, needs_meg_combined
 
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
@@ -2062,22 +2061,28 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
     # Only look at good channels
     picks = _pick_data_channels(info, with_ref_meg=False, exclude="bads")
     info = pick_info(info, picks)
-    ch_used, has_meg, has_sss = _check_sss(info)
-    if has_sss:
+    ch_used, has_mag_and_grad, needs_meg_combined = _check_sss(info)
+    if needs_meg_combined:
         if "mag" in rank or "grad" in rank:
             raise ValueError(
                 'When using SSS, pass "meg" to set the rank '
                 '(separate rank values for "mag" or "grad" are '
                 "meaningless)."
             )
+        meg_combined = True
     elif "meg" in rank:
-        raise ValueError(
-            "When not using SSS, pass separate rank values "
-            'for "mag" and "grad" (do not use "meg").'
-        )
+        if needs_meg_combined:
+            start = "SSS has been applied to data"
+        else:
+            start = "Got a single MEG rank value"
+        logger.info("%s. Showing mag and grad whitening jointly.", start)
+        meg_combined = True
+    else:
+        meg_combined = False
+    del needs_meg_combined
 
-    picks_list = _picks_by_type(info, meg_combined=has_sss)
-    if has_sss:
+    picks_list = _picks_by_type(info, meg_combined=meg_combined)
+    if meg_combined:
         # reduce ch_used to combined mag grad
         ch_used = list(zip(*picks_list))[0]
     # order pick list by ch_used (required for compat with plot_evoked)
@@ -2088,7 +2093,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
 
     picks_list2 = [k for k in picks_list]
     # add meg picks if needed.
-    if has_meg:
+    if has_mag_and_grad:
         # append ("meg", picks_meg)
         picks_list2 += _picks_by_type(info, meg_combined=True)
 
@@ -2121,7 +2126,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 this_rank[ch_type] = rank[ch_type]
 
         rank_list.append(this_rank)
-    return n_ch_used, rank_list, picks_list, has_sss
+    return n_ch_used, rank_list, picks_list, meg_combined
 
 
 def _check_cov(noise_cov, info):

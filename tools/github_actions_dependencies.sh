@@ -7,7 +7,7 @@ STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	# This will fail if mne-base is not in the env (like in our minimial/old envs, so ||true them):
+	# This will fail if mne-base is not in the env (like in our minimal env, so ||true them):
 	echo "::group::Uninstalling MNE"
 	conda remove -c conda-forge --force -yq mne-base || true
 	python -m pip uninstall -y mne || true
@@ -16,17 +16,26 @@ if [ ! -z "$CONDA_ENV" ]; then
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
 	fi
-	# TODO: Until a PyVista release supports VTK 9.5+
-	STD_ARGS="$STD_ARGS https://github.com/pyvista/pyvista/archive/refs/heads/main.zip"
-	# If on minimal or old, just install testing deps
-	if [[ "${CONDA_ENV}" == "environment_"* ]]; then
+	# If on minimal, just install testing deps
+	if [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 		GROUP="test"
 		EXTRAS=""
-		STD_ARGS="--progress-bar off"
+		STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
+		echo "::group::Upgrading pip installation"
+		python -m pip install --upgrade pip  # upgrade pip to support --group
+		echo "::endgroup::"
 	else
 		GROUP="test_extra"
 		EXTRAS="[hdf5]"
 	fi
+elif [[ "${MNE_CI_KIND}" == "old" ]]; then
+	GROUP=""  # group "test" already included when pylock file generated
+	EXTRAS=""
+	STD_ARGS="--progress-bar off"
+	echo "::group::Syncing old environment dependencies from lockfile using uv"
+	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
+	uv pip install pip tomlkit ${MNE_QT_BACKEND}
+	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
@@ -38,11 +47,20 @@ else
 	EXTRAS=""
 fi
 echo ""
-# until quantities releases...
-STD_ARGS="$STD_ARGS git+https://github.com/python-quantities/python-quantities"
 
-echo "::group::Installing test dependencies using pip"
+# Make sure we only pass non-empty groups argument
+if [ -z "$GROUP" ]; then
+	GROUP_ARG=""
+else
+	GROUP_ARG="--group=$GROUP"
+fi
+
+if [[ "${MNE_CI_KIND}" != "old" ]]; then
+	echo "::group::Installing test dependencies using pip"
+else
+	echo "::group::Installing MNE in development mode using pip"
+fi
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS --group=$GROUP
+python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"

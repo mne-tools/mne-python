@@ -2185,11 +2185,11 @@ class BaseRaw(
         pass  # noqa
 
     def copy(self):
-        """Return copy of Raw instance.
+        """Return copy of the instance.
 
         Returns
         -------
-        inst : instance of Raw
+        inst : same type as the input data
             A copy of the instance.
         """
         return deepcopy(self)
@@ -2428,6 +2428,10 @@ class BaseRaw(
         Channels are converted to columns in the DataFrame. By default, an
         additional column "time" is added, unless ``index`` is not ``None``
         (in which case time values form the DataFrame's index).
+
+        .. attention:: By default, returned data values are scaled from
+            SI units to a unit more suitable for plotting or statistical modeling.
+            See the description of the ``scalings`` parameter for details.
 
         Parameters
         ----------

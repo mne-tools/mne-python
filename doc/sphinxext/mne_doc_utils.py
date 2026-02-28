@@ -72,9 +72,21 @@ def reset_warnings(gallery_conf, fname):
         r"open_text is deprecated\. Use files",
         # dipy etc.
         "The `disp` and `iprint` options of the L-BFGS-B solver",
+        # statsmodels<->pandas
+        "Substitution is deprecated and will be removed",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
+        )
+    # ignore (PendingDeprecationWarning)
+    for key in (
+        # sphinx
+        "The mapping interface for autodoc options",
+        # sphinxcontrib-bibtex
+        "sphinx.environment.BuildEnvironment.app' is deprecated",
+    ):
+        warnings.filterwarnings(  # deal with other modules having bad imports
+            "ignore", message=f".*{key}.*", category=PendingDeprecationWarning
         )
     # ignore (UserWarning)
     for message in (
@@ -84,6 +96,8 @@ def reset_warnings(gallery_conf, fname):
         r"You are using the.*matplotlib backend that[.\n]*",
         # pybtex
         ".*pkg_resources is deprecated as an API.*",
+        # dipy <-> NumPy
+        "'where' used without 'out', expect.*",
     ):
         warnings.filterwarnings(
             "ignore",

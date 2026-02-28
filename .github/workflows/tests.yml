@@ -107,7 +107,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: Warpbuilds/action-debugger@v1.3
         timeout-minutes: 80
         with:
           detached: true
@@ -151,9 +151,20 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: ${{ !startswith(matrix.kind, 'pip') }}
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
         timeout-minutes: 20
+      # Python (if old)
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: ${{ matrix.python }}
+        if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
+      - run: python ./tools/github_actions_check_old_env.py
+        if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'

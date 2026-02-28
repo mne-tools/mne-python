@@ -26,6 +26,7 @@ from .utils import (
     _downloader_params,
     _get_path,
     _log_time_size,
+    _pl,
 )
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
@@ -253,6 +254,9 @@ def fetch_dataset(
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
     sz = 0
+    logger.info(
+        "Fetching %s file%s for the %s dataset ...", len(names), _pl(names), name
+    )
 
     for idx in range(len(names)):
         # fetch and unpack the data

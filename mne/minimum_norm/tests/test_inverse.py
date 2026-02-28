@@ -23,6 +23,7 @@ from mne import (
     EvokedArray,
     SourceEstimate,
     combine_evoked,
+    compute_rank,
     compute_raw_covariance,
     convert_forward_solution,
     make_ad_hoc_cov,
@@ -38,6 +39,7 @@ from mne import (
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
+from mne.fixes import _reshape_view
 from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
 from mne.io import read_info, read_raw_fif
 from mne.label import label_sign_flip, read_label
@@ -992,20 +994,33 @@ def test_make_inverse_operator_diag(evoked, noise_cov, tmp_path, azure_windows):
 
 def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     """Test MNE inverse operator with a specified noise cov rank."""
-    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
+    fwd_op_meg = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    inv = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
+    inv = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
 
     bad_cov = noise_cov.copy()
     bad_cov["data"][0, 0] *= 1e12
     with pytest.warns(RuntimeWarning, match="orders of magnitude"):
-        make_inverse_operator(evoked.info, fwd_op, bad_cov, rank=dict(meg=64))
+        make_inverse_operator(evoked.info, fwd_op_meg, bad_cov, rank=dict(meg=64))
 
-    fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))
+    fwd_op_eeg = read_forward_solution_eeg(fname_fwd, surf_ori=True)
+    inv = make_inverse_operator(evoked.info, fwd_op_eeg, noise_cov, rank=dict(eeg=20))
     assert compute_rank_inverse(inv) == 20
+
+    # with and without rank passed explicitly
+    inv_info = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank="info")
+    info_rank = 302
+    assert compute_rank_inverse(inv_info) == info_rank
+    rank = compute_rank(noise_cov, info=evoked.copy().pick("meg").info, rank="info")
+    assert "meg" in rank
+    assert sum(rank.values()) == info_rank
+    inv_rank = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank=rank)
+    assert compute_rank_inverse(inv_rank) == info_rank
+    evoked_info = apply_inverse(evoked, inv_info, lambda2, "MNE")
+    evoked_rank = apply_inverse(evoked, inv_rank, lambda2, "MNE")
+    assert_allclose(evoked_rank.data, evoked_info.data)
 
 
 def test_inverse_operator_volume(evoked, tmp_path):
@@ -1686,7 +1701,7 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
         assert ori.shape == (ori.shape[0], 3)
         ori = ori[max_idx]
     assert ori.shape == (max_idx.size, 3)
-    ori.shape = (max_idx.size // 3, 3, 3)
+    ori = _reshape_view(ori, (max_idx.size // 3, 3, 3))
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu

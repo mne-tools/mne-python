@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7b189e9a58156cd5ddce4c93429202bc3bce812b",
+  "authors": [
+    {
+      "n": "Natneal.B",
+      "e": "nati.new77@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/nirx/nirx.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

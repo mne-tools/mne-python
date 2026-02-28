@@ -7,6 +7,7 @@ import re
 from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -28,6 +29,7 @@ from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..fixes import _reshape_view
 from ..transforms import (
     Transform,
     _ensure_trans,
@@ -192,6 +194,15 @@ _BUILTIN_STANDARD_MONTAGES = [
         description="Brain Products with 10-10 electrode names (128 channels)",
     ),
 ]
+
+
+# We could eventually add mne/data/helmets/Kernel_Flux_ch_pos.txt if we added
+# the normals and deduplicate... but can wait until someone has a use case!
+_MEG_CANONICAL_FILES = {
+    "neuromag": "neuromag306.csv",
+    "ctf151": "ctf151.csv",
+    "ctf275": "ctf275.csv",
+}
 
 
 def _check_get_coord_frame(dig):
@@ -973,9 +984,9 @@ def read_dig_hpts(fname, unit="mm"):
         label[ii]: this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "eeg"
     }
     hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "hpi"])
-    hpi.shape = (-1, 3)  # in case it's empty
+    hpi = _reshape_view(hpi, (-1, 3))  # in case it's empty
     hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "extra"])
-    hsp.shape = (-1, 3)  # in case it's empty
+    hsp = _reshape_view(hsp, (-1, 3))  # in case it's empty
     return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
 
 
@@ -1735,6 +1746,115 @@ def read_custom_montage(
             d["coord_frame"] = coord_frame
 
     return montage
+
+
+@verbose
+def read_meg_canonical_info(system, *, verbose=None):
+    """Load canonical MEG sensor definitions from CSV files.
+
+    Parameters
+    ----------
+    system : str
+        The MEG system name. Currently supported: 'neuromag', 'ctf151' or
+        'ctf275'.
+    %(verbose)s
+
+    Returns
+    -------
+    info : Info
+        An Info object containing the canonical sensor definitions.
+
+    Notes
+    -----
+    This function loads pre-defined canonical sensor positions and
+    orientations from CSV files stored in mne/channels/data/montages/.
+
+    .. versionadded:: 1.12
+    """
+    # Validate system input
+    _check_option("system", system, list(_MEG_CANONICAL_FILES))
+
+    # Load the CSV file
+    montage_dir = Path(__file__).parent / "data" / "canonical_meg"
+    csv_file = montage_dir / _MEG_CANONICAL_FILES[system]
+    assert csv_file.is_file()  # should be guaranteed by packaging
+
+    # Read sensor definitions manually
+    ch_names = []
+    rows = []
+    lines = csv_file.read_text("utf-8").splitlines()
+    # Read header to get column names
+    header = lines[0].strip().split(",")
+    # Create a mapping from column name to index
+    col_idx = {name: i for i, name in enumerate(header)}
+
+    # Read data rows
+    for line in lines[1:]:
+        values = line.strip().split(",")
+        if not values[0]:  # skip empty lines
+            continue
+        rows.append(values)
+        ch_names.append(values[col_idx["name"]])
+
+    # Create base info structure
+    # Use a dummy sample rate; it won't matter for field interpolation
+    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types="mag")
+
+    # Update each channel with full coil information
+    for idx, row in enumerate(rows):
+        ch = info["chs"][idx]
+
+        # Set coil type
+        ch["coil_type"] = int(row[col_idx["coil_type"]])
+
+        # Set position and orientation in loc field
+        # loc[0:3] = position
+        ch["loc"][:3] = [
+            float(row[col_idx["x"]]),
+            float(row[col_idx["y"]]),
+            float(row[col_idx["z"]]),
+        ]
+
+        # loc[3:6] = ex (first orientation vector)
+        ch["loc"][3:6] = [
+            float(row[col_idx["ex_x"]]),
+            float(row[col_idx["ex_y"]]),
+            float(row[col_idx["ex_z"]]),
+        ]
+
+        # loc[6:9] = ey (second orientation vector)
+        ch["loc"][6:9] = [
+            float(row[col_idx["ey_x"]]),
+            float(row[col_idx["ey_y"]]),
+            float(row[col_idx["ey_z"]]),
+        ]
+
+        # loc[9:12] = ez (third orientation vector / normal)
+        ch["loc"][9:12] = [
+            float(row[col_idx["ez_x"]]),
+            float(row[col_idx["ez_y"]]),
+            float(row[col_idx["ez_z"]]),
+        ]
+
+        # Set coordinate frame to device coordinates
+        ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
+
+        # Set channel kind to MEG
+        ch["kind"] = FIFF.FIFFV_MEG_CH
+
+        # Set unit based on coil type
+        # Neuromag gradiometers (3012) use T/m, magnetometers (3024) use T
+        # CTF gradiometers (5001) use T
+        if ch["coil_type"] == 3012:  # Neuromag planar gradiometer
+            ch["unit"] = FIFF.FIFF_UNIT_T_M
+        else:  # Magnetometers and CTF gradiometers
+            ch["unit"] = FIFF.FIFF_UNIT_T
+
+    # Set device to head transform to identity (canonical positions)
+    # This will be updated based on the actual data being interpolated
+    info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+
+    return info
 
 
 def compute_dev_head_t(montage):
