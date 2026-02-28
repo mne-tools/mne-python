@@ -1556,6 +1556,20 @@ class BaseEpochs(
         -------
         epochs : instance of Epochs
             The epochs with indices dropped. Operates in-place.
+
+        Notes
+        -----
+        This method expects zero-based indices into the currently remaining
+        epochs, not the original event indices (as found in
+        :attr:`mne.Epochs.selection`). If some epochs were automatically
+        dropped (e.g., due to insufficient data or rejection), you may need
+        to convert indices before calling this method::
+
+            # epochs.selection contains the original indices
+            # of the remaining epochs
+            plot_idx = 1  # index shown in epochs.plot()
+            drop_idx = np.where(epochs.selection == plot_idx)[0]
+            epochs.drop(drop_idx)
         """
         indices = np.atleast_1d(indices)
 
