@@ -441,7 +441,7 @@ def set_config(
         Path to the FreeSurfer subjects directory. Corresponds to the
         ``SUBJECTS_DIR`` environment variable.
     **config_kwargs
-        Any other key from :data:`mne.utils.config._known_config_types` using
+        Any other key from ``_known_config_types`` using
         the pythonic snake_case name derived by lower-casing the config key and
         stripping the ``MNE_`` prefix when the remainder does not start with a
         digit (e.g. ``cache_dir`` → ``MNE_CACHE_DIR``,
