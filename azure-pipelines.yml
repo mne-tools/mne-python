@@ -138,7 +138,18 @@ stages:
           - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'slow and mne-qt-browser tests'
           # Coverage
-          - bash: bash <(curl -s https://codecov.io/bash)
+          - bash: |
+              CODECOV_OS=linux
+              CODECOV_BIN=codecov
+              if [ "${AGENT_OS}" = "Darwin" ]; then
+                CODECOV_OS=macos
+              elif [ "${AGENT_OS}" = "Windows_NT" ]; then
+                CODECOV_OS=windows
+                CODECOV_BIN=codecov.exe
+              fi
+              curl -fLsS -o "${CODECOV_BIN}" "https://uploader.codecov.io/latest/${CODECOV_OS}/${CODECOV_BIN}"
+              chmod +x "${CODECOV_BIN}" || true
+              ./"${CODECOV_BIN}" -f coverage.xml -Q "azure-${AGENT_JOBName}" || echo "Codecov upload failed (non-blocking)."
             displayName: 'Codecov'
             condition: succeededOrFailed()
           - task: PublishTestResults@2
@@ -220,7 +231,18 @@ stages:
               python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
             displayName: 'PyQt5'
           # Coverage
-          - bash: bash <(curl -s https://codecov.io/bash)
+          - bash: |
+              CODECOV_OS=linux
+              CODECOV_BIN=codecov
+              if [ "${AGENT_OS}" = "Darwin" ]; then
+                CODECOV_OS=macos
+              elif [ "${AGENT_OS}" = "Windows_NT" ]; then
+                CODECOV_OS=windows
+                CODECOV_BIN=codecov.exe
+              fi
+              curl -fLsS -o "${CODECOV_BIN}" "https://uploader.codecov.io/latest/${CODECOV_OS}/${CODECOV_BIN}"
+              chmod +x "${CODECOV_BIN}" || true
+              ./"${CODECOV_BIN}" -f coverage.xml -Q "azure-${AGENT_JOBName}" || echo "Codecov upload failed (non-blocking)."
             displayName: 'Codecov'
             condition: succeededOrFailed()
           - task: PublishTestResults@2
@@ -289,7 +311,18 @@ stages:
             displayName: 'Get test data'
           - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'Run tests'
-          - bash: bash <(curl -s https://codecov.io/bash)
+          - bash: |
+              CODECOV_OS=linux
+              CODECOV_BIN=codecov
+              if [ "${AGENT_OS}" = "Darwin" ]; then
+                CODECOV_OS=macos
+              elif [ "${AGENT_OS}" = "Windows_NT" ]; then
+                CODECOV_OS=windows
+                CODECOV_BIN=codecov.exe
+              fi
+              curl -fLsS -o "${CODECOV_BIN}" "https://uploader.codecov.io/latest/${CODECOV_OS}/${CODECOV_BIN}"
+              chmod +x "${CODECOV_BIN}" || true
+              ./"${CODECOV_BIN}" -f coverage.xml -Q "azure-${AGENT_JOBName}" || echo "Codecov upload failed (non-blocking)."
             displayName: 'Codecov'
             condition: succeededOrFailed()
           - task: PublishTestResults@2
