@@ -21,6 +21,7 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 # of :class:`mne.viz.Brain` for plotting data on a brain.
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
@@ -134,3 +135,31 @@ cax = fig.add_axes([0.9, 0.1, 0.05, 0.8])
 norm = Normalize(vmin=0, vmax=dip.gof.max())
 fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax)
 fig.suptitle("Dipole Fits Scaled by Amplitude and Colored by GOF")
+
+
+# %%
+# Use per-vertex opacity for distributed data
+# --------------------------------------------
+#
+# You can provide an array for ``alpha`` in :meth:`mne.viz.Brain.add_data`
+# to control transparency per vertex. This can be useful to emphasize a
+# subset of vertices while still showing surrounding context.
+
+brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, **brain_kwargs)
+coords = brain.geo["lh"].coords
+n_vertices = len(coords)
+
+# Build synthetic data (a smooth left-to-right gradient) and a matching
+# opacity ramp from mostly transparent to fully opaque.
+data = coords[:, 0]
+data = (data - data.min()) / (data.max() - data.min())
+vertex_alpha = np.linspace(0.2, 1.0, n_vertices)
+
+brain.add_data(
+    data,
+    hemi="lh",
+    alpha=vertex_alpha,
+    colormap="mne",
+    smoothing_steps=5,
+)
+brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
