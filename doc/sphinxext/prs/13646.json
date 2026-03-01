@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "cd9ae4db0bfe7836a640c7f17a473788c5ca8e06",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

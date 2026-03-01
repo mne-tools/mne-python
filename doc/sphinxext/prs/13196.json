@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "437d79be7c5fb855a81d44da30bf9a51c9f60413",
+  "authors": [
+    {
+      "n": "Konstantinos Tsilimparis",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13196.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/interpolate_to.py": {
+      "a": 71,
+      "d": 4
+    },
+    "mne/channels/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 76,
+      "d": 133
+    },
+    "mne/channels/data/canonical_meg/ctf151.csv": {
+      "a": 152,
+      "d": 0
+    },
+    "mne/channels/data/canonical_meg/ctf275.csv": {
+      "a": 275,
+      "d": 0
+    },
+    "mne/channels/data/canonical_meg/neuromag306.csv": {
+      "a": 307,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 138,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 119,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 25,
+      "d": 0
+    }
+  }
+}

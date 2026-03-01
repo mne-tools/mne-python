@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f067dd7ea1a19d1f931a6f8433bf4052376f5349",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13654.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "87d1051d6932383e825ba377b21a221b2670db11",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13611.dependency.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13625.dependency.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
