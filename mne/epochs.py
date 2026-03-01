@@ -1421,6 +1421,74 @@ class BaseEpochs(
         self._get_data(out=False, verbose=verbose)
         return self
 
+    def score_quality(self, picks=None):
+        """Score each epoch by its likelihood of containing an artifact.
+
+        Computes a per-epoch outlier score in [0, 1] using robust statistics
+        on peak-to-peak amplitude, variance, and kurtosis. No additional
+        dependencies are required. Useful for informing rejection thresholds
+        before calling :meth:`drop_bad`.
+
+        .. note:: To constrain the time period used for scoring, set
+                ``epochs.reject_tmin`` and ``epochs.reject_tmax``.
+
+        Parameters
+        ----------
+        picks : str | list | slice | None
+            Channels to include. Defaults to good data channels.
+            See :func:`mne.pick_types` for more information.
+
+        Returns
+        -------
+        scores : ndarray, shape (n_epochs,)
+            Outlier score per epoch. Values closer to 0 indicate clean
+            epochs; values closer to 1 indicate likely artifacts.
+
+        See Also
+        --------
+        drop_bad : Drop epochs that exceed rejection thresholds.
+        plot_drop_log : Plot the drop log after calling drop_bad.
+
+        Examples
+        --------
+        Score epochs and use result to inform rejection thresholds::
+
+            scores = epochs.score_quality()
+            bad_epochs = np.where(scores > 0.8)[0]
+            epochs.drop(bad_epochs, reason='quality-score')
+        """
+        from scipy.stats import kurtosis as _kurtosis
+
+        self.load_data()
+        data = self.get_data(picks=picks)  # (n_epochs, n_channels, n_times)
+
+        if data.shape[0] < 2:
+            raise ValueError(
+                "At least 2 epochs are required to compute quality scores."
+            )
+
+        # Feature 1: peak-to-peak amplitude (mean across channels)
+        ptp = np.ptp(data, axis=-1).mean(axis=-1)
+
+        # Feature 2: variance (mean across channels)
+        var = data.var(axis=-1).mean(axis=-1)
+
+        # Feature 3: kurtosis — sensitive to spike artifacts
+        kurt = np.array([_kurtosis(data[i].ravel()) for i in range(len(data))])
+
+        # Robust z-score each feature using median absolute deviation
+        features = np.column_stack([ptp, var, kurt])
+        median = np.median(features, axis=0)
+        mad = np.median(np.abs(features - median), axis=0) + 1e-10
+        z = np.abs((features - median) / mad)
+
+        # Combine and normalize to [0, 1]
+        raw_score = z.mean(axis=-1)
+        score_range = raw_score.max() - raw_score.min()
+        scores = (raw_score - raw_score.min()) / (score_range + 1e-10)
+
+        return scores
+
     def drop_log_stats(self, ignore=("IGNORED",)):
         """Compute the channel stats based on a drop_log from Epochs.
 
