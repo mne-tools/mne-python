@@ -3434,6 +3434,7 @@ def test_drop_epochs():
         ("a", "b"),
     ]
 
+
 def test_score_quality():
     """Test epoch quality scoring."""
     raw, events, picks = _get_data()
@@ -3461,6 +3462,7 @@ def test_score_quality():
     # Too few epochs should raise
     with pytest.raises(ValueError, match="At least 2 epochs"):
         epochs[:1].score_quality()
+
 
 @pytest.mark.parametrize("preload", (True, False))
 def test_drop_epochs_mult(preload):
