@@ -1,0 +1,2 @@
+Add optional prototype support for enabling JupyterLite in documentation builds
+via the ``jupyterlite_sphinx`` extension, controlled by an environment variable.

@@ -245,6 +245,8 @@ jobs:
       # Build docs
       - run:
           name: make html
+          environment:
+            MNE_ENABLE_JUPYTERLITE: "true"
           command: |  # we have -o pipefail in #BASH_ENV so we should be okay
             set -x
             PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
