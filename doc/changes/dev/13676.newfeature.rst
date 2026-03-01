@@ -1,0 +1,1 @@
+Add :meth:\mne.Epochs.score_quality\ to compute a per-epoch outlier score using robust statistics on peak-to-peak amplitude, variance, and kurtosis, providing a dependency-free starting point for setting rejection thresholds before calling :meth:\mne.Epochs.drop_bad\, by \Aman Srivastava\_.

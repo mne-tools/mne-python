@@ -3435,6 +3435,35 @@ def test_drop_epochs():
     ]
 
 
+def test_score_quality():
+    """Test epoch quality scoring."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks, preload=True)
+
+    # Basic output checks
+    scores = epochs.score_quality()
+    assert scores.shape == (len(epochs),)
+    assert scores.min() >= 0.0
+    assert scores.max() <= 1.0
+
+    # Scores should vary across epochs (not all identical)
+    assert scores.std() > 0
+
+    # Works with picks
+    scores_eeg = epochs.score_quality(picks="eeg")
+    assert scores_eeg.shape == (len(epochs),)
+
+    # Inject an obvious artifact into one epoch and check it scores highest
+    epochs_art = epochs.copy()
+    epochs_art._data[0] *= 100  # make epoch 0 a clear outlier
+    scores_art = epochs_art.score_quality()
+    assert scores_art[0] == scores_art.max()
+
+    # Too few epochs should raise
+    with pytest.raises(ValueError, match="At least 2 epochs"):
+        epochs[:1].score_quality()
+
+
 @pytest.mark.parametrize("preload", (True, False))
 def test_drop_epochs_mult(preload):
     """Test that subselecting epochs or making fewer epochs is similar."""
