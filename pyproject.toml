@@ -194,6 +194,10 @@ full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
+ver-auto-bumped = [
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
