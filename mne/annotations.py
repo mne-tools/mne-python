@@ -741,13 +741,31 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
-        if hasattr(self, "hed_string"):
-            self.hed_string._objs = [self.hed_string._objs[i] for i in order]
-            for i in order:
-                self.hed_string.__setitem__(
-                    i, self.hed_string._objs[i].get_original_hed_string()
-                )
         self.extras = [self.extras[i] for i in order]
+        return order
+
+    def _get_crop_lims(self, tmin, tmax, use_orig_time):
+        """Compute absolute crop limits and offset."""
+        if not use_orig_time or self.orig_time is None:
+            offset = _handle_meas_date(0)
+        else:
+            offset = self.orig_time
+        if tmin is None:
+            tmin = timedelta(seconds=self.onset.min()) + offset
+        if tmax is None:
+            tmax = timedelta(seconds=(self.onset + self.duration).max()) + offset
+        for key, val in [("tmin", tmin), ("tmax", tmax)]:
+            _validate_type(
+                val, ("numeric", _datetime), key, "numeric, datetime, or None"
+            )
+        absolute_tmin = _handle_meas_date(tmin)
+        absolute_tmax = _handle_meas_date(tmax)
+        if absolute_tmin > absolute_tmax:
+            raise ValueError(
+                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
+                f"{absolute_tmax})."
+            )
+        return offset, absolute_tmin, absolute_tmax
 
     @verbose
     def crop(
@@ -778,26 +796,10 @@ class Annotations:
         """
         if len(self) == 0:
             return self  # no annotations, nothing to do
-        if not use_orig_time or self.orig_time is None:
-            offset = _handle_meas_date(0)
-        else:
-            offset = self.orig_time
-        if tmin is None:
-            tmin = timedelta(seconds=self.onset.min()) + offset
-        if tmax is None:
-            tmax = timedelta(seconds=(self.onset + self.duration).max()) + offset
-        for key, val in [("tmin", tmin), ("tmax", tmax)]:
-            _validate_type(
-                val, ("numeric", _datetime), key, "numeric, datetime, or None"
-            )
-        absolute_tmin = _handle_meas_date(tmin)
-        absolute_tmax = _handle_meas_date(tmax)
+        offset, absolute_tmin, absolute_tmax = self._get_crop_lims(
+            tmin, tmax, use_orig_time
+        )
         del tmin, tmax
-        if absolute_tmin > absolute_tmax:
-            raise ValueError(
-                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
-                f"{absolute_tmax})."
-            )
         logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
         onsets, durations, descriptions, ch_names, extras = [], [], [], [], []
@@ -1069,7 +1071,7 @@ class HEDAnnotations(Annotations):
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
-        if not isinstance(other, type(self)):
+        if not super().__eq__(other):
             return False
         _slf = self.hed_string
         _oth = other.hed_string
@@ -1078,7 +1080,7 @@ class HEDAnnotations(Annotations):
             _slf = [_slf._validate_hed_string(v, _oth._schema) for v in _slf._objs]
         elif _compare_version(self._hed_version, ">", other._hed_version):
             _oth = [_oth._validate_hed_string(v, _slf._schema) for v in _oth._objs]
-        return super().__eq__(other) and _slf == _oth
+        return _slf == _oth
 
     def __repr__(self):
         """Show a textual summary of the object."""
@@ -1246,6 +1248,15 @@ class HEDAnnotations(Annotations):
                 del self.hed_string._objs[i]
                 del self.hed_string[i]
 
+    def _sort(self):
+        """Sort in place."""
+        order = super()._sort()
+        self.hed_string._objs = [self.hed_string._objs[i] for i in order]
+        for i in order:
+            self.hed_string.__setitem__(
+                i, self.hed_string._objs[i].get_original_hed_string()
+            )
+
     @verbose
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
@@ -1275,26 +1286,9 @@ class HEDAnnotations(Annotations):
         """
         if len(self) == 0:
             return self
-        if not use_orig_time or self.orig_time is None:
-            offset = _handle_meas_date(0)
-        else:
-            offset = self.orig_time
-        if tmin is None:
-            tmin = timedelta(seconds=self.onset.min()) + offset
-        if tmax is None:
-            tmax = timedelta(seconds=(self.onset + self.duration).max()) + offset
-        for key, val in [("tmin", tmin), ("tmax", tmax)]:
-            _validate_type(
-                val, ("numeric", _datetime), key, "numeric, datetime, or None"
-            )
-        absolute_tmin = _handle_meas_date(tmin)
-        absolute_tmax = _handle_meas_date(tmax)
-        del tmin, tmax
-        if absolute_tmin > absolute_tmax:
-            raise ValueError(
-                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
-                f"{absolute_tmax})."
-            )
+        offset, absolute_tmin, absolute_tmax = self._get_crop_lims(
+            tmin, tmax, use_orig_time
+        )
 
         keep = []
         hed_strings = list(self.hed_string)
