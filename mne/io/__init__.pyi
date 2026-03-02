@@ -19,6 +19,7 @@ __all__ = [
     "read_raw",
     "read_raw_ant",
     "read_raw_artemis123",
+    "read_raw_bci2k",
     "read_raw_bdf",
     "read_raw_boxy",
     "read_raw_brainvision",

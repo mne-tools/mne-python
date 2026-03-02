@@ -11,7 +11,7 @@ from ..base import BaseRaw
 def _parse_bci2k_header(fname):
     """Parse minimal BCI2000 .dat header.
 
-    This parser intended to extract:
+    This parser is intended to extract:
     - Header length (bytes)
     - Number of source channels
     - Statevector length (bytes)
@@ -259,7 +259,7 @@ class RawBCI2k(BaseRaw):
             filenames=[input_fname],
             first_samps=[first_samp],
             last_samps=[last_samp],
-            orig_format="single",
+            orig_format="double",
             verbose=verbose,
         )
 
@@ -274,7 +274,7 @@ def read_raw_bci2k(input_fname, preload=False, verbose=None):
     input_fname : path-like
         Path to the BCI2000 ``.dat`` file.
     preload : bool
-        If True, preload the data into memory. Must be True.
+        Whether to preload the data into memory. Must be True.
     verbose : bool | str | int | None
         Control verbosity.
 
@@ -282,6 +282,11 @@ def read_raw_bci2k(input_fname, preload=False, verbose=None):
     -------
     raw : instance of RawBCI2k
         The raw object containing the data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawBCI2k.
     """
     return RawBCI2k(
         input_fname=input_fname,
