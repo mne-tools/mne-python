@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 
 from mne import (
     SourceEstimate,
+    create_info,
     pick_events,
     read_cov,
     read_dipole,
@@ -324,6 +325,57 @@ def test_plot_csd():
     )
     plot_csd(csd, mode="csd")  # Plot cross-spectral density
     plot_csd(csd, mode="coh")  # Plot coherence
+
+    # EEG
+    info_eeg = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="eeg")
+    figs = plot_csd(csd, info=info_eeg, mode="csd", show=False)
+    assert len(figs) == 1
+    figs = plot_csd(csd, info=info_eeg, mode="coh", show=False)
+    assert len(figs) == 1
+
+    # sEEG
+    info_seeg = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="seeg")
+    figs = plot_csd(csd, info=info_seeg, mode="csd", show=False)
+    assert len(figs) == 1
+    figs = plot_csd(csd, info=info_seeg, mode="coh", show=False)
+    assert len(figs) == 1
+
+    # ECoG
+    info_ecog = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="ecog")
+    figs = plot_csd(csd, info=info_ecog, mode="csd", show=False)
+    assert len(figs) == 1
+    figs = plot_csd(csd, info=info_ecog, mode="coh", show=False)
+    assert len(figs) == 1
+
+    # DBS
+    info_dbs = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="dbs")
+    figs = plot_csd(csd, info=info_dbs, mode="csd", show=False)
+    assert len(figs) == 1
+    figs = plot_csd(csd, info=info_dbs, mode="coh", show=False)
+    assert len(figs) == 1
+
+    # Mixed: EEG + sEEG + ECoG + DBS — each should produce its own figure
+    info_mixed = create_info(
+        ["EEG1", "SEEG1", "ECOG1", "DBS1"],
+        sfreq=1.0,
+        ch_types=["eeg", "seeg", "ecog", "dbs"],
+    )
+    csd_mixed = CrossSpectralDensity(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        ["EEG1", "SEEG1", "ECOG1", "DBS1"],
+        frequencies=[(10, 20)],
+        n_fft=1,
+        tmin=0,
+        tmax=1,
+    )
+    figs = plot_csd(csd_mixed, info=info_mixed, mode="csd", show=False)
+    assert len(figs) == 4
+    figs = plot_csd(csd_mixed, info=info_mixed, mode="coh", show=False)
+    assert len(figs) == 4
+
+    info_other = create_info(["OTHERCHAN"], sfreq=1.0, ch_types="eeg")
+    figs = plot_csd(csd, info=info_other, mode="csd", show=False)
+    assert len(figs) == 0
 
 
 @pytest.mark.slowtest  # Slow on Azure

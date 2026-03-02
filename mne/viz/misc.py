@@ -1484,33 +1484,58 @@ def plot_csd(
 
     if info is not None:
         info_ch_names = info["ch_names"]
-        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude=[])
-        sel_mag = pick_types(info, meg="mag", eeg=False, ref_meg=False, exclude=[])
-        sel_grad = pick_types(info, meg="grad", eeg=False, ref_meg=False, exclude=[])
-        idx_eeg = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_eeg
-            if info_ch_names[c] in csd.ch_names
+        # Each entry: (pick_types kwargs, ch_type key, plot title)
+        _ch_type_info = [
+            (dict(meg=False, eeg=True, ref_meg=False, exclude=[]), "eeg", "EEG"),
+            (
+                dict(meg="mag", eeg=False, ref_meg=False, exclude=[]),
+                "mag",
+                "Magnetometers",
+            ),
+            (
+                dict(meg="grad", eeg=False, ref_meg=False, exclude=[]),
+                "grad",
+                "Gradiometers",
+            ),
+            (dict(meg=False, seeg=True, ref_meg=False, exclude=[]), "seeg", "sEEG"),
+            (dict(meg=False, ecog=True, ref_meg=False, exclude=[]), "ecog", "ECoG"),
+            (dict(meg=False, dbs=True, ref_meg=False, exclude=[]), "dbs", "DBS"),
         ]
-        idx_mag = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_mag
-            if info_ch_names[c] in csd.ch_names
-        ]
-        idx_grad = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_grad
-            if info_ch_names[c] in csd.ch_names
-        ]
-        indices = [idx_eeg, idx_mag, idx_grad]
-        titles = ["EEG", "Magnetometers", "Gradiometers"]
+        indices = []
+        titles = []
+        ch_types = []
+        for pick_kwargs, ch_type, title in _ch_type_info:
+            sel = pick_types(info, **pick_kwargs)
+            idx = [
+                csd.ch_names.index(info_ch_names[c])
+                for c in sel
+                if info_ch_names[c] in csd.ch_names
+            ]
+            indices.append(idx)
+            titles.append(title)
+            ch_types.append(ch_type)
 
         if mode == "csd":
             # The units in which to plot the CSD
-            units = dict(eeg="µV²", grad="fT²/cm²", mag="fT²")
-            scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
+            units = dict(
+                eeg="µV²",
+                grad="fT²/cm²",
+                mag="fT²",
+                seeg="mV²",
+                ecog="µV²",
+                dbs="µV²",
+            )
+            scalings = dict(
+                eeg=1e12,
+                grad=1e26,
+                mag=1e30,
+                seeg=1e6,
+                ecog=1e12,
+                dbs=1e12,
+            )
     else:
         indices = [np.arange(len(csd.ch_names))]
+        ch_types = [None]
         if mode == "csd":
             titles = ["Cross-spectral density"]
             # Units and scaling unknown
@@ -1526,7 +1551,7 @@ def plot_csd(
     n_rows = int(np.ceil(n_freqs / float(n_cols)))
 
     figs = []
-    for ind, title, ch_type in zip(indices, titles, ["eeg", "mag", "grad"]):
+    for ind, title, ch_type in zip(indices, titles, ch_types):
         if len(ind) == 0:
             continue
 
