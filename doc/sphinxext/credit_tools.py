@@ -63,6 +63,7 @@ manual_renames = {
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
     "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "alexandra": "Alexandra Corneyllie",  # 7600
+    "Aniket": "Aniket Singh Yadav",  # 13672
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
     "Basile": "Basile Pinsard",  # 1791
     "Bru": "Bruno Aristimunha",  # 13489
