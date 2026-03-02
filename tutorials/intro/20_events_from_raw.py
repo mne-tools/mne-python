@@ -104,7 +104,7 @@ raw.copy().pick(picks="stim").plot(start=3, duration=6)
 #
 # For a list of which EEG/MEG systems use STIM channels versus marker files
 # or embedded arrays, see the "Supported data formats" tables in
-# :ref:`tut-import-meg` and :ref:`tut-import-eeg`.
+# :doc:`/auto_tutorials/io/10_reading_meg_data` and :doc:`/auto_tutorials/io/20_reading_eeg_data`.
 #
 #
 # Converting a STIM channel signal to an Events array
