@@ -1598,6 +1598,8 @@ class BaseRaw(
             the cropped segment as an independent recording. Note that this
             can break things if you extracted events before cropping and try
             to use them afterward. Default is False.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Returns
