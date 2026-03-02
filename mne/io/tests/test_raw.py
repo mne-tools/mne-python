@@ -1088,6 +1088,7 @@ def test_rescale():
     raw.rescale(4)  # a scalar works
     assert_allclose(raw.get_data(), orig * 4)
 
+
 def test_crop_reset_first_samp():
     """Regression test for GH-13278.
 
