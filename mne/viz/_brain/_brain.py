@@ -1712,6 +1712,9 @@ class Brain:
         alpha : float in [0, 1] | array, shape (n_vertices,)
             Alpha level to control opacity of the overlay. A scalar applies
             globally, while a 1D array applies per-vertex opacity.
+
+            .. versionchanged:: 1.12
+               Added support for per-vertex alpha.
         vertices : numpy array
             Vertices for which the data is defined (needed if
             ``len(data) < nvtx``).
