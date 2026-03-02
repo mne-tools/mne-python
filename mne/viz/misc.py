@@ -1484,8 +1484,7 @@ def plot_csd(
 
     if info is not None:
         info_ch_names = info["ch_names"]
-        # Each entry: (pick_types kwargs, ch_type key, plot title)
-        _ch_type_info = [
+        _channel_configs = [
             (dict(meg=False, eeg=True, ref_meg=False, exclude=[]), "eeg", "EEG"),
             (
                 dict(meg="mag", eeg=False, ref_meg=False, exclude=[]),
@@ -1504,16 +1503,17 @@ def plot_csd(
         indices = []
         titles = []
         ch_types = []
-        for pick_kwargs, ch_type, title in _ch_type_info:
+        for pick_kwargs, ch_type, title in _channel_configs:
             sel = pick_types(info, **pick_kwargs)
             idx = [
                 csd.ch_names.index(info_ch_names[c])
                 for c in sel
                 if info_ch_names[c] in csd.ch_names
             ]
-            indices.append(idx)
-            titles.append(title)
-            ch_types.append(ch_type)
+            if len(idx) > 0:
+                indices.append(idx)
+                titles.append(title)
+                ch_types.append(ch_type)
 
         if mode == "csd":
             # The units in which to plot the CSD
