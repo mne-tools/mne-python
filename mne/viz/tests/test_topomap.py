@@ -988,6 +988,7 @@ def test_plot_ch_adjacency():
     with pytest.raises(ValueError, match=msg):
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
 
+
 def test_plot_topomap_info_names_ordering():
     """Regression test for GH-12700.
 
@@ -995,13 +996,12 @@ def test_plot_topomap_info_names_ordering():
     passing an Info object as pos with a names argument.
     """
     import numpy as np
+
     from mne import create_info
     from mne.channels import make_standard_montage
     from mne.viz import plot_topomap
 
-    info = create_info(
-        ch_names=["Fp1", "Fp2", "Fz"], sfreq=1000.0, ch_types="eeg"
-    )
+    info = create_info(ch_names=["Fp1", "Fp2", "Fz"], sfreq=1000.0, ch_types="eeg")
     montage = make_standard_montage("standard_1020")
     info.set_montage(montage)
 
