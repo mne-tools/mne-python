@@ -249,6 +249,7 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # :ref:`tut-freesurfer-reconstruction` tutorial.
 #
 #
+
 # %%
 # # .. _creating-trans:
 #
@@ -258,6 +259,9 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # This section has been moved to another tutorial. This placeholder keeps the
 # link working so Circle Ci checks can pass. We'll remove in the final PR.
 #
+#
+
+# %%
 # # .. _tut-source-alignment-without-mri:
 #
 # Source Alignment Without MRI
@@ -266,4 +270,7 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # This section has been moved to another tutorial. This placeholder keeps the
 # link so Circle Ci checks can pass. We'll remove in the final PR.
 #
+#
+
+# %%
 # .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
