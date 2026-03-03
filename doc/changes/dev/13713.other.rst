@@ -1,0 +1,1 @@
+Refactored CSD channel-type indexing to support all data channel types using ``_DATA_CH_TYPES_SPLIT`` and ``DEFAULTS``, removing hardcoded handling and reducing duplicated logic with covariance plotting, by `Aniket Singh Yadav`_.
