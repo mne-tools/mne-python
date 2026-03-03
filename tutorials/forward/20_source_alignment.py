@@ -216,8 +216,6 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # %%
 # **Alignment problem #2: Bad MRI -> head transform**
 #
-# .. _creating-trans:
-# .. _tut-source-alignment-without-mri:
 # If digitized points float off the surface of the head, or fiducial points are
 # misplaced, this suggests a bad coregistration.
 
@@ -238,6 +236,7 @@ fig = mne.viz.plot_alignment(
 )
 mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 
+
 # %%
 # Note that, while both types of alignment errors make the head look misaligned
 # to the MEG sensors, they can be differentiated by whether or not digitized
@@ -248,5 +247,23 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # checks you need, and finally assess the quality of the fits you see. For a
 # more detailed explanation of using MRI-generated surfaces in MNE, see the
 # :ref:`tut-freesurfer-reconstruction` tutorial.
+#
+#
+# %%
+# # .. _creating-trans:
+#
+# Creating trans
+# --------------
+#
+# This section has been moved to another tutorial. This placeholder keeps the
+# link working so Circle Ci checks can pass. We'll remove in the final PR.
+#
+# # .. _tut-source-alignment-without-mri:
+#
+# Source Alignment Without MRI
+# ----------------------------
+#
+# This section has been moved to another tutorial. This placeholder keeps the
+# link so Circle Ci checks can pass. We'll remove in the final PR.
 #
 # .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
