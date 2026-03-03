@@ -140,7 +140,7 @@ fig = mne.viz.plot_alignment(
 # makes it easy to check that the subject's head is sufficiently far up inside
 # the helmet for good SNR during the recording. Since screenshots of the 3D
 # alignment plots from various camera perspectives can be saved using the
-# figure plotter's `save_graphic` method, e.g. `fig.plotter.save_graphic(path)`,
+# figure plotter's "save_graphic" method, e.g. "fig.plotter.save_graphic(path)",
 # plots allow you to check and document alignment quality when performing
 # source localization analyses.
 
@@ -216,6 +216,8 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 # %%
 # **Alignment problem #2: Bad MRI -> head transform**
 #
+# .. _creating-trans:
+# .. _tut-source-alignment-without-mri:
 # If digitized points float off the surface of the head, or fiducial points are
 # misplaced, this suggests a bad coregistration.
 
