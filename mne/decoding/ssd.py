@@ -87,10 +87,7 @@ class SSD(_GEDTransformer):
         measurement info or estimated from the data, which determines the
         maximum possible number of components.
         See Notes of :func:`mne.compute_rank` for details.
-        We recommend to use 'full' when working with epoched da
-        t
-        # mne.Info subclasses dict, so Info objects must be excluded from this
-        # branch.  Only a plain dict signals a serialized SSD state.a.
+        We recommend to use 'full' when working with epoched data.
 
     Attributes
     ----------
