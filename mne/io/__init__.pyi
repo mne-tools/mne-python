@@ -47,7 +47,6 @@ __all__ = [
     "read_raw_nsx",
     "read_raw_persyst",
     "read_raw_snirf",
-    "read_raw_bci2k",
     "show_fiff",
     "write_fiducials",
     "write_info",
