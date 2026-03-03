@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "70326482061245f1642619e764649e4dda8ead85",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13654.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}
