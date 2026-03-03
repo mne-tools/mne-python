@@ -251,7 +251,7 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 #
 
 # %%
-# # .. _creating-trans:
+# .. _creating-trans:
 #
 # Creating trans
 # --------------
@@ -262,7 +262,7 @@ mne.viz.set_3d_view(fig, -180, 90, distance=0.8, focalpoint=(0.0, 0.0, 0.0))
 #
 
 # %%
-# # .. _tut-source-alignment-without-mri:
+# .. _tut-source-alignment-without-mri:
 #
 # Source Alignment Without MRI
 # ----------------------------
