@@ -10,6 +10,7 @@ __all__ = [
     "SPoC",
     "SSD",
     "Scaler",
+    "read_ssd",
     "SlidingEstimator",
     "SpatialFilter",
     "TemporalFilter",
@@ -36,7 +37,7 @@ from .ems import EMS, compute_ems
 from .receptive_field import ReceptiveField
 from .search_light import GeneralizingEstimator, SlidingEstimator
 from .spatial_filter import SpatialFilter, get_spatial_filter_from_estimator
-from .ssd import SSD
+from .ssd import SSD, read_ssd
 from .time_delaying_ridge import TimeDelayingRidge
 from .time_frequency import TimeFrequency
 from .transformer import (

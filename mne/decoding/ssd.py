@@ -3,17 +3,21 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc as abc
+import pickle
 from functools import partial
 
 import numpy as np
 
+from .. import __version__ as _mne_version
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
 from ..utils import (
+    _check_fname,
     _validate_type,
     fill_doc,
     logger,
+    warn,
 )
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
@@ -83,7 +87,10 @@ class SSD(_GEDTransformer):
         measurement info or estimated from the data, which determines the
         maximum possible number of components.
         See Notes of :func:`mne.compute_rank` for details.
-        We recommend to use 'full' when working with epoched data.
+        We recommend to use 'full' when working with epoched da
+        t
+        # mne.Info subclasses dict, so Info objects must be excluded from this
+        # branch.  Only a plain dict signals a serialized SSD state.a.
 
     Attributes
     ----------
@@ -100,8 +107,8 @@ class SSD(_GEDTransformer):
     def __init__(
         self,
         info,
-        filt_params_signal,
-        filt_params_noise,
+        filt_params_signal=None,
+        filt_params_noise=None,
         reg=None,
         n_components=None,
         picks=None,
@@ -114,6 +121,25 @@ class SSD(_GEDTransformer):
         rank=None,
     ):
         """Initialize instance."""
+        if isinstance(info, dict) and info.get("_ssd_state"):
+            required_keys = (
+                "info",
+                "filt_params_signal",
+                "filt_params_noise",
+                "n_components",
+                "filters_",
+                "patterns_",
+            )
+            missing = [k for k in required_keys if k not in info]
+            if missing:
+                raise ValueError(
+                    "If 'info' is a dict, it must be a serialized SSD state "
+                    f"(missing keys: {missing}). "
+                    "Otherwise pass an mne.Info object."
+                )
+            self.__setstate__(info)
+            return
+
         self.info = info
         self.filt_params_signal = filt_params_signal
         self.filt_params_noise = filt_params_noise
@@ -127,24 +153,70 @@ class SSD(_GEDTransformer):
         self.restr_type = restr_type
         self.rank = rank
 
-        cov_callable = partial(
-            _ssd_estimate,
-            reg=reg,
-            cov_method_params=cov_method_params,
-            info=info,
-            picks=picks,
-            n_fft=n_fft,
-            filt_params_signal=filt_params_signal,
-            filt_params_noise=filt_params_noise,
-            rank=rank,
-            sort_by_spectral_ratio=sort_by_spectral_ratio,
-        )
+        self._create_cov_callable()
         super().__init__(
             n_components=n_components,
-            cov_callable=cov_callable,
-            mod_ged_callable=_ssd_mod,
+            cov_callable=self.cov_callable,
+            mod_ged_callable=self.mod_ged_callable,
             restr_type=restr_type,
         )
+
+    def _create_cov_callable(self):
+        """Recreate covariance callable after initialization or loading."""
+        self.cov_callable = partial(
+            _ssd_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            picks=self.picks,
+            n_fft=self.n_fft,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            rank=self.rank,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        )
+        self.mod_ged_callable = _ssd_mod
+
+    def __getstate__(self):
+        """Prepare state for serialization."""
+        state = self.__dict__.copy()
+        state.pop("cov_callable", None)
+        state.pop("mod_ged_callable", None)
+        state["_ssd_state"] = True
+        state["class_name"] = "SSD"
+        state["mne_version"] = _mne_version
+        return state
+
+    def __setstate__(self, state):
+        """Restore state from serialization."""
+        saved_version = state.get("mne_version")
+        if saved_version is not None and saved_version != _mne_version:
+            warn(
+                f"The SSD object was saved with MNE-Python {saved_version} but is "
+                f"being loaded with {_mne_version}. This may cause issues."
+            )
+        state = {
+            k: v
+            for k, v in state.items()
+            if k not in ("_ssd_state", "class_name", "mne_version")
+        }
+        self.__dict__.update(state)
+        self._create_cov_callable()
+
+    def save(self, fname, *, overwrite=False):
+        """Save the SSD object to a file.
+
+        Parameters
+        ----------
+        fname : path-like
+            The file path to save to (e.g. ``'my_ssd.pkl'``).
+        overwrite : bool
+            If True, overwrite an existing file. Defaults to False.
+        """
+        fname = _check_fname(fname, overwrite=overwrite)
+        state = self.__getstate__()
+        with open(fname, "wb") as fid:
+            pickle.dump(state, fid)
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -350,3 +422,31 @@ class SSD(_GEDTransformer):
         pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+def read_ssd(fname):
+    """Load a saved :class:`~mne.decoding.SSD` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        The full path to the ``.pkl`` file saved by :meth:`~mne.decoding.SSD.save`.
+
+    Returns
+    -------
+    ssd : instance of :class:`~mne.decoding.SSD`
+        The loaded SSD object with all fitted attributes restored.
+
+    See Also
+    --------
+    SSD.save
+    """
+    fname = _check_fname(fname, must_exist=True, overwrite="read")
+    with open(fname, "rb") as fid:
+        state = pickle.load(fid)
+    if state.get("class_name") != "SSD":
+        raise ValueError(
+            f"File does not contain an SSD object (got class_name="
+            f"{state.get('class_name')!r})."
+        )
+    return SSD(info=state)

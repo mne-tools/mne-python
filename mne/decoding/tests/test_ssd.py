@@ -18,7 +18,7 @@ from mne import Epochs, create_info, io, pick_types, read_events
 from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
 from mne.decoding._mod_ged import _get_spectral_ratio
-from mne.decoding.ssd import SSD
+from mne.decoding.ssd import SSD, read_ssd
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
 
@@ -568,6 +568,75 @@ def test_picks_arg():
         n_fft=64,
     )
     ssd.fit(X).transform(X)
+
+
+def test_ssd_save_load(tmp_path):
+    """Test that SSD can be saved to disk and loaded back correctly."""
+    X, _, _ = simulate_data()
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types="eeg")
+    n_components = 5
+
+    filt_params_signal = dict(
+        l_freq=freqs_sig[0],
+        h_freq=freqs_sig[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+    filt_params_noise = dict(
+        l_freq=freqs_noise[0],
+        h_freq=freqs_noise[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+
+    ssd = SSD(info, filt_params_signal, filt_params_noise, n_components=n_components)
+    ssd.fit(X)
+
+    fname = tmp_path / "test_ssd.pkl"
+    ssd.save(fname)
+
+    ssd_loaded = read_ssd(fname)
+
+    # Check fitted array attributes are restored
+    assert_array_almost_equal(ssd.filters_, ssd_loaded.filters_)
+    assert_array_almost_equal(ssd.patterns_, ssd_loaded.patterns_)
+
+    # Check scalar/param attributes
+    assert ssd.n_components == ssd_loaded.n_components
+    assert ssd.info["sfreq"] == ssd_loaded.info["sfreq"]
+    assert ssd.filt_params_signal == ssd_loaded.filt_params_signal
+    assert ssd.filt_params_noise == ssd_loaded.filt_params_noise
+
+    # Check transform output matches
+    X_orig = ssd.transform(X)
+    X_loaded = ssd_loaded.transform(X)
+    assert_array_almost_equal(X_orig, X_loaded)
+
+    with pytest.raises(FileExistsError):
+        ssd.save(fname)
+    ssd.save(fname, overwrite=True)
+
+    # Check that loading a non-SSD file raises an error
+    import pickle
+
+    bad_fname = tmp_path / "bad.pkl"
+    with open(bad_fname, "wb") as f:
+        pickle.dump({"class_name": "NotSSD"}, f)
+    with pytest.raises(ValueError, match="does not contain an SSD object"):
+        read_ssd(bad_fname)
+    with pytest.raises(FileNotFoundError):
+        read_ssd(tmp_path / "nonexistent.pkl")
+
+    ssd_pickled = pickle.loads(pickle.dumps(ssd))
+    assert_array_almost_equal(ssd.filters_, ssd_pickled.filters_)
+    assert_array_almost_equal(ssd.transform(X), ssd_pickled.transform(X))
+    assert not hasattr(ssd_pickled, "class_name")
+    assert not hasattr(ssd_pickled, "mne_version")
+
+    with pytest.raises(ValueError, match="serialized SSD state"):
+        SSD(info={"_ssd_state": True, "random": 123})
 
 
 def test_get_spectral_ratio():
