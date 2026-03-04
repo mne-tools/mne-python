@@ -1561,7 +1561,7 @@ class BaseEpochs(
         -----
         This method expects zero-based indices into the currently remaining
         epochs, not the original event indices (as found in
-        :attr:`mne.Epochs.selection`). If some epochs were automatically
+        the ``selection`` attribute). If some epochs were automatically
         dropped (e.g., due to insufficient data or rejection), you may need
         to convert indices before calling this method::
 
