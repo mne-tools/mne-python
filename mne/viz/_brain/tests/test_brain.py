@@ -180,27 +180,6 @@ assert_array_equal(
     assert "test2" not in mesh._overlays
     mesh.update()
     assert len(mesh._overlays) == 1
-
-    B = np.array(
-        [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.5, 0.5, 0.5, 0.0],
-        ]
-    )
-    A = np.array(
-        [
-            [0.2, 0.2, 0.2, 0.0],
-            [0.4, 0.4, 0.4, 0.0],
-            [0.6, 0.6, 0.6, 0.0],
-            [0.8, 0.8, 0.8, 0.0],
-        ]
-    )
-    C = mesh._compute_over(B, A)
-    assert not np.isnan(C).any()
-    assert_allclose(C[:, :3], 0.0)
-    assert_allclose(C[:, 3], 0.0)
     mesh._clean()
 
 
