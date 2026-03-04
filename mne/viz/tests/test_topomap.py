@@ -995,7 +995,6 @@ def test_plot_topomap_info_names_ordering():
     plot_topomap() must preserve correct sensor name ordering when
     passing an Info object as pos with a names argument.
     """
-
     info = create_info(ch_names=["Fp1", "Fp2", "Fz"], sfreq=1000.0, ch_types="eeg")
     montage = make_standard_montage("standard_1020")
     info.set_montage(montage)
