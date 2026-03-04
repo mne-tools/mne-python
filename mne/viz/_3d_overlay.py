@@ -94,15 +94,6 @@ class _LayeredMesh:
     def _compute_over(self, B, A):
         assert A.ndim == B.ndim == 2
         assert A.shape[1] == B.shape[1] == 4
-        A_w = A[:, 3:]  # * 1
-        B_w = B[:, 3:] * (1 - A_w)
-        C = A.copy()
-        C[:, :3] *= A_w
-        C[:, :3] += B[:, :3] * B_w
-        C[:, 3:] += B_w
-        alpha = C[:, 3]
-        nonzero = alpha != 0
-        C[nonzero, :3] /= alpha[nonzero, np.newaxis]
         A_alpha = A[:, 3]  # * 1
         B_alpha = B[:, 3] * (1 - A_alpha)
         C = A.copy()
@@ -113,7 +104,6 @@ class _LayeredMesh:
         C_alpha_zero = C_alpha == 0
         C[~C_alpha_zero, :3] /= C_alpha[~C_alpha_zero, np.newaxis]
         C[C_alpha_zero, :3] = 0
-        return np.clip(C, 0, 1, out=C)
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
