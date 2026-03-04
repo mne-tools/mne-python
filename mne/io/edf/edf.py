@@ -149,7 +149,7 @@ class RawEDF(BaseRaw):
     annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -361,7 +361,7 @@ class RawBDF(BaseRaw):
     annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -517,7 +517,7 @@ class RawGDF(BaseRaw):
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -1978,7 +1978,7 @@ def read_raw_edf(
     obtain events from these annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
 
     The EDF specification allows optional storage of channel types in the
@@ -2142,7 +2142,7 @@ def read_raw_bdf(
     obtain events from these annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
     _check_args(input_fname, preload, "bdf")
@@ -2222,7 +2222,7 @@ def read_raw_gdf(
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
     _check_args(input_fname, preload, "gdf")
