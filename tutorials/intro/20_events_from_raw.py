@@ -102,11 +102,10 @@ raw.copy().pick(picks="stim").plot(start=3, duration=6)
 # magnitudes. You can also see that every time there is a pulse on one of the
 # other STIM channels, there is a corresponding pulse on ``STI 014``.
 #
-# For a list of which EEG/MEG systems use STIM channels versus marker files
-# or embedded arrays, see the "Supported data formats" tables in
-# :doc:`/auto_tutorials/io/10_reading_meg_data` and :doc:`/auto_tutorials/io/20_reading_eeg_data`.
-#
-#
+# For more information on which EEG/MEG systems use STIM channels, marker files,
+# or embedded arrays, see the MEG and EEG tutorials:
+# :doc:`/auto_tutorials/io/10_reading_meg_data` and
+# :doc:`/auto_tutorials/io/20_reading_eeg_data`.
 # Converting a STIM channel signal to an Events array
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -120,7 +119,7 @@ raw.copy().pick(picks="stim").plot(start=3, duration=6)
 # from which to read events:
 
 events = mne.find_events(raw, stim_channel="STI 014")
-print(events[:5])  # show the first 5
+print(events[:5])  # Display the first 5 events to check the STIM channel extraction
 
 # %%
 # .. admonition:: The middle column of the Events array
