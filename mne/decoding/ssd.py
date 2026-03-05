@@ -3,25 +3,59 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc as abc
-import pickle
 from functools import partial
 
 import numpy as np
 
-from .. import __version__ as _mne_version
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
 from ..utils import (
     _check_fname,
+    _import_h5io_funcs,
     _validate_type,
     fill_doc,
     logger,
-    warn,
 )
+from ..utils.check import check_fname
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
+
+
+def _create_callables(
+    reg,
+    cov_method_params,
+    info,
+    picks,
+    n_fft,
+    filt_params_signal,
+    filt_params_noise,
+    rank,
+    sort_by_spectral_ratio,
+):
+    """Create covariance and mod_ged callables for SSD.
+
+    Returns
+    -------
+    cov_callable : callable
+        Partial function for computing SSD covariance estimates.
+    mod_ged_callable : callable
+        Function for modifying the GED result.
+    """
+    cov_callable = partial(
+        _ssd_estimate,
+        reg=reg,
+        cov_method_params=cov_method_params,
+        info=info,
+        picks=picks,
+        n_fft=n_fft,
+        filt_params_signal=filt_params_signal,
+        filt_params_noise=filt_params_noise,
+        rank=rank,
+        sort_by_spectral_ratio=sort_by_spectral_ratio,
+    )
+    return cov_callable, _ssd_mod
 
 
 @fill_doc
@@ -104,8 +138,8 @@ class SSD(_GEDTransformer):
     def __init__(
         self,
         info,
-        filt_params_signal=None,
-        filt_params_noise=None,
+        filt_params_signal,
+        filt_params_noise,
         reg=None,
         n_components=None,
         picks=None,
@@ -118,25 +152,6 @@ class SSD(_GEDTransformer):
         rank=None,
     ):
         """Initialize instance."""
-        if isinstance(info, dict) and info.get("_ssd_state"):
-            required_keys = (
-                "info",
-                "filt_params_signal",
-                "filt_params_noise",
-                "n_components",
-                "filters_",
-                "patterns_",
-            )
-            missing = [k for k in required_keys if k not in info]
-            if missing:
-                raise ValueError(
-                    "If 'info' is a dict, it must be a serialized SSD state "
-                    f"(missing keys: {missing}). "
-                    "Otherwise pass an mne.Info object."
-                )
-            self.__setstate__(info)
-            return
-
         self.info = info
         self.filt_params_signal = filt_params_signal
         self.filt_params_noise = filt_params_noise
@@ -150,18 +165,7 @@ class SSD(_GEDTransformer):
         self.restr_type = restr_type
         self.rank = rank
 
-        self._create_cov_callable()
-        super().__init__(
-            n_components=n_components,
-            cov_callable=self.cov_callable,
-            mod_ged_callable=self.mod_ged_callable,
-            restr_type=restr_type,
-        )
-
-    def _create_cov_callable(self):
-        """Recreate covariance callable after initialization or loading."""
-        self.cov_callable = partial(
-            _ssd_estimate,
+        self.cov_callable, self.mod_ged_callable = _create_callables(
             reg=self.reg,
             cov_method_params=self.cov_method_params,
             info=self.info,
@@ -172,48 +176,80 @@ class SSD(_GEDTransformer):
             rank=self.rank,
             sort_by_spectral_ratio=self.sort_by_spectral_ratio,
         )
-        self.mod_ged_callable = _ssd_mod
+        super().__init__(
+            n_components=n_components,
+            cov_callable=self.cov_callable,
+            mod_ged_callable=self.mod_ged_callable,
+            restr_type=restr_type,
+        )
 
     def __getstate__(self):
         """Prepare state for serialization."""
         state = self.__dict__.copy()
         state.pop("cov_callable", None)
         state.pop("mod_ged_callable", None)
-        state["_ssd_state"] = True
-        state["class_name"] = "SSD"
-        state["mne_version"] = _mne_version
         return state
+
+    _required_state_keys = (
+        "info",
+        "filt_params_signal",
+        "filt_params_noise",
+        "reg",
+        "n_components",
+        "picks",
+        "sort_by_spectral_ratio",
+        "return_filtered",
+        "n_fft",
+        "cov_method_params",
+        "restr_type",
+        "rank",
+    )
 
     def __setstate__(self, state):
         """Restore state from serialization."""
-        saved_version = state.get("mne_version")
-        if saved_version is not None and saved_version != _mne_version:
-            warn(
-                f"The SSD object was saved with MNE-Python {saved_version} but is "
-                f"being loaded with {_mne_version}. This may cause issues."
+        missing = [k for k in self._required_state_keys if k not in state]
+        if missing:
+            raise ValueError(
+                f"State dict is missing required keys: {missing}. "
+                "The file may be corrupt or not a valid SSD state."
             )
-        state = {
-            k: v
-            for k, v in state.items()
-            if k not in ("_ssd_state", "class_name", "mne_version")
-        }
         self.__dict__.update(state)
-        self._create_cov_callable()
+        self.cov_callable, self.mod_ged_callable = _create_callables(
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            picks=self.picks,
+            n_fft=self.n_fft,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            rank=self.rank,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        )
 
     def save(self, fname, *, overwrite=False):
-        """Save the SSD object to a file.
+        """Save the SSD object to disk (in HDF5 format).
 
         Parameters
         ----------
         fname : path-like
-            The file path to save to (e.g. ``'my_ssd.pkl'``).
+            The file path to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
         overwrite : bool
             If True, overwrite an existing file. Defaults to False.
+
+        See Also
+        --------
+        mne.decoding.read_ssd
         """
+        _, write_hdf5 = _import_h5io_funcs()
+        check_fname(fname, "ssd", (".h5", ".hdf5"))
         fname = _check_fname(fname, overwrite=overwrite)
-        state = self.__getstate__()
-        with open(fname, "wb") as fid:
-            pickle.dump(state, fid)
+        write_hdf5(
+            fname,
+            self.__getstate__(),
+            overwrite=overwrite,
+            title="mnepython",
+            slash="replace",
+        )
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -427,7 +463,8 @@ def read_ssd(fname):
     Parameters
     ----------
     fname : path-like
-        The full path to the ``.pkl`` file saved by :meth:`~mne.decoding.SSD.save`.
+        Path to an SSD file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
 
     Returns
     -------
@@ -438,12 +475,12 @@ def read_ssd(fname):
     --------
     SSD.save
     """
-    fname = _check_fname(fname, must_exist=True, overwrite="read")
-    with open(fname, "rb") as fid:
-        state = pickle.load(fid)
-    if state.get("class_name") != "SSD":
-        raise ValueError(
-            f"File does not contain an SSD object (got class_name="
-            f"{state.get('class_name')!r})."
-        )
-    return SSD(info=state)
+    read_hdf5, _ = _import_h5io_funcs()
+    _validate_type(fname, "path-like", "fname")
+    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
+    state = read_hdf5(fname, title="mnepython", slash="replace")
+    if "info" in state and not isinstance(state["info"], Info):
+        state["info"] = Info(state["info"])
+    ssd = object.__new__(SSD)
+    ssd.__setstate__(state)
+    return ssd

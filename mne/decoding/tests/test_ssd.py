@@ -572,6 +572,7 @@ def test_picks_arg():
 
 def test_ssd_save_load(tmp_path):
     """Test that SSD can be saved to disk and loaded back correctly."""
+    h5io = pytest.importorskip("h5io")
     X, _, _ = simulate_data()
     sf = 250
     n_channels = X.shape[0]
@@ -594,10 +595,19 @@ def test_ssd_save_load(tmp_path):
     ssd = SSD(info, filt_params_signal, filt_params_noise, n_components=n_components)
     ssd.fit(X)
 
-    fname = tmp_path / "test_ssd.pkl"
+    state = ssd.__getstate__()
+    assert "cov_callable" not in state
+    assert "mod_ged_callable" not in state
+
+    fname = tmp_path / "test_ssd.h5"
     ssd.save(fname)
 
     ssd_loaded = read_ssd(fname)
+
+    assert hasattr(ssd_loaded, "cov_callable")
+    assert hasattr(ssd_loaded, "mod_ged_callable")
+    assert callable(ssd_loaded.cov_callable)
+    assert callable(ssd_loaded.mod_ged_callable)
 
     # Check fitted array attributes are restored
     assert_array_almost_equal(ssd.filters_, ssd_loaded.filters_)
@@ -618,25 +628,20 @@ def test_ssd_save_load(tmp_path):
         ssd.save(fname)
     ssd.save(fname, overwrite=True)
 
-    # Check that loading a non-SSD file raises an error
-    import pickle
-
-    bad_fname = tmp_path / "bad.pkl"
-    with open(bad_fname, "wb") as f:
-        pickle.dump({"class_name": "NotSSD"}, f)
-    with pytest.raises(ValueError, match="does not contain an SSD object"):
+    # Check that loading an HDF5 file with missing keys raises an error
+    bad_fname = tmp_path / "bad.h5"
+    h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
+    with pytest.raises(ValueError, match="missing required keys"):
         read_ssd(bad_fname)
+
     with pytest.raises(FileNotFoundError):
-        read_ssd(tmp_path / "nonexistent.pkl")
+        read_ssd(tmp_path / "nonexistent.h5")
 
-    ssd_pickled = pickle.loads(pickle.dumps(ssd))
-    assert_array_almost_equal(ssd.filters_, ssd_pickled.filters_)
-    assert_array_almost_equal(ssd.transform(X), ssd_pickled.transform(X))
-    assert not hasattr(ssd_pickled, "class_name")
-    assert not hasattr(ssd_pickled, "mne_version")
-
-    with pytest.raises(ValueError, match="serialized SSD state"):
-        SSD(info={"_ssd_state": True, "random": 123})
+    fname_rt = tmp_path / "test_ssd_rt.h5"
+    ssd.save(fname_rt)
+    ssd_rt = read_ssd(fname_rt)
+    assert_array_almost_equal(ssd.filters_, ssd_rt.filters_)
+    assert_array_almost_equal(ssd.transform(X), ssd_rt.transform(X))
 
 
 def test_get_spectral_ratio():
