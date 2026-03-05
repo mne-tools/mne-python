@@ -313,69 +313,46 @@ def test_plot_dipole_amplitudes():
     dipoles.plot_amplitudes(show=False)
 
 
-def test_plot_csd():
+@pytest.mark.parametrize(
+    "ch_types, expected_n_figs",
+    [
+        (None, 1),
+        ("eeg", 1),
+        ("ecog", 1),
+        (["grad", "dbs"], 2),
+        ("misc", 0),
+    ],
+)
+def test_plot_csd(ch_types, expected_n_figs):
     """Test plotting of CSD matrices."""
+    if isinstance(ch_types, list):
+        ch_type_list = ch_types
+    elif ch_types is not None:
+        ch_type_list = [ch_types, ch_types]
+    else:
+        ch_type_list = None
+
+    n_ch = len(ch_type_list) if ch_type_list is not None else 2
+    ch_names = [f"CH{i + 1}" for i in range(n_ch)]
+    n_data = n_ch * (n_ch + 1) // 2
+
     csd = CrossSpectralDensity(
-        [1, 2, 3],
-        ["CH1", "CH2"],
+        list(range(1, n_data + 1)),
+        ch_names,
         frequencies=[(10, 20)],
         n_fft=1,
         tmin=0,
         tmax=1,
     )
-    plot_csd(csd, mode="csd")  # Plot cross-spectral density
-    plot_csd(csd, mode="coh")  # Plot coherence
 
-    # EEG
-    info_eeg = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="eeg")
-    figs = plot_csd(csd, info=info_eeg, mode="csd", show=False)
-    assert len(figs) == 1
-    figs = plot_csd(csd, info=info_eeg, mode="coh", show=False)
-    assert len(figs) == 1
+    if ch_type_list is not None:
+        info = create_info(ch_names, sfreq=1.0, ch_types=ch_type_list)
+    else:
+        info = None
 
-    # sEEG
-    info_seeg = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="seeg")
-    figs = plot_csd(csd, info=info_seeg, mode="csd", show=False)
-    assert len(figs) == 1
-    figs = plot_csd(csd, info=info_seeg, mode="coh", show=False)
-    assert len(figs) == 1
-
-    # ECoG
-    info_ecog = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="ecog")
-    figs = plot_csd(csd, info=info_ecog, mode="csd", show=False)
-    assert len(figs) == 1
-    figs = plot_csd(csd, info=info_ecog, mode="coh", show=False)
-    assert len(figs) == 1
-
-    # DBS
-    info_dbs = create_info(["CH1", "CH2"], sfreq=1.0, ch_types="dbs")
-    figs = plot_csd(csd, info=info_dbs, mode="csd", show=False)
-    assert len(figs) == 1
-    figs = plot_csd(csd, info=info_dbs, mode="coh", show=False)
-    assert len(figs) == 1
-
-    # Mixed: EEG + sEEG + ECoG + DBS — each should produce its own figure
-    info_mixed = create_info(
-        ["EEG1", "SEEG1", "ECOG1", "DBS1"],
-        sfreq=1.0,
-        ch_types=["eeg", "seeg", "ecog", "dbs"],
-    )
-    csd_mixed = CrossSpectralDensity(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        ["EEG1", "SEEG1", "ECOG1", "DBS1"],
-        frequencies=[(10, 20)],
-        n_fft=1,
-        tmin=0,
-        tmax=1,
-    )
-    figs = plot_csd(csd_mixed, info=info_mixed, mode="csd", show=False)
-    assert len(figs) == 4
-    figs = plot_csd(csd_mixed, info=info_mixed, mode="coh", show=False)
-    assert len(figs) == 4
-
-    info_other = create_info(["OTHERCHAN"], sfreq=1.0, ch_types="eeg")
-    figs = plot_csd(csd, info=info_other, mode="csd", show=False)
-    assert len(figs) == 0
+    for mode in ("csd", "coh"):
+        figs = plot_csd(csd, info=info, mode=mode, show=False)
+        assert len(figs) == expected_n_figs
 
 
 @pytest.mark.slowtest  # Slow on Azure

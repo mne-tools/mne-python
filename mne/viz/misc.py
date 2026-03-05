@@ -67,10 +67,16 @@ def _index_info_by_ch_type(info, obj_ch_names):
 
     Returns
     -------
-    idx_names : list of tuple
-        Each entry is ``(indices, title, unit, scaling, ch_type)`` for each
-        data channel type that has at least one matching channel.
-        *indices* are integer positions into *obj_ch_names*.
+    indices : list of list of int
+        Channel indices into *obj_ch_names*, one list per channel type.
+    titles : list of str
+        Human-readable title for each channel type.
+    units : list of str
+        Unit string for each channel type.
+    scalings : list of float
+        Scaling factor for each channel type.
+    ch_types : list of str
+        Channel type key for each group.
     """
     info_ch_names = info["ch_names"]
     picks_list = _picks_by_type(info, meg_combined=False, ref_meg=False, exclude=())
@@ -83,17 +89,20 @@ def _index_info_by_ch_type(info, obj_ch_names):
             for c in sel
             if info_ch_names[c] in obj_ch_names
         ]
-    return [
-        (
-            idx_by_type[key],
-            DEFAULTS["titles"][key],
-            DEFAULTS["units"][key],
-            DEFAULTS["scalings"][key],
-            key,
-        )
-        for key in _DATA_CH_TYPES_SPLIT
-        if len(idx_by_type[key]) > 0
-    ]
+
+    indices = []
+    titles = []
+    units = []
+    scalings = []
+    ch_types = []
+    for key in _DATA_CH_TYPES_SPLIT:
+        if len(idx_by_type[key]) > 0:
+            indices.append(idx_by_type[key])
+            titles.append(DEFAULTS["titles"][key])
+            units.append(DEFAULTS["units"][key])
+            scalings.append(DEFAULTS["scalings"][key])
+            ch_types.append(key)
+    return indices, titles, units, scalings, ch_types
 
 
 def _index_info_cov(info, cov, exclude):
@@ -105,9 +114,12 @@ def _index_info_cov(info, cov, exclude):
     ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
 
+    indices, titles, units, scalings, ch_types = _index_info_by_ch_type(info, ch_names)
     idx_names = [
         (idx, f"{title} covariance", unit, scaling, key)
-        for idx, title, unit, scaling, key in _index_info_by_ch_type(info, ch_names)
+        for idx, title, unit, scaling, key in zip(
+            indices, titles, units, scalings, ch_types
+        )
     ]
     C = cov.data[ch_idx][:, ch_idx]
     return info, C, ch_names, idx_names
@@ -1509,10 +1521,7 @@ def plot_csd(
         raise ValueError('"mode" should be either "csd" or "coh".')
 
     if info is not None:
-        idx_names = _index_info_by_ch_type(info, csd.ch_names)
-        indices = [item[0] for item in idx_names]
-        titles = [item[1] for item in idx_names]
-        ch_types = [item[4] for item in idx_names]
+        indices, titles, _, _, ch_types = _index_info_by_ch_type(info, csd.ch_names)
     else:
         indices = [np.arange(len(csd.ch_names))]
         ch_types = [None]
@@ -1537,11 +1546,13 @@ def plot_csd(
             layout="constrained",
         )
 
+        if mode == "csd":
+            scaling = DEFAULTS["scalings"].get(ch_type, 1)
+
         csd_mats = []
         for i in range(len(csd.frequencies)):
             cm = csd.get_data(index=i)[ind][:, ind]
             if mode == "csd":
-                scaling = DEFAULTS["scalings"].get(ch_type, 1)
                 cm = np.abs(cm) * scaling**2
             elif mode == "coh":
                 # Compute coherence from the CSD matrix
@@ -1569,7 +1580,10 @@ def plot_csd(
                 if ch_type is not None:
                     unit = DEFAULTS["units"].get(ch_type, "")
                     if unit:
-                        label += f" ({'/'.join([el + '²' for el in unit.split('/')])})"
+                        if "/" in unit:
+                            label += f" ({unit})²"
+                        else:
+                            label += f" ({unit}²)"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")
