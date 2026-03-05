@@ -634,7 +634,7 @@ def test_ssd_save_load(tmp_path):
     with pytest.raises(ValueError, match="missing required keys"):
         read_ssd(bad_fname)
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(OSError, match="not found"):
         read_ssd(tmp_path / "nonexistent.h5")
 
     fname_rt = tmp_path / "test_ssd_rt.h5"

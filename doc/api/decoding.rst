@@ -41,3 +41,4 @@ Functions that assist with decoding and model fitting:
    cross_val_multiscore
    get_coef
    get_spatial_filter_from_estimator
+   read_ssd
