@@ -1541,7 +1541,7 @@ def plot_csd(
         for i in range(len(csd.frequencies)):
             cm = csd.get_data(index=i)[ind][:, ind]
             if mode == "csd":
-                scaling = DEFAULTS["scalings"].get(ch_type, 1) if ch_type else 1
+                scaling = DEFAULTS["scalings"].get(ch_type, 1)
                 cm = np.abs(cm) * scaling**2
             elif mode == "coh":
                 # Compute coherence from the CSD matrix
