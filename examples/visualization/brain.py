@@ -21,7 +21,6 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 # of :class:`mne.viz.Brain` for plotting data on a brain.
 
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
@@ -145,21 +144,26 @@ fig.suptitle("Dipole Fits Scaled by Amplitude and Colored by GOF")
 # to control transparency per vertex. This can be useful to emphasize a
 # subset of vertices while still showing surrounding context.
 
-brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, **brain_kwargs)
+brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, hemi="lh", **brain_kwargs)
 coords = brain.geo["lh"].coords
 n_vertices = len(coords)
 
-# Build synthetic data (a smooth left-to-right gradient) and a matching
-# opacity ramp from mostly transparent to fully opaque.
-data = coords[:, 0]
+# Build synthetic data: a smooth left-to-right gradient color-wise in the Y
+# (front-back) direction, plus a matching opacity ramp from mostly transparent to
+# fully opaque in the X (left-right) direction.
+data = coords[:, 1]
 data = (data - data.min()) / (data.max() - data.min())
-vertex_alpha = np.linspace(0.2, 1.0, n_vertices)
+vertex_alpha = -coords[:, 0]
+vertex_alpha = (vertex_alpha - vertex_alpha.min()) / (
+    vertex_alpha.max() - vertex_alpha.min()
+)
 
 brain.add_data(
     data,
     hemi="lh",
     alpha=vertex_alpha,
-    colormap="mne",
+    colormap="viridis",
     smoothing_steps=5,
 )
 brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
+raise RuntimeError
