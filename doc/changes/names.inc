@@ -94,9 +94,8 @@
 .. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
-.. _Ezequiel Mikulan: https://github.com/ezemikulan
+.. _Famous Raj Bhat: https://github.com/Famous077
 .. _Fahimeh Mamashli: https://github.com/fmamashli
-.. _Famous077: https://github.com/Famous077
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
