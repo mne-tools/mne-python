@@ -1,0 +1,4 @@
+Clarify in the documentation that :func:`mne.add_reference_channels`
+should be used before :func:`mne.set_eeg_reference` with
+``ref_channels="average"`` when the original reference electrode
+is missing.
