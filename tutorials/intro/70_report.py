@@ -318,8 +318,8 @@ report.save("report_coregistration.html", overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Forward solutions ("leadfields") can be added by passing a `~mne.Forward`
-# object or the path to a forward solution stored on disk
-# to :meth:`mne.Report.add_forward`.
+# object or the path to a forward solution stored on disk to
+# :meth:`mne.Report.add_forward`.
 
 fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
 
