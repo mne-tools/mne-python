@@ -43,9 +43,28 @@ class _Overlay:
         scalars = self._norm(rng)
 
         colors = cmap(scalars)
-        if self._opacity is not None:
-            colors[:, 3] *= self._opacity
+        opacity = self._check_opacity(colors.shape[0])
+        if opacity is not None:
+            colors[:, 3] *= opacity
         return colors
+
+    def _check_opacity(self, n_vertices):
+        if self._opacity is None:
+            return None
+        opacity = np.asarray(self._opacity)
+        if opacity.ndim == 0:
+            return float(opacity)
+        if opacity.ndim != 1:
+            raise ValueError(
+                "opacity must be a scalar or a 1D array with one value per "
+                f"vertex, got an array with shape {opacity.shape}"
+            )
+        if len(opacity) != n_vertices:
+            raise ValueError(
+                "opacity array must have one value per vertex, got "
+                f"{len(opacity)} values for {n_vertices} vertices"
+            )
+        return opacity
 
     def _norm(self, rng):
         if rng[0] == rng[1]:
