@@ -511,7 +511,6 @@ def test_plot_topomap_basic():
     _fake_scroll(fig, 0.5, 0.5, -0.5)  # scroll down
     _fake_scroll(fig, 0.5, 0.5, 0.5)  # scroll up
 
-
     # Pass custom outlines with patch callable
     def patch():
         return Circle(
