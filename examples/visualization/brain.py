@@ -166,4 +166,3 @@ brain.add_data(
     smoothing_steps=5,
 )
 brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
-raise RuntimeError
