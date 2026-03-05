@@ -1754,7 +1754,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
         time = np.clip(time, self.mne.first_time, max_time)
         if self.mne.is_epochs:
-            ix = np.searchsorted(self.mne.boundary_times[1:], time)
+            ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
             time = self.mne.boundary_times[ix]
         if self.mne.t_start != time:
             self.mne.t_start = time

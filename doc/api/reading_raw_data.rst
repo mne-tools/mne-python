@@ -34,6 +34,7 @@ Reading raw data
    read_raw_gdf
    read_raw_hitachi
    read_raw_kit
+   read_raw_mef
    read_raw_nedf
    read_raw_nicolet
    read_raw_nihon

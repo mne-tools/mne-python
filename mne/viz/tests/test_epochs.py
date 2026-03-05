@@ -136,6 +136,10 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys, browser_backend):
     # test clicking scrollbars
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_hscroll)
+    # clicking near right edge in hscroll should reach final epoch window
+    fig._fake_click((0.99, 0.5), ax=fig.mne.ax_hscroll)
+    max_t_start = fig.mne.n_times / fig.mne.info["sfreq"] - fig.mne.duration
+    assert fig.mne.t_start == pytest.approx(max_t_start)
     # test moving bad epoch offscreen
     fig._fake_keypress("right")  # move right
     x = fig.mne.traces[0].get_xdata()[-3]

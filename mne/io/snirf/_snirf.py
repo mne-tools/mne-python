@@ -388,13 +388,18 @@ class RawSNIRF(BaseRaw):
                 diglocs = np.array(dat.get("/nirs/probe/landmarkPos3D"))
                 diglocs /= length_scaling
                 digname = np.array(dat.get("/nirs/probe/landmarkLabels"))
+                # Handle empty or scalar landmarkLabels (see gh-13627)
+                if digname.ndim == 0 or digname.size == 0:
+                    digname = []
+                else:
+                    digname = _correct_shape(digname)
                 nasion, lpa, rpa, hpi = None, None, None, None
                 extra_ps = dict()
                 for idx, dign in enumerate(digname):
                     dign = dign.lower()
                     if dign in [b"lpa", b"al"]:
                         lpa = diglocs[idx, :3]
-                    elif dign in [b"nasion"]:
+                    elif dign in [b"nasion", b"nz"]:
                         nasion = diglocs[idx, :3]
                     elif dign in [b"rpa", b"ar"]:
                         rpa = diglocs[idx, :3]

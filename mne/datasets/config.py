@@ -87,7 +87,7 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
-    testing="0.171",
+    testing="0.172",
     misc="0.27",
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
@@ -115,7 +115,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:138caf29bd8a9b0a6b6ea43d92c16201",
+    hash="md5:9d031f1a91d2bd903a9464ca2cd7dc09",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f"tar.gz/{RELEASES['testing']}"
@@ -211,8 +211,8 @@ MNE_DATASETS["sample"] = dict(
 
 MNE_DATASETS["somato"] = dict(
     archive_name="MNE-somato-data.tar.gz",
-    hash="md5:32fd2f6c8c7eb0784a1de6435273c48b",
-    url="https://osf.io/download/tp4sg?version=7",
+    hash="md5:9a191907b326b9402341ee7a0d1240d8",
+    url="https://osf.io/download/tp4sg?version=8",
     folder_name="MNE-somato-data",
     config_key="MNE_DATASETS_SOMATO_PATH",
 )
