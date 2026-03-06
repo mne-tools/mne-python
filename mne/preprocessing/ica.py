@@ -14,6 +14,7 @@ from copy import deepcopy
 from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
+from os import PathLike
 from time import time
 from typing import Literal
 
@@ -3053,8 +3054,7 @@ def _write_ica(fid, ica):
 
 @verbose
 def read_ica(
-    # TODO: matplotlib.path.Path or pathlib.Path - which one to chose?
-    fname: str,
+    fname: PathLike,
     verbose: bool | str | int | None = None,
 ) -> ICA:
     """Restore ICA solution from fif file.
@@ -3519,7 +3519,7 @@ def corrmap(
 
 @verbose
 def read_ica_eeglab(
-    fname: str,
+    fname: PathLike,
     *,
     montage_units: str = "auto",
     verbose: bool | str | int | None = None,
