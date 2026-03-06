@@ -19,6 +19,7 @@ from mne import (
     read_evokeds,
     read_source_spaces,
 )
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.chpi import compute_chpi_snr
 from mne.datasets import testing
 from mne.filter import create_filter
@@ -314,16 +315,16 @@ def test_plot_dipole_amplitudes():
 
 
 @pytest.mark.parametrize(
-    "ch_types, expected_n_figs",
+    "ch_types",
     [
-        (None, 1),
-        ("eeg", 1),
-        ("ecog", 1),
-        (["grad", "dbs"], 2),
-        ("misc", 0),
+        None,
+        "eeg",
+        "ecog",
+        ["grad", "dbs"],
+        "misc",
     ],
 )
-def test_plot_csd(ch_types, expected_n_figs):
+def test_plot_csd(ch_types):
     """Test plotting of CSD matrices."""
     n_ch = 2
     if isinstance(ch_types, list):
@@ -342,10 +343,12 @@ def test_plot_csd(ch_types, expected_n_figs):
         tmax=1,
     )
 
-    if ch_type_list is not None:
-        info = create_info(ch_names, sfreq=1.0, ch_types=ch_type_list)
-    else:
-        info = None
+    info = None
+    expected_n_figs = 1
+    if ch_types is not None:
+        info = create_info(ch_names, sfreq=1.0, ch_types=ch_types)
+        types_iter = ch_types if isinstance(ch_types, list) else [ch_types]
+        expected_n_figs = len(set(types_iter).intersection(_DATA_CH_TYPES_SPLIT))
 
     for mode in ("csd", "coh"):
         figs = plot_csd(csd, info=info, mode=mode, show=False)

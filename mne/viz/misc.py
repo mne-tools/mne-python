@@ -52,32 +52,8 @@ from .utils import (
 )
 
 
-def _index_info_by_ch_type(info, obj_ch_names):
-    """Build channel-type-grouped indices and metadata for an object's channels.
-
-    Parameters
-    ----------
-    info : Info
-        The measurement info, already restricted to the channels of interest
-        (e.g. via :func:`pick_info`).
-    obj_ch_names : list of str
-        Channel names of the object being indexed (e.g. the channel list of a
-        :class:`~mne.time_frequency.CrossSpectralDensity` or the filtered
-        channel list derived from a :class:`~mne.Covariance`).
-
-    Returns
-    -------
-    indices : list of list of int
-        Channel indices into *obj_ch_names*, one list per channel type.
-    titles : list of str
-        Human-readable title for each channel type.
-    units : list of str
-        Unit string for each channel type.
-    scalings : list of float
-        Scaling factor for each channel type.
-    ch_types : list of str
-        Channel type key for each group.
-    """
+def _index_info_by_ch_type(info, ch_names):
+    """Build channel-type-grouped indices and metadata for an object's channels."""
     info_ch_names = info["ch_names"]
     picks_list = _picks_by_type(info, meg_combined=False, ref_meg=False, exclude=())
     picks_by_type = dict(picks_list)
@@ -85,9 +61,9 @@ def _index_info_by_ch_type(info, obj_ch_names):
     idx_by_type = defaultdict(list)
     for ch_type, sel in picks_by_type.items():
         idx_by_type[ch_type] = [
-            obj_ch_names.index(info_ch_names[c])
+            ch_names.index(info_ch_names[c])
             for c in sel
-            if info_ch_names[c] in obj_ch_names
+            if info_ch_names[c] in ch_names
         ]
 
     indices = []
@@ -1521,9 +1497,13 @@ def plot_csd(
         raise ValueError('"mode" should be either "csd" or "coh".')
 
     if info is not None:
-        indices, titles, _, _, ch_types = _index_info_by_ch_type(info, csd.ch_names)
+        indices, titles, units, scalings, ch_types = _index_info_by_ch_type(
+            info, csd.ch_names
+        )
     else:
         indices = [np.arange(len(csd.ch_names))]
+        units = [""]
+        scalings = [1]
         ch_types = [None]
         if mode == "csd":
             titles = ["Cross-spectral density"]
@@ -1537,7 +1517,9 @@ def plot_csd(
     n_rows = int(np.ceil(n_freqs / float(n_cols)))
 
     figs = []
-    for ind, title, ch_type in zip(indices, titles, ch_types):
+    for ind, title, unit, scaling, ch_type in zip(
+        indices, titles, units, scalings, ch_types
+    ):
         fig, axes = plt.subplots(
             n_rows,
             n_cols,
@@ -1545,9 +1527,6 @@ def plot_csd(
             figsize=(2 * n_cols + 1, 2.2 * n_rows),
             layout="constrained",
         )
-
-        if mode == "csd":
-            scaling = DEFAULTS["scalings"].get(ch_type, 1)
 
         csd_mats = []
         for i in range(len(csd.frequencies)):
