@@ -320,6 +320,31 @@ def test_get_data_copy():
     with pytest.raises(TypeError, match="tmax .* float, None"):
         epochs.get_data(tmin=1, tmax=np.ones(5))
 
+    # Regression test for gh-13634: get_data(tmin) must match crop(tmin)
+    # The bug was that _handle_tmin_tmax used truncation instead of rounding
+    # when converting time to sample index, causing off-by-one errors.
+    sfreq_test = 100.0
+    info_test = create_info(ch_names=["EEG1"], sfreq=sfreq_test, ch_types="eeg")
+    n_times_test = 2000
+    data_test = np.arange(n_times_test).reshape(1, n_times_test) / sfreq_test
+    raw_test = RawArray(data_test, info_test, verbose=False)
+    events_test = np.array([[500, 0, 1]])
+    epochs_test = Epochs(
+        raw_test,
+        events_test,
+        tmin=-3.5,
+        tmax=5.0,
+        baseline=None,
+        preload=True,
+        verbose=False,
+    )
+    # Set data values equal to time values for easy verification
+    epochs_test._data[0, 0, :] = epochs_test.times
+    for t in epochs_test.times[::10]:  # test every 10th time point
+        crop_val = epochs_test.copy().crop(tmin=t).get_data()[0, 0, 0]
+        gd_val = epochs_test.get_data(tmin=t)[0, 0, 0]
+        assert_allclose(gd_val, crop_val, err_msg=f"Mismatch at tmin={t}")
+
     # Test copy
     data = epochs.get_data(copy=True)
     assert not np.shares_memory(data, epochs._data)

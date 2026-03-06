@@ -1017,7 +1017,7 @@ def test_get_data_tmin_tmax():
     d1 = raw.get_data()
     d2 = raw.get_data(tmin=tmin, tmax=tmax)
 
-    idxs = raw.time_as_index([tmin, tmax])
+    idxs = raw.time_as_index([tmin, tmax], use_rounding=True)
     assert_allclose(d1[:, idxs[0] : idxs[1]], d2)
 
     # specifying a too low tmin truncates to idx 0
