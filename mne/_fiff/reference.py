@@ -228,7 +228,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with added EEG reference channels.
 
     Notes
@@ -396,7 +396,7 @@ def set_eeg_reference(
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with EEG channels re-referenced. If ``ref_channels="average"`` and
         ``projection=True`` a projection will be added instead of directly
         re-referencing the data.
@@ -575,7 +575,7 @@ def set_bipolar_reference(
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with the specified channels re-referenced.
 
     See Also

@@ -1263,7 +1263,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        sources : instance of Raw, Epochs or Evoked
+        sources : same type as the input data
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
@@ -2237,7 +2237,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        out : instance of Raw, Epochs or Evoked
+        out : same type as the input data
             The processed data.
 
         Notes
