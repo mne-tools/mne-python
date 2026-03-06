@@ -192,7 +192,7 @@ def test_xhemi_morph():
     n_src_verts = len(vertices_use[1])
     assert vertices_use[0].shape == (n_grade_verts,)
     assert vertices_use[1].shape == (n_src_verts,)
-    # ensure it's sufficiently diffirent to manifest round-trip errors
+    # ensure it's sufficiently different to manifest round-trip errors
     assert np.isin(vertices_use[1], stc.vertices[1]).mean() < 0.3
     morph = compute_source_morph(
         stc,
