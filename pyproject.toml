@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["packaging", "pip >= 25.1", "rcssmin >= 1.1", "tomlkit", {include-group = "doc"}, {include-group = "test_extra"}]
+dev = ["pip >= 25.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}, {include-group = "tools"}]
 # Dependencies for building the documentation
 doc = [
   "graphviz",
@@ -79,6 +79,15 @@ test_extra = [
   "sphinx-gallery",
   "statsmodels",
   {include-group = "test"},
+]
+# Dependencies for scripts in /tools directory used in CI and development
+tools = [
+  "ast-comments",
+  "black",
+  "gitpython",
+  "PyGithub",
+  "requests",
+  "tomlkit",
 ]
 
 [project]
