@@ -325,14 +325,11 @@ def test_plot_dipole_amplitudes():
 )
 def test_plot_csd(ch_types, expected_n_figs):
     """Test plotting of CSD matrices."""
+    n_ch = 2
     if isinstance(ch_types, list):
-        ch_type_list = ch_types
-    elif ch_types is not None:
-        ch_type_list = [ch_types, ch_types]
-    else:
-        ch_type_list = None
-
-    n_ch = len(ch_type_list) if ch_type_list is not None else 2
+        n_ch_types = len(ch_types)
+        ch_types = np.repeat(ch_types, n_ch).tolist()
+        n_ch *= n_ch_types
     ch_names = [f"CH{i + 1}" for i in range(n_ch)]
     n_data = n_ch * (n_ch + 1) // 2
 
