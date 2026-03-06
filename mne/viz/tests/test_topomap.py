@@ -86,6 +86,7 @@ def test_plot_topomap_interactive(layout):
     assert not evoked.proj
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
+    plt.close("all")
     fig, ax = plt.subplots(layout=layout)
     canvas = fig.canvas
 
@@ -362,9 +363,12 @@ def test_plot_topomap_basic():
     # other:
     # ------
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
+    plt.close("all")
     axes = [plt.subplot(221), plt.subplot(222)]
     plt_topomap(axes=axes, colorbar=False)
+    plt.close("all")
     plt_topomap(times=[-0.1, 0.2])
+    plt.close("all")
     evoked_grad = evoked.copy().crop(0, 0).pick(picks="grad")
     mask = np.zeros((204, 1), bool)
     mask[[0, 3, 5, 6]] = True
@@ -392,6 +396,7 @@ def test_plot_topomap_basic():
     plt_topomap(
         times, ch_type="grad", mask=mask, show_names=True, mask_params={"marker": "x"}
     )
+    plt.close("all")
 
     p = plt_topomap(
         times,
@@ -431,6 +436,7 @@ def test_plot_topomap_basic():
 
     p = plt_topomap(times, ch_type="eeg", average=0.01)
     assert_equal(len(get_texts(p)), 0)
+    plt.close("all")
 
     # Test averaging with a scalar input
     averaging_times = [ev_bad.times[0], times[0], ev_bad.times[-1]]
@@ -462,6 +468,7 @@ def test_plot_topomap_basic():
 
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0), proj=False)
+    plt.close("all")
     fig1 = evoked.plot_topomap(
         "interactive", ch_type="mag", proj="interactive", **fast_test
     )
@@ -490,6 +497,7 @@ def test_plot_topomap_basic():
     eeg_picks = pick_types(evoked.info, meg=False, eeg=True)
     pos, outlines = _get_pos_outlines(evoked.info, eeg_picks, 0.1)
     evoked.plot_topomap(times, ch_type="eeg", outlines=outlines, **fast_test)
+    plt.close("all")
 
     # Test interactive cmap
     fig = plot_evoked_topomap(
@@ -510,6 +518,8 @@ def test_plot_topomap_basic():
 
     _fake_scroll(fig, 0.5, 0.5, -0.5)  # scroll down
     _fake_scroll(fig, 0.5, 0.5, 0.5)  # scroll up
+
+    plt.close("all")
 
     # Pass custom outlines with patch callable
     def patch():
@@ -538,10 +548,12 @@ def test_plot_topomap_basic():
     # height) is assumed.
     pos_xywh = np.c_[pos, np.zeros((n_channels, 2))]
     plot_topomap(data, pos_xywh)
+    plt.close("all")
 
     # Test peak finder
     axes = [plt.subplot(131), plt.subplot(132)]
     evoked.plot_topomap(times="peaks", axes=axes, **fast_test)
+    plt.close("all")
     evoked.data = np.zeros(evoked.data.shape)
     evoked.data[50][1] = 1
     assert_array_equal(_find_peaks(evoked, 10), evoked.times[1])
@@ -568,6 +580,7 @@ def test_plot_psds_topomap_colorbar():
     psd = np.abs(rng.standard_normal((len(picks), len(freqs))))
     bands = {"theta": [4, 8]}
 
+    plt.close("all")
     fig_cbar = plot_psds_topomap(psd, freqs, info, colorbar=True, bands=bands)
     assert len(fig_cbar.axes) == 2
 
@@ -646,6 +659,7 @@ def test_plot_tfr_topomap():
     eclick.xdata = eclick.ydata = 0.0
     erelease.xdata = erelease.ydata = 0.9
     tfr._onselect(eclick, erelease, None, "mean", None)
+    plt.close("all")
 
     # test plot_psds_topomap
     info = raw.info.copy()
@@ -975,6 +989,7 @@ def test_plot_ch_adjacency():
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
 
 
+
 def test_plot_topomap_info_names_ordering():
     """Regression test for GH-12700.
 
@@ -984,14 +999,10 @@ def test_plot_topomap_info_names_ordering():
     info = create_info(ch_names=["Fp1", "Fp2", "Fz"], sfreq=1000.0, ch_types="eeg")
     montage = make_standard_montage("standard_1020")
     info.set_montage(montage)
-
     data = np.array([1.0, 2.0, 3.0])
     names = ["Fp1", "Fp2", "Fz"]
-
-    # This must not raise and must display correct sensor names
     im, _ = plot_topomap(data, info, names=names, show=False)
     assert im is not None
-    # Verify the displayed sensor names match the expected ones
     displayed_names = [t.get_text() for t in im.axes.texts]
     for name in names:
         assert name in displayed_names, f"{name!r} not found in {displayed_names}"
