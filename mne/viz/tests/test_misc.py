@@ -347,8 +347,11 @@ def test_plot_csd(ch_types):
     expected_n_figs = 1
     if ch_types is not None:
         info = create_info(ch_names, sfreq=1.0, ch_types=ch_types)
-        types_iter = ch_types if isinstance(ch_types, list) else [ch_types]
-        expected_n_figs = len(set(types_iter).intersection(_DATA_CH_TYPES_SPLIT))
+        expected_n_figs = len(
+            set(ch_types if isinstance(ch_types, list) else [ch_types]).intersection(
+                _DATA_CH_TYPES_SPLIT
+            )
+        )
 
     for mode in ("csd", "coh"):
         figs = plot_csd(csd, info=info, mode=mode, show=False)
