@@ -10,7 +10,7 @@ from numpy.testing import assert_allclose
 
 from mne import find_events
 from mne._fiff.constants import FIFF
-from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, _PICK_TYPES_DATA_DICT
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.eyelink._utils import _adjust_times, _find_overlaps
@@ -45,6 +45,7 @@ def test_eyetrack_not_data_ch():
     )
     assert "eyegaze" not in _DATA_CH_TYPES_SPLIT, msg
     assert "pupil" not in _DATA_CH_TYPES_SPLIT, msg
+    assert  not _PICK_TYPES_DATA_DICT["eyetrack"], msg
 
 
 @requires_testing_data
