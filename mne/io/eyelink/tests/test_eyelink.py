@@ -45,7 +45,7 @@ def test_eyetrack_not_data_ch():
     )
     assert "eyegaze" not in _DATA_CH_TYPES_SPLIT, msg
     assert "pupil" not in _DATA_CH_TYPES_SPLIT, msg
-    assert  not _PICK_TYPES_DATA_DICT["eyetrack"], msg
+    assert not _PICK_TYPES_DATA_DICT["eyetrack"], msg
 
 
 @requires_testing_data
