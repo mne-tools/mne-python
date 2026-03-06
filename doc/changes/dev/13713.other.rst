@@ -1,1 +1,1 @@
-Refactored CSD channel-type indexing to support all data channel types using ``_DATA_CH_TYPES_SPLIT`` and ``DEFAULTS``, removing hardcoded handling and reducing duplicated logic with covariance plotting, by `Aniket Singh Yadav`_.
+Extended support for visualising cross-spectral densities in :func:`mne.viz.plot_csd` and :meth:`mne.time_frequency.CSD.plot` to all types of :term:`data channels`, by `Aniket Singh Yadav`_.
