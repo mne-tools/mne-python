@@ -1,57 +1,64 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = ["hatch-vcs", "hatchling"]
+requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["pip >= 25.1", "rcssmin", {include-group = "doc"}, {include-group = "test_extra"}]
+dev = ["pip >= 25.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
 # Dependencies for building the documentation
 doc = [
   "graphviz",
   "intersphinx_registry >= 0.2405.27",
   "ipython != 8.7.0",  # also in "full-no-qt" and "test"
-  "memory_profiler",
+  "memory_profiler >= 0.16",
   "mne-bids",
   "mne-connectivity",
   "mne-gui-addons",
   "neo",
-  "numpydoc",
-  "openneuro-py",
+  "numpydoc >= 0.5",
+  "openneuro-py >= 2020.1",
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
   "pymef",
   "pytest",
-  "pyvistaqt",
+  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "pyxdf",
   "pyzmq != 24.0.0",
-  "scikit-learn",
-  "seaborn != 0.11.2",
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
   "sphinx-design",
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
-  "sphinxcontrib-towncrier >=0.5.0a0",
+  "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
+]
+# Dependencies in a separate group for uv lockfile generation, currently only used for
+# the 'old' environment CI test run
+lockfile_extras = [
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
 ]
 test = [
   "codespell",
-  "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
-  "mypy",
-  "numpydoc",
+  "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
+  "mypy >= 0.14",
+  "numpydoc >= 1.6",
+  "pillow >= 10.2",
   "pre-commit",
   "pytest >= 8.0",
-  "pytest-cov",
-  "pytest-qt",
+  "pytest-cov >= 4.1",
+  "pytest-qt >= 4.3",
   "pytest-rerunfailures",
-  "pytest-timeout",
-  "ruff",
+  "pytest-timeout >= 2.2",
+  "ruff >= 0.1",
   "toml-sort",
-  "tomli; python_version<'3.11'",
+  "tomli; python_version < '3.11'",
   "twine",
   "vulture",
-  "wheel",
+  "wheel >= 0.21",
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
@@ -65,7 +72,7 @@ test_extra = [
   "nbclient",
   "nbformat",
   "neo",
-  "nitime",
+  "nitime >= 0.7",
   "pybv",
   "pymef",
   "snirf",
@@ -92,15 +99,15 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
-  "decorator",
-  "jinja2",
+  "decorator >= 5.1",
+  "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
   "scipy >= 1.12",  # released 2024-01-20, will become 1.13 on 2026-04-02
-  "tqdm",
+  "tqdm >= 4.66",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
 dynamic = ["version"]
@@ -119,6 +126,9 @@ maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
+# ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
+# command in `.github/workflows/spec_zero.yaml` (astral-sh/uv/#16333), and also the
+# `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yaml`
 scripts = {mne = "mne.commands.utils:main"}
 
 [project.optional-dependencies]
@@ -135,27 +145,27 @@ full-no-qt = [
   "curryreader >= 0.1.2",
   "darkdetect",
   "defusedxml",
-  "dipy",
+  "dipy >= 0.8",
   "edfio >= 0.4.10",
   "eeglabio",
   "filelock >= 3.18.0",
-  "h5py",
+  "h5py >= 2.4",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
   "ipyevents",
   "ipympl",
-  "ipython != 8.7.0",  # for notebook backend; also in "doc" and "test"
+  "ipython >= 2.0, != 8.7.0",  # for notebook backend; also in "doc" and "test"
   "ipywidgets",
-  "joblib",
+  "joblib >= 0.8",
   "jupyter",
   "mffpy >= 0.5.7",
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
   "nest-asyncio2",
-  "nibabel",
+  "nibabel >= 2.0",
   "nilearn",
-  "numba",
+  "numba >= 0.35",
   "openmeeg >= 2.5.7",
   "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
@@ -163,7 +173,7 @@ full-no-qt = [
   "pybv",
   "pymef",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
-  "python-picard",
+  "python-picard >= 0.4",
   "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
@@ -171,7 +181,7 @@ full-no-qt = [
   "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "sip",
   "snirf",
-  "statsmodels",
+  "statsmodels >= 0.6",
   "threadpoolctl",
   "traitlets",
   "trame",

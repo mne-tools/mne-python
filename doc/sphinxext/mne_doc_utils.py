@@ -96,6 +96,8 @@ def reset_warnings(gallery_conf, fname):
         r"You are using the.*matplotlib backend that[.\n]*",
         # pybtex
         ".*pkg_resources is deprecated as an API.*",
+        # dipy <-> NumPy
+        "'where' used without 'out', expect.*",
     ):
         warnings.filterwarnings(
             "ignore",

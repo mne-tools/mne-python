@@ -22,6 +22,7 @@
 .. _Andrew Gilbert: https://github.com/adgilbert
 .. _Andrew Quinn: https://github.com/ajquinn
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
+.. _Aniket Singh Yadav: https://github.com/Aniketsy
 .. _Anna Padee: https://github.com/apadee/
 .. _Annalisa Pascarella: https://github.com/annapasca
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
@@ -96,6 +97,7 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
+.. _Famous Raj Bhat: https://github.com/Famous077
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
@@ -258,6 +260,7 @@
 .. _Pierre Guetschel: https://github.com/PierreGtch
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 .. _Ping-Keng Jao: https://github.com/nafraw
+.. _Pragnya Khandelwal: https://github.com/PragnyaKhandelwal
 .. _Proloy Das: https://github.com/proloyd
 .. _Qian Chu: https://github.com/qian-chu
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774

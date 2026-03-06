@@ -5,8 +5,8 @@
 Source reconstruction using an LCMV beamformer
 ==============================================
 
-This tutorial gives an overview of the beamformer method and shows how to
-reconstruct source activity using an LCMV beamformer.
+This tutorial gives an overview of the beamformer method and shows how to reconstruct
+source activity using an LCMV beamformer.
 """
 # Authors: Britta Westner <britta.wstnr@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
