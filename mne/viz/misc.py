@@ -1578,12 +1578,9 @@ def plot_csd(
             if mode == "csd":
                 label = "CSD"
                 if ch_type is not None:
-                    unit = DEFAULTS["units"].get(ch_type, "")
-                    if unit:
-                        if "/" in unit:
-                            label += f" ({unit})²"
-                        else:
-                            label += f" ({unit}²)"
+                    if "/" in unit:
+                        unit = f"({unit})"
+                    label += f" ({unit}²)"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")
