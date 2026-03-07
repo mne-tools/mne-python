@@ -1575,7 +1575,7 @@ class Report:
             channel types (e.g., ``['grad', 'mag']``).
             Valid channel types are ``'grad'``, ``'mag'``, and ``'eeg'``.
 
-            .. versionadded:: 1.11
+            .. versionadded:: 1.12
         %(tags_report)s
         %(section_report)s
 
@@ -3646,18 +3646,53 @@ class Report:
                     "subjects_dir must be provided to compute sensitivity maps"
                 )
 
-            ch_types = ["grad", "mag", "eeg"]
-            if sensitivity is not True:
+            info = forward["info"]
+            meg_info = info.get("meg", False)
+            has_grad = meg_info and (
+                isinstance(meg_info, dict)
+                and meg_info.get("grad", False)
+                or meg_info is True
+            )
+            has_mag = meg_info and (
+                isinstance(meg_info, dict)
+                and meg_info.get("mag", False)
+                or meg_info is True
+            )
+            has_eeg = info.get("eeg", False)
+
+            all_ch_types = []
+            if has_grad:
+                all_ch_types.append("grad")
+            if has_mag:
+                all_ch_types.append("mag")
+            if has_eeg:
+                all_ch_types.append("eeg")
+
+            if not all_ch_types:
+                raise ValueError(
+                    "No MEG or EEG channels found in forward solution. "
+                    "Cannot compute sensitivity maps."
+                )
+
+            if sensitivity is True:
+                ch_types = all_ch_types
+            else:
                 ch_types = list(sensitivity)
                 for ch_type in ch_types:
                     _check_option("ch_type", ch_type, ["grad", "mag", "eeg"])
+                    if ch_type not in all_ch_types:
+                        raise ValueError(
+                            f"Channel type '{ch_type}' not found in forward solution. "
+                            f"Available types are: {all_ch_types}"
+                        )
 
             html_parts = []
             for ch_type in ch_types:
-                try:
-                    stc = sensitivity_map(forward, ch_type=ch_type, mode="fixed")
-                except Exception:
-                    continue
+                _check_option("ch_type", ch_type, ["grad", "mag", "eeg"])
+
+            html_parts = []
+            for ch_type in ch_types:
+                stc = sensitivity_map(forward, ch_type=ch_type, mode="fixed")
 
                 stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", dict())
                 stc_plot_kwargs.update(
