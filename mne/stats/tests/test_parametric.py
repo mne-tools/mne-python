@@ -194,7 +194,7 @@ def test_f_oneway_hat(sigma, method, seed):
         f_reg = f_oneway(X1, X2, sigma=sigma, method=method)
         f_unreg = f_oneway(X1, X2, sigma=0.0)
         pos = f_unreg > 0
-        assert_array_less(f_reg[pos], f_unreg[pos] + 1e-10)
+        assert_array_less(f_reg[pos], f_unreg[pos])
 
 
 def test_f_oneway_hat_small_variance():
@@ -210,6 +210,8 @@ def test_f_oneway_hat_small_variance():
     assert np.median(f_unreg) > 1e6
     assert np.median(f_abs) < np.median(f_unreg)
     assert np.median(f_rel) < np.median(f_unreg)
+    assert np.all(np.isfinite(f_abs))
+    assert np.all(np.isfinite(f_rel))
 
 
 def test_f_oneway_hat_input_validation():
@@ -217,6 +219,10 @@ def test_f_oneway_hat_input_validation():
     rng = np.random.RandomState(0)
     X1 = rng.randn(5, 10)
     X2 = rng.randn(5, 10)
+
+    f_plain = f_oneway(X1, X2, sigma=0.0)
+    f_scipy = scipy.stats.f_oneway(X1, X2)[0]
+    assert_allclose(f_plain, f_scipy, rtol=1e-7)
 
     with pytest.raises(ValueError, match="sigma must be >= 0"):
         f_oneway(X1, X2, sigma=-0.1)
