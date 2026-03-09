@@ -1063,10 +1063,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     assert "Sources" in r._content[-1].html
 
-    # plot_sources=True with inst=None should warn and not raise
-    with pytest.warns(
-        RuntimeWarning, match="Cannot plot ICA sources because inst=None"
-    ):
+    # plot_sources=True with inst=None should raise a ValueError
+    with pytest.raises(ValueError, match="Cannot plot ICA sources because inst=None"):
         r.add_ica(
             ica=ica,
             title="my ica sources no inst",
