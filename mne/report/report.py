@@ -2186,10 +2186,11 @@ class Report:
         # Sources plot
         if plot_sources:
             if inst is None:
-                warn(
+                raise ValueError(
                     "Cannot plot ICA sources because inst=None. "
                     "Please pass a Raw, Epochs, or Evoked instance to "
-                    "add_ica() to enable source plotting."
+                    "add_ica() to enable source plotting, or pass "
+                    "plot_sources=False."
                 )
             else:
                 self._add_ica_sources(
@@ -2249,7 +2250,7 @@ class Report:
             :meth:`mne.preprocessing.ICA.plot_sources`. Requires ``inst``
             to be provided. Defaults to ``False``.
 
-            .. versionadded:: 1.9
+            .. versionadded:: 1.12
 
         Notes
         -----
