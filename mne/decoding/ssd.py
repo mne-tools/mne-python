@@ -16,6 +16,7 @@ from ..utils import (
     _validate_type,
     fill_doc,
     logger,
+    verbose,
 )
 from ..utils.check import check_fname
 from ._covs_ged import _ssd_estimate
@@ -211,7 +212,7 @@ class SSD(_GEDTransformer):
         if missing:
             raise ValueError(
                 f"State dict is missing required keys: {missing}. "
-                "The file may be corrupt or not a valid SSD state."
+                "The state may be from an incompatible version of MNE."
             )
         self.__dict__.update(state)
         self.cov_callable, self.mod_ged_callable = _create_callables(
@@ -226,15 +227,16 @@ class SSD(_GEDTransformer):
             sort_by_spectral_ratio=self.sort_by_spectral_ratio,
         )
 
-    def save(self, fname, *, overwrite=False):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save the SSD object to disk (in HDF5 format).
 
         Parameters
         ----------
         fname : path-like
             The file path to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
-        overwrite : bool
-            If True, overwrite an existing file. Defaults to False.
+        %(overwrite)s
+        %(verbose)s
 
         See Also
         --------
@@ -242,7 +244,7 @@ class SSD(_GEDTransformer):
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, "ssd", (".h5", ".hdf5"))
-        fname = _check_fname(fname, overwrite=overwrite)
+        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
         write_hdf5(
             fname,
             self.__getstate__(),
@@ -479,8 +481,6 @@ def read_ssd(fname):
     _validate_type(fname, "path-like", "fname")
     fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
     state = read_hdf5(fname, title="mnepython", slash="replace")
-    if "info" in state and not isinstance(state["info"], Info):
-        state["info"] = Info(state["info"])
     ssd = object.__new__(SSD)
     ssd.__setstate__(state)
     return ssd
