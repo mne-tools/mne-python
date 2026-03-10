@@ -1,0 +1,1 @@
+Fix bug in 3D overlay compositing that could produce NaN RGBA values when the resulting alpha is zero, by `Pragnya Khandelwal`_.
