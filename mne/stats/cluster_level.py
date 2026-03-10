@@ -289,7 +289,32 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 def _get_components(x_in, adjacency, return_list=True):
     """Get connected components from a mask and a adjacency matrix."""
     if adjacency is False:
-        components = np.arange(len(x_in))
+        if return_list:
+            idx = np.where(x_in)[0]
+            return [idx[i : i + 1] for i in range(len(idx))]
+        return np.arange(len(x_in))
+    if return_list:
+        # Build compact graph of only the active (supra-threshold) vertices
+        idx = np.where(x_in)[0]
+        n_active = len(idx)
+        if n_active == 0:
+            return []
+        global_to_local = np.empty(adjacency.shape[0], dtype=np.intp)
+        global_to_local[idx] = np.arange(n_active)
+        edge_mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
+        row = global_to_local[adjacency.row[edge_mask]]
+        col = global_to_local[adjacency.col[edge_mask]]
+        self_idx = np.arange(n_active)
+        row = np.concatenate((row, self_idx))
+        col = np.concatenate((col, self_idx))
+        data = np.ones(len(row), dtype=np.float64)
+        small_adj = sparse.coo_array((data, (row, col)), shape=(n_active, n_active))
+        _, components = connected_components(small_adj)
+        order = np.argsort(components, kind="stable")
+        counts = np.bincount(components)
+        splits = np.cumsum(counts[:-1])
+        global_order = idx[order]
+        return list(np.split(global_order, splits))
     else:
         mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
         data = adjacency.data[mask]
@@ -302,17 +327,6 @@ def _get_components(x_in, adjacency, return_list=True):
         data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
         adjacency = sparse.coo_array((data, (row, col)), shape=shape)
         _, components = connected_components(adjacency)
-    if return_list:
-        start = np.min(components)
-        stop = np.max(components)
-        comp_list = [list() for i in range(start, stop + 1, 1)]
-        mask = np.zeros(len(comp_list), dtype=bool)
-        for ii, comp in enumerate(components):
-            comp_list[comp].append(ii)
-            mask[comp] += x_in[ii]
-        clusters = [np.array(k) for k, m in zip(comp_list, mask) if m]
-        return clusters
-    else:
         return components
 
 
