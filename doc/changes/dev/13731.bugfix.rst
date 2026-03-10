@@ -1,0 +1,1 @@
+Fix step-down-in-jumps reshape when ``adjacency=False`` in :func:`mne.stats.permutation_cluster_1samp_test` and related cluster functions, by :newcontrib:`Sharif Haason`.
