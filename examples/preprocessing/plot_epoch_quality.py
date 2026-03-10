@@ -11,17 +11,9 @@ shows how to compute simple per-epoch statistics — peak-to-peak amplitude,
 variance, and kurtosis — and use them to rank epochs by their outlier score.
 
 The approach is inspired by established methods in the EEG artifact detection
-literature, namely FASTER (Nolan et al., 2010) and Delorme et al. (2007), both
-of which use z-scored kurtosis and variance across epochs to flag bad trials.
-
-References
-----------
-.. [1] Nolan, H., Whelan, R., & Reilly, R. B. (2010). FASTER: Fully Automated
-       Statistical Thresholding for EEG artifact Rejection.
-       Journal of Neuroscience Methods, 192(1), 152-162.
-.. [2] Delorme, A., Sejnowski, T., & Makeig, S. (2007). Enhanced detection of
-       artifacts in EEG data using higher-order statistics and independent
-       component analysis. NeuroImage, 34(4), 1443-1449.
+literature, namely FASTER :footcite:t:`NolanEtAl2010` and
+:footcite:t:`DelormeEtAl2007`, both of which use z-scored kurtosis and
+variance across epochs to flag bad trials.
 """
 # Authors: Aman Srivastava
 #
@@ -107,3 +99,8 @@ ax.legend()
 bad_epochs = np.where(scores > 0.8)[0]
 print(f"Epochs worth inspecting: {bad_epochs}")
 print(f"That's {len(bad_epochs)} out of {len(epochs)} total epochs")
+
+# %%
+# References
+# ----------
+# .. footbibliography::
