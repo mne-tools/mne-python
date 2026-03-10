@@ -599,15 +599,19 @@ def _pval_from_histogram(T, H0, tail):
     """Get p-values from stats values given an H0 distribution.
 
     For each stat compute a p-value as percentile of its statistics
-    within all statistics in surrogate data
+    within all statistics in surrogate data.
     """
-    # from pct to fraction
+    n = len(H0)
     if tail == -1:  # up tail
-        pval = np.array([np.mean(H0 <= t) for t in T])
+        H0_sorted = np.sort(H0)
+        pval = np.searchsorted(H0_sorted, T, side="right") / n
     elif tail == 1:  # low tail
-        pval = np.array([np.mean(H0 >= t) for t in T])
+        H0_sorted = np.sort(H0)
+        pval = (n - np.searchsorted(H0_sorted, T, side="left")) / n
     else:  # both tails
-        pval = np.array([np.mean(abs(H0) >= abs(t)) for t in T])
+        H0_abs_sorted = np.sort(np.abs(H0))
+        T_abs = np.abs(T)
+        pval = (n - np.searchsorted(H0_abs_sorted, T_abs, side="left")) / n
 
     return pval
 
