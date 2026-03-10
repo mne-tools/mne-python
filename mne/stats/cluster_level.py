@@ -110,16 +110,6 @@ else:  # pragma: no cover
 
 
 @jit()
-def _masked_sum(x, c):
-    return np.sum(x[c])
-
-
-@jit()
-def _masked_sum_power(x, c, t_power):
-    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-
-
-@jit()
 def _sum_cluster_data(data, tstep):
     return np.sign(data) * np.logical_not(data == 0) * tstep
 
@@ -569,10 +559,20 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             raise TypeError(
                 f"adjacency must be a sparse array or list, got {type(adjacency)}"
             )
-        if t_power == 1:
-            sums = [_masked_sum(x, c) for c in clusters]
+        if not clusters:
+            sums = np.array([])
         else:
-            sums = [_masked_sum_power(x, c, t_power) for c in clusters]
+            # Vectorized cluster sums via reduceat
+            all_idx = np.concatenate(clusters)
+            lengths = np.array([len(c) for c in clusters])
+            offsets = np.empty(len(clusters), dtype=np.intp)
+            offsets[0] = 0
+            np.cumsum(lengths[:-1], out=offsets[1:])
+            if t_power == 1:
+                sums = np.add.reduceat(x[all_idx], offsets)
+            else:
+                vals = np.sign(x[all_idx]) * np.abs(x[all_idx]) ** t_power
+                sums = np.add.reduceat(vals, offsets)
 
     return clusters, np.atleast_1d(sums)
 
