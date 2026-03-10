@@ -878,10 +878,10 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
         extra = " (exact test)"
         orders = bin_perm_rep(n_samples)[1 : max_perms + 1]
     elif n_samples <= 20:  # fast way to do it for small(ish) n_samples
-        orders = rng.choice(max_perms, n_permutations - 1, replace=False)
-        orders = [
-            np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int) for s in orders
-        ]
+        order_indices = rng.choice(max_perms, n_permutations - 1, replace=False)
+        # Vectorized binary expansion via bit-shifting
+        bit_positions = np.arange(n_samples - 1, -1, -1)
+        orders = ((order_indices[:, None] + 1) >> bit_positions & 1).astype(int)
     else:  # n_samples >= 64
         # Here we can just use the hash-table (w/collision detection)
         # functionality of a dict to ensure uniqueness
