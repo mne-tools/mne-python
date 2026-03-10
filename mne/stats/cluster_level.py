@@ -1329,7 +1329,7 @@ def _permutation_cluster_test(
         step_down_include = np.ones(n_tests, dtype=bool)
         for ti in to_remove:
             step_down_include[clusters[ti]] = False
-        if adjacency is None and adjacency is not False:
+        if adjacency is None or adjacency is False:
             step_down_include = _reshape_view(step_down_include, sample_shape)
         n_step_downs += 1
         if step_down_p > 0:
