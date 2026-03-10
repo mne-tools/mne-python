@@ -114,6 +114,117 @@ def _sum_cluster_data(data, tstep):
     return np.sign(data) * np.logical_not(data == 0) * tstep
 
 
+@jit()
+def _st_fused_ccl(
+    active_idx, n_active, flat_to_active, adj_indptr, adj_indices, n_src, max_step
+):
+    """Spatio-temporal union-find for neighbor-list adjacency.
+
+    Single-pass compiled union-find over spatial neighbors (from CSR
+    adjacency) and temporal neighbors (same vertex at adjacent time steps).
+
+    Parameters
+    ----------
+    active_idx : ndarray of intp
+        Flat indices of active (supra-threshold) vertices.
+    n_active : int
+        Number of active vertices (len(active_idx)).
+    flat_to_active : ndarray of intp, shape (n_total,)
+        Pre-allocated lookup buffer, initialized to -1.
+    adj_indptr : ndarray of intp, shape (n_src + 1,)
+        CSR indptr for spatial adjacency.
+    adj_indices : ndarray of intp
+        CSR indices for spatial adjacency.
+    n_src : int
+        Number of spatial vertices.
+    max_step : int
+        Maximum temporal step for adjacency.
+
+    Returns
+    -------
+    components : ndarray of intp
+        Component labels (0..n_components-1) for each active vertex.
+    """
+    # Phase 1: Build flat→active mapping (O(n_active) only)
+    for i in range(n_active):
+        flat_to_active[active_idx[i]] = i
+
+    # Phase 2: Union-find over spatial + temporal edges
+    parent = np.arange(n_active)
+    rank = np.zeros(n_active, dtype=np.int32)
+
+    for a_pos in range(n_active):
+        flat_i = active_idx[a_pos]
+        t_i = flat_i // n_src
+        s_i = flat_i - t_i * n_src
+
+        # Spatial neighbors at the same time point
+        for j_ptr in range(adj_indptr[s_i], adj_indptr[s_i + 1]):
+            s_j = adj_indices[j_ptr]
+            flat_j = t_i * n_src + s_j
+            b_pos = flat_to_active[flat_j]
+            if b_pos >= 0:
+                ra = a_pos
+                while parent[ra] != ra:
+                    parent[ra] = parent[parent[ra]]
+                    ra = parent[ra]
+                rb = b_pos
+                while parent[rb] != rb:
+                    parent[rb] = parent[parent[rb]]
+                    rb = parent[rb]
+                if ra != rb:
+                    if rank[ra] < rank[rb]:
+                        parent[ra] = rb
+                    elif rank[ra] > rank[rb]:
+                        parent[rb] = ra
+                    else:
+                        parent[rb] = ra
+                        rank[ra] += 1
+
+        # Temporal neighbors: same spatial vertex at previous time steps
+        for step in range(1, max_step + 1):
+            if t_i >= step:
+                flat_j = (t_i - step) * n_src + s_i
+                b_pos = flat_to_active[flat_j]
+                if b_pos >= 0:
+                    ra = a_pos
+                    while parent[ra] != ra:
+                        parent[ra] = parent[parent[ra]]
+                        ra = parent[ra]
+                    rb = b_pos
+                    while parent[rb] != rb:
+                        parent[rb] = parent[parent[rb]]
+                        rb = parent[rb]
+                    if ra != rb:
+                        if rank[ra] < rank[rb]:
+                            parent[ra] = rb
+                        elif rank[ra] > rank[rb]:
+                            parent[rb] = ra
+                        else:
+                            parent[rb] = ra
+                            rank[ra] += 1
+
+    # Phase 3: Final path compression + relabel to 0..n_components-1
+    label_map = -np.ones(n_active, dtype=np.intp)
+    next_label = np.intp(0)
+    components = np.empty(n_active, dtype=np.intp)
+    for i in range(n_active):
+        a = i
+        while parent[a] != a:
+            a = parent[a]
+        parent[i] = a
+        if label_map[a] == -1:
+            label_map[a] = next_label
+            next_label += 1
+        components[i] = label_map[a]
+
+    # Phase 4: Clean up flat_to_active for next call (O(n_active) only)
+    for i in range(n_active):
+        flat_to_active[active_idx[i]] = -1
+
+    return components
+
+
 def _get_clusters_spatial(s, neighbors):
     """Form spatial clusters using neighbor lists.
 
@@ -330,6 +441,8 @@ def _find_clusters(
     partitions=None,
     t_power=1,
     show_info=False,
+    _sums_only=False,
+    _csr_data=None,
 ):
     """Find all clusters which are above/below a certain threshold.
 
@@ -461,7 +574,15 @@ def _find_clusters(
         for x_in in x_ins:
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(
-                    x, x_in, adjacency, max_step, partitions, t_power, ndimage
+                    x,
+                    x_in,
+                    adjacency,
+                    max_step,
+                    partitions,
+                    t_power,
+                    ndimage,
+                    _sums_only=_sums_only and not tfce,
+                    _csr_data=_csr_data,
                 )
                 clusters += out[0]
                 sums.append(out[1])
@@ -494,12 +615,27 @@ def _find_clusters(
 
 
 def _find_clusters_1dir_parts(
-    x, x_in, adjacency, max_step, partitions, t_power, ndimage
+    x,
+    x_in,
+    adjacency,
+    max_step,
+    partitions,
+    t_power,
+    ndimage,
+    _sums_only=False,
+    _csr_data=None,
 ):
     """Deal with partitions, and pass the work to _find_clusters_1dir."""
     if partitions is None:
         clusters, sums = _find_clusters_1dir(
-            x, x_in, adjacency, max_step, t_power, ndimage
+            x,
+            x_in,
+            adjacency,
+            max_step,
+            t_power,
+            ndimage,
+            _sums_only,
+            _csr_data=_csr_data,
         )
     else:
         # cluster each partition separately
@@ -507,14 +643,32 @@ def _find_clusters_1dir_parts(
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, adjacency, max_step, t_power, ndimage)
+            out = _find_clusters_1dir(
+                x,
+                x_i,
+                adjacency,
+                max_step,
+                t_power,
+                ndimage,
+                _sums_only,
+                _csr_data=_csr_data,
+            )
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
+def _find_clusters_1dir(
+    x,
+    x_in,
+    adjacency,
+    max_step,
+    t_power,
+    ndimage,
+    _sums_only=False,
+    _csr_data=None,
+):
     """Actually call the clustering algorithm."""
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
@@ -554,7 +708,51 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
         if sparse.issparse(adjacency) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
         elif isinstance(adjacency, list):  # use temporal adjacency
-            clusters = _get_clusters_st(x_in, adjacency, max_step)
+            if has_numba:
+                # Numba union-find instead of Python BFS
+                if _csr_data is not None:
+                    _indptr, _indices, _n_src = _csr_data
+                else:
+                    _n_src = len(adjacency)
+                    _lengths = np.array([len(a) for a in adjacency])
+                    _indptr = np.zeros(_n_src + 1, dtype=np.intp)
+                    np.cumsum(_lengths, out=_indptr[1:])
+                    _indices = np.concatenate(adjacency).astype(np.intp)
+                active_idx = np.where(x_in)[0].astype(np.intp)
+                n_active = len(active_idx)
+                if n_active == 0:
+                    if _sums_only:
+                        return [], np.atleast_1d(np.array([]))
+                    clusters = []
+                else:
+                    _flat_map = -np.ones(len(x_in), dtype=np.intp)
+                    components = _st_fused_ccl(
+                        active_idx,
+                        n_active,
+                        _flat_map,
+                        _indptr,
+                        _indices,
+                        _n_src,
+                        max_step,
+                    )
+                    if _sums_only:
+                        if t_power == 1:
+                            sums = np.bincount(components, weights=x[active_idx])
+                        else:
+                            vals = (
+                                np.sign(x[active_idx])
+                                * np.abs(x[active_idx]) ** t_power
+                            )
+                            sums = np.bincount(components, weights=vals)
+                        return [], np.atleast_1d(sums)
+                    # Reconstruct cluster index arrays from component labels
+                    order = np.argsort(components, kind="stable")
+                    counts = np.bincount(components)
+                    splits = np.cumsum(counts[:-1])
+                    global_order = active_idx[order]
+                    clusters = list(np.split(global_order, splits))
+            else:
+                clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
             raise TypeError(
                 f"adjacency must be a sparse array or list, got {type(adjacency)}"
@@ -637,6 +835,7 @@ def _setup_adjacency(adjacency, n_tests, n_times):
         )
     if adjacency.shape[0] == n_tests:  # use global algorithm
         adjacency = adjacency.tocoo()
+        return adjacency, None
     else:  # use temporal adjacency algorithm
         got_times, mod = divmod(n_tests, adjacency.shape[0])
         if got_times != n_times or mod != 0:
@@ -648,12 +847,19 @@ def _setup_adjacency(adjacency, n_tests, n_times):
                 "vertices can be excluded during forward computation"
             )
         # we claim to only use upper triangular part... not true here
-        adjacency = (adjacency + adjacency.transpose()).tocsr()
+        adjacency_csr = (adjacency + adjacency.transpose()).tocsr()
+        n_src = adjacency_csr.shape[0]
+        # Pre-compute CSR arrays to avoid redundant rebuilds in inner loops.
+        csr_data = (
+            adjacency_csr.indptr.astype(np.intp),
+            adjacency_csr.indices.astype(np.intp),
+            n_src,
+        )
         adjacency = [
-            adjacency.indices[adjacency.indptr[i] : adjacency.indptr[i + 1]]
-            for i in range(len(adjacency.indptr) - 1)
+            adjacency_csr.indices[adjacency_csr.indptr[i] : adjacency_csr.indptr[i + 1]]
+            for i in range(n_src)
         ]
-    return adjacency
+        return adjacency, csr_data
 
 
 def _do_permutations(
@@ -671,6 +877,7 @@ def _do_permutations(
     sample_shape,
     buffer_size,
     progress_bar,
+    _csr_data=None,
 ):
     n_samp, n_vars = X_full.shape
 
@@ -725,6 +932,8 @@ def _do_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            _sums_only=True,
+            _csr_data=_csr_data,
         )
         perm_clusters_sums = out[1]
 
@@ -753,6 +962,7 @@ def _do_1samp_permutations(
     sample_shape,
     buffer_size,
     progress_bar,
+    _csr_data=None,
 ):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
@@ -831,6 +1041,8 @@ def _do_1samp_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            _sums_only=True,
+            _csr_data=_csr_data,
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
@@ -975,8 +1187,9 @@ def _permutation_cluster_test(
     X = [np.reshape(x, (x.shape[0], -1)) for x in X]
     n_tests = X[0].shape[1]
 
+    _adj_csr_data = None  # Pre-computed CSR arrays for temporal adjacency
     if adjacency is not None and adjacency is not False:
-        adjacency = _setup_adjacency(adjacency, n_tests, n_times)
+        adjacency, _adj_csr_data = _setup_adjacency(adjacency, n_tests, n_times)
 
     if (exclude is not None) and not exclude.size == n_tests:
         raise ValueError("exclude must be the same shape as X[0]")
@@ -1035,6 +1248,7 @@ def _permutation_cluster_test(
         partitions=partitions,
         t_power=t_power,
         show_info=True,
+        _csr_data=_adj_csr_data,
     )
     clusters, cluster_stats = out
 
@@ -1128,6 +1342,7 @@ def _permutation_cluster_test(
                     sample_shape,
                     buffer_size,
                     progress_bar.subset(idx),
+                    _adj_csr_data,
                 )
                 for idx, order in split_list(orders, n_jobs, idx=True)
             )
