@@ -763,29 +763,47 @@ def _do_1samp_permutations(
     # allocate space for output
     max_cluster_sums = np.empty(len(orders), dtype=np.double)
 
+    # For sign-flips s (±1), s²=1, so sum(X²) is constant across perms.
+    _use_fast_ttest = stat_fun is ttest_1samp_no_p
+    if _use_fast_ttest:
+        _sum_sq = np.sum(X**2, axis=0)
+        _sqrt_n_nm1 = np.sqrt(n_samp * (n_samp - 1))
+        _inv_n = 1.0 / n_samp
+        _neg_n = -float(n_samp)
+
     if buffer_size is not None:
         # allocate a buffer so we don't need to allocate memory in loop
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, order in enumerate(orders):
         assert isinstance(order, np.ndarray)
-        # new surrogate data with specified sign flip
         assert order.size == n_samp  # should be guaranteed by parent
-        signs = 2 * order[:, None].astype(int) - 1
-        if not np.all(np.equal(np.abs(signs), 1)):
-            raise ValueError("signs from rng must be +/- 1")
 
-        if buffer_size is None:
+        if _use_fast_ttest:
+            signs = 2.0 * order - 1.0  # (n_samp,)  ±1
+            dot = signs @ X  # (n_vars,)
+            mean_s = dot * _inv_n
+            denom_sq = np.maximum(_sum_sq + mean_s * mean_s * _neg_n, 0.0)
+            t_obs_surr = np.where(
+                denom_sq > 0, mean_s / np.sqrt(denom_sq) * _sqrt_n_nm1, 0.0
+            )
+        elif buffer_size is None:
+            signs = 2 * order[:, None].astype(int) - 1
+            if not np.all(np.equal(np.abs(signs), 1)):
+                raise ValueError("not all entries are +/- 1")
             # be careful about non-writable memmap (GH#1507)
             if X.flags.writeable:
                 X *= signs
                 # Recompute statistic on randomized data
                 t_obs_surr = stat_fun(X)
-                # Set X back to previous state (trade memory eff. for CPU use)
+                # Set X back to previous state (trade memory eff. for CPU)
                 X *= signs
             else:
                 t_obs_surr = stat_fun(X * signs)
         else:
+            signs = 2 * order[:, None].astype(int) - 1
+            if not np.all(np.equal(np.abs(signs), 1)):
+                raise ValueError("not all entries are +/- 1")
             # only sign-flip a small data buffer, so we need less memory
             t_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
@@ -803,7 +821,7 @@ def _do_1samp_permutations(
         if adjacency is None:
             t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
 
-        # Find cluster on randomized stats
+        # Find clusters on randomized stats
         out = _find_clusters(
             t_obs_surr,
             threshold=threshold,
@@ -816,7 +834,6 @@ def _do_1samp_permutations(
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
-            # get max with sign info
             idx_max = np.argmax(np.abs(perm_clusters_sums))
             max_cluster_sums[seed_idx] = perm_clusters_sums[idx_max]
         else:
@@ -971,7 +988,10 @@ def _permutation_cluster_test(
     logger.info(f"stat_fun(H1): min={np.min(t_obs)} max={np.max(t_obs)}")
 
     # test if stat_fun treats variables independently
-    if buffer_size is not None:
+    # Built-in stat functions are variable-independent; skip verification.
+    if buffer_size is not None and (
+        stat_fun is not ttest_1samp_no_p and stat_fun is not f_oneway
+    ):
         t_obs_buffer = np.zeros_like(t_obs)
         for pos in range(0, n_tests, buffer_size):
             t_obs_buffer[pos : pos + buffer_size] = stat_fun(
