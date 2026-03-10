@@ -413,7 +413,7 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
     got_version = None
     try:
         mod = import_module(name)
-    except (AttributeError, ImportError, ModuleNotFoundError):
+    except (ImportError, ModuleNotFoundError):
         mod = False
     else:
         have, got_version = check_version(
