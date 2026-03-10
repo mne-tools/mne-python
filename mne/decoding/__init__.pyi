@@ -10,7 +10,10 @@ __all__ = [
     "SPoC",
     "SSD",
     "Scaler",
+    "read_csp",
+    "read_spoc",
     "read_ssd",
+    "read_xdawn_transformer",
     "SlidingEstimator",
     "SpatialFilter",
     "TemporalFilter",
@@ -32,7 +35,7 @@ from .base import (
     cross_val_multiscore,
     get_coef,
 )
-from .csp import CSP, SPoC
+from .csp import CSP, SPoC, read_csp, read_spoc
 from .ems import EMS, compute_ems
 from .receptive_field import ReceptiveField
 from .search_light import GeneralizingEstimator, SlidingEstimator
@@ -48,4 +51,4 @@ from .transformer import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
-from .xdawn import XdawnTransformer
+from .xdawn import XdawnTransformer, read_xdawn_transformer

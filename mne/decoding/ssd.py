@@ -214,6 +214,7 @@ class SSD(_GEDTransformer):
                 f"State dict is missing required keys: {missing}. "
                 "The state may be from an incompatible version of MNE."
             )
+        state["info"] = Info(**state["info"])
         self.__dict__.update(state)
         self.cov_callable, self.mod_ged_callable = _create_callables(
             reg=self.reg,
@@ -475,7 +476,7 @@ def read_ssd(fname):
 
     See Also
     --------
-    SSD.save
+    mne.decoding.SSD.save
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, "path-like", "fname")

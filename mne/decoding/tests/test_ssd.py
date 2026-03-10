@@ -637,12 +637,6 @@ def test_ssd_save_load(tmp_path):
     with pytest.raises(OSError, match="not found"):
         read_ssd(tmp_path / "nonexistent.h5")
 
-    fname_rt = tmp_path / "test_ssd_rt.h5"
-    ssd.save(fname_rt)
-    ssd_rt = read_ssd(fname_rt)
-    assert_array_almost_equal(ssd.filters_, ssd_rt.filters_)
-    assert_array_almost_equal(ssd.transform(X), ssd_rt.transform(X))
-
 
 def test_get_spectral_ratio():
     """Test that method is the same as function in _mod_ged.py."""
