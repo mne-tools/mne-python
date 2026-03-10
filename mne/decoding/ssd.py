@@ -214,7 +214,8 @@ class SSD(_GEDTransformer):
                 f"State dict is missing required keys: {missing}. "
                 "The state may be from an incompatible version of MNE."
             )
-        state["info"] = Info(**state["info"])
+        if isinstance(state["info"], dict):
+            state["info"] = Info(**state["info"])
         self.__dict__.update(state)
         self.cov_callable, self.mod_ged_callable = _create_callables(
             reg=self.reg,

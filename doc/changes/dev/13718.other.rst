@@ -1,1 +1,1 @@
-Add native save and read functionality for :class:`mne.decoding.SSD` and :class:`mne.decoding.SPoC` objects, by `Aniket Singh Yadav`_.
+Add native save and read functionality for :class:`mne.decoding.SSD`, :class:`mne.decoding.CSP`, :class:`mne.decoding.SPoC`, and :class:`mne.decoding.XdawnTransformer` objects, by `Aniket Singh Yadav`_.
