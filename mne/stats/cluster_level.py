@@ -111,45 +111,39 @@ else:  # pragma: no cover
 
 @jit()
 def _sum_cluster_data(data, tstep):
-    return np.sign(data) * np.logical_not(data == 0) * tstep
+    return np.sign(data) * tstep
+
+
+@jit(inline="always")
+def _union(a_pos, b_pos, parent, rank):
+    """Find roots with path compression and union by rank."""
+    ra = a_pos
+    while parent[ra] != ra:
+        parent[ra] = parent[parent[ra]]
+        ra = parent[ra]
+    rb = b_pos
+    while parent[rb] != rb:
+        parent[rb] = parent[parent[rb]]
+        rb = parent[rb]
+    if ra != rb:
+        if rank[ra] < rank[rb]:
+            parent[ra] = rb
+        elif rank[ra] > rank[rb]:
+            parent[rb] = ra
+        else:
+            parent[rb] = ra
+            rank[ra] += 1
 
 
 @jit()
 def _st_fused_ccl(
     active_idx, n_active, flat_to_active, adj_indptr, adj_indices, n_src, max_step
 ):
-    """Spatio-temporal union-find for neighbor-list adjacency.
-
-    Single-pass compiled union-find over spatial neighbors (from CSR
-    adjacency) and temporal neighbors (same vertex at adjacent time steps).
-
-    Parameters
-    ----------
-    active_idx : ndarray of intp
-        Flat indices of active (supra-threshold) vertices.
-    n_active : int
-        Number of active vertices (len(active_idx)).
-    flat_to_active : ndarray of intp, shape (n_total,)
-        Pre-allocated lookup buffer, initialized to -1.
-    adj_indptr : ndarray of intp, shape (n_src + 1,)
-        CSR indptr for spatial adjacency.
-    adj_indices : ndarray of intp
-        CSR indices for spatial adjacency.
-    n_src : int
-        Number of spatial vertices.
-    max_step : int
-        Maximum temporal step for adjacency.
-
-    Returns
-    -------
-    components : ndarray of intp
-        Component labels (0..n_components-1) for each active vertex.
-    """
-    # Phase 1: Build flat→active mapping (O(n_active) only)
+    """Spatio-temporal union-find over CSR spatial and temporal neighbors."""
+    # build flat→active mapping
     for i in range(n_active):
         flat_to_active[active_idx[i]] = i
 
-    # Phase 2: Union-find over spatial + temporal edges
     parent = np.arange(n_active)
     rank = np.zeros(n_active, dtype=np.int32)
 
@@ -158,53 +152,23 @@ def _st_fused_ccl(
         t_i = flat_i // n_src
         s_i = flat_i - t_i * n_src
 
-        # Spatial neighbors at the same time point
+        # spatial neighbors
         for j_ptr in range(adj_indptr[s_i], adj_indptr[s_i + 1]):
             s_j = adj_indices[j_ptr]
             flat_j = t_i * n_src + s_j
             b_pos = flat_to_active[flat_j]
             if b_pos >= 0:
-                ra = a_pos
-                while parent[ra] != ra:
-                    parent[ra] = parent[parent[ra]]
-                    ra = parent[ra]
-                rb = b_pos
-                while parent[rb] != rb:
-                    parent[rb] = parent[parent[rb]]
-                    rb = parent[rb]
-                if ra != rb:
-                    if rank[ra] < rank[rb]:
-                        parent[ra] = rb
-                    elif rank[ra] > rank[rb]:
-                        parent[rb] = ra
-                    else:
-                        parent[rb] = ra
-                        rank[ra] += 1
+                _union(a_pos, b_pos, parent, rank)
 
-        # Temporal neighbors: same spatial vertex at previous time steps
+        # temporal neighbors (same vertex, previous time steps)
         for step in range(1, max_step + 1):
             if t_i >= step:
                 flat_j = (t_i - step) * n_src + s_i
                 b_pos = flat_to_active[flat_j]
                 if b_pos >= 0:
-                    ra = a_pos
-                    while parent[ra] != ra:
-                        parent[ra] = parent[parent[ra]]
-                        ra = parent[ra]
-                    rb = b_pos
-                    while parent[rb] != rb:
-                        parent[rb] = parent[parent[rb]]
-                        rb = parent[rb]
-                    if ra != rb:
-                        if rank[ra] < rank[rb]:
-                            parent[ra] = rb
-                        elif rank[ra] > rank[rb]:
-                            parent[rb] = ra
-                        else:
-                            parent[rb] = ra
-                            rank[ra] += 1
+                    _union(a_pos, b_pos, parent, rank)
 
-    # Phase 3: Final path compression + relabel to 0..n_components-1
+    # final path compression + relabel to 0..n_components-1
     label_map = -np.ones(n_active, dtype=np.intp)
     next_label = np.intp(0)
     components = np.empty(n_active, dtype=np.intp)
@@ -218,7 +182,7 @@ def _st_fused_ccl(
             next_label += 1
         components[i] = label_map[a]
 
-    # Phase 4: Clean up flat_to_active for next call (O(n_active) only)
+    # clean up flat_to_active for next call
     for i in range(n_active):
         flat_to_active[active_idx[i]] = -1
 
@@ -745,7 +709,7 @@ def _find_clusters_1dir(
                             )
                             sums = np.bincount(components, weights=vals)
                         return [], np.atleast_1d(sums)
-                    # Reconstruct cluster index arrays from component labels
+                    # reconstruct cluster arrays from component labels
                     order = np.argsort(components, kind="stable")
                     counts = np.bincount(components)
                     splits = np.cumsum(counts[:-1])
@@ -849,7 +813,7 @@ def _setup_adjacency(adjacency, n_tests, n_times):
         # we claim to only use upper triangular part... not true here
         adjacency_csr = (adjacency + adjacency.transpose()).tocsr()
         n_src = adjacency_csr.shape[0]
-        # Pre-compute CSR arrays to avoid redundant rebuilds in inner loops.
+        # pre-compute CSR arrays for the Numba kernel
         csr_data = (
             adjacency_csr.indptr.astype(np.intp),
             adjacency_csr.indices.astype(np.intp),
@@ -973,7 +937,7 @@ def _do_1samp_permutations(
     # allocate space for output
     max_cluster_sums = np.empty(len(orders), dtype=np.double)
 
-    # For sign-flips s (±1), s²=1, so sum(X²) is constant across perms.
+    # For sign-flips s²=1, so sum(X²) is constant across permutations
     _use_fast_ttest = stat_fun is ttest_1samp_no_p
     if _use_fast_ttest:
         _sum_sq = np.sum(X**2, axis=0)
@@ -1187,7 +1151,7 @@ def _permutation_cluster_test(
     X = [np.reshape(x, (x.shape[0], -1)) for x in X]
     n_tests = X[0].shape[1]
 
-    _adj_csr_data = None  # Pre-computed CSR arrays for temporal adjacency
+    _adj_csr_data = None
     if adjacency is not None and adjacency is not False:
         adjacency, _adj_csr_data = _setup_adjacency(adjacency, n_tests, n_times)
 
@@ -1201,7 +1165,7 @@ def _permutation_cluster_test(
     logger.info(f"stat_fun(H1): min={np.min(t_obs)} max={np.max(t_obs)}")
 
     # test if stat_fun treats variables independently
-    # Built-in stat functions are variable-independent; skip verification.
+    # Built-in stat functions are variable-independent; skip verification
     if buffer_size is not None and (
         stat_fun is not ttest_1samp_no_p and stat_fun is not f_oneway
     ):
