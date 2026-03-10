@@ -120,15 +120,11 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
         check_version = min_version and min_version != "0.0"
         get_version = check_version or return_version
         if get_version:
-            try:
-                version = library.__version__
-            except AttributeError:
-                version = None
-            else:
-                if strip:
-                    version = _strip_dev(version)
+            version = library.__version__
+            if strip:
+                version = _strip_dev(version)
         if check_version:
-            if version is None or _compare_version(version, "<", min_version):
+            if _compare_version(version, "<", min_version):
                 ok = False
     out = (ok, version) if return_version else ok
     return out
