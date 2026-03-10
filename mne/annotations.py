@@ -951,12 +951,6 @@ class _HEDStrings(list):
 
     def __init__(self, *args, hed_version, **kwargs):
         self._hed = _soft_import("hed", "validation of HED tags in annotations")
-        if not hasattr(self._hed, "load_schema_version"):
-            raise RuntimeError(
-                "The installed 'hed' module does not provide the expected HED "
-                "tools API. Make sure to install the correct package:\n\n"
-                "    pip install hedtools\n"
-            )
         self._schema = self._hed.load_schema_version(hed_version)
         super().__init__(*args, **kwargs)
         self._objs = [self._validate_hed_string(item, self._schema) for item in self]
