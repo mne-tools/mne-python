@@ -499,112 +499,68 @@ def test_sklearn_compliance(estimator, check):
     check(estimator)
 
 
-def test_csp_save_load(tmp_path):
-    """Test that CSP can be saved to disk and loaded back correctly."""
+@pytest.mark.parametrize(
+    "Estimator, read_func, extra_attrs",
+    [
+        (CSP, read_csp, ["component_order", "norm_trace"]),
+        (SPoC, read_spoc, []),
+    ],
+)
+def test_io_roundtrip(tmp_path, Estimator, read_func, extra_attrs):
+    """Test that CSP/SPoC can be saved to disk and loaded back correctly."""
     h5io = pytest.importorskip("h5io")
     rng = np.random.RandomState(42)
-    n_epochs, n_channels = 40, 10
-    X = rng.randn(n_epochs, n_channels, 50)
-    y = np.array([0] * 20 + [1] * 20)
 
-    csp = CSP(n_components=4)
-    csp.fit(X, y)
+    # Generate class-specific data
+    if Estimator is CSP:
+        n_epochs, n_channels = 40, 10
+        X = rng.randn(n_epochs, n_channels, 50)
+        y = np.array([0] * 20 + [1] * 20)
+    else:  # SPoC
+        X = rng.randn(10, 10, 20)
+        y = rng.randn(10)
 
-    state = csp.__getstate__()
+    est = Estimator(n_components=4)
+    est.fit(X, y)
+
+    state = est.__getstate__()
     assert "cov_callable" not in state
     assert "mod_ged_callable" not in state
     assert "R_func" not in state
 
-    fname = tmp_path / "test_csp.h5"
-    csp.save(fname)
+    fname = tmp_path / f"test_{Estimator.__name__.lower()}.h5"
+    est.save(fname)
 
-    csp_loaded = read_csp(fname)
+    est_loaded = read_func(fname)
 
-    assert hasattr(csp_loaded, "cov_callable")
-    assert hasattr(csp_loaded, "mod_ged_callable")
-    assert callable(csp_loaded.cov_callable)
-    assert callable(csp_loaded.mod_ged_callable)
+    assert hasattr(est_loaded, "cov_callable")
+    assert hasattr(est_loaded, "mod_ged_callable")
+    assert callable(est_loaded.cov_callable)
+    assert callable(est_loaded.mod_ged_callable)
 
     # Check fitted array attributes are restored
-    assert_array_almost_equal(csp.filters_, csp_loaded.filters_)
-    assert_array_almost_equal(csp.patterns_, csp_loaded.patterns_)
+    assert_array_almost_equal(est.filters_, est_loaded.filters_)
+    assert_array_almost_equal(est.patterns_, est_loaded.patterns_)
 
-    # Check scalar/param attributes
-    assert csp.n_components == csp_loaded.n_components
-    assert csp.component_order == csp_loaded.component_order
-    assert csp.transform_into == csp_loaded.transform_into
-    assert csp.log == csp_loaded.log
-    assert csp.reg == csp_loaded.reg
-    assert csp.norm_trace == csp_loaded.norm_trace
+    # Check scalar/param attributes (common + class-specific)
+    common_attrs = ["n_components", "transform_into", "log", "reg"]
+    for attr in common_attrs + extra_attrs:
+        assert getattr(est, attr) == getattr(est_loaded, attr), f"{attr} mismatch"
 
     # Check transform output matches
-    X_orig = csp.transform(X)
-    X_loaded = csp_loaded.transform(X)
+    X_orig = est.transform(X)
+    X_loaded = est_loaded.transform(X)
     assert_array_almost_equal(X_orig, X_loaded)
 
     with pytest.raises(FileExistsError):
-        csp.save(fname)
-    csp.save(fname, overwrite=True)
+        est.save(fname)
+    est.save(fname, overwrite=True)
 
     # Check that loading an HDF5 file with missing keys raises an error
-    bad_fname = tmp_path / "bad_csp.h5"
+    bad_fname = tmp_path / f"bad_{Estimator.__name__.lower()}.h5"
     h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
     with pytest.raises(ValueError, match="missing required keys"):
-        read_csp(bad_fname)
+        read_func(bad_fname)
 
     with pytest.raises(OSError, match="not found"):
-        read_csp(tmp_path / "nonexistent.h5")
-
-
-def test_spoc_save_load(tmp_path):
-    """Test that SPoC can be saved to disk and loaded back correctly."""
-    h5io = pytest.importorskip("h5io")
-    rng = np.random.RandomState(42)
-    X = rng.randn(10, 10, 20)
-    y = rng.randn(10)
-
-    spoc = SPoC(n_components=4)
-    spoc.fit(X, y)
-
-    state = spoc.__getstate__()
-    assert "cov_callable" not in state
-    assert "mod_ged_callable" not in state
-    assert "R_func" not in state
-
-    fname = tmp_path / "test_spoc.h5"
-    spoc.save(fname)
-
-    spoc_loaded = read_spoc(fname)
-
-    assert hasattr(spoc_loaded, "cov_callable")
-    assert hasattr(spoc_loaded, "mod_ged_callable")
-    assert callable(spoc_loaded.cov_callable)
-    assert callable(spoc_loaded.mod_ged_callable)
-
-    # Check fitted array attributes are restored
-    assert_array_almost_equal(spoc.filters_, spoc_loaded.filters_)
-    assert_array_almost_equal(spoc.patterns_, spoc_loaded.patterns_)
-
-    # Check scalar/param attributes
-    assert spoc.n_components == spoc_loaded.n_components
-    assert spoc.transform_into == spoc_loaded.transform_into
-    assert spoc.log == spoc_loaded.log
-    assert spoc.reg == spoc_loaded.reg
-
-    # Check transform output matches
-    X_orig = spoc.transform(X)
-    X_loaded = spoc_loaded.transform(X)
-    assert_array_almost_equal(X_orig, X_loaded)
-
-    with pytest.raises(FileExistsError):
-        spoc.save(fname)
-    spoc.save(fname, overwrite=True)
-
-    # Check that loading an HDF5 file with missing keys raises an error
-    bad_fname = tmp_path / "bad_spoc.h5"
-    h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
-    with pytest.raises(ValueError, match="missing required keys"):
-        read_spoc(bad_fname)
-
-    with pytest.raises(OSError, match="not found"):
-        read_spoc(tmp_path / "nonexistent.h5")
+        read_func(tmp_path / "nonexistent.h5")
