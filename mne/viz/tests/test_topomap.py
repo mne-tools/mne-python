@@ -988,7 +988,6 @@ def test_plot_ch_adjacency():
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
 
 
-
 def test_plot_topomap_info_names_ordering():
     """Regression test for GH-12700.
 
