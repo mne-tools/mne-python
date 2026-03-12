@@ -4,7 +4,6 @@
 
 from functools import partial
 from pathlib import Path
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1003,6 +1002,8 @@ def test_plot_topomap_info_names_ordering():
     names = ["Fp1", "Fp2", "Fz"]
     im, _ = plot_topomap(data, info, names=names, show=False)
     assert im is not None
+    # ADD this instead
     displayed_names = [t.get_text() for t in im.axes.texts]
-    for name in names:
-        assert name in displayed_names, f"{name!r} not found in {displayed_names}"
+    assert displayed_names == list(names), (
+        f"Expected {list(names)}, got {displayed_names}"
+    )
