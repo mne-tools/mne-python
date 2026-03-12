@@ -52,8 +52,8 @@ from .utils import (
 )
 
 
-def _index_info_by_ch_type(info, ch_names):
-    """Build channel-type-grouped indices and metadata for an object's channels."""
+def _get_ch_type_metadata(info, ch_names):
+    """Get indices, titles, units, scalings, and types for plottable channel types."""
     info_ch_names = info["ch_names"]
     picks_list = _picks_by_type(info, meg_combined=False, ref_meg=False, exclude=())
     picks_by_type = dict(picks_list)
@@ -78,6 +78,11 @@ def _index_info_by_ch_type(info, ch_names):
             units.append(DEFAULTS["units"][key])
             scalings.append(DEFAULTS["scalings"][key])
             ch_types.append(key)
+    if len(indices) == 0:
+        raise RuntimeError(
+            "No plottable channel types found. The data contains no channels "
+            "matching any known data channel type."
+        )
     return indices, titles, units, scalings, ch_types
 
 
@@ -90,7 +95,7 @@ def _index_info_cov(info, cov, exclude):
     ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
 
-    indices, titles, units, scalings, ch_types = _index_info_by_ch_type(info, ch_names)
+    indices, titles, units, scalings, ch_types = _get_ch_type_metadata(info, ch_names)
     idx_names = [
         (idx, f"{title} covariance", unit, scaling, key)
         for idx, title, unit, scaling, key in zip(
@@ -1497,7 +1502,7 @@ def plot_csd(
         raise ValueError('"mode" should be either "csd" or "coh".')
 
     if info is not None:
-        indices, titles, units, scalings, ch_types = _index_info_by_ch_type(
+        indices, titles, units, scalings, ch_types = _get_ch_type_metadata(
             info, csd.ch_names
         )
     else:

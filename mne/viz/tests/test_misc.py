@@ -19,7 +19,6 @@ from mne import (
     read_evokeds,
     read_source_spaces,
 )
-from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.chpi import compute_chpi_snr
 from mne.datasets import testing
 from mne.filter import create_filter
@@ -326,11 +325,12 @@ def test_plot_dipole_amplitudes():
 )
 def test_plot_csd(ch_types):
     """Test plotting of CSD matrices."""
-    n_ch = 2
     if isinstance(ch_types, list):
         n_ch_types = len(ch_types)
-        ch_types = np.repeat(ch_types, n_ch).tolist()
-        n_ch *= n_ch_types
+        n_ch = 2 * n_ch_types
+        ch_types = np.repeat(ch_types, 2).tolist()
+    else:
+        n_ch = 2
     ch_names = [f"CH{i + 1}" for i in range(n_ch)]
     n_data = n_ch * (n_ch + 1) // 2
 
@@ -343,19 +343,21 @@ def test_plot_csd(ch_types):
         tmax=1,
     )
 
-    info = None
-    expected_n_figs = 1
-    if ch_types is not None:
+    if ch_types is None:
+        info = None
+        expected_n_figs = 1
+    else:
         info = create_info(ch_names, sfreq=1.0, ch_types=ch_types)
-        expected_n_figs = len(
-            set(ch_types if isinstance(ch_types, list) else [ch_types]).intersection(
-                _DATA_CH_TYPES_SPLIT
-            )
-        )
+        unique_types = set(ch_types) if isinstance(ch_types, list) else {ch_types}
+        expected_n_figs = len(unique_types)
 
     for mode in ("csd", "coh"):
-        figs = plot_csd(csd, info=info, mode=mode, show=False)
-        assert len(figs) == expected_n_figs
+        if ch_types == "misc":
+            with pytest.raises(RuntimeError, match="No plottable channel types"):
+                plot_csd(csd, info=info, mode=mode, show=False)
+        else:
+            figs = plot_csd(csd, info=info, mode=mode, show=False)
+            assert len(figs) == expected_n_figs
 
 
 @pytest.mark.slowtest  # Slow on Azure
