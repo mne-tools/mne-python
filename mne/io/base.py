@@ -1619,7 +1619,7 @@ class BaseRaw(
 
             raw_array = mne.io.RawArray(raw.get_data(), raw.info)
 
-       Examples
+        Examples
         --------
         By default, cropping preserves the original recording timeline,
         so :term:`first_samp` remains non-zero after cropping::
