@@ -335,7 +335,7 @@ def test_plot_csd(ch_types):
     n_data = n_ch * (n_ch + 1) // 2
 
     csd = CrossSpectralDensity(
-        list(range(1, n_data + 1)),
+        np.arange(1, n_data + 1),
         ch_names,
         frequencies=[(10, 20)],
         n_fft=1,
