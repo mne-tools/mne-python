@@ -1,19 +1,16 @@
 """
 .. _ex-epoch-quality:
 
-=====================================
+=========================================
 Exploring epoch quality before rejection
-=====================================
+=========================================
 
-Before rejecting epochs with :meth:`mne.Epochs.drop_bad`, it can be useful
-to get a sense of which epochs are the most likely artifacts. This example
-shows how to compute simple per-epoch statistics — peak-to-peak amplitude,
-variance, and kurtosis — and use them to rank epochs by their outlier score.
-
-The approach is inspired by established methods in the EEG artifact detection
-literature, namely FASTER :footcite:t:`NolanEtAl2010` and
-:footcite:t:`DelormeEtAl2007`, both of which use z-scored kurtosis and
-variance across epochs to flag bad trials.
+This example shows how to identify potentially artifactual epochs before
+calling :meth:`mne.Epochs.drop_bad`. We compute per-epoch outlier scores
+from peak-to-peak amplitude, variance, and kurtosis - inspired by FASTER
+:footcite:t:`NolanEtAl2010` and :footcite:t:`DelormeEtAl2007` - and use
+them to rank epochs from cleanest to noisiest before making any rejection
+decisions.
 """
 # Authors: Aman Srivastava
 #
@@ -33,6 +30,7 @@ data_path = sample.data_path()
 
 # %%
 # Load the sample dataset and create epochs
+# ------------------------------------------
 meg_path = data_path / "MEG" / "sample"
 raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 
@@ -48,40 +46,35 @@ epochs = mne.Epochs(
 )
 
 # %%
-# Compute per-epoch statistics
-# We compute three features for each epoch:
-# - Peak-to-peak amplitude (sensitive to large jumps)
-# - Variance (sensitive to sustained high-amplitude noise)
-# - Kurtosis (sensitive to spike artifacts)
-#
+# Compute per-epoch outlier scores
+# ---------------------------------
+# Peak-to-peak amplitude, variance, and kurtosis are computed per epoch.
 # Each feature is z-scored robustly using median absolute deviation (MAD)
-# across epochs, then averaged into a single outlier score per epoch.
+# across epochs and averaged into a single outlier score, normalised
+# between [0, 1]. Scores close to 1 indicate likely artifacts.
+
+from scipy.stats import kurtosis  # noqa: E402
 
 data = epochs.get_data()  # (n_epochs, n_channels, n_times)
 
-# Feature 1: peak-to-peak
 ptp = np.ptp(data, axis=-1).mean(axis=-1)
-
-# Feature 2: variance
 var = data.var(axis=-1).mean(axis=-1)
-
-# Feature 3: kurtosis
-from scipy.stats import kurtosis  # noqa: E402
-
 kurt = np.array([kurtosis(data[i].ravel()) for i in range(len(data))])
 
-# Robust z-score using MAD
 features = np.column_stack([ptp, var, kurt])
 median = np.median(features, axis=0)
 mad = np.median(np.abs(features - median), axis=0) + 1e-10
 z = np.abs((features - median) / mad)
 
-# Normalize to [0, 1]
 raw_score = z.mean(axis=-1)
 scores = (raw_score - raw_score.min()) / (raw_score.max() - raw_score.min() + 1e-10)
 
 # %%
-# Plot the scores ranked from cleanest to noisiest
+# Plot epoch quality scores
+# --------------------------
+# Epochs are ranked from cleanest to noisiest. The dashed red line shows
+# an example threshold - epochs above it are candidates for rejection or
+# manual inspection.
 fig, ax = plt.subplots(layout="constrained")
 sorted_idx = np.argsort(scores)
 ax.bar(np.arange(len(scores)), scores[sorted_idx], color="steelblue")
@@ -94,11 +87,19 @@ ax.set(
 ax.legend()
 
 # %%
-# Inspect the worst epochs
-# Epochs scoring above 0.8 are worth inspecting manually
+# Identify and handle suspicious epochs
+# ---------------------------------------
+# Epochs scoring above the threshold can be inspected visually using
+# :meth:`mne.Epochs.plot`, or dropped directly using
+# :meth:`mne.Epochs.drop`. The threshold of 0.8 is chosen here for
+# illustration - users should adapt it based on their data and how
+# many epochs they can afford to lose.
 bad_epochs = np.where(scores > 0.8)[0]
 print(f"Epochs worth inspecting: {bad_epochs}")
 print(f"That's {len(bad_epochs)} out of {len(epochs)} total epochs")
+
+# To drop these epochs directly:
+# epochs.drop(bad_epochs, reason="quality-score")
 
 # %%
 # References
