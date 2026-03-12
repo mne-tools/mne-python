@@ -1618,6 +1618,26 @@ class BaseRaw(
         to a :class:`~mne.io.RawArray`::
 
             raw_array = mne.io.RawArray(raw.get_data(), raw.info)
+
+        Examples
+        --------
+        By default, cropping preserves the original recording timeline,
+        so :term:`first_samp` remains non-zero after cropping::
+
+            >>> raw = mne.io.read_raw_fif(fname)  
+            >>> print(raw.first_samp) 
+            25800
+            >>> raw.crop(tmin=10, tmax=20)  
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            27810
+
+        If you want to treat the cropped segment as an independent
+        recording, use ``reset_first_samp=True``::
+
+            >>> raw2 = raw.copy().crop(tmin=10, tmax=20,
+            ...                        reset_first_samp=True) 
+            >>> print(raw2.first_samp)  
+            0
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
         if tmax is None:
