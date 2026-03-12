@@ -28,6 +28,7 @@ niseq
 nitime
 pactools
 plotly
+pybvrf
 pycrostates
 pyprep
 pyriemann

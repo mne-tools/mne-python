@@ -14,6 +14,7 @@
 .. _Alex Rockhill: https://github.com/alexrockhill/
 .. _Alexander Rudiuk: https://github.com/ARudiuk
 .. _Alexandre Barachant: https://alexandre.barachant.org
+.. _Aman Srivastava: https://github.com/aman-coder03
 .. _Andrea Brovelli: https://brovelli.github.io/
 .. _Andreas Hojlund: https://github.com/ahoejlund
 .. _Andres Rodriguez: https://github.com/infinitejest/
@@ -21,6 +22,7 @@
 .. _Andrew Gilbert: https://github.com/adgilbert
 .. _Andrew Quinn: https://github.com/ajquinn
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
+.. _Aniket Singh Yadav: https://github.com/Aniketsy
 .. _Anna Padee: https://github.com/apadee/
 .. _Annalisa Pascarella: https://github.com/annapasca
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
@@ -35,6 +37,7 @@
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
+.. _Benedikt Ehinger: https://www.benediktehinger.de
 .. _Bradley Voytek: https://github.com/voytek
 .. _Britta Westner: https://britta-wstnr.github.io
 .. _Bruno Aristimunha: https://bruaristimunha.github.io
@@ -94,6 +97,7 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
+.. _Famous Raj Bhat: https://github.com/Famous077
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
@@ -169,6 +173,7 @@
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
 .. _Katarina Slama: https://github.com/katarinaslama
 .. _Katia Al-Amir: https://github.com/katia-sentry
+.. _Kay Robbins: https://github.com/VisLab
 .. _Keith Doelling: https://github.com/kdoelling1919
 .. _Konstantinos Tsilimparis: https://contsili.github.io/
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
@@ -227,6 +232,7 @@
 .. _Nabil Alibou: https://github.com/nabilalibou
 .. _Natalie Klein: https://github.com/natalieklein
 .. _Nathalie Gayraud: https://github.com/ngayraud
+.. _Natneal B: https://github.com/natinew77-creator
 .. _Naveen Srinivasan: https://github.com/naveensrinivasan
 .. _Nick Foti: https://nfoti.github.io
 .. _Nick Ward: https://profiles.ucl.ac.uk/10827-nick-ward
@@ -255,6 +261,7 @@
 .. _Pierre Guetschel: https://github.com/PierreGtch
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 .. _Ping-Keng Jao: https://github.com/nafraw
+.. _Pragnya Khandelwal: https://github.com/PragnyaKhandelwal
 .. _Proloy Das: https://github.com/proloyd
 .. _Qian Chu: https://github.com/qian-chu
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
@@ -343,6 +350,7 @@
 .. _Tziona NessAiver: https://github.com/TzionaN
 .. _user27182: https://github.com/user27182
 .. _Valerii Chirkov: https://github.com/vagechirkov
+.. _varshaa-1616: https://github.com/varshaa-1616
 .. _Varun Kasyap Pentamaraju: https://github.com/varunkasyap
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 .. _Victor Ferat: https://github.com/vferat

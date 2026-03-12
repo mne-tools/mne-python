@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6589b8672bac9de0d8df31a6ad4afce916b3046c",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/bem_model.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/links.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 8,
+      "d": 1
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

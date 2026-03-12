@@ -72,6 +72,8 @@
 .. _python: http://www.python.org
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
 .. _SPEC0: https://scientific-python.org/specs/spec-0000
+.. _mri_watershed: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_watershed
+.. _recon-all: https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all
 
 .. python packages
 
