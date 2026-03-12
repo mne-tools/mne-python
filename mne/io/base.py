@@ -1619,15 +1619,15 @@ class BaseRaw(
 
             raw_array = mne.io.RawArray(raw.get_data(), raw.info)
 
-        Examples
+       Examples
         --------
         By default, cropping preserves the original recording timeline,
         so :term:`first_samp` remains non-zero after cropping::
 
-            >>> raw = mne.io.read_raw_fif(fname)   # doctest: +SKIP
+            >>> raw = mne.io.read_raw_fif(fname)  # doctest: +SKIP
             >>> print(raw.first_samp)  # doctest: +SKIP
             25800
-            >>> raw.crop(tmin=10, tmax=20)   # doctest: +SKIP
+            >>> raw.crop(tmin=10, tmax=20)  # doctest: +SKIP
             >>> print(raw.first_samp)  # doctest: +SKIP
             27810
 
