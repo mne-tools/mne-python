@@ -108,12 +108,14 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
-    """Test toggling the visibility of the meshes the dipole fitting GUI."""
+def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
+    """Test the controls for the dipoles in the dipole fitting GUI."""
     from mne.gui import dipolefit
 
     evoked = mne.read_evokeds(fname_evokeds, condition=0)
     g = dipolefit(evoked)
+
+    # Test toggling the visibility of the meshes.
     assert list(g._actors.keys()) == ["helmet", "occlusion_surf", "head", "sensors"]
     g.toggle_mesh("helmet", show=True)
     assert g._actors["helmet"].visibility
@@ -122,18 +124,12 @@ def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
     with pytest.raises(ValueError, match="Invalid value for the 'name' parameter"):
         g.toggle_mesh("non existent")
 
-
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
-    """Test the controls for the dipoles in the dipole fitting GUI."""
-    g = _gui_with_two_dipoles()
-
+    # Test toggling dipoles off and on.
+    dip = mne.read_dipole(fname_dip)[[12, 15]]  # 80ms and 90ms
+    g.add_dipole(dip, name=["rh", "lh"])
     dip1, dip2 = g._dipoles.values()
     assert dip1["active"] and dip2["active"]
     old_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
-
-    # Toggle a dipole off and on.
     g._on_dipole_toggle(False, dip2["num"])
     assert not dip2["active"]
     new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
@@ -154,7 +150,7 @@ def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
     new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
     assert np.allclose(old_timecourses, new_timecourses, atol=0)
 
-    # Change the names.
+    # Change the names of the dipoles.
     g._on_dipole_set_name("dipole1", dip1["num"])
     g._on_dipole_set_name("dipole2", dip2["num"])
     assert dip1["dip"].name == "dipole1"
