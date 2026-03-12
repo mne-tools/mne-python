@@ -1657,7 +1657,8 @@ def fit_dipole(
     logger.info("")
 
     _print_coord_trans(mri_head_t)
-    _print_coord_trans(info["dev_head_t"])
+    if info["dev_head_t"]:
+        _print_coord_trans(info["dev_head_t"])
     logger.info(f"{len(info['bads'])} bad channels total")
 
     # Forward model setup (setup_forward_model from setup.c)
