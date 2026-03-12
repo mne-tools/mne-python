@@ -879,6 +879,8 @@ class InterpolationMixin:
             What to do when one or more sensor positions are invalid (zero or NaN).
             If ``"warn"`` or ``"ignore"``, channels with invalid positions will be
             filled with :data:`~numpy.nan`.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Returns
