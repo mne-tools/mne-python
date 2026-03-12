@@ -51,7 +51,10 @@ def run():
         "--bem",
         default=None,
         metavar="BEM_FILE",
-        help='The BEM model ("-bem-sol.fif") to use.',
+        help=(
+            'The BEM model ("-bem-sol.fif") to use. When omitted, a basic sphere '
+            "model will be used."
+        ),
     )
     parser.add_option(
         "-t",
