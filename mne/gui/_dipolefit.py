@@ -81,10 +81,10 @@ class DipoleFitUI:
         Whether to halt program execution until the figure is closed.
     %(verbose)s
 
-    Notes
-    -----
-    When using ``cov=None`` the default noise values are 5 fT/cm, 20 fT, and 0.2 µV for
-    gradiometers, magnetometers, and EEG channels respectively.
+    Attributes
+    ----------
+    dipoles : list of Dipole
+        All currently enabled dipoles in the model.
     """
 
     def __init__(
