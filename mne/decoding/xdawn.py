@@ -172,8 +172,6 @@ class XdawnTransformer(_GEDTransformer):
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the XdawnTransformer object to disk (in HDF5 format).
 
-        .. versionadded:: 1.12
-
         Parameters
         ----------
         fname : path-like
@@ -184,6 +182,10 @@ class XdawnTransformer(_GEDTransformer):
         See Also
         --------
         mne.decoding.read_xdawn_transformer
+
+        Notes
+        -----
+        .. versionadded:: 1.12
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, "xdawn_transformer", (".h5", ".hdf5"))
@@ -289,8 +291,6 @@ class XdawnTransformer(_GEDTransformer):
 def read_xdawn_transformer(fname):
     """Load a saved :class:`~mne.decoding.XdawnTransformer` object from disk.
 
-    .. versionadded:: 1.12
-
     Parameters
     ----------
     fname : path-like
@@ -305,6 +305,10 @@ def read_xdawn_transformer(fname):
     See Also
     --------
     mne.decoding.XdawnTransformer.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, "path-like", "fname")
