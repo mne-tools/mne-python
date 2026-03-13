@@ -4695,10 +4695,8 @@ def _concatenate_epochs(
 
 def _concatenate_epochs_tfr(epochs_list, add_offset=True):
     """Concatenate a list of EpochsTFR instances."""
-    from .time_frequency.tfr import EpochsTFR
-
     for ii, ep in enumerate(epochs_list):
-        if not isinstance(ep, EpochsTFR):
+        if type(ep).__name__ != "EpochsTFR":
             raise TypeError(
                 f"epochs_list[{ii}] must be an instance of EpochsTFR, got {type(ep)}"
             )
@@ -4750,7 +4748,7 @@ def _concatenate_epochs_tfr(epochs_list, add_offset=True):
     state["selection"] = selection
     state["drop_log"] = drop_log
     state["metadata"] = metadata
-    out = EpochsTFR.__new__(EpochsTFR)
+    out = type(epochs_list[0]).__new__(type(epochs_list[0]))
     out.__setstate__(state)
     return out
 
@@ -4787,9 +4785,7 @@ def concatenate_epochs(
     -----
     .. versionadded:: 0.9.0
     """
-    from .time_frequency.tfr import EpochsTFR
-
-    if epochs_list and isinstance(epochs_list[0], EpochsTFR):
+    if epochs_list and type(epochs_list[0]).__name__ == "EpochsTFR":
         return _concatenate_epochs_tfr(epochs_list, add_offset=add_offset)
     (
         info,
