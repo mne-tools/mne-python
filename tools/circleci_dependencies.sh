@@ -1,6 +1,6 @@
 #!/bin/bash -ef
 
-sudo apt-get install -y r-base
+sudo apt-get install -y r-base libtirpc-dev
 
 ONLY_BINARY="--only-binary \"numpy,dipy,scipy,matplotlib,pandas,statsmodels,netCDF4,h5py\""
 
