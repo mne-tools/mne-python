@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations
-
 import re
 from collections import defaultdict
 from typing import TYPE_CHECKING
