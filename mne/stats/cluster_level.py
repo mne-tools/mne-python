@@ -110,18 +110,83 @@ else:  # pragma: no cover
 
 
 @jit()
-def _masked_sum(x, c):
-    return np.sum(x[c])
-
-
-@jit()
-def _masked_sum_power(x, c, t_power):
-    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-
-
-@jit()
 def _sum_cluster_data(data, tstep):
-    return np.sign(data) * np.logical_not(data == 0) * tstep
+    return np.sign(data) * tstep
+
+
+@jit(inline="always")
+def _union(a_pos, b_pos, parent, rank):
+    """Find roots with path compression and union by rank."""
+    ra = a_pos
+    while parent[ra] != ra:
+        parent[ra] = parent[parent[ra]]
+        ra = parent[ra]
+    rb = b_pos
+    while parent[rb] != rb:
+        parent[rb] = parent[parent[rb]]
+        rb = parent[rb]
+    if ra != rb:
+        if rank[ra] < rank[rb]:
+            parent[ra] = rb
+        elif rank[ra] > rank[rb]:
+            parent[rb] = ra
+        else:
+            parent[rb] = ra
+            rank[ra] += 1
+
+
+@jit()
+def _st_fused_ccl(
+    active_idx, n_active, flat_to_active, adj_indptr, adj_indices, n_src, max_step
+):
+    """Spatio-temporal union-find over CSR spatial and temporal neighbors."""
+    # build flat→active mapping
+    for i in range(n_active):
+        flat_to_active[active_idx[i]] = i
+
+    parent = np.arange(n_active)
+    rank = np.zeros(n_active, dtype=np.int32)
+
+    for a_pos in range(n_active):
+        flat_i = active_idx[a_pos]
+        t_i = flat_i // n_src
+        s_i = flat_i - t_i * n_src
+
+        # spatial neighbors
+        for j_ptr in range(adj_indptr[s_i], adj_indptr[s_i + 1]):
+            s_j = adj_indices[j_ptr]
+            flat_j = t_i * n_src + s_j
+            b_pos = flat_to_active[flat_j]
+            if b_pos >= 0:
+                _union(a_pos, b_pos, parent, rank)
+
+        # temporal neighbors (same vertex, previous time steps)
+        for step in range(1, max_step + 1):
+            if t_i >= step:
+                flat_j = (t_i - step) * n_src + s_i
+                b_pos = flat_to_active[flat_j]
+                if b_pos >= 0:
+                    _union(a_pos, b_pos, parent, rank)
+
+    # final path compression + relabel to 0..n_components-1
+    label_map = -np.ones(n_active, dtype=np.intp)
+    next_label = np.intp(0)
+    components = np.empty(n_active, dtype=np.intp)
+    for i in range(n_active):
+        a = i
+        while parent[a] != a:
+            a = parent[a]
+        parent[i] = a
+        if label_map[a] == -1:
+            label_map[a] = next_label
+            next_label += 1
+        components[i] = label_map[a]
+
+    # clean up flat_to_active for next call
+    for i in range(n_active):
+        flat_to_active[active_idx[i]] = -1
+
+    return components
 
 
 def _get_clusters_spatial(s, neighbors):
@@ -289,7 +354,32 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 def _get_components(x_in, adjacency, return_list=True):
     """Get connected components from a mask and a adjacency matrix."""
     if adjacency is False:
-        components = np.arange(len(x_in))
+        if return_list:
+            idx = np.where(x_in)[0]
+            return [idx[i : i + 1] for i in range(len(idx))]
+        return np.arange(len(x_in))
+    if return_list:
+        # Build compact graph of only the active (supra-threshold) vertices
+        idx = np.where(x_in)[0]
+        n_active = len(idx)
+        if n_active == 0:
+            return []
+        global_to_local = np.empty(adjacency.shape[0], dtype=np.intp)
+        global_to_local[idx] = np.arange(n_active)
+        edge_mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
+        row = global_to_local[adjacency.row[edge_mask]]
+        col = global_to_local[adjacency.col[edge_mask]]
+        self_idx = np.arange(n_active)
+        row = np.concatenate((row, self_idx))
+        col = np.concatenate((col, self_idx))
+        data = np.ones(len(row), dtype=np.float64)
+        small_adj = sparse.coo_array((data, (row, col)), shape=(n_active, n_active))
+        _, components = connected_components(small_adj)
+        order = np.argsort(components, kind="stable")
+        counts = np.bincount(components)
+        splits = np.cumsum(counts[:-1])
+        global_order = idx[order]
+        return list(np.split(global_order, splits))
     else:
         mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
         data = adjacency.data[mask]
@@ -302,17 +392,6 @@ def _get_components(x_in, adjacency, return_list=True):
         data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
         adjacency = sparse.coo_array((data, (row, col)), shape=shape)
         _, components = connected_components(adjacency)
-    if return_list:
-        start = np.min(components)
-        stop = np.max(components)
-        comp_list = [list() for i in range(start, stop + 1, 1)]
-        mask = np.zeros(len(comp_list), dtype=bool)
-        for ii, comp in enumerate(components):
-            comp_list[comp].append(ii)
-            mask[comp] += x_in[ii]
-        clusters = [np.array(k) for k, m in zip(comp_list, mask) if m]
-        return clusters
-    else:
         return components
 
 
@@ -326,6 +405,8 @@ def _find_clusters(
     partitions=None,
     t_power=1,
     show_info=False,
+    _sums_only=False,
+    _csr_data=None,
 ):
     """Find all clusters which are above/below a certain threshold.
 
@@ -457,7 +538,15 @@ def _find_clusters(
         for x_in in x_ins:
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(
-                    x, x_in, adjacency, max_step, partitions, t_power, ndimage
+                    x,
+                    x_in,
+                    adjacency,
+                    max_step,
+                    partitions,
+                    t_power,
+                    ndimage,
+                    _sums_only=_sums_only and not tfce,
+                    _csr_data=_csr_data,
                 )
                 clusters += out[0]
                 sums.append(out[1])
@@ -490,12 +579,27 @@ def _find_clusters(
 
 
 def _find_clusters_1dir_parts(
-    x, x_in, adjacency, max_step, partitions, t_power, ndimage
+    x,
+    x_in,
+    adjacency,
+    max_step,
+    partitions,
+    t_power,
+    ndimage,
+    _sums_only=False,
+    _csr_data=None,
 ):
     """Deal with partitions, and pass the work to _find_clusters_1dir."""
     if partitions is None:
         clusters, sums = _find_clusters_1dir(
-            x, x_in, adjacency, max_step, t_power, ndimage
+            x,
+            x_in,
+            adjacency,
+            max_step,
+            t_power,
+            ndimage,
+            _sums_only,
+            _csr_data=_csr_data,
         )
     else:
         # cluster each partition separately
@@ -503,14 +607,32 @@ def _find_clusters_1dir_parts(
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, adjacency, max_step, t_power, ndimage)
+            out = _find_clusters_1dir(
+                x,
+                x_i,
+                adjacency,
+                max_step,
+                t_power,
+                ndimage,
+                _sums_only,
+                _csr_data=_csr_data,
+            )
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
+def _find_clusters_1dir(
+    x,
+    x_in,
+    adjacency,
+    max_step,
+    t_power,
+    ndimage,
+    _sums_only=False,
+    _csr_data=None,
+):
     """Actually call the clustering algorithm."""
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
@@ -550,15 +672,69 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
         if sparse.issparse(adjacency) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
         elif isinstance(adjacency, list):  # use temporal adjacency
-            clusters = _get_clusters_st(x_in, adjacency, max_step)
+            if has_numba:
+                # Numba union-find instead of Python BFS
+                if _csr_data is not None:
+                    _indptr, _indices, _n_src = _csr_data
+                else:
+                    _n_src = len(adjacency)
+                    _lengths = np.array([len(a) for a in adjacency])
+                    _indptr = np.zeros(_n_src + 1, dtype=np.intp)
+                    np.cumsum(_lengths, out=_indptr[1:])
+                    _indices = np.concatenate(adjacency).astype(np.intp)
+                active_idx = np.where(x_in)[0].astype(np.intp)
+                n_active = len(active_idx)
+                if n_active == 0:
+                    if _sums_only:
+                        return [], np.atleast_1d(np.array([]))
+                    clusters = []
+                else:
+                    _flat_map = -np.ones(len(x_in), dtype=np.intp)
+                    components = _st_fused_ccl(
+                        active_idx,
+                        n_active,
+                        _flat_map,
+                        _indptr,
+                        _indices,
+                        _n_src,
+                        max_step,
+                    )
+                    if _sums_only:
+                        if t_power == 1:
+                            sums = np.bincount(components, weights=x[active_idx])
+                        else:
+                            vals = (
+                                np.sign(x[active_idx])
+                                * np.abs(x[active_idx]) ** t_power
+                            )
+                            sums = np.bincount(components, weights=vals)
+                        return [], np.atleast_1d(sums)
+                    # reconstruct cluster arrays from component labels
+                    order = np.argsort(components, kind="stable")
+                    counts = np.bincount(components)
+                    splits = np.cumsum(counts[:-1])
+                    global_order = active_idx[order]
+                    clusters = list(np.split(global_order, splits))
+            else:
+                clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
             raise TypeError(
                 f"adjacency must be a sparse array or list, got {type(adjacency)}"
             )
-        if t_power == 1:
-            sums = [_masked_sum(x, c) for c in clusters]
+        if not clusters:
+            sums = np.array([])
         else:
-            sums = [_masked_sum_power(x, c, t_power) for c in clusters]
+            # Vectorized cluster sums via reduceat
+            all_idx = np.concatenate(clusters)
+            lengths = np.array([len(c) for c in clusters])
+            offsets = np.empty(len(clusters), dtype=np.intp)
+            offsets[0] = 0
+            np.cumsum(lengths[:-1], out=offsets[1:])
+            if t_power == 1:
+                sums = np.add.reduceat(x[all_idx], offsets)
+            else:
+                vals = np.sign(x[all_idx]) * np.abs(x[all_idx]) ** t_power
+                sums = np.add.reduceat(vals, offsets)
 
     return clusters, np.atleast_1d(sums)
 
@@ -599,15 +775,19 @@ def _pval_from_histogram(T, H0, tail):
     """Get p-values from stats values given an H0 distribution.
 
     For each stat compute a p-value as percentile of its statistics
-    within all statistics in surrogate data
+    within all statistics in surrogate data.
     """
-    # from pct to fraction
+    n = len(H0)
     if tail == -1:  # up tail
-        pval = np.array([np.mean(H0 <= t) for t in T])
+        H0_sorted = np.sort(H0)
+        pval = np.searchsorted(H0_sorted, T, side="right") / n
     elif tail == 1:  # low tail
-        pval = np.array([np.mean(H0 >= t) for t in T])
+        H0_sorted = np.sort(H0)
+        pval = (n - np.searchsorted(H0_sorted, T, side="left")) / n
     else:  # both tails
-        pval = np.array([np.mean(abs(H0) >= abs(t)) for t in T])
+        H0_abs_sorted = np.sort(np.abs(H0))
+        T_abs = np.abs(T)
+        pval = (n - np.searchsorted(H0_abs_sorted, T_abs, side="left")) / n
 
     return pval
 
@@ -619,6 +799,7 @@ def _setup_adjacency(adjacency, n_tests, n_times):
         )
     if adjacency.shape[0] == n_tests:  # use global algorithm
         adjacency = adjacency.tocoo()
+        return adjacency, None
     else:  # use temporal adjacency algorithm
         got_times, mod = divmod(n_tests, adjacency.shape[0])
         if got_times != n_times or mod != 0:
@@ -630,12 +811,19 @@ def _setup_adjacency(adjacency, n_tests, n_times):
                 "vertices can be excluded during forward computation"
             )
         # we claim to only use upper triangular part... not true here
-        adjacency = (adjacency + adjacency.transpose()).tocsr()
+        adjacency_csr = (adjacency + adjacency.transpose()).tocsr()
+        n_src = adjacency_csr.shape[0]
+        # pre-compute CSR arrays for the Numba kernel
+        csr_data = (
+            adjacency_csr.indptr.astype(np.intp),
+            adjacency_csr.indices.astype(np.intp),
+            n_src,
+        )
         adjacency = [
-            adjacency.indices[adjacency.indptr[i] : adjacency.indptr[i + 1]]
-            for i in range(len(adjacency.indptr) - 1)
+            adjacency_csr.indices[adjacency_csr.indptr[i] : adjacency_csr.indptr[i + 1]]
+            for i in range(n_src)
         ]
-    return adjacency
+        return adjacency, csr_data
 
 
 def _do_permutations(
@@ -653,6 +841,7 @@ def _do_permutations(
     sample_shape,
     buffer_size,
     progress_bar,
+    _csr_data=None,
 ):
     n_samp, n_vars = X_full.shape
 
@@ -707,6 +896,8 @@ def _do_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            _sums_only=True,
+            _csr_data=_csr_data,
         )
         perm_clusters_sums = out[1]
 
@@ -735,6 +926,7 @@ def _do_1samp_permutations(
     sample_shape,
     buffer_size,
     progress_bar,
+    _csr_data=None,
 ):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
@@ -745,29 +937,47 @@ def _do_1samp_permutations(
     # allocate space for output
     max_cluster_sums = np.empty(len(orders), dtype=np.double)
 
+    # For sign-flips s²=1, so sum(X²) is constant across permutations
+    _use_fast_ttest = stat_fun is ttest_1samp_no_p
+    if _use_fast_ttest:
+        _sum_sq = np.sum(X**2, axis=0)
+        _sqrt_n_nm1 = np.sqrt(n_samp * (n_samp - 1))
+        _inv_n = 1.0 / n_samp
+        _neg_n = -float(n_samp)
+
     if buffer_size is not None:
         # allocate a buffer so we don't need to allocate memory in loop
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, order in enumerate(orders):
         assert isinstance(order, np.ndarray)
-        # new surrogate data with specified sign flip
         assert order.size == n_samp  # should be guaranteed by parent
-        signs = 2 * order[:, None].astype(int) - 1
-        if not np.all(np.equal(np.abs(signs), 1)):
-            raise ValueError("signs from rng must be +/- 1")
 
-        if buffer_size is None:
+        if _use_fast_ttest:
+            signs = 2.0 * order - 1.0  # (n_samp,)  ±1
+            dot = signs @ X  # (n_vars,)
+            mean_s = dot * _inv_n
+            denom_sq = np.maximum(_sum_sq + mean_s * mean_s * _neg_n, 0.0)
+            t_obs_surr = np.where(
+                denom_sq > 0, mean_s / np.sqrt(denom_sq) * _sqrt_n_nm1, 0.0
+            )
+        elif buffer_size is None:
+            signs = 2 * order[:, None].astype(int) - 1
+            if not np.all(np.equal(np.abs(signs), 1)):
+                raise ValueError("not all entries are +/- 1")
             # be careful about non-writable memmap (GH#1507)
             if X.flags.writeable:
                 X *= signs
                 # Recompute statistic on randomized data
                 t_obs_surr = stat_fun(X)
-                # Set X back to previous state (trade memory eff. for CPU use)
+                # Set X back to previous state (trade memory eff. for CPU)
                 X *= signs
             else:
                 t_obs_surr = stat_fun(X * signs)
         else:
+            signs = 2 * order[:, None].astype(int) - 1
+            if not np.all(np.equal(np.abs(signs), 1)):
+                raise ValueError("not all entries are +/- 1")
             # only sign-flip a small data buffer, so we need less memory
             t_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
@@ -785,7 +995,7 @@ def _do_1samp_permutations(
         if adjacency is None:
             t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
 
-        # Find cluster on randomized stats
+        # Find clusters on randomized stats
         out = _find_clusters(
             t_obs_surr,
             threshold=threshold,
@@ -795,10 +1005,11 @@ def _do_1samp_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            _sums_only=True,
+            _csr_data=_csr_data,
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
-            # get max with sign info
             idx_max = np.argmax(np.abs(perm_clusters_sums))
             max_cluster_sums[seed_idx] = perm_clusters_sums[idx_max]
         else:
@@ -860,10 +1071,10 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
         extra = " (exact test)"
         orders = bin_perm_rep(n_samples)[1 : max_perms + 1]
     elif n_samples <= 20:  # fast way to do it for small(ish) n_samples
-        orders = rng.choice(max_perms, n_permutations - 1, replace=False)
-        orders = [
-            np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int) for s in orders
-        ]
+        order_indices = rng.choice(max_perms, n_permutations - 1, replace=False)
+        # Vectorized binary expansion via bit-shifting
+        bit_positions = np.arange(n_samples - 1, -1, -1)
+        orders = ((order_indices[:, None] + 1) >> bit_positions & 1).astype(int)
     else:  # n_samples >= 64
         # Here we can just use the hash-table (w/collision detection)
         # functionality of a dict to ensure uniqueness
@@ -940,8 +1151,9 @@ def _permutation_cluster_test(
     X = [np.reshape(x, (x.shape[0], -1)) for x in X]
     n_tests = X[0].shape[1]
 
+    _adj_csr_data = None
     if adjacency is not None and adjacency is not False:
-        adjacency = _setup_adjacency(adjacency, n_tests, n_times)
+        adjacency, _adj_csr_data = _setup_adjacency(adjacency, n_tests, n_times)
 
     if (exclude is not None) and not exclude.size == n_tests:
         raise ValueError("exclude must be the same shape as X[0]")
@@ -953,7 +1165,10 @@ def _permutation_cluster_test(
     logger.info(f"stat_fun(H1): min={np.min(t_obs)} max={np.max(t_obs)}")
 
     # test if stat_fun treats variables independently
-    if buffer_size is not None:
+    # Built-in stat functions are variable-independent; skip verification
+    if buffer_size is not None and (
+        stat_fun is not ttest_1samp_no_p and stat_fun is not f_oneway
+    ):
         t_obs_buffer = np.zeros_like(t_obs)
         for pos in range(0, n_tests, buffer_size):
             t_obs_buffer[pos : pos + buffer_size] = stat_fun(
@@ -997,6 +1212,7 @@ def _permutation_cluster_test(
         partitions=partitions,
         t_power=t_power,
         show_info=True,
+        _csr_data=_adj_csr_data,
     )
     clusters, cluster_stats = out
 
@@ -1090,6 +1306,7 @@ def _permutation_cluster_test(
                     sample_shape,
                     buffer_size,
                     progress_bar.subset(idx),
+                    _adj_csr_data,
                 )
                 for idx, order in split_list(orders, n_jobs, idx=True)
             )
@@ -1112,7 +1329,7 @@ def _permutation_cluster_test(
         step_down_include = np.ones(n_tests, dtype=bool)
         for ti in to_remove:
             step_down_include[clusters[ti]] = False
-        if adjacency is None and adjacency is not False:
+        if adjacency is None or adjacency is False:
             step_down_include = _reshape_view(step_down_include, sample_shape)
         n_step_downs += 1
         if step_down_p > 0:

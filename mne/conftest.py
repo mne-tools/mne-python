@@ -1075,6 +1075,7 @@ def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
     assert request.param in ("Numba", "NumPy")
     if request.param == "NumPy" and has_numba:
+        monkeypatch.setattr(cluster_level, "has_numba", False)
         monkeypatch.setattr(
             cluster_level, "_get_buddies", cluster_level._get_buddies_fallback
         )

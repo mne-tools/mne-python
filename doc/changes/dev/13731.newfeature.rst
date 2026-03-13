@@ -1,0 +1,1 @@
+Speed up :func:`mne.stats.spatio_temporal_cluster_1samp_test` and related permutation cluster functions by up to ~10x via vectorized NumPy operations and an optional Numba union-find kernel, by :newcontrib:`Sharif Haason`.
