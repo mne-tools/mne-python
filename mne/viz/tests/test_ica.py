@@ -265,9 +265,9 @@ def test_plot_ica_properties():
     # don't drop
     ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
 
-    # Test fallback when ALL 2-second epoch windows are contaminated by
-    # annotations: one bad segment per window so every epoch is dropped, but
-    # the inter-annotation gaps stitch together to >= 2 s of clean data.
+    # test fallback when ALL 2-second epoch windows are contaminated by annotations: one
+    # bad segment per window so every epoch is dropped, but the inter-annotation gaps
+    # stitch together to >= 2 s of clean data.
     annot_all_bad = Annotations(
         onset=[0.5, 2.5, 4.5, 6.5],
         duration=[1.0, 1.0, 1.0, 1.0],
