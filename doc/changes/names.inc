@@ -96,6 +96,7 @@
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
+.. _Fabrice Guibert: https/github.com/shrecki
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 .. _Famous Raj Bhat: https://github.com/Famous077
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
