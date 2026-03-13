@@ -1,0 +1,1 @@
+Add support for :func:`mne.epochs.concatenate_epochs` with :class:`~mne.time_frequency.EpochsTFR` instances, by `aman-coder03`. (:gh:`13745`)
