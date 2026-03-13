@@ -233,6 +233,8 @@ class SSD(_GEDTransformer):
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the SSD object to disk (in HDF5 format).
 
+        .. versionadded:: 1.12
+
         Parameters
         ----------
         fname : path-like
@@ -463,6 +465,8 @@ class SSD(_GEDTransformer):
 
 def read_ssd(fname):
     """Load a saved :class:`~mne.decoding.SSD` object from disk.
+
+    .. versionadded:: 1.12
 
     Parameters
     ----------

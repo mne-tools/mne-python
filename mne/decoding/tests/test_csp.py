@@ -499,26 +499,23 @@ def test_sklearn_compliance(estimator, check):
     check(estimator)
 
 
-@pytest.mark.parametrize(
-    "Estimator, read_func, extra_attrs",
-    [
-        (CSP, read_csp, ["component_order", "norm_trace"]),
-        (SPoC, read_spoc, []),
-    ],
-)
-def test_io_roundtrip(tmp_path, Estimator, read_func, extra_attrs):
+@pytest.mark.parametrize("Estimator", [CSP, SPoC])
+def test_io_roundtrip(tmp_path, Estimator):
     """Test that CSP/SPoC can be saved to disk and loaded back correctly."""
     h5io = pytest.importorskip("h5io")
     rng = np.random.RandomState(42)
 
     # Generate class-specific data
     if Estimator is CSP:
-        n_epochs, n_channels = 40, 10
-        X = rng.randn(n_epochs, n_channels, 50)
+        X = rng.randn(40, 10, 50)
         y = np.array([0] * 20 + [1] * 20)
+        read_func = read_csp
+        extra_attrs = ["component_order", "norm_trace"]
     else:  # SPoC
         X = rng.randn(10, 10, 20)
         y = rng.randn(10)
+        read_func = read_spoc
+        extra_attrs = []
 
     est = Estimator(n_components=4)
     est.fit(X, y)

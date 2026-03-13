@@ -172,6 +172,8 @@ class XdawnTransformer(_GEDTransformer):
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the XdawnTransformer object to disk (in HDF5 format).
 
+        .. versionadded:: 1.12
+
         Parameters
         ----------
         fname : path-like
@@ -286,6 +288,8 @@ class XdawnTransformer(_GEDTransformer):
 
 def read_xdawn_transformer(fname):
     """Load a saved :class:`~mne.decoding.XdawnTransformer` object from disk.
+
+    .. versionadded:: 1.12
 
     Parameters
     ----------
