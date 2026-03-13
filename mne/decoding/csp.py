@@ -234,11 +234,13 @@ class CSP(_GEDTransformer):
         %(overwrite)s
         %(verbose)s
 
-        .. versionadded:: 1.12
-
         See Also
         --------
         mne.decoding.read_csp
+
+        Notes
+        -----
+        .. versionadded:: 1.12
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, self._save_fname_type, (".h5", ".hdf5"))
@@ -901,11 +903,13 @@ class SPoC(CSP):
         %(overwrite)s
         %(verbose)s
 
-        .. versionadded:: 1.12
-
         See Also
         --------
         mne.decoding.read_spoc
+
+        Notes
+        -----
+        .. versionadded:: 1.12
         """
         super().save(fname, overwrite=overwrite, verbose=verbose)
 
@@ -1001,11 +1005,13 @@ def read_csp(fname):
     csp : instance of :class:`~mne.decoding.CSP`
         The loaded CSP object with all fitted attributes restored.
 
-    .. versionadded:: 1.12
-
     See Also
     --------
     mne.decoding.CSP.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, "path-like", "fname")
@@ -1030,11 +1036,13 @@ def read_spoc(fname):
     spoc : instance of :class:`~mne.decoding.SPoC`
         The loaded SPoC object with all fitted attributes restored.
 
-    .. versionadded:: 1.12
-
     See Also
     --------
     mne.decoding.SPoC.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, "path-like", "fname")
