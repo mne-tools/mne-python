@@ -3114,8 +3114,9 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
-        if not isinstance(raw[ri], type(raw[0])):
-            raise ValueError(f"raw[{ri}] type must match")
+        if not isinstance(raw[ri], BaseRaw):
+            if type(raw[ri]) is not type(raw[0]):
+                raise ValueError(f"raw[{ri}] type must match")
         for key in ("nchan", "sfreq"):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
