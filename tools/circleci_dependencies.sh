@@ -1,5 +1,7 @@
 #!/bin/bash -ef
 
+sudo apt-get install -y r-base
+
 ONLY_BINARY="--only-binary \"numpy,dipy,scipy,matplotlib,pandas,statsmodels,netCDF4,h5py\""
 
 set -x
