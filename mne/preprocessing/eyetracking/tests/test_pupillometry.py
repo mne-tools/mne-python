@@ -35,7 +35,7 @@ def test_interpolate_bad_blinks(
     raw = read_raw_eyelink(fname, create_annotations=["blinks"], find_overlaps=True)
 
     # read_raw_eyelink prefixes any blink description with "BAD_" but we want to
-    # test interpolate_blinks do not depend on this convention
+    # test interpolate_blinks does not depend on this convention
     if description_prefix != "BAD_":
         blink_description = f"{description_prefix}blink"
         raw.annotations.rename({"BAD_blink": blink_description})

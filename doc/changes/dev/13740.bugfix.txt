@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.preprocessing.eyetracking.interpolate_blinks` was overriding the user-passed ``match`` argument with the value ``"BAD_blink"``, by :newcontrib:`Robert Dazi`

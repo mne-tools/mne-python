@@ -1635,8 +1635,14 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name="skip_by_annotation", invert=False):
+def _annotations_starts_stops(
+    raw, kinds, name="skip_by_annotation", invert=False, exact_match=False
+):
     """Get starts and stops from given kinds.
+
+    It picks an annotation if its description starts with one element
+    of kinds, unless exact_match=True then if it is equal to one of
+    them.
 
     onsets and ends are inclusive.
     """
@@ -1650,11 +1656,18 @@ def _annotations_starts_stops(raw, kinds, name="skip_by_annotation", invert=Fals
     if len(raw.annotations) == 0:
         onsets, ends = np.array([], int), np.array([], int)
     else:
-        idxs = [
-            idx
-            for idx, desc in enumerate(raw.annotations.description)
-            if any(desc.upper().startswith(kind.upper()) for kind in kinds)
-        ]
+        if exact_match:
+            idxs = [
+                idx
+                for idx, desc in enumerate(raw.annotations.description)
+                if desc in kinds
+            ]
+        else:
+            idxs = [
+                idx
+                for idx, desc in enumerate(raw.annotations.description)
+                if any(desc.upper().startswith(kind.upper()) for kind in kinds)
+            ]
         # onsets are already sorted
         onsets = raw.annotations.onset[idxs]
         onsets = _sync_onset(raw, onsets)

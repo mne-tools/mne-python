@@ -88,7 +88,11 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
                 continue
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
-        starts, ends = _annotations_starts_stops(raw, "BAD_blink")
+        starts, ends = _annotations_starts_stops(
+            raw,
+            list({annot["description"] for annot in blink_annots}),
+            exact_match=True,
+        )
         starts = np.divide(starts, raw.info["sfreq"])
         ends = np.divide(ends, raw.info["sfreq"])
         for annot, start, end in zip(blink_annots, starts, ends):
