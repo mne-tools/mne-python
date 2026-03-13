@@ -1932,3 +1932,53 @@ def test_combine_tfr_error_catch(average_tfr):
         match="Aggregating multitaper tapers across TFR datasets is not supported.",
     ):
         combine_tfr([average_tfr_taper, average_tfr_taper])
+
+
+def test_concatenate_epochs_tfr():
+    """Test concatenate_epochs() works for EpochsTFR instances."""
+    from mne.epochs import concatenate_epochs
+
+    info = create_info(ch_names=["EEG1", "EEG2", "EEG3"], sfreq=256.0, ch_types="eeg")
+    data = np.random.randn(20, 3, 512)
+    events = np.column_stack([np.arange(20) * 512, np.zeros(20, int), np.ones(20, int)])
+    epochs = EpochsArray(data, info, events=events, tmin=0)
+    freqs = np.arange(8, 12)
+    tfr1 = epochs[:10].compute_tfr("morlet", freqs=freqs)
+    tfr2 = epochs[10:20].compute_tfr("morlet", freqs=freqs)
+
+    # basic concatenation
+    out = concatenate_epochs([tfr1, tfr2])
+    assert isinstance(out, EpochsTFR)
+    assert out.shape[0] == 20  # 10 + 10 epochs
+    assert out.shape[1] == 3  # channels unchanged
+    assert out.shape[2] == len(freqs)  # freqs unchanged
+    assert len(out.events) == 20
+    assert_array_equal(out.freqs, tfr1.freqs)
+    assert_array_equal(out.times, tfr1.times)
+
+    # event offset: second block's events should be shifted forward
+    assert np.all(out.events[10:, 0] > out.events[:10, 0])
+
+    # add_offset=False: event times should be preserved as-is
+    out_no_offset = concatenate_epochs([tfr1, tfr2], add_offset=False)
+    assert_array_equal(out_no_offset.events[:10, 0], tfr1.events[:, 0])
+    assert_array_equal(out_no_offset.events[10:, 0], tfr2.events[:, 0])
+
+    # data integrity: first 10 epochs should match tfr1.data
+    assert_array_equal(out.data[:10], tfr1.data)
+    assert_array_equal(out.data[10:], tfr2.data)
+
+    # mismatched freqs should raise
+    tfr_bad_freqs = epochs[:10].compute_tfr("morlet", freqs=np.arange(13, 17))
+    with pytest.raises(ValueError, match="freqs do not match"):
+        concatenate_epochs([tfr1, tfr_bad_freqs])
+
+    # mismatched times should raise
+    tfr_bad_times = epochs[:10].compute_tfr("morlet", freqs=freqs)
+    tfr_bad_times._set_times(tfr_bad_times.times + 1.0)  # shift times to force mismatch
+    with pytest.raises(ValueError, match="times do not match"):
+        concatenate_epochs([tfr1, tfr_bad_times])
+
+    # passing a non-EpochsTFR should raise
+    with pytest.raises(TypeError, match="must be an instance of EpochsTFR"):
+        concatenate_epochs([tfr1, epochs[:10]])

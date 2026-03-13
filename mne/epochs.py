@@ -4693,6 +4693,66 @@ def _concatenate_epochs(
     )
 
 
+def _concatenate_epochs_tfr(epochs_list, add_offset=True):
+    """Concatenate a list of EpochsTFR instances."""
+    for ii, ep in enumerate(epochs_list):
+        if type(ep).__name__ != "EpochsTFR":
+            raise TypeError(
+                f"epochs_list[{ii}] must be an instance of EpochsTFR, got {type(ep)}"
+            )
+    ref = epochs_list[0]
+    for ii, ep in enumerate(epochs_list[1:], 1):
+        if not np.array_equal(ep.freqs, ref.freqs):
+            raise ValueError(f"epochs_list[{ii}] freqs do not match epochs_list[0]")
+        if not np.array_equal(ep.times, ref.times):
+            raise ValueError(f"epochs_list[{ii}] times do not match epochs_list[0]")
+        _ensure_infos_match(ep.info, ref.info, f"epochs_list[{ii}]")
+
+    data = np.concatenate([ep.data for ep in epochs_list], axis=0)
+
+    shift = np.int64((10 + ref.times[-1]) * ref.info["sfreq"])
+    events_offset = int(np.max(epochs_list[0].events[:, 0])) + shift
+    all_events = [epochs_list[0].events.copy()]
+    for ep in epochs_list[1:]:
+        evs = ep.events.copy()
+        if add_offset:
+            evs[:, 0] += events_offset
+            events_offset += int(np.max(ep.events[:, 0])) + shift
+        all_events.append(evs)
+    events = np.concatenate(all_events, axis=0)
+
+    event_id = deepcopy(ref.event_id)
+    for ep in epochs_list[1:]:
+        event_id.update(ep.event_id)
+
+    selection = np.concatenate([ep.selection for ep in epochs_list])
+    drop_log = sum([ep.drop_log for ep in epochs_list], ())
+
+    metadatas = [ep.metadata for ep in epochs_list]
+    n_have = sum(m is not None for m in metadatas)
+    if n_have == 0:
+        metadata = None
+    elif n_have != len(metadatas):
+        raise ValueError(
+            f"{n_have} of {len(metadatas)} EpochsTFR instances have metadata, "
+            "all or none must have metadata"
+        )
+    else:
+        pd = _check_pandas_installed(strict=False)
+        metadata = pd.concat(metadatas) if pd is not False else sum(metadatas, list())
+
+    state = ref.__getstate__()
+    state["data"] = data
+    state["events"] = events
+    state["event_id"] = event_id
+    state["selection"] = selection
+    state["drop_log"] = drop_log
+    state["metadata"] = metadata
+    out = type(epochs_list[0]).__new__(type(epochs_list[0]))
+    out.__setstate__(state)
+    return out
+
+
 @verbose
 def concatenate_epochs(
     epochs_list, add_offset=True, *, on_mismatch="raise", verbose=None
@@ -4725,6 +4785,8 @@ def concatenate_epochs(
     -----
     .. versionadded:: 0.9.0
     """
+    if epochs_list and type(epochs_list[0]).__name__ == "EpochsTFR":
+        return _concatenate_epochs_tfr(epochs_list, add_offset=add_offset)
     (
         info,
         data,
