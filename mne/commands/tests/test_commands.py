@@ -31,6 +31,7 @@ from mne.commands import (
     mne_compute_proj_ecg,
     mne_compute_proj_eog,
     mne_coreg,
+    mne_dipolefit,
     mne_flash_bem,
     mne_kit2fiff,
     mne_make_scalp_surfaces,
@@ -59,9 +60,9 @@ base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
 raw_fname = op.join(base_dir, "test_raw.fif")
 
 testing_path = testing.data_path(download=False)
-subjects_dir = op.join(testing_path, "subjects")
-bem_model_fname = op.join(
-    testing_path, "subjects", "sample", "bem", "sample-320-320-320-bem.fif"
+subjects_dir = testing_path / "subjects"
+bem_model_fname = (
+    testing_path / "subjects" / "sample" / "bem" / "sample-320-320-320-bem.fif"
 )
 
 
@@ -617,3 +618,8 @@ def test_anonymize(tmp_path):
     info = read_info(out_fname)
     assert op.exists(out_fname)
     assert info["meas_date"] == _stamp_to_dt((946684800, 0))
+
+
+def test_dipolefit():
+    """Test mne dipolefit."""
+    check_usage(mne_dipolefit)
