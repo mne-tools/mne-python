@@ -129,12 +129,16 @@ def f_oneway(*args, sigma=0.0, method="relative"):
         Regularization parameter (>= 0) added to the within-group mean
         square to mitigate F-statistic inflation under low-variance
         conditions. ``0`` (default) disables correction.
+
+        .. versionadded:: 1.12
     method : str
         How *sigma* is interpreted when ``sigma > 0``. Can be
         ``'relative'`` (default) or ``'absolute'``.
         ``'relative'`` multiplies *sigma* by the median within-group
         mean square (scale-invariant, recommended).
         ``'absolute'`` uses *sigma* directly as a raw sigma squared.
+
+        .. versionadded:: 1.12
 
     Returns
     -------
