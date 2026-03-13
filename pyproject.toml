@@ -24,8 +24,8 @@ doc = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "pyxdf",
   "pyzmq != 24.0.0",
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "rpy2",
+  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
