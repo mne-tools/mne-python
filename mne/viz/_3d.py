@@ -2870,7 +2870,7 @@ def _press(event, params):
     elif event.key == "shift+right":
         idx = min(params["stc"].shape[1] - 1, idx + 10)
     _update_timeslice(idx, params)
-    params["fig"].canvas.draw()
+    params["fig"].canvas.draw_idle()
 
 
 def _update_timeslice(idx, params):
@@ -2921,7 +2921,7 @@ def _onclick(event, params, verbose=None):
     else:
         params["ax_time"].lines[0].set_ydata([0.0])
     _update_vertlabel(loc_idx, params)
-    params["fig"].canvas.draw()
+    params["fig"].canvas.draw_idle()
 
 
 def _cut_coords_to_idx(cut_coords, dist_to_verts):
