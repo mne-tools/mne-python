@@ -3,9 +3,11 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
+from scipy.stats import mstats
 
 from ..._fiff.constants import FIFF
-from ...annotations import _annotations_starts_stops
+from ...annotations import Annotations, _annotations_starts_stops
 from ...io import BaseRaw
 from ...utils import _check_preload, _validate_type, logger, warn
 
@@ -119,3 +121,151 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
         )
     else:
         warn("No channels were interpolated.")
+
+
+def annotate_velocity_blinks(
+    raw,
+    channel_names=("pupil_left", "pupil_right"),
+    margin_before=0.01,
+    margin_after=0.01,
+    max_duration=0.5,
+    description="BAD_velo_blink",
+    sigma=5,
+    vt_start_multiplyer=40,
+    vt_end_multiplyer=40,
+    low_v_thresh_multiplyer=1,
+):
+    """
+    Annotate blinks based on pupil velocity profile.
+
+    fast constriction -> fast dilation -> low velocity.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Raw object with pupil data.
+    channel_names : tuple of str
+        Names of pupil channels (e.g., ('pupil_left', 'pupil_right')).
+    margin_before : float
+        Time (in seconds) to extend before blink onset.
+    margin_after : float
+        Time (in seconds) to extend after blink offset.
+    max_duration : float
+        Maximum allowable blink duration (in seconds).
+    description : str
+        Annotation label.
+    sigma : float
+        Sigma for Gaussian smoothing.
+    vt_start_multiplyer : float
+        Multiplier for median absolute deviation (MAD) to set blink onset threshold.
+    vt_end_multiplyer : float
+        Multiplier for median absolute deviation (MAD) to set blink dilation threshold.
+    low_v_thresh_multiplyer : float
+        Multiplier for median velocity (MED) to define stabilization (low velocity)
+        threshold.
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        Modified Raw object with blink annotations.
+
+    """
+    annotations = raw.annotations
+
+    sfreq = raw.info["sfreq"]
+    max_search_duration = max_duration
+
+    onsets, durations, descriptions, ch_names_list = [], [], [], []
+
+    for ch_name in channel_names:
+        if ch_name not in raw.ch_names:
+            raise ValueError(f"Channel '{ch_name}' not found in raw.")
+
+        data = raw.get_data(picks=ch_name)[0]
+
+        if sigma > 0:
+            smoothed = gaussian_filter1d(data, sigma=sigma)
+            velocity = np.gradient(smoothed) * sfreq
+        else:
+            velocity = np.gradient(data) * sfreq
+
+        # clipping the top 1 percent of data to not have outliers
+        # influence the threshold (winsorizing)
+        velocity_clipped = mstats.winsorize(
+            velocity, limits=[0.01, 0.01]
+        )  # clip top and bottom 1%
+        abs_velocity = np.abs(velocity_clipped.data)
+
+        # median velocity
+        med = np.nanmedian(abs_velocity)
+        # median absolute deviation
+        mad = np.nanmedian(np.abs(abs_velocity - med))
+
+        vt_start = med + (vt_start_multiplyer * mad)
+        vt_end = med + (vt_end_multiplyer * mad)
+        low_v_thresh = med * low_v_thresh_multiplyer
+
+        # Optionally print thresholds per participant and channel
+        # print(
+        #     f"{ch_name}: med={med:.2f}, "
+        #     "mad={mad:.2f}, "
+        #     "vt_start={vt_start:.2f}, "
+        #     "vt_end={vt_end:.2f}, "
+        #     "low_v_thresh={low_v_thresh:.2f}"
+        # )
+
+        i = 0
+        while i < len(velocity) - 1:
+            imid = None
+
+            # Blink onset: rapid constriction
+            if velocity[i] < -vt_start:
+                istart = i
+
+                # Limit search range
+                max_search = int(sfreq * max_search_duration)
+
+                # Dilation: search after constriction
+                dilation_zone = velocity[istart : istart + max_search]
+                dilation_indices = np.where(dilation_zone > vt_end)[0]
+                if dilation_indices.size > 0:
+                    imid = dilation_indices[0] + istart
+
+                    # Look for stabilization
+                    post_dilate_zone = velocity[imid : imid + max_search]
+                    low_v_indices = np.where(np.abs(post_dilate_zone) < low_v_thresh)[0]
+                    if low_v_indices.size > 0:
+                        iend = low_v_indices[0] + imid
+
+                        # Validate and annotate
+                        duration_sec = (iend - istart) / sfreq
+                        if duration_sec <= max_duration:
+                            onset = (istart / sfreq) - margin_before
+                            onset = max(0, onset)
+                            total_duration = duration_sec + margin_before + margin_after
+
+                            onsets.append(onset)
+                            durations.append(total_duration)
+                            descriptions.append(description)
+                            ch_names_list.append([ch_name])
+                            i = iend - 1
+                            continue  # go to next blink candidate
+                # Adaptive skip logic
+            if imid is not None:
+                i = imid + 1
+            else:
+                i += int(sfreq * 0.01)  # skip 10 ms
+
+    if onsets:
+        new_annotations = Annotations(
+            onset=onsets,
+            duration=durations,
+            description=descriptions,
+            orig_time=raw.annotations.orig_time,
+            ch_names=ch_names_list,
+        )
+        raw.set_annotations(annotations + new_annotations)
+    else:
+        print("No blinks detected.")
+
+    return raw
