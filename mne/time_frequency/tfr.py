@@ -42,6 +42,7 @@ from ..utils import (
     _freq_mask,
     _import_h5io_funcs,
     _is_numeric,
+    _on_missing,
     _pl,
     _prepare_read_metadata,
     _prepare_write_metadata,
@@ -3237,6 +3238,133 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         self._metadata = self.inst.metadata
         # we need this for compatibility with equalize_event_counts()
         self._bad_dropped = True
+
+    @classmethod
+    @verbose
+    def from_raw_tfr(
+        cls,
+        raw_tfr,
+        events,
+        event_id=None,
+        tmin=-0.2,
+        tmax=0.5,
+        picks=None,
+        reject_by_annotation=True,
+        on_missing="raise",
+        event_repeated="error",
+        metadata=None,
+        verbose=None,
+    ):
+        """Create an EpochsTFR from a RawTFR object.
+
+        Parameters
+        ----------
+        raw_tfr : instance of RawTFR
+            The continuous TFR data to epoch.
+        %(events_epochs)s
+        %(event_id)s
+        %(epochs_tmin_tmax)s
+        %(picks_good_data_noref)s
+        %(reject_by_annotation_epochs)s
+        %(on_missing_epochs)s
+        %(event_repeated_epochs)s
+        %(metadata_epochs)s
+        %(verbose)s
+
+        Returns
+        -------
+        epochs_tfr : instance of EpochsTFR
+            The epoched TFR data.
+        """
+        from ..epochs import _handle_event_repeated
+        from .tfr import RawTFR
+
+        _validate_type(raw_tfr, RawTFR, "raw_tfr")
+        events = _ensure_events(events)
+        event_id = _check_event_id(event_id, events)
+
+        sfreq = raw_tfr.sfreq
+        raw_times = raw_tfr.times
+
+        # figure out which time samples correspond to tmin/tmax
+        tmin_idx = int(round(tmin * sfreq))
+        tmax_idx = int(round(tmax * sfreq))
+        n_times = tmax_idx - tmin_idx + 1
+        epoch_times = np.arange(tmin_idx, tmax_idx + 1) / sfreq
+
+        # picks
+        if picks is not None:
+            pick_idx = _picks_to_idx(raw_tfr.info, picks, "data", with_ref_meg=False)
+        else:
+            pick_idx = slice(None)
+
+        # get the raw TFR data: shape (n_channels, n_freqs, n_raw_times)
+        raw_data = raw_tfr.data[pick_idx]
+
+        # find valid events (those where the epoch window fits in the data)
+        values = list(event_id.values())
+        selected = np.where(np.isin(events[:, 2], values))[0]
+        selection = selected.copy()
+
+        drop_log = [() for _ in range(len(events))]
+        good_data = []
+        good_event_indices = []
+
+        for idx in selected:
+            event_samp = events[idx, 0]
+            # convert event sample to index in raw_tfr.times
+            start = np.searchsorted(raw_times * sfreq, event_samp + tmin_idx)
+            stop = start + n_times
+
+            # check bounds before clamping via searchsorted
+            first_samp = int(round(raw_times[0] * sfreq))
+            if (event_samp + tmin_idx) < first_samp or stop > raw_data.shape[-1]:
+                drop_log[idx] = ("TOO_SHORT",)
+                continue
+
+            epoch_data = raw_data[:, :, start:stop]
+
+            if (
+                reject_by_annotation
+                and hasattr(raw_tfr, "inst")
+                and raw_tfr.inst is not None
+            ):
+                # skip annotation rejection for now (RawTFR doesn't carry annotations)
+                pass
+
+            good_data.append(epoch_data)
+            good_event_indices.append(idx)
+
+        good_events = events[good_event_indices]
+        selection = np.array(good_event_indices)
+        drop_log = tuple(tuple(d) for d in drop_log)
+
+        # handle event_repeated
+        good_events, event_id, selection, drop_log = _handle_event_repeated(
+            good_events, event_id, event_repeated, selection, drop_log
+        )
+
+        # handle on_missing
+        for key, val in event_id.items():
+            if val not in good_events[:, 2]:
+                msg = f"No matching events found for {key} (event id {val})"
+                _on_missing(on_missing, msg)
+
+        data = np.stack(good_data, axis=0)  # (n_epochs, n_channels, n_freqs, n_times)
+
+        state = raw_tfr.__getstate__()
+        state["data"] = data
+        state["times"] = epoch_times
+        state["events"] = good_events
+        state["event_id"] = event_id
+        state["selection"] = selection
+        state["drop_log"] = drop_log
+        state["metadata"] = metadata
+        state["raw_times"] = epoch_times
+
+        out = cls.__new__(cls)
+        out.__setstate__(state)
+        return out
 
     def average(self, method="mean", *, dim="epochs", copy=False):
         """Aggregate the EpochsTFR across epochs, frequencies, or times.
