@@ -193,7 +193,7 @@ full-no-qt = [
 full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
-hdf5 = ["h5io >= 0.2.4", "pymatreader"]
+hdf5 = ["h5io >= 0.2.4", "pymatreader >= 1.2.2"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
