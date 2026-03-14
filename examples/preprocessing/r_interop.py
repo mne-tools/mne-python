@@ -7,8 +7,8 @@ Mass-univariate t-test: Python and R compared
 
 This example shows how to run a mass-univariate 2-sample t-test on
 :class:`~mne.Epochs` data in Python using :func:`scipy.stats.ttest_ind`,
-then run the equivalent test in R via :mod:`rpy2`, and confirm that both
-approaches give identical results.
+then run the equivalent test in R via `rpy2 <https://rpy2.github.io>`__, 
+and confirm that both approaches give identical results.
 
 This is useful when you want to leverage R's statistical ecosystem (e.g.,
 ``lme4``, ``EMMeans``) while keeping your data loading and visualization
