@@ -1,1 +1,1 @@
-Support mixed-type concatenation of :class:`mne.Annotations` and :class:`mne.HEDAnnotations`, preserving HED strings in ``extras["HED"]``. Also detect wrong ``hed`` package installations and direct users to ``pip install hedtools``, by `Bruno Aristimunha`_.
+Support mixed-type concatenation of :class:`mne.Annotations` and :class:`mne.HEDAnnotations`, preserving HED strings in ``extras["HED"]``, by `Bruno Aristimunha`_.
