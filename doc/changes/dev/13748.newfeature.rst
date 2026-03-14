@@ -1,0 +1,1 @@
+Add support for :func:`mne.concatenate_epochs` with :class:`~mne.time_frequency.EpochsSpectrum` instances, by ``aman-coder03``. (:gh:`13747`)
