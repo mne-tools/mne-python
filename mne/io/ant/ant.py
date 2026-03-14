@@ -4,9 +4,10 @@
 
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
@@ -22,11 +23,6 @@ from ...utils import (
     warn,
 )
 from ..base import BaseRaw
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    from numpy.typing import NDArray
 
 _UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
