@@ -281,6 +281,7 @@
 .. _Richard Scholz: https://github.com/scholzri
 .. _Riessarius Stargardsky: https://github.com/Riessarius
 .. _Roan LaPlante: https://github.com/aestrivex
+.. _Robert Dazi: https://github.com/v01dxyz
 .. _Robert Luke: https://github.com/rob-luke
 .. _Robert Seymour: https://neurofractal.github.io
 .. _Romain Derollepot: https://github.com/rderollepot
