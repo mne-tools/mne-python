@@ -18,7 +18,7 @@ from mne import Epochs, create_info, io, pick_types, read_events
 from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
 from mne.decoding._mod_ged import _get_spectral_ratio
-from mne.decoding.ssd import SSD
+from mne.decoding.ssd import SSD, read_ssd
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
 
@@ -568,6 +568,74 @@ def test_picks_arg():
         n_fft=64,
     )
     ssd.fit(X).transform(X)
+
+
+def test_ssd_save_load(tmp_path):
+    """Test that SSD can be saved to disk and loaded back correctly."""
+    h5io = pytest.importorskip("h5io")
+    X, _, _ = simulate_data()
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types="eeg")
+    n_components = 5
+
+    filt_params_signal = dict(
+        l_freq=freqs_sig[0],
+        h_freq=freqs_sig[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+    filt_params_noise = dict(
+        l_freq=freqs_noise[0],
+        h_freq=freqs_noise[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+
+    ssd = SSD(info, filt_params_signal, filt_params_noise, n_components=n_components)
+    ssd.fit(X)
+
+    state = ssd.__getstate__()
+    assert "cov_callable" not in state
+    assert "mod_ged_callable" not in state
+
+    fname = tmp_path / "test_ssd.h5"
+    ssd.save(fname)
+
+    ssd_loaded = read_ssd(fname)
+
+    assert hasattr(ssd_loaded, "cov_callable")
+    assert hasattr(ssd_loaded, "mod_ged_callable")
+    assert callable(ssd_loaded.cov_callable)
+    assert callable(ssd_loaded.mod_ged_callable)
+
+    # Check fitted array attributes are restored
+    assert_array_almost_equal(ssd.filters_, ssd_loaded.filters_)
+    assert_array_almost_equal(ssd.patterns_, ssd_loaded.patterns_)
+
+    # Check scalar/param attributes
+    assert ssd.n_components == ssd_loaded.n_components
+    assert ssd.info["sfreq"] == ssd_loaded.info["sfreq"]
+    assert ssd.filt_params_signal == ssd_loaded.filt_params_signal
+    assert ssd.filt_params_noise == ssd_loaded.filt_params_noise
+
+    # Check transform output matches
+    X_orig = ssd.transform(X)
+    X_loaded = ssd_loaded.transform(X)
+    assert_array_almost_equal(X_orig, X_loaded)
+
+    with pytest.raises(FileExistsError):
+        ssd.save(fname)
+    ssd.save(fname, overwrite=True)
+
+    # Check that loading an HDF5 file with missing keys raises an error
+    bad_fname = tmp_path / "bad.h5"
+    h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
+    with pytest.raises(ValueError, match="missing required keys"):
+        read_ssd(bad_fname)
+
+    with pytest.raises(OSError, match="not found"):
+        read_ssd(tmp_path / "nonexistent.h5")
 
 
 def test_get_spectral_ratio():
