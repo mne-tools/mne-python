@@ -1,1 +1,1 @@
-Add example showing how to run a mass-univariate t-test in both Python and R using ``rpy2``, demonstrating Python–R interoperability with :class:`~mne.Epochs` data by `Aman Srivastava`. (:gh:`13729`)
+Add example showing how to run a mass-univariate t-test in both Python and R using ``rpy2``, demonstrating Python–R interoperability with :class:`~mne.Epochs` data by `Aman Srivastava`_. (:gh:`13729`)

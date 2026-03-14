@@ -19,8 +19,7 @@ in Python.
     and a working R installation with the ``stats`` package (included by
     default in R).
 """
-# Authors: Aman Srivastava <amansri345@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -75,7 +74,7 @@ print(f"Python  →  t = {t_python:.4f},  p = {p_python:.4f}")
 # Run the same t-test in R via rpy2
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# We pass the same NumPy arrays to R using :mod:`rpy2` and call R's
+# We pass the same NumPy arrays to R using ``rpy2`` and call R's
 # built-in ``t.test()``.
 
 with localconverter(default_converter + numpy2ri.converter):
