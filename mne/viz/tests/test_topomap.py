@@ -987,3 +987,23 @@ def test_plot_ch_adjacency():
     msg = "Editing a 3d adjacency plot is not supported."
     with pytest.raises(ValueError, match=msg):
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
+
+
+def test_plot_topomap_info_names_ordering():
+    """Regression test for GH-12700.
+
+    plot_topomap() must preserve correct sensor name ordering when
+    passing an Info object as pos with a names argument.
+    """
+    info = create_info(ch_names=["Fp1", "Fp2", "Fz"], sfreq=1000.0, ch_types="eeg")
+    montage = make_standard_montage("standard_1020")
+    info.set_montage(montage)
+    data = np.array([1.0, 2.0, 3.0])
+    names = ["Fp1", "Fp2", "Fz"]
+    im, _ = plot_topomap(data, info, names=names, show=False)
+    assert im is not None
+    # ADD this instead
+    displayed_names = [t.get_text() for t in im.axes.texts]
+    assert displayed_names == list(names), (
+        f"Expected {list(names)}, got {displayed_names}"
+    )
