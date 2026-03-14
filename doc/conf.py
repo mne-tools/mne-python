@@ -211,6 +211,7 @@ numpydoc_xref_aliases = {
     "iterator": ":term:`iterator <python:iterator>`",
     "path-like": ":term:`path-like`",
     "array-like": ":term:`array_like <numpy:array_like>`",
+    "ArrayLike": ":class:`ArrayLike <numpy:typing.ArrayLike>`",
     "Path": ":class:`python:pathlib.Path`",
     "bool": ":ref:`bool <python:typebool>`",
     # Matplotlib
