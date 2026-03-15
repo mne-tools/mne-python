@@ -75,8 +75,8 @@ def test_sourcemorph_consistency():
         list(signature(SourceMorph.__init__).parameters)[1:-1]
         == mne.morph._SOURCE_MORPH_ATTRIBUTES
     )
-    
-    
+
+
 @testing.requires_testing_data
 def test_source_morph_spacing_with_src_to():
     """Regression test for GH-12101.
