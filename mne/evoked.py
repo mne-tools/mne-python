@@ -797,6 +797,7 @@ class Evoked(
     def animate_topomap(
         self,
         ch_type=None,
+        cmap=None,
         times=None,
         frame_rate=None,
         butterfly=False,
@@ -825,6 +826,11 @@ class Evoked(
             'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od'.
             If None, first available channel type from the above list is used.
             Defaults to None.
+        cmap : str | Colormap | None
+            The colormap to use for plotting. If None, the colormap is chosen
+            based on the data values (see Notes). Defaults to None.
+                If the data contains only non-negative values, the "Reds" colormap
+                will be used. Otherwise, the "RdBu_r" colormap will be used.
         times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
@@ -882,6 +888,7 @@ class Evoked(
             vmin=vmin,
             vmax=vmax,
             verbose=verbose,
+            cmap=cmap,
         )
 
     def as_type(self, ch_type="grad", mode="fast"):
