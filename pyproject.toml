@@ -322,9 +322,9 @@ ignore_directives = [
   "minigallery",
   "related-software",
   "rst-class",
-  "tags",
   "tab-set",
   "tabularcolumns",
+  "tags",
   "toctree",
   "towncrier-draft-entries",
 ]
