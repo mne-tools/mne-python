@@ -9,6 +9,8 @@ r"""
 Importing data from EEG devices
 ===============================
 
+.. tags:: tutorials, io, eeg
+
 MNE includes various functions and utilities for reading EEG data and electrode
 locations.
 

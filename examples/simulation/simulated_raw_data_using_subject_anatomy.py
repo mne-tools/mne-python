@@ -5,6 +5,8 @@
 Simulate raw data using subject anatomy
 =======================================
 
+.. tags:: examples, simulation, raw, forward-model, inverse
+
 This example illustrates how to generate source estimates and simulate raw data
 using subject anatomy with the :class:`mne.simulation.SourceSimulator` class.
 Once the raw data is simulated, generated source estimates are reconstructed

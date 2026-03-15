@@ -5,6 +5,8 @@
 Computing source timecourses with an XFit-like multi-dipole model
 =================================================================
 
+.. tags:: examples, inverse, source-localization, evoked, epochs
+
 MEGIN's XFit program offers a "guided ECD modeling" interface, where multiple
 dipoles can be fitted interactively. By manually selecting subsets of sensors
 and time ranges, dipoles can be fitted to specific signal components. Then,

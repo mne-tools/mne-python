@@ -3,6 +3,8 @@
 Getting started with Python
 ===========================
 
+.. tags:: help, beginners, python, learning
+
 `Python`_ is a modern general-purpose object-oriented high-level programming
 language. There are many general introductions to Python online; here are a
 few:

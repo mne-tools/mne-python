@@ -5,6 +5,8 @@
 Define target events based on time lag, plot evoked response
 ============================================================
 
+.. tags:: examples, preprocessing, events, epochs, evoked
+
 This script shows how to define higher order events based on
 time lag between reference and target events. For
 illustration, we will put face stimuli presented into two

@@ -5,6 +5,8 @@
 Filtering and resampling data
 =============================
 
+.. tags:: tutorials, preprocessing
+
 This tutorial covers filtering and resampling, and gives examples of how
 filtering can be used for artifact repair.
 

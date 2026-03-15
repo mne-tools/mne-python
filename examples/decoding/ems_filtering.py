@@ -5,6 +5,8 @@
 Compute effect-matched-spatial filtering (EMS)
 ==============================================
 
+.. tags:: examples, decoding, evoked, epochs, visualization
+
 This example computes the EMS to reconstruct the time course of the
 experimental effect as described in :footcite:`SchurgerEtAl2013`.
 

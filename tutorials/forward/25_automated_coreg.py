@@ -5,6 +5,8 @@
 Using an automated approach to coregistration
 =============================================
 
+.. tags:: tutorials, forward-model, meg, visualization
+
 This example shows how to use the coregistration functions to perform an
 automated MEG-MRI coregistration via scripting. Generally the results of
 this approach are consistent with those obtained from manual

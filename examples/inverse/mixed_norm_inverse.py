@@ -5,6 +5,8 @@
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 Runs an (ir)MxNE (L1/L2 :footcite:`GramfortEtAl2012` or L0.5/L2
 :footcite:`StrohmeierEtAl2014` mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser source estimates with less

@@ -5,6 +5,8 @@
 Working with sensor locations
 =============================
 
+.. tags:: tutorials, beginners, sensor-locations, eeg, visualization
+
 This tutorial describes how to read and plot sensor locations, and how MNE-Python
 handles physical locations of sensors. As usual we'll start by importing the modules we
 need:

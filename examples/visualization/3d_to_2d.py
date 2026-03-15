@@ -5,6 +5,8 @@
 How to convert 3D electrode positions to a 2D image
 ===================================================
 
+.. tags:: examples, visualization, clinical
+
 Sometimes we want to convert a 3D representation of electrodes into a 2D
 image. For example, if we are using electrocorticography it is common to create
 scatterplots on top of a brain, with each point representing an electrode.

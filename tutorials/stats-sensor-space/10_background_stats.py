@@ -5,6 +5,8 @@
 Statistical inference
 =====================
 
+.. tags:: tutorials, statistics
+
 Here we will briefly cover multiple concepts of inferential statistics in an
 introductory manner, and demonstrate how to use some MNE statistical functions.
 """

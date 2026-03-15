@@ -4,6 +4,8 @@
 Frequently Asked Questions (FAQ)
 ================================
 
+.. tags:: help, faq, troubleshooting
+
 .. highlight:: python
 
 General MNE-Python issues
@@ -29,7 +31,7 @@ If PyVista plotting in Jupyter Notebooks doesn't work well, using the IPython
 magic ``%gui qt`` should `help
 <https://github.com/ipython/ipython/issues/10384>`_.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
    %gui qt
 

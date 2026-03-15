@@ -5,6 +5,8 @@
 4D Neuroimaging/BTi phantom dataset tutorial
 ============================================
 
+.. tags:: tutorials, inverse, source-localization
+
 Here we read 4DBTi epochs data obtained with a spherical phantom
 using four different dipole locations. For each condition we
 compute evoked data and compute dipole fits.

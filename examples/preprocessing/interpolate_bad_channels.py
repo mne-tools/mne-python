@@ -5,6 +5,8 @@
 Interpolate bad channels for MEG/EEG channels
 =============================================
 
+.. tags:: examples, preprocessing, meg, eeg, evoked
+
 This example shows how to interpolate bad MEG/EEG channels
 
 - Using spherical splines from :footcite:`PerrinEtAl1989` for EEG data.

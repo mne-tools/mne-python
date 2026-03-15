@@ -5,6 +5,8 @@
 Morph surface source estimate
 =============================
 
+.. tags:: examples, inverse, source-localization, freesurfer, visualization
+
 This example demonstrates how to morph an individual subject's
 :class:`mne.SourceEstimate` to a common reference space. We achieve this using
 :class:`mne.SourceMorph`. Pre-computed data will be morphed based on

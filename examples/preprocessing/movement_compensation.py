@@ -5,6 +5,8 @@
 Maxwell filter data with movement compensation
 ==============================================
 
+.. tags:: examples, preprocessing, meg, simulation, visualization
+
 Demonstrate movement compensation on simulated data. The simulated data
 contains bilateral activation of auditory cortices, repeated over 14
 different head rotations (head center held fixed). See the following for

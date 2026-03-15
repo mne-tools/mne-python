@@ -5,6 +5,8 @@
 Permutation T-test on sensor data
 =================================
 
+.. tags:: examples, statistics, meg, epochs, visualization
+
 One tests if the signal significantly deviates from 0
 during a fixed time window of interest. Here computation
 is performed on MNE sample dataset between 40 and 60 ms.

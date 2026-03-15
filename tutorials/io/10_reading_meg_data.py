@@ -9,6 +9,8 @@ r"""
 Importing data from MEG devices
 ===============================
 
+.. tags:: tutorials, io, raw, meg
+
 This section describes how to read data for various MEG manufacturers.
 
 .. _import-neuromag:

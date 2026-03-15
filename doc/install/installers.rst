@@ -3,6 +3,8 @@
 MNE-Python installers
 =====================
 
+.. tags:: installation, setup, beginners
+
 MNE-Python installers are the easiest way to install MNE-Python and
 all dependencies. They also provide many additional
 Python packages and tools. Got any questions? Let us know on the `MNE Forum`_!

@@ -5,6 +5,8 @@
 Plotting sensor layouts of MEG systems
 ======================================
 
+.. tags:: examples, visualization, meg
+
 Show sensor layouts of different MEG systems.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>

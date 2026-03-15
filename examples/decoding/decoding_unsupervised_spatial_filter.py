@@ -5,6 +5,8 @@
 Analysis of evoked response using ICA and PCA reduction techniques
 ==================================================================
 
+.. tags:: examples, decoding, ica, evoked, epochs
+
 This example computes PCA and ICA of evoked or epochs data. Then the
 PCA / ICA components, a.k.a. spatial filters, are used to transform
 the channel data to new sources / virtual channels. The output is

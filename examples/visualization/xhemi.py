@@ -5,6 +5,8 @@
 Cross-hemisphere comparison
 ===========================
 
+.. tags:: examples, visualization, source-localization
+
 This example illustrates how to visualize the difference between activity in
 the left and the right hemisphere. The data from the right hemisphere is
 mapped to the left hemisphere, and then the difference is plotted. For more

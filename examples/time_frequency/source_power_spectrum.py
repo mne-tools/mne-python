@@ -5,6 +5,8 @@
 Compute source power spectral density (PSD) in a label
 ======================================================
 
+.. tags:: examples, time-frequency, source-localization, inverse, meg
+
 Returns an STC file containing the PSD (in dB) of each of the sources
 within a label.
 """

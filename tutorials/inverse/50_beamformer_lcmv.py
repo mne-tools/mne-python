@@ -5,6 +5,8 @@
 Source reconstruction using an LCMV beamformer
 ==============================================
 
+.. tags:: tutorials, beamforming, inverse, source-localization
+
 This tutorial gives an overview of the beamformer method and shows how to reconstruct
 source activity using an LCMV beamformer.
 """

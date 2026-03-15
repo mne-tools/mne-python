@@ -3,6 +3,8 @@
 Documentation overview
 ======================
 
+.. tags:: documentation, tutorials, examples, api-reference
+
 .. note::
 
    If you haven't already installed MNE-Python, please take a look

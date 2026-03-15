@@ -5,6 +5,8 @@
 Generate a functional label from source estimates
 =================================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 Threshold source estimates and produce a functional label. The label
 is typically the region of interest that contains high values.
 Here we compare the average time course in the anatomical label obtained

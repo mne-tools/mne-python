@@ -3,6 +3,8 @@
 Migrating from other analysis software
 ======================================
 
+.. tags:: help, migrating, interoperability
+
 Here we offer some tips on how to migrate from other analysis software.
 
 EEGLAB

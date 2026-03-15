@@ -5,6 +5,8 @@
 Brainstorm Elekta phantom dataset tutorial
 ==========================================
 
+.. tags:: tutorials, inverse, source-localization
+
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
 tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 `the original Brainstorm tutorial

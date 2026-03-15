@@ -1,6 +1,8 @@
 Updating MNE-Python
 ===================
 
+.. tags:: installation, updating, pip, conda
+
 If you want to update MNE-Python to a newer version, there are a few different
 options, depending on how you originally installed it.
 

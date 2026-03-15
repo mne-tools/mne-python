@@ -5,6 +5,8 @@
 Visualise NIRS artifact correction methods
 ==========================================
 
+.. tags:: examples, preprocessing, fnirs, artifacts, visualization
+
 Here we artificially introduce several fNIRS artifacts and observe
 how artifact correction techniques attempt to correct the data.
 

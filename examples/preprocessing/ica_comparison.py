@@ -5,6 +5,8 @@
 Compare the different ICA algorithms in MNE
 ===========================================
 
+.. tags:: examples, preprocessing, ica, meg, visualization
+
 Different ICA algorithms are fit to raw MEG data, and the corresponding maps
 are displayed.
 

@@ -5,6 +5,8 @@
 Fixing BEM and head surfaces
 ============================
 
+.. tags:: tutorials, forward-model, bem
+
 Sometimes when creating a BEM model the surfaces need manual correction because
 of a series of problems that can arise (e.g. intersection between surfaces).
 Here, we will see how this can be achieved by exporting the surfaces to the 3D

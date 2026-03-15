@@ -5,6 +5,8 @@
 Plotting eye-tracking heatmaps in MNE-Python
 =============================================
 
+.. tags:: examples, visualization, preprocessing, epochs
+
 This tutorial covers plotting eye-tracking position data as a heatmap.
 
 .. seealso::

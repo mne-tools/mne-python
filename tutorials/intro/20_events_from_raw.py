@@ -5,6 +5,8 @@
 Parsing events from raw data
 ============================
 
+.. tags:: tutorials, beginners, raw, events, annotations
+
 This tutorial describes how to read experimental events from raw recordings,
 and how to convert between the two different representations of events within
 MNE-Python (Events arrays and Annotations objects).

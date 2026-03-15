@@ -5,6 +5,8 @@
 Working with eye tracker data in MNE-Python
 ===========================================
 
+.. tags:: tutorials, preprocessing, eeg
+
 In this tutorial we will explore simultaneously recorded eye-tracking and EEG data from
 a pupillary light reflex task. We will combine the eye-tracking and EEG data, and plot
 the ERP and pupil response to the light flashes (i.e. the pupillary light reflex).
