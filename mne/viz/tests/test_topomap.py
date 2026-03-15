@@ -182,6 +182,7 @@ def test_plot_topomap_animation(capsys):
     out, _ = capsys.readouterr()
     assert "extrapolation mode local to 0" in out
 
+
 def test_plot_topomap_animation_cmap():
     """Test animate_topomap with default and custom cmap."""
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
@@ -207,6 +208,7 @@ def test_plot_topomap_animation_cmap():
 
     # check cmap actually applied
     assert fig_cmap.axes[0].images[0].get_cmap().name == "viridis"
+
 
 def test_plot_topomap_animation_csd(capsys):
     """Test topomap plotting of CSD data."""
