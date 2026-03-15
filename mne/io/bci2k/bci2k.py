@@ -36,12 +36,10 @@ def _parse_bci2k_header(fname):
     current_section = ""
 
     with open(fname, "rb") as f:
-        # First line: key=value pairs
         first_line = f.readline().decode("utf-8", errors="replace").strip()
-        for token in first_line.split():
-            if "=" in token:
-                k, v = token.split("=", 1)
-                header[k] = v
+        pairs = re.findall(r'(\w+)\s*=\s*([^\s]+)', first_line)
+        for k, v in pairs:
+            header[k] = v
 
         missing = [
             k for k in ("HeaderLen", "SourceCh", "StatevectorLen") if k not in header
