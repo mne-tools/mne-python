@@ -75,6 +75,30 @@ def test_sourcemorph_consistency():
         list(signature(SourceMorph.__init__).parameters)[1:-1]
         == mne.morph._SOURCE_MORPH_ATTRIBUTES
     )
+    
+    
+@testing.requires_testing_data
+def test_source_morph_spacing_with_src_to():
+    """Regression test for GH-12101.
+
+    spacing attribute should be None when src_to is provided.
+    """
+    src_to = mne.read_source_spaces(
+        subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+    )
+    src_from = mne.read_source_spaces(
+        subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
+    )
+    morph = compute_source_morph(
+        src_from,
+        subject_from="sample",
+        subject_to="fsaverage",
+        src_to=src_to,
+        subjects_dir=subjects_dir,
+    )
+    assert morph.spacing is None, (
+        f"Expected spacing=None when src_to is provided, got {morph.spacing}"
+    )
 
 
 @testing.requires_testing_data
