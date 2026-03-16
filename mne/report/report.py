@@ -1723,7 +1723,9 @@ class Report:
         )
 
     @fill_doc
-    def add_covariance(self, cov, *, info, title, rank=None, tags=("covariance",), replace=False):
+    def add_covariance(
+        self, cov, *, info, title, rank=None, tags=("covariance",), replace=False
+    ):
         """Add covariance to the report.
 
         Parameters
@@ -4314,21 +4316,21 @@ class Report:
             )
 
     def add_covariance(
-    self,
-    cov,
-    *,
-    info,
-    title,
-    rank=None,
-    tags=("covariance",),
-    replace=False,
+        self,
+        cov,
+        *,
+        info,
+        title,
+        rank=None,
+        tags=("covariance",),
+        replace=False,
     ):
         """Render covariance matrix & SVD."""
         if not isinstance(cov, Covariance):
             cov = read_cov(cov)
         if not isinstance(info, Info):
             info = read_info(info)
-        
+
         if rank is not None:
             html = f"<p><strong>Rank:</strong> {rank}</p>"
             self._add_html_element(
