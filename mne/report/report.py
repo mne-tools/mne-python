@@ -4336,7 +4336,6 @@ class Report:
             replace=replace,
         )
 
-
     def _add_cov(self, *, cov, info, rank, image_format, section, tags, replace):
         """Render covariance matrix & SVD."""
         if not isinstance(cov, Covariance):
