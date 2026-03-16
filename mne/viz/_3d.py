@@ -2870,7 +2870,7 @@ def _press(event, params):
     elif event.key == "shift+right":
         idx = min(params["stc"].shape[1] - 1, idx + 10)
     _update_timeslice(idx, params)
-    params["fig"].canvas.draw()
+    params["fig"].canvas.draw_idle()
 
 
 def _update_timeslice(idx, params):
@@ -2905,6 +2905,7 @@ def _onclick(event, params, verbose=None):
     if event.inaxes is params["ax_time"]:
         idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
         _update_timeslice(idx, params)
+        return  # already handled, avoid double redraw
 
     cut_coords = _click_to_cut_coords(event, params)
     if cut_coords is None:
@@ -2921,7 +2922,7 @@ def _onclick(event, params, verbose=None):
     else:
         params["ax_time"].lines[0].set_ydata([0.0])
     _update_vertlabel(loc_idx, params)
-    params["fig"].canvas.draw()
+    params["fig"].canvas.draw_idle()
 
 
 def _cut_coords_to_idx(cut_coords, dist_to_verts):
@@ -2954,7 +2955,10 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
-    params["axes"].clear()
+    # Clear all axes except ax_time to prevent label accumulation
+    for ax in params["fig"].axes:
+        if ax is not params["ax_time"]:
+            ax.clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
     params["fig_anat"] = nil_func(
