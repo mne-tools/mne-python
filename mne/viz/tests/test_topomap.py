@@ -199,7 +199,7 @@ def test_plot_topomap_animation_cmap():
     # default cmap check
     default_cmap = fig_default.axes[0].images[0].get_cmap().name
     assert default_cmap in ("RdBu_r", "Reds")
-    
+
     # custom cmap behaviour
     fig_cmap, anim_cmap = evoked.animate_topomap(
         ch_type="grad",
