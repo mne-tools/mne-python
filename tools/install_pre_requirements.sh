@@ -24,15 +24,15 @@ echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"numpy>=2.1.0.dev0" \
-	"scipy>=1.15.0.dev0" \
-	"scikit-learn>=1.6.dev0" \
-	"pandas>=3.0.0.dev0" \
-	"statsmodels>=0.15.0.dev697" \
+	"numpy>=2.5.0.dev0" \
+	"scipy>=1.18.0.dev0" \
+	"scikit-learn>=1.9.dev0" \
+	"pandas>=3.1.0.dev0" \
 	"dipy>=1.12.0.dev0" \
 	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
+	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
 echo "::endgroup::"
 # No Numba because it forces an old NumPy version

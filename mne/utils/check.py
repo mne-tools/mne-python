@@ -281,7 +281,7 @@ def _check_fname(
         if not overwrite:
             raise FileExistsError(
                 "Destination file exists. Please use option "
-                '"overwrite=True" to force overwriting.'
+                f'"overwrite=True" to force overwriting of: {name}'
             )
         elif overwrite != "read":
             logger.info("Overwriting existing file.")
