@@ -797,15 +797,15 @@ class Evoked(
     def animate_topomap(
         self,
         ch_type=None,
-        cmap=None,
         times=None,
         frame_rate=None,
+        *,
+        cmap=None,
         butterfly=False,
         blit=True,
         show=True,
         time_unit="s",
         sphere=None,
-        *,
         image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT,
         vmin=None,
@@ -826,17 +826,19 @@ class Evoked(
             'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od'.
             If None, first available channel type from the above list is used.
             Defaults to None.
-        cmap : str | Colormap | None
-            The colormap to use for plotting. If None, the colormap is chosen
-            based on the data values (see Notes). Defaults to None.
-                If the data contains only non-negative values, the "Reds" colormap
-                will be used. Otherwise, the "RdBu_r" colormap will be used.
         times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
         frame_rate : int | None
             Frame rate for the animation in Hz. If None,
             frame rate = sfreq / 10. Defaults to None.
+        cmap : str | Colormap | None
+            The colormap to use for plotting. If None, the colormap is chosen
+            based on the data values (see Notes). Defaults to None.
+            If the data contains only non-negative values, the "Reds" colormap
+            will be used. Otherwise, the "RdBu_r" colormap will be used.
+
+            .. versionadded:: 1.12.0
         butterfly : bool
             Whether to plot the data as butterfly plot under the topomap.
             Defaults to False.

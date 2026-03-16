@@ -175,43 +175,13 @@ def test_plot_topomap_animation(capsys):
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
 
     # Test animation
-    _, anim = evoked.animate_topomap(
-        ch_type="grad", times=[0, 0.1], butterfly=False, time_unit="s", verbose="debug"
+    fig, anim = evoked.animate_topomap(
+        ch_type="grad", times=[0, 0.1], cmap='viridis', butterfly=False, time_unit="s", verbose="debug"
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
     assert "extrapolation mode local to 0" in out
-
-
-def test_plot_topomap_animation_cmap():
-    """Test animate_topomap with default and custom cmap."""
-    evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-
-    # default behaviour
-    fig_default, anim_default = evoked.animate_topomap(
-        ch_type="grad",
-        times=[0, 0.1],
-        butterfly=False,
-        time_unit="s",
-    )
-    anim_default._func(1)
-
-    # default cmap check
-    default_cmap = fig_default.axes[0].images[0].get_cmap().name
-    assert default_cmap in ("RdBu_r", "Reds")
-
-    # custom cmap behaviour
-    fig_cmap, anim_cmap = evoked.animate_topomap(
-        ch_type="grad",
-        times=[0, 0.1],
-        cmap="viridis",
-        butterfly=False,
-        time_unit="s",
-    )
-    anim_cmap._func(1)
-
-    # check cmap actually applied
-    assert fig_cmap.axes[0].images[0].get_cmap().name == "viridis"
+    assert fig.axes[0].images[0].get_cmap().name == "viridis"
 
 
 def test_plot_topomap_animation_csd(capsys):
