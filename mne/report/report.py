@@ -4325,6 +4325,19 @@ class Report:
         tags=("covariance",),
         replace=False,
     ):
+        tags = _check_tags(tags)
+        self._add_cov(
+            cov=cov,
+            info=info,
+            rank=rank,
+            image_format=self.image_format,
+            section=title,
+            tags=tags,
+            replace=replace,
+        )
+
+
+    def _add_cov(self, *, cov, info, rank, image_format, section, tags, replace):
         """Render covariance matrix & SVD."""
         if not isinstance(cov, Covariance):
             cov = read_cov(cov)
@@ -4335,7 +4348,7 @@ class Report:
             html = f"<p><strong>Rank:</strong> {rank}</p>"
             self._add_html_element(
                 html=html,
-                title="Covariance rank",
+                title="Rank",
                 tags=tags,
                 section=section,
                 replace=replace,
@@ -4343,8 +4356,10 @@ class Report:
             )
 
         fig_cov, fig_svd = plot_cov(cov=cov, info=info, show=False, show_svd=True)
+
         figs = [fig_cov, fig_svd]
         titles = ("Covariance matrix", "Singular values")
+
         for fig, title in zip(figs, titles):
             self._add_figure(
                 fig=fig,
