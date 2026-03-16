@@ -1195,7 +1195,7 @@ def scale_mri(
 
     logger.info(
         "Copying %s file(s) that do not need scaling ...",
-        len(paths),
+        len(paths["duplicate"]),
     )
     for fname in paths["duplicate"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
@@ -1207,10 +1207,10 @@ def scale_mri(
         label_dir.mkdir()
     if annot:
         logger.info("Copying annotations ...")
-        src_pattern = subjects_dir / subject_from / "label" / "*.annot"
+        src_dir = subjects_dir / subject_from / "label"
         dst_dir = subjects_dir / subject_to / "label"
-        for src_file in src_pattern.glob():
-            shutil.copy(src_file, dst_dir)
+        for src_file in src_dir.glob("*.annot"):
+            shutil.copy(src_dir / src_file, dst_dir)
     if labels:
         logger.info("Scaling labels ...")
         scale_labels(
