@@ -1,0 +1,1 @@
+Document the behavior of :term:`first_samp` after :meth:`~mne.io.Raw.crop` and add ``reset_first_samp`` parameter to reset it to 0 after cropping, by :newcontrib:`Famous077`.

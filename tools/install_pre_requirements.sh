@@ -32,6 +32,7 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
+	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
 	# "statsmodels>=0.15.0.dev697"
 echo "::endgroup::"
