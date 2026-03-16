@@ -1207,9 +1207,9 @@ def scale_mri(
         label_dir.mkdir()
     if annot:
         logger.info("Copying annotations ...")
-        src_pattern = os.path.join(subjects_dir, subject_from, "label", "*.annot")
-        dst_dir = os.path.join(subjects_dir, subject_to, "label")
-        for src_file in iglob(src_pattern):
+        src_pattern = subjects_dir / subject_from / "label" / "*.annot"
+        dst_dir = subjects_dir / subject_to / "label"
+        for src_file in src_pattern.glob():
             shutil.copy(src_file, dst_dir)
     if labels:
         logger.info("Scaling labels ...")
