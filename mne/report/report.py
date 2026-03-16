@@ -1723,7 +1723,7 @@ class Report:
         )
 
     @fill_doc
-    def add_covariance(self, cov, *, info, title, tags=("covariance",), replace=False):
+    def add_covariance(self, cov, *, info, title, rank=None, tags=("covariance",), replace=False):
         """Add covariance to the report.
 
         Parameters
@@ -1734,6 +1734,9 @@ class Report:
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
+        rank : int | None
+            Rank of the covariance matrix to display in the report. If ``None``,
+            the rank will not be explicitly shown.
         %(tags_report)s
         %(replace_report)s
 
@@ -1745,6 +1748,7 @@ class Report:
         self._add_cov(
             cov=cov,
             info=info,
+            rank=rank,
             image_format=self.image_format,
             section=title,
             tags=tags,
@@ -4309,12 +4313,32 @@ class Report:
                 replace=replace,
             )
 
-    def _add_cov(self, *, cov, info, image_format, section, tags, replace):
+    def add_covariance(
+    self,
+    cov,
+    *,
+    info,
+    title,
+    rank=None,
+    tags=("covariance",),
+    replace=False,
+    ):
         """Render covariance matrix & SVD."""
         if not isinstance(cov, Covariance):
             cov = read_cov(cov)
         if not isinstance(info, Info):
             info = read_info(info)
+        
+        if rank is not None:
+            html = f"<p><strong>Rank:</strong> {rank}</p>"
+            self._add_html_element(
+                html=html,
+                title="Covariance rank",
+                tags=tags,
+                section=section,
+                replace=replace,
+                div_klass="covariance",
+            )
 
         fig_cov, fig_svd = plot_cov(cov=cov, info=info, show=False, show_svd=True)
         figs = [fig_cov, fig_svd]
