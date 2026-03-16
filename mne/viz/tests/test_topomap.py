@@ -176,7 +176,12 @@ def test_plot_topomap_animation(capsys):
 
     # Test animation
     fig, anim = evoked.animate_topomap(
-        ch_type="grad", times=[0, 0.1], cmap='viridis', butterfly=False, time_unit="s", verbose="debug"
+        ch_type="grad",
+        times=[0, 0.1],
+        cmap="viridis",
+        butterfly=False,
+        time_unit="s",
+        verbose="debug",
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
