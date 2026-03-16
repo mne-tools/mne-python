@@ -1360,3 +1360,17 @@ def test_gif(tmp_path):
     bad_name.write_bytes(b"")
     with pytest.raises(ValueError, match="Allowed values"):
         r.add_image(bad_name, "fname")
+
+def test_add_covariance_rank():
+    from mne import create_info
+    from mne.cov import make_ad_hoc_cov
+    from mne.report import Report
+
+    info = create_info(ch_names=["EEG 001"], sfreq=1000, ch_types=["eeg"])
+    cov = make_ad_hoc_cov(info)
+
+    report = Report()
+    report.add_covariance(cov, info=info, title="Test Cov", rank=1)
+
+    html = "".join(report.html)
+    assert "Rank" in html
