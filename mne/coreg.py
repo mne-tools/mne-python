@@ -64,12 +64,13 @@ from .transforms import (
     translation,
 )
 from .utils import (
+    _check_freesurfer_home,
     _check_option,
     _check_subject,
     _import_nibabel,
     _validate_type,
+    _verbose_safe_false,
     fill_doc,
-    get_config,
     get_subjects_dir,
     logger,
     pformat,
@@ -206,15 +207,9 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     files from FreeSurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
-        fs_home = get_config("FREESURFER_HOME", fs_home)
-        if fs_home is None:
-            raise ValueError(
-                "FREESURFER_HOME environment variable not found. Please "
-                "specify the fs_home parameter in your call to "
-                "create_default_subject()."
-            )
+        fs_home = _check_freesurfer_home()
 
     # make sure FreeSurfer files exist
     fs_src = os.path.join(fs_home, "subjects", "fsaverage")
@@ -231,7 +226,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
             )
 
     # make sure destination does not already exist
-    dest = os.path.join(subjects_dir, "fsaverage")
+    dest = subjects_dir / "fsaverage"
     if dest == fs_src:
         raise OSError(
             "Your subjects_dir points to the FreeSurfer subjects_dir "
@@ -239,7 +234,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
             "FreeSurfer installation directory; please specify a different "
             "subjects_dir."
         )
-    elif (not update) and os.path.exists(dest):
+    elif (not update) and dest.exists():
         raise OSError(
             'Can not create fsaverage because "fsaverage" already exists in '
             f"subjects_dir {repr(subjects_dir)}. Delete or rename the existing "
@@ -248,7 +243,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
 
     # copy fsaverage from FreeSurfer
     logger.info("Copying fsaverage subject from FreeSurfer directory...")
-    if (not update) or not os.path.exists(dest):
+    if (not update) or not dest.exists():
         shutil.copytree(fs_src, dest)
         _make_writable_recursive(dest)
 
@@ -256,9 +251,8 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     source_fname = os.path.join(
         os.path.dirname(__file__), "data", "fsaverage", "fsaverage-%s.fif"
     )
-    dest_bem = os.path.join(dest, "bem")
-    if not os.path.exists(dest_bem):
-        os.mkdir(dest_bem)
+    dest_bem = dest / "bem"
+    dest_bem.mkdir(exist_ok=True)
     logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, "fsaverage-%s.fif")
     _make_writable_recursive(dest_bem)
@@ -601,7 +595,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = {}
 
     # directories to create
@@ -753,7 +747,7 @@ def _is_mri_subject(subject, subjects_dir=None):
     is_mri_subject : bool
         Whether ``subject`` is an mri subject.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     return bool(
         _find_head_bem(subject, subjects_dir)
         or _find_head_bem(subject, subjects_dir, high_res=True)
@@ -775,7 +769,7 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
     has_bem_file : bool
         Whether ``subject`` has a bem file.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     pattern = bem_fname.format(subjects_dir=subjects_dir, subject=subject, name="*-bem")
     fnames = glob(pattern)
     return bool(len(fnames))
@@ -952,13 +946,16 @@ def scale_bem(
     write_bem_surfaces(dst, surfs)
 
 
+@verbose
 def scale_labels(
     subject_to,
     pattern=None,
     overwrite=False,
     subject_from=None,
+    *,
     scale=None,
     subjects_dir=None,
+    verbose=None,
 ):
     r"""Scale labels to match a brain that was previously created by scaling.
 
@@ -982,6 +979,7 @@ def scale_labels(
         file.
     subjects_dir : None | path-like
         Override the ``SUBJECTS_DIR`` environment variable.
+    %(verbose)s
     """
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir
@@ -1079,7 +1077,7 @@ def scale_mri(
     :func:`scale_labels`, and :func:`scale_source_space` based on expected
     filename patterns in the subject directory.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.atleast_1d(scale)
     if scale.shape == (3,):
@@ -1119,16 +1117,16 @@ def scale_mri(
             )
         shutil.rmtree(dest)
 
-    logger.debug("create empty directory structure")
+    logger.debug("Creating empty directory structure ...")
     for dirname in paths["dirs"]:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)
 
-    logger.debug("save MRI scaling parameters")
+    logger.info("Saving MRI scaling parameters ...")
     fname = os.path.join(dest, "MRI scaling parameters.cfg")
     _write_mri_config(fname, subject_from, subject_to, scale)
 
-    logger.debug("surf files [in mm]")
+    logger.info("Scaling surface files ...")
     for fname in paths["surf"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
@@ -1136,7 +1134,8 @@ def scale_mri(
         pts, tri = read_surface(src)
         write_surface(dest, pts * scale, tri)
 
-    logger.debug("BEM files [in m]")
+    logger.info("Scaling BEM files ...")
+    vb_f = _verbose_safe_false()
     for bem_name in paths["bem"]:
         scale_bem(
             subject_to,
@@ -1145,18 +1144,18 @@ def scale_mri(
             scale,
             subjects_dir,
             on_defects=on_defects,
-            verbose=False,
+            verbose=vb_f,
         )
 
-    logger.debug("fiducials [in m]")
+    logger.info("Scaling fiducials ...")
     for fname in paths["fid"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
-        pts, cframe = read_fiducials(src, verbose=False)
+        pts, cframe = read_fiducials(src, verbose=vb_f)
         for pt in pts:
             pt["r"] = pt["r"] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_fiducials(dest, pts, cframe, overwrite=True, verbose=False)
+        write_fiducials(dest, pts, cframe, overwrite=True, verbose=vb_f)
 
     # It is redundant to put this after the paths["fid"] loop, but it's simple, faster
     # enough, and cleaner to just write it here (rather than adding conditionals to find
@@ -1170,16 +1169,16 @@ def scale_mri(
         for fid in use_mri_fiducials:
             fid["r"] = fid["r"] * scale
         write_fiducials(
-            dest, use_mri_fiducials, FIFF.FIFFV_COORD_MRI, overwrite=True, verbose=False
+            dest, use_mri_fiducials, FIFF.FIFFV_COORD_MRI, overwrite=True, verbose=vb_f
         )
 
-    logger.debug("MRIs [nibabel]")
+    logger.info("Scaling MRIs [nibabel] ...")
     os.mkdir(mri_dirname.format(subjects_dir=subjects_dir, subject=subject_to))
     for fname in paths["mri"]:
         mri_name = os.path.basename(fname)
         _scale_mri(subject_to, mri_name, subject_from, scale, subjects_dir)
 
-    logger.debug("Transforms")
+    logger.info("Scaling transforms ...")
     for mri_name in paths["mri"]:
         if mri_name.endswith("T1.mgz"):
             os.mkdir(
@@ -1194,36 +1193,44 @@ def scale_mri(
                 )
             break
 
-    logger.debug("duplicate files")
+    logger.info(
+        "Copying %s file(s) that do not need scaling ...",
+        len(paths),
+    )
     for fname in paths["duplicate"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         shutil.copyfile(src, dest)
 
-    logger.debug("source spaces")
-    for fname in paths["src"]:
-        src_name = os.path.basename(fname)
-        scale_source_space(
-            subject_to, src_name, subject_from, scale, subjects_dir, verbose=False
-        )
-
-    logger.debug("labels [in m]")
-    os.mkdir(os.path.join(subjects_dir, subject_to, "label"))
+    label_dir = subjects_dir / subject_to / "label"
+    if annot or labels:
+        label_dir.mkdir()
+    if annot:
+        logger.info("Copying annotations ...")
+        src_pattern = os.path.join(subjects_dir, subject_from, "label", "*.annot")
+        dst_dir = os.path.join(subjects_dir, subject_to, "label")
+        for src_file in iglob(src_pattern):
+            shutil.copy(src_file, dst_dir)
     if labels:
+        logger.info("Scaling labels ...")
         scale_labels(
             subject_to,
             subject_from=subject_from,
             scale=scale,
             subjects_dir=subjects_dir,
+            verbose=vb_f,
         )
 
-    logger.debug("copy *.annot files")
-    # they don't contain scale-dependent information
-    if annot:
-        src_pattern = os.path.join(subjects_dir, subject_from, "label", "*.annot")
-        dst_dir = os.path.join(subjects_dir, subject_to, "label")
-        for src_file in iglob(src_pattern):
-            shutil.copy(src_file, dst_dir)
+    logger.info(
+        "Scaling %s source space(s) (this can take a while) ...",
+        len(paths["src"]),
+    )
+    for fname in paths["src"]:
+        src_name = os.path.basename(fname)
+        scale_source_space(
+            subject_to, src_name, subject_from, scale, subjects_dir, verbose=vb_f
+        )
+    logger.info("[done]")
 
 
 @verbose
@@ -1496,7 +1503,7 @@ class Coregistration:
         _validate_type(info, (Info, None), "info")
         self._info = info
         self._subject = _check_subject(subject, subject)
-        self._subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+        self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self._scale_mode = None
         self._on_defects = on_defects
 
