@@ -2,13 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from pathlib import Path
-
-import pytest
 
 import mne
 from mne.datasets import testing
-
 
 data_path = testing.data_path(download=False)
 bci2k_fname = data_path / "BCI2k" / "bci2k_test.dat"
