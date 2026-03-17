@@ -42,7 +42,6 @@ MNE-Python and its dependencies. Typical output looks like this::
     Visualization (optional)
     ├☑ pyvista              0.41.1 (OpenGL 3.3 (Core Profile) Mesa 10.2.4 (git-d92815a) via Gallium 0.4 on llvmpipe (LLVM 3.4, 256 bits))
     ├☑ pyvistaqt            0.0.0
-    ├☑ ipyvtklink           0.2.2
     ├☑ vtk                  9.2.6
     ├☑ qtpy                 2.4.0 (PyQt5=5.15.8)
     ├☑ ipympl               0.9.3
