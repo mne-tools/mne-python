@@ -1744,7 +1744,7 @@ class Report:
         rank : int | None
             The rank of the covariance matrix. If provided, it will be displayed
             in the report above the covariance plots.
-            
+
             .. versionadded:: 1.12
         %(tags_report)s
         %(replace_report)s
@@ -1753,7 +1753,6 @@ class Report:
         -----
         .. versionadded:: 0.24.0
         """
-        
         tags = _check_tags(tags)
 
         # Display rank if provided

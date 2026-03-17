@@ -1361,6 +1361,7 @@ def test_gif(tmp_path):
     with pytest.raises(ValueError, match="Allowed values"):
         r.add_image(bad_name, "fname")
 
+
 def test_add_covariance_rank(tmp_path):
     from mne import create_info
     from mne.cov import make_ad_hoc_cov
