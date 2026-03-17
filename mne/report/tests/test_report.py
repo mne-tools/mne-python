@@ -1361,7 +1361,7 @@ def test_gif(tmp_path):
     with pytest.raises(ValueError, match="Allowed values"):
         r.add_image(bad_name, "fname")
 
-def test_add_covariance_rank():
+def test_add_covariance_rank(tmp_path):
     from mne import create_info
     from mne.cov import make_ad_hoc_cov
     from mne.report import Report
@@ -1372,5 +1372,8 @@ def test_add_covariance_rank():
     report = Report()
     report.add_covariance(cov, info=info, title="Test Cov", rank=1)
 
-    html = "".join(report.html)
+    fname = tmp_path / "report.html"
+    report.save(fname, open_browser=False)
+
+    html = fname.read_text(encoding="utf-8")
     assert "Rank" in html

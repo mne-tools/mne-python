@@ -169,9 +169,9 @@ report = mne.Report(title="Covariance example")
 rank = 60
 
 report.add_covariance(
-    cov,
-    info=info,
-    title="Noise covariance",
+    cov=cov_path,
+    info=raw_path,
+    title="Covariance",
     rank=rank,
 )
 report.save("report_cov.html", overwrite=True)
