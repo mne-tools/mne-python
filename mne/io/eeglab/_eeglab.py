@@ -11,6 +11,7 @@ except ImportError:  # scipy < 1.8
     from scipy.io.matlab.mio5_params import MatlabOpaque
 from scipy.io import loadmat
 
+from ...fixes import _whosmat
 from ...utils import _import_pymatreader_funcs, warn
 
 
@@ -120,22 +121,11 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
         # checking the variables in the .set file
         # to decide how to handle 'data' variable
         try:
-            from pymatreader import whosmat as _whosmat
-
             variables = _whosmat(str(fname))
-        except ImportError:
-            # pymatreader not installed; fall back to scipy for non-HDF5 files
-            from scipy.io import whosmat as _whosmat_scipy
-
-            try:
-                variables = _whosmat_scipy(str(fname))
-            except NotImplementedError:
-                warn(
-                    "pymatreader >= 1.2.2 is required for preload=False with "
-                    "MATLAB v7.3 (HDF5) files. Setting preload=True."
-                )
-                preload = True
-                return read_mat(fname, uint16_codec=uint16_codec)
+        except Exception:
+            warn("Could not inspect .set file variables. Setting preload=True.")
+            preload = True
+            return read_mat(fname, uint16_codec=uint16_codec)
 
         is_possible_not_loaded = False
 

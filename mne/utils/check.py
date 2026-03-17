@@ -199,7 +199,7 @@ def _import_h5io_funcs():
 
 
 def _import_pymatreader_funcs(purpose):
-    pymatreader = _soft_import("pymatreader", purpose, min_version="1.2.2")
+    pymatreader = _soft_import("pymatreader", purpose)
     return pymatreader.read_mat
 
 
@@ -458,12 +458,7 @@ def _check_pybv_installed(strict=True):
 
 def _check_pymatreader_installed(strict=True):
     """Aux function."""
-    return _soft_import(
-        "pymatreader",
-        "loading v7.3 (HDF5) .MAT files",
-        strict=strict,
-        min_version="1.2.2",
-    )
+    return _soft_import("pymatreader", "loading v7.3 (HDF5) .MAT files", strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):
