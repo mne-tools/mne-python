@@ -116,8 +116,8 @@ print(f"Python  →  t = {t_python:.4f},  p = {p_python:.4f}")
 #
 # **Converting NumPy arrays to R vectors:**
 # R functions expect R objects as input, not raw NumPy arrays.
-# :class:`rpy2.robjects.FloatVector` converts a 1-D NumPy array of floats
-# into an R numeric vector. The :func:`~rpy2.robjects.conversion.localconverter`
+# ``rpy2.robjects.FloatVector`` converts a 1-D NumPy array of floats
+# into an R numeric vector. The ``localconverter`` context manager
 # context manager together with ``numpy2ri.converter`` handles the conversion
 # automatically inside the ``with`` block.
 #
