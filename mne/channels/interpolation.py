@@ -495,24 +495,24 @@ def _interpolate_to_meg(inst, sensors, origin, mode):
     info_to = deepcopy(info_from)
     info_to._unlocked = True  # make all info fields modifiable
     # Update channel info to the desired one
-    info_to['chs'] = deepcopy(info_cano['chs'])
-    info_to['ch_names'] = deepcopy(info_cano['ch_names'])
-    info_to['nchan'] = deepcopy(info_cano['nchan'])
+    info_to["chs"] = deepcopy(info_cano["chs"])
+    info_to["ch_names"] = deepcopy(info_cano["ch_names"])
+    info_to["nchan"] = deepcopy(info_cano["nchan"])
     # Reset some channel and machine-related fields to avoid confusion later on
-    info_to['device_info'] = None
-    info_to['helium_info'] = None
-    info_to['proj_id'] = None
-    info_to['proj_name'] = None
-    info_to['gantry_angle'] = None
+    info_to["device_info"] = None
+    info_to["helium_info"] = None
+    info_to["proj_id"] = None
+    info_to["proj_name"] = None
+    info_to["gantry_angle"] = None
     # we keep original 'dev_head_t'
-    info_to['ctf_head_t'] = None
-    info_to['dev_ctf_t'] = None
+    info_to["ctf_head_t"] = None
+    info_to["dev_ctf_t"] = None
     # info_to['dig'] = None  # or should they be removed, too?
-    info_to['bads'] = []
-    info_to['projs'] = []
-    info_to['comps'] = []
+    info_to["bads"] = []
+    info_to["projs"] = []
+    info_to["comps"] = []
     info_to._unlocked = False  # lock info again
-    
+
     # Compute field interpolation mapping
     origin_val = _check_origin(origin, inst.info)
     mapping = _map_meg_or_eeg_channels(info_from, info_to, mode=mode, origin=origin_val)
