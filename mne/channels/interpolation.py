@@ -497,17 +497,21 @@ def _interpolate_to_meg(inst, sensors, origin, mode):
     #       Some keys require as default an empty list.
     info_to = deepcopy(info_from)
     with info_to._unlock():
-        info_to.update({"chs": deepcopy(info_cano["chs"]),
-                        "ch_names": deepcopy(info_cano["ch_names"]),
-                        "nchan": deepcopy(info_cano["nchan"]),
-                        "device_info": None,
-                        "helium_info": None,
-                        "gantry_angle": None,
-                        "ctf_head_t": None,
-                        "dev_ctf_t": None,
-                        "bads": [],
-                        "projs": [],
-                        "comps": []})
+        info_to.update(
+            {
+                "chs": deepcopy(info_cano["chs"]),
+                "ch_names": deepcopy(info_cano["ch_names"]),
+                "nchan": deepcopy(info_cano["nchan"]),
+                "device_info": None,
+                "helium_info": None,
+                "gantry_angle": None,
+                "ctf_head_t": None,
+                "dev_ctf_t": None,
+                "bads": [],
+                "projs": [],
+                "comps": [],
+            }
+        )
 
     # Compute field interpolation mapping
     origin_val = _check_origin(origin, inst.info)
