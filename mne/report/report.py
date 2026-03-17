@@ -1745,7 +1745,7 @@ class Report:
             The rank of the covariance matrix. If provided, it will be displayed
             in the report above the covariance plots.
             
-            .. versionadded:: 1.8
+            .. versionadded:: 1.12
         %(tags_report)s
         %(replace_report)s
 
