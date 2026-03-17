@@ -2,10 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from pathlib import Path
-
-import pytest
-
 import mne
 from mne.datasets import testing
 
@@ -27,7 +23,6 @@ def test_read_raw_bci2k():
     ch_types = raw.get_channel_types()
     assert ch_types == ["eeg", "eeg", "stim"]
 
-    data = raw.get_data()
     assert raw.get_data().shape == (3, raw.n_times)
 
     assert raw.n_times > 0
