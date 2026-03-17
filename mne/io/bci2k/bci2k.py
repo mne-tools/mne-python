@@ -41,7 +41,7 @@ def _parse_bci2k_header(fname):
 
     with open(fname, "rb") as f:
         first_line = f.readline().decode("utf-8", errors="replace").strip()
-        pairs = re.findall(r'(\w+)\s*=\s*([^\s]+)', first_line)
+        pairs = re.findall(r"(\w+)\s*=\s*([^\s]+)", first_line)
         for k, v in pairs:
             header[k] = v
 
