@@ -317,6 +317,25 @@ def test_scale_bar(browser_backend):
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
 
+    # Per-channel color overrides via channel names (matplotlib only).
+    if ismpl:
+        sfreq = 100.0
+        ch_names = ["SFG, Left", "SFG, Right", "MFG, Left"]
+        info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        data = np.zeros((len(ch_names), int(sfreq)))  # 1 second of zeros
+        raw2 = RawArray(data, info)
+
+        color = {"eeg": "k", "SFG, Left": "red"}
+        browser_backend._close_all()
+        fig2 = plot_raw(raw2, color=color, show=False)
+
+        # ch_colors stores the "good" (non-bad) colors, in visible channel order
+        assert fig2.mne.ch_colors[0] == "red"
+        assert fig2.mne.ch_colors[1] == "k"
+        assert fig2.mne.ch_colors[2] == "k"
+
+        browser_backend._close_all()
+
 
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
