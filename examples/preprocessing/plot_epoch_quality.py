@@ -7,8 +7,8 @@ Exploring epoch quality before rejection
 
 This example shows how to identify potentially artifactual epochs before
 calling :meth:`mne.Epochs.drop_bad`. We compute per-epoch outlier scores
-from peak-to-peak amplitude, variance, and kurtosis - inspired by FASTER
-:footcite:t:`NolanEtAl2010` and :footcite:t:`DelormeEtAl2007` - and use
+from peak-to-peak amplitude, variance, and kurtosis — inspired by FASTER
+:footcite:t:`NolanEtAl2010` and :footcite:t:`DelormeEtAl2007` — and use
 them to rank epochs from cleanest to noisiest before making any rejection
 decisions.
 """
@@ -20,30 +20,24 @@ decisions.
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import kurtosis
 
 import mne
-from mne.datasets import sample
+from mne.datasets import eegbci
 
 print(__doc__)
 
-data_path = sample.data_path()
-
 # %%
-# Load the sample dataset and create epochs
+# Load the EEGBCI dataset and create epochs
 # ------------------------------------------
-meg_path = data_path / "MEG" / "sample"
-raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+raw_fname = eegbci.load_data(subjects=3, runs=(3,))[0]
+raw = mne.io.read_raw(raw_fname, preload=True)
+eegbci.standardize(raw)
+montage = mne.channels.make_standard_montage("standard_1005")
+raw.set_montage(montage)
 
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
-events = mne.find_events(raw, "STI 014")
-
-event_id = {"auditory/left": 1, "auditory/right": 2}
-tmin, tmax = -0.2, 0.5
-picks = mne.pick_types(raw.info, meg="grad", eeg=False)
-
-epochs = mne.Epochs(
-    raw, events, event_id, tmin, tmax, picks=picks, preload=True, baseline=(None, 0)
-)
+events, event_id = mne.events_from_annotations(raw)
+epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, preload=True, baseline=(None, 0))
 
 # %%
 # Compute per-epoch outlier scores
@@ -52,8 +46,6 @@ epochs = mne.Epochs(
 # Each feature is z-scored robustly using median absolute deviation (MAD)
 # across epochs and averaged into a single outlier score, normalised
 # between [0, 1]. Scores close to 1 indicate likely artifacts.
-
-from scipy.stats import kurtosis  # noqa: E402
 
 data = epochs.get_data()  # (n_epochs, n_channels, n_times)
 
@@ -72,13 +64,14 @@ scores = (raw_score - raw_score.min()) / (raw_score.max() - raw_score.min() + 1e
 # %%
 # Plot epoch quality scores
 # --------------------------
-# Epochs are ranked from cleanest to noisiest. The dashed red line shows
-# an example threshold - epochs above it are candidates for rejection or
-# manual inspection.
+# Epochs are ranked from cleanest to noisiest. The dashed lines show two
+# example thresholds — demonstrating the quality-quantity trade-off when
+# deciding how many epochs to reject.
 fig, ax = plt.subplots(layout="constrained")
 sorted_idx = np.argsort(scores)
 ax.bar(np.arange(len(scores)), scores[sorted_idx], color="steelblue")
-ax.axhline(0.8, color="red", linestyle="--", label="Example threshold (0.8)")
+ax.axhline(0.8, color="red", linestyle="--", label="Strict threshold (0.8)")
+ax.axhline(0.4, color="orange", linestyle="--", label="Lenient threshold (0.4)")
 ax.set(
     xlabel="Epoch (sorted by score)",
     ylabel="Outlier score",
@@ -91,15 +84,21 @@ ax.legend()
 # ---------------------------------------
 # Epochs scoring above the threshold can be inspected visually using
 # :meth:`mne.Epochs.plot`, or dropped directly using
-# :meth:`mne.Epochs.drop`. The threshold of 0.8 is chosen here for
-# illustration - users should adapt it based on their data and how
-# many epochs they can afford to lose.
-bad_epochs = np.where(scores > 0.8)[0]
-print(f"Epochs worth inspecting: {bad_epochs}")
-print(f"That's {len(bad_epochs)} out of {len(epochs)} total epochs")
+# :meth:`mne.Epochs.drop`. The threshold should be adapted based on
+# your data and how many epochs you can afford to lose.
+for threshold in [0.8, 0.4]:
+    bad_epochs = np.where(scores > threshold)[0]
+    print(
+        f"Threshold {threshold}: {len(bad_epochs)} epochs flagged "
+        f"out of {len(epochs)} total"
+    )
 
-# To drop these epochs directly:
-# epochs.drop(bad_epochs, reason="quality-score")
+# %%
+# Plot the worst-scoring epoch to verify it contains an artifact.
+worst_idx = np.argmax(scores)
+epochs[worst_idx].plot(
+    title=f"Worst epoch (index {worst_idx}, score={scores[worst_idx]:.2f})"
+)
 
 # %%
 # References
