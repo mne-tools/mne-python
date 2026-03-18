@@ -87,6 +87,7 @@ def _get_ch_type_metadata(info, ch_names):
 
 
 def _index_info_cov(info, cov, exclude):
+    """Pick cov data and get metadata for present, plottable data channel types."""
     if exclude == "bads":
         exclude = info["bads"]
     info = pick_info(info, pick_channels(info["ch_names"], cov["names"], exclude))
