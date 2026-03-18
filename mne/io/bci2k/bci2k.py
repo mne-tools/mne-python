@@ -237,9 +237,8 @@ class RawBCI2k(BaseRaw):
         # Decode states into integer series
         states = _decode_bci2k_states(state_bytes, info_dict["state_defs"])
 
-        stim_data = None
         if "StimulusCode" in states:
-            stim_data = states["StimulusCode"].astype(np.float32)[np.newaxis, :]
+            stim_data = states["StimulusCode"].astype(np.float64)[np.newaxis, :]
             ch_names.append("STI 014")
             ch_types.append("stim")
             signal = np.vstack([signal, stim_data])
@@ -264,8 +263,6 @@ class RawBCI2k(BaseRaw):
             orig_format="double",
             verbose=verbose,
         )
-
-        self._bci2k_states = states
 
 
 def read_raw_bci2k(input_fname, preload=False, verbose=None):
