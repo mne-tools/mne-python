@@ -731,34 +731,47 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
 
         if reject == "auto":
             reject = ica.reject_
+        drop_inds = None
+        dropped_indices = []
         if reject is None:
-            drop_inds = None
-            dropped_indices = []
-            # break up continuous signal into segments
-            epochs_src = make_fixed_length_epochs(
-                ica.get_sources(inst),
-                duration=2,
-                preload=True,
-                reject_by_annotation=reject_by_annotation,
-                proj=False,
-                verbose=False,
-            )
+            inst_current = inst
         else:
             data = inst.get_data()
             data, drop_inds = _reject_data_segments(
                 data, reject, flat=None, decim=None, info=inst.info, tstep=2.0
             )
-            inst_rejected = RawArray(data, inst.info)
-            # break up continuous signal into segments
+            inst_current = RawArray(data, inst.info)
+        # break up continuous signal into segments; suppress "All epochs were
+        # dropped!" because we handle that case gracefully below
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "All epochs were dropped!", RuntimeWarning
+            )
             epochs_src = make_fixed_length_epochs(
-                ica.get_sources(inst_rejected),
+                ica.get_sources(inst_current),
                 duration=2,
                 preload=True,
                 reject_by_annotation=reject_by_annotation,
                 proj=False,
                 verbose=False,
             )
-            # getting dropped epochs indexes
+        # if all epochs were dropped by annotations, stitch the good segments
+        # together so that the plot can still be generated
+        if reject_by_annotation and len(epochs_src) == 0:
+            good_data = inst_current.get_data(reject_by_annotation="omit")
+            min_samples = int(2 * inst.info["sfreq"])
+            if good_data.shape[1] >= min_samples:
+                inst_good = RawArray(good_data, inst_current.info.copy(), verbose=False)
+                epochs_src = make_fixed_length_epochs(
+                    ica.get_sources(inst_good),
+                    duration=2,
+                    preload=True,
+                    reject_by_annotation=False,
+                    proj=False,
+                    verbose=False,
+                )
+        # getting dropped epochs indexes
+        if drop_inds is not None:
             dropped_indices = [(d[0] // len(epochs_src.times)) + 1 for d in drop_inds]
         kind = "Segment"
     else:
