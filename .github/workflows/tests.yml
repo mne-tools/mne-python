@@ -156,8 +156,6 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-          generate-run-shell: true
-          init-shell: none
         if: ${{ !startswith(matrix.kind, 'pip') && matrix.kind != 'pixi' }}
         timeout-minutes: 20
       - name: Create pixi.toml
