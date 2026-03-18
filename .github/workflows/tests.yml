@@ -158,23 +158,7 @@ jobs:
             -v
         if: ${{ !startswith(matrix.kind, 'pip') && matrix.kind != 'pixi' }}
         timeout-minutes: 20
-      - name: Create pixi.toml
-        if: matrix.kind == 'pixi'
-        # environment.yml specifies the same python version as macos-intel CI (3.13)
-        # but let's expliclty set the version, in case these ever diverge in the future?
-        run: |
-          pixi init --import environment.yml
-          pixi add "python==${{ matrix.python }}" --no-install
-      - name: Setup pixi environment
-        if: matrix.kind == 'pixi'
-        run: pixi install
-      # Now run setup-pixi again in order to activate the enviroment
-      - uses: prefix-dev/setup-pixi@v0.9.4
-        if: matrix.kind == 'pixi'
-        with:
-          run-install: true
-          activate-environment: true
-          cache: false
+
       - name: Verify Environment
         run: echo $PATH
       - name: Debug Qt availability
