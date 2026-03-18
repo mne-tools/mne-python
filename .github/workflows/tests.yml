@@ -127,8 +127,6 @@ jobs:
         with:
           manifest-path: tools/pixi-macos.lock
           activate-environment: true
-          run-install: false
-          cache: false  # caching depends on existence of a pixi.lock file
         if: matrix.kind == 'pixi'
       # Python (if conda)
       - name: Fixes for conda
