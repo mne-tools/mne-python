@@ -161,12 +161,6 @@ jobs:
 
       - name: Verify Environment
         run: echo $PATH
-      - name: Debug Qt availability
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == 'old' || matrix.kind == 'minimal'
-        run: |
-          python -c "import sys; print(sys.executable)"
-          python -c "from importlib.metadata import version; print('pip version', version('pip'))"
-          python -c "from importlib import util; print('PySide6', util.find_spec('PySide6'))"
       - run: bash ./tools/github_actions_dependencies.sh
         if: ${{ matrix.kind != 'pixi' && !startswith(matrix.kind, 'pip') && runner.os != 'Windows' }}
         shell: micromamba-shell {0}
