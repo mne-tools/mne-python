@@ -1032,6 +1032,16 @@ class HEDAnnotations(Annotations):
 
     Notes
     -----
+    When concatenating annotations using the ``+`` operator or ``+=``:
+
+    - ``HEDAnnotations + HEDAnnotations`` returns a
+      :class:`~mne.HEDAnnotations`.
+    - ``HEDAnnotations + Annotations`` returns a plain
+      :class:`~mne.Annotations`, with HED strings preserved in
+      ``extras["HED"]``.
+    - ``Annotations + HEDAnnotations`` returns a plain
+      :class:`~mne.Annotations`, with HED strings preserved in
+      ``extras["HED"]``.
 
     .. versionadded:: 1.12
     """
