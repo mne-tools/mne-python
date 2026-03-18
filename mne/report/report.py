@@ -2192,16 +2192,16 @@ class Report:
                     "add_ica() to enable source plotting, or pass "
                     "plot_sources=False."
                 )
-            else:
-                self._add_ica_sources(
-                    ica=ica,
-                    inst=inst,
-                    picks=picks,
-                    image_format=image_format,
-                    section=section,
-                    tags=tags,
-                    replace=replace,
-                )
+
+            self._add_ica_sources(
+                ica=ica,
+                inst=inst,
+                picks=picks,
+                image_format=image_format,
+                section=section,
+                tags=tags,
+                replace=replace,
+            )
 
     @fill_doc
     def add_ica(
