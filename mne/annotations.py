@@ -1290,11 +1290,11 @@ class HEDAnnotations(Annotations):
     def __setstate__(self, state):
         """Unpack from serialized format."""
         self._orig_time = state["_orig_time"]
-        self.onset = state["onset"]
-        self.duration = state["duration"]
-        self.description = state["description"]
-        self.ch_names = state["ch_names"]
-        self.extras = state.get("_extras", [None] * len(self.onset))
+        self._onset = state["onset"]
+        self._duration = state["duration"]
+        self._description = state["description"]
+        self._ch_names = state["ch_names"]
+        self._extras = state.get("_extras", [None] * len(self._onset))
         self._hed_version = state["_hed_version"]
         self.hed_string = _HEDStrings(
             state["hed_string"], hed_version=self._hed_version
