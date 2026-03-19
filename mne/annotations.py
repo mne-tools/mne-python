@@ -455,7 +455,7 @@ class Annotations:
 
     @duration.setter
     def duration(self, duration):
-        self._duration = duration
+        self._duration = np.atleast_1d(np.array(duration, dtype=float))
 
     @property
     def description(self):
@@ -475,7 +475,7 @@ class Annotations:
 
     @description.setter
     def description(self, description):
-        self._description = description
+        self._description = np.atleast_1d(np.array(description, dtype=str))
 
     @property
     def ch_names(self):
