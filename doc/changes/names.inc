@@ -95,7 +95,6 @@
 .. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
-.. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo

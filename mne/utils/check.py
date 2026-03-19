@@ -407,6 +407,7 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
         mne_connectivity="mne-connectivity",
         mne_gui_addons="mne-gui-addons",
         pyvista="pyvistaqt",
+        hed="hedtools",
     ).get(name, name)
 
     got_version = None
