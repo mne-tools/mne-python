@@ -102,7 +102,7 @@
 .. _Federico Zamberlan: https://github.com/fzamberlan
 .. _Felix Klotzsche: https://github.com/eioe
 .. _Felix Raimundo: https://github.com/gamazeps
-.. _Famous Raj Bhat: https://github.com/Famous077
+.. _Famous077: https://github.com/Famous077
 .. _Florian Hofer: https://github.com/hofaflo
 .. _Florin Pop: https://github.com/florin-pop
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
