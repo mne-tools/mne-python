@@ -10,18 +10,15 @@ import numpy as np
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..utils import (
-    _check_fname,
     _check_option,
-    _import_h5io_funcs,
     _validate_type,
     fill_doc,
     legacy,
     verbose,
 )
-from ..utils.check import check_fname
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
 from .spatial_filter import get_spatial_filter_from_estimator
 
 
@@ -178,14 +175,6 @@ class CSP(_GEDTransformer):
         tags.target_tags.multi_output = True
         return tags
 
-    def __getstate__(self):
-        """Prepare state for serialization."""
-        state = self.__dict__.copy()
-        state.pop("cov_callable", None)
-        state.pop("mod_ged_callable", None)
-        state.pop("R_func", None)
-        return state
-
     _required_state_keys = (
         "n_components",
         "reg",
@@ -200,17 +189,8 @@ class CSP(_GEDTransformer):
         "component_order",
     )
 
-    def __setstate__(self, state):
-        """Restore state from serialization."""
-        missing = [k for k in self._required_state_keys if k not in state]
-        if missing:
-            raise ValueError(
-                f"State dict is missing required keys: {missing}. "
-                "The state may be from an incompatible version of MNE."
-            )
-        if state["info"] is not None:
-            state["info"] = Info(**state["info"])
-        self.__dict__.update(state)
+    def _restore_callables(self):
+        """Restore CSP-specific callables after loading state."""
         self.cov_callable = partial(
             _csp_estimate,
             reg=self.reg,
@@ -222,36 +202,6 @@ class CSP(_GEDTransformer):
         )
         self.mod_ged_callable = partial(_csp_mod, evecs_order=self.component_order)
         self.R_func = sum
-
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the CSP object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_csp
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        _, write_hdf5 = _import_h5io_funcs()
-        check_fname(fname, self._save_fname_type, (".h5", ".hdf5"))
-        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
-        write_hdf5(
-            fname,
-            self.__getstate__(),
-            overwrite=overwrite,
-            title="mnepython",
-            slash="replace",
-        )
 
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
@@ -871,17 +821,8 @@ class SPoC(CSP):
         "rank",
     )
 
-    def __setstate__(self, state):
-        """Restore state from serialization."""
-        missing = [k for k in self._required_state_keys if k not in state]
-        if missing:
-            raise ValueError(
-                f"State dict is missing required keys: {missing}. "
-                "The state may be from an incompatible version of MNE."
-            )
-        if state["info"] is not None:
-            state["info"] = Info(**state["info"])
-        self.__dict__.update(state)
+    def _restore_callables(self):
+        """Restore SPoC-specific callables after loading state."""
         self.cov_callable = partial(
             _spoc_estimate,
             reg=self.reg,
@@ -891,27 +832,6 @@ class SPoC(CSP):
         )
         self.mod_ged_callable = _spoc_mod
         self.R_func = None
-
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the SPoC object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_spoc
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        super().save(fname, overwrite=overwrite, verbose=verbose)
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
@@ -991,7 +911,8 @@ class SPoC(CSP):
         return super().fit_transform(X, y=y, **fit_params)
 
 
-def read_csp(fname):
+@verbose
+def read_csp(fname, *, verbose=None):
     """Load a saved :class:`mne.decoding.CSP` object from disk.
 
     Parameters
@@ -999,6 +920,7 @@ def read_csp(fname):
     fname : path-like
         Path to a CSP file in HDF5 format, which should end with ``.h5`` or
         ``.hdf5``.
+    %(verbose)s
 
     Returns
     -------
@@ -1013,16 +935,11 @@ def read_csp(fname):
     -----
     .. versionadded:: 1.12
     """
-    read_hdf5, _ = _import_h5io_funcs()
-    _validate_type(fname, "path-like", "fname")
-    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
-    state = read_hdf5(fname, title="mnepython", slash="replace")
-    csp = object.__new__(CSP)
-    csp.__setstate__(state)
-    return csp
+    return _read_ged(fname, CSP, verbose=verbose)
 
 
-def read_spoc(fname):
+@verbose
+def read_spoc(fname, *, verbose=None):
     """Load a saved :class:`mne.decoding.SPoC` object from disk.
 
     Parameters
@@ -1030,6 +947,7 @@ def read_spoc(fname):
     fname : path-like
         Path to a SPoC file in HDF5 format, which should end with ``.h5`` or
         ``.hdf5``.
+    %(verbose)s
 
     Returns
     -------
@@ -1044,10 +962,4 @@ def read_spoc(fname):
     -----
     .. versionadded:: 1.12
     """
-    read_hdf5, _ = _import_h5io_funcs()
-    _validate_type(fname, "path-like", "fname")
-    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
-    state = read_hdf5(fname, title="mnepython", slash="replace")
-    spoc = object.__new__(SPoC)
-    spoc.__setstate__(state)
-    return spoc
+    return _read_ged(fname, SPoC, verbose=verbose)

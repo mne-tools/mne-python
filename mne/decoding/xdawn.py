@@ -11,15 +11,12 @@ from .._fiff.meas_info import Info
 from ..cov import Covariance
 from ..decoding._covs_ged import _xdawn_estimate
 from ..decoding._mod_ged import _xdawn_mod
-from ..decoding.base import _GEDTransformer
+from ..decoding.base import _GEDTransformer, _read_ged
 from ..utils import (
-    _check_fname,
-    _import_h5io_funcs,
     _validate_type,
     fill_doc,
     verbose,
 )
-from ..utils.check import check_fname
 
 
 @fill_doc
@@ -130,12 +127,7 @@ class XdawnTransformer(_GEDTransformer):
         tags.target_tags.required = True
         return tags
 
-    def __getstate__(self):
-        """Prepare state for serialization."""
-        state = self.__dict__.copy()
-        state.pop("cov_callable", None)
-        state.pop("mod_ged_callable", None)
-        return state
+    _save_fname_type = "xdawn_transformer"
 
     _required_state_keys = (
         "n_components",
@@ -147,17 +139,8 @@ class XdawnTransformer(_GEDTransformer):
         "rank",
     )
 
-    def __setstate__(self, state):
-        """Restore state from serialization."""
-        missing = [k for k in self._required_state_keys if k not in state]
-        if missing:
-            raise ValueError(
-                f"State dict is missing required keys: {missing}. "
-                "The state may be from an incompatible version of MNE."
-            )
-        if state["info"] is not None:
-            state["info"] = Info(**state["info"])
-        self.__dict__.update(state)
+    def _restore_callables(self):
+        """Restore XdawnTransformer-specific callables after loading state."""
         self.cov_callable = partial(
             _xdawn_estimate,
             reg=self.reg,
@@ -167,36 +150,6 @@ class XdawnTransformer(_GEDTransformer):
             rank=self.rank,
         )
         self.mod_ged_callable = _xdawn_mod
-
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the XdawnTransformer object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_xdawn_transformer
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        _, write_hdf5 = _import_h5io_funcs()
-        check_fname(fname, "xdawn_transformer", (".h5", ".hdf5"))
-        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
-        write_hdf5(
-            fname,
-            self.__getstate__(),
-            overwrite=overwrite,
-            title="mnepython",
-            slash="replace",
-        )
 
     def _validate_params(self, X):
         _validate_type(self.n_components, int, "n_components")
@@ -288,7 +241,8 @@ class XdawnTransformer(_GEDTransformer):
         return np.dot(pick_patterns.T, X).transpose(1, 0, 2)
 
 
-def read_xdawn_transformer(fname):
+@verbose
+def read_xdawn_transformer(fname, *, verbose=None):
     """Load a saved :class:`~mne.decoding.XdawnTransformer` object from disk.
 
     Parameters
@@ -296,6 +250,7 @@ def read_xdawn_transformer(fname):
     fname : path-like
         Path to an XdawnTransformer file in HDF5 format, which should end with
         ``.h5`` or ``.hdf5``.
+    %(verbose)s
 
     Returns
     -------
@@ -310,10 +265,4 @@ def read_xdawn_transformer(fname):
     -----
     .. versionadded:: 1.12
     """
-    read_hdf5, _ = _import_h5io_funcs()
-    _validate_type(fname, "path-like", "fname")
-    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
-    state = read_hdf5(fname, title="mnepython", slash="replace")
-    xdawn_transformer = object.__new__(XdawnTransformer)
-    xdawn_transformer.__setstate__(state)
-    return xdawn_transformer
+    return _read_ged(fname, XdawnTransformer, verbose=verbose)

@@ -11,17 +11,14 @@ from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
 from ..utils import (
-    _check_fname,
-    _import_h5io_funcs,
     _validate_type,
     fill_doc,
     logger,
     verbose,
 )
-from ..utils.check import check_fname
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
 
 
 def _create_callables(
@@ -184,13 +181,6 @@ class SSD(_GEDTransformer):
             restr_type=restr_type,
         )
 
-    def __getstate__(self):
-        """Prepare state for serialization."""
-        state = self.__dict__.copy()
-        state.pop("cov_callable", None)
-        state.pop("mod_ged_callable", None)
-        return state
-
     _required_state_keys = (
         "info",
         "filt_params_signal",
@@ -206,17 +196,8 @@ class SSD(_GEDTransformer):
         "rank",
     )
 
-    def __setstate__(self, state):
-        """Restore state from serialization."""
-        missing = [k for k in self._required_state_keys if k not in state]
-        if missing:
-            raise ValueError(
-                f"State dict is missing required keys: {missing}. "
-                "The state may be from an incompatible version of MNE."
-            )
-        if isinstance(state["info"], dict):
-            state["info"] = Info(**state["info"])
-        self.__dict__.update(state)
+    def _restore_callables(self):
+        """Restore SSD-specific callables after loading state."""
         self.cov_callable, self.mod_ged_callable = _create_callables(
             reg=self.reg,
             cov_method_params=self.cov_method_params,
@@ -227,36 +208,6 @@ class SSD(_GEDTransformer):
             filt_params_noise=self.filt_params_noise,
             rank=self.rank,
             sort_by_spectral_ratio=self.sort_by_spectral_ratio,
-        )
-
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the SSD object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_ssd
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        _, write_hdf5 = _import_h5io_funcs()
-        check_fname(fname, "ssd", (".h5", ".hdf5"))
-        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
-        write_hdf5(
-            fname,
-            self.__getstate__(),
-            overwrite=overwrite,
-            title="mnepython",
-            slash="replace",
         )
 
     def _validate_params(self, X):
@@ -465,7 +416,8 @@ class SSD(_GEDTransformer):
         return X
 
 
-def read_ssd(fname):
+@verbose
+def read_ssd(fname, *, verbose=None):
     """Load a saved :class:`~mne.decoding.SSD` object from disk.
 
     Parameters
@@ -473,6 +425,7 @@ def read_ssd(fname):
     fname : path-like
         Path to an SSD file in HDF5 format, which should end with ``.h5`` or
         ``.hdf5``.
+    %(verbose)s
 
     Returns
     -------
@@ -487,10 +440,4 @@ def read_ssd(fname):
     -----
     .. versionadded:: 1.12
     """
-    read_hdf5, _ = _import_h5io_funcs()
-    _validate_type(fname, "path-like", "fname")
-    fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
-    state = read_hdf5(fname, title="mnepython", slash="replace")
-    ssd = object.__new__(SSD)
-    ssd.__setstate__(state)
-    return ssd
+    return _read_ged(fname, SSD, verbose=verbose)

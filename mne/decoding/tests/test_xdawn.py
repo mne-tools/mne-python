@@ -69,5 +69,5 @@ def test_xdawn_save_load(tmp_path):
     with pytest.raises(ValueError, match="missing required keys"):
         read_xdawn_transformer(bad_fname)
 
-    with pytest.raises(OSError, match="not found"):
+    with pytest.raises(OSError, match="not found|does not exist"):
         read_xdawn_transformer(tmp_path / "nonexistent.h5")

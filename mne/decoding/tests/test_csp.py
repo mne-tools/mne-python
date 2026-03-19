@@ -559,5 +559,5 @@ def test_io_roundtrip(tmp_path, Estimator):
     with pytest.raises(ValueError, match="missing required keys"):
         read_func(bad_fname)
 
-    with pytest.raises(OSError, match="not found"):
+    with pytest.raises(OSError, match="not found|does not exist"):
         read_func(tmp_path / "nonexistent.h5")
