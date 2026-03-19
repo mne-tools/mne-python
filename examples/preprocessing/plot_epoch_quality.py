@@ -71,7 +71,7 @@ fig, ax = plt.subplots(layout="constrained")
 sorted_idx = np.argsort(scores)
 ax.bar(np.arange(len(scores)), scores[sorted_idx], color="steelblue")
 ax.axhline(0.8, color="red", linestyle="--", label="Strict threshold (0.8)")
-ax.axhline(0.4, color="orange", linestyle="--", label="Lenient threshold (0.4)")
+ax.axhline(0.6, color="orange", linestyle="--", label="Lenient threshold (0.6)")
 ax.set(
     xlabel="Epoch (sorted by score)",
     ylabel="Outlier score",
@@ -86,7 +86,7 @@ ax.legend()
 # :meth:`mne.Epochs.plot`, or dropped directly using
 # :meth:`mne.Epochs.drop`. The threshold should be adapted based on
 # your data and how many epochs you can afford to lose.
-for threshold in [0.8, 0.4]:
+for threshold in [0.8, 0.6]:
     bad_epochs = np.where(scores > threshold)[0]
     print(
         f"Threshold {threshold}: {len(bad_epochs)} epochs flagged "
@@ -94,10 +94,24 @@ for threshold in [0.8, 0.4]:
     )
 
 # %%
-# Plot the worst-scoring epoch to verify it contains an artifact.
+# Plot epochs at different thresholds
+# -------------------------------------
+# The worst-scoring epoch (strict threshold) clearly contains an artifact.
+# An epoch from the lenient threshold may look less obvious — illustrating
+# why tuning the threshold matters for the quality-quantity trade-off.
 worst_idx = np.argmax(scores)
 epochs[worst_idx].plot(
-    title=f"Worst epoch (index {worst_idx}, score={scores[worst_idx]:.2f})"
+    title=f"Strict threshold — worst epoch "
+    f"(index {worst_idx}, score={scores[worst_idx]:.2f})",
+    scalings=dict(eeg=100e-6),
+)
+
+lenient_idx = np.where(scores > 0.6)[0]
+lenient_idx = lenient_idx[lenient_idx != worst_idx][0]
+epochs[lenient_idx].plot(
+    title=f"Lenient threshold — borderline epoch "
+    f"(index {lenient_idx}, score={scores[lenient_idx]:.2f})",
+    scalings=dict(eeg=100e-6),
 )
 
 # %%
