@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 
 from mne import (
     SourceEstimate,
+    compute_raw_covariance,
     create_info,
     pick_events,
     read_cov,
@@ -135,6 +136,15 @@ def test_plot_cov():
     # test complex numbers
     cov["data"] = cov.data * (1 + 1j)
     fig1, fig2 = cov.plot(raw.info)
+
+    # Test RuntimeError when no plottable channel types exist
+    raw_misc = raw.copy()
+    raw_misc.del_proj()
+    with pytest.warns(RuntimeWarning, match="unit"):
+        raw_misc.set_channel_types({ch: "misc" for ch in raw_misc.ch_names})
+    cov_misc = compute_raw_covariance(raw_misc)
+    with pytest.raises(RuntimeError, match="No plottable channel types found"):
+        cov_misc.plot(raw_misc.info)
 
 
 @testing.requires_testing_data
