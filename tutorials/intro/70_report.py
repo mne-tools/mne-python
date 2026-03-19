@@ -164,7 +164,16 @@ report.save("report_evoked.html", overwrite=True)
 cov_path = sample_dir / "sample_audvis-cov.fif"
 
 report = mne.Report(title="Covariance example")
-report.add_covariance(cov=cov_path, info=raw_path, title="Covariance")
+
+# Optionally display the covariance rank in the report
+rank = 60
+
+report.add_covariance(
+    cov=cov_path,
+    info=raw_path,
+    title="Covariance",
+    rank=rank,
+)
 report.save("report_cov.html", overwrite=True)
 
 # %%
