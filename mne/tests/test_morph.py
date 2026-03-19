@@ -77,28 +77,6 @@ def test_sourcemorph_consistency():
     )
 
 
-@testing.requires_testing_data
-def test_source_morph_spacing_with_src_to():
-    """Regression test for GH-12101.
-
-    spacing attribute should be None when src_to is provided.
-    """
-    src_to = mne.read_source_spaces(
-        subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
-    )
-    src_from = mne.read_source_spaces(
-        subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
-    )
-    morph = compute_source_morph(
-        src_from,
-        subject_from="sample",
-        subject_to="fsaverage",
-        src_to=src_to,
-        subjects_dir=subjects_dir,
-    )
-    assert morph.spacing is None, (
-        f"Expected spacing=None when src_to is provided, got {morph.spacing}"
-    )
 
 
 @testing.requires_testing_data
@@ -332,6 +310,17 @@ def test_surface_vector_source_morph(tmp_path):
     source_morph_surf = compute_source_morph(
         inverse_operator_surf["src"], subjects_dir=subjects_dir, smooth=1, warn=False
     )  # smooth 1 for speed
+    src_to_fs = mne.read_source_spaces(
+        subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+    )
+    morph_with_src_to = compute_source_morph(
+        inverse_operator_surf["src"],
+        subjects_dir=subjects_dir,
+        src_to=src_to_fs,
+        smooth=1,
+        warn=False,
+    )
+    assert morph_with_src_to.spacing is None
     assert source_morph_surf.subject_from == "sample"
     assert source_morph_surf.subject_to == "fsaverage"
     assert source_morph_surf.kind == "surface"
