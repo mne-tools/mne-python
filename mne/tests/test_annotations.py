@@ -1751,6 +1751,7 @@ def test_annotation_duration_setting():
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
 
+
 def test_setter_validation():
     """Test that onset/duration/description/ch_names setters validate length."""
     annots = Annotations(onset=[1, 3, 2, 4], duration=0, description="foo")
