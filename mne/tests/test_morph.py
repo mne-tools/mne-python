@@ -77,8 +77,6 @@ def test_sourcemorph_consistency():
     )
 
 
-
-
 @testing.requires_testing_data
 def test_sparse_morph():
     """Test sparse morphing."""
