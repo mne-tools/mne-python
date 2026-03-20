@@ -1,0 +1,1 @@
+Move custom ``_whosmat_hdf5`` to :mod:`mne.fixes` and add ``pymatreader.whosmat`` fallback for inspecting MATLAB v7.3 (HDF5) files in :func:`mne.io.read_raw_eeglab`, by `Bruno Aristimunha`_.
