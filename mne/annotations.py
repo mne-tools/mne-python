@@ -451,7 +451,8 @@ class Annotations:
 
         See Also
         --------
-        duration, description
+        Annotations.duration : Duration of each annotation.
+        Annotations.description : Description of each annotation.
         """
         return self._onset
 
@@ -476,7 +477,8 @@ class Annotations:
 
         See Also
         --------
-        onset, description
+        Annotations.onset : Onset of each annotation.
+        Annotations.description : Description of each annotation.
         """
         return self._duration
 
@@ -503,7 +505,8 @@ class Annotations:
 
         See Also
         --------
-        onset, duration
+        Annotations.onset : Onset of each annotation.
+        Annotations.duration : Duration of each annotation.
         """
         return self._description
 
@@ -526,6 +529,12 @@ class Annotations:
         -------
         ch_names : list of tuple
             Channel names associated with each annotation.
+
+        See Also
+        --------
+        Annotations.onset : Onset of each annotation.
+        Annotations.duration : Duration of each annotation.
+        Annotations.description : Description of each annotation.
         """
         return self._ch_names
 
@@ -1332,6 +1341,10 @@ class HEDAnnotations(Annotations):
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
+        # Write directly to private attributes to avoid triggering the public
+        # setter validation, which would raise an error due to temporary length
+        # mismatches while fields are being extended one at a time.
+        # The data is already validated by _check_o_d_s_c_e above.
         hed_string = self._check_hed_strings(hed_string, len(onset))
         hed_objs = [
             self.hed_string._validate_hed_string(v, self.hed_string._schema)
