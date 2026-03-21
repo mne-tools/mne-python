@@ -3,6 +3,8 @@
 Getting help
 ^^^^^^^^^^^^
 
+.. tags:: help, faq, troubleshooting, community
+
 There are several places to obtain help with MNE software tools.
 
 - The `MNE Forum`_ is a good placed to go for both troubleshooting and general

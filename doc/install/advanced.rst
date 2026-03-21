@@ -3,6 +3,8 @@
 Advanced setup
 ==============
 
+.. tags:: installation, advanced, jupyter, troubleshooting
+
 Working with Jupyter Notebooks and JupyterLab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

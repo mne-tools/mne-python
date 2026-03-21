@@ -5,6 +5,8 @@
 Cortical Signal Suppression (CSS) for removal of cortical signals
 =================================================================
 
+.. tags:: examples, preprocessing, artifacts, meg, eeg, simulation
+
 This script shows an example of how to use CSS
 :footcite:`Samuelsson2019` . CSS suppresses the cortical contribution
 to the signal subspace in EEG data using MEG data, facilitating

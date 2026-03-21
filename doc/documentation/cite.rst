@@ -3,6 +3,8 @@
 How to cite MNE-Python
 ======================
 
+.. tags:: documentation, citation, publication
+
 Citing the software
 -------------------
 

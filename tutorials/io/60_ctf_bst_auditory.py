@@ -5,6 +5,8 @@
 Working with CTF data: the Brainstorm auditory dataset
 ======================================================
 
+.. tags:: tutorials, io, meg
+
 Here we compute the evoked from raw for the auditory Brainstorm
 tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and the
 associated `brainstorm site

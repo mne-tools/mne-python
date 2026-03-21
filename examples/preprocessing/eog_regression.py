@@ -3,6 +3,8 @@
 Reduce EOG artifacts through regression
 =======================================
 
+.. tags:: examples, preprocessing, artifacts, epochs, evoked
+
 Reduce artifacts by regressing the EOG channels onto the rest of the channels
 and then subtracting the EOG signal.
 

@@ -5,6 +5,8 @@
 Compute induced power in the source space with dSPM
 ===================================================
 
+.. tags:: examples, time-frequency, source-localization, inverse, epochs
+
 Returns STC files ie source estimates of induced power
 for different bands in the source space. The inverse method
 is linear based on dSPM inverse operator.

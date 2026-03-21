@@ -5,6 +5,8 @@
 Analysing continuous features with binning and regression in sensor space
 =========================================================================
 
+.. tags:: examples, statistics, eeg, epochs, evoked
+
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
 individually, resulting in an :class:`mne.Evoked` object which contains the

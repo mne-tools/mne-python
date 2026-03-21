@@ -5,6 +5,8 @@
 Overview of artifact detection
 ==============================
 
+.. tags:: tutorials, preprocessing, artifacts, beginners
+
 This tutorial covers the basics of artifact detection, and introduces the
 artifact detection tools available in MNE-Python.
 

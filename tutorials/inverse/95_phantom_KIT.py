@@ -5,6 +5,8 @@
 KIT phantom dataset tutorial
 ============================
 
+.. tags:: tutorials, inverse, source-localization
+
 Here we read KIT data obtained from a phantom with 49 dipoles sequentially activated
 with 2-cycle 11 Hz sinusoidal bursts to verify source localization accuracy.
 """

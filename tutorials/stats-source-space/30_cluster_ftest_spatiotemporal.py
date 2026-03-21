@@ -5,6 +5,8 @@
 2 samples permutation test on source data with spatio-temporal clustering
 =========================================================================
 
+.. tags:: tutorials, statistics, cluster-permutation, source-localization
+
 Tests if the source space data are significantly different between
 2 groups of subjects (simulated here using one subject's data).
 The multiple comparisons problem is addressed with a cluster-level

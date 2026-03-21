@@ -10,6 +10,8 @@
 The Spectrum and EpochsSpectrum classes: frequency-domain data
 ==============================================================
 
+.. tags:: tutorials, time-frequency, spectrum, psd, epochs
+
 This tutorial shows how to create and visualize frequency-domain representations of your
 data, starting from continuous :class:`~mne.io.Raw`, discontinuous :class:`~mne.Epochs`,
 or averaged :class:`~mne.Evoked` data.

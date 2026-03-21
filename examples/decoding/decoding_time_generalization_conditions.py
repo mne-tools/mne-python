@@ -5,6 +5,8 @@
 Decoding sensor space data with generalization across time and conditions
 =========================================================================
 
+.. tags:: examples, decoding, meg, epochs, classification
+
 This example runs the analysis described in :footcite:`KingDehaene2014`. It
 illustrates how one can fit a linear classifier to identify a discriminatory
 topography at a given time instant and subsequently assess whether this linear

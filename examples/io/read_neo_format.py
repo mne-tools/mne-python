@@ -5,6 +5,8 @@
 How to use data in neural ensemble (NEO) format
 ===============================================
 
+.. tags:: examples, io, raw, interoperability
+
 This example shows how to create an MNE-Python `~mne.io.Raw` object from data
 in the `neural ensemble <https://neo.readthedocs.io>`_ format. For general
 information on creating MNE-Python's data objects from NumPy arrays, see

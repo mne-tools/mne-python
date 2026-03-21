@@ -5,6 +5,8 @@
 The Evoked data structure: evoked/averaged data
 ===============================================
 
+.. tags:: tutorials, evoked, epochs, beginners
+
 This tutorial covers the basics of creating and working with :term:`evoked` data. It
 introduces the :class:`~mne.Evoked` data structure in detail, including how to load,
 query, subset, export, and plot data from an :class:`~mne.Evoked` object. For details

@@ -5,6 +5,8 @@
 How MNE uses FreeSurfer's outputs
 =================================
 
+.. tags:: tutorials, freesurfer, source-localization
+
 This tutorial explains how MRI coordinate frames are handled in MNE-Python,
 and how MNE-Python integrates with FreeSurfer for handling MRI data and source
 space data in general.

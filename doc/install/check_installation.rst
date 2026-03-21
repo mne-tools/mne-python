@@ -4,6 +4,8 @@
 Testing your installation
 =========================
 
+.. tags:: installation, setup, troubleshooting
+
 To make sure MNE-Python was installed correctly, type the following command in
 a terminal::
 

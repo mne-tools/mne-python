@@ -5,6 +5,8 @@
 Decoding source space data
 ==========================
 
+.. tags:: examples, decoding, meg, source-localization, classification
+
 Decoding to MEG data in source space on the left cortical surface. Here
 univariate feature selection is employed for speed purposes to confine the
 classification to a small number of potentially relevant features. The

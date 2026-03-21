@@ -3,6 +3,8 @@
 Contributing guide
 ==================
 
+.. tags:: development, contributing, governance
+
 .. highlight:: console
 
 Thanks for taking the time to contribute! MNE-Python is an open-source project

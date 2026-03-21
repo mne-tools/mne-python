@@ -5,6 +5,8 @@
 Reading an inverse operator
 ===========================
 
+.. tags:: examples, inverse, source-localization
+
 The inverse operator's source space is shown in 3D.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
