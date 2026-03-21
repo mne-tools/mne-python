@@ -80,7 +80,7 @@ def _get_ch_type_metadata(info, ch_names):
             ch_types.append(key)
     if len(indices) == 0:
         raise RuntimeError(
-            f"No plottable channel types found. "
+            "No plottable channel types found. "
             f"Allowed types are: {_DATA_CH_TYPES_SPLIT}"
         )
     return indices, titles, units, scalings, ch_types
