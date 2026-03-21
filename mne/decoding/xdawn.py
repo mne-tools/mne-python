@@ -243,7 +243,7 @@ class XdawnTransformer(_GEDTransformer):
 
 @verbose
 def read_xdawn_transformer(fname, *, verbose=None):
-    """Load a saved :class:`~mne.decoding.XdawnTransformer` object from disk.
+    """Load a saved :class:`mne.decoding.XdawnTransformer` object from disk.
 
     Parameters
     ----------
