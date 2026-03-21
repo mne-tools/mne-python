@@ -1,0 +1,1 @@
+Add OSA chat widget to documentation pages, by `Seyed Yahya Shirazi`_.
