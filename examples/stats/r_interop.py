@@ -1,9 +1,9 @@
 """
 .. _r-interop:
 
-==============================================
-Mass-univariate t-test: Python and R compared
-==============================================
+============================
+Integrating with R via rpy2
+============================
 
 This example shows how to run a mass-univariate 2-sample t-test on
 :class:`~mne.Epochs` data in Python using :func:`scipy.stats.ttest_ind`,
@@ -69,7 +69,7 @@ evoked_right = epochs["auditory/right"].average()
 
 mne.viz.plot_compare_evokeds(
     {"auditory/left": evoked_left, "auditory/right": evoked_right},
-    picks="EEG 059",
+    picks="MEG 1323",
 )
 
 # %%
@@ -80,23 +80,12 @@ mne.viz.plot_compare_evokeds(
 # and a typical N1 time window (80–120 ms). This gives one value per epoch,
 # which is a plausible neuroscience analysis.
 
-roi_channels = ["EEG 059", "EEG 058", "EEG 057"]
+roi_channels = ["MEG 1323"]
 tmin_roi, tmax_roi = 0.08, 0.12
 
-epochs_left = (
-    epochs["auditory/left"]
-    .copy()
-    .crop(tmin_roi, tmax_roi)
-    .get_data(picks=roi_channels)
-    .mean(axis=(1, 2))
-)
-epochs_right = (
-    epochs["auditory/right"]
-    .copy()
-    .crop(tmin_roi, tmax_roi)
-    .get_data(picks=roi_channels)
-    .mean(axis=(1, 2))
-)
+epochs.crop(tmin_roi, tmax_roi).pick(roi_channels)
+epochs_left = epochs["auditory/left"].get_data().mean(axis=(1, 2))
+epochs_right = epochs["auditory/right"].get_data().mean(axis=(1, 2))
 
 t_python, p_python = stats.ttest_ind(epochs_left, epochs_right)
 print(f"Python  →  t = {t_python:.4f},  p = {p_python:.4f}")
@@ -118,7 +107,7 @@ print(f"Python  →  t = {t_python:.4f},  p = {p_python:.4f}")
 # R functions expect R objects as input, not raw NumPy arrays.
 # ``rpy2.robjects.FloatVector`` converts a 1-D NumPy array of floats
 # into an R numeric vector. The ``localconverter`` context manager
-# context manager together with ``numpy2ri.converter`` handles the conversion
+# together with ``numpy2ri.converter`` handles the conversion
 # automatically inside the ``with`` block.
 #
 # **Passing arguments with dots in their names:**
