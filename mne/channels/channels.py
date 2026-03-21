@@ -3,8 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import os.path as op
 import string
 import sys
@@ -325,7 +323,7 @@ class ReferenceMixin(MontageMixin):
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
             Data with EEG channels re-referenced. If ``ref_channels='average'``
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
@@ -388,7 +386,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -463,7 +461,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -501,7 +499,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
@@ -532,7 +530,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -569,7 +567,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -691,7 +689,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         See Also
@@ -812,7 +810,7 @@ class UpdateChannelsMixin:
 
         Returns
         -------
-        inst : instance of Raw | Epochs | Evoked
+        inst : same type as the input data
                The modified instance.
         """
         return add_reference_channels(self, ref_channels, copy=False)
@@ -829,6 +827,7 @@ class InterpolationMixin:
         origin="auto",
         method=None,
         exclude=(),
+        on_bad_position="warn",
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -874,11 +873,17 @@ class InterpolationMixin:
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
+        on_bad_position : "raise" | "warn" | "ignore"
+            What to do when one or more sensor positions are invalid (zero or NaN).
+            If ``"warn"`` or ``"ignore"``, channels with invalid positions will be
+            filled with :data:`~numpy.nan`.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             The modified instance.
 
         Notes
@@ -898,6 +903,32 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
+
+        # check for channels with invalid position(s)
+        invalid_chs = []
+        for ch in self.info["bads"]:
+            loc = self.info["chs"][self.ch_names.index(ch)]["loc"][:3]
+            if np.allclose(loc, 0.0, rtol=0, atol=1e-16) or np.isnan(loc).any():
+                invalid_chs.append(ch)
+
+        if invalid_chs:
+            if on_bad_position == "raise":
+                msg = (
+                    f"Channel(s) {invalid_chs} have invalid sensor position(s). "
+                    "Interpolation cannot proceed correctly. If you want to "
+                    "continue despite missing positions, set "
+                    "on_bad_position='warn' or 'ignore', which outputs all "
+                    "NaN values (np.nan) for the interpolated channel(s)."
+                )
+            else:
+                msg = (
+                    f"Channel(s) {invalid_chs} have invalid sensor position(s) "
+                    "and cannot be interpolated. The values of these channels "
+                    "will be all NaN. To ignore this warning, pass "
+                    "on_bad_position='ignore'."
+                )
+            _on_missing(on_bad_position, msg)
+
         method = _handle_default("interpolation_method", method)
         ch_types = self.get_channel_types(unique=True)
         # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
@@ -1006,7 +1037,7 @@ class InterpolationMixin:
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst : same type as the input data
             A new instance with interpolated data and updated channel
             information.
 
@@ -2015,7 +2046,7 @@ def combine_channels(
 
     Returns
     -------
-    combined_inst : instance of Raw, Epochs, or Evoked
+    combined_inst : same type as the input data
         An MNE-Python object of the same type as the input ``inst``, containing
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).

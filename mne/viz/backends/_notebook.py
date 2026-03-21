@@ -6,7 +6,6 @@
 
 import os
 import os.path as op
-import re
 from contextlib import contextmanager, nullcontext
 
 from ipyevents import Event
@@ -37,7 +36,7 @@ from ipywidgets import (
     link,
 )
 
-from ...utils import _soft_import, check_version
+from ...utils import _soft_import
 from ._abstract import (
     _AbstractAction,
     _AbstractAppWindow,
@@ -110,11 +109,7 @@ _ICON_LUT = dict(
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
 
-# TODO: We can drop ipyvtklink once we support PyVista 0.38.1+
-if check_version("pyvista", "0.38.1"):
-    _JUPYTER_BACKEND = "trame"
-else:
-    _JUPYTER_BACKEND = "ipyvtklink"
+_JUPYTER_BACKEND = "trame"
 
 # %%
 # Widgets
@@ -785,13 +780,6 @@ class _3DRenderer(_PyVistaRenderer):
         super().__init__(*args, **kwargs)
         if "show" in kwargs and kwargs["show"]:
             self.show()
-
-    def _update(self):
-        if _JUPYTER_BACKEND == "ipyvtklink":
-            if self.figure.display is not None:
-                self.figure.display.update_canvas()
-        else:
-            super()._update()
 
     @contextmanager
     def _ensure_minimum_sizes(self):
@@ -1559,13 +1547,6 @@ class _Renderer(
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
-    def _update(self):
-        if _JUPYTER_BACKEND == "ipyvtklink":
-            if self.figure.display is not None:
-                self.figure.display.update_canvas()
-        else:
-            super()._update()
-
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
@@ -1586,19 +1567,6 @@ class _Renderer(
             self._display_default_tool_bar()
         # viewer
         viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
-        if _JUPYTER_BACKEND == "trame":
-            # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
-            # which adds this to the iframe PyVista creates. Once that's merged, this
-            # workaround just becomes a redundant but is still safe. And in a worst
-            # (realistic) case, this regex will fail to do any substitution and we just
-            # live with the ugly 90's-style borders. We can probably remove once we
-            # require PyVista 0.43 (assuming the above PR is merged).
-            viewer.value = re.sub(
-                r" style=[\"'](.+)[\"']></iframe>",
-                # value taken from matplotlib's widget
-                r" style='\1; border: 1px solid rgb(221,221,221);' scrolling='no'></iframe>",  # noqa: E501
-                viewer.value,
-            )
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])

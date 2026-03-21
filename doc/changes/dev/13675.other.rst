@@ -1,0 +1,1 @@
+Add :meth:`mne.Epochs.reset_index`, which replaces the legacy :meth:`mne.Epochs.reset_drop_log_selection` (the new name better reflects the method's purpose), by `Clemens Brunner`_.

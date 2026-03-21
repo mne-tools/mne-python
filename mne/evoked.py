@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
