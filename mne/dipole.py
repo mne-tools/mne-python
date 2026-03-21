@@ -1387,12 +1387,12 @@ def _fit_dipole(
         sensors=sensors, rd=rd_final, Q=Q, ori=ori, whitener=whitener, fwd_data=fwd_data
     )
 
-    msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
+    msg = f"---- Fitted : {1000.0 * t:7.1f} ms"
     if surf is not None:
         dist_to_inner_skull = _compute_nearest(
             surf["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
-        msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
+        msg += f", distance to inner skull : {dist_to_inner_skull * 1000.0:2.4f} mm"
 
     logger.info(msg)
     return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj
