@@ -955,12 +955,20 @@ def plot_alignment(
         # transform to current coord frame
         pos = apply_trans(to_cf_t["head"], pos)
 
+        # compute centroid to determine outward direction for each label
+        centroid = pos.mean(axis=0)
         for ch, xyz in zip(chs, pos):
+            direction = xyz - centroid
+            norm = np.linalg.norm(direction)
+            if norm > 0:
+                offset = xyz + 0.01 * direction / norm
+            else:
+                offset = xyz
             renderer.text3d(
-                *xyz,
+                *offset,
                 ch["ch_name"],
-                scale=0.005,
-                color=(1.0, 1.0, 1.0),
+                scale=0.0015,
+                color=(0.0, 0.0, 0.0),
             )
 
     if src is not None:
