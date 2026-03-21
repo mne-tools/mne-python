@@ -21,41 +21,6 @@ from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer, _read_ged
 
 
-def _create_callables(
-    reg,
-    cov_method_params,
-    info,
-    picks,
-    n_fft,
-    filt_params_signal,
-    filt_params_noise,
-    rank,
-    sort_by_spectral_ratio,
-):
-    """Create covariance and mod_ged callables for SSD.
-
-    Returns
-    -------
-    cov_callable : callable
-        Partial function for computing SSD covariance estimates.
-    mod_ged_callable : callable
-        Function for modifying the GED result.
-    """
-    cov_callable = partial(
-        _ssd_estimate,
-        reg=reg,
-        cov_method_params=cov_method_params,
-        info=info,
-        picks=picks,
-        n_fft=n_fft,
-        filt_params_signal=filt_params_signal,
-        filt_params_noise=filt_params_noise,
-        rank=rank,
-        sort_by_spectral_ratio=sort_by_spectral_ratio,
-    )
-    return cov_callable, _ssd_mod
-
-
 @fill_doc
 class SSD(_GEDTransformer):
     """
@@ -163,17 +128,19 @@ class SSD(_GEDTransformer):
         self.restr_type = restr_type
         self.rank = rank
 
-        self.cov_callable, self.mod_ged_callable = _create_callables(
-            reg=self.reg,
-            cov_method_params=self.cov_method_params,
-            info=self.info,
-            picks=self.picks,
-            n_fft=self.n_fft,
-            filt_params_signal=self.filt_params_signal,
-            filt_params_noise=self.filt_params_noise,
-            rank=self.rank,
-            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        self.cov_callable = partial(
+            _ssd_estimate,
+            reg=reg,
+            cov_method_params=cov_method_params,
+            info=info,
+            picks=picks,
+            n_fft=n_fft,
+            filt_params_signal=filt_params_signal,
+            filt_params_noise=filt_params_noise,
+            rank=rank,
+            sort_by_spectral_ratio=sort_by_spectral_ratio,
         )
+        self.mod_ged_callable = _ssd_mod
         super().__init__(
             n_components=n_components,
             cov_callable=self.cov_callable,
@@ -198,7 +165,8 @@ class SSD(_GEDTransformer):
 
     def _restore_callables(self):
         """Restore SSD-specific callables after loading state."""
-        self.cov_callable, self.mod_ged_callable = _create_callables(
+        self.cov_callable = partial(
+            _ssd_estimate,
             reg=self.reg,
             cov_method_params=self.cov_method_params,
             info=self.info,
@@ -209,6 +177,7 @@ class SSD(_GEDTransformer):
             rank=self.rank,
             sort_by_spectral_ratio=self.sort_by_spectral_ratio,
         )
+        self.mod_ged_callable = _ssd_mod
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
