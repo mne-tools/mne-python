@@ -387,7 +387,7 @@ class SSD(_GEDTransformer):
 
 @verbose
 def read_ssd(fname, *, verbose=None):
-    """Load a saved :class:`~mne.decoding.SSD` object from disk.
+    """Load a saved :class:`mne.decoding.SSD` object from disk.
 
     Parameters
     ----------
