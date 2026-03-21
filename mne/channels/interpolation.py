@@ -484,12 +484,34 @@ def _interpolate_to_meg(inst, sensors, origin, mode):
     if len(picks_meg_good) == 0:
         raise ValueError("No good MEG channels available for interpolation.")
 
-    # Load target sensor configuration
-    info_to = read_meg_canonical_info(sensors)
-    info_to["dev_head_t"] = deepcopy(inst.info["dev_head_t"])
+    # Load target sensor configuration as info file
+    info_cano = read_meg_canonical_info(sensors)
 
     # Get source MEG info
     info_from = pick_info(inst.info, picks_meg_good)
+
+    # Update target info to accommodate the desired channel info
+    # and reset some channel and machine-related fields to avoid
+    # confusion later on.
+    # NOTE: We don't change the original 'dev_head_t'.
+    #       Some keys require as default an empty list.
+    info_to = deepcopy(info_from)
+    with info_to._unlock():
+        info_to.update(
+            {
+                "chs": deepcopy(info_cano["chs"]),
+                "ch_names": deepcopy(info_cano["ch_names"]),
+                "nchan": deepcopy(info_cano["nchan"]),
+                "device_info": None,
+                "helium_info": None,
+                "gantry_angle": None,
+                "ctf_head_t": None,
+                "dev_ctf_t": None,
+                "bads": [],
+                "projs": [],
+                "comps": [],
+            }
+        )
 
     # Compute field interpolation mapping
     origin_val = _check_origin(origin, inst.info)
