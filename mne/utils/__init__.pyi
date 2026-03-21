@@ -170,6 +170,7 @@ __all__ = [
     "running_subprocess",
     "set_cache_dir",
     "set_config",
+    "update_config",
     "set_log_file",
     "set_log_level",
     "set_memmap_min_size",
@@ -289,6 +290,7 @@ from .config import (
     set_config,
     set_memmap_min_size,
     sys_info,
+    update_config,
 )
 from .dataframe import (
     _build_data_frame,
