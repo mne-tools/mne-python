@@ -451,8 +451,8 @@ class Annotations:
 
         See Also
         --------
-        Annotations.duration : Duration of each annotation.
-        Annotations.description : Description of each annotation.
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
         """
         return self._onset
 
@@ -477,8 +477,8 @@ class Annotations:
 
         See Also
         --------
-        Annotations.onset : Onset of each annotation.
-        Annotations.description : Description of each annotation.
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.description`
         """
         return self._duration
 
@@ -505,8 +505,8 @@ class Annotations:
 
         See Also
         --------
-        Annotations.onset : Onset of each annotation.
-        Annotations.duration : Duration of each annotation.
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
         """
         return self._description
 
@@ -532,9 +532,9 @@ class Annotations:
 
         See Also
         --------
-        Annotations.onset : Onset of each annotation.
-        Annotations.duration : Duration of each annotation.
-        Annotations.description : Description of each annotation.
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
         """
         return self._ch_names
 
