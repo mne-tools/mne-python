@@ -278,7 +278,7 @@ def find_ecg_events(
     if ecg_events.size > 0:
         ecg_events = remap[ecg_events]
     else:
-        ecg_events = np.array([],int)
+        ecg_events = np.array([], int)
     n_events = len(ecg_events)
     duration_sec = len(ecg) / raw.info["sfreq"] - tstart
     duration_min = duration_sec / 60.0
