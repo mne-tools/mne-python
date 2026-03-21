@@ -25,9 +25,12 @@ from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import indexable
 from sklearn.utils.validation import check_is_fitted
 
+from .._fiff.meas_info import Info
 from ..parallel import parallel_func
 from ..utils import (
+    _check_fname,
     _check_option,
+    _import_h5io_funcs,
     _pl,
     _validate_type,
     logger,
@@ -35,6 +38,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils.check import check_fname
 from ._fixes import validate_data
 from ._ged import (
     _handle_restr_mat,
@@ -134,6 +138,67 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._is_base_ged = False
+
+    def __getstate__(self):
+        """Prepare state for serialization."""
+        state = self.__dict__.copy()
+        state.pop("cov_callable", None)
+        state.pop("mod_ged_callable", None)
+        state.pop("R_func", None)
+        return state
+
+    def _restore_callables(self):
+        """Restore callables after loading serialized state."""
+        pass
+
+    def __setstate__(self, state):
+        """Restore state from serialization."""
+        required_state_keys = getattr(self, "_required_state_keys", ())
+        missing = [k for k in required_state_keys if k not in state]
+        if missing:
+            raise ValueError(
+                f"State dict is missing required keys: {missing}. "
+                "The state may be from an incompatible version of MNE."
+            )
+        if "info" in state and isinstance(state["info"], dict):
+            state["info"] = Info(**state["info"])
+        self.__dict__.update(state)
+        self._restore_callables()
+
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the object to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            The file path to save to. Should end with ``'.h5'`` or
+            ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        mne.decoding.read_ssd
+        mne.decoding.read_csp
+        mne.decoding.read_spoc
+        mne.decoding.read_xdawn_transformer
+
+        Notes
+        -----
+        .. versionadded:: 1.12
+        """
+        _, write_hdf5 = _import_h5io_funcs()
+        class_name = getattr(self, "_save_fname_type", type(self).__name__.lower())
+        check_fname(fname, class_name, (".h5", ".hdf5"))
+        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
+        write_hdf5(
+            fname,
+            self.__getstate__(),
+            overwrite=overwrite,
+            title="mnepython",
+            slash="replace",
+        )
 
     def fit(self, X, y=None):
         """..."""
@@ -336,6 +401,18 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         tags.input_tags.three_d_array = True
         tags.requires_fit = True
         return tags
+
+
+@verbose
+def _read_ged(fname, ged_class, *, verbose=None):
+    """Load a saved GED transformer object from disk."""
+    read_hdf5, _ = _import_h5io_funcs()
+    _validate_type(fname, "path-like", "fname")
+    fname = _check_fname(fname, overwrite=True, must_exist=True, verbose=verbose)
+    state = read_hdf5(fname, title="mnepython", slash="replace")
+    inst = object.__new__(ged_class)
+    inst.__setstate__(state)
+    return inst
 
 
 class LinearModel(MetaEstimatorMixin, BaseEstimator):
