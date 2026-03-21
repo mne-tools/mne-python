@@ -797,12 +797,13 @@ class Evoked(
         ch_type=None,
         times=None,
         frame_rate=None,
+        *,
+        cmap=None,
         butterfly=False,
         blit=True,
         show=True,
         time_unit="s",
         sphere=None,
-        *,
         image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT,
         vmin=None,
@@ -829,6 +830,13 @@ class Evoked(
         frame_rate : int | None
             Frame rate for the animation in Hz. If None,
             frame rate = sfreq / 10. Defaults to None.
+        cmap : str | Colormap | None
+            The colormap to use for plotting. If None, the colormap is chosen
+            based on the data values (see Notes). Defaults to None.
+            If the data contains only non-negative values, the "Reds" colormap
+            will be used. Otherwise, the "RdBu_r" colormap will be used.
+
+            .. versionadded:: 1.12.0
         butterfly : bool
             Whether to plot the data as butterfly plot under the topomap.
             Defaults to False.
@@ -880,6 +888,7 @@ class Evoked(
             vmin=vmin,
             vmax=vmax,
             verbose=verbose,
+            cmap=cmap,
         )
 
     def as_type(self, ch_type="grad", mode="fast"):
