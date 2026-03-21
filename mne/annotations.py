@@ -158,41 +158,62 @@ def _validate_extras(extras, length: int):
     return _AnnotationsExtrasList(extras or [None] * length)
 
 
-def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
+def _check_onset(onset):
+    """Convert and validate onset to a 1D float array."""
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
             f"Onset must be a one dimensional array, got {onset.ndim} (shape "
             f"{onset.shape})."
         )
+    return onset
+
+
+def _check_duration(duration, n):
+    """Convert and validate duration to a 1D float array of length n."""
     duration = np.array(duration, dtype=float)
     if duration.ndim == 0 or duration.shape == (1,):
-        duration = np.repeat(duration, len(onset))
+        duration = np.repeat(duration, n)
     if duration.ndim != 1:
         raise ValueError(
             f"Duration must be a one dimensional array, got {duration.ndim}."
         )
+    return duration
 
+
+def _check_description(description, n):
+    """Convert and validate description to a 1D str array of length n."""
     description = np.array(description, dtype=str)
     if description.ndim == 0 or description.shape == (1,):
-        description = np.repeat(description, len(onset))
+        description = np.repeat(description, n)
     if description.ndim != 1:
         raise ValueError(
             f"Description must be a one dimensional array, got {description.ndim}."
         )
     _safe_name_list(description, "write", "description")
+    return description
 
-    # ch_names: convert to ndarray of tuples
+
+def _check_ch_names_annot(ch_names, n):
+    """Convert and validate ch_names to an ndarray of tuples of length n."""
     _validate_type(ch_names, (None, tuple, list, np.ndarray), "ch_names")
     if ch_names is None:
-        ch_names = [()] * len(onset)
+        ch_names = [()] * n
     ch_names = list(ch_names)
     for ai, ch in enumerate(ch_names):
         _validate_type(ch, (list, tuple, np.ndarray), f"ch_names[{ai}]")
         ch_names[ai] = tuple(ch)
         for ci, name in enumerate(ch_names[ai]):
             _validate_type(name, str, f"ch_names[{ai}][{ci}]")
-    ch_names = _ndarray_ch_names(ch_names)
+    return _ndarray_ch_names(ch_names)
+
+
+def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
+    onset = _check_onset(onset)
+    n = len(onset)
+    duration = _check_duration(duration, n)
+    description = _check_description(description, n)
+    ch_names = _check_ch_names_annot(ch_names, n)
 
     if not (len(onset) == len(duration) == len(description) == len(ch_names)):
         raise ValueError(
@@ -408,7 +429,7 @@ class Annotations:
                     f"' '. Got: {orig_time}. Defaulting `orig_time` to None.",
                     RuntimeWarning,
                 )
-        self.onset, self.duration, self.description, self.ch_names, self._extras = (
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
             _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
         self._sort()  # ensure we're sorted
@@ -417,6 +438,116 @@ class Annotations:
     def orig_time(self):
         """The time base of the Annotations."""
         return self._orig_time
+
+    @property
+    def onset(self):
+        """Onset of each annotation (in seconds).
+
+        Returns
+        -------
+        onset : array of shape (n_annotations,)
+            The onset of each annotation in seconds from the start of
+            the recording.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._onset
+
+    @onset.setter
+    def onset(self, onset):
+        onset = _check_onset(onset)
+        if len(onset) != len(self._duration):
+            raise ValueError(
+                f"Length of onset ({len(onset)}) must match the length of "
+                f"existing duration ({len(self._duration)})."
+            )
+        self._onset = onset
+
+    @property
+    def duration(self):
+        """Duration of each annotation (in seconds).
+
+        Returns
+        -------
+        duration : array of shape (n_annotations,)
+            The duration of each annotation in seconds.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        n = len(self._onset)
+        duration = _check_duration(duration, n)
+        if len(duration) != n:
+            raise ValueError(
+                f"Length of duration ({len(duration)}) must match the length of "
+                f"existing onset ({n})."
+            )
+        self._duration = duration
+
+    @property
+    def description(self):
+        """Description of each annotation.
+
+        Returns
+        -------
+        description : array of shape (n_annotations,)
+            A string description for each annotation (e.g., event
+            label or condition name).
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        """
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        n = len(self._onset)
+        description = _check_description(description, n)
+        if len(description) != n:
+            raise ValueError(
+                f"Length of description ({len(description)}) must match the "
+                f"length of existing onset ({n})."
+            )
+        self._description = description
+
+    @property
+    def ch_names(self):
+        """Channel names associated with each annotation.
+
+        Returns
+        -------
+        ch_names : list of tuple
+            Channel names associated with each annotation.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._ch_names
+
+    @ch_names.setter
+    def ch_names(self, ch_names):
+        n = len(self._onset)
+        ch_names = _check_ch_names_annot(ch_names, n)
+        if len(ch_names) != n:
+            raise ValueError(
+                f"Length of ch_names ({len(ch_names)}) must match the length of "
+                f"existing onset ({n})."
+            )
+        self._ch_names = ch_names
 
     @property
     def extras(self):
@@ -573,11 +704,11 @@ class Annotations:
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
-        self.onset = np.append(self.onset, onset)
-        self.duration = np.append(self.duration, duration)
-        self.description = np.append(self.description, description)
-        self.ch_names = np.append(self.ch_names, ch_names)
-        self.extras.extend(extras)
+        self._onset = np.append(self._onset, onset)
+        self._duration = np.append(self._duration, duration)
+        self._description = np.append(self._description, description)
+        self._ch_names = np.append(self._ch_names, ch_names)
+        self._extras.extend(extras)
         self._sort()
         return self
 
@@ -600,10 +731,10 @@ class Annotations:
             Index of the annotation to remove. Can be array-like to
             remove multiple indices.
         """
-        self.onset = np.delete(self.onset, idx)
-        self.duration = np.delete(self.duration, idx)
-        self.description = np.delete(self.description, idx)
-        self.ch_names = np.delete(self.ch_names, idx)
+        self._onset = np.delete(self._onset, idx)
+        self._duration = np.delete(self._duration, idx)
+        self._description = np.delete(self._description, idx)
+        self._ch_names = np.delete(self._ch_names, idx)
         if isinstance(idx, int_like):
             del self.extras[idx]
         elif len(idx) > 0:
@@ -740,11 +871,11 @@ class Annotations:
         # the onset-then-duration hierarchy
         vals = sorted(zip(self.onset, self.duration, range(len(self))))
         order = list(list(zip(*vals))[-1]) if len(vals) else []
-        self.onset = self.onset[order]
-        self.duration = self.duration[order]
-        self.description = self.description[order]
-        self.ch_names = self.ch_names[order]
-        self.extras = [self.extras[i] for i in order]
+        self._onset = self._onset[order]
+        self._duration = self._duration[order]
+        self._description = self._description[order]
+        self._ch_names = self._ch_names[order]
+        self._extras = [self._extras[i] for i in order]
         return order
 
     def _get_crop_lims(self, tmin, tmax, use_orig_time):
@@ -848,12 +979,12 @@ class Annotations:
                 ch_names.append(ch)
                 extras.append(extra)
         logger.debug(f"Cropping complete (kept {len(onsets)})")
-        self.onset = np.array(onsets, float)
-        self.duration = np.array(durations, float)
-        assert (self.duration >= 0).all()
-        self.description = np.array(descriptions, dtype=str)
-        self.ch_names = _ndarray_ch_names(ch_names)
-        self.extras = extras
+        self._onset = np.array(onsets, float)
+        self._duration = np.array(durations, float)
+        assert (self._duration >= 0).all()
+        self._description = np.array(descriptions, dtype=str)
+        self._ch_names = _ndarray_ch_names(ch_names)
+        self._extras = extras
 
         if emit_warning:
             omitted = np.array(out_of_bounds).sum()
@@ -1168,11 +1299,11 @@ class HEDAnnotations(Annotations):
     def __setstate__(self, state):
         """Unpack from serialized format."""
         self._orig_time = state["_orig_time"]
-        self.onset = state["onset"]
-        self.duration = state["duration"]
-        self.description = state["description"]
-        self.ch_names = state["ch_names"]
-        self.extras = state.get("_extras", [None] * len(self.onset))
+        self._onset = state["onset"]
+        self._duration = state["duration"]
+        self._description = state["description"]
+        self._ch_names = state["ch_names"]
+        self._extras = state.get("_extras", [None] * len(self._onset))
         self._hed_version = state["_hed_version"]
         self.hed_string = _HEDStrings(
             state["hed_string"], hed_version=self._hed_version
@@ -1210,6 +1341,10 @@ class HEDAnnotations(Annotations):
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
+        # Write directly to private attributes to avoid triggering the public
+        # setter validation, which would raise an error due to temporary length
+        # mismatches while fields are being extended one at a time.
+        # The data is already validated by _check_o_d_s_c_e above.
         hed_string = self._check_hed_strings(hed_string, len(onset))
         hed_objs = [
             self.hed_string._validate_hed_string(v, self.hed_string._schema)

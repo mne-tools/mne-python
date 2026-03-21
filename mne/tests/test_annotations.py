@@ -1752,6 +1752,33 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa", 2.2})
 
 
+def test_setter_validation():
+    """Test that onset/duration/description/ch_names setters validate length."""
+    annots = Annotations(onset=[1, 3, 2, 4], duration=0, description="foo")
+
+    # onset mismatch should raise
+    with pytest.raises(ValueError, match="Length of onset"):
+        annots.onset = annots.onset[:2]
+
+    # duration mismatch should raise
+    with pytest.raises(ValueError, match="Length of duration"):
+        annots.duration = annots.duration[:2]
+
+    # description mismatch should raise (the bug drammock reported)
+    with pytest.raises(ValueError, match="Length of description"):
+        annots.description = annots.description[:2]
+
+    # scalar duration should broadcast without error
+    annots.duration = 1.0
+    assert len(annots.duration) == 4
+    assert all(annots.duration == 1.0)
+
+    # scalar description should broadcast without error
+    annots.description = "bad"
+    assert len(annots.description) == 4
+    assert all(annots.description == "bad")
+
+
 @pytest.mark.parametrize("meas_date", (None, 1))
 @pytest.mark.parametrize("set_meas_date", ("before", "after"))
 @pytest.mark.parametrize("first_samp", (0, 100, 3000))
