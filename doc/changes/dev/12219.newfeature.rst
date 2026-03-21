@@ -1,0 +1,9 @@
+Add drop_bad_epochs method to :class:mne.Epochs for channel-specific epoch rejection
+
+This method allows users to mark bad epochs on a per-channel basis by setting 
+them to NaN. The 
+nave and 
+nave_per_channel attributes for evokeds are updated 
+accordingly to reflect the number of valid epochs per channel.  
+
+Contributed by `Carina Forster`_.
