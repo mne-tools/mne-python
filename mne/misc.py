@@ -4,6 +4,7 @@
 
 from pathlib import Path
 
+
 def parse_config(fname):
     """Parse a config file (like .ave and .cov files).
 
@@ -23,7 +24,7 @@ def parse_config(fname):
     """
     # Convert fname to Path object to ensure compatibility
     fname = Path(fname)
-    
+
     reject_params = read_reject_parameters(fname)
 
     # Use pathlib to read text and split into lines directly
@@ -41,7 +42,7 @@ def parse_config(fname):
                     break
         else:
             raise ValueError("Could not find event id.")
-        
+
         event_dict[event] = dict(**reject_params)
         for k in range(ind + 1, ind + 7):
             words = lines[k].split()
@@ -74,7 +75,7 @@ def read_reject_parameters(fname):
     """
     # Ensure fname is a Path object
     fname = Path(fname)
-    
+
     # Use pathlib to read lines
     lines = fname.read_text().splitlines()
 
