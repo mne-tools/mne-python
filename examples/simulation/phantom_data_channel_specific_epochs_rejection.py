@@ -56,11 +56,10 @@ est_pos = dipole_allepochs.pos
 
 # Simulate channel-specific epoch rejection
 rng = np.random.RandomState(42)
-# [0.1, 0.3, 0.5, 0.7]
-drop_probs = [0.7]  # fraction of epochs dropped per channel
+drop_probs = [0.1, 0.3, 0.5, 0.7]  # fraction of epochs dropped per channel
 
 # store localisation error
-errors_a, errors_b = [], []
+dipole_a_all, dipole_b_all = [], []
 imbalance_metrics = []
 
 for p in drop_probs:
@@ -91,10 +90,7 @@ for p in drop_probs:
 
     # fit dipole on evoked data after excluding epochs per channel
     dipole_a, _ = fit_dipole(evoked, cov_a, sphere)
-
-    # Dipole localization error relative to dipole estimated from all epochs
-    error_a = np.linalg.norm(dipole_a.pos - est_pos)
-    errors_a.append(error_a)
+    dipole_a_all.append(dipole_a.pos)
 
     # Option B: Scale covariance
     # Compute covariance on all epochs
@@ -107,27 +103,28 @@ for p in drop_probs:
     dipole_b, _ = fit_dipole(evoked, cov_b, sphere)
 
     # Dipole localization error relative to dipole estimated from all epochs
-    error_b = np.linalg.norm(dipole_b.pos - est_pos)
-    errors_b.append(error_b)
+    dipole_b_all.append(dipole_b.pos)
 
     # Option C: Covariance estimation after rejecting bad epochs per channel
 
 
 # Plot results from Option A
-plt.figure(figsize=(7, 5))
-plt.plot(imbalance_metrics, errors_a, "o-", linewidth=2, markersize=8)
-for i, p in enumerate(drop_probs):
-    plt.text(imbalance_metrics[i] + 0.05, errors_a[i] + 0.05, f"p={p:.1f}")
+diffs_a = np.concatenate(
+    [1000 * np.sqrt(np.sum((dip - est_pos) ** 2, axis=-1)) for dip in dipole_a_all]
+)
+diffs_b = np.concatenate(
+    [1000 * np.sqrt(np.sum((dip - est_pos) ** 2, axis=-1)) for dip in dipole_b_all]
+)
+
+# Option A
+plt.bar(imbalance_metrics, diffs_a)
 plt.xlabel("Channel imbalance (std of valid epochs per channel)")
 plt.ylabel("Dipole localization error (m)")
 plt.title("Option A")
 plt.show()
 
 # Option B
-plt.figure(figsize=(7, 5))
-plt.plot(imbalance_metrics, errors_b, "o-", linewidth=2, markersize=8)
-for i, p in enumerate(drop_probs):
-    plt.text(imbalance_metrics[i] + 0.05, errors_b[i] + 0.05, f"p={p:.1f}")
+plt.bar(imbalance_metrics, diffs_b)
 plt.xlabel("Channel imbalance (std of valid epochs per channel)")
 plt.ylabel("Dipole localization error (m)")
 plt.title("Option B")
