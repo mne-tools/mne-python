@@ -22,7 +22,6 @@ def parse_config(fname):
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
     """
-    # Convert fname to Path object to ensure compatibility
     fname = Path(fname)
 
     reject_params = read_reject_parameters(fname)
