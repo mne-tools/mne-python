@@ -51,8 +51,9 @@ def test_parallel_func(n_jobs):
         parallel, p_fun, got_jobs = parallel_func(fun, n_jobs, verbose="debug")
     assert got_jobs == want_jobs
 
+
 def test_parallel_func_n_jobs_none(n_jobs):
-    """test n_jobs=None is same as n_jobs=1"""
+    """Test n_jobs=None is same as n_jobs=1"""
     joblib = pytest.importorskip("joblib")
 
     def fun(x):
@@ -64,11 +65,11 @@ def test_parallel_func_n_jobs_none(n_jobs):
 
     assert parallel_none is parallel_one is list
     assert n_jobs_none == n_jobs_one == 1
-    assert p_fun_none is p_fun_one is fun, 'fun should not be wrapped but is'
+    assert p_fun_none is p_fun_one is fun, "fun should not be wrapped but is"
 
     # Test that n_jobs=None inside a joblib context uses Parallel.
     with joblib.parallel_config(backend="loky", n_jobs=2):
         parallel, p_fun, n_jobs = parallel_func(fun, n_jobs=None)
     assert parallel is not list
     assert n_jobs == 2
-    assert fun is not p_fun, 'fun should be wrapped but is not'
+    assert fun is not p_fun, "fun should be wrapped but is not"
