@@ -82,11 +82,13 @@ def parallel_func(
     if n_jobs != 1:
         try:
             from joblib import Parallel, delayed
+            from joblib.parallel import get_active_backend
         except ImportError:
             if n_jobs is not None:
                 warn("joblib not installed. Cannot run in parallel.")
             n_jobs = 1
-    if n_jobs == 1:
+    if (n_jobs == 1) or \
+       (n_jobs is None and not _running_in_joblib_context()):
         n_jobs = 1
         my_func = func
         parallel = list
@@ -152,6 +154,15 @@ def parallel_func(
     else:
         parallel_out = parallel
     return parallel_out, my_func, n_jobs
+
+def _running_in_joblib_context():
+    """check if we are running in a joblib.parallel_config context manager"""
+    try:
+        from joblib.parallel import get_active_backend
+    except ImportError:
+        return False
+    _, n_jobs = get_active_backend()
+    return not (n_jobs is None)
 
 
 def _check_n_jobs(n_jobs):
