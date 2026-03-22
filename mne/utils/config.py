@@ -463,6 +463,8 @@ def update_config(
     --------
     set_config
 
+    Notes
+    -----
     .. versionadded:: 1.12
     """
     updates = []
