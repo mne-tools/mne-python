@@ -909,8 +909,10 @@ def _permutation_cluster_test(
     Note. X is required to be a list. Depending on the length of X
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
-    Note: By default, the minimum number of neighboring points (e.g., channels)
-    required to form a cluster is 0. This means a single significant point can technically 
+    Note: By default, the minimum number of
+    neighboring points (e.g., channels)
+    required to form a cluster is 0. This means a
+    single significant point can technically
     constitute a cluster.
     """
     _check_option("out_type", out_type, ["mask", "indices"])
