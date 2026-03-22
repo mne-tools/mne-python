@@ -1569,6 +1569,11 @@ def fit_dipole(
     safe_false = _verbose_safe_false()
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem["is_sphere"]:
+        if trans == "identity":  # = trans was passed as None
+            raise ValueError(
+                "`trans` is ``None``, but bem model is not spherical. "
+                "You must pass a valid `trans` in this case."
+            )
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
         inner_skull = inner_skull.copy()
@@ -1652,7 +1657,8 @@ def fit_dipole(
     logger.info("")
 
     _print_coord_trans(mri_head_t)
-    _print_coord_trans(info["dev_head_t"])
+    if info["dev_head_t"]:
+        _print_coord_trans(info["dev_head_t"])
     logger.info(f"{len(info['bads'])} bad channels total")
 
     # Forward model setup (setup_forward_model from setup.c)

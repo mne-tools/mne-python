@@ -65,6 +65,7 @@ test = [
 test_extra = [
   "edfio >= 0.4.10",
   "eeglabio",
+  "hedtools",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
   "jupyter_client",
