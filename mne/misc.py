@@ -26,7 +26,6 @@ def parse_config(fname):
 
     reject_params = read_reject_parameters(fname)
 
-    # Use pathlib to read text and split into lines directly
     lines = fname.read_text().splitlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
