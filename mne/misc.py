@@ -70,7 +70,6 @@ def read_reject_parameters(fname):
     params : dict
         The rejection parameters.
     """
-    # Ensure fname is a Path object
     fname = Path(fname)
 
     # Use pathlib to read lines
