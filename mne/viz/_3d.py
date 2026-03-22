@@ -955,21 +955,27 @@ def plot_alignment(
         # transform to current coord frame
         pos = apply_trans(to_cf_t["head"], pos)
 
-        # compute centroid to determine outward direction for each label
+        # offset labels outward from centroid so they clear the sensor glyphs
         centroid = pos.mean(axis=0)
-        for ch, xyz in zip(chs, pos):
-            direction = xyz - centroid
-            norm = np.linalg.norm(direction)
-            if norm > 0:
-                offset = xyz + 0.01 * direction / norm
-            else:
-                offset = xyz
-            renderer.text3d(
-                *offset,
-                ch["ch_name"],
-                scale=0.0015,
-                color=(1.0, 1.0, 1.0),
-            )
+        directions = pos - centroid
+        norms = np.linalg.norm(directions, axis=1, keepdims=True)
+        norms = np.where(norms > 0, norms, 1)
+        offsets = pos + 0.01 * directions / norms
+
+        labels = [ch["ch_name"] for ch in chs]
+        renderer.plotter.add_point_labels(
+            offsets,
+            labels,
+            font_size=10,
+            text_color=(1.0, 1.0, 1.0),
+            font_family="arial",
+            shadow=True,
+            show_points=False,
+            shape=None,
+            always_visible=True,
+            render=False,
+            reset_camera=False,
+        )
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
