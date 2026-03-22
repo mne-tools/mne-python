@@ -40,7 +40,6 @@ def parse_config(fname):
                     break
         else:
             raise ValueError("Could not find event id.")
-
         event_dict[event] = dict(**reject_params)
         for k in range(ind + 1, ind + 7):
             words = lines[k].split()
