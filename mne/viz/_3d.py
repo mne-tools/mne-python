@@ -968,7 +968,7 @@ def plot_alignment(
                 *offset,
                 ch["ch_name"],
                 scale=0.0015,
-                color=(0.0, 0.0, 0.0),
+                color=(1.0, 1.0, 1.0),
             )
 
     if src is not None:
