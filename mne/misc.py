@@ -71,8 +71,6 @@ def read_reject_parameters(fname):
         The rejection parameters.
     """
     fname = Path(fname)
-
-    # Use pathlib to read lines
     lines = fname.read_text().splitlines()
 
     reject_names = ["gradReject", "magReject", "eegReject", "eogReject", "ecgReject"]
