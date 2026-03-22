@@ -78,7 +78,7 @@ for p in drop_probs:
     imbalance = np.std(per_channel_nave)
     imbalance_metrics.append(imbalance)
 
-    evoked = epochs_nan.average()
+    evoked = epochs_nan.average().crop(t_peak, t_peak)
 
     # Compute covariance using MNE
     # cov = mne.compute_covariance(epochs_nan, method="empirical")
