@@ -53,7 +53,7 @@ def test_parallel_func(n_jobs):
 
 
 def test_parallel_func_n_jobs_none(n_jobs):
-    """Test n_jobs=None is same as n_jobs=1"""
+    """Test n_jobs=None is same as n_jobs=1."""
     joblib = pytest.importorskip("joblib")
 
     def fun(x):
