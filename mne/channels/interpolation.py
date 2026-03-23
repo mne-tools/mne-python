@@ -499,9 +499,9 @@ def _interpolate_to_meg(inst, sensors, origin, mode):
     with info_to._unlock():
         info_to.update(
             {
-                "chs": deepcopy(info_cano["chs"]),
-                "ch_names": deepcopy(info_cano["ch_names"]),
-                "nchan": deepcopy(info_cano["nchan"]),
+                "chs": info_cano["chs"],
+                "ch_names": info_cano["ch_names"],
+                "nchan": info_cano["nchan"],
                 "device_info": None,
                 "helium_info": None,
                 "gantry_angle": None,
