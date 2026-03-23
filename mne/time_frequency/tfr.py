@@ -29,7 +29,6 @@ from ..filter import (
     next_fast_len,
 )
 from ..parallel import parallel_func
-from ..utils.check import _check_preload
 from ..utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -65,6 +64,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils.check import _check_preload
 from ..utils.spectrum import _convert_old_birthday_format, _get_instance_type_string
 from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
 from ..viz.topomap import (

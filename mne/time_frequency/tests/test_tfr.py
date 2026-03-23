@@ -27,6 +27,7 @@ from mne import (
     read_events,
 )
 from mne.epochs import equalize_epoch_counts
+from mne.filter import resample as filter_resample
 from mne.io import read_raw_fif
 from mne.time_frequency import (
     AverageTFR,
@@ -39,7 +40,6 @@ from mne.time_frequency import (
     tfr_array_morlet,
     tfr_array_multitaper,
 )
-from mne.filter import resample as filter_resample
 from mne.time_frequency.tfr import (
     _compute_tfr,
     _make_dpss,
