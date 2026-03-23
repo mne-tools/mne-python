@@ -1,1 +1,1 @@
-Short-circuit :func:`mne.parallel.parallel_func` when ``n_jobs=None`` (equivalent to ``n_jobs=1``) to avoid unnecessary joblib ``Parallel`` overhead, by `Simon Kern`_.
+Avoid some unnecessary computations when ``n_jobs=None`` is equivalent to ``n_jobs=1``, by `Simon Kern`_.
