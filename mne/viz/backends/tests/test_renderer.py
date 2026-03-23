@@ -176,6 +176,36 @@ def test_3d_backend(renderer):
     rend.show()
 
 
+def test_text2d_font_file_passthrough(renderer, monkeypatch):
+    """Test that text2d forwards font_file values to the backend."""
+    rend = renderer.create_3d_figure(
+        size=(300, 300),
+        bgcolor="black",
+        smooth_shading=True,
+        scene=False,
+    )
+    seen = []
+
+    class _DummyActor:
+        def GetTextProperty(self):
+            return None
+
+        def SetVisibility(self, value):
+            return None
+
+    def _add_text(**kwargs):
+        seen.append(kwargs)
+        return _DummyActor()
+
+    monkeypatch.setattr(rend.plotter, "add_text", _add_text)
+    rend.text2d(x_window=0.0, y_window=0.0, text="label", font_file="dummy.ttf")
+    rend.text2d(x_window=0.0, y_window=0.0, text="label", font_file=None)
+
+    assert seen[0]["font_file"] == "dummy.ttf"
+    assert "font_file" in seen[1]
+    assert seen[1]["font_file"] is None
+
+
 def test_get_3d_backend(renderer):
     """Test get_3d_backend function call for side-effects."""
     # Test twice to ensure the first call had no side-effect

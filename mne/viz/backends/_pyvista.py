@@ -737,9 +737,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             font_size=size,
             color=color,
             viewport=True,
+            font_file=font_file,
         )
-        if font_file is not None:
-            kwargs["font_file"] = font_file
         actor = self.plotter.add_text(**kwargs)
         if isinstance(justification, str):
             if justification == "left":
