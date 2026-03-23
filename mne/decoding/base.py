@@ -177,13 +177,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         %(overwrite)s
         %(verbose)s
 
-        See Also
-        --------
-        mne.decoding.read_ssd
-        mne.decoding.read_csp
-        mne.decoding.read_spoc
-        mne.decoding.read_xdawn_transformer
-
         Notes
         -----
         .. versionadded:: 1.12

@@ -168,6 +168,28 @@ class CSP(_GEDTransformer):
 
     _save_fname_type = "csp"
 
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the CSP object to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            The file path to save to. Should end with ``'.h5'`` or
+            ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        mne.decoding.read_csp
+
+        Notes
+        -----
+        .. versionadded:: 1.12
+        """
+        super().save(fname, overwrite=overwrite, verbose=verbose)
+
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
@@ -803,6 +825,28 @@ class SPoC(CSP):
         delattr(self, "norm_trace")
 
     _save_fname_type = "spoc"
+
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the SPoC object to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            The file path to save to. Should end with ``'.h5'`` or
+            ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        mne.decoding.read_spoc
+
+        Notes
+        -----
+        .. versionadded:: 1.12
+        """
+        super().save(fname, overwrite=overwrite, verbose=verbose)
 
     def __sklearn_tags__(self):
         """Tag the transformer."""

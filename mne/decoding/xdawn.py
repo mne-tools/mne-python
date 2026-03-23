@@ -139,6 +139,28 @@ class XdawnTransformer(_GEDTransformer):
         "rank",
     )
 
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the XdawnTransformer object to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            The file path to save to. Should end with ``'.h5'`` or
+            ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        mne.decoding.read_xdawn_transformer
+
+        Notes
+        -----
+        .. versionadded:: 1.12
+        """
+        super().save(fname, overwrite=overwrite, verbose=verbose)
+
     def _restore_callables(self):
         """Restore XdawnTransformer-specific callables after loading state."""
         self.cov_callable = partial(
