@@ -160,6 +160,8 @@ def _get_psf_ctf(
                 "max": "maxnorm",
                 "svd": "pca",
                 "mean": "mean",
+                "sum": "sum",
+                "maxval": "maxval",
             }
             funcs, pca_var = _summarise_psf_ctf(
                 funcs, _mode_map[mode], n_comp, return_pca_vars, nn
@@ -199,10 +201,10 @@ def _get_psf_ctf(
 
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
-    valid_modes = (None, "mean", "max", "svd")
+    valid_modes = (None, "mean", "max", "svd", "sum", "maxval")
     if mode not in valid_modes:
         raise ValueError(f"mode must be one of {valid_modes}, got {mode!r} instead.")
-    if mode in [None, "mean"] and n_comp > 1:
+    if mode in [None, "mean", "sum"] and n_comp > 1:
         msg = f"n_comp must be 1 for mode={mode}."
         raise ValueError(msg)
     if mode != "svd" and return_pca_vars:

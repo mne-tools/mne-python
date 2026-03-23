@@ -68,9 +68,9 @@ def test_resolution_matrix_free(src_type, fwd_volume_small):
     )
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
     # check various summary and normalisation options
-    for mode in [None, "mean", "max", "svd"]:
+    for mode in [None, "mean", "max", "svd", "sum", "maxval"]:
         n_comps = [1, 3]
-        if mode in [None, "sum", "mean"]:
+        if mode in [None, "mean", "sum"]:
             n_comps = [1]
         for n_comp in n_comps:
             for norm in [None, "max", "norm", True]:
@@ -184,9 +184,9 @@ def test_resolution_matrix_fixed():
     # Some arbitrary vertex numbers
     idx = [1, 100, 400]
     # check various summary and normalisation options
-    for mode in [None, "mean", "max", "svd"]:
+    for mode in [None, "mean", "max", "svd", "sum", "maxval"]:
         n_comps = [1, 3]
-        if mode in [None, "mean"]:
+        if mode in [None, "mean", "sum"]:
             n_comps = [1]
         for n_comp in n_comps:
             for norm in [None, "max", "norm", True]:
