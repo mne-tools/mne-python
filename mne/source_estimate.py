@@ -18,7 +18,12 @@ from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_
 from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
-from .filter import FilterMixin, _check_fun, resample
+from .filter import (
+    FilterMixin,
+    _check_fun,
+    _check_resamp_noop,
+    _resample_array_last_axis_real_or_complex,
+)
 from .fixes import _eye_array, _reshape_view, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
@@ -916,8 +921,6 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Note that the sample rate of the original data is inferred from tstep.
         """
-        from .filter import _check_resamp_noop
-
         o_sfreq = 1.0 / self.tstep
         if _check_resamp_noop(sfreq, o_sfreq):
             return self
@@ -926,11 +929,16 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         # different result, so we don't allow it
         self._remove_kernel_sens_data_()
 
-        data = self.data
-        if data.dtype == np.float32:
-            data = data.astype(np.float64)
-        self.data = resample(
-            data, sfreq, o_sfreq, npad=npad, window=window, n_jobs=n_jobs, method=method
+        self.data = _resample_array_last_axis_real_or_complex(
+            self.data,
+            sfreq,
+            o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad="auto",
+            method=method,
+            verbose=verbose,
         )
 
         # adjust indirectly affected variables

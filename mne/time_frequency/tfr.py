@@ -22,8 +22,14 @@ from ..baseline import _check_baseline, rescale
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _find_topomap_coords, _merge_ch_data, _pair_grad_sensors
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..filter import next_fast_len
+from ..filter import (
+    FilterMixin,
+    _check_resamp_noop,
+    _resample_inst_info_times,
+    next_fast_len,
+)
 from ..parallel import parallel_func
+from ..utils.check import _check_preload
 from ..utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -1781,6 +1787,46 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         if isinstance(freq_mask, np.ndarray):
             freq_mask = np.where(freq_mask)[0]
         self._data = self._data[..., freq_mask, :]
+        return self
+
+    @verbose
+    @copy_doc(FilterMixin.resample)
+    def resample(
+        self,
+        sfreq,
+        *,
+        npad="auto",
+        window="auto",
+        n_jobs=None,
+        pad="edge",
+        method="fft",
+        verbose=None,
+    ):
+        """Notes
+        -----
+        Operates along the time dimension (last axis of :attr:`data`), using
+        :func:`mne.filter.resample`. For complex-valued data (e.g. ``output='complex'``),
+        real and imaginary parts are resampled separately.
+
+        .. versionadded:: 1.11.0
+        """
+        sfreq = float(sfreq)
+        o_sfreq = self.info["sfreq"]
+        if _check_resamp_noop(sfreq, o_sfreq):
+            return self
+
+        _check_preload(self, "inst.resample")
+        _resample_inst_info_times(
+            self,
+            sfreq,
+            o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad=pad,
+            method=method,
+            verbose=verbose,
+        )
         return self
 
     def copy(self):

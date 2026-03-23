@@ -39,6 +39,7 @@ from mne.time_frequency import (
     tfr_array_morlet,
     tfr_array_multitaper,
 )
+from mne.filter import resample as filter_resample
 from mne.time_frequency.tfr import (
     _compute_tfr,
     _make_dpss,
@@ -612,6 +613,49 @@ def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
     # shift time should only affect times:
     assert_array_equal(data, tfr.get_data())
     assert_array_equal(freqs, tfr.freqs)
+
+
+@pytest.mark.parametrize(
+    "method,freqs",
+    (
+        pytest.param("morlet", freqs_linspace, id="morlet"),
+        pytest.param("multitaper", freqs_linspace, id="multitaper"),
+    ),
+)
+@pytest.mark.parametrize("output", ("power", "complex"))
+def test_tfr_resample(epochs, method, freqs, output):
+    """Test TFR resampling along time (sfreq, times, data)."""
+    tfr = epochs.compute_tfr(method, freqs=freqs, output=output, decim=1)
+    sfreq_new = epochs.info["sfreq"] / 2.0
+    data_in = tfr.get_data()
+    if output == "complex":
+        want = filter_resample(
+            data_in.real.astype(np.float64),
+            sfreq_new,
+            tfr.sfreq,
+            pad="edge",
+        ) + 1j * filter_resample(
+            data_in.imag.astype(np.float64),
+            sfreq_new,
+            tfr.sfreq,
+            pad="edge",
+        )
+        want = want.astype(data_in.dtype)
+    else:
+        want = filter_resample(
+            np.asarray(data_in, dtype=np.float64),
+            sfreq_new,
+            tfr.sfreq,
+            pad="edge",
+        ).astype(data_in.dtype)
+    t0 = tfr.times[0]
+    tfr_rs = tfr.copy().resample(sfreq_new, pad="edge")
+    assert tfr_rs.sfreq == sfreq_new
+    assert_allclose(tfr_rs.times, np.arange(want.shape[-1]) / sfreq_new + t0)
+    assert_allclose(tfr_rs.get_data(), want, rtol=1e-5, atol=1e-10)
+    # no-op preserves object
+    same = tfr_rs.copy().resample(sfreq_new, pad="edge")
+    assert_allclose(same.get_data(), tfr_rs.get_data())
 
 
 @pytest.mark.slowtest

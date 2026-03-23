@@ -1,0 +1,1 @@
+Add :meth:`mne.time_frequency.BaseTFR.resample` to resample time-frequency objects along time (using :func:`mne.filter.resample`), including complex-valued data.

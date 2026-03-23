@@ -2367,6 +2367,63 @@ def _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
     return False
 
 
+def _resample_array_last_axis_real_or_complex(
+    data,
+    sfreq,
+    o_sfreq,
+    *,
+    npad="auto",
+    window="auto",
+    n_jobs=None,
+    pad="edge",
+    method="fft",
+    verbose=None,
+):
+    """Resample ``data`` along its last axis (public :func:`resample` is real ``float64`` only)."""
+    orig_dtype = data.dtype
+    kw = dict(
+        npad=npad,
+        window=window,
+        n_jobs=n_jobs,
+        pad=pad,
+        method=method,
+        verbose=verbose,
+    )
+    if np.iscomplexobj(data):
+        data = np.asarray(data, dtype=np.complex128)
+        new_real = resample(data.real, sfreq, o_sfreq, **kw)
+        new_imag = resample(data.imag, sfreq, o_sfreq, **kw)
+        out = new_real + 1j * new_imag
+        if orig_dtype != np.complex128:
+            out = out.astype(orig_dtype)
+        return out
+    out = resample(np.asarray(data, dtype=np.float64), sfreq, o_sfreq, **kw)
+    if orig_dtype != np.float64:
+        out = out.astype(orig_dtype)
+    return out
+
+
+def _resample_inst_info_times(inst, sfreq, o_sfreq, **resample_kw):
+    """Resample ``inst._data`` on the last axis; update ``info`` and time bookkeeping.
+
+    Used by :class:`FilterMixin` and :class:`~mne.time_frequency.BaseTFR`. Caller must
+    handle no-op and preload checks. ``sfreq`` and ``o_sfreq`` are rates in Hz.
+    """
+    t0 = inst.times[0]
+    inst._data = _resample_array_last_axis_real_or_complex(
+        inst._data, sfreq, o_sfreq, **resample_kw
+    )
+    lowpass = inst.info.get("lowpass")
+    lowpass = np.inf if lowpass is None else lowpass
+    with inst.info._unlock():
+        inst.info["lowpass"] = min(lowpass, sfreq / 2.0)
+        inst.info["sfreq"] = float(sfreq)
+    new_times = np.arange(inst._data.shape[-1], dtype=np.float64) / sfreq + t0
+    inst._set_times(new_times)
+    inst._raw_times = inst.times
+    inst._update_first_last()
+
+
 class FilterMixin:
     """Object for Epoch/Evoked filtering."""
 
@@ -2641,8 +2698,8 @@ class FilterMixin:
             return self
 
         _check_preload(self, "inst.resample")
-        self._data = resample(
-            self._data,
+        _resample_inst_info_times(
+            self,
             sfreq,
             o_sfreq,
             npad=npad,
@@ -2650,19 +2707,8 @@ class FilterMixin:
             n_jobs=n_jobs,
             pad=pad,
             method=method,
+            verbose=verbose,
         )
-        lowpass = self.info.get("lowpass")
-        lowpass = np.inf if lowpass is None else lowpass
-        with self.info._unlock():
-            self.info["lowpass"] = min(lowpass, sfreq / 2.0)
-            self.info["sfreq"] = float(sfreq)
-        new_times = (
-            np.arange(self._data.shape[-1], dtype=np.float64) / sfreq + self.times[0]
-        )
-        # adjust indirectly affected variables
-        self._set_times(new_times)
-        self._raw_times = self.times
-        self._update_first_last()
         return self
 
     @verbose
