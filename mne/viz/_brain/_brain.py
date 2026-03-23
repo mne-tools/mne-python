@@ -2796,6 +2796,7 @@ class Brain:
         col=0,
         font_size=None,
         justification=None,
+        font_file=None,
     ):
         """Add a text to the visualization.
 
@@ -2824,6 +2825,9 @@ class Brain:
             The font size to use.
         justification : str | None
             The text justification.
+        font_file : path-like | None
+            Path to a ``.ttf`` or ``.ttc`` font file to use for rendering
+            the text. This can be helpful for Unicode glyph coverage.
         """
         _validate_type(name, (str, None), "name")
         name = text if name is None else name
@@ -2840,6 +2844,7 @@ class Brain:
                     color=color,
                     size=font_size,
                     justification=justification,
+                    font_file=font_file,
                 )
                 if "text" not in self._actors:
                     self._actors["text"] = dict()

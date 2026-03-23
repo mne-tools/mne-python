@@ -1,0 +1,1 @@
+Added a ``font_file`` parameter to ``brain.add_text()`` so custom font files (``.ttf``/``.ttc``) can be provided for improved Unicode glyph rendering in PyVista-backed brain figures.

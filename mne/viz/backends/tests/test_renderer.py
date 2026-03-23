@@ -167,6 +167,7 @@ def test_3d_backend(renderer):
         text=txt_text,
         size=txt_size,
         justification="right",
+        font_file=None,
     )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(

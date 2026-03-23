@@ -720,13 +720,27 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor, mesh
 
     def text2d(
-        self, x_window, y_window, text, size=14, color="white", justification=None
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
     ):
         size = 14 if size is None else size
         position = (x_window, y_window)
-        actor = self.plotter.add_text(
-            text, position=position, font_size=size, color=color, viewport=True
+        kwargs = dict(
+            text=text,
+            position=position,
+            font_size=size,
+            color=color,
+            viewport=True,
         )
+        if font_file is not None:
+            kwargs["font_file"] = font_file
+        actor = self.plotter.add_text(**kwargs)
         if isinstance(justification, str):
             if justification == "left":
                 actor.GetTextProperty().SetJustificationToLeft()
