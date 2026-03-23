@@ -1,0 +1,1 @@
+Added a ``font_file`` parameter to :meth:`mne.viz.Brain.add_text` to allow custom ``.ttf``/``.ttc`` fonts for improved Unicode glyph rendering, by `Pragnya Khandelwal`_.
