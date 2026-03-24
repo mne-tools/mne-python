@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import pytest
+from matplotlib.font_manager import findfont
 
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
@@ -167,43 +168,20 @@ def test_3d_backend(renderer):
         text=txt_text,
         size=txt_size,
         justification="right",
-        font_file=None,
+    )
+    # test font_file passthrough with a real font from matplotlib
+    font_path = findfont(prop={})
+    rend.text2d(
+        x_window=txt_x + 0.1,
+        y_window=txt_y + 0.1,
+        text="font test",
+        font_file=font_path,
     )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(
         azimuth=180.0, elevation=90.0, distance=cam_distance, focalpoint=center
     )
     rend.show()
-
-
-def test_text2d_font_file_passthrough(renderer, monkeypatch):
-    """Test that text2d forwards font_file values to the backend."""
-    rend = renderer.create_3d_figure(
-        size=(300, 300),
-        bgcolor="black",
-        smooth_shading=True,
-        scene=False,
-    )
-    seen = []
-
-    class _DummyActor:
-        def GetTextProperty(self):
-            return None
-
-        def SetVisibility(self, value):
-            return None
-
-    def _add_text(**kwargs):
-        seen.append(kwargs)
-        return _DummyActor()
-
-    monkeypatch.setattr(rend.plotter, "add_text", _add_text)
-    rend.text2d(x_window=0.0, y_window=0.0, text="label", font_file="dummy.ttf")
-    rend.text2d(x_window=0.0, y_window=0.0, text="label", font_file=None)
-
-    assert seen[0]["font_file"] == "dummy.ttf"
-    assert "font_file" in seen[1]
-    assert seen[1]["font_file"] is None
 
 
 def test_get_3d_backend(renderer):

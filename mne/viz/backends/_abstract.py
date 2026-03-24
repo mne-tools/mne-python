@@ -503,9 +503,12 @@ class _AbstractRenderer(ABC):
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
         justification : str | None
-            The text justification.
-        font_file : path-like | None
-            Path to a ``.ttf`` or ``.ttc`` font file for rendering text.
+            The text justification. Can be 'left', 'center', or 'right'.
+        font_file : str | None
+            Path to an absolute path of a font file to use for rendering
+            the text. FreeType is used for loading, supporting many font
+            formats beyond ``.ttf`` and ``.ttc``. This can be helpful for
+            non-ASCII glyph coverage.
         """
         pass
 

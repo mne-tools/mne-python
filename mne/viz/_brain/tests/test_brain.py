@@ -538,7 +538,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match="already exists"):
         brain.add_text(x=0, y=0, text="foo")
     brain.remove_text("foo")
-    brain.add_text(x=0, y=0, text="foo", font_file=None)
+    brain.add_text(x=0, y=0, text="foo")
     brain.remove_text()
 
     brain.close()

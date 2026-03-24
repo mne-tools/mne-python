@@ -2825,9 +2825,11 @@ class Brain:
             The font size to use.
         justification : str | None
             The text justification.
-        font_file : path-like | None
-            Path to a ``.ttf`` or ``.ttc`` font file to use for rendering
-            the text. This can be helpful for Unicode glyph coverage.
+        font_file : str | None
+            Path to an absolute path of a font file to use for rendering
+            the text. FreeType is used for loading, supporting many font
+            formats beyond ``.ttf`` and ``.ttc``. This can be helpful for
+            non-ASCII glyph coverage.
         """
         _validate_type(name, (str, None), "name")
         name = text if name is None else name
