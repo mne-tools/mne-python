@@ -21,12 +21,13 @@ from numpy.testing import (
 
 import mne.channels.montage
 from mne import (
-    __file__ as _mne_file,
-)
-from mne import (
+    EpochsArray,
     create_info,
     pick_types,
     read_evokeds,
+)
+from mne import (
+    __file__ as _mne_file,
 )
 from mne._fiff._digitization import (
     _count_points_by_type,
@@ -2145,3 +2146,28 @@ def test_fnirs_montage():
     raw.set_channel_types({ch_name: "eeg" for ch_name in raw.ch_names[-2:]})
     with pytest.raises(ValueError, match="mix of fNIRS"):
         raw.get_montage()
+
+
+def test_set_montage_meg_eeg_no_digitization():
+    """Regression test for GH-12011.
+
+    set_montage() must not crash when MEG+EEG info has EEG reference
+    positions set to the [1, 0, 0] sentinel (digitization was skipped).
+    """
+    ch_names = [f"EEG{i:03d}" for i in range(1, 11)] + ["MEG0111"]
+    ch_types = ["eeg"] * 10 + ["grad"]
+    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types=ch_types)
+
+    # Simulate MEG reader behaviour when digitization is skipped:
+    # EEG ref position (loc[3:6]) is set to the [1, 0, 0] sentinel
+    with info._unlock():
+        for ch in info["chs"]:
+            if ch["ch_name"].startswith("EEG"):
+                ch["loc"][3:6] = [1.0, 0.0, 0.0]
+
+    data = np.zeros((1, len(ch_names), 100))
+    epochs = EpochsArray(data, info)
+
+    # This must not raise IndexError (regression test for GH-12011)
+    montage = make_standard_montage("standard_1020")
+    epochs.set_montage(montage, on_missing="ignore")

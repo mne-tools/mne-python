@@ -1,0 +1,1 @@
+Fix bug in when reading EDF/GDF files where non-positive lowpass values were not handled correctly, now mapping them to the Nyquist frequency to prevent errors during plotting, by :newcontrib:`Hansuja Budhiraja`.
