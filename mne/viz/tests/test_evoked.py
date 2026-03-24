@@ -466,7 +466,7 @@ def test_plot_compare_evokeds(evoked):
     plt.close("all")  # close the previous figures as to avoid a too many figs warning
     info_tmp = mne.create_info(["pupil_left"], evoked.info["sfreq"], ["pupil"])
     evoked_et = mne.EvokedArray(np.ones_like(evoked.times).reshape(1, -1), info_tmp)
-    figs = plot_compare_evokeds(evoked_et, show_sensors=False)
+    figs = plot_compare_evokeds(evoked_et, show_sensors=False, picks="eyetrack")
     assert len(figs) == 1
     # test plotting only invalid channel types
     info_tmp = mne.create_info(["ias"], evoked.info["sfreq"], ["ias"])
