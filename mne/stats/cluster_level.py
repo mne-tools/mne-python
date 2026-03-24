@@ -909,11 +909,6 @@ def _permutation_cluster_test(
     Note. X is required to be a list. Depending on the length of X
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
-    Note: By default, the minimum number of
-    neighboring points (e.g., channels)
-    required to form a cluster is 0. This means
-    a single significant point can technically
-    constitute a cluster.
     """
     _check_option("out_type", out_type, ["mask", "indices"])
     _check_option("tail", tail, [-1, 0, 1])
@@ -1248,6 +1243,10 @@ def permutation_cluster_test(
     References
     ----------
     .. footbibliography::
+    Note: By default, the minimum number of neighboring
+    points (e.g., channels) required to form a cluster is 0.
+    This means a single significant point can
+    technically constitute a cluster.
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, "between")
     return _permutation_cluster_test(
@@ -1548,6 +1547,10 @@ def spatio_temporal_cluster_test(
     References
     ----------
     .. footbibliography::
+    Note: By default, the minimum number of neighboring
+    points (e.g., channels) required to form a cluster is 0.
+    This means a single significant point can
+    technically constitute a cluster.
     """
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
