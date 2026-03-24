@@ -1,0 +1,1 @@
+Fix misleading :exc:`TypeError` when no ECG events are found in :func:`~mne.preprocessing.find_ecg_events` by correcting empty array dtype, and raise a clear :exc:`ValueError` early in :func:`~mne.preprocessing.create_ecg_epochs` when no events are found, by :newcontrib:`Hansuja Budhiraja`.
