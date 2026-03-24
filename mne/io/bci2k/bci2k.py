@@ -12,6 +12,17 @@ from ...utils import verbose
 from ..base import BaseRaw
 
 
+def _parse_sampling_rate(val):
+    # Accept e.g. "256", "256Hz", "256.0 Hz"
+    text = str(val).strip()
+    text = re.sub(r"\s*Hz\s*$", "", text, flags=re.IGNORECASE)
+    # Grab the first float-looking token
+    m = re.search(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", text)
+    if m is None:
+        raise ValueError(f"Could not parse SamplingRate from {val!r}")
+    return float(m.group(0))
+
+
 def _parse_bci2k_header(fname):
     """Parse minimal BCI2000 .dat header.
 
@@ -26,16 +37,6 @@ def _parse_bci2k_header(fname):
     header = {}
     params = {}
     state_defs = {}
-
-    def _parse_sampling_rate(val):
-        # Accept e.g. "256", "256Hz", "256.0 Hz"
-        text = str(val).strip()
-        text = re.sub(r"\s*Hz\s*$", "", text, flags=re.IGNORECASE)
-        # Grab the first float-looking token
-        m = re.search(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", text)
-        if m is None:
-            raise ValueError(f"Could not parse SamplingRate from {val!r}")
-        return float(m.group(0))
 
     current_section = ""
 

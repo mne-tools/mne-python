@@ -21,9 +21,13 @@ import mne
 # %%
 # First, we download the sample BCI2000 ``.dat`` file using :mod:`pooch`.
 
+data_dir = mne.datasets.default_path() / "bci2k_data"
+data_dir.mkdir(exist_ok=True)
+
 fname = pooch.retrieve(
     url="https://raw.githubusercontent.com/mne-tools/mne-testing-data/master/BCI2k/bci2k_test.dat",
     known_hash="sha256:8efc7b5f700660a044086cb1449806ca408c2e6d32d9338c32e1bf31ce3ca9cb",
+    path=data_dir,
 )
 
 # %%
