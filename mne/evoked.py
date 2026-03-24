@@ -830,7 +830,7 @@ class Evoked(
         frame_rate : int | None
             Frame rate for the animation in Hz. If None,
             frame rate = sfreq / 10. Defaults to None.
-        cmap : str | Colormap | None
+        cmap : matplotlib colormap | None
             The colormap to use for plotting. If None, the colormap is chosen
             based on the data values (see Notes). Defaults to None.
             If the data contains only non-negative values, the "Reds" colormap
