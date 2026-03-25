@@ -149,41 +149,19 @@ class SSD(_GEDTransformer):
         )
 
     _required_state_keys = (
-        "info",
-        "filt_params_signal",
-        "filt_params_noise",
-        "reg",
-        "n_components",
-        "picks",
-        "sort_by_spectral_ratio",
-        "return_filtered",
-        "n_fft",
         "cov_method_params",
-        "restr_type",
+        "filt_params_noise",
+        "filt_params_signal",
+        "info",
+        "n_components",
+        "n_fft",
+        "picks",
         "rank",
+        "reg",
+        "restr_type",
+        "return_filtered",
+        "sort_by_spectral_ratio",
     )
-
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the SSD object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or
-            ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_ssd
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        super().save(fname, overwrite=overwrite, verbose=verbose)
 
     def _restore_callables(self):
         """Restore SSD-specific callables after loading state."""

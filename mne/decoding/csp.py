@@ -168,28 +168,6 @@ class CSP(_GEDTransformer):
 
     _save_fname_type = "csp"
 
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the CSP object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or
-            ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_csp
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        super().save(fname, overwrite=overwrite, verbose=verbose)
-
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
@@ -198,17 +176,17 @@ class CSP(_GEDTransformer):
         return tags
 
     _required_state_keys = (
-        "n_components",
-        "reg",
-        "log",
-        "cov_est",
-        "transform_into",
-        "norm_trace",
-        "cov_method_params",
-        "restr_type",
-        "info",
-        "rank",
         "component_order",
+        "cov_est",
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "norm_trace",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
     )
 
     def _restore_callables(self):
@@ -826,28 +804,6 @@ class SPoC(CSP):
 
     _save_fname_type = "spoc"
 
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
-        """Save the SPoC object to disk (in HDF5 format).
-
-        Parameters
-        ----------
-        fname : path-like
-            The file path to save to. Should end with ``'.h5'`` or
-            ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
-
-        See Also
-        --------
-        mne.decoding.read_spoc
-
-        Notes
-        -----
-        .. versionadded:: 1.12
-        """
-        super().save(fname, overwrite=overwrite, verbose=verbose)
-
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
@@ -855,14 +811,14 @@ class SPoC(CSP):
         return tags
 
     _required_state_keys = (
-        "n_components",
-        "reg",
-        "log",
-        "transform_into",
         "cov_method_params",
-        "restr_type",
         "info",
+        "log",
+        "n_components",
         "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
     )
 
     def _restore_callables(self):

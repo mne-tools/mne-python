@@ -149,7 +149,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     def _restore_callables(self):
         """Restore callables after loading serialized state."""
-        pass
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement _restore_callables()."
+        )
 
     def __setstate__(self, state):
         """Restore state from serialization."""
@@ -157,8 +159,12 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         missing = [k for k in required_state_keys if k not in state]
         if missing:
             raise ValueError(
-                f"State dict is missing required keys: {missing}. "
-                "The state may be from an incompatible version of MNE."
+                f"Cannot read file as type {type(self).__name__}, "
+                f"it is missing required keys: {missing}. "
+                "Please report this to MNE developers "
+                "(https://github.com/mne-tools/mne-python/issues/new) "
+                "and include a copy of this entire traceback and a link "
+                "to the problematic file with your report."
             )
         if "info" in state and isinstance(state["info"], dict):
             state["info"] = Info(**state["info"])
