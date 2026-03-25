@@ -63,7 +63,7 @@ def regress_artifact(
 
     Returns
     -------
-    inst : instance of Epochs | Raw
+    inst : same type as the input data
         The processed data.
     betas : ndarray, shape (n_picks, n_picks_ref)
         The betas used during regression.

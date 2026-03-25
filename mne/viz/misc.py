@@ -23,7 +23,6 @@ from .._fiff.pick import (
     _picks_by_type,
     pick_channels,
     pick_info,
-    pick_types,
 )
 from .._fiff.proj import make_projector
 from .._freesurfer import _check_mri, _mri_orientation, _read_mri_info, _reorient_image
@@ -53,18 +52,12 @@ from .utils import (
 )
 
 
-def _index_info_cov(info, cov, exclude):
-    if exclude == "bads":
-        exclude = info["bads"]
-    info = pick_info(info, pick_channels(info["ch_names"], cov["names"], exclude))
-    del exclude
+def _get_ch_type_metadata(info, ch_names):
+    """Get indices, titles, units, scalings, and types for plottable channel types."""
+    info_ch_names = info["ch_names"]
     picks_list = _picks_by_type(info, meg_combined=False, ref_meg=False, exclude=())
     picks_by_type = dict(picks_list)
 
-    ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
-    ch_idx = [cov.ch_names.index(n) for n in ch_names]
-
-    info_ch_names = info["ch_names"]
     idx_by_type = defaultdict(list)
     for ch_type, sel in picks_by_type.items():
         idx_by_type[ch_type] = [
@@ -72,16 +65,43 @@ def _index_info_cov(info, cov, exclude):
             for c in sel
             if info_ch_names[c] in ch_names
         ]
-    idx_names = [
-        (
-            idx_by_type[key],
-            f"{DEFAULTS['titles'][key]} covariance",
-            DEFAULTS["units"][key],
-            DEFAULTS["scalings"][key],
-            key,
+
+    indices = []
+    titles = []
+    units = []
+    scalings = []
+    ch_types = []
+    for key in _DATA_CH_TYPES_SPLIT:
+        if len(idx_by_type[key]) > 0:
+            indices.append(idx_by_type[key])
+            titles.append(DEFAULTS["titles"][key])
+            units.append(DEFAULTS["units"][key])
+            scalings.append(DEFAULTS["scalings"][key])
+            ch_types.append(key)
+    if len(indices) == 0:
+        raise RuntimeError(
+            "No plottable channel types found. "
+            f"Allowed types are: {_DATA_CH_TYPES_SPLIT}"
         )
-        for key in _DATA_CH_TYPES_SPLIT
-        if len(idx_by_type[key]) > 0
+    return indices, titles, units, scalings, ch_types
+
+
+def _index_info_cov(info, cov, exclude):
+    """Pick cov data and get metadata for present, plottable data channel types."""
+    if exclude == "bads":
+        exclude = info["bads"]
+    info = pick_info(info, pick_channels(info["ch_names"], cov["names"], exclude))
+    del exclude
+
+    ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
+    ch_idx = [cov.ch_names.index(n) for n in ch_names]
+
+    indices, titles, units, scalings, ch_types = _get_ch_type_metadata(info, ch_names)
+    idx_names = [
+        (idx, f"{title} covariance", unit, scaling, key)
+        for idx, title, unit, scaling, key in zip(
+            indices, titles, units, scalings, ch_types
+        )
     ]
     C = cov.data[ch_idx][:, ch_idx]
     return info, C, ch_names, idx_names
@@ -1483,39 +1503,16 @@ def plot_csd(
         raise ValueError('"mode" should be either "csd" or "coh".')
 
     if info is not None:
-        info_ch_names = info["ch_names"]
-        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude=[])
-        sel_mag = pick_types(info, meg="mag", eeg=False, ref_meg=False, exclude=[])
-        sel_grad = pick_types(info, meg="grad", eeg=False, ref_meg=False, exclude=[])
-        idx_eeg = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_eeg
-            if info_ch_names[c] in csd.ch_names
-        ]
-        idx_mag = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_mag
-            if info_ch_names[c] in csd.ch_names
-        ]
-        idx_grad = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_grad
-            if info_ch_names[c] in csd.ch_names
-        ]
-        indices = [idx_eeg, idx_mag, idx_grad]
-        titles = ["EEG", "Magnetometers", "Gradiometers"]
-
-        if mode == "csd":
-            # The units in which to plot the CSD
-            units = dict(eeg="µV²", grad="fT²/cm²", mag="fT²")
-            scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
+        indices, titles, units, scalings, ch_types = _get_ch_type_metadata(
+            info, csd.ch_names
+        )
     else:
         indices = [np.arange(len(csd.ch_names))]
+        units = [""]
+        scalings = [1]
+        ch_types = [None]
         if mode == "csd":
             titles = ["Cross-spectral density"]
-            # Units and scaling unknown
-            units = dict()
-            scalings = dict()
         elif mode == "coh":
             titles = ["Coherence"]
 
@@ -1526,10 +1523,9 @@ def plot_csd(
     n_rows = int(np.ceil(n_freqs / float(n_cols)))
 
     figs = []
-    for ind, title, ch_type in zip(indices, titles, ["eeg", "mag", "grad"]):
-        if len(ind) == 0:
-            continue
-
+    for ind, title, unit, scaling, ch_type in zip(
+        indices, titles, units, scalings, ch_types
+    ):
         fig, axes = plt.subplots(
             n_rows,
             n_cols,
@@ -1542,7 +1538,7 @@ def plot_csd(
         for i in range(len(csd.frequencies)):
             cm = csd.get_data(index=i)[ind][:, ind]
             if mode == "csd":
-                cm = np.abs(cm) * scalings.get(ch_type, 1)
+                cm = np.abs(cm) * scaling**2
             elif mode == "coh":
                 # Compute coherence from the CSD matrix
                 psd = np.diag(cm).real
@@ -1566,8 +1562,10 @@ def plot_csd(
             cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
             if mode == "csd":
                 label = "CSD"
-                if ch_type in units:
-                    label += f" ({units[ch_type]})"
+                if ch_type is not None:
+                    if "/" in unit:
+                        unit = f"({unit})"
+                    label += f" ({unit}²)"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")
