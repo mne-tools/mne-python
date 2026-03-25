@@ -1,7 +1,7 @@
-import nibabel as nib
-import numpy as np
 import vedo
-from scipy.special import KDTree
+import numpy as np
+import nibabel as nib
+from scipy.spatial import KDTree
 
 from .._fiff.constants import FIFF
 from ..surface import _CheckInside
