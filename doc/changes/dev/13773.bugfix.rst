@@ -1,0 +1,1 @@
+Improved channel name label rendering in :func:`mne.viz.plot_alignment` when using ``show_channel_names=True`` by reducing overlap, adding a shadow for contrast, and offsetting labels outward from sensor positions, by `Aman Srivastava`_.
