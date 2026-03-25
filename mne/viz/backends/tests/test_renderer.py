@@ -170,7 +170,7 @@ def test_3d_backend(renderer):
         justification="right",
     )
     # test font_file passthrough with a real font from matplotlib
-    font_path = findfont(prop={})
+    font_path = findfont("serif")
     rend.text2d(
         x_window=txt_x + 0.1,
         y_window=txt_y + 0.1,
