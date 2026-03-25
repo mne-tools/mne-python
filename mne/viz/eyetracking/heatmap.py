@@ -55,17 +55,22 @@ def aoi_dwell_time(
         y_data = np.nanmean(y_data, axis=1)
 
     # check if outside the aoi range
-    aoi_hitboxes = ((x_data >= xrange[0]) & (x_data <= xrange[1]) &
-                    (y_data >= yrange[0]) & (y_data <= yrange[1])).astype(int)
+    aoi_hitboxes = (
+        (x_data >= xrange[0])
+        & (x_data <= xrange[1])
+        & (y_data >= yrange[0])
+        & (y_data <= yrange[1])
+    ).astype(int)
 
     if avg_samples == False:
         # aoi total dwell time per sample
         dwell_times = np.sum(np.squeeze(aoi_hitboxes), axis=1) / epochs.info["sfreq"]
     else:
-        dwell_times = np.mean(np.sum(np.squeeze(aoi_hitboxes), axis=1)) / epochs.info["sfreq"]
-        
-    return  dwell_times
+        dwell_times = (
+            np.mean(np.sum(np.squeeze(aoi_hitboxes), axis=1)) / epochs.info["sfreq"]
+        )
 
+    return dwell_times
 
 
 def plot_gaze(
@@ -209,6 +214,7 @@ def plot_gaze(
         axes=axes,
         show=show,
     )
+
 
 def _plot_heatmap_array(
     data,
