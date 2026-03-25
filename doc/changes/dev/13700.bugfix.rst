@@ -1,1 +1,1 @@
-Avoid raising an error when setting montage on a :func:`~mne.channels.DigMontage` of MEG+EEG recordings, when EEG reference positions were set to the placeholder value ``[1, 0, 0]`` (i.e., digitization was not performed), by `Famous077`_.
+Avoid raising an error when setting montage on a :class:`~mne.channels.DigMontage` of MEG+EEG recordings, when EEG reference positions were set to the placeholder value ``[1, 0, 0]`` (i.e., digitization was not performed), by `Famous077`_.
