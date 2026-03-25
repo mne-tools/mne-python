@@ -1389,8 +1389,8 @@ class ICA(ContainsMixin):
         score_func="pearsonr",
         start=None,
         stop=None,
-        l_freq=None,
-        h_freq=None,
+        l_freq: float | None = None,
+        h_freq: float | None = None,
         reject_by_annotation=True,
         verbose=None,
     ):
@@ -1641,10 +1641,10 @@ class ICA(ContainsMixin):
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
             When working with Epochs or Evoked objects, must be float or None.
-        l_freq : float
-            Low pass frequency.
-        h_freq : float
-            High pass frequency.
+        l_freq : float | None
+            Low cut-off frequency. If None, no filtering is applied.
+        h_freq : float | None
+            High cut-off frequency. If None, no filtering is applied.
         method : 'ctps' | 'correlation'
             The method used for detection. If ``'ctps'``, cross-trial phase
             statistics :footcite:`DammersEtAl2008` are used to detect
