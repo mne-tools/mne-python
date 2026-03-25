@@ -22,12 +22,10 @@ def parse_config(fname):
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
     """
-    # Convert fname to Path object to ensure compatibility
     fname = Path(fname)
 
     reject_params = read_reject_parameters(fname)
 
-    # Use pathlib to read text and split into lines directly
     lines = fname.read_text().splitlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
@@ -42,7 +40,6 @@ def parse_config(fname):
                     break
         else:
             raise ValueError("Could not find event id.")
-
         event_dict[event] = dict(**reject_params)
         for k in range(ind + 1, ind + 7):
             words = lines[k].split()
@@ -73,10 +70,7 @@ def read_reject_parameters(fname):
     params : dict
         The rejection parameters.
     """
-    # Ensure fname is a Path object
     fname = Path(fname)
-
-    # Use pathlib to read lines
     lines = fname.read_text().splitlines()
 
     reject_names = ["gradReject", "magReject", "eegReject", "eogReject", "ecgReject"]
