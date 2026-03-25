@@ -62,7 +62,7 @@ def aoi_dwell_time(
         & (y_data <= yrange[1])
     ).astype(int)
 
-    if avg_samples == False:
+    if not avg_samples:
         # aoi total dwell time per sample
         dwell_times = np.sum(np.squeeze(aoi_hitboxes), axis=1) / epochs.info["sfreq"]
     else:
