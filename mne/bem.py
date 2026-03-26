@@ -1316,7 +1316,7 @@ def make_watershed_bem(
     try:
         run_subprocess_env(cmd)
     except FileNotFoundError:
-       raise RuntimeError(
+        raise RuntimeError(
             "FreeSurfer executable 'mri_watershed' not found.\n\n"
             "This usually means FreeSurfer is not properly configured.\n"
             "Make sure:\n"
@@ -1324,7 +1324,7 @@ def make_watershed_bem(
             "- $FREESURFER_HOME/bin is in your PATH\n"
             "- You started Python/Jupyter from a terminal where FreeSurfer is sourced\n\n"
             "See MNE installation documentation for details."
-       )
+        )
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
