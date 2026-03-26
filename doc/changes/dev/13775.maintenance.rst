@@ -1,1 +1,1 @@
-Modernized path handling in :func:mne.viz.parse_config and :func:mne.viz.read_reject_parameters to use pathlib, by Akhila Thammenenwar.
+Modernize path handling in ``mne/misc.py`` using ``pathlib``, by `Akhila Thammenenwar`_.
