@@ -149,9 +149,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     def _restore_callables(self):
         """Restore callables after loading serialized state."""
-        raise NotImplementedError(
-            f"{type(self).__name__} does not implement _restore_callables()."
-        )
+        # Expected to be implemented in child classes
+        pass
 
     def __setstate__(self, state):
         """Restore state from serialization."""
