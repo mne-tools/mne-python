@@ -35,7 +35,6 @@ fig = plot_alignment(
     meg=[],
     coord_frame="head",
     subjects_dir=subjects_dir,
-    # show_channel_names=True renders readable labels with shadow and outward offset
     show_channel_names=True,
 )
 
