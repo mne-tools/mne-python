@@ -182,9 +182,9 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
 @pytest.mark.parametrize("seed", [0, 42, 1337])
 def test_f_oneway_hat(sigma, method, seed):
     """Test f_oneway hat (low-variance) regularization."""
-    rng = np.random.RandomState(seed)
-    X1 = rng.randn(10, 50)
-    X2 = rng.randn(10, 50)
+    rng = np.random.default_rng(seed)
+    X1 = rng.standard_normal(size=(10, 50))
+    X2 = rng.standard_normal(size=(10, 50))
 
     f_ours = f_oneway(X1, X2, sigma=0.0, method=method)
     f_scipy = scipy.stats.f_oneway(X1, X2)[0]
@@ -219,10 +219,6 @@ def test_f_oneway_hat_input_validation():
     rng = np.random.RandomState(0)
     X1 = rng.randn(5, 10)
     X2 = rng.randn(5, 10)
-
-    f_plain = f_oneway(X1, X2, sigma=0.0)
-    f_scipy = scipy.stats.f_oneway(X1, X2)[0]
-    assert_allclose(f_plain, f_scipy, rtol=1e-7)
 
     with pytest.raises(ValueError, match="sigma must be >= 0"):
         f_oneway(X1, X2, sigma=-0.1)
