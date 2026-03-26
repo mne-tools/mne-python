@@ -1429,6 +1429,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                         ha="center",
                         va="top",
                         color=segment_color,
+                        zorder=self.mne.zorder["ann_text"],
                     )
                     self.mne.annotation_texts.append(text)
         self.mne.onscreen_annotations = onscreen_annotations
