@@ -1,1 +1,1 @@
-Modernize path handling in ``mne/misc.py`` using ``pathlib``, by `Akhila Thammenenwar`_.
+Modernize path handling in ``mne/misc.py`` using ``pathlib``, by :newcontrib:`Akhila Thammenenwar`.
