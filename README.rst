@@ -93,6 +93,10 @@ Please see the `contributing guidelines <https://mne.tools/dev/development/contr
 
 About
 ^^^^^
+MNE-Python is a community-driven project.
+It provides state-of-the-art statistical tools
+and machine learning integration for neuroimaging data analysis,
+making it a vital resource for the global neuroscience research community.
 
 +---------+------------+----------------+
 | CI      | |Codecov|  | |Bandit|       |
