@@ -35,6 +35,8 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
 echo "::endgroup::"
+# Until https://github.com/scikit-learn/scikit-learn/issues/33616 is fixed
+python -m pip install $STD_ARGS --only-binary ":all:" "scipy==1.17.1"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
