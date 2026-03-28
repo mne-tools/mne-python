@@ -434,7 +434,7 @@ showcontent = true
 
 [[tool.towncrier.type]]
 directory = "apichange"
-name = "API changes by deprecation"
+name = "API changes"
 showcontent = true
 
 [[tool.towncrier.type]]
