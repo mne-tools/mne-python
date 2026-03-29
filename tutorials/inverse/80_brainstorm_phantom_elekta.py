@@ -98,14 +98,11 @@ t_peak = times[strongest_peak_idx]
 print(f"Strongest peak at {t_peak * 1000:.1f} ms")
 
 # Here we store the evoked data for each dipole at the peak amplitude.
-data = []
+evokeds = []
 for ii in event_id:
     evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
-    data.append(evoked.data[:, 0])
-
-# Finally, we store the evokeds from all dipoles as an evoked,
-# treating every dipole as a timepoint.
-evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
+    evoked = mne.EvokedArray(np.array(evoked.data), evoked.info, tmin=0.0)
+    evokeds.append(evoked)
 
 # Next, we need to compute the noise covariance to capture the sensor noise structure.
 # We use the baseline window to estimate covariance.
@@ -120,12 +117,16 @@ subjects_dir = data_path
 fetch_phantom("otaniemi", subjects_dir=subjects_dir)
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 
+dip_all, residuals_all = [], []
 # Let's finally fit all 32 phantom dipoles.
-dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
+for evoked in evokeds:
+    dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
+    dip_all.append(dip)
+    residuals_all.append(residual)
 # %%
 # Let's visualize the explained variance.
 # The dipole object stores the goodness of fit (GOF) for each dipole.
-gof = dip.gof  # array of GOF values
+gof = [dip.gof[0] for dip in dip_all]  # array of GOF values
 
 # Define colorblind-friendly colors
 colors = ["#E69F00" if val < 60 else "#0072B2" for val in gof]
@@ -142,6 +143,10 @@ plt.show()
 # Finally, we compare the estimated to the true dipole locations.
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 200.0  # nAm
+# dipole estimations
+dip_pos = [dip.pos[0] for dip in dip_all]
+dip_ori = [dip.ori[0] for dip in dip_all]
+dip_amplitude = [dip.amplitude[0] for dip in dip_all]
 
 fig, (ax1, ax2, ax3) = plt.subplots(
     nrows=3, ncols=1, figsize=(6, 7), layout="constrained"
@@ -149,7 +154,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(
 
 # Here we calculate the euclidean distance between estimated and true positions.
 # We multiply by 1000 to convert from meter to millimeter.
-diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
+diffs = 1000 * np.sqrt(np.sum((dip_pos - actual_pos) ** 2, axis=-1))
 print(f"mean(position error) = {np.mean(diffs):0.1f} mm")
 ax1.bar(event_id, diffs)
 ax1.set_xlabel("Dipole index")
@@ -157,14 +162,14 @@ ax1.set_ylabel("Loc. error (mm)")
 
 # Next we calculate the angle between estimated and true orientation.
 # We convert radians to degrees.
-angles = np.rad2deg(np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1))))
+angles = np.rad2deg(np.arccos(np.abs(np.sum(dip_ori * actual_ori, axis=1))))
 print(f"mean(angle error) = {np.mean(angles):0.1f}°")
 ax2.bar(event_id, angles)
 ax2.set_xlabel("Dipole index")
 ax2.set_ylabel("Angle error (°)")
 
 # Finally we compare amplitudes by subtracting estimated from true amplitude.
-amps = actual_amp - dip.amplitude / 1e-9
+amps = actual_amp - np.array(dip_amplitude) / 1e-9
 print(f"mean(abs amplitude error) = {np.mean(np.abs(amps)):0.1f} nAm")
 ax3.bar(event_id, amps)
 ax3.set_xlabel("Dipole index")
