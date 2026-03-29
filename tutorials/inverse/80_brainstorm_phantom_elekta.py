@@ -44,22 +44,18 @@ print(__doc__)
 # The data were collected with an Elekta Neuromag VectorView system
 # at 1000 Hz and low-pass filtered at 330 Hz.
 # The dataset has recordings at 3 different current amplitudes (20, 200, and 2000 nAm),
-#  here we'll load the medium-amplitude one.
+# here we will load the medium-amplitude current.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname)
 raw.info["bads"] = ["MEG1933", "MEG2421"]  # known bad channels
 #
-# Next, let's look at the events in the phantom data for one stimulus channel.
+# Here we store the events for one stimulus channel.
 events = find_events(raw, "STI201")
-# %%
-# There are 32 artificial dipoles stored as events.
-# The remaining event IDs are not relevant for this tutorial (256, 768 ... ).
+# The first 32 events are the dipole phantoms recorded.
+# The remaining event IDs are not relevant for this tutorial.
 
-# %%
-# In this data the phantom was set to produce 20 Hz sinusoidal bursts of current.
-#
-# Next, we epoch the data based on the dipole events (1:32).
+# Next, we epoch the data for each dipole event
 # and baseline correct the epochs from -100 ms to -0.05 ms before stimulus onset.
 bmax = -0.05
 tmin, tmax = -0.1, 0.8
@@ -70,68 +66,71 @@ epochs = mne.Epochs(
 # %%
 # Dipole fitting on phantom data
 # -------------------------------
-# Next, we use the epoched data to fit dipoles,
+# We use the epoched data to fit dipoles,
 # then compare them to the known dipole locations built into the phantom.
 
-# We need to determine the peak amplitude timepoint we want
-# to estimate the dipole at
-
 # We use the first dipole event to plot the evoked signal
-# Skip first and last epoch as they are corrupted
+# and skip first and last epoch as they are corrupted.
 epochs["1"][1:-1].average().plot(time_unit="s")
 evoked_tmp = epochs["1"][1:-1].average()
-# We averaged over 640 simulated events for the first dipole.
+# We averaged over 18 simulated events for the first dipole.
+# In this data the phantom was set to produce 20 Hz sinusoidal bursts of current.
 # You can see that the burst envelope repeats at approximately 3 Hz.
 
-# Next we compute Global Field Power (GFP)
+# First, we need to determine the timepoint of the peak amplitude.
+# To find this timepoint, we compute Global Field Power (GFP)
 gfp = np.std(evoked_tmp.data, axis=0)
-
-# Determine first peak (after time 0)
 times = evoked_tmp.times
-post_stim_mask = times > 0
 
-# Get index of first peak
-peaks, _ = find_peaks(gfp[post_stim_mask])
+# We wamt the peak for the first bursting event
+time_mask = (times > 0) & (times <= 0.1)
 
-# First peak index in original time vector
-first_peak_idx = np.where(post_stim_mask)[0][peaks[0]]
-t_peak = times[first_peak_idx]
+# Find peaks in that window
+peaks, _ = find_peaks(gfp[time_mask])
 
-t_peak = 0.036
-print(f"Detected first peak at {t_peak * 1000:.1f} ms")
+# Convert to original indices
+peak_indices = np.where(time_mask)[0][peaks]
 
-# We store the evoked data for each dipole and
-# create an evoked array containing all dipoles
+# Select the strongest peak (max GFP)
+strongest_peak_idx = peak_indices[np.argmax(gfp[peak_indices])]
+t_peak = times[strongest_peak_idx]
+
+print(f"Strongest peak at {t_peak * 1000:.1f} ms")
+
+# Here we store the evoked data for each dipole at the peak amplitude.
 data = []
 for ii in event_id:
     evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 
+# Finally, we store the evokeds from all dipoles as an evoked,
+# treating every dipole as a timepoint.
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
 
-# Next, we need to compute the noise covariance for dipole fitting.
-# Check the covariance/whitening tutorial for details :ref:`tut-compute-covariance`.
-#
-# The covariance captures the sensor noise structure.
+# Next, we need to compute the noise covariance to capture the sensor noise structure.
+# We use the baseline window to estimate covariance.
+# You can explore the covariance tutorial for details :ref:`tut-compute-covariance`.
 cov = mne.compute_covariance(epochs, tmax=bmax)
 
-del epochs  # save memory
+del epochs  # delete to save memory
 
 # We use a :ref:`sphere head geometry model <eeg_sphere_model>`
-# which aligns well with our phantom head model.
+# to fit our phantom head model.
 subjects_dir = data_path
 fetch_phantom("otaniemi", subjects_dir=subjects_dir)
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 
-# Let's finally fit some dipoles
-dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
+# Let's finally fit all 32 phantom dipoles.
+dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
 # %%
 # Let's visualize the explained variance.
 # The dipole object stores the goodness of fit (GOF) for each dipole.
 plt.plot(dip.gof)  # something wrong, GOF of 6?
 plt.xlabel("Dipole")
-plt.ylabel("GOF")
+plt.ylabel("GOF %")
 plt.show()
+# We can see that GOF varies between 50 and more than 95 %
+# variance explained.
 # %%
 
 # Finally, we compare the estimated to the true dipole locations.
@@ -166,7 +165,7 @@ ax3.set_xlabel("Dipole index")
 ax3.set_ylabel("Amplitude error (nAm)")
 # %%
 # The dipole fits closely match the true phantom data,
-# achieving sub-centimeter accuracy (mean position error 2.6 mm).
+# achieving sub-centimeter accuracy (mean position error 2.7mm).
 #
 # Finally, we can plot the positions and the orientations
 # of the estimated and true dipoles.
