@@ -125,17 +125,23 @@ dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
 # %%
 # Let's visualize the explained variance.
 # The dipole object stores the goodness of fit (GOF) for each dipole.
-plt.plot(dip.gof)  # something wrong, GOF of 6?
-plt.xlabel("Dipole")
-plt.ylabel("GOF %")
+gof = dip.gof  # array of GOF values
+
+# Define colorblind-friendly colors
+colors = ["#E69F00" if val < 60 else "#0072B2" for val in gof]
+# orange = low, blue = high (from Okabe-Ito palette)
+
+plt.bar(event_id, gof, color=colors)
+plt.xlabel("Phantom dipole estimation")
+plt.ylabel("Goodness of fit (%)")
 plt.show()
 # We can see that GOF varies between 50 and more than 95 %
-# variance explained.
+# variance explained for dipoles.
 # %%
 
 # Finally, we compare the estimated to the true dipole locations.
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
-actual_amp = 100.0  # nAm
+actual_amp = 200.0  # nAm
 
 fig, (ax1, ax2, ax3) = plt.subplots(
     nrows=3, ncols=1, figsize=(6, 7), layout="constrained"
