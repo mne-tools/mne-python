@@ -175,7 +175,7 @@ ax3.bar(event_id, amps)
 ax3.set_xlabel("Dipole index")
 ax3.set_ylabel("Amplitude error (nAm)")
 # %%
-# TODO: fix dipole vis
+# TODO: fix dipole vis and format the docs
 # The dipole fits closely match the true phantom data,
 # achieving sub-centimeter accuracy (mean position error 2.7mm).
 #
