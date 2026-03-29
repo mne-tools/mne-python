@@ -452,7 +452,7 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        if plot_type == "butterfly":
+        if plot_type == "butterfly" and hasattr(evoked, "get_channel_types"):
             from ._mpl_figure import _line_figure
 
             fig, axes = _line_figure(
