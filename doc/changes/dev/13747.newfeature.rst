@@ -1,0 +1,1 @@
+Made ``evoked.plot()`` instantiate ``MNELineFigure`` when it creates its own figure, aligning this path with the ongoing 2D plotting figure-class refactor discussed in :gh:`7751`.
