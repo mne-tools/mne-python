@@ -7,11 +7,16 @@ Brainstorm Elekta phantom dataset tutorial
 
 This tutorial provides a step-by-step guide to
 importing and processing Elekta-Neuromag current phantom recordings.
-The aim of this tutorial is to show the user how to use phantom recordings to
+
+A phantom recording is a measurement obtained using a device (phantom)
+that generates known magnetic signals,
+allowing validation and benchmarking of MEG system accuracy and analysis methods.
+
+The aim of this tutorial is to learn how to use phantom recordings to
 evaluate source localisation methods by comparing estimated vs real dipole positions.
 
 For comparison, see :footcite:`TadelEtAl2011` and
-`the original Brainstorm tutorial with an explanation of phantom recordings
+`the original Brainstorm tutorial
 <https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta>`__.
 """
 # sphinx_gallery_thumbnail_number = 9
@@ -25,6 +30,7 @@ For comparison, see :footcite:`TadelEtAl2011` and
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import find_peaks
 
 import mne
 from mne import find_events, fit_dipole
@@ -37,131 +43,92 @@ print(__doc__)
 # %%
 # The data were collected with an Elekta Neuromag VectorView system
 # at 1000 Hz and low-pass filtered at 330 Hz.
-# Here the medium-amplitude (200 nAm, amplitudes can be seen in raw data)
-# data are accessed to construct instances of :class:`mne.io.Raw`.
+# The dataset has recordings at 3 different current amplitudes (20, 200, and 2000 nAm),
+#  here we'll load the medium-amplitude one.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname)
-
-# %%
-# Let's first get an idea of the data structure we are working with.
-
-raw.info
-
-# %%
-# The data consists of 204 MEG planor gradiometers,
-# 102 axial magnetometers, and 3 stimulus channels.
+raw.info["bads"] = ["MEG1933", "MEG2421"]  # known bad channels
 #
 # Next, let's look at the events in the phantom data for one stimulus channel.
 events = find_events(raw, "STI201")
-raw.info["bads"] = ["MEG1933", "MEG2421"]  # known bad channels
 # %%
 # There are 32 artificial dipoles stored as events.
 # The remaining event IDs are not relevant for this tutorial (256, 768 ... ).
-#
-# Let's explore the phantom data by plotting power spectral density for each sensor.
-# Here, we use only the first 30 seconds to save memory.
-raw.compute_psd(tmax=30).plot(
-    average=False, amplitude=False, picks="data", exclude="bads"
-)
+
 # %%
-# We can see that the data has strong line frequency noise (60 Hz, 120 Hz ...)
-# and cHPI (continuous head position indicator) coil noise (peaks around 300 Hz).
+# In this data the phantom was set to produce 20 Hz sinusoidal bursts of current.
 #
-# Here we plot the dipole events.
-raw.plot(events=events, n_channels=10)
-# %%
-# The simulated dipoles produce sinusoidal bursts at 20 Hz.
-#
-# Next, we epoch the the data based on the dipoles events (1:32).
-#
-# We select 100 ms before and after the event trigger
+# Next, we epoch the data based on the dipole events (1:32).
 # and baseline correct the epochs from -100 ms to -0.05 ms before stimulus onset.
-tmin, tmax = -0.1, 0.1
-bmax = -0.05  # Avoid capture filter ringing into baseline
+bmax = -0.05
+tmin, tmax = -0.1, 0.8
 event_id = list(range(1, 33))
 epochs = mne.Epochs(
-    raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
+    raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=True
 )
+# %%
+# Dipole fitting on phantom data
+# -------------------------------
+# Next, we use the epoched data to fit dipoles,
+# then compare them to the known dipole locations built into the phantom.
 
-# Here we average the epochs for the first simulated dipole
-# and plot the evoked signal
-epochs["1"].average().plot(time_unit="s")
-# %%
-# .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
-#
+# We need to determine the peak amplitude timepoint we want
+# to estimate the dipole at
+
+# We use the first dipole event to plot the evoked signal
+# Skip first and last epoch as they are corrupted
+epochs["1"][1:-1].average().plot(time_unit="s")
+evoked_tmp = epochs["1"][1:-1].average()
 # We averaged over 640 simulated events for the first dipole.
-# The first peak in the data appears close to the trigger onset
-# at around 3 ms. The burst envelope repeats at approximately 3 Hz.
-#
-# Finally, we source reconstruct the evoked simulated dipole.
-# To do this we use a :ref:`sphere head geometry model <eeg_sphere_model>`
-# and visualise the coordinate alignment and the sphere location. The phantom
-# is properly modeled by a single-shell sphere with origin (0., 0., 0.).
-#
-# Even though this is a VectorView/TRIUX phantom, we can use the Otaniemi
-# phantom subject as a surrogate because the "head" surface (hemisphere outer
-# shell) has the same geometry for both phantoms, even though the internal
-# dipole locations differ. The phantom_otaniemi scan was aligned to the
-# phantom's head coordinate frame, so an identity ``trans`` is appropriate
-# here.
-subjects_dir = data_path
-fetch_phantom("otaniemi", subjects_dir=subjects_dir)
-sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
-subject = "phantom_otaniemi"
-trans = mne.transforms.Transform("head", "mri", np.eye(4))
-mne.viz.plot_alignment(
-    epochs.info,
-    subject=subject,
-    show_axes=True,
-    bem=sphere,
-    dig=True,
-    surfaces=("head-dense", "inner_skull"),
-    trans=trans,
-    mri_fiducials=True,
-    subjects_dir=subjects_dir,
-)
-# %%
-# We can see that our head model aligns with the phantom head model.
-#
-# Let's do some dipole fits.
-# First we compute the noise covariance for the baseline window.
+# You can see that the burst envelope repeats at approximately 3 Hz.
+
+# Next we compute Global Field Power (GFP)
+gfp = np.std(evoked_tmp.data, axis=0)
+
+# Determine first peak (after time 0)
+times = evoked_tmp.times
+post_stim_mask = times > 0
+
+# Get index of first peak
+peaks, _ = find_peaks(gfp[post_stim_mask])
+
+# First peak index in original time vector
+first_peak_idx = np.where(post_stim_mask)[0][peaks[0]]
+t_peak = times[first_peak_idx]
+
+print(f"Detected first peak at {t_peak * 1000:.1f} ms")
+
+# We store the evoked data for each dipole and
+# create an evoked array containing all dipoles
+data = []
+for ii in event_id:
+    evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
+    data.append(evoked.data[:, 0])
+
+evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
+
+# Next, we need to compute the noise covariance for dipole fitting.
 # Check the covariance/whitening tutorial for details :ref:`tut-compute-covariance`.
 #
 # The covariance captures the sensor noise structure.
 cov = mne.compute_covariance(epochs, tmax=bmax)
 
-# The plot shows the evoked signal divided by the estimated noise standard deviation.
-mne.viz.plot_evoked_white(epochs["1"].average(), cov)
-# %%
-# Next, we fit the dipoles for the evoked data.
-# We choose the timepoint which maximises global field power
-# We have seen in the evoked plot that this is around 3 ms after dipole onset.
-data = []
-t_peak = 0.036  # true for Elekta phantom
-for ii in event_id:
-    # Avoid the first and last trials -- can contain dipole-switching artifacts
-    evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
-    data.append(evoked.data[:, 0])
-evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
 del epochs  # save memory
+
+# We use a :ref:`sphere head geometry model <eeg_sphere_model>`
+# which aligns well with our phantom head model.
+subjects_dir = data_path
+fetch_phantom("otaniemi", subjects_dir=subjects_dir)
+sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 # %%
-# Whitened global field power (GFP):
-# most baseline activity should fall roughly within ±1 (unit variance).
-#
 # Let's visualize the explained variance.
-# To do this, we need to make sure that the
-# data and the residuals are on the same scale
-# (here the "time points" are the 32 dipole peak values that we fit).
-fig, axes = plt.subplots(2, 1)
-evoked.plot(axes=axes)
-for ax in axes:
-    for text in list(ax.texts):
-        text.remove()
-    for line in ax.lines:
-        line.set_color("#98df81")
-residual.plot(axes=axes)
+# The dipole object contains the goodness of fit (GOF) for each dipole.
+plt.plot(dip.gof)
+plt.xlabel("Dipole")
+plt.ylabel("GOF")
+plt.show()
 # %%
 # Here we visualise how well the dipole explains the evoked response (green line).
 # The red lines represent the residuals, the leftover noise after dipole fitting.
@@ -209,6 +176,9 @@ actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
+subject = "phantom_otaniemi"
+trans = mne.transforms.Transform("head", "mri", np.eye(4))
+
 fig = mne.viz.plot_alignment(
     evoked.info,
     trans,
@@ -230,7 +200,8 @@ fig = mne.viz.plot_dipole_locations(
 )
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
 # %%
-# We can see that the dipoles overlap and point in the same direction.
+# We can see that the dipoles overlap, have approximately the same magnitude
+# and point in the same direction.
 
 # %%
 # References
