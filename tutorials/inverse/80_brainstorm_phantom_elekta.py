@@ -65,7 +65,7 @@ bmax = -0.05
 tmin, tmax = -0.1, 0.8
 event_id = list(range(1, 33))
 epochs = mne.Epochs(
-    raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=True
+    raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
 )
 # %%
 # Dipole fitting on phantom data
@@ -97,6 +97,7 @@ peaks, _ = find_peaks(gfp[post_stim_mask])
 first_peak_idx = np.where(post_stim_mask)[0][peaks[0]]
 t_peak = times[first_peak_idx]
 
+t_peak = 0.036
 print(f"Detected first peak at {t_peak * 1000:.1f} ms")
 
 # We store the evoked data for each dipole and
@@ -121,21 +122,18 @@ del epochs  # save memory
 subjects_dir = data_path
 fetch_phantom("otaniemi", subjects_dir=subjects_dir)
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
+
+# Let's finally fit some dipoles
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 # %%
 # Let's visualize the explained variance.
-# The dipole object contains the goodness of fit (GOF) for each dipole.
-plt.plot(dip.gof)
+# The dipole object stores the goodness of fit (GOF) for each dipole.
+plt.plot(dip.gof)  # something wrong, GOF of 6?
 plt.xlabel("Dipole")
 plt.ylabel("GOF")
 plt.show()
 # %%
-# Here we visualise how well the dipole explains the evoked response (green line).
-# The red lines represent the residuals, the leftover noise after dipole fitting.
-#
-# What is a good fit? The green lines are strong and residuals are small and
-# roughly flat.
-#
+
 # Finally, we compare the estimated to the true dipole locations.
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.0  # nAm
