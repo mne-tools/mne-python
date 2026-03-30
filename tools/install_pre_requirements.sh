@@ -32,14 +32,16 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
+	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
-	# "statsmodels>=0.15.0.dev697"
 echo "::endgroup::"
-# No statsmodels because of https://github.com/MacPython/statsmodels-wheels/issues/202
+# Until https://github.com/scikit-learn/scikit-learn/issues/33616 is fixed
+python -m pip install $STD_ARGS --only-binary ":all:" "scipy==1.17.1"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+# TODO: Max-pin until https://gitlab.kitware.com/vtk/vtk/-/issues/19996
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk<9.6.20260314.dev0"
 python -c "import vtk"
 echo "::endgroup::"
 
