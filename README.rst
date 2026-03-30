@@ -1,5 +1,8 @@
 .. -*- mode: rst -*-
 
+|->MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data such as EEG and MEG.
+|->It also provides beginner-friendly tools for visualizing brain signals, making it easier for new users to understand complex neural data.
+
 |MNE|
 
 MNE-Python
@@ -142,3 +145,4 @@ MNE-Python is licensed under the BSD-3-Clause license.
 
 .. |MNE| image:: https://mne.tools/dev/_static/mne_logo_gray.svg
    :target: https://mne.tools/dev/
+Improve README clarity for beginner users
