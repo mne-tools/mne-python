@@ -1,1 +1,1 @@
-Remove :class:`numpy.ndarray` from `colormap` parameter in :func:`mne.viz.plot_source_estimates` to solve documentation conflict , by :newcontrib:`Lifeng Qiu Lin`.
+Remove :class:`numpy.ndarray` from ``colormap`` parameter in :func:`mne.viz.plot_source_estimates` to solve documentation conflict , by :newcontrib:`Lifeng Qiu Lin`.

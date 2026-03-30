@@ -836,8 +836,8 @@ colorbar : bool
 
 docdict["colormap"] = """
 colormap : str | matplotlib.colors.Colormap
-    Name of colormap to use or a custom look up table. If passing a custom
-    colormap, it must be an instance of :class:`matplotlib.colors.Colormap`
+    Name of colormap to use or a custom Matplotlib colormap instance. If passing
+    a custom colormap, it must be an instance of :class:`matplotlib.colors.Colormap`
     (e.g., :class:`matplotlib.colors.ListedColormap`).
 """
 
