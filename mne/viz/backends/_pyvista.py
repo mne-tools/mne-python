@@ -731,7 +731,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     ):
         size = 14 if size is None else size
         position = (x_window, y_window)
-        kwargs = dict(
+        actor = self.plotter.add_text(
             text=text,
             position=position,
             font_size=size,
@@ -739,7 +739,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             viewport=True,
             font_file=font_file,
         )
-        actor = self.plotter.add_text(**kwargs)
         if isinstance(justification, str):
             if justification == "left":
                 actor.GetTextProperty().SetJustificationToLeft()
