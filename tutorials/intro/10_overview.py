@@ -69,6 +69,9 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # MNE-Python detects different sensor types and handles each appropriately. See
 # :ref:`tut-info-class` for more on the `~mne.Info` class.
 
+# Display basic information about the raw EEG dataset,
+# including number of channels, sampling rate, and duration.
+print(raw)
 print(raw)
 print(raw.info)
 
