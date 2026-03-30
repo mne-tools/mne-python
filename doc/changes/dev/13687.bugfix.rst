@@ -1,0 +1,1 @@
+Fix bug in :func:`~mne.compute_source_morph` where the ``spacing`` attribute was set incorrectly when ``src_to`` is provided, by `Famous077`_.
