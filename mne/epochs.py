@@ -119,7 +119,7 @@ def _pack_reject_params(epochs):
 
 
 def _save_split(epochs, split_fnames, part_idx, n_parts, fmt, overwrite):
-    """Split epochs.
+    """Split :term:`epochs`.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
@@ -692,7 +692,7 @@ class BaseEpochs(
         self.set_annotations(annotations, on_missing="ignore")
 
     def _check_consistency(self):
-        """Check invariants of epochs object."""
+        """Check invariants of :term:`epochs` object."""
         if hasattr(self, "events"):
             assert len(self.selection) == len(self.events)
             assert len(self.drop_log) >= len(self.events)
@@ -716,9 +716,9 @@ class BaseEpochs(
         self.reset_index()
 
     def reset_index(self):
-        """Reset the epochs index.
+        """Reset the :term:`epochs` index.
 
-        This resets the epochs indexing and drop log so that ``self.selection`` becomes
+        This resets the :term:`epochs` indexing and drop log so that ``self.selection`` becomes
         a simple increasing sequence starting at zero and ``self.drop_log`` becomes a
         tuple of empty tuples of the same length. The operation is in-place and is
         useful when creating epochs from a subset of events (using ``event_id``) and the
@@ -756,7 +756,7 @@ class BaseEpochs(
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):
-        """Baseline correct epochs.
+        """Baseline correct :term:`epochs`.
 
         Parameters
         ----------
@@ -967,9 +967,9 @@ class BaseEpochs(
         return epoch
 
     def iter_evoked(self, copy=False):
-        """Iterate over epochs as a sequence of Evoked objects.
+        """Iterate over :term:`epochs` as a sequence of Evoked objects.
 
-        The Evoked objects yielded will each contain a single epoch (i.e., no
+        The Evoked objects yielded will each contain a single :term:`epochs` (i.e., no
         averaging is performed).
 
         This method resets the object iteration state to the first epoch.
@@ -1079,7 +1079,7 @@ class BaseEpochs(
 
     @fill_doc
     def average(self, picks=None, method="mean", by_event_type=False):
-        """Compute an average over epochs.
+        """Compute an average over :term:`epochs`.
 
         Parameters
         ----------
@@ -1145,7 +1145,7 @@ class BaseEpochs(
         return self.average(picks=picks, method="std", by_event_type=by_event_type)
 
     def _compute_aggregate(self, picks, mode="mean"):
-        """Compute the mean, median, or std over epochs and return Evoked."""
+        """Compute the mean, median, or std over :term:`epochs` and return Evoked."""
         # if instance contains ICA channels they won't be included unless picks
         # is specified
         if picks is None:
@@ -1391,7 +1391,7 @@ class BaseEpochs(
 
     @verbose
     def drop_bad(self, reject="existing", flat="existing", verbose=None):
-        """Drop bad epochs without retaining the epochs data.
+        """Drop bad :term:`epochs` without retaining the :term:`epochs` data.
 
         Should be used before slicing operations.
 
@@ -1898,7 +1898,7 @@ class BaseEpochs(
         copy=True,
         verbose=None,
     ):
-        """Get all epochs as a 3D array.
+        """Get all :term:`epochs` as a 3D array.
 
         Parameters
         ----------
@@ -1943,7 +1943,7 @@ class BaseEpochs(
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
-            The epochs data. Will be a copy when ``copy=True`` and will be a view
+            The :term:`epochs` data. Will be a copy when ``copy=True`` and will be a view
             when possible when ``copy=False``.
         """
         return self._get_data(
@@ -2948,14 +2948,14 @@ def _drop_log_stats(drop_log, ignore=("IGNORED",)):
     Parameters
     ----------
     drop_log : list of list
-        Epoch drop log from Epochs.drop_log.
+        :term:`epochs` drop log from Epochs.drop_log.
     ignore : list
         The drop reasons to ignore.
 
     Returns
     -------
     perc : float
-        Total percentage of epochs dropped.
+        Total percentage of :term:`epochs` dropped.
     """
     if (
         not isinstance(drop_log, tuple)
