@@ -1,0 +1,1 @@
+Add optional low-variance ("hat") regularization to :func:`mne.stats.f_oneway` via new ``sigma`` and ``method`` parameters, by `Aniket Singh Yadav`_.
