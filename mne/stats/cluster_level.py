@@ -1239,14 +1239,14 @@ def permutation_cluster_test(
     Notes
     -----
     %(threshold_clust_f_notes)s
-
-    References
-    ----------
-    .. footbibliography::
     Note: By default, the minimum number of neighboring
     points (e.g., channels) required to form a cluster is 0.
     This means a single significant point can
     technically constitute a cluster.
+
+    References
+    ----------
+    .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, "between")
     return _permutation_cluster_test(
@@ -1543,14 +1543,14 @@ def spatio_temporal_cluster_test(
     Notes
     -----
     %(threshold_clust_f_notes)s
-
-    References
-    ----------
-    .. footbibliography::
     Note: By default, the minimum number of neighboring
     points (e.g., channels) required to form a cluster is 0.
     This means a single significant point can
     technically constitute a cluster.
+
+    References
+    ----------
+    .. footbibliography::
     """
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
