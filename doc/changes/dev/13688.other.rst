@@ -1,0 +1,1 @@
+Add a note to :meth:`mne.Epochs.drop` describing a potential mismatch between the indices expected by :meth:`~mne.Epochs.drop` and those found in the ``selection`` attribute when epochs have been automatically dropped, by :newcontrib:`Famous077`.

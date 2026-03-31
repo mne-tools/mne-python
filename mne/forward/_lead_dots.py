@@ -602,10 +602,5 @@ def _do_surface_dots_subset(
         n_fact,
         ch_type,
     ).T
-    if rref is not None:
-        raise NotImplementedError  # we don't ever use this, isn't tested
-        # vres = _fast_sphere_dot_r0(
-        #     intrad, rref, rmags, refl, rlens, this_nn, cosmags, None, ws,
-        #     volume, lut, n_fact, ch_type)
-        # products -= vres
+    assert rref is None  # guaranteed by our code path
     return products

@@ -852,6 +852,24 @@ def test_plot_annotations(raw, browser_backend):
         not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
     )
 
+    if ismpl:
+        # gh-13511: hide the middle annotation to get non-contiguous is_onscreen=[T,F,T]
+        annot = Annotations(
+            onset=[2, 2, 2], duration=[3, 3, 3], description=["A", "B", "C"]
+        )
+        raw.set_annotations(annot)
+        fig = raw.plot(start=0, duration=10)
+        fig._fake_keypress("a")
+        # hide "B" so is_onscreen = [T, F, T]
+        fig.mne.show_hide_annotation_checkboxes.set_active(1)
+        buttons = fig.mne.fig_annotation.mne.radio_ax.buttons
+        # set active to the hidden "B" so deletion falls back to zorder
+        buttons.set_active(1)
+        fig._fake_click((2.5, 1.0), xform="data", button=3)
+        # C has the highest zorder and should be deleted; the bug deleted A instead
+        assert "C" not in raw.annotations.description
+        assert "A" in raw.annotations.description
+
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):

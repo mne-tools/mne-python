@@ -1,0 +1,1 @@
+Support mixed-type concatenation of :class:`mne.Annotations` and :class:`mne.HEDAnnotations`, preserving HED strings in ``extras["HED"]``, by `Bruno Aristimunha`_.
