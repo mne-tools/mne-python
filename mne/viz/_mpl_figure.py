@@ -367,7 +367,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # XXX simpler with constrained_layout? (when it's no longer "beta")
         l_margin = 1.0
         r_margin = 0.1
-        b_margin = 0.45
+        b_margin = 0.65
         t_margin = 0.25
         scroll_width = 0.25
         hscroll_dist = 0.25
@@ -1424,11 +1424,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     text = ax.annotate(
                         descr,
                         xy,
-                        xytext=(0, 9),
+                        xytext=(0, -3),
                         textcoords="offset points",
                         ha="center",
-                        va="baseline",
+                        va="top",
                         color=segment_color,
+                        zorder=self.mne.zorder["ann_text"],
                     )
                     self.mne.annotation_texts.append(text)
         self.mne.onscreen_annotations = onscreen_annotations
