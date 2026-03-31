@@ -7,6 +7,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -333,6 +334,12 @@ def test_scale_bar(browser_backend):
         assert fig2.mne.ch_colors[0] == "red"
         assert fig2.mne.ch_colors[1] == "k"
         assert fig2.mne.ch_colors[2] == "k"
+
+        # check colours on the plot are also correct
+        for trace, ch_color in zip(fig2.mne.traces, fig2.mne.ch_colors):
+            assert np.allclose(
+                mcolors.to_rgba(trace.get_color()), mcolors.to_rgba(ch_color)
+            ), f"Expected {ch_color}, got {trace.get_color()}"
 
         browser_backend._close_all()
 
