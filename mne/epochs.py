@@ -718,8 +718,9 @@ class BaseEpochs(
     def reset_index(self):
         """Reset the :term:`epochs` index.
 
-        This resets the :term:`epochs` indexing and drop log so that ``self.selection`` becomes
-        a simple increasing sequence starting at zero and ``self.drop_log`` becomes a
+        This resets the :term:`epochs` indexing and drop log so that
+        ``self.selection`` becomes a simple increasing sequence starting at zero
+        and ``self.drop_log`` becomes a
         tuple of empty tuples of the same length. The operation is in-place and is
         useful when creating epochs from a subset of events (using ``event_id``) and the
         original event indexes are not relevant anymore.
@@ -1943,8 +1944,8 @@ class BaseEpochs(
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
-            The :term:`epochs` data. Will be a copy when ``copy=True`` and will be a view
-            when possible when ``copy=False``.
+            The :term:`epochs` data. Will be a copy when ``copy=True`` and
+            will be a view when possible when ``copy=False``.
         """
         return self._get_data(
             picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
