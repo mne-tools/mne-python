@@ -1,1 +1,1 @@
-Add glossary cross-references for :term:`epochs` in docstrings (:gh:`13798`).
+Add :term:`epochs` glossary cross-references to docstrings in ``mne/epochs.py`` (:gh:`13798`).
