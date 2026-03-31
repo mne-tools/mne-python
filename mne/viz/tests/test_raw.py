@@ -7,6 +7,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -316,6 +317,31 @@ def test_scale_bar(browser_backend):
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
+
+    # Per-channel color overrides via channel names (matplotlib only).
+    if ismpl:
+        sfreq = 100.0
+        ch_names = ["SFG, Left", "SFG, Right", "MFG, Left"]
+        info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        data = np.zeros((len(ch_names), int(sfreq)))  # 1 second of zeros
+        raw2 = RawArray(data, info)
+
+        color = {"eeg": "k", "SFG, Left": "red"}
+        browser_backend._close_all()
+        fig2 = plot_raw(raw2, color=color, show=False)
+
+        # ch_colors stores the "good" (non-bad) colors, in visible channel order
+        assert fig2.mne.ch_colors[0] == "red"
+        assert fig2.mne.ch_colors[1] == "k"
+        assert fig2.mne.ch_colors[2] == "k"
+
+        # check colours on the plot are also correct
+        for trace, ch_color in zip(fig2.mne.traces, fig2.mne.ch_colors):
+            assert np.allclose(
+                mcolors.to_rgba(trace.get_color()), mcolors.to_rgba(ch_color)
+            ), f"Expected {ch_color}, got {trace.get_color()}"
+
+        browser_backend._close_all()
 
 
 def test_plot_raw_selection(raw, browser_backend):

@@ -2006,8 +2006,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
         offsets = self.mne.trace_offsets[offset_ixs]
         bad_bool = np.isin(ch_names, self.mne.info["bads"])
-        # colors
-        good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
+        # colors: allow overrides by channel name, then by channel type
+        good_ch_colors = []
+        for _name, _type in zip(ch_names, ch_types):
+            if _name in self.mne.ch_color_dict:
+                good_ch_colors.append(self.mne.ch_color_dict[_name])
+            else:
+                good_ch_colors.append(self.mne.ch_color_dict[_type])
         ch_colors = to_rgba_array(
             [
                 self.mne.ch_color_bad if _bad else _color
