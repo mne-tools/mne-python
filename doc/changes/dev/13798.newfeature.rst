@@ -1,0 +1,1 @@
+Add glossary cross-references for :term:`epochs` in docstrings (:gh:`13798`).
