@@ -77,6 +77,7 @@ manual_renames = {
     "Genuster": "Gennadiy Belonosov",  # 12936
     "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
+    "Hansuja ": "Hansuja Budhiraja",  # 13765
     "jwelzel": "Julius Welzel",  # 11118
     "Katia": "Katia Al-Amir",  # 13225
     "Martin": "Martin Billinger",  # 8099, TODO: Check
@@ -199,6 +200,11 @@ def generate_credit_rst(app=None, *, verbose=False):
                         )
                         continue
                     name = name_map[author["e"]]
+                    if name in manual_renames:
+                        assert _good_name(manual_renames[name]), (
+                            f"Bad manual rename: {name}"
+                        )
+                        name = manual_renames[name]
                 else:
                     name = author["n"]
                     if name in manual_renames:
