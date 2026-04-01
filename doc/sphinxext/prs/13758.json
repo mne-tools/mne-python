@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "3c1be2097b4879c31aaff8b891a15b7cdf7cd05e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/install/check_installation.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 55,
+      "d": 48
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 34
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}
