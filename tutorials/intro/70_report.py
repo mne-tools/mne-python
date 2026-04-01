@@ -330,6 +330,18 @@ report.add_forward(
 report.save("report_forward_sol.html", overwrite=True)
 
 # %%
+# To ge the sensitivity maps of forward models you could use `sensitivity=True`.
+
+report.add_forward(
+    forward=fwd_path,
+    title="Forward solution",
+    plot=True,
+    subjects_dir=subjects_dir,
+    sensitivity=True,  # right here
+)
+report.save("report_forward_sol.html", overwrite=True)
+
+# %%
 # Adding an `~mne.minimum_norm.InverseOperator`
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
