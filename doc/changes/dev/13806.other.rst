@@ -1,0 +1,1 @@
+Replacing abstractclassmethod with abstractmethod in :class:`mne.viz.backends._abstract.Figure3D`, by `Himanshu Mahore`_.
