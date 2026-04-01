@@ -2445,7 +2445,7 @@ class ICA(ContainsMixin):
         *,
         overwrite: bool = False,
         verbose: bool | str | int | None = None,
-    ) -> ICA:
+    ):
         """Store ICA solution into a fiff file.
 
         Parameters
@@ -2480,7 +2480,7 @@ class ICA(ContainsMixin):
             _write_ica(fid, self)
         return self
 
-    def copy(self) -> ICA:
+    def copy(self):
         """Copy the ICA object.
 
         Returns
@@ -3054,7 +3054,7 @@ def _write_ica(fid, ica):
 def read_ica(
     fname: PathLike,
     verbose: bool | str | int | None = None,
-) -> ICA:
+):
     """Restore ICA solution from fif file.
 
     Parameters
@@ -3521,7 +3521,7 @@ def read_ica_eeglab(
     *,
     montage_units: str = "auto",
     verbose: bool | str | int | None = None,
-) -> ICA:
+):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
