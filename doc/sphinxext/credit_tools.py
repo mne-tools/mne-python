@@ -91,6 +91,7 @@ manual_renames = {
     "Valerii": "Valerii Chirkov",  # 9043
     "Wei": "Wei Xu",  # 13218
     "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
+    "Horizon_Architect_07": "Famous Raj Bhat",  # 13685
 }
 
 
