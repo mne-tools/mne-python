@@ -14,8 +14,6 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import contextlib
 import re
 import weakref

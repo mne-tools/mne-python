@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "193132002c7e2063fa4d3efef02d150f263389d1",
+  "authors": [
+    {
+      "n": "Horizon_Architect_07",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13687.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_morph.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}
