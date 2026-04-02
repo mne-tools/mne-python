@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "39ee092e175262aaf8b2b15c5ead0ce52f407ae7",
+  "authors": [
+    {
+      "n": "Pragnya ",
+      "e": "prag1704@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13719.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 17,
+      "d": 29
+    }
+  }
+}

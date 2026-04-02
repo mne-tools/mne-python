@@ -848,6 +848,7 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
+            "hedtools",
             "statsmodels",
             "numpydoc",
             "jupyter_client",
@@ -877,6 +878,7 @@ def sys_info(
     except Exception:  # in case someone overrides sys.stdout in an unsafe way
         unicode = False
     mne_version_good = True
+    import_names = dict(hedtools="hed")
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -897,7 +899,8 @@ def sys_info(
         if last:
             pre = "└"
         try:
-            mod = import_module(mod_name.replace("-", "_"))
+            import_name = import_names.get(mod_name, mod_name.replace("-", "_"))
+            mod = import_module(import_name)
         except Exception:
             unavailable.append(mod_name)
         else:
