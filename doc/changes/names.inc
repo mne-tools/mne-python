@@ -316,6 +316,7 @@
 .. _Simon Kern: https://skjerns.de
 .. _Simon Kornblith: https://simonster.com
 .. _Simon M. Hofmann: https://github.com/SHEscher
+.. _Siri Ananya Yallapragada: https://github.com/Lyra0710
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Stanislas Chambon: https://github.com/Slasnista
@@ -368,4 +369,3 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz
-.. _Siri Ananya Yallapragada: https://github.com/Lyra0710
