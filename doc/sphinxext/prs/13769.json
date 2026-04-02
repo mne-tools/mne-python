@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8806b8a24d3c38bde2f06e225fddc6318a31f4d8",
+  "authors": [
+    {
+      "n": "Hansuja ",
+      "e": "hansujaigdtuwcseai@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13769.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

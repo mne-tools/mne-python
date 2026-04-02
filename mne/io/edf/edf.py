@@ -975,7 +975,7 @@ def _get_info(
         _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
         _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
 
-    if np.isnan(info["lowpass"]):
+    if np.isnan(info["lowpass"]) or info["lowpass"] <= 0:
         info["lowpass"] = info["sfreq"] / 2.0
 
     if info["highpass"] > info["lowpass"]:

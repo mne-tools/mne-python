@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "6c94c0a4ec44ac7d0f5c70df2c228900879124d8",
+  "authors": [
+    {
+      "n": "Aman Srivastava",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13729.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/stats/r_interop.py": {
+      "a": 144,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
