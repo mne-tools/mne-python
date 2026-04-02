@@ -487,7 +487,16 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def text2d(self, x_window, y_window, text, size=14, color="white"):
+    def text2d(
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
+    ):
         """Add 2d text in the scene.
 
         Parameters
@@ -506,6 +515,13 @@ class _AbstractRenderer(ABC):
             The color of the text as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
+        justification : str | None
+            The text justification. Can be 'left', 'center', or 'right'.
+        font_file : str | None
+            Path to an absolute path of a font file to use for rendering
+            the text. FreeType is used for loading, supporting many font
+            formats beyond ``.ttf`` and ``.ttc``. This can be helpful for
+            non-ASCII glyph coverage.
         """
         pass
 
