@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ccbe909b0574bfb1479ed4b0deecbb246c84df6b",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13746.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 28,
+      "d": 15
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

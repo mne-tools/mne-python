@@ -5,7 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import warnings
-from abc import ABC, abstractclassmethod, abstractmethod
+from abc import ABC, abstractmethod
 
 from ..ui_events import TimeChange, publish
 
@@ -28,7 +28,8 @@ class Figure3D(ABC):
     # document the class more easily, as we don't have to say what all the
     # params are in public docs.
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def _init(
         self,
         fig=None,
@@ -55,7 +56,8 @@ class Figure3D(ABC):
 
 
 class _AbstractRenderer(ABC):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(
         self,
         fig=None,
@@ -75,22 +77,26 @@ class _AbstractRenderer(ABC):
     def _kind(self):
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def subplot(self, x, y):
         """Set the active subplot."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def scene(self):
         """Return scene handle."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def set_interaction(self, interaction):
         """Set interaction mode."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
         """Add a legend to the scene.
 
@@ -118,7 +124,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def mesh(
         self,
         x,
@@ -197,7 +204,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def contour(
         self,
         surface,
@@ -245,7 +253,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def surface(
         self,
         surface,
@@ -292,7 +301,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def sphere(
         self,
         center,
@@ -329,7 +339,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def tube(
         self,
         origin,
@@ -383,7 +394,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def quiver3d(
         self,
         x,
@@ -473,7 +485,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def text2d(
         self,
         x_window,
@@ -512,7 +525,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def text3d(self, x, y, z, text, width, color="white"):
         """Add 2d text in the scene.
 
@@ -535,7 +549,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def scalarbar(self, source, color="white", title=None, n_labels=4, bgcolor=None):
         """Add a scalar bar in the scene.
 
@@ -554,17 +569,20 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def show(self):
         """Render the scene."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def close(self):
         """Close the scene."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def set_camera(
         self,
         azimuth=None,
@@ -590,7 +608,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def screenshot(self, mode="rgb", filename=None):
         """Take a screenshot of the scene.
 
@@ -604,7 +623,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.
 
@@ -617,7 +637,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def remove_mesh(self, mesh_data):
         """Remove the given mesh from the scene.
 
@@ -635,7 +656,8 @@ class _AbstractRenderer(ABC):
 
 
 class _AbstractWidget(ABC):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self):
         pass
 
@@ -697,13 +719,15 @@ class _AbstractWidget(ABC):
 
 
 class _AbstractLabel(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, center=False, selectable=False):
         pass
 
 
 class _AbstractText(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value=None, placeholder=None, callback=None):
         pass
 
@@ -713,7 +737,8 @@ class _AbstractText(_AbstractWidget):
 
 
 class _AbstractButton(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, callback, icon=None):
         pass
 
@@ -727,7 +752,8 @@ class _AbstractButton(_AbstractWidget):
 
 
 class _AbstractSlider(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, rng, callback, horizontal=True):
         pass
 
@@ -745,7 +771,8 @@ class _AbstractSlider(_AbstractWidget):
 
 
 class _AbstractProgressBar(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, count):
         pass
 
@@ -755,7 +782,8 @@ class _AbstractProgressBar(_AbstractWidget):
 
 
 class _AbstractCheckBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, callback):
         pass
 
@@ -769,7 +797,8 @@ class _AbstractCheckBox(_AbstractWidget):
 
 
 class _AbstractSpinBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, rng, callback, step=None):
         pass
 
@@ -783,7 +812,8 @@ class _AbstractSpinBox(_AbstractWidget):
 
 
 class _AbstractComboBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, items, callback):
         pass
 
@@ -797,7 +827,8 @@ class _AbstractComboBox(_AbstractWidget):
 
 
 class _AbstractRadioButtons(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, items, callback):
         pass
 
@@ -811,13 +842,15 @@ class _AbstractRadioButtons(_AbstractWidget):
 
 
 class _AbstractGroupBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, name, items):
         pass
 
 
 class _AbstractFileButton(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(
         self,
         callback,
@@ -832,7 +865,8 @@ class _AbstractFileButton(_AbstractWidget):
 
 
 class _AbstractPlayMenu(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, rng, callback):
         pass
 

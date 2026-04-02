@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c4b1851a1ecd7efdf7b4625e761fd9f948695637",
+  "authors": [
+    {
+      "n": "Benedikt Ehinger",
+      "e": "science@benediktehinger.de"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13723.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
