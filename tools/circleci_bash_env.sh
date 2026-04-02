@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 
 ./tools/setup_xvfb.sh
-sudo apt install -qq graphviz optipng python3.12-venv python3-venv libxft2 ffmpeg
+sudo apt install -qq graphviz optipng python3.12-venv python3-venv libxft2 ffmpeg r-base libtirpc-dev
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo apt install ./google-chrome-stable_current_amd64.deb
 python3.12 -m venv ~/python_env
