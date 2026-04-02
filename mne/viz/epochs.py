@@ -800,9 +800,9 @@ def plot_epochs(
             The new equivalent is ``events=False``.
     %(event_color)s
         Defaults to ``None``.
-    order : array of int | None
+    order : array-like of int | None
         Order in which to plot data. If the array is shorter than the number of
-        channels, only the given channels are plotted. If None (default), all
+        channels, only the given channels are plotted. If ``None`` (default), all
         channels are plotted. If ``group_by`` is ``'position'`` or
         ``'selection'``, the ``order`` parameter is used only for selecting the
         channels to be plotted.
