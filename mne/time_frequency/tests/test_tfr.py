@@ -1982,3 +1982,14 @@ def test_concatenate_epochs_tfr():
     # passing a non-EpochsTFR should raise
     with pytest.raises(TypeError, match="must be an instance of EpochsTFR"):
         concatenate_epochs([tfr1, epochs[:10]])
+
+    # mismatched method should raise
+    tfr_multitaper = epochs[:10].compute_tfr("multitaper", freqs=freqs)
+    with pytest.raises(ValueError, match="method.*does not match"):
+        concatenate_epochs([tfr1, tfr_multitaper])
+
+    # mismatched baseline should raise
+    tfr_baselined = epochs[:10].compute_tfr("morlet", freqs=freqs)
+    tfr_baselined.apply_baseline((0, 0))
+    with pytest.raises(ValueError, match="baseline.*does not match"):
+        concatenate_epochs([tfr1, tfr_baselined])

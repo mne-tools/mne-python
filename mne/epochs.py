@@ -4707,11 +4707,23 @@ def _concatenate_epochs_tfr(epochs_list, add_offset=True):
         if not np.array_equal(ep.times, ref.times):
             raise ValueError(f"epochs_list[{ii}] times do not match epochs_list[0]")
         _ensure_infos_match(ep.info, ref.info, f"epochs_list[{ii}]")
+        if ep.baseline != ref.baseline:
+            raise ValueError(
+                f"epochs_list[{ii}] baseline {ep.baseline!r} does not match "
+                f"epochs_list[0] baseline {ref.baseline!r}"
+            )
+        if ep.method != ref.method:
+            raise ValueError(
+                f"epochs_list[{ii}] method {ep.method!r} does not match "
+                f"epochs_list[0] method {ref.method!r}"
+            )
+        if not np.array_equal(ep.weights, ref.weights):
+            raise ValueError(f"epochs_list[{ii}] weights do not match epochs_list[0]")
 
     data = np.concatenate([ep.data for ep in epochs_list], axis=0)
 
-    shift = np.int64((10 + ref.times[-1]) * ref.info["sfreq"])
-    events_offset = int(np.max(epochs_list[0].events[:, 0])) + shift
+    shift = len(ref.times)
+    events_offset = ref.events[-1, 0] + shift
     all_events = [epochs_list[0].events.copy()]
     for ep in epochs_list[1:]:
         evs = ep.events.copy()
