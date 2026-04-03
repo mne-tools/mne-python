@@ -6,7 +6,7 @@ Reading BCI2000 files
 In this example, we use MNE-Python to read a BCI2000 ``.dat`` file.
 BCI2000 is a general-purpose brain-computer interface (BCI) system widely
 used in EEG research. The file is downloaded from the MNE testing data
-repository using :mod:`pooch`.
+repository using ``pooch``.
 
 """  # noqa: D205 D400
 
