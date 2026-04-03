@@ -4,6 +4,8 @@ ONLY_BINARY="--only-binary \"numpy,dipy,scipy,matplotlib,pandas,statsmodels,netC
 
 set -x
 python -m pip install --upgrade "pip>=25.1" build
+python -m pip cache remove rpy2
+export RPY2_CFFI_MODE=API
 python -m pip install --upgrade --progress-bar off $ONLY_BINARY \
     -ve .[full] \
     --group=test \
