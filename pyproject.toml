@@ -54,6 +54,7 @@ test = [
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
+  "ruff >= 0.1",
   "twine",
   "vulture",
   "wheel >= 0.21",
