@@ -159,6 +159,7 @@ def test_all_reader_documented_in_docstring():
         raise AssertionError("Functions in docstring are not sorted.")
 
 
+@testing.requires_testing_data
 def test_bci2k():
     """Test reading BCI2k files with read_raw."""
     read_raw_bci2k(bci2k_fname, preload=True)  # smoke test: if this works, below should
