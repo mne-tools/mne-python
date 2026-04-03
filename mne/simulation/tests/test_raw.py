@@ -54,7 +54,7 @@ from mne.simulation.source import SourceSimulator
 from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.tests.test_chpi import _assert_quats
-from mne.transforms import _affine_to_quat
+from mne.transforms import Transform, _affine_to_quat
 from mne.utils import catch_logging
 
 raw_fname_short = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
@@ -499,6 +499,25 @@ def test_simulate_round_trip(raw_data):
     fwd["info"]["dev_head_t"]["trans"][0, 0] = 1.0
     with pytest.raises(ValueError, match="dev_head_t.*does not match"):
         simulate_raw(raw.info, stc, None, None, None, forward=fwd)
+
+
+def test_simulate_eeg_only(raw_data):
+    """Test simulate_raw with EEG data only."""
+    # gh-13604
+    raw, src, stc, trans, sphere = raw_data
+    raw = raw.pick("eeg")
+    assert raw.info["dev_head_t"] is not None
+    with raw.info._unlock():
+        raw.info["dev_head_t"] = None
+    fwd = make_forward_solution(raw.info, trans, src, sphere)
+    assert fwd["info"]["dev_head_t"] is None
+    # forward with identity dev_head_t (old style) but EEG-only data
+    raw_sim = simulate_raw(raw.info, stc, None, None, None, forward=fwd)
+    fwd["info"]["dev_head_t"] = Transform("meg", "head")
+    raw_sim_2 = simulate_raw(raw.info, stc, None, None, None, forward=fwd)
+    assert raw_sim.info["dev_head_t"] is None
+    assert raw_sim_2.info["dev_head_t"] is None
+    assert_allclose(raw_sim[:][0], raw_sim_2[:][0])
 
 
 @pytest.mark.slowtest

@@ -107,6 +107,7 @@ class BrowserBase(ABC):
             grad=10007,
             scalebar=10008,
             vline=10009,
+            ann_text=10010,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
