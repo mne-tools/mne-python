@@ -1,0 +1,1 @@
+Clearer error message when no ECG events are found in :func:`~mne.preprocessing.find_ecg_events`, by :newcontrib:`Hansuja Budhiraja`.

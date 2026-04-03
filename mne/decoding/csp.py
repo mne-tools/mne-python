@@ -9,10 +9,16 @@ import numpy as np
 
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..utils import _check_option, _validate_type, fill_doc, legacy
+from ..utils import (
+    _check_option,
+    _validate_type,
+    fill_doc,
+    legacy,
+    verbose,
+)
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
 from .spatial_filter import get_spatial_filter_from_estimator
 
 
@@ -160,12 +166,42 @@ class CSP(_GEDTransformer):
             R_func=sum,
         )
 
+    _save_fname_type = "csp"
+
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
         tags.target_tags.required = True
         tags.target_tags.multi_output = True
         return tags
+
+    _required_state_keys = (
+        "component_order",
+        "cov_est",
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "norm_trace",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
+    )
+
+    def _restore_callables(self):
+        """Restore CSP-specific callables after loading state."""
+        self.cov_callable = partial(
+            _csp_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            cov_est=self.cov_est,
+            info=self.info,
+            rank=self.rank,
+            norm_trace=self.norm_trace,
+        )
+        self.mod_ged_callable = partial(_csp_mod, evecs_order=self.component_order)
+        self.R_func = sum
 
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
@@ -766,11 +802,36 @@ class SPoC(CSP):
         delattr(self, "cov_est")
         delattr(self, "norm_trace")
 
+    _save_fname_type = "spoc"
+
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
         tags.target_tags.multi_output = False
         return tags
+
+    _required_state_keys = (
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
+    )
+
+    def _restore_callables(self):
+        """Restore SPoC-specific callables after loading state."""
+        self.cov_callable = partial(
+            _spoc_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            rank=self.rank,
+        )
+        self.mod_ged_callable = _spoc_mod
+        self.R_func = None
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
@@ -848,3 +909,57 @@ class SPoC(CSP):
         """
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
+
+
+@verbose
+def read_csp(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.CSP` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a CSP file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    csp : instance of :class:`~mne.decoding.CSP`
+        The loaded CSP object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.CSP.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, CSP, verbose=verbose)
+
+
+@verbose
+def read_spoc(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.SPoC` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a SPoC file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    spoc : instance of :class:`~mne.decoding.SPoC`
+        The loaded SPoC object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.SPoC.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, SPoC, verbose=verbose)

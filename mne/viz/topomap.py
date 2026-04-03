@@ -3149,6 +3149,7 @@ def _init_anim(
     merge_channels,
     sphere,
     ch_type,
+    cmap,
     image_interp,
     extrapolate,
     verbose,
@@ -3174,7 +3175,8 @@ def _init_anim(
 
         data, _ = _merge_ch_data(data, "grad", [])
     norm = True if np.min(data) > 0 else False
-    cmap = "Reds" if norm else "RdBu_r"
+    if cmap is None:
+        cmap = "Reds" if norm else "RdBu_r"
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
 
@@ -3324,6 +3326,7 @@ def _key_press(event, params):
 def _topomap_animation(
     evoked,
     ch_type,
+    cmap,
     times,
     frame_rate,
     butterfly,
@@ -3407,6 +3410,7 @@ def _topomap_animation(
         merge_channels=merge_channels,
         sphere=sphere,
         ch_type=ch_type,
+        cmap=cmap,
         image_interp=image_interp,
         extrapolate=extrapolate,
         verbose=verbose,
