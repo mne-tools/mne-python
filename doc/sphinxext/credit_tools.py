@@ -335,7 +335,7 @@ def generate_credit_rst(app=None, *, verbose=False):
     globs["bin/*"] = "mne.commands"
     globs["mne/morph_map.py"] = "mne.surface"
     globs["mne/baseline.py"] = "mne.epochs"
-    globs["mne/_edf/open.py"] = "mne.io.edf"
+    globs["mne/io/edf/_open.py"] = "mne.io"
     for key in """
         parallel.py rank.py misc.py data/*.* defaults.py fixes.py icons/*.* icons.*
     """.strip().split():
