@@ -24,7 +24,6 @@ doc = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "pyxdf",
   "pyzmq != 24.0.0",
-  "rpy2",
   "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
@@ -36,6 +35,7 @@ doc = [
   "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
+doc-full = ["rpy2", {include-group = "doc"}]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
@@ -55,8 +55,6 @@ test = [
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
   "ruff >= 0.1",
-  "toml-sort",
-  "tomli; python_version < '3.11'",
   "twine",
   "vulture",
   "wheel >= 0.21",
