@@ -1,0 +1,1 @@
+Add support for reading BCI2000 ``.dat`` files via :func:`mne.io.read_raw_bci2k`, and an example :file:`examples/io/read_bci2k.py` for downloading and visualizing BCI2000 data, by :newcontrib:`Hansuja Budhiraja`.
