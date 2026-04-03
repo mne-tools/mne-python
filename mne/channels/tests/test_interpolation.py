@@ -560,9 +560,7 @@ def test_interpolate_to_meg(monkeypatch):
     kwargs = dict(mode="point", origin=(0.0, 0.0, 0.04))
     evoked_ctf = evoked.interpolate_to("ctf151", **kwargs)
     # test whether .info["sfreq"] was preserved across interpolation
-    assert (
-        evoked_ctf.info["sfreq"] == evoked.info["sfreq"]
-    )
+    assert evoked_ctf.info["sfreq"] == evoked.info["sfreq"]
     evoked_ctf.pick(evoked_ctf.ch_names[::4])
     evoked_rt = evoked_ctf.interpolate_to("neuromag", **kwargs).pick(evoked.ch_names)
     corrcoef = np.corrcoef(evoked.data.ravel(), evoked_rt.data.ravel())[0, 1]
