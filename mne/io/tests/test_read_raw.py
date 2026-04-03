@@ -10,7 +10,7 @@ from shutil import copyfile
 import pytest
 
 from mne.datasets import testing
-from mne.io import read_raw
+from mne.io import read_raw, read_raw_bci2k
 from mne.io._read_raw import _get_readers, _get_supported, split_name_ext
 
 base = Path(__file__).parents[1]
@@ -161,5 +161,6 @@ def test_all_reader_documented_in_docstring():
 
 def test_bci2k():
     """Test reading BCI2k files with read_raw."""
+    read_raw_bci2k(bci2k_fname, preload=True)  # smoke test: if this works, below should
     raw = read_raw(bci2k_fname, preload=True)
     assert "RawBCI2k" in repr(raw)

@@ -7,7 +7,6 @@ In this example, we use MNE-Python to read a BCI2000 ``.dat`` file.
 BCI2000 is a general-purpose brain-computer interface (BCI) system widely
 used in EEG research. The file is downloaded from the MNE testing data
 repository using ``pooch``.
-
 """  # noqa: D205 D400
 
 # Authors: The MNE-Python contributors.
@@ -19,7 +18,7 @@ import pooch
 import mne
 
 # %%
-# First, we download the sample BCI2000 ``.dat`` file using :mod:`pooch`.
+# First, we download the sample BCI2000 ``.dat`` file using ``pooch``.
 
 data_dir = mne.datasets.default_path() / "bci2k_data"
 data_dir.mkdir(exist_ok=True)
