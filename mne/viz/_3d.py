@@ -968,7 +968,7 @@ def plot_alignment(
             labels,
             font_size=10,
             text_color=(1.0, 1.0, 1.0),
-            font_family="renderer.font_family",
+            font_family=renderer.font_family,
             shadow=True,
             show_points=False,
             shape=None,
