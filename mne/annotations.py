@@ -183,6 +183,11 @@ def _check_duration(duration, n):
         raise ValueError(
             f"Duration must be a one dimensional array, got {duration.ndim}."
         )
+    if len(duration) != n:
+        raise ValueError(
+            f"Length of duration ({len(duration)}) must match the length of "
+            f"existing onset ({n})."
+        )
     return duration
 
 
@@ -1301,6 +1306,10 @@ class HEDAnnotations(Annotations):
                 state["ch_names"],
                 state.get("_extras", None),
             )
+        )
+        self._hed_version = state["_hed_version"]
+        self.hed_string = _HEDStrings(
+            state["hed_string"], hed_version=self._hed_version
         )
 
     @fill_doc
