@@ -989,21 +989,27 @@ def test_plot_ch_adjacency():
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
 
 
-def test_plot_topomap_info_names_ordering():
+@pytest.mark.parametrize("ch_type", ("mag", "grad"))
+def test_plot_topomap_info_names_ordering(ch_type):
     """Regression test for GH-12700.
 
     plot_topomap() must preserve correct sensor name ordering when
     passing an Info object as pos with a names argument.
+    This must be tested with MEG data including gradiometers, since the
+    bug only affected the gradiometer code path.
     """
-    info = create_info(ch_names=["Fp1", "Fp2", "Fz"], sfreq=1000.0, ch_types="eeg")
-    montage = make_standard_montage("standard_1020")
-    info.set_montage(montage)
-    data = np.array([1.0, 2.0, 3.0])
-    names = ["Fp1", "Fp2", "Fz"]
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    evoked = evoked.copy().crop(0, 0).pick(picks=ch_type)
+    info = evoked.info
+    data = evoked.data[:, 0]
+    names = info["ch_names"]
+    if ch_type == "grad":
+        # grad pairs are merged so only every other name is displayed
+        expected_names = names[::2]
+    else:
+        expected_names = names
     im, _ = plot_topomap(data, info, names=names, show=False)
-    assert im is not None
-    # ADD this instead
     displayed_names = [t.get_text() for t in im.axes.texts]
-    assert displayed_names == list(names), (
-        f"Expected {list(names)}, got {displayed_names}"
+    assert displayed_names == list(expected_names), (
+        f"Expected {list(expected_names)}, got {displayed_names}"
     )

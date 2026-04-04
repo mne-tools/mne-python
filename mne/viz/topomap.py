@@ -1297,8 +1297,6 @@ def _plot_topomap(
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
-            if names is not None:
-                names = [names[p] for p in picks]
 
     extrapolate = _check_extrapolate(extrapolate, ch_type)
     if data.ndim > 1:
