@@ -1294,8 +1294,14 @@ class HEDAnnotations(Annotations):
         """Unpack from serialized format."""
         self._orig_time = state["_orig_time"]
         self._onset, self._duration, self._description, self._ch_names, self._extras = (
-    _check_o_d_s_c_e(state["onset"], state["duration"], state["description"], state["ch_names"], state.get("_extras", None))
-)
+            _check_o_d_s_c_e(
+                state["onset"],
+                state["duration"],
+                state["description"],
+                state["ch_names"],
+                state.get("_extras", None),
+            )
+        )
 
     @fill_doc
     def append(
@@ -1330,7 +1336,7 @@ class HEDAnnotations(Annotations):
             onset, duration, description, ch_names, extras
         )
         hed_string = self._check_hed_strings(hed_string, len(onset))
-        
+
         hed_objs = [
             self.hed_string._validate_hed_string(v, self.hed_string._schema)
             for v in hed_string
