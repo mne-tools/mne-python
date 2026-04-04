@@ -720,12 +720,24 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor, mesh
 
     def text2d(
-        self, x_window, y_window, text, size=14, color="white", justification=None
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
     ):
         size = 14 if size is None else size
         position = (x_window, y_window)
         actor = self.plotter.add_text(
-            text, position=position, font_size=size, color=color, viewport=True
+            text=text,
+            position=position,
+            font_size=size,
+            color=color,
+            viewport=True,
+            font_file=font_file,
         )
         if isinstance(justification, str):
             if justification == "left":
