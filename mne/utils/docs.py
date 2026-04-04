@@ -2723,7 +2723,7 @@ mode : str
 """
 
 docdict["mode_pctf"] = """
-mode : None | 'mean' | 'max' | 'svd'
+mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     Compute summary of PSFs/CTFs across all indices specified in 'idx'.
     Can be:
 
@@ -2734,6 +2734,9 @@ mode : None | 'mean' | 'max' | 'svd'
       n_comp largest PSFs/CTFs.
     * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
       n_comp first SVD components.
+    * 'maxval' : PSFs/CTFs with maximum absolute value across vertices.
+      Returns the n_comp largest PSFs/CTFs.
+    * 'sum' : Sum of PSFs/CTFs across vertices.
 """
 
 docdict["mode_tfr_plot"] = """
