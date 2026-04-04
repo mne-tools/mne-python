@@ -776,15 +776,15 @@ def sys_info(
     out("Executable".ljust(ljust) + sys.executable + "\n")
     try:
         cpu_brand = _get_cpu_brand()
-    except Exception:
-        cpu_brand = "?"
+    except Exception as exc:
+        cpu_brand = f"? (could not determine: {exc})"
     out("CPU".ljust(ljust) + f"{cpu_brand} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
         total_memory = _get_total_memory()
-    except UnknownPlatformError:
-        total_memory = "?"
+    except Exception as exc:
+        total_memory = f"? (could not determine: {exc})"
     else:
         total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
