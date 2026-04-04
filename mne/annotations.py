@@ -158,13 +158,18 @@ def _validate_extras(extras, length: int):
     return _AnnotationsExtrasList(extras or [None] * length)
 
 
-def _check_onset(onset):
+def _check_onset(onset, n=None):
     """Convert and validate onset to a 1D float array."""
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
             f"Onset must be a one dimensional array, got {onset.ndim} (shape "
             f"{onset.shape})."
+        )
+    if n is not None and len(onset) != n:
+        raise ValueError(
+            f"Length of onset ({len(onset)}) must match the length of "
+            f"existing duration ({n})."
         )
     return onset
 
@@ -189,6 +194,11 @@ def _check_description(description, n):
     if description.ndim != 1:
         raise ValueError(
             f"Description must be a one dimensional array, got {description.ndim}."
+        )
+    if len(description) != n:
+        raise ValueError(
+            f"Length of description ({len(description)}) must match the "
+            f"length of existing onset ({n})."
         )
     _safe_name_list(description, "write", "description")
     return description
@@ -458,12 +468,7 @@ class Annotations:
 
     @onset.setter
     def onset(self, onset):
-        onset = _check_onset(onset)
-        if len(onset) != len(self._duration):
-            raise ValueError(
-                f"Length of onset ({len(onset)}) must match the length of "
-                f"existing duration ({len(self._duration)})."
-            )
+        onset = _check_onset(onset, n=len(self._onset))
         self._onset = onset
 
     @property
@@ -484,13 +489,8 @@ class Annotations:
 
     @duration.setter
     def duration(self, duration):
-        n = len(self._onset)
+        n = len(self._duration)
         duration = _check_duration(duration, n)
-        if len(duration) != n:
-            raise ValueError(
-                f"Length of duration ({len(duration)}) must match the length of "
-                f"existing onset ({n})."
-            )
         self._duration = duration
 
     @property
@@ -512,13 +512,8 @@ class Annotations:
 
     @description.setter
     def description(self, description):
-        n = len(self._onset)
+        n = len(self._description)
         description = _check_description(description, n)
-        if len(description) != n:
-            raise ValueError(
-                f"Length of description ({len(description)}) must match the "
-                f"length of existing onset ({n})."
-            )
         self._description = description
 
     @property
@@ -540,13 +535,8 @@ class Annotations:
 
     @ch_names.setter
     def ch_names(self, ch_names):
-        n = len(self._onset)
+        n = len(self._ch_names)
         ch_names = _check_ch_names_annot(ch_names, n)
-        if len(ch_names) != n:
-            raise ValueError(
-                f"Length of ch_names ({len(ch_names)}) must match the length of "
-                f"existing onset ({n})."
-            )
         self._ch_names = ch_names
 
     @property
@@ -704,6 +694,10 @@ class Annotations:
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
+        # Write directly to private attributes to avoid triggering the public
+        # setter validation, which would raise an error due to temporary length
+        # mismatches while fields are being extended one at a time.
+        # The data is already validated by _check_o_d_s_c_e above.
         self._onset = np.append(self._onset, onset)
         self._duration = np.append(self._duration, duration)
         self._description = np.append(self._description, description)
@@ -1299,15 +1293,9 @@ class HEDAnnotations(Annotations):
     def __setstate__(self, state):
         """Unpack from serialized format."""
         self._orig_time = state["_orig_time"]
-        self._onset = state["onset"]
-        self._duration = state["duration"]
-        self._description = state["description"]
-        self._ch_names = state["ch_names"]
-        self._extras = state.get("_extras", [None] * len(self._onset))
-        self._hed_version = state["_hed_version"]
-        self.hed_string = _HEDStrings(
-            state["hed_string"], hed_version=self._hed_version
-        )
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
+    _check_o_d_s_c_e(state["onset"], state["duration"], state["description"], state["ch_names"], state.get("_extras", None))
+)
 
     @fill_doc
     def append(
@@ -1341,11 +1329,8 @@ class HEDAnnotations(Annotations):
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
-        # Write directly to private attributes to avoid triggering the public
-        # setter validation, which would raise an error due to temporary length
-        # mismatches while fields are being extended one at a time.
-        # The data is already validated by _check_o_d_s_c_e above.
         hed_string = self._check_hed_strings(hed_string, len(onset))
+        
         hed_objs = [
             self.hed_string._validate_hed_string(v, self.hed_string._schema)
             for v in hed_string
@@ -1364,7 +1349,6 @@ class HEDAnnotations(Annotations):
     def __iadd__(self, other):
         """Add (concatenate) two HEDAnnotations objects in-place."""
         if not isinstance(other, type(self)):
-            # Convert self to plain Annotations, preserving HED in extras
             extras = _hed_extras_from_hed_annotations(self)
             result = Annotations(
                 onset=self.onset,
