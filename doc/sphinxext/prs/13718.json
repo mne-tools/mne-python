@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "84cabeddbea877cc7825d308b07d704c44485921",
+  "authors": [
+    {
+      "n": "Aniket",
+      "e": null
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/api/decoding.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/dev/13718.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/__init__.pyi": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/decoding/base.py": {
+      "a": 75,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 117,
+      "d": 2
+    },
+    "mne/decoding/ssd.py": {
+      "a": 64,
+      "d": 4
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 65,
+      "d": 1
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 69,
+      "d": 1
+    },
+    "mne/decoding/tests/test_xdawn.py": {
+      "a": 57,
+      "d": 1
+    },
+    "mne/decoding/xdawn.py": {
+      "a": 57,
+      "d": 2
+    }
+  }
+}
