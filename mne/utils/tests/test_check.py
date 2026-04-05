@@ -21,6 +21,7 @@ from mne.utils import (
     _check_ch_locs,
     _check_fname,
     _check_info_inv,
+    _check_if_nan,
     _check_option,
     _check_range,
     _check_sphere,
@@ -204,6 +205,24 @@ def test_check_option():
     )
     with pytest.raises(ValueError, match=msg):
         assert _check_option("option", "bad", ["valid"])
+
+
+def test_check_if_nan():
+    """Test NaN handling and option validation."""
+    msg = (
+        "Invalid value for the 'on_nan' parameter. "
+        "Allowed values are 'error' and 'warn', but got 'er' instead."
+    )
+    nan_error_msg = r"Some of the values\s+to be plotted are NaN\."
+    nan_warn_msg = r"Some of the values\s+to be plotted are NaN"
+    with pytest.raises(ValueError, match=msg):
+        _check_if_nan([0.0], on_nan="er")
+
+    with pytest.raises(ValueError, match=nan_error_msg):
+        _check_if_nan([0.0, np.nan], on_nan="error")
+
+    with pytest.warns(RuntimeWarning, match=nan_warn_msg):
+        _check_if_nan([0.0, np.nan], on_nan="warn")
 
 
 def test_path_like():
