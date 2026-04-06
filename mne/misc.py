@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from pathlib import Path
+
 
 def parse_config(fname):
     """Parse a config file (like .ave and .cov files).
@@ -20,10 +22,11 @@ def parse_config(fname):
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
     """
+    fname = Path(fname)
+
     reject_params = read_reject_parameters(fname)
 
-    with open(fname) as f:
-        lines = f.readlines()
+    lines = fname.read_text().splitlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
     event_dict = dict()
@@ -67,14 +70,17 @@ def read_reject_parameters(fname):
     params : dict
         The rejection parameters.
     """
-    with open(fname) as f:
-        lines = f.readlines()
+    fname = Path(fname)
+    lines = fname.read_text().splitlines()
 
     reject_names = ["gradReject", "magReject", "eegReject", "eogReject", "ecgReject"]
     reject_pynames = ["grad", "mag", "eeg", "eog", "ecg"]
     reject = dict()
     for line in lines:
         words = line.split()
+        # Defensive check for empty lines
+        if not words:
+            continue
         if words[0] in reject_names:
             reject[reject_pynames[reject_names.index(words[0])]] = float(words[1])
 
