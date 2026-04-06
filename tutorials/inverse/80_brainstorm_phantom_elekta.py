@@ -145,7 +145,7 @@ plt.show()
 # %%
 # We can see that GOF varies between 50 and more than 95 %
 # variance explained for dipoles.
-# %%
+
 # Estimated vs true dipole locations
 # -------------------------------
 # Finally, we compare the estimated to the true dipole locations.
@@ -190,7 +190,9 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # of the estimated and true dipoles.
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
+# setup dipole objects for true and estimated dipoles
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
+dip_estimated = mne.Dipole(dip.times, dip_pos, dip_amplitude, dip_ori, actual_gof)
 
 subject = "phantom_otaniemi"
 trans = mne.transforms.Transform("head", "mri", np.eye(4))
@@ -210,11 +212,10 @@ fig = mne.viz.plot_alignment(
 fig = mne.viz.plot_dipole_locations(
     dipoles=dip_true, mode="arrow", subject=subject, color=(0.0, 0.0, 0.0), fig=fig
 )
-for dip in dip_all:
-    # Plot the position and the orientation of the estimated dipole in green
-    fig = mne.viz.plot_dipole_locations(
-        dipoles=dip, mode="arrow", subject=subject, color=(0.2, 1.0, 0.5), fig=fig
-    )
+# Plot the position and the orientation of the estimated dipole in green
+fig = mne.viz.plot_dipole_locations(
+    dipoles=dip_estimated, mode="arrow", subject=subject, color=(0.2, 1.0, 0.5), fig=fig
+)
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
 # %%
 # We can see that the dipoles overlap, have approximately the same magnitude
