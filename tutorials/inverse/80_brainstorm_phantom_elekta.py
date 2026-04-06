@@ -71,6 +71,7 @@ event_id = list(range(1, 33))
 epochs = mne.Epochs(
     raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
 )
+
 # Plot evoked response for the first clean dipole
 epochs["1"][1:-1].average().plot(time_unit="s")
 # %%
@@ -106,6 +107,7 @@ for ii in event_id:
     evokeds.append(evoked)
 # %%
 # Next, we need to compute the noise covariance to capture the sensor noise structure.
+#
 # We use the baseline window to estimate covariance.
 #
 # You can explore the covariance tutorial for details: :ref:`tut-compute-covariance`.
@@ -144,7 +146,6 @@ plt.ylabel("Goodness of fit (%)")
 plt.show()
 
 # %%
-#
 # We can see that GOF varies between 50 % and up to 95 %.
 #
 # Compare estimated and true dipoles
