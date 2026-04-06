@@ -12,8 +12,8 @@ A phantom recording is a measurement obtained using a device (phantom)
 that generates known magnetic signals,
 allowing validation and benchmarking of MEG system accuracy and analysis methods.
 
-The aim of this tutorial is to learn how to use phantom recordings to
-evaluate source localisation methods by comparing estimated vs real dipole positions.
+The aim of this tutorial is to demonstrate how phantom recordings can be used to
+evaluate source localisation methods by comparing estimated and true dipole positions.
 
 For comparison, see :footcite:`TadelEtAl2011` and
 `the original Brainstorm tutorial
@@ -28,7 +28,6 @@ For comparison, see :footcite:`TadelEtAl2011` and
 # Copyright the MNE-Python contributors.
 
 # %%
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import find_peaks
@@ -39,60 +38,61 @@ from mne.datasets import fetch_phantom
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif
 
-print(__doc__)
 # %%
 # Load and prepare the data
 # -------------------------------
+
 # The data were collected with an Elekta Neuromag VectorView system
 # at 1000 Hz and low-pass filtered at 330 Hz.
-# The dataset has recordings at 3 different current amplitudes (20, 200, and 2000 nAm),
-# here we will load the medium-amplitude current.
+#
+# The dataset contains recordings at three current amplitudes (20, 200, and 2000 nAm).
+# Here we load the medium-amplitude condition.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname)
-raw.info["bads"] = ["MEG1933", "MEG2421"]  # known bad channels
+
+# Mark known bad channels
+raw.info["bads"] = ["MEG1933", "MEG2421"]
+
 events = find_events(raw, "STI201")
-# The first 32 events are the dipole phantoms recorded.
-# The remaining event IDs are not relevant for this tutorial.
+
+# The first 32 events correspond to dipole activations.
+
 # %%
-# Here we epoch the data around dipole events
-# and baseline correct the epochs from -100 ms to -0.05 ms before stimulus onset.
+# Epoch the data and plot evokeds
+# ---------------
+#
+# We epoch the data around dipole events and apply baseline correction.
+
 bmax = -0.05
 tmin, tmax = -0.1, 0.8
 event_id = list(range(1, 33))
+
 epochs = mne.Epochs(
     raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
 )
-# %%
-# Dipole fitting on phantom data
-# -------------------------------
-# Next, we fit dipoles based on the epoched phantom recordings and
-# compare the estimated to the known dipole locations built into the phantom.
-
-# We use the first dipole event to plot the evoked signal
-# and skip the first and the last epoch as they are corrupted.
-
+# Plot evoked response for the first clean dipole
 epochs["1"][1:-1].average().plot(time_unit="s")
-
-# We average over 18 simulated events for the first dipole.
+# %%
 # In this data the phantom was set to produce 20 Hz sinusoidal bursts of current.
 # You can see that the burst envelope repeats at approximately 3 Hz.
-# %%
-# First, we need to determine the timepoint of the peak amplitude.
-# To find this timepoint, we compute Global Field Power (GFP),
-# which is the standard deviation of all EEG electrode voltages at a
-# specific timepoint.
+#
+# Determine peak activation using Global Field Power (GFP)
+# --------------------------------------------------------
+
+# GFP is the standard deviation across sensors at each time
+# point, providing a reference-independent measure of signal strength.
 evoked_tmp = epochs["1"][1:-1].average()
 gfp = np.std(evoked_tmp.data, axis=0)
 times = evoked_tmp.times
 
-# We restrict the time window to find the peak
-# for the first bursting event.
+# Restrict to first burst window
 time_mask = (times > 0) & (times <= 0.1)
+
 peaks, _ = find_peaks(gfp[time_mask])
-# Convert to original indices
 peak_indices = np.where(time_mask)[0][peaks]
-# Select the strongest peak (max GFP)
+
+# Select the strongest peak
 strongest_peak_idx = peak_indices[np.argmax(gfp[peak_indices])]
 t_peak = times[strongest_peak_idx]
 
@@ -107,7 +107,8 @@ for ii in event_id:
 # %%
 # Next, we need to compute the noise covariance to capture the sensor noise structure.
 # We use the baseline window to estimate covariance.
-# You can explore the covariance tutorial for details :ref:`tut-compute-covariance`.
+#
+# You can explore the covariance tutorial for details: :ref:`tut-compute-covariance`.
 
 cov = mne.compute_covariance(epochs, tmax=bmax)
 
@@ -120,9 +121,10 @@ fetch_phantom("otaniemi", subjects_dir=subjects_dir)
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 
 # %%
-# We finally fit all 32 phantom dipoles and store them
-# as well as the residuals in a list.
+# Fit dipoles
+# -----------
 
+# We fit dipoles for each phantom and store them in a list.
 dip_all, residuals_all = [], []
 
 for evoked in evokeds:
@@ -130,27 +132,27 @@ for evoked in evokeds:
     dip_all.append(dip)
     residuals_all.append(residual)
 # %%
-# Let's visualize the explained variance.
+# Evaluate goodness of fit
+# -----------------------
+
 # The dipole object stores the goodness of fit (GOF) for each dipole.
-gof = [dip.gof[0] for dip in dip_all]  # array of GOF values
-
-# Define colorblind-friendly colors
+gof = [dip.gof[0] for dip in dip_all]
 colors = ["#E69F00" if val < 60 else "#0072B2" for val in gof]
-# orange = low, blue = high (from Okabe-Ito palette)
-
 plt.bar(event_id, gof, color=colors)
 plt.xlabel("Phantom dipole estimation")
 plt.ylabel("Goodness of fit (%)")
 plt.show()
-# %%
-# We can see that GOF varies between 50 and more than 95 %
-# variance explained for dipoles.
 
-# Estimated vs true dipole locations
-# -------------------------------
-# Finally, we compare the estimated to the true dipole locations.
+# %%
+#
+# We can see that GOF varies between 50 % and up to 95 %.
+#
+# Compare estimated and true dipoles
+# --------------------------------
+
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 200.0  # nAm
+
 # estimated dipoles
 dip_pos = [dip.pos[0] for dip in dip_all]
 dip_ori = [dip.ori[0] for dip in dip_all]
@@ -186,8 +188,9 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # The dipole fits closely match the true phantom data,
 # achieving sub-centimeter accuracy (mean position error 2.7mm).
 #
-# Finally, we can plot the positions and the orientations
-# of the estimated and true dipoles.
+# Visualise estimated and true dipoles
+# -----------------------
+
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
 # setup dipole objects for true and estimated dipoles
@@ -208,10 +211,12 @@ fig = mne.viz.plot_alignment(
     show_axes=True,
     subjects_dir=subjects_dir,
 )
+
 # Plot the position and the orientation of the true dipole in black
 fig = mne.viz.plot_dipole_locations(
     dipoles=dip_true, mode="arrow", subject=subject, color=(0.0, 0.0, 0.0), fig=fig
 )
+
 # Plot the position and the orientation of the estimated dipole in green
 fig = mne.viz.plot_dipole_locations(
     dipoles=dip_estimated, mode="arrow", subject=subject, color=(0.2, 1.0, 0.5), fig=fig
