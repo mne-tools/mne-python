@@ -65,12 +65,12 @@ scores = (raw_score - raw_score.min()) / (raw_score.max() - raw_score.min() + 1e
 # --------------------------
 # Below, epochs are ranked from cleanest to noisiest. We need to find an appropriate
 # threshold to flag those epochs likely containing artifacts. In the plot, we show two
-# example thresholds: a more lenient threshold of 0.8; and a stricter threshold of 0.6.
+# example thresholds: a more lenient threshold of 0.6; and a stricter threshold of 0.3.
 fig, ax = plt.subplots(layout="constrained")
 sorted_idx = np.argsort(scores)
 ax.bar(np.arange(len(scores)), scores[sorted_idx], color="steelblue")
-ax.axhline(0.8, color="red", linestyle="--", label="More lenient threshold (0.8)")
-ax.axhline(0.6, color="orange", linestyle="--", label="Stricter threshold (0.6)")
+ax.axhline(0.6, color="red", linestyle="--", label="More lenient threshold (0.6)")
+ax.axhline(0.3, color="orange", linestyle="--", label="Stricter threshold (0.3)")
 ax.set(
     xlabel="Epoch (sorted by score)",
     ylabel="Outlier score",
@@ -78,7 +78,7 @@ ax.set(
 )
 ax.legend()
 
-for threshold in [0.8, 0.6]:
+for threshold in [0.6, 0.3]:
     bad_epochs = np.where(scores > threshold)[0]
     print(
         f"Threshold {threshold}: {len(bad_epochs)} epochs flagged "
@@ -87,26 +87,32 @@ for threshold in [0.8, 0.6]:
 
 # %%
 # Epochs flagged by the thresholds can be inspected using the :meth:`~mne.Epochs.plot`
-# method. First, we show those epochs with the worst scores (≥ 0.8), containing a number
+# method. First, we show those epochs with the worst scores (≥ 0.6), containing a number
 # of amplitude spikes.
-epochs[np.where(scores >= 0.8)[0]].plot(title="Scores ≥ 0.8", scalings=dict(eeg=70e-6))
+picks = np.arange(17, 40, dtype=int)  # channels with notable amplitude spikes
+epochs[np.where(scores >= 0.6)[0]].plot(
+    picks=picks, title="Scores ≥ 0.6", scalings=dict(eeg=70e-6), n_channels=len(picks)
+)
 # %%
-# In contrast, the threshold of 0.6 captures epochs with less severe artifact activity,
+# In contrast, the threshold of 0.3 captures epochs with less severe artifact activity,
 # which may be overly conservative to exclude from the analysis.
-epochs[np.where((scores >= 0.6) & (scores < 0.8))[0]].plot(
-    title="0.6 ≤ scores < 0.8", scalings=dict(eeg=70e-6)
+epochs[np.where((scores >= 0.3) & (scores < 0.6))[0]].plot(
+    picks=picks,
+    title="0.3 ≤ scores < 0.6",
+    scalings=dict(eeg=70e-6),
+    n_channels=len(picks),
 )
 
 # %%
 # Identify and handle suspicious epochs
 # --------------------------------------
 # Epochs scoring above the threshold can be inspected visually using
-# :meth:`mne.Epochs.plot`, or dropped directly using
-# :meth:`mne.Epochs.drop`. The threshold to use to flag epochs as outliers varies
-# depending on the dataset and analysis goals, and inspecting the flagged epochs is a
-# crucial step in identifying the optimal threshold.
-epochs.drop(np.where(scores >= 0.8)[0])
-print(f"Epochs remaining after dropping scores ≥ 0.8: {len(epochs)}")
+# :meth:`mne.Epochs.plot`, or dropped directly using :meth:`mne.Epochs.drop`. The
+# threshold to use to flag epochs as outliers varies depending on the dataset and
+# analysis goals, and inspecting the flagged epochs is a crucial step in identifying
+# the optimal threshold.
+epochs.drop(np.where(scores >= 0.6)[0])
+print(f"Epochs remaining after dropping scores ≥ 0.6: {len(epochs)}")
 
 # %%
 # References
