@@ -993,3 +993,29 @@ def test_plot_ch_adjacency():
     msg = "Editing a 3d adjacency plot is not supported."
     with pytest.raises(ValueError, match=msg):
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
+
+
+@pytest.mark.parametrize("ch_type", ("mag", "grad"))
+def test_plot_topomap_info_names_ordering(ch_type):
+    """Regression test for GH-12700.
+
+    plot_topomap() must preserve correct sensor name ordering when
+    passing an Info object as pos with a names argument.
+    This must be tested with MEG data including gradiometers, since the
+    bug only affected the gradiometer code path.
+    """
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    evoked = evoked.copy().crop(0, 0).pick(picks=ch_type)
+    info = evoked.info
+    data = evoked.data[:, 0]
+    names = info["ch_names"]
+    if ch_type == "grad":
+        # grad pairs are merged so only every other name is displayed
+        expected_names = names[::2]
+    else:
+        expected_names = names
+    im, _ = plot_topomap(data, info, names=names, show=False)
+    displayed_names = [t.get_text() for t in im.axes.texts]
+    assert displayed_names == list(expected_names), (
+        f"Expected {list(expected_names)}, got {displayed_names}"
+    )
