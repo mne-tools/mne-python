@@ -330,7 +330,7 @@ report.add_forward(
 report.save("report_forward_sol.html", overwrite=True)
 
 # %%
-# To ge the sensitivity maps of forward models you could use `sensitivity=True`.
+# To ge the sensitivity maps of forward models you could use ``sensitivity=True``.
 
 report.add_forward(
     forward=fwd_path,
