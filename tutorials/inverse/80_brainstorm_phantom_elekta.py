@@ -40,7 +40,7 @@ from mne.io import read_raw_fif
 
 # %%
 # Load and prepare the data
-# --------------------------
+# -------------------------
 
 # The data were collected with an Elekta Neuromag VectorView system
 # at 1000 Hz and low-pass filtered at 330 Hz.
@@ -60,7 +60,7 @@ events = find_events(raw, "STI201")
 
 # %%
 # Epoch the data and plot evokeds
-# --------------------------------
+# -------------------------------
 #
 # We epoch the data around dipole events and apply baseline correction.
 
@@ -79,7 +79,7 @@ epochs["1"][1:-1].average().plot(time_unit="s")
 # You can see that the burst envelope repeats at approximately 3 Hz.
 #
 # Determine peak activation using Global Field Power (GFP)
-# ---------------------------------------------------------
+# --------------------------------------------------------
 
 # GFP is the standard deviation across sensors at each time
 # point, providing a reference-independent measure of signal strength.
@@ -124,7 +124,7 @@ sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 
 # %%
 # Fit dipoles
-# ------------
+# -----------
 
 # We fit dipoles for each phantom and store them in a list.
 dip_all, residuals_all = [], []
@@ -135,7 +135,7 @@ for evoked in evokeds:
     residuals_all.append(residual)
 # %%
 # Evaluate goodness of fit
-# -----------------------
+# ------------------------
 
 # The dipole object stores the goodness of fit (GOF) for each dipole.
 gof = [dip.gof[0] for dip in dip_all]
@@ -149,7 +149,7 @@ plt.show()
 # We can see that GOF varies between 50 % and up to 95 %.
 #
 # Compare estimated and true dipoles
-# -----------------------------------
+# ----------------------------------
 
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 200.0  # nAm
@@ -190,7 +190,7 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # achieving sub-centimeter accuracy (mean position error 2.7mm).
 #
 # Visualise estimated and true dipoles
-# -------------------------------------
+# ------------------------------------
 
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
