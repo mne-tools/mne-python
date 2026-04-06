@@ -2018,6 +2018,22 @@ class Report:
                 replace=replace,
             )
 
+    def _add_ica_sources(
+        self, *, ica, inst, picks, image_format, section, tags, replace
+    ):
+        with use_browser_backend("matplotlib"):
+            fig = ica.plot_sources(inst=inst, picks=picks, show=False)
+        self._add_figure(
+            fig=fig,
+            title="Sources",
+            caption=None,
+            image_format=image_format,
+            tags=tags,
+            section=section,
+            replace=replace,
+            own_figure=True,
+        )
+
     def _add_ica(
         self,
         *,
@@ -2034,6 +2050,7 @@ class Report:
         tags,
         n_jobs,
         replace,
+        plot_sources=False,
     ):
         if _path_like(ica):
             ica = read_ica(ica)
@@ -2164,6 +2181,26 @@ class Report:
                 replace=replace,
             )
 
+        # Sources plot
+        if plot_sources:
+            if inst is None:
+                raise ValueError(
+                    "Cannot plot ICA sources because inst=None. "
+                    "Please pass a Raw, Epochs, or Evoked instance to "
+                    "add_ica() to enable source plotting, or pass "
+                    "plot_sources=False."
+                )
+
+            self._add_ica_sources(
+                ica=ica,
+                inst=inst,
+                picks=picks,
+                image_format=image_format,
+                section=section,
+                tags=tags,
+                replace=replace,
+            )
+
     @fill_doc
     def add_ica(
         self,
@@ -2179,6 +2216,7 @@ class Report:
         n_jobs=None,
         tags=("ica",),
         replace=False,
+        plot_sources=False,
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
 
@@ -2205,6 +2243,12 @@ class Report:
         %(n_jobs)s
         %(tags_report)s
         %(replace_report)s
+        plot_sources : bool
+            Whether to add a plot of the ICA source time-courses using
+            :meth:`mne.preprocessing.ICA.plot_sources`. Requires ``inst``
+            to be provided. Defaults to ``False``.
+
+            .. versionadded:: 1.12
 
         Notes
         -----
@@ -2225,6 +2269,7 @@ class Report:
             section=title,
             n_jobs=n_jobs,
             replace=replace,
+            plot_sources=plot_sources,
         )
 
     def remove(self, *, title=None, tags=None, remove_all=False):
