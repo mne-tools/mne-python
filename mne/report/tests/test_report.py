@@ -19,6 +19,7 @@ from mne import (
     Epochs,
     create_info,
     pick_channels_cov,
+    pick_types_forward,
     read_cov,
     read_events,
     read_evokeds,
@@ -28,6 +29,7 @@ from mne.datasets import testing
 from mne.epochs import make_metadata
 from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
+from mne.forward import read_forward_solution, write_forward_solution
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
 from mne.report import report as report_mod
@@ -539,6 +541,44 @@ def test_add_forward(renderer_interactive_pyvistaqt):
     )
     assert len(report.html) == 1
     assert report.html[0].count("<img") == 0
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_add_forward_sensitivity_meg_only(tmp_path, monkeypatch, invisible_fig):
+    """Test sensitivity maps for a MEG-only forward solution."""
+    meg_only_fwd = read_forward_solution(fwd_fname)
+    meg_only_fwd = pick_types_forward(meg_only_fwd, meg=True, eeg=False)
+    meg_only_fwd_fname = tmp_path / "sample_meg-only-fwd.fif"
+    write_forward_solution(meg_only_fwd_fname, meg_only_fwd, overwrite=True)
+    called_ch_types = []
+    brain = Bunch(
+        _renderer=Bunch(plotter=Bunch(subplot=lambda *args: None)),
+        screenshot=lambda **kwargs: np.zeros((4, 4, 3), dtype=np.uint8),
+        close=lambda: None,
+    )
+
+    def _fake_sensitivity_map(forward, ch_type, mode):
+        assert mode == "fixed"
+        called_ch_types.append(ch_type)
+        return Bunch(plot=lambda **kwargs: brain)
+
+    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: "fake")
+    monkeypatch.setattr(report_mod, "sensitivity_map", _fake_sensitivity_map)
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=meg_only_fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution sensitivity",
+        plot=False,
+        sensitivity=True,
+    )
+    assert len(report.html) == 1
+    assert called_ch_types == ["grad", "mag"]
+    assert "Sensitivity map (grad)" in report.html[0]
+    assert "Sensitivity map (mag)" in report.html[0]
+    assert "Sensitivity map (eeg)" not in report.html[0]
 
 
 @testing.requires_testing_data

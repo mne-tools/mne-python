@@ -24,7 +24,7 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT, _contains_ch_type
 from .._freesurfer import _mri_orientation, _reorient_image
 from ..cov import Covariance, read_cov
 from ..defaults import _handle_default
@@ -3645,18 +3645,9 @@ class Report:
                 )
 
             info = forward["info"]
-            meg_info = info.get("meg", False)
-            has_grad = meg_info and (
-                isinstance(meg_info, dict)
-                and meg_info.get("grad", False)
-                or meg_info is True
-            )
-            has_mag = meg_info and (
-                isinstance(meg_info, dict)
-                and meg_info.get("mag", False)
-                or meg_info is True
-            )
-            has_eeg = info.get("eeg", False)
+            has_grad = _contains_ch_type(info, "grad")
+            has_mag = _contains_ch_type(info, "mag")
+            has_eeg = _contains_ch_type(info, "eeg")
 
             all_ch_types = []
             if has_grad:
