@@ -689,8 +689,7 @@ EEG forward solution in the sphere model
 
     For examples of using the sphere model when computing the forward model
     (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
-    dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
-    :ref:`Brainstorm Elekta phantom dataset tutorial`, and
+    dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>` and
     :ref:`tut-source-alignment-without-mri`.
 
 When the sphere model is employed, the computation of the EEG solution can be
