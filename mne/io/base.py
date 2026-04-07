@@ -1703,7 +1703,7 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop_by_annotations(self, annotations=None, *, verbose=None):
+    def crop_by_annotations(self, annotations=None, description=None, *, verbose=None):
         """Get crops of raw data file for selected annotations.
 
         Parameters
@@ -1711,6 +1711,9 @@ class BaseRaw(
         annotations : instance of Annotations | None
             The annotations to use for cropping the raw file. If None,
             the annotations from the instance are used.
+        description : str | list of str | None
+            If not None, only annotations with matching descriptions will
+            be used for cropping. If None (default), all annotations are used.
         %(verbose)s
 
         Returns
@@ -1721,11 +1724,15 @@ class BaseRaw(
         if annotations is None:
             annotations = self.annotations
 
+        if description is not None:
+            if isinstance(description, str):
+                description = [description]
+            mask = np.isin(annotations.description, description)
+            annotations = annotations[mask]
+
         raws = []
         for annot in annotations:
             onset = annot["onset"] - self.first_time
-            # be careful about near-zero errors (crop is very picky about this,
-            # e.g., -1e-8 is an error)
             if -self.info["sfreq"] / 2 < onset < 0:
                 onset = 0
             raw_crop = self.copy().crop(onset, onset + annot["duration"])

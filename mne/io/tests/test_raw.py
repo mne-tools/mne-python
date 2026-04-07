@@ -661,6 +661,50 @@ def test_crop_by_annotations(meas_date, first_samp):
     assert raws[1].annotations.description[0] == annot.description[1]
 
 
+@pytest.mark.parametrize("meas_date", [None, "orig"])
+@pytest.mark.parametrize("first_samp", [0, 10000])
+def test_crop_by_annotations_description(meas_date, first_samp):
+    """Test crop_by_annotations with description filter."""
+    raw = read_raw_fif(raw_fname)
+
+    if meas_date is None:
+        raw.set_meas_date(None)
+
+    raw = mne.io.RawArray(raw.get_data(), raw.info, first_samp=first_samp)
+
+    onset = np.array([0, 1.5, 2.5], float)
+    if meas_date is not None:
+        onset += raw.first_time
+    annot = mne.Annotations(
+        onset=onset,
+        duration=[1, 0.5, 0.5],
+        description=["stimulus", "bad", "stimulus"],
+        orig_time=raw.info["meas_date"],
+    )
+    raw.set_annotations(annot)
+
+    # filter by single string
+    raws = raw.crop_by_annotations(description="stimulus")
+    assert len(raws) == 2
+    assert all(r.annotations.description[0] == "stimulus" for r in raws)
+
+    # filter by list
+    raws = raw.crop_by_annotations(description=["stimulus"])
+    assert len(raws) == 2
+
+    # filter by multiple descriptions
+    raws = raw.crop_by_annotations(description=["stimulus", "bad"])
+    assert len(raws) == 3
+
+    # filter with no match returns empty list
+    raws = raw.crop_by_annotations(description="nonexistent")
+    assert len(raws) == 0
+
+    # None returns all (default behavior unchanged)
+    raws = raw.crop_by_annotations()
+    assert len(raws) == 3
+
+
 @pytest.mark.parametrize(
     "offset, origin",
     [
