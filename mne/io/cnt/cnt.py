@@ -542,11 +542,11 @@ class RawCNT(BaseRaw):
             )
         except Exception:
             raise RuntimeError(
-                f"{_explain_exception()}\n"
+                f"{_explain_exception(prefix='')[1:]}\n"
                 "WARNING: mne.io.read_raw_cnt "
                 "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
                 "please use mne.io.read_raw_ant instead."
-            )
+            ) from None
         last_samps = [cnt_info["n_samples"] - 1]
         super().__init__(
             info,

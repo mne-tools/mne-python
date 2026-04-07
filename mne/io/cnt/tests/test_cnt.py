@@ -61,6 +61,9 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
+    # Be strict: if it can't be computed, don't try
+    with pytest.raises(RuntimeError, match="Could not automatically compute"):
+        read_raw_cnt(input_fname=fname_bad_spans)
     with omitted:
         raw = read_raw_cnt(
             input_fname=fname_bad_spans, data_format="int32", verbose="debug"
