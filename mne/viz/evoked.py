@@ -1167,7 +1167,9 @@ def plot_evoked_topo(
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
-    the evoked response for the selected sensor.
+    the evoked response for the selected sensor. After a figure is created,
+    hotkeys and on-figure controls can be used to adjust the y-limits and
+    switch between MEG channel views.
 
     Parameters
     ----------
