@@ -10,7 +10,7 @@ from struct import Struct
 
 import numpy as np
 
-from ...utils import _check_option, logger, warn
+from ...utils import _check_option, _validate_type, logger, warn
 
 # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
 _NCHANNELS_OFFSET = 370
@@ -113,7 +113,7 @@ def _session_date_2_meas_date(session_date, date_format):
         return (int_part, frac_part)
 
 
-def _compute_robust_sizes(*, fid, data_format):
+def _compute_robust_sizes(*, fid, data_format, recompute_n_samples):
     """Compute n_channels, n_samples, n_bytes, and event_table_position.
 
     When recording event_table_position is computed (as accomulation). If the
@@ -139,8 +139,8 @@ def _compute_robust_sizes(*, fid, data_format):
     file_size = fid.seek(0, SEEK_END)
     workaround = "pass data_format='int16' or 'int32' explicitly"
     samples_offset = _DATA_OFFSET + _CH_SIZE * n_channels
+    _validate_type(recompute_n_samples, (bool, None), "recompute_n_samples")
     if file_size < 2e9:
-        # Our most reliable way to get the number of samples is to compute it
         logger.debug("File size < 2GB, using header values")
         fid.seek(_EVENTTABLEPOS_OFFSET)
         event_offset = int(np.frombuffer(fid.read(4), dtype="<i4").item())
@@ -191,16 +191,32 @@ def _compute_robust_sizes(*, fid, data_format):
         logger.debug(
             "Using %d bytes per sample from data_format=%s", n_bytes, data_format
         )
-        n_samples, rem = divmod(n_data_bytes, (n_channels * n_bytes))
-        logger.debug("Computed number of samples: %d", n_samples)
-        if rem != 0:
-            warn(
-                "Inconsistent file information detected, number of data bytes "
-                f"({n_data_bytes}) not evenly divisible by number of channels "
-                f"({n_channels}) times number of bytes ({n_bytes})"
-            )
+        # Our most reliable way to get the number of samples is to compute it
+        recomputed_n_samples, rem = divmod(n_data_bytes, (n_channels * n_bytes))
+        logger.debug("Computed number of samples: %d", recomputed_n_samples)
+        if recompute_n_samples is None:
+            recompute_n_samples = n_samples <= 0
+            if recompute_n_samples:
+                logger.info(
+                    "Number of samples in header (%d) is not positive, setting "
+                    "recompute_n_samples=True",
+                    n_samples,
+                )
+        if recompute_n_samples:
+            n_samples = recomputed_n_samples
+            if rem != 0:
+                warn(
+                    "Inconsistent file information detected, number of data bytes "
+                    f"({n_data_bytes}) not evenly divisible by number of channels "
+                    f"({n_channels}) times number of bytes ({n_bytes})"
+                )
     else:
         logger.debug("File size >= 2GB, computing event table offset")
+        if recompute_n_samples:
+            raise ValueError(
+                "Cannot recompute number of samples for files larger than 2GB, set "
+                "recompute_samples=False"
+            )
         if data_format == "auto":
             raise RuntimeError(
                 "Using `data_format='auto' for a CNT file larger"

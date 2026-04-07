@@ -111,7 +111,7 @@ def _read_annotations_cnt(fname, *, data_format, verbose=None):
         sfreq = float(np.frombuffer(fid.read(2), dtype="<u2").item())
 
         n_channels, _, n_bytes, event_table_pos = _compute_robust_sizes(
-            fid=fid, data_format=data_format
+            fid=fid, data_format=data_format, recompute_n_samples=False
         )
         del data_format
 
@@ -175,6 +175,7 @@ def read_raw_cnt(
     *,
     data_format="auto",
     date_format="mm/dd/yy",
+    recompute_n_samples=None,
     header="auto",
     preload=False,
     verbose=None,
@@ -224,6 +225,15 @@ def read_raw_cnt(
         Defines the data format the data is read in. If ``'auto'``, it is
         determined from the file header using ``numsamples`` field.
         Defaults to ``'auto'``.
+    recompute_n_samples : bool | None
+        If True, if the file size is under 2GB, the number of data samples is
+        computed using the location of the event (annotations) table.
+        This is a workaround for files with incorrect number of samples specified
+        in the header. For files over 2GB, the number of samples cannot be
+        recomputed. None (default) will recompute the number of samples if the
+        value from the header is not positive.
+
+        .. versionadded:: 1.12.0
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
     header : ``'auto'`` | ``'new'`` | ``'old'``
@@ -258,13 +268,25 @@ def read_raw_cnt(
         emg=emg,
         data_format=data_format,
         date_format=date_format,
+        recompute_n_samples=recompute_n_samples,
         header=header,
         preload=preload,
         verbose=verbose,
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
+def _get_cnt_info(
+    *,
+    input_fname,
+    eog,
+    ecg,
+    emg,
+    misc,
+    data_format,
+    date_format,
+    header,
+    recompute_n_samples,
+):
     """Read the cnt header."""
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -309,6 +331,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         n_channels, n_samples, n_bytes, _ = _compute_robust_sizes(
             fid=fid,
             data_format=data_format,
+            recompute_n_samples=recompute_n_samples,
         )
         del data_format
         fid.seek(869)
@@ -458,6 +481,15 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    recompute_n_samples : bool | None
+        If True, if the file size is under 2GB, the number of data samples is
+        computed using the location of the event (annotations) table.
+        This is a workaround for files with incorrect number of samples specified
+        in the header. For files over 2GB, the number of samples cannot be
+        recomputed. None (default) will recompute the number of samples if the
+        value from the header is not positive.
+
+        .. versionadded:: 1.12.0
     header : ``'auto'`` | ``'new'`` | ``'old'``
         Defines the header format. Used to describe how bad channels
         are formatted. If auto, reads using old and new header and
@@ -482,6 +514,7 @@ class RawCNT(BaseRaw):
         data_format="auto",
         date_format="mm/dd/yy",
         *,
+        recompute_n_samples=None,
         header="auto",
         preload=False,
         verbose=None,
@@ -497,7 +530,15 @@ class RawCNT(BaseRaw):
         )
         try:
             info, cnt_info = _get_cnt_info(
-                input_fname, eog, ecg, emg, misc, data_format, _date_format, header
+                input_fname=input_fname,
+                eog=eog,
+                ecg=ecg,
+                emg=emg,
+                misc=misc,
+                data_format=data_format,
+                date_format=_date_format,
+                header=header,
+                recompute_n_samples=recompute_n_samples,
             )
         except Exception:
             raise RuntimeError(
