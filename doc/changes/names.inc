@@ -53,6 +53,7 @@
 .. _Chris Mullins: https://crmullins.com
 .. _Christian Brodbeck: https://github.com/christianbrodbeck
 .. _Christian O'Reilly: https://github.com/christian-oreilly
+.. _Christoph Huber-Huber: https://github.com/chsquare
 .. _Christopher Dinh: https://github.com/chdinh
 .. _Chun-Hui Li: https://github.com/iamsc
 .. _Clemens Brunner: https://github.com/cbrnr
