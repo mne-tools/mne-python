@@ -6,7 +6,7 @@ Exploring epoch quality before rejection
 ========================================
 
 This example shows an approach for identifying epochs containing potential artifacts and
-rejecting these bad epochs. We compute per-epoch outlier scores from peak-to-peak
+rejecting these bad epochs. We compute per-epoch outlier scores using peak-to-peak
 amplitude, variance, and kurtosis — inspired by FASTER :footcite:`NolanEtAl2010` and
 :footcite:t:`DelormeEtAl2007` — and use them to rank epochs from cleanest to noisiest to
 inform rejection decisions.
@@ -64,8 +64,9 @@ scores = (raw_score - raw_score.min()) / (raw_score.max() - raw_score.min() + 1e
 # Determining outlier epochs
 # --------------------------
 # Below, epochs are ranked from cleanest to noisiest. We need to find an appropriate
-# threshold to flag those epochs likely containing artifacts. In the plot, we show two
-# example thresholds: a more lenient threshold of 0.6; and a stricter threshold of 0.3.
+# threshold to flag those epochs likely containing artifacts. The threshold to use will
+# vary depending on the dataset and analysis goals. In the plot, we show two example
+# thresholds: a more lenient threshold of 0.6; and a stricter threshold of 0.3.
 fig, ax = plt.subplots(layout="constrained")
 sorted_idx = np.argsort(scores)
 ax.bar(np.arange(len(scores)), scores[sorted_idx], color="steelblue")
@@ -86,9 +87,9 @@ for threshold in [0.6, 0.3]:
     )
 
 # %%
-# Epochs flagged by the thresholds can be inspected using the :meth:`~mne.Epochs.plot`
-# method. First, we show those epochs with the worst scores (≥ 0.6), containing a number
-# of amplitude spikes.
+# Epochs flagged by the thresholds can be inspected using the :meth:`mne.Epochs.plot`
+# method. This is a crucial step in identifying the optimal threshold. First, we show
+# those epochs with the worst scores (≥ 0.6), containing a number of amplitude spikes.
 picks = np.arange(17, 40, dtype=int)  # channels with notable amplitude spikes
 epochs[np.where(scores >= 0.6)[0]].plot(
     picks=picks, title="Scores ≥ 0.6", scalings=dict(eeg=70e-6), n_channels=len(picks)
@@ -104,13 +105,12 @@ epochs[np.where((scores >= 0.3) & (scores < 0.6))[0]].plot(
 )
 
 # %%
-# Identify and handle suspicious epochs
-# --------------------------------------
-# Epochs scoring above the threshold can be inspected visually using
-# :meth:`mne.Epochs.plot`, or dropped directly using :meth:`mne.Epochs.drop`. The
-# threshold to use to flag epochs as outliers varies depending on the dataset and
-# analysis goals, and inspecting the flagged epochs is a crucial step in identifying
-# the optimal threshold.
+# Dropping suspicious epochs
+# --------------------------
+# Following visual inspection, bad epochs can be discarded using the
+# :meth:`mne.Epochs.drop` method. Here, we remove the worst scoring epochs (≥ 0.6)
+# which contained strong artifact activity. The remaining good epochs can then be used
+# for further analysis.
 epochs.drop(np.where(scores >= 0.6)[0])
 print(f"Epochs remaining after dropping scores ≥ 0.6: {len(epochs)}")
 
