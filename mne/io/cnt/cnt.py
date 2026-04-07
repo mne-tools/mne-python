@@ -230,7 +230,8 @@ def read_raw_cnt(
         computed using the location of the event (annotations) table.
         This is a workaround for files with incorrect number of samples specified
         in the header. For files over 2GB, the number of samples cannot be
-        recomputed. None (default) will recompute the number of samples if the
+        recomputed, and an error will be raised if this value is True.
+        None (default) will recompute the number of samples if the
         value from the header is not positive.
 
         .. versionadded:: 1.12.0
@@ -486,7 +487,8 @@ class RawCNT(BaseRaw):
         computed using the location of the event (annotations) table.
         This is a workaround for files with incorrect number of samples specified
         in the header. For files over 2GB, the number of samples cannot be
-        recomputed. None (default) will recompute the number of samples if the
+        recomputed, and an error will be raised if this value is True.
+        None (default) will recompute the number of samples if the
         value from the header is not positive.
 
         .. versionadded:: 1.12.0
