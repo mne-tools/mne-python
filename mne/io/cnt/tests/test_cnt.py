@@ -61,7 +61,7 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
-    # Be strict: if it can't be computed, don't try
+    # Be strict: if it can't be computed, don't guess one or the other
     with pytest.raises(RuntimeError, match="Could not automatically compute"):
         read_raw_cnt(input_fname=fname_bad_spans)
     with omitted:
@@ -121,11 +121,12 @@ def test_reading_bytes():
     assert raw_16.info["sfreq"] == 400
     assert len(raw_32) == 90000
     assert raw_32.info["nchan"] == 2
-    assert raw_32.info["sfreq"] == 1000.0
+    assert raw_32.info["sfreq"] == 1000
 
-    # Recomputing the number of channels is possible. For this data it gives an
-    # incorrect result, but for others (like 945flankers_ready.cnt from
-    # https://github.com/mne-tools/mne-python/issues/13547) it's necessary!
+    # Smoke test that recomputing the number of channels is possible.
+    # For this data it gives an incorrect result, but for others (like
+    # 945flankers_ready.cnt from https://github.com/mne-tools/mne-python/issues/13547)
+    # it's necessary!
     with (
         pytest.warns(RuntimeWarning, match="Omitted 4 annot"),
         pytest.warns(RuntimeWarning, match="Inconsistent file information"),
@@ -138,6 +139,10 @@ def test_reading_bytes():
             recompute_n_samples=True,
         )
     assert len(raw_32_wrong) == 143765
+    assert_array_equal(
+        raw_32.get_data(stop=len(raw_32)),
+        raw_32_wrong.get_data(stop=len(raw_32)),
+    )
 
 
 @testing.requires_testing_data
