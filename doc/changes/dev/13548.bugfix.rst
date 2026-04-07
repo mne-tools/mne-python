@@ -1,2 +1,0 @@
-Fix bug with reading large CNT files by adding ``recompute_n_samples`` to :func:`mne.io.read_raw_cnt`
-with stricter ``data_format`` handling by `Teon Brooks`_ and `Eric Larson`_.

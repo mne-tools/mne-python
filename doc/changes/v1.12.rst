@@ -55,6 +55,7 @@ Bugfixes
   preserve all remaining info fields.
 - Avoid some unnecessary computations when ``n_jobs=None`` is equivalent to ``n_jobs=1``, by `Simon Kern`_. (`#13777 <https://github.com/mne-tools/mne-python/pull/13777>`__)
 - Fix clipped annotations and x-axis label in :meth:`mne.io.Raw.plot`, by `Clemens Brunner`_. (`#13787 <https://github.com/mne-tools/mne-python/pull/13787>`__)
+- Fix bug with reading large CNT files by adding ``recompute_n_samples`` to :func:`mne.io.read_raw_cnt` with stricter ``data_format`` handling by `Teon Brooks`_ and `Eric Larson`_.
 
 
 New features
@@ -133,6 +134,7 @@ Authors
 - Stefan Appelhoff
 - Tamas Fehervari+
 - Teemu Taivainen+
+- Teon Brooks
 - Thomas A Caswell+
 - Thomas S. Binns
 - Varun Kasyap Pentamaraju+
