@@ -162,8 +162,9 @@ def _compute_robust_sizes(*, fid, data_format, recompute_n_samples):
             event_offset = samples_offset + n_samples * n_channels * n_bytes
         n_data_bytes = event_offset - samples_offset
         if data_format == "auto":
-            n_bytes_per_samp, rem = divmod(n_data_bytes, n_channels)
+            n_bytes_per_chan, rem = divmod(n_data_bytes, n_channels)
             why = ""
+            # starting assumption is 16-bit ints
             n_bytes = 2
             if rem != 0:
                 why = (
@@ -171,12 +172,14 @@ def _compute_robust_sizes(*, fid, data_format, recompute_n_samples):
                     f"{n_channels=}"
                 )
             elif n_samples == 0:
-                why = "number of read samples is 0"
+                why = "number of samples (according to header) is 0"
             else:
-                n_bytes, rem = divmod(n_bytes_per_samp, n_samples)
+                # we know `n_channels` divides evenly into `n_data_bytes`, and header
+                # said `n_samples` was non-zero, so try to infer `n_bytes`:
+                n_bytes, rem = divmod(n_bytes_per_chan, n_samples)
                 if rem != 0 or n_bytes not in [2, 4]:
                     why = (
-                        f"number of bytes per sample {n_bytes_per_samp} is not evenly "
+                        f"number of bytes per channel {n_bytes_per_chan} is not evenly "
                         f"divisible by {n_samples=} or does not result in 2 or 4 bytes "
                         f"per sample ({n_bytes=})"
                     )
