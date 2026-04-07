@@ -110,7 +110,6 @@ dependencies = [
   "tqdm >= 4.66",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
-dynamic = ["version"]
 keywords = [
   "brain",
   "ECoG",
@@ -130,6 +129,7 @@ requires-python = ">= 3.10"
 # command in `.github/workflows/spec_zero.yaml` (astral-sh/uv/#16333), and also the
 # `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yaml`
 scripts = {mne = "mne.commands.utils:main"}
+version = "1.12.0"
 
 [project.optional-dependencies]
 # Leave this one here for backward-compat
