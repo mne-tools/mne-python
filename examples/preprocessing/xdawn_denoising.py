@@ -5,6 +5,8 @@
 XDAWN Denoising
 ===============
 
+.. tags:: examples, preprocessing, artifacts, meg, epochs
+
 XDAWN filters are trained from epochs, signal is projected in the sources
 space and then projected back in the sensor space using only the first two
 XDAWN components. The process is similar to an ICA, but is

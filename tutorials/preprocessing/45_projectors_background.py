@@ -5,6 +5,8 @@
 Background on projectors and projections
 ========================================
 
+.. tags:: tutorials, preprocessing
+
 This tutorial provides background information on projectors and Signal Space
 Projection (SSP), and covers loading and saving projectors, adding and removing
 projectors from Raw objects, the difference between "applied" and "unapplied"

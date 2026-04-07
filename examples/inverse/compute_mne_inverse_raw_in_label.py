@@ -5,6 +5,8 @@
 Compute sLORETA inverse solution on raw data
 =============================================
 
+.. tags:: examples, inverse, source-localization, raw, visualization
+
 Compute sLORETA inverse solution on raw dataset restricted
 to a brain label and stores the solution in stc files for
 visualisation.

@@ -39,3 +39,4 @@ MNE-Python Homepage
    API Reference <api/python_reference>
    Get Help <help/index>
    Development <development/index>
+   Tags <_tags/tagsindex>

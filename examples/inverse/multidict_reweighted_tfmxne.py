@@ -5,6 +5,8 @@
 Compute iterative reweighted TF-MxNE with multiscale time-frequency dictionary
 ==============================================================================
 
+.. tags:: examples, inverse, source-localization, time-frequency, evoked
+
 The iterative reweighted TF-MxNE solver is a distributed inverse method
 based on the TF-MxNE solver, which promotes focal (sparse) sources
 :footcite:`StrohmeierEtAl2015`. The benefits of this approach are that:

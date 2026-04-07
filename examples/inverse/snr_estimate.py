@@ -5,6 +5,8 @@
 Estimate data SNR using an inverse
 ==================================
 
+.. tags:: examples, inverse, evoked, visualization
+
 This estimates the SNR as a function of time for a set of data
 using a minimum-norm inverse operator.
 """

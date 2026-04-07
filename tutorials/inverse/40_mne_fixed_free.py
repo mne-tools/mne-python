@@ -5,6 +5,8 @@
 Computing various MNE solutions
 ===============================
 
+.. tags:: tutorials, inverse, source-localization
+
 This example shows example fixed- and free-orientation source localizations
 produced by the minimum-norm variants implemented in MNE-Python:
 MNE, dSPM, sLORETA, and eLORETA.

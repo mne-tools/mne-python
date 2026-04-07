@@ -30,6 +30,7 @@ doc = [
   "sphinx >= 6",
   "sphinx-design",
   "sphinx-gallery >= 0.16",
+  "sphinx-tags",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
   "sphinxcontrib-towncrier >= 0.5.0a0",
@@ -323,6 +324,7 @@ ignore_directives = [
   "rst-class",
   "tab-set",
   "tabularcolumns",
+  "tags",
   "toctree",
   "towncrier-draft-entries",
 ]

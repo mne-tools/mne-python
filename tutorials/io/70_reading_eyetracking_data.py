@@ -9,6 +9,8 @@ r"""
 Importing Data from Eyetracking devices
 =======================================
 
+.. tags:: tutorials, io
+
 Eyetracking devices record a persons point of gaze, usually in relation to a
 screen. Typically, gaze position (also referred to as eye or pupil position)
 and pupil size are recorded as separate channels. This section describes how to

@@ -5,6 +5,8 @@
 Quality control (QC) reports with mne.Report
 ============================================
 
+.. tags:: tutorials, preprocessing, quality-control, report
+
 Quality control (QC) is the process of systematically inspecting M/EEG data
 **throughout all stages of an analysis pipeline**, including raw data,
 intermediate preprocessing steps, and derived results.

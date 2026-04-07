@@ -5,6 +5,8 @@
 FDR correction on T-test on sensor data
 =======================================
 
+.. tags:: examples, statistics, evoked, epochs, meg
+
 One tests if the evoked response significantly deviates from 0.
 Multiple comparison problem is addressed with
 False Discovery Rate (FDR) correction.

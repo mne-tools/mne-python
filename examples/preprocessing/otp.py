@@ -5,6 +5,8 @@
 Plot sensor denoising using oversampled temporal projection
 ===========================================================
 
+.. tags:: examples, preprocessing, artifacts, meg, visualization
+
 This demonstrates denoising using the OTP algorithm :footcite:`LarsonTaulu2018` on data
 with with sensor artifacts (flux jumps) and random noise.
 """

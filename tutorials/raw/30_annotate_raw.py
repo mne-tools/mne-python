@@ -5,6 +5,8 @@
 Annotating continuous data
 ==========================
 
+.. tags:: tutorials, raw, annotations
+
 This tutorial describes adding annotations to a `~mne.io.Raw` object,
 and how annotations are used in later stages of data processing.
 

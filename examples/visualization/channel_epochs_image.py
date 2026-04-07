@@ -5,6 +5,8 @@
 Visualize channel over epochs as an image
 =========================================
 
+.. tags:: examples, visualization, epochs, meg, evoked
+
 This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.
 

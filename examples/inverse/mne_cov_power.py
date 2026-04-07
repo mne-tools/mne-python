@@ -5,6 +5,8 @@
 Compute source power estimate by projecting the covariance with MNE
 ===================================================================
 
+.. tags:: examples, inverse, source-localization, epochs, visualization
+
 We can apply the MNE inverse operator to a covariance matrix to obtain
 an estimate of source power. This is computationally more efficient than first
 estimating the source timecourses and then computing their power. This

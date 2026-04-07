@@ -5,6 +5,8 @@
 Mass-univariate twoway repeated measures ANOVA on single trial power
 ====================================================================
 
+.. tags:: tutorials, statistics, time-frequency, cluster-permutation
+
 This script shows how to conduct a mass-univariate repeated measures
 ANOVA. As the model to be fitted assumes two fully crossed factors,
 we will study the interplay between perceptual modality

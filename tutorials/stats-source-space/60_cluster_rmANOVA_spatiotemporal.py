@@ -5,6 +5,8 @@
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
 
+.. tags:: tutorials, statistics, cluster-permutation, source-localization
+
 This example illustrates how to make use of the clustering functions
 for arbitrary, self-defined contrasts beyond standard t-tests. In this
 case we will tests if the differences in evoked responses between

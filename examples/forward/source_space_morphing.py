@@ -5,6 +5,8 @@
 Use source space morphing
 =========================
 
+.. tags:: examples, forward-model, source-localization, visualization
+
 This example shows how to use source space morphing (as opposed to
 :class:`~mne.SourceEstimate` morphing) to create data that can be compared
 between subjects.

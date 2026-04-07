@@ -9,6 +9,8 @@ r"""
 Background information on filtering
 ===================================
 
+.. tags:: tutorials, preprocessing
+
 Here we give some background information on filtering in general, and how it is
 done in MNE-Python in particular. Recommended reading for practical
 applications of digital filter design can be found in

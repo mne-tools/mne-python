@@ -5,6 +5,8 @@
 Configuring MNE-Python
 ======================
 
+.. tags:: tutorials, beginners, workflow
+
 This tutorial covers how to configure MNE-Python to suit your local system and
 your analysis preferences.
 

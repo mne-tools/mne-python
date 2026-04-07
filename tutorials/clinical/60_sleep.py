@@ -4,6 +4,8 @@
 Sleep stage classification from polysomnography (PSG) data
 ==========================================================
 
+.. tags:: tutorials, clinical, classification, machine-learning, epochs, eeg
+
 .. note:: This code is taken from the analysis code used in
           :footcite:`ChambonEtAl2018`. If you reuse this code please consider
           citing this work.

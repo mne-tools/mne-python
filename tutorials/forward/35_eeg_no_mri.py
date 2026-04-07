@@ -5,6 +5,8 @@
 EEG forward operator with a template MRI
 ========================================
 
+.. tags:: tutorials, eeg, forward-model, bem, source-localization
+
 This tutorial explains how to compute the forward operator from EEG data
 using the standard template MRI subject :ref:`fsaverage <fsaverage_background>`.
 

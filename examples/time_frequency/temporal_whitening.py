@@ -5,6 +5,8 @@
 Temporal whitening with AR model
 ================================
 
+.. tags:: examples, time-frequency, preprocessing, meg, visualization
+
 Here we fit an AR model to the data and use it
 to temporally whiten the signals.
 

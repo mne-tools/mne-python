@@ -5,6 +5,8 @@
 Regression-based baseline correction
 ====================================================================
 
+.. tags:: tutorials, epochs, preprocessing, statistics, eeg
+
 This tutorial compares traditional baseline correction (adding or subtracting a
 scalar amount from every timepoint in an epoch) to a regression-based approach
 to baseline correction (which allows the effect of the baseline period to vary

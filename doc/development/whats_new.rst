@@ -3,6 +3,8 @@
 What's new
 ==========
 
+.. tags:: development, changelog, releases
+
 Changes for each version of MNE-Python are listed below.
 
 .. toctree::

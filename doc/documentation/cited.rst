@@ -3,6 +3,8 @@
 Papers citing MNE-Python
 ========================
 
+.. tags:: documentation, citation, publication
+
 Estimates provided by Google Scholar as of 16 December 2024:
 
 - `MNE (2,190) <https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014>`_

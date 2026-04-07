@@ -5,6 +5,8 @@
 Corrupt known signal with point spread
 ======================================
 
+.. tags:: tutorials, simulation, inverse, source-localization
+
 The aim of this tutorial is to demonstrate how to put a known signal at a
 desired location(s) in a :class:`mne.SourceEstimate` and then corrupt the
 signal with point-spread by applying a forward and inverse solution.

@@ -5,6 +5,8 @@
 Plotting with ``mne.viz.Brain``
 ===============================
 
+.. tags:: examples, visualization, source-localization, freesurfer
+
 In this example, we'll show how to use :class:`mne.viz.Brain`.
 """
 # Author: Alex Rockhill <aprockhill@mailbox.org>
