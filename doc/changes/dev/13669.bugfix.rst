@@ -1,0 +1,1 @@
+Expose :mod:`mne.bem` namespace, which was inadverdently removed in MNE version 1.5. As an example, users can once again use the ``mne.bem.make_watershed_bem`` API entrypoint, by `Scott Huberty`_.

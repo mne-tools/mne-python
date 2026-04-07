@@ -96,6 +96,10 @@ def plot_raw(
                  emg='k', ref_meg='steelblue', misc='k', stim='k',
                  resp='k', chpi='k')
 
+        If a dict, keys can be channel *types* (e.g., ``'eeg'``) and/or
+        channel *names* (e.g., ``'SFG, Left'``); name-based entries
+        take precedence over type-based ones.
+
     bad_color : color object
         Color to make bad channels.
     %(event_color)s

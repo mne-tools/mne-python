@@ -23,8 +23,10 @@ from mne import (
     EvokedArray,
     SourceEstimate,
     combine_evoked,
+    compute_rank,
     compute_raw_covariance,
     convert_forward_solution,
+    create_info,
     make_ad_hoc_cov,
     make_forward_solution,
     make_sphere_model,
@@ -34,7 +36,9 @@ from mne import (
     read_cov,
     read_evokeds,
     read_forward_solution,
+    setup_volume_source_space,
 )
+from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
@@ -993,20 +997,33 @@ def test_make_inverse_operator_diag(evoked, noise_cov, tmp_path, azure_windows):
 
 def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     """Test MNE inverse operator with a specified noise cov rank."""
-    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
+    fwd_op_meg = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    inv = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
+    inv = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
 
     bad_cov = noise_cov.copy()
     bad_cov["data"][0, 0] *= 1e12
     with pytest.warns(RuntimeWarning, match="orders of magnitude"):
-        make_inverse_operator(evoked.info, fwd_op, bad_cov, rank=dict(meg=64))
+        make_inverse_operator(evoked.info, fwd_op_meg, bad_cov, rank=dict(meg=64))
 
-    fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))
+    fwd_op_eeg = read_forward_solution_eeg(fname_fwd, surf_ori=True)
+    inv = make_inverse_operator(evoked.info, fwd_op_eeg, noise_cov, rank=dict(eeg=20))
     assert compute_rank_inverse(inv) == 20
+
+    # with and without rank passed explicitly
+    inv_info = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank="info")
+    info_rank = 302
+    assert compute_rank_inverse(inv_info) == info_rank
+    rank = compute_rank(noise_cov, info=evoked.copy().pick("meg").info, rank="info")
+    assert "meg" in rank
+    assert sum(rank.values()) == info_rank
+    inv_rank = make_inverse_operator(evoked.info, fwd_op_meg, noise_cov, rank=rank)
+    assert compute_rank_inverse(inv_rank) == info_rank
+    evoked_info = apply_inverse(evoked, inv_info, lambda2, "MNE")
+    evoked_rank = apply_inverse(evoked, inv_rank, lambda2, "MNE")
+    assert_allclose(evoked_rank.data, evoked_info.data)
 
 
 def test_inverse_operator_volume(evoked, tmp_path):
@@ -1712,3 +1729,38 @@ def test_allow_mixed_source_spaces(mixed_fwd_cov_evoked):
     inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.0)
     stc = apply_inverse(evoked, inv_op, lambda2=1.0 / 9.0)  # normal
     assert (stc.data < 0).any()
+
+
+@testing.requires_testing_data
+def test_make_inverse_no_meg(tmp_path):
+    """Test that we can make and I/O forward solution with no MEG channels."""
+    pos = dict(rr=[[0.05, 0, 0]], nn=[[0, 0, 1.0]])
+    src = setup_volume_source_space(pos=pos)
+    bem = make_sphere_model()
+    trans = None
+    montage = make_standard_montage("standard_1020")
+    info = create_info(["Cz", "Fz"], 1000.0, "eeg").set_montage(montage)
+    data = np.random.default_rng(0).standard_normal((len(info["ch_names"]), 10))
+    evoked = EvokedArray(data, info)
+    evoked.set_eeg_reference(projection=True)
+    del info, data
+    fwd = make_forward_solution(evoked.info, trans, src, bem)
+    assert fwd["info"]["dev_head_t"] is None
+    cov = make_ad_hoc_cov(evoked.info)
+    # Ensure we maintain backward-compatible behavior with when we *did* save
+    # the forward with an identity dev_head_t
+    fname = tmp_path / "test-inv.fif"
+    invs = list()
+    for dev_head_t in (None, mne.Transform("meg", "head")):
+        fwd["info"]["dev_head_t"] = dev_head_t
+        inv = make_inverse_operator(evoked.info, fwd, cov)
+        assert inv["info"]["dev_head_t"] == dev_head_t
+        stc = apply_inverse(evoked, inv, lambda2=1.0 / 9.0)
+        assert stc.data.shape == (1, 10)
+        write_inverse_operator(fname, inv, overwrite=True)
+        inv_read = read_inverse_operator(fname)
+        assert inv_read["info"]["dev_head_t"] == dev_head_t
+        invs.append(inv)
+    assert invs[1]["info"]["dev_head_t"] is not None
+    invs[1]["info"]["dev_head_t"] = None  # for comparison
+    _compare(invs[0], invs[1])

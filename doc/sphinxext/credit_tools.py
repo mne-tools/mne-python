@@ -38,7 +38,9 @@ data_dir = doc_root / "sphinxext"
 # preferring GitHub profile info (when complete!) is probably preferable.
 
 # Allowed singletons
-single_names = "btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot]".split()
+single_names = """
+btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot] varshaa-1616
+""".strip().split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
     Bailey=2,
@@ -52,6 +54,7 @@ name_counts = dict(
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
+    "Natneal B",
     "T. Wang",
     "Ziyi ZENG",
 ]
@@ -60,6 +63,7 @@ manual_renames = {
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
     "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "alexandra": "Alexandra Corneyllie",  # 7600
+    "Aniket": "Aniket Singh Yadav",  # 13672
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
     "Basile": "Basile Pinsard",  # 1791
     "Bru": "Bruno Aristimunha",  # 13489
@@ -68,10 +72,12 @@ manual_renames = {
     "enzo": "Enzo Altamiranda",  # 11351
     "Emma": "Emma Zhang",  # 13486
     "Frostime": "Yiping Zuo",  # 11773
+    "FT": "Tamas Fehervari",  # 13408
     "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Genuster": "Gennadiy Belonosov",  # 12936
     "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
+    "Hansuja ": "Hansuja Budhiraja",  # 13765
     "jwelzel": "Julius Welzel",  # 11118
     "Katia": "Katia Al-Amir",  # 13225
     "Martin": "Martin Billinger",  # 8099, TODO: Check
@@ -86,6 +92,7 @@ manual_renames = {
     "Valerii": "Valerii Chirkov",  # 9043
     "Wei": "Wei Xu",  # 13218
     "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
+    "Horizon_Architect_07": "Famous Raj Bhat",  # 13685
 }
 
 
@@ -193,6 +200,11 @@ def generate_credit_rst(app=None, *, verbose=False):
                         )
                         continue
                     name = name_map[author["e"]]
+                    if name in manual_renames:
+                        assert _good_name(manual_renames[name]), (
+                            f"Bad manual rename: {name}"
+                        )
+                        name = manual_renames[name]
                 else:
                     name = author["n"]
                     if name in manual_renames:

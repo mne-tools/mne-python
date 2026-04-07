@@ -367,7 +367,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # XXX simpler with constrained_layout? (when it's no longer "beta")
         l_margin = 1.0
         r_margin = 0.1
-        b_margin = 0.45
+        b_margin = 0.65
         t_margin = 0.25
         scroll_width = 0.25
         hscroll_dist = 0.25
@@ -838,8 +838,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     # (ax_main.collections only includes *visible* annots, so we offset)
                     visible_zorders = [span.zorder for span in spans]
                     zorders = np.zeros_like(is_onscreen).astype(int)
-                    offset = np.where(is_onscreen)[0][0]
-                    zorders[offset : (offset + len(visible_zorders))] = visible_zorders
+                    zorders[is_onscreen] = visible_zorders
                     # among overlapping clicked spans, prefer removing spans whose label
                     # is the active label; then fall back to zorder as deciding factor
                     active_clicked = was_clicked & is_active_label
@@ -1425,11 +1424,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     text = ax.annotate(
                         descr,
                         xy,
-                        xytext=(0, 9),
+                        xytext=(0, -3),
                         textcoords="offset points",
                         ha="center",
-                        va="baseline",
+                        va="top",
                         color=segment_color,
+                        zorder=self.mne.zorder["ann_text"],
                     )
                     self.mne.annotation_texts.append(text)
         self.mne.onscreen_annotations = onscreen_annotations
@@ -1754,7 +1754,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
         time = np.clip(time, self.mne.first_time, max_time)
         if self.mne.is_epochs:
-            ix = np.searchsorted(self.mne.boundary_times[1:], time)
+            ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
             time = self.mne.boundary_times[ix]
         if self.mne.t_start != time:
             self.mne.t_start = time
@@ -2007,8 +2007,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
         offsets = self.mne.trace_offsets[offset_ixs]
         bad_bool = np.isin(ch_names, self.mne.info["bads"])
-        # colors
-        good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
+        # colors: allow overrides by channel name, then by channel type
+        good_ch_colors = []
+        for _name, _type in zip(ch_names, ch_types):
+            if _name in self.mne.ch_color_dict:
+                good_ch_colors.append(self.mne.ch_color_dict[_name])
+            else:
+                good_ch_colors.append(self.mne.ch_color_dict[_type])
         ch_colors = to_rgba_array(
             [
                 self.mne.ch_color_bad if _bad else _color

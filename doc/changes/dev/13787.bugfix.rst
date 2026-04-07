@@ -1,0 +1,1 @@
+Fix clipped annotations and x-axis label in :meth:`mne.io.Raw.plot`, by `Clemens Brunner`_.

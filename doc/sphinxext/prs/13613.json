@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "59c8ceae23a7dd337b892056c97bcd6cdd35be4d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/linalg.py": {
+      "a": 49,
+      "d": 6
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}
