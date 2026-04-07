@@ -1,0 +1,1 @@
+Fix annotation removal logic in matplotlib based figures to correctly handle non-contiguous visible annotations, by `Johannes Herforth`_.

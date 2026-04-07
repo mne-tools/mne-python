@@ -107,7 +107,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: Warpbuilds/action-debugger@v1.3
         timeout-minutes: 80
         with:
           detached: true
@@ -148,7 +148,7 @@ jobs:
             fi
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
@@ -156,14 +156,19 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: ${{ !startswith(matrix.kind, 'pip') && matrix.kind != 'pixi' }}
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
         timeout-minutes: 20
-
-      - name: Verify Environment
-        run: echo $PATH
+      # Python (if old)
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: ${{ matrix.python }}
+        if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
-        if: ${{ matrix.kind != 'pixi' && !startswith(matrix.kind, 'pip') && runner.os != 'Windows' }}
-      - run: python ./tools/github_actions_check_old.py
+      - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
         shell: micromamba-shell {0}
       # Minimal commands on Linux (macOS stalls)
@@ -190,9 +195,7 @@ jobs:
           pixi run python -c "import sys; print(sys.executable)"
           pixi run python -c "import PySide6; print(PySide6.__version__)"
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-        if: ${{ matrix.kind != 'pixi' && !startswith(matrix.kind, 'pip') && runner.os != 'Windows' }}
-        shell: micromamba-shell {0}
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()
