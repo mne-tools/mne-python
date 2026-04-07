@@ -50,6 +50,7 @@ name_counts = dict(
     Li=2,
     Peterson=2,
     Wong=2,
+    Yadav=2,
     Zhang=3,
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
@@ -63,6 +64,7 @@ manual_renames = {
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
     "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "alexandra": "Alexandra Corneyllie",  # 7600
+    "Akhilesh": "Akhilesh S. Yadav",  # 13639
     "Aniket": "Aniket Singh Yadav",  # 13672
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
     "Basile": "Basile Pinsard",  # 1791

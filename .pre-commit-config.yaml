@@ -54,7 +54,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt
+        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt|^ignore_words.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort

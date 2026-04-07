@@ -1,1 +1,0 @@
-Replacing :func:`python:abc.abstractclassmethod` with :func:`python:abc.abstractmethod` in :class:`mne.viz.Figure3D`, by :newcontrib:`Himanshu Mahor`.
