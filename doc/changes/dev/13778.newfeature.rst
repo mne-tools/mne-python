@@ -1,1 +1,0 @@
-Added a ``font_file`` parameter to :meth:`mne.viz.Brain.add_text` to support rendering glyphs not available in the default font, by `Pragnya Khandelwal`_.
