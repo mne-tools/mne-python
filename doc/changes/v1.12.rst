@@ -1,0 +1,139 @@
+.. _changes_1_12_0:
+
+1.12.0 (2026-04-07)
+===================
+
+Dependencies
+------------
+
+- Updated minimums for:
+
+  - Core dependency ``scipy >= 1.13``
+  - Optional dependency ``pandas >= 2.2``
+  - Optional dependency ``scikit-learn >= 1.4``
+
+  Changes implemented via CI action created by `Thomas Binns`_. (`#13611 <https://github.com/mne-tools/mne-python/pull/13611>`__)
+
+
+Bugfixes
+--------
+
+- Preserve ``kit_system_id`` in forward-solution ``Info``, by :newcontrib:`Melih Yayli`. (`#13520 <https://github.com/mne-tools/mne-python/pull/13520>`__)
+- Fix axis limits in :meth:`mne.preprocessing.eyetracking.Calibration.plot` to use screen resolution if available, by :newcontrib:`Gnaneswar Lopinti`. (`#13558 <https://github.com/mne-tools/mne-python/pull/13558>`__)
+- Fix bug where :func:`mne.viz.plot_raw` would access incorrect matplotlib attributes, by :newcontrib:`Thomas Caswell`. (`#13606 <https://github.com/mne-tools/mne-python/pull/13606>`__)
+- Allow reading alternative nasion label ("Nz") in SNIRF files when parsing landmarkPos3D, by :newcontrib:`Aniket Singh Yadav`. (`#13672 <https://github.com/mne-tools/mne-python/pull/13672>`__)
+- Change default-pick 'data' for "eyegaze" to false, following existing documentation. by :newcontrib:`Benedikt Ehinger`. (`#13723 <https://github.com/mne-tools/mne-python/pull/13723>`__)
+  by :newcontrib:`Christoph Huber-Huber`. (`#13759 <https://github.com/mne-tools/mne-python/pull/13759>`__)
+- Fix bug in when reading EDF/GDF files where non-positive lowpass values were not handled correctly, now mapping them to the Nyquist frequency to prevent errors during plotting, by :newcontrib:`Hansuja Budhiraja`. (`#13769 <https://github.com/mne-tools/mne-python/pull/13769>`__)
+- Clearer error message when no ECG events are found in :func:`~mne.preprocessing.find_ecg_events`, by :newcontrib:`Hansuja Budhiraja`. (`#13771 <https://github.com/mne-tools/mne-python/pull/13771>`__)
+- Fix bug in 3D overlay compositing that could produce NaN RGBA values when the resulting alpha is zero, by `Pragnya Khandelwal`_. (`#13714 <https://github.com/mne-tools/mne-python/pull/13714>`__)
+- Make :meth:`~mne.io.Raw.interpolate_bads` method flexible (ignore, warn, raise) about how to handle interpolation of channels with invalid positions, by :newcontrib:`Himanshu Mahor`. (`#13518 <https://github.com/mne-tools/mne-python/pull/13518>`__)
+- Fix bug where outdated ``seghead.mgz`` files were reused in :func:`mne.bem.make_scalp_surfaces`. Add a new parameter ``reuse_seghead`` to control whether to reuse existing ``seghead.mgz`` files, by `Victor Ferat`_. (`#13024 <https://github.com/mne-tools/mne-python/pull/13024>`__)
+- Clarified an internal forward-model invariant in ``mne.forward._lead_dots`` by asserting that ``rref`` is ``None`` on the current code path, by :newcontrib:`Pragnya Khandelwal`. (`#13764 <https://github.com/mne-tools/mne-python/pull/13764>`__)
+- Fix bug preventing :func:`mne.time_frequency.read_spectrum` from reading saved :class:`mne.time_frequency.Spectrum` objects created from :meth:`mne.time_frequency.EpochsSpectrum.average`, by `Thomas Binns`_. (`#13521 <https://github.com/mne-tools/mne-python/pull/13521>`__)
+- Fix bug where :func:`mne.chpi.refit_hpi` did not take ``gof_limit`` into account when fitting HPI order, by `Eric Larson`_ (`#13525 <https://github.com/mne-tools/mne-python/pull/13525>`__)
+- Fix bug preventing reading of :class:`mne.time_frequency.Spectrum` and :class:`mne.time_frequency.BaseTFR` objects created in MNE<1.8 using the deprecated subject info birthday tuple format, by `Thomas Binns`_. (`#13526 <https://github.com/mne-tools/mne-python/pull/13526>`__)
+- Fix bug where invalid date formats passed to :meth:`mne.Info.set_meas_date` were not caught, by `Thomas Binns`_. (`#13528 <https://github.com/mne-tools/mne-python/pull/13528>`__)
+- Fix bug with :ref:`mne coreg` where interactively altered MRI fiducials were not used when
+  scaling a surrogate subject, by `Eric Larson`_. (`#13539 <https://github.com/mne-tools/mne-python/pull/13539>`__)
+- Fix bug with :func:`mne.viz.plot_evoked` where channels were plotted above axis spines, by `Michael Straube`_. (`#13549 <https://github.com/mne-tools/mne-python/pull/13549>`__)
+- Fix bug with montage test error message checking, by `Eric Larson`_. (`#13579 <https://github.com/mne-tools/mne-python/pull/13579>`__)
+- Fix bug where :func:`mne.viz.plot_evoked_white` did not accept a single "meg" rank value like those returned from :func:`mne.compute_rank`, by `Eric Larson`_. (`#13595 <https://github.com/mne-tools/mne-python/pull/13595>`__)
+- Fix bug with :func:`mne.make_forward_solution` when no MEG channels are present where ``dev_head_t`` was errantly set, by `Eric Larson`_. (`#13619 <https://github.com/mne-tools/mne-python/pull/13619>`__)
+- Fix :func:`mne.io.read_raw_snirf` raising ``TypeError`` when ``landmarkLabels`` is empty or scalar, by `Bruno Aristimunha`_. (`#13628 <https://github.com/mne-tools/mne-python/pull/13628>`__)
+- Fix bug with :func:`mne.datasets.somato.data_path` where the archive couldn't be extracted due to an absolute path issue, by `Eric Larson`_. (`#13630 <https://github.com/mne-tools/mne-python/pull/13630>`__)
+- Fix bug in :meth:`mne.Epochs.plot` where clicking on the scrollbar would not scroll to the last epoch, by `Clemens Brunner`_. (`#13654 <https://github.com/mne-tools/mne-python/pull/13654>`__)
+- Expose :mod:`mne.bem` namespace, which was inadverdently removed in MNE version 1.5. As an example, users can once again use the ``mne.bem.make_watershed_bem`` API entrypoint, by `Scott Huberty`_. (`#13669 <https://github.com/mne-tools/mne-python/pull/13669>`__)
+- Fix sensor name ordering in :func:`~mne.viz.plot_topomap` when passing an :class:`~mne.Info` object as ``pos`` with ``names`` argument, by `Famous077`_. (`#13686 <https://github.com/mne-tools/mne-python/pull/13686>`__)
+- Fix bug in :func:`~mne.compute_source_morph` where the ``spacing`` attribute was set incorrectly when ``src_to`` is provided, by `Famous077`_. (`#13687 <https://github.com/mne-tools/mne-python/pull/13687>`__)
+- Avoid raising an error when setting montage on a :class:`~mne.channels.DigMontage` of MEG+EEG recordings, when EEG reference positions were set to the placeholder value ``[1, 0, 0]`` (i.e., digitization was not performed), by `Famous077`_. (`#13700 <https://github.com/mne-tools/mne-python/pull/13700>`__)
+- Fix annotation removal logic in matplotlib based figures to correctly handle non-contiguous visible annotations, by `Johannes Herforth`_. (`#13703 <https://github.com/mne-tools/mne-python/pull/13703>`__)
+- Support mixed-type concatenation of :class:`mne.Annotations` and :class:`mne.HEDAnnotations`, preserving HED strings in ``extras["HED"]``, by `Bruno Aristimunha`_. (`#13736 <https://github.com/mne-tools/mne-python/pull/13736>`__)
+- Improved handling of dropped epochs in :func:`mne.viz.plot_ica_properties` and :meth:`mne.preprocessing.ICA.plot_properties`, allowing plots to be generated even with many bad annotations, by `Clemens Brunner`_. (`#13746 <https://github.com/mne-tools/mne-python/pull/13746>`__)
+- When interpolating from axial to planar gradiometers, set info fields "chs", "ch_names", and "nchan", according to the interpolated data,
+  reset info fields "device_info", "helium_info", "gantry_angle", "ctf_head_t", "dev_ctf_t", "bads", "projs", and "comps" to [] or None, and
+  preserve all remaining info fields.
+- Avoid some unnecessary computations when ``n_jobs=None`` is equivalent to ``n_jobs=1``, by `Simon Kern`_. (`#13777 <https://github.com/mne-tools/mne-python/pull/13777>`__)
+- Fix clipped annotations and x-axis label in :meth:`mne.io.Raw.plot`, by `Clemens Brunner`_. (`#13787 <https://github.com/mne-tools/mne-python/pull/13787>`__)
+
+
+New features
+------------
+
+- Add ICA source timecourse plots to :func:`mne.Report.add_ica`, by :newcontrib:`Aniket Singh Yadav` (`#13697 <https://github.com/mne-tools/mne-python/pull/13697>`__)
+- Add :class:`mne.HEDAnnotations` for attaching `HED (Hierarchical Event Descriptors) <https://www.hedtags.org>`__ tags to annotations, by :newcontrib:`Kay Robbins`, `Bruno Aristimunha`_, and `Daniel McCloy`_. (`#13059 <https://github.com/mne-tools/mne-python/pull/13059>`__)
+- Add support for :meth:`mne.io.Raw.interpolate_to` and related methods (and :func:`mne.channels.read_meg_canonical_info`) for interpolating MEG data across systems, by :newcontrib:`Konstantinos Tsilimparis`. (`#13196 <https://github.com/mne-tools/mne-python/pull/13196>`__)
+- Add support for multi-wavelength NIRS processing to :func:`mne.preprocessing.nirs.beer_lambert_law`, :func:`mne.preprocessing.nirs.scalp_coupling_index`, and SNIRF reader :func:`mne.io.read_raw_snirf`, by :newcontrib:`Tamas Fehervari`. (`#13408 <https://github.com/mne-tools/mne-python/pull/13408>`__)
+- Add an optional ``show_channel_names`` parameter to :meth:`mne.viz.plot_alignment` to overlay channel labels at sensor locations in the 3D alignment view, by :newcontrib:`Aman Srivastava`. (`#13570 <https://github.com/mne-tools/mne-python/pull/13570>`__)
+- Add support for reading BCI2000 ``.dat`` files via :func:`mne.io.read_raw_bci2k`, and an example :file:`examples/io/read_bci2k.py` for downloading and visualizing BCI2000 data, by :newcontrib:`Hansuja Budhiraja`. (`#13699 <https://github.com/mne-tools/mne-python/pull/13699>`__)
+- Add support for scalar or per-vertex ``alpha`` (shape ``(n_vertices,)``) in distributed overlays, including validation/errors for invalid shapes, tests, and a visualization example in ``examples/visualization/brain.py`` using :meth:`mne.viz.Brain.add_data`, by :newcontrib:`Pragnya Khandelwal`. (:gh:`13706`) (`#13706 <https://github.com/mne-tools/mne-python/pull/13706>`__)
+- Added ``cmap`` parameter to ``Evoked.animate_topomap`` to allow user-specified colormaps., by :newcontrib:`Hansuja Budhiraja`. (`#13756 <https://github.com/mne-tools/mne-python/pull/13756>`__)
+- Allow per-channel color overrides in :func:`mne.viz.plot_raw` via channel name keys in the ``color`` dict, by :newcontrib:`Hansuja Budhiraja`. (`#13765 <https://github.com/mne-tools/mne-python/pull/13765>`__)
+- Add example showing how to interoperate with R using ``rpy2``, by  :newcontrib:`Aman Srivastava`. (`#13729 <https://github.com/mne-tools/mne-python/pull/13729>`__)
+- Added a ``font_file`` parameter to :meth:`mne.viz.Brain.add_text` to support rendering glyphs not available in the default font, by :newcontrib:`Pragnya Khandelwal`. (`#13778 <https://github.com/mne-tools/mne-python/pull/13778>`__)
+- Improve memory usage and runtime of :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_array_fourier`, and :func:`mne.time_frequency.csd_array_multitaper` by avoiding unnecessary full-matrix CSD construction, by :newcontrib:`Pragnya Khandelwal`. (`#13719 <https://github.com/mne-tools/mne-python/pull/13719>`__)
+- Add :func:`mne.io.read_raw_mef` for reading MEF3 files, supporting BIDS iEEG data formats, by `Bruno Aristimunha`_. (`#13610 <https://github.com/mne-tools/mne-python/pull/13610>`__)
+- Add finer-grained control to :func:`mne.io.anonymize_info` and the related methods :meth:`mne.io.Raw.anonymize`, :meth:`mne.Epochs.anonymize`, and :meth:`mne.Evoked.anonymize` by allowing ``keep_his`` to accept one or more strings; ``keep_his=True`` remains unchanged (retaining ``"his_id"``, ``"sex"``, and ``"hand"`` from anonymization), but individual fields can now also be retained (the default ``keep_his=False`` also remains unchanged and still anonymizes all fields), by `Clemens Brunner`_. (`#13647 <https://github.com/mne-tools/mne-python/pull/13647>`__)
+
+
+Other changes
+-------------
+
+- Created a quality control report tutorial :ref:`tut-qc-report`, by :newcontrib:`varshaa-1616`. (`#13532 <https://github.com/mne-tools/mne-python/pull/13532>`__)
+- Improved docs for :func:`mne.io.read_raw_nirx`, by :newcontrib:`Natneal B`. (`#13541 <https://github.com/mne-tools/mne-python/pull/13541>`__)
+- Refactor f-strings in ``mne/tests/test_import_nesting.py``, by :newcontrib:`Shruti Bhale`. (`#13551 <https://github.com/mne-tools/mne-python/pull/13551>`__)
+- Remove legacy Python-version compatibility checks in ``mne.utils.misc._empty_hash`` now that ``usedforsecurity=False`` is always supported, by :newcontrib:`Varun Kasyap Pentamaraju` (:gh:`13566`). (`#13566 <https://github.com/mne-tools/mne-python/pull/13566>`__)
+- Add optional low-variance ("hat") regularization to :func:`mne.stats.f_oneway` via new ``sigma`` and ``method`` parameters, by :newcontrib:`Aniket Singh Yadav`. (`#13698 <https://github.com/mne-tools/mne-python/pull/13698>`__)
+- Improve documentation of return values to clarify that methods typically return the original instance type for chaining purposes, by :newcontrib:`Aniket Singh Yadav`. (`#13674 <https://github.com/mne-tools/mne-python/pull/13674>`__)
+- Examples Using <some-method> section quirk fix in documentation, by :newcontrib:`Himanshu Mahor`. (`#13596 <https://github.com/mne-tools/mne-python/pull/13596>`__)
+- Document the behavior of :term:`first_samp` after :meth:`~mne.io.Raw.crop` and add ``reset_first_samp`` parameter to reset it to 0 after cropping, by :newcontrib:`Famous077`. (`#13685 <https://github.com/mne-tools/mne-python/pull/13685>`__)
+- Add a note to :meth:`mne.Epochs.drop` describing a potential mismatch between the indices expected by :meth:`~mne.Epochs.drop` and those found in the ``selection`` attribute when epochs have been automatically dropped, by :newcontrib:`Famous077`. (`#13688 <https://github.com/mne-tools/mne-python/pull/13688>`__)
+- Extended support for visualising cross-spectral densities in :func:`mne.viz.plot_csd` and :meth:`mne.time_frequency.CrossSpectralDensity.plot` to all types of :term:`data channels`, by :newcontrib:`Aniket Singh Yadav`. (`#13713 <https://github.com/mne-tools/mne-python/pull/13713>`__)
+- Replacing :func:`python:abc.abstractclassmethod` with :func:`python:abc.abstractmethod` in :class:`mne.viz.Figure3D`, by :newcontrib:`Himanshu Mahor`. (`#13806 <https://github.com/mne-tools/mne-python/pull/13806>`__)
+- Code refactor in :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`, by :newcontrib:`Himanshu Mahor`. (`#13602 <https://github.com/mne-tools/mne-python/pull/13602>`__)
+- Fix deprecation of setting a shape on an array directly in ``numpy`` 2.5+, by `Mathieu Scheltienne`_. (`#13585 <https://github.com/mne-tools/mne-python/pull/13585>`__)
+- Documentation improvement for eSSS in docstring :func:`mne.preprocessing.maxwell_filter` and in the MaxFilter example by `Simon Kern`_. (`#13591 <https://github.com/mne-tools/mne-python/pull/13591>`__)
+- make :func:`mne.sys_info` work on Windows systems with Powershell version 7+, by `Marijn van Vliet`_ (`#13593 <https://github.com/mne-tools/mne-python/pull/13593>`__)
+- Add :meth:`mne.Epochs.reset_index`, which replaces the legacy :meth:`mne.Epochs.reset_drop_log_selection` (the new name better reflects the method's purpose), by `Clemens Brunner`_. (`#13675 <https://github.com/mne-tools/mne-python/pull/13675>`__)
+- Add native save and read functionality for :class:`mne.decoding.SSD`, :class:`mne.decoding.CSP`, :class:`mne.decoding.SPoC`, and :class:`mne.decoding.XdawnTransformer` objects, by `Aniket Singh Yadav`_. (`#13718 <https://github.com/mne-tools/mne-python/pull/13718>`__)
+- Remove ``from __future__ import annotations`` as it is only needed for Python ≤ 3.9 by `Aniket Singh Yadav`_. (`#13749 <https://github.com/mne-tools/mne-python/pull/13749>`__)
+- Improved internal functions for inspecting MATLAB v7.3 (HDF5) files in :func:`mne.io.read_raw_eeglab`, by `Bruno Aristimunha`_. (`#13753 <https://github.com/mne-tools/mne-python/pull/13753>`__)
+
+Authors
+-------
+- Akhilesh S. Yadav+
+- Aman Srivastava+
+- Aniket Singh Yadav+
+- Benedikt Ehinger+
+- Bruno Aristimunha
+- Carina Forster
+- Christoph Huber-Huber+
+- Clemens Brunner
+- Daniel McCloy
+- Eric Larson
+- Erica Peterson
+- Famous Raj Bhat+
+- Gnaneswar Lopinti+
+- Hamza Abdelhedi
+- Hansuja Budhiraja+
+- Himanshu Mahor+
+- Johannes Herforth
+- Kay Robbins+
+- Konstantinos Tsilimparis+
+- Marijn van Vliet
+- Mathieu Scheltienne
+- Melih Yayli+
+- Michael Straube
+- Natneal B+
+- Pragnya Khandelwal+
+- Scott Huberty
+- Shruti Bhale+
+- Simon Kern
+- Srivarsha Chivukula
+- Stefan Appelhoff
+- Tamas Fehervari+
+- Teemu Taivainen+
+- Thomas A Caswell+
+- Thomas S. Binns
+- Varun Kasyap Pentamaraju+
+- Victor Férat

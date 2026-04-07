@@ -1,1 +1,0 @@
-Added ``cmap`` parameter to ``Evoked.animate_topomap`` to allow user-specified colormaps., by :newcontrib:`Hansuja Budhiraja`.
