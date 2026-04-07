@@ -125,7 +125,7 @@ jobs:
         if: startswith(matrix.kind, 'pip')
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          manifest-path: tools/pixi-macos.lock
+          manifest-path: tools/pixi-macos-intel.lock
           activate-environment: true
         if: matrix.kind == 'pixi'
       # Python (if conda)
