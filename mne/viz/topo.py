@@ -1266,8 +1266,6 @@ def _plot_evoked_topo(
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
-    import matplotlib.pyplot as plt
-
     from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
     from ..cov import whiten_evoked
 
