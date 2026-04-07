@@ -225,6 +225,8 @@ def read_raw_cnt(
         Defines the data format the data is read in. If ``'auto'``, it is
         determined from the file header using ``numsamples`` field.
         Defaults to ``'auto'``.
+    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
+        Format of date in the header. Defaults to ``'mm/dd/yy'``.
     recompute_n_samples : bool | None
         If True, if the file size is under 2GB, the number of data samples is
         computed using the location of the event (annotations) table.
@@ -235,8 +237,6 @@ def read_raw_cnt(
         value from the header is not positive.
 
         .. versionadded:: 1.12.0
-    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
-        Format of date in the header. Defaults to ``'mm/dd/yy'``.
     header : ``'auto'`` | ``'new'`` | ``'old'``
         Defines the header format. Used to describe how bad channels
         are formatted. If auto, reads using old and new header and
