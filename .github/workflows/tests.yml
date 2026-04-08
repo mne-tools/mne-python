@@ -132,6 +132,9 @@ jobs:
           activate-environment: true
         if: matrix.kind == 'pixi'
 
+      - run: |
+          eval "$(pixi shell-hook)"
+        if: matrix.kind == 'pixi'
       - name: temporary debugging check 2
         run: |
           echo "$PATH"
@@ -142,6 +145,7 @@ jobs:
           pixi run which python
           pixi run echo "$PATH"
         if: matrix.kind == 'pixi'
+
       # Python (if conda)
       - name: Fixes for conda
         run: |
