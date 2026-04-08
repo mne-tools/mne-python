@@ -165,6 +165,178 @@ def coregistration(
     )
 
 
+@verbose
+def dipolefit(
+    evoked,
+    *,
+    baseline=(None, 0),
+    cov=None,
+    bem=None,
+    initial_time=None,
+    trans=None,
+    stc=None,
+    subject=None,
+    subjects_dir=None,
+    rank="info",
+    show_density=True,
+    ch_type=None,
+    n_jobs=None,
+    show=True,
+    block=False,
+    verbose=None,
+):
+    """GUI for interactive dipole fitting, inspired by MEGIN's XFit program.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked | path-like | None
+        Evoked data to show fieldmap of and fit dipoles to.
+    %(baseline_evoked)s
+        Defaults to ``(None, 0)``, i.e. beginning of the the data until time point zero.
+    cov : instance of Covariance | path-like | "baseline" | None
+        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
+        default values for the diagonal elements (see Notes). If ``"baseline"``, the
+        diagonal elements is estimated from the baseline period of the evoked data.
+    bem : instance of ConductorModel | path-like | None
+        Boundary element model to use in forward calculations. If ``None``, a spherical
+        model is used.
+    initial_time : float | None
+        Initial time point to show. If ``None``, the time point of the maximum field
+        strength is used.
+    trans : instance of Transform | path-like | None
+        The transformation from head coordinates to MRI coordinates. If ``None``,
+        the identity matrix is used and everything will be done in head coordinates.
+    stc : instance of SourceEstimate | path-like | None
+        An optional distributed source estimate to show alongside the fieldmap. The time
+        samples need to match those of the evoked data.
+    subject : str | None
+        The subject name. If ``None``, no MRI data is shown.
+    %(subjects_dir)s
+    %(rank)s
+    show_density : bool
+        Whether to show the density of the fieldmap.
+    ch_type : "meg" | "eeg" | None
+        Type of channels to use for the dipole fitting. By default (``None``) both MEG
+        and EEG channels will be used.
+    %(n_jobs)s
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+    %(verbose)s
+
+    Returns
+    -------
+    fitter : instance of DipoleFitUI
+        The dipole fitting GUI. The ``.dipoles`` attribute contains the fitted dipoles.
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+
+    When using ``cov=None`` the default noise values are 5 fT/cm, 20 fT, and 0.2 µV for
+    gradiometers, magnetometers, and EEG channels respectively.
+
+    Here is an incomplete comparison between the features of the MEGIN XFit™ 5.5.18
+    software and the MNE interactive dipole fitting GUI:
+
+    .. table::
+       :widths: auto
+
+       +-----------------------------------------------------------------------------+-----+------+
+       | Feature                                                                     | MNE | Xfit |
+       +=============================================================================+=====+======+
+       |                                                                                          |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **Head model**                                                                           |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Use spherical head model                                                    | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Use BEM head model based on MRI                                             | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Use ad-hoc covariance matrix                                                | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Estimate covariance from baseline period                                    | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **Dipole fitting**                                                                       |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit a dipole at the current time                                            | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit a dipole by averaging the signal over a time range                      |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit dipoles on a subset of sensors, selected from the sensor view           | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit multiple dipoles and construct a multi-dipole model                     | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Toggle individual dipoles on or off in the multi-dipole model               | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Give names to dipoles                                                       | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Save dipoles to .dip or .bdip file                                          | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View source timecourses                                                     | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View total variance explained by the dipole model                           |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View detailed dipole information (coordinates, goodness of fit, etc.)       |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Toggle dipoles to have a free or fixed orientation                          | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Project-out signals from dipoles currently in the model                     |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **3D view**                                                                              |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View magnetic field patterns for Evokeds                                    | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show head surface in relation to the MEG helmet                             | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show brain surfaces inside the head surface                                 | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show MNE source estimate to guide dipole fitting                            | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show location of the dipoles in the 3D view                                 | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show dipole projected to the helmet (big arrows)                            | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show currently selected sensors in the 3D view                              | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Only show magnetic field patterns as seen by the currently selected sensors |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **Sensor view**                                                                          |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View sensor-level timecourses                                               | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Switch layouts (all, grads, mags, eeg) in the sensor display                |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Overlay reconstructed sensor time courses from the dipole model             |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+    """  # noqa E501
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ._dipolefit import DipoleFitUI
+
+    if MNE_3D_BACKEND_TESTING:
+        show = block = False
+
+    return DipoleFitUI(
+        evoked=evoked,
+        baseline=baseline,
+        cov=cov,
+        bem=bem,
+        initial_time=initial_time,
+        trans=trans,
+        stc=stc,
+        subject=subject,
+        subjects_dir=subjects_dir,
+        rank=rank,
+        show_density=show_density,
+        ch_type=ch_type,
+        n_jobs=n_jobs,
+        show=show,
+        block=block,
+        verbose=verbose,
+    )
+
+
 class _GUIScraper:
     """Scrape GUI outputs."""
 
@@ -173,8 +345,9 @@ class _GUIScraper:
 
     def __call__(self, block, block_vars, gallery_conf):
         from ._coreg import CoregistrationUI
+        from ._dipolefit import DipoleFitUI
 
-        gui_classes = (CoregistrationUI,)
+        gui_classes = (CoregistrationUI, DipoleFitUI)
         try:
             from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator
         except Exception:

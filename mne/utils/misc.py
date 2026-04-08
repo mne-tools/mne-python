@@ -388,8 +388,12 @@ def _assert_no_instances(cls, when=""):
         except Exception:  # such as a weakref
             check = False
         if check:
+            ref_prefix = f"  #{n + 1}: "
             if cls.__name__ == "Brain":
-                ref.append(f"Brain._cleaned = {getattr(obj, '_cleaned', None)}")
+                ref.append(
+                    f"{ref_prefix}"
+                    f"(Note: Brain._cleaned = {getattr(obj, '_cleaned', None)})"
+                )
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:  # e.g., list, dict, etc. that holds the reference to obj
@@ -400,8 +404,33 @@ def _assert_no_instances(cls, when=""):
                     and not inspect.isframe(r)
                 ):
                     name = _fullname(r, referent=obj)
+                    # improve our name in the case that it's an object's __dict__
+                    if isinstance(r, dict):
+                        for possible_obj in objs:
+                            try:
+                                obj_dict = getattr(possible_obj, "__dict__", None)
+                            except Exception:
+                                pass
+                            else:
+                                if obj_dict is r:
+                                    name = f"{_fullname(possible_obj)}.__dict__"
+                                    for key, value in obj_dict.items():
+                                        if key is obj:
+                                            name += "-key"
+                                            del key, value
+                                            break
+                                        if value is obj:
+                                            name += f"[{key!r}]"
+                                            del key, value
+                                            break
+                                        del key, value
+                                    else:  # shouldn't ever hit this...
+                                        name += "???"
+                                del obj_dict
+                            del possible_obj
                     if isinstance(r, list | dict | tuple):
-                        rep = f"len={len(r)}"
+                        rep = ""
+                        rep += f"len={len(r)}"
                         r_ = gc.get_referrers(r)
                         types = list()
                         for x in r_:
@@ -418,7 +447,7 @@ def _assert_no_instances(cls, when=""):
                                 rep += f" ({repr(r.cell_contents)[:100]})"
                             except Exception:
                                 pass
-                    ref.append(f"{name} with {rep}")
+                    ref.append(f"{ref_prefix}{name} with {rep}")
                     count += 1
                 del r
             del rr
@@ -426,7 +455,7 @@ def _assert_no_instances(cls, when=""):
         del obj
     del objs
     gc.collect()
-    assert n == 0, f"\n{n} {cls.__name__} @ {when}:\n" + "\n".join(ref)
+    assert n == 0, f"\n{n} {cls.__name__} @ {when}, referrers:\n" + "\n".join(ref)
 
 
 def _resource_path(submodule, filename):
