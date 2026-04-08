@@ -3,7 +3,7 @@
 set -eo pipefail
 
 TOOLS_DIR=$(dirname "${BASH_SOURCE[0]}") 
-source "$TOOLS_DIR/.github_actions_helpers.sh"
+source "$TOOLS_DIR/github_actions_helpers.sh"
 
 # TODO: I think that DEPS is cruft. Its not set anywhere??
 if [ "${DEPS}" != "minimal" ]; then

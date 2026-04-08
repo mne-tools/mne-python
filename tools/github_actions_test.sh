@@ -3,7 +3,7 @@
 set -eo pipefail
 
 TOOLS_DIR=$(dirname "${BASH_SOURCE[0]}") 
-source "$TOOLS_DIR/.github_actions_helpers.sh"
+source "$TOOLS_DIR/github_actions_helpers.sh"
 
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
