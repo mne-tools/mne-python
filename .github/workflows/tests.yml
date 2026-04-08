@@ -137,6 +137,7 @@ jobs:
         if: matrix.kind == 'pixi'
       - name: temporary debugging check 2
         run: |
+          eval "$(pixi shell-hook)"
           echo "$PATH"
           which python
           which pixi
