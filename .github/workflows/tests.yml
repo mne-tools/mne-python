@@ -139,9 +139,8 @@ jobs:
           which pixi
         if: matrix.kind == 'pixi'
       - run: |
-          echo "$PATH"
-          which python
-        shell: pixi run {0}
+          pixi run which python
+          pixi run echo "$PATH"
         if: matrix.kind == 'pixi'
       # Python (if conda)
       - name: Fixes for conda
