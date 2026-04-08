@@ -1,5 +1,11 @@
 #!/bin/bash -ef
-source ./github_actions_helpers.sh
+run_python() {
+  if [[ "${MNE_CI_KIND}" == "pixi" ]]; then
+    pixi run python "$@"
+  else
+    python "$@"
+  fi
+}
 
 # TODO: I think that DEPS is cruft. Its not set anywhere??
 if [ "${DEPS}" != "minimal" ]; then
