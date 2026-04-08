@@ -135,13 +135,15 @@ jobs:
       - name: temporary debugging check 2
         run: |
           echo "$PATH"
-          which python || true
-          which pytest || true
-          which pixi || true
-          python -V || true
-          pixi run python -V || true
-          pytest --version || true
-          pixi run python -m pytest --version || true
+          which python
+          which pixi
+          pixi shell
+          which python
+        if: matrix.kind == 'pixi'
+      - run: |
+          echo "$PATH"
+          which python
+        shell: pixi run {0}
         if: matrix.kind == 'pixi'
       # Python (if conda)
       - name: Fixes for conda
