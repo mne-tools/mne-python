@@ -1,6 +1,12 @@
 #!/bin/bash -ef
+
+set -eo pipefail
+
+TOOLS_DIR=$(dirname "${BASH_SOURCE[0]}") 
+source "$TOOLS_DIR/.github_actions_helpers.sh"
+
 # TODO: I think that DEPS is cruft. Its not set anywhere??
 if [ "${DEPS}" != "minimal" ]; then
-	python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-	python -c "import mne; mne.datasets.misc.data_path(verbose=True)";
+	run_python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+	run_python -c "import mne; mne.datasets.misc.data_path(verbose=True)";
 fi
