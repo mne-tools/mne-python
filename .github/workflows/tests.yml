@@ -137,8 +137,6 @@ jobs:
           echo "$PATH"
           which python
           which pixi
-          pixi shell
-          which python
         if: matrix.kind == 'pixi'
       - run: |
           echo "$PATH"
