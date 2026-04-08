@@ -123,6 +123,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
+      - name: temporary debugging check 1
+        run: echo "$PATH"
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           manifest-path: tools/pixi.toml
@@ -130,11 +132,12 @@ jobs:
           activate-environment: true
         if: matrix.kind == 'pixi'
 
-      - name: temporary debugging check
+      - name: temporary debugging check 2
         run: |
-          command -v python || true
-          command -v pytest || true
-          command -v pixi || true
+          echo "$PATH"
+          which python || true
+          which pytest || true
+          which pixi || true
           python -V || true
           pixi run python -V || true
           pytest --version || true
