@@ -812,6 +812,12 @@ class UpdateChannelsMixin:
         -------
         inst : same type as the input data
                The modified instance.
+               
+        note:: If you are adding a new reference channel to data that
+                will eventually be used with an average reference,
+                you should also call :meth:`mne.io.Raw.set_eeg_reference`
+                (or the equivalent Epochs/Evoked method) to ensure the
+                mathematical reference is updated correctly.
         """
         return add_reference_channels(self, ref_channels, copy=False)
 
