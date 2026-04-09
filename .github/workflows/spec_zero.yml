@@ -50,7 +50,7 @@ jobs:
       - name: Update tracked dependencies
         run: python ./tools/dev/spec_zero_update_versions.py
       - name: Sync updated dependencies to README
-        run: python tools/hooks/sync_dependencies.py
+        run: python tools/sync_dependencies.py
       - name: Create lockfile for old CI
         # uv pip compile requires setting the python version explicitly in the command :(
         run: |
