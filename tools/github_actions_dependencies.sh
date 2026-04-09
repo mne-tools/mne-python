@@ -3,6 +3,8 @@
 set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SCRIPT_DIR/github_actions_helpers.sh"
+
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
@@ -39,6 +41,10 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
+elif [[ "${MNE_CI_KIND}" == "pixi" ]]; then
+	GROUP="test_extra"
+	EXTRAS="[hdf5]"
+	INSTALL_ARGS=""
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
@@ -61,6 +67,6 @@ else
 	echo "::group::Installing MNE in development mode using pip"
 fi
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
+run_python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"

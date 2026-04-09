@@ -186,7 +186,6 @@ jobs:
           python-version: ${{ matrix.python }}
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
-        if: matrix.kind != 'pixi'
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
