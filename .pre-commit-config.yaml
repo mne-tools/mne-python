@@ -81,10 +81,6 @@ repos:
         # We correctly use pull_request_trigger, and need Zizmor 2.0+ to configure the ignore
         exclude: ^.github/workflows/automerge.yml
 
-# these should *not* be run on CIs:
-ci:
-  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
-
 # The following are too slow to run on local commits, so let's only run on CIs:
 #
 #   - repo: https://github.com/pre-commit/mirrors-mypy
