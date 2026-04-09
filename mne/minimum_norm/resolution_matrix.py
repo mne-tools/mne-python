@@ -155,8 +155,16 @@ def _get_psf_ctf(
         # summarise PSFs/CTFs across vertices if requested
         pca_var = None  # variances computed only if return_pca_vars=True
         if mode is not None:
+            # mapping public mode names to internal names
+            _mode_map = {
+                "max": "maxnorm",
+                "svd": "pca",
+                "mean": "mean",
+                "sum": "sum",
+                "maxval": "maxval",
+            }
             funcs, pca_var = _summarise_psf_ctf(
-                funcs, mode, n_comp, return_pca_vars, nn
+                funcs, _mode_map[mode], n_comp, return_pca_vars, nn
             )
 
         if not vector:  # if one value per vertex requested
@@ -193,11 +201,14 @@ def _get_psf_ctf(
 
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
-    if mode in [None, "sum", "mean"] and n_comp > 1:
+    valid_modes = (None, "mean", "max", "svd", "sum", "maxval")
+    if mode not in valid_modes:
+        raise ValueError(f"mode must be one of {valid_modes}, got {mode!r} instead.")
+    if mode in [None, "mean", "sum"] and n_comp > 1:
         msg = f"n_comp must be 1 for mode={mode}."
         raise ValueError(msg)
-    if mode != "pca" and return_pca_vars:
-        msg = "SVD variances can only be returned if mode=pca."
+    if mode != "svd" and return_pca_vars:
+        msg = "SVD variances can only be returned if mode='svd'."
         raise ValueError(msg)
 
 

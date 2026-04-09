@@ -779,6 +779,123 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
 
 
 ###############################################################################
+# TODO VERSION: Can be removed once pymatreader >= 1.2.2 is the minimum
+# supported version.
+
+
+def _whosmat(fname):
+    """List variables in a .mat file, including MATLAB v7.3 (HDF5).
+
+    Wraps ``pymatreader.whosmat`` if available (>= 1.2.2), otherwise falls back
+    to ``scipy.io.whosmat`` (non-HDF5) or a custom HDF5 reader using h5py.
+    """
+    try:
+        import pymatreader
+
+        if _compare_version(pymatreader.__version__, ">=", "1.2.2"):
+            return pymatreader.whosmat(str(fname))
+    except (ImportError, AttributeError):
+        pass
+
+    # Fall back: try scipy.io.whosmat (works for non-HDF5 .mat files)
+    from scipy.io import whosmat
+
+    try:
+        return whosmat(str(fname))
+    except NotImplementedError:
+        pass
+
+    # HDF5 file — use custom h5py-based reader
+    return _whosmat_hdf5(str(fname))
+
+
+def _whosmat_hdf5(fname):
+    """List variables in a MATLAB v7.3 (HDF5) .mat file without loading data.
+
+    This function provides similar functionality to :func:`scipy.io.whosmat` but
+    for MATLAB v7.3 files stored in HDF5 format, which are not supported by SciPy.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the MATLAB v7.3 (.mat) file.
+
+    Returns
+    -------
+    variables : list of tuple
+        A list of (name, shape, class) tuples for each variable in the file.
+        The name is a string, shape is a tuple of ints, and class is a string
+        indicating the MATLAB data type (e.g., 'double', 'int32', 'struct').
+    """
+    import h5py
+
+    variables = []
+
+    with h5py.File(str(fname), "r") as f:
+        for name in f.keys():
+            node = f[name]
+
+            # Extract shape from HDF5 object
+            if isinstance(node, h5py.Dataset):
+                shape = tuple(int(x) for x in node.shape)
+            else:
+                shape = ()
+                for attr_key in (
+                    "MATLAB_shape",
+                    "MATLAB_Size",
+                    "MATLAB_size",
+                    "dims",
+                    "MATLAB_dims",
+                ):
+                    shp = node.attrs.get(attr_key)
+                    if shp is not None:
+                        try:
+                            shape = tuple(int(x) for x in shp)
+                            break
+                        except Exception:
+                            pass
+                if not shape and "size" in node:
+                    try:
+                        shape = tuple(int(x) for x in node["size"][()])
+                    except Exception:
+                        pass
+
+            # Infer MATLAB class from HDF5 object
+            mcls = node.attrs.get("MATLAB_class", "").lower()
+            if mcls:
+                matlab_class = "char" if mcls == "string" else mcls
+            elif isinstance(node, h5py.Dataset):
+                dt = node.dtype
+                # Handle complex numbers stored as {real, imag} struct
+                if getattr(dt, "names", None) and {"real", "imag"} <= set(dt.names):
+                    matlab_class = (
+                        "double" if dt["real"].base.itemsize == 8 else "single"
+                    )
+                # Map NumPy dtype to MATLAB class
+                elif (kind := dt.kind) == "f":
+                    matlab_class = "double" if dt.itemsize == 8 else "single"
+                elif kind == "i":
+                    matlab_class = f"int{8 * dt.itemsize}"
+                elif kind == "u":
+                    matlab_class = f"uint{8 * dt.itemsize}"
+                elif kind == "b":
+                    matlab_class = "logical"
+                elif kind in ("S", "U", "O"):
+                    matlab_class = "char"
+                else:
+                    matlab_class = "unknown"
+            # Check for sparse matrix structure
+            elif {"ir", "jc", "data"}.issubset(set(node.keys())):
+                matlab_class = "sparse"
+            else:
+                matlab_class = "unknown"
+
+            variables.append((name, shape, matlab_class))
+
+    return variables
+
+
+###############################################################################
 # workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
 # we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
 # from the file-like object.

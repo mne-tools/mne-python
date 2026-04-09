@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.8
+    rev: v0.15.9
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -54,7 +54,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt
+        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt|^ignore_words.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
@@ -78,7 +78,7 @@ repos:
         language: python
         entry: ./tools/hooks/sync_dependencies.py
         files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
-        additional_dependencies: ["mne==1.11.0"]
+        additional_dependencies: ["mne==1.12.0"]
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
