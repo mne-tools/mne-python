@@ -68,12 +68,6 @@ wheels = [
 ]
 
 [[packages]]
-name = "click"
-version = "7.1.2"
-sdist = { url = "https://files.pythonhosted.org/packages/27/6f/be940c8b1f1d69daceeb0032fee6c34d7bd70e3e649ccac0951500b4720e/click-7.1.2.tar.gz", upload-time = 2020-04-27T20:22:45Z, size = 297279, hashes = { sha256 = "d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/d2/3d/fa76db83bf75c4f8d338c2fd15c8d33fdd7ad23a9b5e57eb6c5de26b430e/click-7.1.2-py2.py3-none-any.whl", upload-time = 2020-04-27T20:22:42Z, size = 82780, hashes = { sha256 = "dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc" } }]
-
-[[packages]]
 name = "codespell"
 version = "1.9.0"
 sdist = { url = "https://files.pythonhosted.org/packages/bd/64/d16fc0b110dbe3567976980607eb1e89e5298f2e6704c2573d31886726c2/codespell-1.9.0.tar.gz", upload-time = 2016-06-09T18:50:18Z, size = 12009, hashes = { sha256 = "c183af463c1776cba789b16438f3e278e2174f3cc3497b1c80d4b389799a9d2d" } }
@@ -463,9 +457,9 @@ wheels = [
 
 [[packages]]
 name = "scipy"
-version = "1.12.0"
-sdist = { url = "https://files.pythonhosted.org/packages/30/85/cdbf2c3c460fe5aae812917866392068a88d02f07de0fe31ce738734c477/scipy-1.12.0.tar.gz", upload-time = 2024-01-20T21:13:43Z, size = 56811768, hashes = { sha256 = "4bf5abab8a36d20193c698b0f1fc282c1d083c94723902c447e5d2f1780936a3" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/f5/aa/8e6071a5e4dca4ec68b5b22e4991ee74c59c5d372112b9c236ec1faff57d/scipy-1.12.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2024-01-20T21:10:51Z, size = 38441046, hashes = { sha256 = "5e32847e08da8d895ce09d108a494d9eb78974cf6de23063f93306a3e419960c" } }]
+version = "1.13.0"
+sdist = { url = "https://files.pythonhosted.org/packages/fb/a3/328965862f41ba67d27ddd26205962007ec87d99eec6d364a29bf00ac093/scipy-1.13.0.tar.gz", upload-time = 2024-04-02T21:48:22Z, size = 57204550, hashes = { sha256 = "58569af537ea29d3f78e5abd18398459f195546bb3be23d16677fb26616cc11e" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/b9/9d/39dbcf49a793157f9d4f5b8961855677eb4dbb4b82700dcee7042ad2310c/scipy-1.13.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2024-04-02T21:41:39Z, size = 38568731, hashes = { sha256 = "b8434f6f3fa49f631fae84afee424e2483289dfc30a47755b4b4e6b07b2633a4" } }]
 
 [[packages]]
 name = "setuptools"
@@ -566,23 +560,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/b7/4d/08c89e34946fce2ae
 wheels = [{ url = "https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl", upload-time = 2025-03-13T13:49:21Z, size = 18638, hashes = { sha256 = "43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb" } }]
 
 [[packages]]
-name = "toml-sort"
-version = "0.1.0"
-sdist = { url = "https://files.pythonhosted.org/packages/d7/5b/a4d60a2adab82336d02ebf806630e0a4cfa38b776fa859e054bd9f11e1e4/toml-sort-0.1.0.tar.gz", upload-time = 2019-08-05T13:16:50Z, size = 3553, hashes = { sha256 = "a55d69a2925da3263bfe6ec1d2adf1e49db0cb75af34327f4a7e1d8239f9940d" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/b8/9e/20a166e038a0dc818c51e3757a5c2b6850305fe9a8e6b23514979aa5832e/toml_sort-0.1.0-py3-none-any.whl", upload-time = 2019-08-05T13:16:52Z, size = 4364, hashes = { sha256 = "6f675963139c1ec4cf53b2f41874e949ad04c92b3a53ac01b39c3da67839f548" } }]
-
-[[packages]]
 name = "tomli"
 version = "1.1.0"
 marker = "python_full_version <= '3.11'"
 sdist = { url = "https://files.pythonhosted.org/packages/6c/16/f48ab3289015f8f90e2c68fb76531728b3d8e4ce5052ee80ad10e7707eda/tomli-1.1.0.tar.gz", upload-time = 2021-07-23T09:47:07Z, size = 12134, hashes = { sha256 = "33d7984738f8bb699c9b0a816eb646a8178a69eaa792d258486776a5d21b8ca5" } }
 wheels = [{ url = "https://files.pythonhosted.org/packages/2e/ac/75c79a6880ba6b306df9f61fedf802dd7db0c54d42e4a879f1428625c138/tomli-1.1.0-py3-none-any.whl", upload-time = 2021-07-23T09:47:06Z, size = 11712, hashes = { sha256 = "f4a182048010e89cbec0ae4686b21f550a7f2903f665e34a6de58ec15424f919" } }]
-
-[[packages]]
-name = "tomlkit"
-version = "0.14.0"
-sdist = { url = "https://files.pythonhosted.org/packages/c3/af/14b24e41977adb296d6bd1fb59402cf7d60ce364f90c890bd2ec65c43b5a/tomlkit-0.14.0.tar.gz", upload-time = 2026-01-13T01:14:53Z, size = 187167, hashes = { sha256 = "cf00efca415dbd57575befb1f6634c4f42d2d87dbba376128adb42c121b87064" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/b5/11/87d6d29fb5d237229d67973a6c9e06e048f01cf4994dee194ab0ea841814/tomlkit-0.14.0-py3-none-any.whl", upload-time = 2026-01-13T01:14:51Z, size = 39310, hashes = { sha256 = "592064ed85b40fa213469f81ac584f67a4f2992509a7c3ea2d632208623a3680" } }]
 
 [[packages]]
 name = "tqdm"

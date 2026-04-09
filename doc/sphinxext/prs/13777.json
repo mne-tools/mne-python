@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6de340997d892c4df493b500d47771640b433659",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13777.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/parallel.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/tests/test_parallel.py": {
+      "a": 27,
+      "d": 0
+    }
+  }
+}

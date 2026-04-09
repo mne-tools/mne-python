@@ -53,6 +53,7 @@
 .. _Chris Mullins: https://crmullins.com
 .. _Christian Brodbeck: https://github.com/christianbrodbeck
 .. _Christian O'Reilly: https://github.com/christian-oreilly
+.. _Christoph Huber-Huber: https://github.com/chsquare
 .. _Christopher Dinh: https://github.com/chdinh
 .. _Chun-Hui Li: https://github.com/iamsc
 .. _Clemens Brunner: https://github.com/cbrnr
@@ -95,9 +96,8 @@
 .. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
-.. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
-.. _Famous Raj Bhat: https://github.com/Famous077
+.. _Famous077: https://github.com/Famous077
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
@@ -118,6 +118,7 @@
 .. _Hakimeh Pourakbari: https://github.com/Hpakbari
 .. _Hamid Maymandi: https://github.com/HamidMandi
 .. _Hamza Abdelhedi: https://github.com/BabaSanfour
+.. _Hansuja Budhiraja: https://github.com/HansujaB
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
 .. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17

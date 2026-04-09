@@ -2796,6 +2796,7 @@ class Brain:
         col=0,
         font_size=None,
         justification=None,
+        font_file=None,
     ):
         """Add a text to the visualization.
 
@@ -2824,6 +2825,10 @@ class Brain:
             The font size to use.
         justification : str | None
             The text justification.
+        font_file : str | None
+            Path to an absolute path of a font file to use for rendering
+            the text. See https://freetype.org/freetype2/docs/index.html for a list of
+            supported font file formats.
         """
         _validate_type(name, (str, None), "name")
         name = text if name is None else name
@@ -2840,6 +2845,7 @@ class Brain:
                     color=color,
                     size=font_size,
                     justification=justification,
+                    font_file=font_file,
                 )
                 if "text" not in self._actors:
                     self._actors["text"] = dict()

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "14d0916e048814d503265c2e77104f16e9626b8f",
+  "authors": [
+    {
+      "n": "Kay Robbins",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Bru",
+      "e": "b.aristimunha@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/api/events.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13059.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 427,
+      "d": 23
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 190,
+      "d": 0
+    }
+  }
+}

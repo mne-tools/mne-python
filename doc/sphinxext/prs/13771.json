@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ba121181b350a2425ab8ff8c95c67009a70fdcc3",
+  "authors": [
+    {
+      "n": "Hansuja ",
+      "e": "hansujaigdtuwcseai@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13771.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}
