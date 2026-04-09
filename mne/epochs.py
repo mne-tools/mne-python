@@ -4706,11 +4706,25 @@ def _concatenate_epochs_spectrum(epochs_list, add_offset=True):
         if not np.array_equal(ep.freqs, ref.freqs):
             raise ValueError(f"epochs_list[{ii}] freqs do not match epochs_list[0]")
         _ensure_infos_match(ep.info, ref.info, f"epochs_list[{ii}]")
+        if ep.method != ref.method:
+            raise ValueError(
+                f"epochs_list[{ii}] method {ep.method!r} does not match "
+                f"epochs_list[0] method {ref.method!r}"
+            )
+        if ref.method == "multitaper":
+            ref_weights = getattr(ref, "weights", None)
+            ep_weights = getattr(ep, "weights", None)
+            if ref_weights is not None and ep_weights is not None:
+                if not np.array_equal(ep_weights, ref_weights):
+                    raise ValueError(
+                        f"epochs_list[{ii}] multitaper weights do not match "
+                        f"epochs_list[0]"
+                    )
 
     data = np.concatenate([ep.data for ep in epochs_list], axis=0)
 
-    shift = np.int64(10 * ref.info["sfreq"])
-    events_offset = int(np.max(epochs_list[0].events[:, 0])) + shift
+    shift = len(ref.freqs)
+    events_offset = ref.events[-1, 0] + shift
     all_events = [epochs_list[0].events.copy()]
     for ep in epochs_list[1:]:
         evs = ep.events.copy()

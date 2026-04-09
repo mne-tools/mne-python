@@ -802,3 +802,16 @@ def test_concatenate_epochs_spectrum():
     # passing a non-EpochsSpectrum should raise
     with pytest.raises(TypeError, match="must be an instance of EpochsSpectrum"):
         concatenate_epochs([sp1, epochs[:10]])
+
+    # mismatched method should raise
+    sp_welch = epochs[:10].compute_psd(method="welch")
+    with pytest.raises(ValueError, match="method"):
+        concatenate_epochs([sp1, sp_welch])
+
+    # mismatched multitaper weights should raise
+    sp_mt1 = epochs[:10].compute_psd(method="multitaper", bandwidth=2, output="complex")
+    sp_mt2 = epochs[10:20].compute_psd(
+        method="multitaper", bandwidth=20, output="complex"
+    )
+    with pytest.raises(ValueError, match="weights"):
+        concatenate_epochs([sp_mt1, sp_mt2])
