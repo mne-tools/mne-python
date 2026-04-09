@@ -691,13 +691,15 @@ def test_crop_by_annotations_description(meas_date, first_samp):
     # filter by list
     raws = raw.crop_by_annotations(description=["stimulus"])
     assert len(raws) == 2
+    assert all(r.annotations.description[0] == "stimulus" for r in raws)
 
     # filter by multiple descriptions
     raws = raw.crop_by_annotations(description=["stimulus", "bad"])
     assert len(raws) == 3
 
-    # filter with no match returns empty list
-    raws = raw.crop_by_annotations(description="nonexistent")
+    # filter with no match returns empty list and warns
+    with pytest.warns(RuntimeWarning, match="No annotations found"):
+        raws = raw.crop_by_annotations(description="nonexistent")
     assert len(raws) == 0
 
     # None returns all (default behavior unchanged)

@@ -1712,7 +1712,7 @@ class BaseRaw(
             The annotations to use for cropping the raw file. If None,
             the annotations from the instance are used.
         description : str | list of str | None
-            If not None, only annotations with matching descriptions will
+            If not None, only annotations whose descriptions exactly match will
             be used for cropping. If None (default), all annotations are used.
         %(verbose)s
 
@@ -1729,6 +1729,11 @@ class BaseRaw(
                 description = [description]
             mask = np.isin(annotations.description, description)
             annotations = annotations[mask]
+            if len(annotations) == 0:
+                warn(
+                    f"No annotations found matching description(s): {description}",
+                    RuntimeWarning,
+                )
 
         raws = []
         for annot in annotations:
