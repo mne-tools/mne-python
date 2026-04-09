@@ -47,7 +47,7 @@ jobs:
           version: ">=0.9"
           activate-environment: true
           python-version: 3.12
-      - run: uv pip install packaging requests tomlkit
+      - run: uv pip install -e . packaging requests tomlkit
       - name: Update tracked dependencies
         run: python ./tools/dev/spec_zero_update_versions.py
       - name: Sync updated dependencies to README
