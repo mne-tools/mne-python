@@ -25,7 +25,7 @@ Platform-specific installers
 
             |cloud-arrow-down| |ensp| Download for Linux
 
-        **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
+        **Supported platforms:** Ubuntu 20.04 (Focal Fossa) and newer
 
         Run the installer in a terminal via:
 
