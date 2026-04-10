@@ -849,7 +849,7 @@ def _run_mSSS(raw, origin):
     S_in = []
     for i in range(len(origin)):
         [S_i, _, _, moments_i] = compute_maxwell_basis(
-            raw.info, origin=origin[i], regularize=None
+            raw.info, origin=origin[i], regularize=None, bad_condition="ignore"
         )
         S_in.append(S_i[:, :moments_i])
 

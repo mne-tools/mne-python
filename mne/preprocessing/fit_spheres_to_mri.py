@@ -13,6 +13,34 @@ from ..transforms import (
 
 
 def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
+    """Fits two spheres to MRI using BEM, such that spheres fit while brain but 
+    do not encroach on sensors. For use with Milti-SSS Maxwell Filtering
+
+    Parameters
+    ----------
+    subjects dir: str
+        director to Freesurfer subjects
+    subject: str
+        Subject ID
+    bem: bem.ConductorModel
+        istance of bem.ConductorModel, must be three shell conductivity profiles
+    trans: str
+        path to trans file, mri_dev_t information
+    n_spheres: int
+        number of spheres to fit, recommended 2
+
+    Returns
+    -------
+    centers: np.ndarray
+        2D array containing the two centers in cartesian coordinates
+
+    Notes
+    -----
+
+    * Must have vedo and nibabel installed
+    * Must have run mne watershed BEM using freesurfer segmentation
+    """ 
+    
     mindist = 2e-3
     assert bem[0]["id"] == FIFF.FIFFV_BEM_SURF_ID_HEAD
     assert bem[2]["id"] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
