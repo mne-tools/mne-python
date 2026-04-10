@@ -128,6 +128,14 @@ bundles to the ``Applications`` folder on macOS.
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
 
+The installer sets up a standard ``conda`` environment. If you want to activate the
+environment manually (e.g., in headless setups) you can do as you would for any other
+conda environment:
+
+.. code-block:: bash
+
+    $ source /path-to-installation-dir/bin/activate
+
 Uninstallation
 ^^^^^^^^^^^^^^
 
