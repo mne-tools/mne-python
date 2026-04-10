@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -375,6 +376,29 @@ def _read_nihon_annotations(fname, encoding="utf-8"):
     return annots
 
 
+def _read_nihon_comments(fname, encoding="utf-8"):
+    fname = _ensure_path(fname)
+    cmt_fname = fname.with_suffix(".CMT")
+    if not cmt_fname.exists():
+        warn("No CMT file exists. Comments will not be read")
+        return list()
+    logger.info("Found CMT file, reading comments.")
+    with open(cmt_fname, "rb") as fid:
+        version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
+        if version not in _valid_headers:
+            raise ValueError(f"Not a valid Nihon Kohden CMT file ({version})")
+
+        filesize = fid.seek(0, os.SEEK_END)
+        n_commentblocks = (filesize - 0x429) // 0x230
+        all_comments = []
+        for t_block in range(n_commentblocks):
+            fid.seek(0x429 + t_block * 0x230 + 0x30)
+            # As the number of comments needs to match number of placeholders, we cannot
+            # fail softly if the decoding fails, as we do in other places.
+            all_comments.append(np.fromfile(fid, "|S384", 1)[0].decode(encoding))
+    return all_comments
+
+
 def _map_ch_to_type(ch_name):
     ch_type_pattern = OrderedDict(
         [("stim", ("Mark",)), ("misc", ("DC", "NA", "Z", "$")), ("bio", ("X",))]
@@ -482,6 +506,22 @@ class RawNihon(BaseRaw):
 
         # Get annotations from LOG file
         annots = _read_nihon_annotations(fname, encoding)
+
+        # Get comments from CMT file
+        comments = _read_nihon_comments(fname, encoding)
+
+        # Replace P_COMMENT descriptions with actual comments.
+        to_replace = [
+            i for i, desc in enumerate(annots["description"]) if desc == "P_COMMENT"
+        ]
+        if len(to_replace) != len(comments):
+            warn(
+                f"The number of comments in the .CMT file ({len(comments)}) does not "
+                "match the number of placeholders in the .LOG file "
+                f"({len(to_replace)}). Not reading comments."
+            )
+        for i, comment in zip(to_replace, comments):
+            annots["description"][i] = comment
 
         # Annotate acquisition skips
         controlblock = header["controlblocks"][0]
