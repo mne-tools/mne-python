@@ -34,6 +34,7 @@ pycrostates
 pyprep
 pyriemann
 python-picard
+rsatoolbox
 sesameeg
 sleepecg
 tensorpac
