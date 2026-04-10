@@ -37,7 +37,7 @@ snirf_nirsport2_raw_path = (
 # PyVista <->NumPy 2.4
 pytestmark = [
     pytest.mark.filterwarnings(
-        "ignore:Setting the dtype on a NumPy array.*:RuntimeWarning"
+        "ignore:Setting the dtype on a NumPy array.*:DeprecationWarning"
     ),
 ]
 
