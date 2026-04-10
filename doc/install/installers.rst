@@ -17,7 +17,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-linux
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0/MNE-Python-1.12.0_1-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
