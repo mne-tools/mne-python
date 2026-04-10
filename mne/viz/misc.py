@@ -103,7 +103,7 @@ def _index_info_cov(info, cov, exclude):
             indices, titles, units, scalings, ch_types
         )
     ]
-    C = cov.data[ch_idx][:, ch_idx]
+    C = cov._get_square()[ch_idx][:, ch_idx]
     return info, C, ch_names, idx_names
 
 
