@@ -1721,7 +1721,16 @@ class Report:
         )
 
     @fill_doc
-    def add_covariance(self, cov, *, info, title, tags=("covariance",), replace=False):
+    def add_covariance(
+        self,
+        cov,
+        *,
+        info,
+        title,
+        rank=None,
+        tags=("covariance",),
+        replace=False,
+    ):
         """Add covariance to the report.
 
         Parameters
@@ -1732,6 +1741,11 @@ class Report:
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
+        rank : int | None
+            The rank of the covariance matrix. If provided, it will be displayed
+            in the report above the covariance plots.
+
+            .. versionadded:: 1.12
         %(tags_report)s
         %(replace_report)s
 
@@ -1740,6 +1754,19 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
+
+        # Display rank if provided
+        if rank is not None:
+            html = f"<p><strong>Rank:</strong> {rank}</p>"
+            self._add_html_element(
+                html=html,
+                title="Covariance rank",
+                tags=tags,
+                section=title,
+                replace=replace,
+                div_klass="covariance",
+            )
+
         self._add_cov(
             cov=cov,
             info=info,
