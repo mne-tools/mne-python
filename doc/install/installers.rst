@@ -38,7 +38,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-macos-intel
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0/MNE-Python-1.12.0_1-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -54,7 +54,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-macos-apple
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0/MNE-Python-1.12.0_1-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -70,7 +70,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-windows
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0/MNE-Python-1.12.0_1-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
