@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import check_random_state, logger, verbose
+from ..utils import _check_if_nan, check_random_state, logger, verbose
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -77,6 +77,7 @@ def permutation_t_test(
     """
     from .cluster_level import _get_1samp_orders
 
+    _check_if_nan(X)
     n_samples, n_tests = X.shape
     X2 = np.mean(X**2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)
