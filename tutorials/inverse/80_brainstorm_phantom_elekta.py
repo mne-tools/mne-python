@@ -115,7 +115,7 @@ sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 
 # %%
 # Dipole fitting
-# -----------
+# --------------
 
 # Finally, we fit dipoles for each phantom and store them in a list.
 dip_all = []
@@ -181,7 +181,7 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # achieving sub-centimeter accuracy (mean position error 2.7mm).
 #
 # Visualise estimated and true dipole fits
-# ------------------------------------
+# ----------------------------------------
 
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
