@@ -669,6 +669,35 @@ catch bugs and style errors for you; :ref:`run the tests locally <run-tests>`
 instead before opening a new PR and before each time you push additional
 changes to an already-open PR.
 
+Continuous integration (CI)
+-----------------------------------
+
+MNE-Python uses `continuous integration`_ (CI) services to automatically
+validate pull requests. These include:
+
+- `GitHub Actions`_ and `azure`_ for testing code across platforms
+- `CircleCI`_ for building and validating the documentation
+
+If you are contributing for the first time, you may notice that `CircleCI`_
+jobs do not start automatically, or appear as "pending".
+
+This is expected behavior. CircleCI requires **manual approval from a
+maintainer** before running jobs submitted by new contributors. This is a
+security measure to prevent misuse of CI resources.
+
+As a result:
+
+- CircleCI jobs may remain in a *pending* or *not running* state
+- This does **not** indicate a problem with your code
+
+Once a maintainer approves your pull request, CircleCI will automatically run
+the documentation build and associated checks.
+
+In the meantime:
+
+- Ensure all tests pass and the docs (if relevant) are built without errors 
+  (see :ref:`run-tests` and :ref:`build-docs`)
+- Run style checks locally as described in :ref:`code-style`
 
 Make tests fast and thorough
 ----------------------------
