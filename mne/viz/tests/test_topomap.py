@@ -799,13 +799,15 @@ def test_plot_topomap_opm():
 
 def test_prepare_topomap_plot_opm_non_quspin_coils():
     """Test colocated OPM handling for non-QuSpin OPM coil types."""
-    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004"]
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
     info = create_info(ch_names, 1000.0, ch_types="mag")
-    # Two colocated pairs with different orientations.
+    # Two colocated trios with different orientations.
     positions = np.array(
         [
             [0.03, 0.00, 0.05],
             [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
             [-0.03, 0.00, 0.05],
             [-0.03, 0.00, 0.05],
         ]
@@ -814,8 +816,10 @@ def test_prepare_topomap_plot_opm_non_quspin_coils():
         [
             [0.5145, 0.0000, 0.8575],  # radial-ish
             [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
             [-0.5145, 0.0000, 0.8575],  # radial-ish
             [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
         ]
     )
     with info._unlock():
@@ -829,9 +833,11 @@ def test_prepare_topomap_plot_opm_non_quspin_coils():
         evoked, "mag"
     )
 
-    assert len(picks) == 4
+    assert len(picks) == 6
     assert merge_channels
-    assert sum(name.endswith("MERGE-REMOVE") for name in merged_names) == 2
+    assert len(merge_channels) == 2
+    assert all(len(set_) == 3 for set_ in merge_channels)
+    assert sum(name.endswith("MERGE-REMOVE") for name in merged_names) == 4
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
