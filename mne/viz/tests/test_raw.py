@@ -865,6 +865,59 @@ def test_plot_annotations(raw, browser_backend):
         assert "A" in raw.annotations.description
 
 
+def test_annotation_colors(raw, browser_backend):
+    """Test that annotation_colors overrides default colors."""
+    from matplotlib.colors import to_hex
+
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    annot = Annotations(
+        onset=[1, 3],
+        duration=[1, 1],
+        description=["BAD_test", "stimulus"],
+    )
+    raw.set_annotations(annot)
+
+    # user-provided colors override defaults (including bad* → red rule)
+    fig = raw.plot(
+        annotation_colors={"BAD_test": "orange", "stimulus": "#00ff00"},
+        show=False,
+    )
+    colors = fig.mne.annotation_segment_colors
+    assert colors["BAD_test"] == to_hex("orange"), (
+        "User color for BAD_test should override red default"
+    )
+    assert colors["stimulus"] == "#00ff00"
+
+    # labels not in annotation_colors still get default colors
+    annot2 = Annotations(
+        onset=[1, 3, 5],
+        duration=[1, 1, 1],
+        description=["BAD_other", "BAD_test", "stimulus"],
+    )
+    raw.set_annotations(annot2)
+    fig2 = raw.plot(
+        annotation_colors={"BAD_test": "orange"},
+        show=False,
+    )
+    colors2 = fig2.mne.annotation_segment_colors
+    assert colors2["BAD_other"] == "#ff0000", (
+        "BAD_other has no user override and should remain red"
+    )
+    assert colors2["BAD_test"] == to_hex("orange")
+
+    # unknown label key triggers a warning
+    with pytest.warns(RuntimeWarning, match="do not match"):
+        raw.plot(
+            annotation_colors={"nonexistent_label": "blue"},
+            show=False,
+        )
+
+    # invalid color value raises ValueError
+    with pytest.raises(ValueError, match="not a valid matplotlib color"):
+        raw.plot(annotation_colors={"BAD_test": "not_a_color"}, show=False)
+
+
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
     """Test deletion of annotations via right-click."""

@@ -11,7 +11,14 @@ import numpy as np
 from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
 from ..defaults import _handle_default
 from ..filter import create_filter
-from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
+from ..utils import (
+    _check_option,
+    _get_stim_channel,
+    _validate_type,
+    legacy,
+    verbose,
+    warn,
+)
 from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
     _check_cov,
@@ -38,6 +45,7 @@ def plot_raw(
     bad_color="lightgray",
     event_color="cyan",
     *,
+    annotation_colors=None,
     annotation_regex=".*",
     scalings=None,
     remove_dc=True,
@@ -104,6 +112,14 @@ def plot_raw(
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
+    annotation_colors : dict | None
+        A dictionary mapping annotation description strings to colors. Use this to
+        override the default color assigned to specific annotation types (e.g.,
+        ``dict(bad_segment='orange')``). Colors can be any valid matplotlib color
+        specification. Keys that do not match any annotation description in the data
+        will trigger a warning. If ``None`` (default), automatic colors are used.
+
+        .. versionadded:: 1.10
     annotation_regex : str
         A regex pattern applied to each annotation's label.
         Matching labels remain visible, non-matching labels are hidden.
@@ -335,6 +351,28 @@ def plot_raw(
     if order.size == 0:
         raise RuntimeError("No channels found to plot")
 
+    # handle annotation_colors
+    if annotation_colors is not None:
+        from matplotlib.colors import to_hex
+
+        _validate_type(annotation_colors, dict, "annotation_colors")
+        normalized = {}
+        for k, v in annotation_colors.items():
+            try:
+                normalized[k] = to_hex(v)
+            except ValueError:
+                raise ValueError(
+                    f"annotation_colors[{k!r}] is not a valid matplotlib "
+                    f"color: {v!r}"
+                ) from None
+        unknown = set(normalized) - set(raw.annotations.description)
+        if unknown:
+            warn(
+                "The following annotation_colors keys do not match any "
+                f"annotation description in the data: {sorted(unknown)}"
+            )
+        annotation_colors = normalized
+
     # handle event colors
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
@@ -399,6 +437,7 @@ def plot_raw(
         # colors
         ch_color_bad=bad_color,
         ch_color_dict=color,
+        annotation_colors=annotation_colors,
         # display
         butterfly=butterfly,
         clipping=clipping,

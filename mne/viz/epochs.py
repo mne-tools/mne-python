@@ -763,6 +763,7 @@ def plot_epochs(
     theme=None,
     overview_mode=None,
     splash=True,
+    annotation_colors=None,
 ):
     """Visualize epochs.
 
@@ -865,6 +866,14 @@ def plot_epochs(
     %(splash)s
 
         .. versionadded:: 1.6
+    annotation_colors : dict | None
+        A dictionary mapping annotation description strings to colors. Use this to
+        override the default color assigned to specific annotation types (e.g.,
+        ``dict(bad_segment='orange')``). Colors can be any valid matplotlib color
+        specification. Keys that do not match any annotation description in the data
+        will trigger a warning. If ``None`` (default), automatic colors are used.
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -1014,6 +1023,29 @@ def plot_epochs(
         raise TypeError(f"title must be None or a string, got a {type(title)}")
 
     precompute = _handle_precompute(precompute)
+
+    # handle annotation_colors
+    if annotation_colors is not None:
+        from matplotlib.colors import to_hex
+
+        _validate_type(annotation_colors, dict, "annotation_colors")
+        normalized = {}
+        for k, v in annotation_colors.items():
+            try:
+                normalized[k] = to_hex(v)
+            except ValueError:
+                raise ValueError(
+                    f"annotation_colors[{k!r}] is not a valid matplotlib "
+                    f"color: {v!r}"
+                ) from None
+        unknown = set(normalized) - set(epochs.annotations.description)
+        if unknown:
+            warn(
+                "The following annotation_colors keys do not match any annotation "
+                f"description in the data: {sorted(unknown)}"
+            )
+        annotation_colors = normalized
+
     params = dict(
         inst=epochs,
         info=info,
@@ -1058,6 +1090,7 @@ def plot_epochs(
         ch_color_dict=color,
         epoch_color_bad=(1, 0, 0),
         epoch_colors=epoch_colors,
+        annotation_colors=annotation_colors,
         # display
         butterfly=butterfly,
         clipping=None,
