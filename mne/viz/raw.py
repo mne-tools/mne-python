@@ -362,8 +362,7 @@ def plot_raw(
                 normalized[k] = to_hex(v)
             except ValueError:
                 raise ValueError(
-                    f"annotation_colors[{k!r}] is not a valid matplotlib "
-                    f"color: {v!r}"
+                    f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
                 ) from None
         unknown = set(normalized) - set(raw.annotations.description)
         if unknown:
