@@ -1,1 +1,1 @@
-Improved error message when FreeSurfer executable is not found.
+Improved error message when FreeSurfer executable is not found, by `Ayushi Satodiya`_.
