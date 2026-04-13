@@ -1322,7 +1322,8 @@ def make_watershed_bem(
             "Make sure:\n"
             "- FREESURFER_HOME is set\n"
             "- $FREESURFER_HOME/bin is in your PATH\n"
-            "- You started Python/Jupyter from a terminal where SetupFreeSurfer.sh is sourced\n\n"
+            "- You started Python/Jupyter from a terminal where "
+            "SetupFreeSurfer.sh is sourced\n\n"
             "See MNE installation documentation for details."
         ) from e
     del tempdir  # clean up directory
