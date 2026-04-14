@@ -10,7 +10,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import Epochs, compute_proj_evoked, read_cov, read_events
+from mne import (
+    Epochs,
+    EvokedArray,
+    compute_proj_evoked,
+    create_info,
+    read_cov,
+    read_events,
+)
+from mne._fiff.constants import FIFF
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFRArray
@@ -32,6 +40,39 @@ event_name = base_dir / "test-eve.fif"
 cov_fname = base_dir / "test-cov.fif"
 event_id, tmin, tmax = 1, -0.2, 0.2
 layout = read_layout("Vectorview-all")
+
+
+def _make_opm_triaxial_evoked(n_times=20):
+    """Create a small triaxial OPM evoked for regression tests."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+            [-0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    data = np.random.RandomState(0).randn(len(ch_names), n_times)
+    return EvokedArray(data, info)
 
 
 def _get_events():
@@ -116,7 +157,6 @@ def test_plot_joint():
     evoked.plot_joint(
         ts_args=dict(proj="reconstruct"), topomap_args=dict(proj="reconstruct")
     )
-    plt.close("all")
 
     # test sEEG (gh:8733)
     evoked.del_proj().pick("mag")  # avoid overlapping positions error
@@ -130,6 +170,19 @@ def test_plot_joint():
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
     plt.close("all")
+
+
+def test_plot_joint_opm_triaxial():
+    """Test joint plot with triaxial colocated OPM channels."""
+    evoked = _make_opm_triaxial_evoked()
+    fig = evoked.plot_joint(
+        times=[0.0],
+        picks="mag",
+        show=False,
+        ts_args=dict(time_unit="s"),
+        topomap_args=dict(time_unit="s", contours=0, res=8, sensors=False),
+    )
+    assert len(fig.axes) >= 2
 
 
 def test_plot_topo():

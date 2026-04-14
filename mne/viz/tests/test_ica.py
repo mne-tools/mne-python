@@ -14,11 +14,14 @@ from mne import (
     Annotations,
     Epochs,
     make_fixed_length_events,
+    EvokedArray,
+    create_info,
     pick_types,
     read_cov,
     read_events,
     read_evokeds,
 )
+from mne._fiff.constants import FIFF
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
@@ -53,6 +56,39 @@ def _get_events():
 def _get_picks(raw):
     """Get picks."""
     return [0, 1, 2, 6, 7, 8, 12, 13, 14]  # take a only few channels
+
+
+def _make_opm_triaxial_raw(n_times=200):
+    """Create a small triaxial OPM raw for regression tests."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+            [-0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    data = np.random.RandomState(0).randn(len(ch_names), n_times)
+    return RawArray(data, info, verbose="error")
 
 
 def _get_epochs():
@@ -574,3 +610,16 @@ def test_plot_components_opm():
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
     assert len(fig.axes) == 10
+
+
+@pytest.mark.slowtest
+@pytest.mark.filterwarnings(
+    "ignore:FastICA did not converge.*:sklearn.exceptions.ConvergenceWarning"
+)
+def test_plot_components_opm_triaxial():
+    """Test OPM component topomaps with colocated triaxial channels."""
+    raw = _make_opm_triaxial_raw()
+    ica = ICA(max_iter=1, random_state=0, n_components=3)
+    ica.fit(raw, picks="mag", verbose="error")
+    fig = ica.plot_components()
+    assert len(fig.axes) == 3
