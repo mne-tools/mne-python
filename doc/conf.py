@@ -180,15 +180,13 @@ intersphinx_mapping = {
     "picard": ("https://mind-inria.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest", None),
-    # should go back below after https://github.com/dipy/dipy/issues/3870 is fixed
-    "dipy": ("https://docs.dipy.org/1.12.0", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
         packages=set(
             """
 imageio matplotlib numpy pandas python scipy statsmodels sklearn numba joblib nibabel
-seaborn patsy pyvista nilearn pyqtgraph
+seaborn patsy pyvista dipy nilearn pyqtgraph
 """.strip().split()
         ),
     )

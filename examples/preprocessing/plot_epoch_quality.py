@@ -111,6 +111,14 @@ epochs[np.where((scores >= 0.3) & (scores < 0.6))[0]].plot(
 # :meth:`mne.Epochs.drop` method. Here, we remove the worst scoring epochs (≥ 0.6)
 # which contained strong artifact activity. The remaining good epochs can then be used
 # for further analysis.
+#
+# .. admonition:: Repairing and retaining epochs with artifacts
+#
+#     In this case, the large frontal deflections are likely blink artifacts, so
+#     dropping is not the only option. For artifacts like these, it can be
+#     preferable to repair the data and keep more epochs, for example with
+#     :ref:`ICA <tut-artifact-ica>` or
+#     :ref:`regression-based artifact correction <tut-artifact-regression>`.
 epochs.drop(np.where(scores >= 0.6)[0])
 print(f"Epochs remaining after dropping scores ≥ 0.6: {len(epochs)}")
 
