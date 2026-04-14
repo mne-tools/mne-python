@@ -68,7 +68,7 @@ def test_resolution_matrix_free(src_type, fwd_volume_small):
     )
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
     # check various summary and normalisation options
-    for mode in [None, "mean", "max", "svd", "sum", "maxval"]:
+    for mode in [None, "mean", "max", "svd", "sum", "maxval", "pca"]:
         n_comps = [1, 3]
         if mode in [None, "mean", "sum"]:
             n_comps = [1]
@@ -114,7 +114,7 @@ def test_resolution_matrix_free(src_type, fwd_volume_small):
                 # There is an ambiguity in the sign flip from the PCA here.
                 # Ideally we would use the normals to fix it, but it's not
                 # trivial.
-                if mode == "svd" and n_comp == 3:
+                if mode in ("svd", "pca") and n_comp == 3:
                     stc_psf_free = abs(stc_psf_free)
                     stc_ctf_free = abs(stc_psf_free)
                 assert_array_almost_equal(
