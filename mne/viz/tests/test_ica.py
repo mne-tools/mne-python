@@ -13,9 +13,8 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from mne import (
     Annotations,
     Epochs,
-    make_fixed_length_events,
-    EvokedArray,
     create_info,
+    make_fixed_length_events,
     pick_types,
     read_cov,
     read_events,
