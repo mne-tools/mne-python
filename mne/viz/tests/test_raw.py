@@ -871,56 +871,34 @@ def test_annotation_colors(raw, browser_backend):
 
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0
-    annot = Annotations(
-        onset=[1, 3],
-        duration=[1, 1],
-        description=["BAD_test", "stimulus"],
-    )
-    raw.set_annotations(annot)
 
-    # user-provided colors override defaults (including bad* → red rule)
-    browser_backend._close_all()
+    raw.set_annotations(
+        Annotations(
+            onset=[1, 3, 5],
+            duration=[1, 1, 1],
+            description=["BAD_test", "BAD_other", "stimulus"],
+        )
+    )
+
+    # User-provided colors override defaults (including bad* → red rule).
+    # BAD_other has no override and should remain red.
     fig = raw.plot(
         annotation_colors={"BAD_test": "orange", "stimulus": "#00ff00"},
-        show=False,
     )
     colors = fig.mne.annotation_segment_colors
     assert colors["BAD_test"] == to_hex("orange"), (
         "User color for BAD_test should override red default"
     )
     assert colors["stimulus"] == "#00ff00"
-    browser_backend._close_all()
-    del fig
-
-    # labels not in annotation_colors still get default colors
-    annot2 = Annotations(
-        onset=[1, 3, 5],
-        duration=[1, 1, 1],
-        description=["BAD_other", "BAD_test", "stimulus"],
-    )
-    raw.set_annotations(annot2)
-    fig2 = raw.plot(
-        annotation_colors={"BAD_test": "orange"},
-        show=False,
-    )
-    colors2 = fig2.mne.annotation_segment_colors
-    assert colors2["BAD_other"] == "#ff0000", (
+    assert colors["BAD_other"] == "#ff0000", (
         "BAD_other has no user override and should remain red"
     )
-    assert colors2["BAD_test"] == to_hex("orange")
-    browser_backend._close_all()
-    del fig2
 
-    # unknown label key triggers a warning
+    # Unknown label key triggers a warning
     with pytest.warns(RuntimeWarning, match="do not match"):
-        fig3 = raw.plot(
-            annotation_colors={"nonexistent_label": "blue"},
-            show=False,
-        )
-    browser_backend._close_all()
-    del fig3
+        fig = raw.plot(annotation_colors={"nonexistent_label": "blue"})
 
-    # invalid color value raises ValueError
+    # Invalid color value raises ValueError
     with pytest.raises(ValueError, match="not a valid matplotlib color"):
         raw.plot(annotation_colors={"BAD_test": "not_a_color"}, show=False)
 
