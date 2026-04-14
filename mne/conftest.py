@@ -550,18 +550,6 @@ def _bias_params(evoked, noise_cov, fwd):
 def garbage_collect():
     """Garbage collect on exit."""
     yield
-    # Process pending Qt events before GC. Qt widget deletion is deferred via
-    # deleteLater(), which only runs on the next event-loop iteration. If GC runs first
-    # it can invoke __del__ on Python wrappers whose underlying C++ objects have already
-    # been freed, causing a segfault.
-    try:
-        from qtpy.QtWidgets import QApplication
-
-        app = QApplication.instance()
-        if app is not None:
-            app.processEvents()
-    except Exception:
-        pass
     gc.collect()
 
 

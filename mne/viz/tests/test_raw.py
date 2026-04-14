@@ -879,6 +879,7 @@ def test_annotation_colors(raw, browser_backend):
     raw.set_annotations(annot)
 
     # user-provided colors override defaults (including bad* → red rule)
+    browser_backend._close_all()
     fig = raw.plot(
         annotation_colors={"BAD_test": "orange", "stimulus": "#00ff00"},
         show=False,
@@ -888,6 +889,8 @@ def test_annotation_colors(raw, browser_backend):
         "User color for BAD_test should override red default"
     )
     assert colors["stimulus"] == "#00ff00"
+    browser_backend._close_all()
+    del fig
 
     # labels not in annotation_colors still get default colors
     annot2 = Annotations(
@@ -905,13 +908,17 @@ def test_annotation_colors(raw, browser_backend):
         "BAD_other has no user override and should remain red"
     )
     assert colors2["BAD_test"] == to_hex("orange")
+    browser_backend._close_all()
+    del fig2
 
     # unknown label key triggers a warning
     with pytest.warns(RuntimeWarning, match="do not match"):
-        raw.plot(
+        fig3 = raw.plot(
             annotation_colors={"nonexistent_label": "blue"},
             show=False,
         )
+    browser_backend._close_all()
+    del fig3
 
     # invalid color value raises ValueError
     with pytest.raises(ValueError, match="not a valid matplotlib color"):
