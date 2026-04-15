@@ -315,6 +315,9 @@ def generate_credit_rst(app=None, *, verbose=False):
         logo/LICENSE doc/credit.rst
     """.strip().split():
         globs[key] = "null"
+    # A few remaps
+    globs["mne/io/edf/_open.py"] = "mne.io"
+    globs["mne/_edf/open.py"] = "mne.io"
     # Now onto the actual module organization
     root_path = pathlib.Path(mne.__file__).parent
     mod_file_map = dict()
@@ -392,8 +395,12 @@ def generate_credit_rst(app=None, *, verbose=False):
             other_files.add(fname)
             mod = "other"
         for e, pm in counts.items():
-            if mod == "mne._fiff":
-                raise RuntimeError
+            # Assert no private (_-prefixed) submodules appear without a redirect
+            if mod.startswith("mne.") and mod.split(".")[-1].startswith("_"):
+                raise RuntimeError(
+                    f"Private submodule {mod!r} found in credit page for {fname!r}. "
+                    "Add an override in credit_tools.py to remap it to a public module."
+                )
             # sanity check a bit
             if mod != "null" and (".png" in fname or "/manual/" in fname):
                 raise RuntimeError(f"Unexpected {mod} {fname}")
@@ -401,6 +408,17 @@ def generate_credit_rst(app=None, *, verbose=False):
             mod_stats["mne"][e] += pm
             total_lines += pm
     mod_stats.pop("null")  # stuff we shouldn't give credit for
+    # Assert no private (_-prefixed) submodule names remain after null-removal
+    private_mods = [
+        m
+        for m in mod_stats
+        if m.startswith("mne.") and m.split(".")[-1].startswith("_")
+    ]
+    if private_mods:
+        raise RuntimeError(
+            f"Private submodule(s) {private_mods} found in credit page. "
+            "Update credit_tools.py to remap them to a public module."
+        )
     mod_stats = dict(
         (k, mod_stats[k])
         for k in sorted(
