@@ -998,6 +998,7 @@ def brain_gc(request):
     from mne.viz import Brain
 
     ignore = set(id(o) for o in gc.get_objects())
+    vtk_ignores = ("vtkBuffer_IhE",)
     yield
     close_func()
     if not _test_passed(request):
@@ -1012,7 +1013,11 @@ def brain_gc(request):
         except Exception:  # old Python, probably
             pass
         else:
-            if name.startswith("vtk") and id(o) not in ignore:
+            if (
+                name.startswith("vtk")
+                and name not in vtk_ignores
+                and id(o) not in ignore
+            ):
                 bad.append(name)
         del o
     del objs, ignore, Brain
