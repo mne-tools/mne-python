@@ -3,7 +3,6 @@
 set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source "$SCRIPT_DIR/github_actions_helpers.sh"
 
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
@@ -67,6 +66,6 @@ else
 	echo "::group::Installing MNE in development mode using pip"
 fi
 set -x
-run_python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
+$"{PREFIX}" python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"

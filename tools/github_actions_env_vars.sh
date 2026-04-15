@@ -17,17 +17,15 @@ elif [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" | tee -a $GITHUB_ENV
     echo "MNE_SKIP_NETWORK_TESTS=1" | tee -a $GITHUB_ENV
     echo "MNE_QT_BACKEND=PyQt5" | tee -a $GITHUB_ENV
-else  # conda-like
+else  # conda-like or pixi
     echo "Setting conda env vars for $MNE_CI_KIND"
     if [[ "$MNE_CI_KIND" == "minimal" ]]; then
         echo "CONDA_ENV=tools/environment_minimal.yml" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
-    else  # conda, mamba (use warning level for completeness)
-        # Pixi is treated as Conda-like (it uses environment.yaml) but it should not export
-        # CONDA_ENV because github_actions_dependencies.sh uses the existence of the
-        # CONDA_ENV environment variable to assume that the conda/mamba command is on
-        # PATH, which it is not for pixi jobs.
-        if [[ "$MNE_CI_KIND" != "pixi" ]]; then
+    else  # conda, mamba, pixi (use warning level for completeness)
+        if [[ "$MNE_CI_KIND" == "pixi" ]]; then
+            echo "PREFIX=\"pixi run\"" | tee -a $GITHUB_ENV;
+        else
             echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
         fi
 
