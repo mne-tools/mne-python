@@ -109,7 +109,7 @@ def verbose(function: _FuncT) -> _FuncT:
     body = """\
 def %(name)s(%(signature)s):\n
     try:
-        verbose is not None
+        verbose
     except (NameError, UnboundLocalError):
         raise RuntimeError('Function/method %%s does not accept verbose '
                            'parameter' %% (_function_,)) from None
