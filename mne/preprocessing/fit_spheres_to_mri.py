@@ -1,17 +1,3 @@
-import vedo
-import numpy as np
-import nibabel as nib
-from scipy.spatial import KDTree
-
-from .._fiff.constants import FIFF
-from ..surface import _CheckInside
-from ..transforms import (
-    apply_trans,
-    invert_transform,
-    read_trans,
-)
-
-
 def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
     """Fits two spheres to MRI using BEM, such that spheres fit while brain but 
     do not encroach on sensors. For use with Milti-SSS Maxwell Filtering
@@ -22,8 +8,8 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
         director to Freesurfer subjects
     subject: str
         Subject ID
-    bem: bem.ConductorModel
-        istance of bem.ConductorModel, must be three shell conductivity profiles
+    bem: list
+        output of mne.make_bem_model(), must be three shell conductivity profiles
     trans: str
         path to trans file, mri_dev_t information
     n_spheres: int
@@ -32,15 +18,35 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
     Returns
     -------
     centers: np.ndarray
-        2D array containing the two centers in cartesian coordinates
+        2x3 array containing the two centers in HEAD coordinate space
+        can be directly fed into:
+            raw_msss = mne.preprocessing.maxwell_filter(raw, origin=origins, ...)
+            for multi-SSS preprocessing
+
 
     Notes
     -----
-
     * Must have vedo and nibabel installed
     * Must have run mne watershed BEM using freesurfer segmentation
     """ 
     
+    ## --- required imports
+    import vedo
+    import os
+    import numpy as np
+    import nibabel as nib
+    from scipy.spatial import KDTree
+
+    from .._fiff.constants import FIFF
+    from ..surface import _CheckInside
+    from ..transforms import (
+        apply_trans,
+        invert_transform,
+        read_trans,
+    )
+
+
+    ## --- begin
     mindist = 2e-3
     assert bem[0]["id"] == FIFF.FIFFV_BEM_SURF_ID_HEAD
     assert bem[2]["id"] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
@@ -55,7 +61,7 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
     s_tree = KDTree(scalp["rr"])
     brain_volume = b.volume()
     print(f"Brain vedo:     {brain_volume * m3_to_cc:8.2f} cc")
-    brain_vol = nib.load(subjects_dir / subject / "mri" / "brainmask.mgz")
+    brain_vol = nib.load(os.path.join(subjects_dir, subject, 'mri','brainmask.mgz'))
     brain_rr = np.array(np.where(brain_vol.get_fdata())).T
     brain_rr = (
         apply_trans(brain_vol.header.get_vox2ras_tkr(), brain_rr) / 1000.0
@@ -121,8 +127,14 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
     else:
         raise ValueError("Implementation is for 3 or less origins")
 
-    # 4. transform centers for return using "trans" matrix
-    mri_head_t = invert_transform(read_trans(trans))
-    assert mri_head_t["from"] == FIFF.FIFFV_COORD_MRI, mri_head_t["from"]
+    # 4. transform centers for return using "mri_head_t" matrix
+    # Output 2-sphere case
+    mri_head_t = invert_transform(read_trans(trans)) #trans is the raw_fif_trans file
+    if mri_head_t["from"] == FIFF.FIFFV_COORD_HEAD:
+        mri_head_t = invert_transform(mri_head_t)
+    assert mri_head_t['from'] == FIFF.FIFFV_COORD_MRI, mri_head_t['from']
     centers = apply_trans(mri_head_t, c_opt.reshape(-1, 3))
     return centers
+
+
+
