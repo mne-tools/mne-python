@@ -127,7 +127,7 @@ jobs:
         with:
           manifest-path: tools/pixi.toml
           # https://github.com/prefix-dev/setup-pixi/issues/139
-          activate-environment: false
+          activate-environment: true
         if: matrix.kind == 'pixi'
       # Python (if conda)
       - name: Fixes for conda
