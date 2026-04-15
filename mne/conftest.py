@@ -28,13 +28,12 @@ register_assert_rewrite("mne.utils._testing")
 # ruff: noqa: E402
 import mne
 from mne import Epochs, create_info, make_fixed_length_epochs, pick_types, read_events
+from mne._fiff.constants import FIFF
 from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
-from mne._fiff.constants import FIFF
-from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
-from mne.io import RawArray
+from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
