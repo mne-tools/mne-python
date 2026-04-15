@@ -161,7 +161,6 @@ class use_log_level:
         self._level = verbose
         self._add_frames = add_frames
         self._old_frames = _filter.add_frames
-        self._set = self._level is not None or self._add_frames is not None
 
     def __enter__(self):  # noqa: D105
         level = logger.level if self._level is None else self._level
