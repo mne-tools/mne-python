@@ -20,7 +20,7 @@ from mne import (
     read_evokeds,
 )
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import _record_warnings, catch_logging
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
