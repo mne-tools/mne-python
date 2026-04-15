@@ -113,10 +113,7 @@ def %(name)s(%(signature)s):\n
     except (NameError, UnboundLocalError):
         raise RuntimeError('Function/method %%s does not accept verbose '
                            'parameter' %% (_function_,)) from None
-    if do_level_change:
-        with _use_log_level_(verbose):
-            return _function_(%(shortsignature)s)
-    else:
+    with _use_log_level_(verbose):
         return _function_(%(shortsignature)s)"""
     evaldict = dict(_use_log_level_=use_log_level, _function_=function)
     fm = FunctionMaker(function)
@@ -166,13 +163,15 @@ class use_log_level:
         self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        self._old_level = set_log_level(
-            self._level, return_old_level=True, add_frames=self._add_frames
-        )
+        if self._level is not None:
+            self._old_level = set_log_level(
+                self._level, return_old_level=True, add_frames=self._add_frames
+            )
 
     def __exit__(self, *args):  # noqa: D105
-        add_frames = self._old_frames if self._add_frames is not None else None
-        set_log_level(self._old_level, add_frames=add_frames)
+        if self._level is not None:
+            add_frames = self._old_frames if self._add_frames is not None else None
+            set_log_level(self._old_level, add_frames=add_frames)
 
 
 _LOGGING_TYPES = dict(
@@ -319,10 +318,7 @@ class catch_logging:
         self.verbose = verbose
 
     def __enter__(self):  # noqa: D105
-        if self.verbose is not None:
-            self._ctx = use_log_level(self.verbose)
-        else:
-            self._ctx = contextlib.nullcontext()
+        self._ctx = use_log_level(self.verbose)
         self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter("%(message)s"))
