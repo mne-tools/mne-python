@@ -66,6 +66,6 @@ else
 	echo "::group::Installing MNE in development mode using pip"
 fi
 set -x
-$"{PREFIX}" python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
+${PREFIX} python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"
