@@ -82,7 +82,7 @@ def clean_lines(lines=()):
 
 def test_logging_options(tmp_path):
     """Test logging (to file)."""
-    with use_log_level("info"):  # just ensure it's set back
+    with use_log_level(None):  # just ensure it's set back
         with pytest.raises(ValueError, match="Invalid value for the 'verbose"):
             set_log_level("foo")
         test_name = tmp_path / "test.log"

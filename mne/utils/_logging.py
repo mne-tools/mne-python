@@ -109,7 +109,7 @@ def verbose(function: _FuncT) -> _FuncT:
     body = """\
 def %(name)s(%(signature)s):\n
     try:
-        do_level_change = verbose is not None
+        verbose is not None
     except (NameError, UnboundLocalError):
         raise RuntimeError('Function/method %%s does not accept verbose '
                            'parameter' %% (_function_,)) from None
@@ -163,15 +163,14 @@ class use_log_level:
         self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        if self._level is not None:
-            self._old_level = set_log_level(
-                self._level, return_old_level=True, add_frames=self._add_frames
-            )
+        level = logger.level if self._level is None else self._level
+        self._old_level = set_log_level(
+            level, return_old_level=True, add_frames=self._add_frames
+        )
 
     def __exit__(self, *args):  # noqa: D105
-        if self._level is not None:
-            add_frames = self._old_frames if self._add_frames is not None else None
-            set_log_level(self._old_level, add_frames=add_frames)
+        add_frames = self._old_frames if self._add_frames is not None else None
+        set_log_level(self._old_level, add_frames=add_frames)
 
 
 _LOGGING_TYPES = dict(
