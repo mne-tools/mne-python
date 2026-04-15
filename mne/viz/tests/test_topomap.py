@@ -797,6 +797,49 @@ def test_plot_topomap_opm():
     assert len(fig_evoked.axes) == 5
 
 
+def test_prepare_topomap_plot_opm_non_quspin_coils():
+    """Test colocated OPM handling for non-QuSpin OPM coil types."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    # Two colocated trios with different orientations.
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],  # radial-ish
+            [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
+            [-0.5145, 0.0000, 0.8575],  # radial-ish
+            [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    evoked = EvokedArray(np.zeros((len(ch_names), 5)), info)
+
+    picks, _pos, merge_channels, merged_names, *_ = topomap._prepare_topomap_plot(
+        evoked, "mag"
+    )
+
+    assert len(picks) == 6
+    assert merge_channels
+    assert len(merge_channels) == 2
+    assert all(len(set_) == 3 for set_ in merge_channels)
+    assert sum(name.endswith("MERGE-REMOVE") for name in merged_names) == 4
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()

@@ -1,4 +1,0 @@
-When interpolating from axial to planar gradiometers, set info fields "chs", "ch_names", and "nchan", according to the interpolated data, 
-reset info fields "device_info", "helium_info", "gantry_angle", "ctf_head_t", "dev_ctf_t", "bads", "projs", and "comps" to [] or None, and
-preserve all remaining info fields.
-by :newcontrib:`Christoph Huber-Huber`.
