@@ -24,7 +24,7 @@ else  # conda-like or pixi
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     else  # conda, mamba, pixi (use warning level for completeness)
         if [[ "$MNE_CI_KIND" == "pixi" ]]; then
-            echo "PREFIX=\"pixi run\"" | tee -a $GITHUB_ENV;
+            echo "PREFIX=pixi run" | tee -a $GITHUB_ENV;
         else
             echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
         fi
