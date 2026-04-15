@@ -24,7 +24,7 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
 from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef, read_csp, read_spoc
 from mne.decoding.csp import _ajd_pham
-from mne.utils import catch_logging
+from mne.utils import catch_logging, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -320,8 +320,12 @@ def test_regularized_csp(ch_type, rank, reg):
     epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
     if rank == "full" and reg is None:
-        with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
-            csp.fit(epochs_data, epochs.events[:, -1])
+        # TODO: Figure out why SciPy 1.18 is different:
+        # R_restr differs enough (but only by ~1e-13!) that it doesn't hit the
+        # "leading minor" error here...
+        if not check_version("scipy", "1.18.0.dev0"):
+            with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
+                csp.fit(epochs_data, epochs.events[:, -1])
         return
     with catch_logging(verbose=True) as log:
         X = csp.fit_transform(epochs_data, epochs.events[:, -1])
