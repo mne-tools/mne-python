@@ -166,8 +166,9 @@ class use_log_level:
         self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
+        level = logger.level if self._level is None else self._level
         self._old_level = set_log_level(
-            self._level, return_old_level=True, add_frames=self._add_frames
+            level, return_old_level=True, add_frames=self._add_frames
         )
 
     def __exit__(self, *args):  # noqa: D105
@@ -319,10 +320,7 @@ class catch_logging:
         self.verbose = verbose
 
     def __enter__(self):  # noqa: D105
-        if self.verbose is not None:
-            self._ctx = use_log_level(self.verbose)
-        else:
-            self._ctx = contextlib.nullcontext()
+        self._ctx = use_log_level(self.verbose)
         self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter("%(message)s"))
