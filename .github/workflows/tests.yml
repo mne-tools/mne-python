@@ -123,29 +123,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
-      - name: temporary debugging check 1
-        run: echo "$PATH"
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           manifest-path: tools/pixi.toml
           # https://github.com/prefix-dev/setup-pixi/issues/139
-          activate-environment: true
+          activate-environment: false
         if: matrix.kind == 'pixi'
-
-      - run: |
-          eval "$(pixi shell-hook)" >> $GITHUB_ENV
-        if: matrix.kind == 'pixi'
-      - name: temporary debugging check 2
-        run: |
-          echo "$PATH"
-          which python
-          which pixi
-        if: matrix.kind == 'pixi'
-      - run: |
-          pixi run which python
-          pixi run echo "$PATH"
-        if: matrix.kind == 'pixi'
-
       # Python (if conda)
       - name: Fixes for conda
         run: |
