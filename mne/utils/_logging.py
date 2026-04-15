@@ -109,11 +109,14 @@ def verbose(function: _FuncT) -> _FuncT:
     body = """\
 def %(name)s(%(signature)s):\n
     try:
-        verbose
+        do_level_change = verbose is not None
     except (NameError, UnboundLocalError):
         raise RuntimeError('Function/method %%s does not accept verbose '
                            'parameter' %% (_function_,)) from None
-    with _use_log_level_(verbose):
+    if do_level_change:
+        with _use_log_level_(verbose):
+            return _function_(%(shortsignature)s)
+    else:
         return _function_(%(shortsignature)s)"""
     evaldict = dict(_use_log_level_=use_log_level, _function_=function)
     fm = FunctionMaker(function)
