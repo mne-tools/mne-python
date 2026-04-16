@@ -865,6 +865,44 @@ def test_plot_annotations(raw, browser_backend):
         assert "A" in raw.annotations.description
 
 
+def test_annotation_colors(raw, browser_backend):
+    """Test that annotation_colors overrides default colors."""
+    from matplotlib.colors import to_hex
+
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+
+    raw.set_annotations(
+        Annotations(
+            onset=[1, 3, 5],
+            duration=[1, 1, 1],
+            description=["BAD_test", "BAD_other", "stimulus"],
+        )
+    )
+
+    # User-provided colors override defaults (including bad* → red rule).
+    # BAD_other has no override and should remain red.
+    fig = raw.plot(
+        annotation_colors={"BAD_test": "orange", "stimulus": "#00ff00"},
+    )
+    colors = fig.mne.annotation_segment_colors
+    assert colors["BAD_test"] == to_hex("orange"), (
+        "User color for BAD_test should override red default"
+    )
+    assert colors["stimulus"] == "#00ff00"
+    assert colors["BAD_other"] == "#ff0000", (
+        "BAD_other has no user override and should remain red"
+    )
+
+    # Unknown label key triggers a warning
+    with pytest.warns(RuntimeWarning, match="do not match"):
+        fig = raw.plot(annotation_colors={"nonexistent_label": "blue"})
+
+    # Invalid color value raises ValueError
+    with pytest.raises(ValueError, match="not a valid matplotlib color"):
+        raw.plot(annotation_colors={"BAD_test": "not_a_color"}, show=False)
+
+
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
     """Test deletion of annotations via right-click."""
