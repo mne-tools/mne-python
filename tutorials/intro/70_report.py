@@ -233,6 +233,8 @@ del raw_full, events, ecg_evoked
 #
 # Lastly, by passing ``n_jobs``, you may largely speed up the generation of
 # the properties plots by enabling parallel execution.
+# To additionally include ICA source time-courses in the report, pass
+# ``plot_sources=True``. This requires ``inst`` to be provided.
 #
 # .. warning::
 #    In the following example, we request a small number of ICA components
@@ -264,6 +266,7 @@ report.add_ica(
     title="ICA cleaning",
     picks=ica.exclude,  # plot the excluded EOG components
     inst=raw,
+    plot_sources=True,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
     n_jobs=None,  # could be increased!

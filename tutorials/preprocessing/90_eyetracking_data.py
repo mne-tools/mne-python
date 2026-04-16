@@ -10,7 +10,6 @@ Working with eye tracker data in MNE-Python
 In this tutorial we will explore simultaneously recorded eye-tracking and EEG data from
 a pupillary light reflex task. We will combine the eye-tracking and EEG data, and plot
 the ERP and pupil response to the light flashes (i.e. the pupillary light reflex).
-
 """
 
 # Authors: Scott Huberty <seh33@uw.edu>
@@ -232,7 +231,13 @@ raw_et.plot(
 
 # Skip baseline correction for now. We will apply baseline correction later.
 epochs = mne.Epochs(
-    raw_et, events=et_events, event_id=event_dict, tmin=-0.3, tmax=3, baseline=None
+    raw_et,
+    events=et_events,
+    event_id=event_dict,
+    tmin=-0.3,
+    tmax=3,
+    baseline=None,
+    picks="all",  # include eyetracking channels in the epochs
 )
 del raw_et  # free up some memory
 epochs[:8].plot(
@@ -253,4 +258,4 @@ plot_gaze(epochs, calibration=first_cal)
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
 # average pupillary light response, and the associated ERP in the EEG data.
 
-epochs.apply_baseline().average().plot(picks=occipital + pupil)
+epochs.apply_baseline().average(picks="all").plot(picks=occipital + pupil)

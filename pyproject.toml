@@ -36,6 +36,7 @@ doc = [
   "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
+doc-full = ["rpy2", {include-group = "doc"}]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
@@ -55,8 +56,6 @@ test = [
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
   "ruff >= 0.1",
-  "toml-sort",
-  "tomli; python_version < '3.11'",
   "twine",
   "vulture",
   "wheel >= 0.21",
@@ -66,6 +65,7 @@ test = [
 test_extra = [
   "edfio >= 0.4.10",
   "eeglabio",
+  "hedtools",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
   "jupyter_client",
@@ -107,7 +107,7 @@ dependencies = [
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.12",  # released 2024-01-20, will become 1.13 on 2026-04-02
+  "scipy >= 1.13",  # released 2024-04-02, will become 1.14 on 2026-06-24
   "tqdm >= 4.66",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."

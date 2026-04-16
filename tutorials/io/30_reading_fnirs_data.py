@@ -26,9 +26,8 @@ wave fNIRS), and additionally AC amplitude and phase (for
 frequency domain fNIRS).
 
 .. warning:: MNE-Python stores metadata internally with a specific structure,
-             and internal functions expect specific naming conventions.
-             Manual modification of channel names and metadata
-             is not recommended.
+             and internal functions expect specific naming conventions. Manual
+             modification of channel names and metadata is not recommended.
 
 .. _import-snirf:
 

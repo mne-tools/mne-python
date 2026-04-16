@@ -47,6 +47,7 @@ raw_fname = meg_path / "sample_audvis_raw.fif"
 cov_fname = meg_path / "sample_audvis-shrunk-cov.fif"
 bem_dir = data_path / "subjects" / "sample" / "bem"
 bem_fname = bem_dir / "sample-5120-5120-5120-bem-sol.fif"
+trans_fname = meg_path / "sample_audvis_raw-trans.fif"
 
 ###############################################################################
 # Read the MEG data from the audvis experiment. Make epochs and evokeds for the
@@ -104,8 +105,9 @@ cov_fit_left["projs"] = evoked_fit_left.info["projs"]
 cov_fit_right["projs"] = evoked_fit_right.info["projs"]
 
 # Fit the dipoles with the subset of sensors.
-dip_left, _ = mne.fit_dipole(evoked_fit_left, cov_fit_left, bem)
-dip_right, _ = mne.fit_dipole(evoked_fit_right, cov_fit_right, bem)
+kwargs = dict(bem=bem, trans=trans_fname)
+dip_left, _ = mne.fit_dipole(evoked_fit_left, cov_fit_left, **kwargs)
+dip_right, _ = mne.fit_dipole(evoked_fit_right, cov_fit_right, **kwargs)
 
 ###############################################################################
 # Now that we have the location and orientations of the dipoles, compute the

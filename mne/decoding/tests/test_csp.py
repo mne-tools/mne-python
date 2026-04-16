@@ -22,9 +22,9 @@ from sklearn.svm import SVC
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
-from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef
+from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef, read_csp, read_spoc
 from mne.decoding.csp import _ajd_pham
-from mne.utils import catch_logging
+from mne.utils import catch_logging, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -320,8 +320,12 @@ def test_regularized_csp(ch_type, rank, reg):
     epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
     if rank == "full" and reg is None:
-        with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
-            csp.fit(epochs_data, epochs.events[:, -1])
+        # TODO: Figure out why SciPy 1.18 is different:
+        # R_restr differs enough (but only by ~1e-13!) that it doesn't hit the
+        # "leading minor" error here...
+        if not check_version("scipy", "1.18.0.dev0"):
+            with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
+                csp.fit(epochs_data, epochs.events[:, -1])
         return
     with catch_logging(verbose=True) as log:
         X = csp.fit_transform(epochs_data, epochs.events[:, -1])
@@ -497,3 +501,67 @@ def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
     pytest.importorskip("sklearn", minversion="1.5")  # TODO VERSION remove on 1.5+
     check(estimator)
+
+
+@pytest.mark.parametrize("Estimator", [CSP, SPoC])
+def test_io_roundtrip(tmp_path, Estimator):
+    """Test that CSP/SPoC can be saved to disk and loaded back correctly."""
+    h5io = pytest.importorskip("h5io")
+    rng = np.random.RandomState(42)
+
+    # Generate class-specific data
+    if Estimator is CSP:
+        X = rng.randn(40, 10, 50)
+        y = np.array([0] * 20 + [1] * 20)
+        read_func = read_csp
+        extra_attrs = ["component_order", "norm_trace"]
+    else:  # SPoC
+        X = rng.randn(10, 10, 20)
+        y = rng.randn(10)
+        read_func = read_spoc
+        extra_attrs = []
+
+    est = Estimator(n_components=4)
+    est.fit(X, y)
+
+    state = est.__getstate__()
+    assert "cov_callable" not in state
+    assert "mod_ged_callable" not in state
+    assert "R_func" not in state
+
+    fname = tmp_path / f"test_{Estimator.__name__.lower()}.h5"
+    est.save(fname)
+
+    est_loaded = read_func(fname)
+
+    assert hasattr(est_loaded, "cov_callable")
+    assert hasattr(est_loaded, "mod_ged_callable")
+    assert callable(est_loaded.cov_callable)
+    assert callable(est_loaded.mod_ged_callable)
+
+    # Check fitted array attributes are restored
+    assert_array_almost_equal(est.filters_, est_loaded.filters_)
+    assert_array_almost_equal(est.patterns_, est_loaded.patterns_)
+
+    # Check scalar/param attributes (common + class-specific)
+    common_attrs = ["n_components", "transform_into", "log", "reg"]
+    for attr in common_attrs + extra_attrs:
+        assert getattr(est, attr) == getattr(est_loaded, attr), f"{attr} mismatch"
+
+    # Check transform output matches
+    X_orig = est.transform(X)
+    X_loaded = est_loaded.transform(X)
+    assert_array_almost_equal(X_orig, X_loaded)
+
+    with pytest.raises(FileExistsError):
+        est.save(fname)
+    est.save(fname, overwrite=True)
+
+    # Check that loading an HDF5 file with missing keys raises an error
+    bad_fname = tmp_path / f"bad_{Estimator.__name__.lower()}.h5"
+    h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
+    with pytest.raises(ValueError, match="missing required keys"):
+        read_func(bad_fname)
+
+    with pytest.raises(OSError, match="not found|does not exist"):
+        read_func(tmp_path / "nonexistent.h5")

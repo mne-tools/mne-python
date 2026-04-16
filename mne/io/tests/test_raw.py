@@ -1087,3 +1087,23 @@ def test_rescale():
     orig = raw.get_data()
     raw.rescale(4)  # a scalar works
     assert_allclose(raw.get_data(), orig * 4)
+
+
+def test_crop_reset_first_samp():
+    """Regression test for GH-13278.
+
+    crop(reset_first_samp=True) must reset first_samp to 0.
+    """
+    info = create_info(ch_names=["CH1"], sfreq=1000.0, ch_types=["eeg"])
+    data = np.zeros((1, 10000))
+    raw = RawArray(data, info)
+
+    # crop and reset first_samp
+    raw.crop(tmin=2.0, tmax=5.0, reset_first_samp=True)
+    assert raw.first_samp == 0
+    assert raw.times[0] == 0.0
+
+    # crop without reset_first_samp (default behaviour)
+    raw2 = RawArray(data, info)
+    raw2.crop(tmin=2.0, tmax=5.0)
+    assert raw2.first_samp != 0

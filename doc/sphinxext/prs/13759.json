@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d52c89e9a22780f293b5aa8c007608a6e7e41585",
+  "authors": [
+    {
+      "n": "CHH",
+      "e": "christoph@huber-huber.at"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13759.bugfix.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 25,
+      "d": 3
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

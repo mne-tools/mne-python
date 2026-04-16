@@ -298,6 +298,7 @@ numpydoc_xref_aliases = {
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
     "RawANT": "mne.io.Raw",
+    "RawBCI2k": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",

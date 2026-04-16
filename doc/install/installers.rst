@@ -19,7 +19,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-linux
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -27,20 +27,20 @@ Platform-specific installers
 
             |cloud-arrow-down| |ensp| Download for Linux
 
-        **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
+        **Supported platforms:** Ubuntu 20.04 (Focal Fossa) and newer
 
         Run the installer in a terminal via:
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.11.0_0-Linux.sh
+            $ sh ./MNE-Python-1.12.0_1-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
         :name: install-macos-intel
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -56,7 +56,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-macos-apple
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -72,7 +72,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-windows
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.11.0/MNE-Python-1.11.0_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.0-post1/MNE-Python-1.12.0_1-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
@@ -130,6 +130,14 @@ bundles to the ``Applications`` folder on macOS.
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
 
+The installer sets up a standard ``conda`` environment. If you want to activate the
+environment manually (e.g., in headless setups) you can do as you would for any other
+conda environment:
+
+.. code-block:: bash
+
+    $ source /path-to-installation-dir/bin/activate
+
 Uninstallation
 ^^^^^^^^^^^^^^
 
@@ -158,7 +166,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /home/username/mne-python/1.11.0_0/bin/python
+               /home/username/mne-python/1.12.0_1/bin/python
                $ rm -Rf /home/$USER/mne-python
                $ rm /home/$USER/.local/share/applications/mne-python-*.desktop
 
@@ -172,7 +180,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /Users/username/Applications/MNE-Python/1.11.0_0/.mne-python/bin/python
+               /Users/username/Applications/MNE-Python/1.12.0_1/.mne-python/bin/python
                $ rm -Rf /Users/$USER/Applications/MNE-Python  # if user-specific
                $ rm -Rf /Applications/MNE-Python              # if system-wide
 

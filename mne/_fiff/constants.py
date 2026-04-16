@@ -1183,6 +1183,7 @@ _ch_coil_type_named = {
         FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
         FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
         FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
+        # If more OPM coil types are added here, update mne/viz/topomap.py too.
         FIFF.FIFFV_COIL_KRISS_GRAD,
         FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD,
         FIFF.FIFFV_COIL_COMPUMEDICS_PEDIATRIC_GRAD,
