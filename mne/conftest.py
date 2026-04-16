@@ -27,12 +27,13 @@ register_assert_rewrite("mne.utils._testing")
 
 # ruff: noqa: E402
 import mne
-from mne import Epochs, pick_types, read_events
+from mne import Epochs, create_info, make_fixed_length_epochs, pick_types, read_events
+from mne._fiff.constants import FIFF
 from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
-from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
+from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
@@ -544,6 +545,47 @@ def _bias_params(evoked, noise_cov, fwd):
     if not mne.forward.is_fixed_orient(fwd):
         want //= 3
     return evoked, fwd, noise_cov, data_cov, want
+
+
+@pytest.fixture
+def triaxial_raw():
+    """Create a small triaxial OPM raw for regression tests."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+            [-0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 2000))
+    return RawArray(data, info, verbose="error")
+
+
+@pytest.fixture
+def triaxial_evoked(triaxial_raw):
+    """Create a small triaxial OPM evoked for regression tests."""
+    return make_fixed_length_epochs(triaxial_raw).average()
 
 
 @pytest.fixture
