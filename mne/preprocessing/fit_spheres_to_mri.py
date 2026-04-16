@@ -1,5 +1,5 @@
 def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
-    """Fits two spheres to MRI using BEM, such that spheres fit while brain but 
+    """Fits two spheres to MRI using BEM, such that spheres fit while brain but
     do not encroach on sensors. For use with Milti-SSS Maxwell Filtering
 
     Parameters
@@ -28,13 +28,13 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
     -----
     * Must have vedo and nibabel installed
     * Must have run mne watershed BEM using freesurfer segmentation
-    """ 
-    
+    """
     ## --- required imports
-    import vedo
     import os
-    import numpy as np
+
     import nibabel as nib
+    import numpy as np
+    import vedo
     from scipy.spatial import KDTree
 
     from .._fiff.constants import FIFF
@@ -44,7 +44,6 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
         invert_transform,
         read_trans,
     )
-
 
     ## --- begin
     mindist = 2e-3
@@ -61,7 +60,7 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
     s_tree = KDTree(scalp["rr"])
     brain_volume = b.volume()
     print(f"Brain vedo:     {brain_volume * m3_to_cc:8.2f} cc")
-    brain_vol = nib.load(os.path.join(subjects_dir, subject, 'mri','brainmask.mgz'))
+    brain_vol = nib.load(os.path.join(subjects_dir, subject, "mri", "brainmask.mgz"))
     brain_rr = np.array(np.where(brain_vol.get_fdata())).T
     brain_rr = (
         apply_trans(brain_vol.header.get_vox2ras_tkr(), brain_rr) / 1000.0
@@ -129,12 +128,9 @@ def fit_spheres_to_mri(subjects_dir, subject, bem, trans, n_spheres):
 
     # 4. transform centers for return using "mri_head_t" matrix
     # Output 2-sphere case
-    mri_head_t = invert_transform(read_trans(trans)) #trans is the raw_fif_trans file
+    mri_head_t = invert_transform(read_trans(trans))  # trans is the raw_fif_trans file
     if mri_head_t["from"] == FIFF.FIFFV_COORD_HEAD:
         mri_head_t = invert_transform(mri_head_t)
-    assert mri_head_t['from'] == FIFF.FIFFV_COORD_MRI, mri_head_t['from']
+    assert mri_head_t["from"] == FIFF.FIFFV_COORD_MRI, mri_head_t["from"]
     centers = apply_trans(mri_head_t, c_opt.reshape(-1, 3))
     return centers
-
-
-

@@ -1905,7 +1905,7 @@ def _sss_basis(exp, all_coils):
 
 
 def _combine_sss_basis(S_in1, S_in2):
-    """mSSS calculations using optimized multi-centers"""
+    """MSSS calculations using optimized multi-centers"""
     # TODO: n > 2
     S_tot = []
     thresh = 5e-7  # 0.005 in Matlab
