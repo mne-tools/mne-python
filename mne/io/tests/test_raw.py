@@ -620,13 +620,17 @@ def test_time_as_index():
     """Test indexing of raw times."""
     raw = read_raw_fif(raw_fname)
 
-    # Test original (non-rounding) indexing behavior
-    orig_inds = raw.time_as_index(raw.times)
+    # Test truncation behavior with explicit use_rounding=False
+    orig_inds = raw.time_as_index(raw.times, use_rounding=False)
     assert len(set(orig_inds)) != len(orig_inds)
 
-    # Test new (rounding) indexing behavior
+    # Test rounding behavior with explicit use_rounding=True
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
     assert_array_equal(new_inds, np.arange(len(raw.times)))
+
+    # Test deprecation warning when use_rounding is not specified
+    with pytest.warns(FutureWarning, match="use_rounding=False is being changed"):
+        raw.time_as_index(raw.times)
 
 
 @pytest.mark.parametrize("meas_date", [None, "orig"])
