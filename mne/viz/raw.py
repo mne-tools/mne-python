@@ -17,7 +17,6 @@ from ..utils import (
     _validate_type,
     legacy,
     verbose,
-    warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
