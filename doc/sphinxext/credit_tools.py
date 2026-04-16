@@ -315,6 +315,9 @@ def generate_credit_rst(app=None, *, verbose=False):
         logo/LICENSE doc/credit.rst
     """.strip().split():
         globs[key] = "null"
+    # A few remaps
+    globs["mne/io/edf/_open.py"] = "mne.io"
+    globs["mne/_edf/open.py"] = "mne.io"
     # Now onto the actual module organization
     root_path = pathlib.Path(mne.__file__).parent
     mod_file_map = dict()
@@ -345,8 +348,6 @@ def generate_credit_rst(app=None, *, verbose=False):
     globs["bin/*"] = "mne.commands"
     globs["mne/morph_map.py"] = "mne.surface"
     globs["mne/baseline.py"] = "mne.epochs"
-    globs["mne/io/edf/_open.py"] = "mne.io"
-    globs["mne/_edf/open.py"] = "mne.io"
     for key in """
         parallel.py rank.py misc.py data/*.* defaults.py fixes.py icons/*.* icons.*
     """.strip().split():

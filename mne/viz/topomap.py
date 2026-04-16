@@ -77,7 +77,12 @@ from .utils import (
 )
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
-_opm_coils = (FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2)
+_opm_coils = (
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG,
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
+    FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
+)
 
 
 # 3.8+ uses a single Collection artist rather than .collections
