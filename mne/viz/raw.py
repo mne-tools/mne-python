@@ -27,6 +27,7 @@ from .utils import (
     _handle_decim,
     _handle_precompute,
     _make_event_color_dict,
+    _normalize_annotation_colors,
     _shorten_path_from_middle,
 )
 
@@ -115,7 +116,7 @@ def plot_raw(
     annotation_colors : dict | None
         A dictionary mapping annotation description strings to colors. Use this to
         override the default color assigned to specific annotation types (e.g.,
-        ``dict(bad_segment='orange')``). Colors can be any valid matplotlib color
+        ``dict(bad_segment='orange')``). Colors can be any valid Matplotlib color
         specification. Keys that do not match any annotation description in the data
         will trigger a warning. If ``None`` (default), automatic colors are used.
 
@@ -353,24 +354,9 @@ def plot_raw(
 
     # handle annotation_colors
     if annotation_colors is not None:
-        from matplotlib.colors import to_hex
-
-        _validate_type(annotation_colors, dict, "annotation_colors")
-        normalized = {}
-        for k, v in annotation_colors.items():
-            try:
-                normalized[k] = to_hex(v)
-            except ValueError:
-                raise ValueError(
-                    f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
-                ) from None
-        unknown = set(normalized) - set(raw.annotations.description)
-        if unknown:
-            warn(
-                "The following annotation_colors keys do not match any "
-                f"annotation description in the data: {sorted(unknown)}"
-            )
-        annotation_colors = normalized
+        annotation_colors = _normalize_annotation_colors(
+            annotation_colors, raw.annotations
+        )
 
     # handle event colors
     event_color_dict = _make_event_color_dict(event_color, events, event_id)

@@ -29,6 +29,7 @@ from .utils import (
     _handle_precompute,
     _make_combine_callable,
     _make_event_color_dict,
+    _normalize_annotation_colors,
     _set_title_multiple_electrodes,
     _set_window_title,
     _setup_cmap,
@@ -869,7 +870,7 @@ def plot_epochs(
     annotation_colors : dict | None
         A dictionary mapping annotation description strings to colors. Use this to
         override the default color assigned to specific annotation types (e.g.,
-        ``dict(bad_segment='orange')``). Colors can be any valid matplotlib color
+        ``dict(bad_segment='orange')``). Colors can be any valid Matplotlib color
         specification. Keys that do not match any annotation description in the data
         will trigger a warning. If ``None`` (default), automatic colors are used.
 
@@ -1026,24 +1027,9 @@ def plot_epochs(
 
     # handle annotation_colors
     if annotation_colors is not None:
-        from matplotlib.colors import to_hex
-
-        _validate_type(annotation_colors, dict, "annotation_colors")
-        normalized = {}
-        for k, v in annotation_colors.items():
-            try:
-                normalized[k] = to_hex(v)
-            except ValueError:
-                raise ValueError(
-                    f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
-                ) from None
-        unknown = set(normalized) - set(epochs.annotations.description)
-        if unknown:
-            warn(
-                "The following annotation_colors keys do not match any annotation "
-                f"description in the data: {sorted(unknown)}"
-            )
-        annotation_colors = normalized
+        annotation_colors = _normalize_annotation_colors(
+            annotation_colors, epochs.annotations
+        )
 
     params = dict(
         inst=epochs,
