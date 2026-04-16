@@ -38,8 +38,7 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-# TODO: Max-pin until https://gitlab.kitware.com/vtk/vtk/-/issues/19996
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk<9.6.20260314.dev0"
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260405.dev0"
 python -c "import vtk"
 echo "::endgroup::"
 

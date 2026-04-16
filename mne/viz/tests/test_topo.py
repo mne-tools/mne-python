@@ -10,7 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import Epochs, compute_proj_evoked, read_cov, read_events
+from mne import (
+    Epochs,
+    compute_proj_evoked,
+    read_cov,
+    read_events,
+)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFRArray
@@ -116,7 +121,6 @@ def test_plot_joint():
     evoked.plot_joint(
         ts_args=dict(proj="reconstruct"), topomap_args=dict(proj="reconstruct")
     )
-    plt.close("all")
 
     # test sEEG (gh:8733)
     evoked.del_proj().pick("mag")  # avoid overlapping positions error
@@ -130,6 +134,18 @@ def test_plot_joint():
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
     plt.close("all")
+
+
+def test_plot_joint_opm_triaxial(triaxial_evoked):
+    """Test joint plot with triaxial colocated OPM channels."""
+    fig = triaxial_evoked.plot_joint(
+        times=[0.0],
+        picks="mag",
+        show=False,
+        ts_args=dict(time_unit="s"),
+        topomap_args=dict(time_unit="s", contours=0, res=8, sensors=False),
+    )
+    assert len(fig.axes) >= 2
 
 
 def test_plot_topo():
