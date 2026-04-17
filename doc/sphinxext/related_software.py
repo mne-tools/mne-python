@@ -222,7 +222,7 @@ class RelatedSoftwareDirective(Directive):
         return [my_list]
 
 
-def setup(app):
+def setup(app):  # noqa: D103
     app.add_directive("related-software", RelatedSoftwareDirective)
     # Run it as soon as this is added as a Sphinx extension so that any errors
     # / new packages are reported early. The next call in run() will be cached.
