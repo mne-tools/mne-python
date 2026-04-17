@@ -521,12 +521,15 @@ class TimeMixin:
         from ..source_estimate import _BaseSourceEstimate
 
         if use_rounding is None:
-            warn(
-                "The default of use_rounding=False is being changed to True "
-                "in a future release. Pass use_rounding=True or "
-                "use_rounding=False explicitly to silence this warning.",
-                FutureWarning,
-            )
+            # Turned off temporarily to see the impact of the change without
+            # crashing on a FutureWarning
+            #
+            # warn(
+                # "The default of use_rounding=False is being changed to True "
+                # "in a future release. Pass use_rounding=True or "
+                # "use_rounding=False explicitly to silence this warning.",
+                # FutureWarning,
+            # )
             use_rounding = True
 
         if isinstance(self, _BaseSourceEstimate):

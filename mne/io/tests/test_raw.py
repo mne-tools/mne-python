@@ -629,8 +629,10 @@ def test_time_as_index():
     assert_array_equal(new_inds, np.arange(len(raw.times)))
 
     # Test deprecation warning when use_rounding is not specified
-    with pytest.warns(FutureWarning, match="use_rounding=False is being changed"):
-        raw.time_as_index(raw.times)
+    # Temporarily turned of to measure impact
+    #
+    # with pytest.warns(FutureWarning, match="use_rounding=False is being changed"):
+        # raw.time_as_index(raw.times)
 
 
 @pytest.mark.parametrize("meas_date", [None, "orig"])
