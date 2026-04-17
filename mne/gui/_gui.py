@@ -177,9 +177,11 @@ def dipolefit(
     stc=None,
     subject=None,
     subjects_dir=None,
+    surf_maps=None,
     rank="info",
     show_density=True,
     ch_type=None,
+    show_sensors=True,
     n_jobs=None,
     show=True,
     block=False,
@@ -212,12 +214,17 @@ def dipolefit(
     subject : str | None
         The subject name. If ``None``, no MRI data is shown.
     %(subjects_dir)s
+    surf_maps : list | None
+        The surface mapping information obtained with make_field_map. If ``None``, one
+        will be generated based on the given data.
     %(rank)s
     show_density : bool
         Whether to show the density of the fieldmap.
     ch_type : "meg" | "eeg" | None
         Type of channels to use for the dipole fitting. By default (``None``) both MEG
         and EEG channels will be used.
+    show_sensors : bool
+        Whether to show the sensors in the 3D view.
     %(n_jobs)s
     show : bool
         Show the GUI if True.
@@ -327,9 +334,11 @@ def dipolefit(
         stc=stc,
         subject=subject,
         subjects_dir=subjects_dir,
+        surf_maps=surf_maps,
         rank=rank,
         show_density=show_density,
         ch_type=ch_type,
+        show_sensors=show_sensors,
         n_jobs=n_jobs,
         show=show,
         block=block,
