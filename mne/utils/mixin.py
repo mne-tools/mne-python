@@ -525,10 +525,10 @@ class TimeMixin:
             # crashing on a FutureWarning
             #
             # warn(
-                # "The default of use_rounding=False is being changed to True "
-                # "in a future release. Pass use_rounding=True or "
-                # "use_rounding=False explicitly to silence this warning.",
-                # FutureWarning,
+            # "The default of use_rounding=False is being changed to True "
+            # "in a future release. Pass use_rounding=True or "
+            # "use_rounding=False explicitly to silence this warning.",
+            # FutureWarning,
             # )
             use_rounding = True
 

@@ -632,7 +632,7 @@ def test_time_as_index():
     # Temporarily turned of to measure impact
     #
     # with pytest.warns(FutureWarning, match="use_rounding=False is being changed"):
-        # raw.time_as_index(raw.times)
+    # raw.time_as_index(raw.times)
 
 
 @pytest.mark.parametrize("meas_date", [None, "orig"])
