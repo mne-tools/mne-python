@@ -35,6 +35,7 @@ PYPI_PACKAGES = {
     "niseq",
     "sesameeg",
     "mne-kit-gui",  # moved to its own env in the installers
+    "zuna",
 }
 
 # If it's not available on PyPI, add it to this dict:
