@@ -8,6 +8,10 @@ Compare dipole fitting error using:
 Phantom dipole simulation using channel-specific epoch rejection.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
