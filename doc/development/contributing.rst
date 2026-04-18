@@ -692,8 +692,8 @@ As a result:
 Once a maintainer approves your pull request, Github Actions workflows will run.
 Future contributions will not require manual approval.
 
-`CircleCI`_ requires to sign up for an account and link it with your github repository that you
-use to contribute to MNE-Python.
+`CircleCI`_ requires to sign up for an account and link it with your github repository
+that you use to contribute to MNE-Python.
 
 The tests will fail if you are not a registered user before you push your changes.
 
