@@ -674,7 +674,7 @@ changes to an already-open PR.
 MNE-Python uses the following CI services:
 
 - `GitHub Actions`_ and `Azure`_ for testing code across platforms
-- `CodeCoverage`_ checks how much of the code is tested
+- `CodeCov`_ checks how much of the code is tested
 - `CircleCI`_ for building the documentation
 
 If you are contributing for the first time, you may notice that `Github Actions`_
@@ -1138,11 +1138,12 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
-.. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
+.. _continuous integration: https://about.gitlab.com/topics/ci-cd/
 .. _matplotlib: https://matplotlib.org/
 .. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _CircleCI: https://circleci.com/gh/mne-tools/mne-python
+.. _CodeCov: https://about.codecov.io/
 
 .. optipng
 
