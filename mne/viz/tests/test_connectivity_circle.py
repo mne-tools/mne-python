@@ -5,7 +5,6 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
 
 from mne.viz.circle import _plot_connectivity_circle
 
