@@ -1,0 +1,1 @@
+Fix bug where the tag FIFF_DATA_SKIP_SAMP was not handled as well as the use of multiple successive uses of FIFF_DATA_SKIP and/or FIFF_DATA_SKIP_SAMP, by `Théodore Papadopoulo`_.
