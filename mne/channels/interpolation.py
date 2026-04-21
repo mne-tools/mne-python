@@ -278,15 +278,22 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     dist = pdist(locs3d)
     dist = squareform(dist)
 
-    for bad in picks_bad:
-        dists_to_bad = dist[bad]
+    # Maps channel indices in raw object to channel indices in dist matrix
+    raw_idx_to_dist_idx = {
+        raw_idx: dist_idx for dist_idx, raw_idx in enumerate(picks_nirs)
+    }
+
+    for bad_raw_idx in picks_bad:
+        bad_dist_idx = raw_idx_to_dist_idx[bad_raw_idx]
+        dists_to_bad = dist[bad_dist_idx].copy()
         # Ignore distances to self
         dists_to_bad[dists_to_bad == 0] = np.inf
         # Ignore distances to other bad channels
         dists_to_bad[bads_mask] = np.inf
         # Find closest remaining channels for same frequency
-        closest_idx = np.argmin(dists_to_bad) + (bad % 2)
-        inst._data[bad] = inst._data[closest_idx]
+        closest_dist_idx = np.argmin(dists_to_bad) + (bad_dist_idx % 2)
+        closest_raw_idx = picks_nirs[closest_dist_idx]
+        inst._data[bad_raw_idx] = inst._data[closest_raw_idx]
 
     # TODO: this seems like a bug because it does not respect reset_bads
     inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]

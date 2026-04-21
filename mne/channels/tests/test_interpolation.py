@@ -10,7 +10,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne.channels.channels
-from mne import Epochs, pick_channels, pick_types, read_events
+from mne import Epochs, create_info, pick_channels, pick_types, read_events
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.channels import make_dig_montage, make_standard_montage
@@ -331,6 +331,42 @@ def test_interpolation_nirs():
     assert raw_haemo.info["bads"] == ["S1_D2 hbo", "S1_D2 hbr"]
     raw_haemo.interpolate_bads()
     assert raw_haemo.info["bads"] == []
+
+
+def test_interpolation_nirs_reordered_picks():
+    """Test NIRS interpolation uses the closest donor in raw channel space."""
+    ch_names = [
+        "S1_D1 760",
+        "S1_D1 850",
+        "S2_D2 760",
+        "S2_D2 850",
+        "S3_D3 760",
+        "S3_D3 850",
+        "S10_D10 760",
+        "S10_D10 850",
+    ]
+    info = create_info(ch_names, sfreq=1.0, ch_types=["fnirs_cw_amplitude"] * 8)
+    pair_positions = {
+        "S1_D1": (0.009, 0.0, 0.0),
+        "S2_D2": (0.010, 0.0, 0.0),
+        "S3_D3": (0.030, 0.0, 0.0),
+        "S10_D10": (0.040, 0.0, 0.0),
+    }
+    for idx, ch in enumerate(info["chs"]):
+        pair = ch["ch_name"].rsplit(" ", 1)[0]
+        ch["loc"][:3] = pair_positions[pair]
+        ch["loc"][9] = 760.0 if idx % 2 == 0 else 850.0
+    data = np.tile(np.arange(len(ch_names))[:, np.newaxis], (1, 5)).astype(float)
+    raw = RawArray(data, info, verbose=False)
+    raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
+
+    raw.interpolate_bads(
+        method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
+    )
+
+    picks_bad = pick_channels(raw.ch_names, ["S2_D2 760", "S2_D2 850"], exclude=[])
+    # Bad S2_D2 should copy from the nearest good pair, S1_D1.
+    assert_allclose(raw.get_data(picks=picks_bad)[:, 0], [0.0, 1.0])
 
 
 @testing.requires_testing_data
