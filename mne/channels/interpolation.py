@@ -278,13 +278,8 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     dist = pdist(locs3d)
     dist = squareform(dist)
 
-    # Maps channel indices in raw object to channel indices in dist matrix
-    raw_idx_to_dist_idx = {
-        raw_idx: dist_idx for dist_idx, raw_idx in enumerate(picks_nirs)
-    }
-
     for bad_raw_idx in picks_bad:
-        bad_dist_idx = raw_idx_to_dist_idx[bad_raw_idx]
+        bad_dist_idx = np.where(picks_nirs == bad_raw_idx)[0][0]
         dists_to_bad = dist[bad_dist_idx].copy()
         # Ignore distances to self
         dists_to_bad[dists_to_bad == 0] = np.inf
