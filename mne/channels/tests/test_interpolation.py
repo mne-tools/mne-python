@@ -356,7 +356,8 @@ def test_interpolation_nirs_reordered_picks():
         pair = ch["ch_name"].rsplit(" ", 1)[0]
         ch["loc"][:3] = pair_positions[pair]
         ch["loc"][9] = 760.0 if idx % 2 == 0 else 850.0
-    data = np.tile(np.arange(len(ch_names))[:, np.newaxis], (1, 5)).astype(float)
+    data = np.arange(len(ch_names), dtype=float).reshape(-1, 1)
+    data = np.repeat(data, 5, axis=1)
     raw = RawArray(data, info, verbose=False)
     raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
 
@@ -364,9 +365,10 @@ def test_interpolation_nirs_reordered_picks():
         method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
     )
 
-    picks_bad = pick_channels(raw.ch_names, ["S2_D2 760", "S2_D2 850"], exclude=[])
     # Bad S2_D2 should copy from the nearest good pair, S1_D1.
-    assert_allclose(raw.get_data(picks=picks_bad)[:, 0], [0.0, 1.0])
+    picks_bad = pick_channels(raw.ch_names, ["S2_D2 760", "S2_D2 850"], exclude=[])
+    picks_want = pick_channels(raw.ch_names, ["S1_D1 760", "S1_D1 850"], exclude=[])
+    assert_allclose(raw.get_data(picks=picks_bad), raw.get_data(picks=picks_want))
 
 
 @testing.requires_testing_data
