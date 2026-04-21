@@ -279,6 +279,8 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     dist = squareform(dist)
 
     for bad_raw_idx in picks_bad:
+        # `bad_raw_idx` is the index of the bad channel in `inst`
+        # `bad_dist_idx` is the index of the bad channel in `dist`
         bad_dist_idx = np.where(picks_nirs == bad_raw_idx)[0][0]
         dists_to_bad = dist[bad_dist_idx].copy()
         # Ignore distances to self
