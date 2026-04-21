@@ -1,0 +1,1 @@
+Fixed an indexing bug in :func:`mne.channels.interpolation._interpolate_bads_nirs` that could use the wrong donor channels when :func:`mne.io.Raw.interpolate_bads` interpolated fNIRS channels reordered by :func:`mne.preprocessing.nirs._validate_nirs_info`, by :newcontrib:`Kalle Makela`.
