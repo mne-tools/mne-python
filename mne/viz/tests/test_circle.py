@@ -47,7 +47,7 @@ def test_plot_connectivity_circle_label_orientation():
     """
     # 9 nodes → uniform angles: 0, 40, 80, 120, 160, 200, 240, 280, 320 degrees.
     # This guarantees coverage of all four quadrants, including the previously
-    # broken 0–90 range (nodes n0 at 0° and n1 at 40°).
+    # broken 0–90 range (nodes n0 at 0°, n1 at 40°, and n2 at 80°).
     n_nodes = 9
     rng = np.random.default_rng(0)
     con = rng.uniform(0, 1, size=(n_nodes, n_nodes))
