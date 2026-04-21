@@ -571,10 +571,10 @@ class BaseRaw(
 
         Parameters
         ----------
+        %(verbose)s
         memmap : path-like | None
             If not ``None``, preload data into a memory-mapped file at this
             path. If ``None`` (default), preload data into RAM.
-        %(verbose)s
 
         Returns
         -------
