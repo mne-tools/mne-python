@@ -1,5 +1,5 @@
-# cross-domain-saliency-maps requirements are onerous (torch and tensorflow)
-# so we don't add it here, and install it separately in circleci_dependencies.sh
+# related software with onerous dependencies (e.g., torch and tensorflow)
+# should be added to related_software_nodeps.txt
 alphaCSC
 autoreject
 bycycle
@@ -34,6 +34,7 @@ pycrostates
 pyprep
 pyriemann
 python-picard
+rsatoolbox
 sesameeg
 sleepecg
 tensorpac
