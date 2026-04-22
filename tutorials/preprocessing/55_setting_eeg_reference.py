@@ -146,6 +146,11 @@ raw_avg_ref.plot()
 #
 # Creating the average reference as a projector
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# .. note::
+#    If you wish to add a new reference channel (e.g., a mastoid)
+#    to the data, use :func:`mne.add_reference_channels`
+#    **before** calling this function.
 #
 # If using an average reference, it is possible to create the reference as a
 # :term:`projector` rather than subtracting the reference from the data

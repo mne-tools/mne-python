@@ -4103,6 +4103,11 @@ Some common referencing schemes and the corresponding value for the
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
     automatically excluded if they are properly set in ``info['bads']``.
 
+    .. note::
+        If you wish to add a new reference channel (e.g., a mastoid)
+        to the data, use :func:`mne.add_reference_channels`
+        **before** calling this function.
+
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
     will act as the new reference, for example ``ref_channels=['Cz']``.
