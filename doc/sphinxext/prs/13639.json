@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d44d462ad3d9f1c205cea4cf991a6a284019366c",
+  "authors": [
+    {
+      "n": "Akhilesh",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

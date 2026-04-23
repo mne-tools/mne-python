@@ -835,10 +835,10 @@ colorbar : bool
 """
 
 docdict["colormap"] = """
-colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-    Name of colormap to use or a custom look up table. If array, must
-    be (n x 3) or (n x 4) array for with RGB or RGBA values between
-    0 and 255.
+colormap : str | matplotlib.colors.Colormap
+    Name of colormap to use or a custom Matplotlib colormap instance. If passing
+    a custom colormap, it must be an instance of :class:`matplotlib.colors.Colormap`
+    (e.g., :class:`matplotlib.colors.ListedColormap`).
 """
 
 _combine_template = """
@@ -2723,7 +2723,7 @@ mode : str
 """
 
 docdict["mode_pctf"] = """
-mode : None | 'mean' | 'max' | 'svd'
+mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     Compute summary of PSFs/CTFs across all indices specified in 'idx'.
     Can be:
 
@@ -2734,6 +2734,9 @@ mode : None | 'mean' | 'max' | 'svd'
       n_comp largest PSFs/CTFs.
     * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
       n_comp first SVD components.
+    * 'maxval' : PSFs/CTFs with maximum absolute value across vertices.
+      Returns the n_comp largest PSFs/CTFs.
+    * 'sum' : Sum of PSFs/CTFs across vertices.
 """
 
 docdict["mode_tfr_plot"] = """

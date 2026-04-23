@@ -1,0 +1,1 @@
+Add a preprocessing example showing how to explore epoch quality before rejection using robust statistics (peak-to-peak amplitude, variance, and kurtosis) inspired by FASTER (Nolan et al., 2010) and Delorme et al. (2007), by `Aman Srivastava`_.

@@ -107,6 +107,7 @@ class BrowserBase(ABC):
             grad=10007,
             scalebar=10008,
             vline=10009,
+            ann_text=10010,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
@@ -166,16 +167,24 @@ class BrowserBase(ABC):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
+        from matplotlib.colors import to_hex
+
         segment_colors = getattr(self.mne, "annotation_segment_colors", dict())
         labels = self._get_annotation_labels()
+        user_colors = {
+            k: to_hex(v)
+            for k, v in (getattr(self.mne, "annotation_colors", None) or {}).items()
+        }
         red = "#ff0000"
         colors = _get_color_list(remove=("#fa8174", "#d62728", "#ff0000"))
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != red and key in labels:
+            if color != red and key in labels and key not in user_colors:
                 next(color_cycle)
         for idx, key in enumerate(labels):
-            if key.lower().startswith("bad") or key.lower().startswith("edge"):
+            if key in user_colors:
+                segment_colors[key] = user_colors[key]
+            elif key.lower().startswith("bad") or key.lower().startswith("edge"):
                 segment_colors[key] = red
             elif key in segment_colors:
                 continue

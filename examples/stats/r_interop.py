@@ -1,9 +1,9 @@
 """
 .. _r-interop:
 
-============================
-Integrating with R via rpy2
-============================
+===============================
+Integrating with R via ``rpy2``
+===============================
 
 This example shows how to run a mass-univariate 2-sample t-test on
 :class:`~mne.Epochs` data in Python using :func:`scipy.stats.ttest_ind`,

@@ -175,12 +175,18 @@ def test_plot_topomap_animation(capsys):
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
 
     # Test animation
-    _, anim = evoked.animate_topomap(
-        ch_type="grad", times=[0, 0.1], butterfly=False, time_unit="s", verbose="debug"
+    fig, anim = evoked.animate_topomap(
+        ch_type="grad",
+        times=[0, 0.1],
+        cmap="viridis",
+        butterfly=False,
+        time_unit="s",
+        verbose="debug",
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
     assert "extrapolation mode local to 0" in out
+    assert fig.axes[0].images[0].get_cmap().name == "viridis"
 
 
 def test_plot_topomap_animation_csd(capsys):
@@ -791,6 +797,49 @@ def test_plot_topomap_opm():
     assert len(fig_evoked.axes) == 5
 
 
+def test_prepare_topomap_plot_opm_non_quspin_coils():
+    """Test colocated OPM handling for non-QuSpin OPM coil types."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    # Two colocated trios with different orientations.
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],  # radial-ish
+            [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
+            [-0.5145, 0.0000, 0.8575],  # radial-ish
+            [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    evoked = EvokedArray(np.zeros((len(ch_names), 5)), info)
+
+    picks, _pos, merge_channels, merged_names, *_ = topomap._prepare_topomap_plot(
+        evoked, "mag"
+    )
+
+    assert len(picks) == 6
+    assert merge_channels
+    assert len(merge_channels) == 2
+    assert all(len(set_) == 3 for set_ in merge_channels)
+    assert sum(name.endswith("MERGE-REMOVE") for name in merged_names) == 4
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
@@ -987,3 +1036,29 @@ def test_plot_ch_adjacency():
     msg = "Editing a 3d adjacency plot is not supported."
     with pytest.raises(ValueError, match=msg):
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
+
+
+@pytest.mark.parametrize("ch_type", ("mag", "grad"))
+def test_plot_topomap_info_names_ordering(ch_type):
+    """Regression test for GH-12700.
+
+    plot_topomap() must preserve correct sensor name ordering when
+    passing an Info object as pos with a names argument.
+    This must be tested with MEG data including gradiometers, since the
+    bug only affected the gradiometer code path.
+    """
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    evoked = evoked.copy().crop(0, 0).pick(picks=ch_type)
+    info = evoked.info
+    data = evoked.data[:, 0]
+    names = info["ch_names"]
+    if ch_type == "grad":
+        # grad pairs are merged so only every other name is displayed
+        expected_names = names[::2]
+    else:
+        expected_names = names
+    im, _ = plot_topomap(data, info, names=names, show=False)
+    displayed_names = [t.get_text() for t in im.axes.texts]
+    assert displayed_names == list(expected_names), (
+        f"Expected {list(expected_names)}, got {displayed_names}"
+    )

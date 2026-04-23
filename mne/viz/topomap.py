@@ -77,7 +77,12 @@ from .utils import (
 )
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
-_opm_coils = (FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2)
+_opm_coils = (
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG,
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
+    FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
+)
 
 
 # 3.8+ uses a single Collection artist rather than .collections
@@ -1292,6 +1297,8 @@ def _plot_topomap(
             pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
             data, _ = _merge_ch_data(data[picks], ch_type, [])
             data = data.reshape(-1)
+            if names is not None:
+                names = [names[p] for p in picks[::2]]
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
@@ -3149,6 +3156,7 @@ def _init_anim(
     merge_channels,
     sphere,
     ch_type,
+    cmap,
     image_interp,
     extrapolate,
     verbose,
@@ -3174,7 +3182,8 @@ def _init_anim(
 
         data, _ = _merge_ch_data(data, "grad", [])
     norm = True if np.min(data) > 0 else False
-    cmap = "Reds" if norm else "RdBu_r"
+    if cmap is None:
+        cmap = "Reds" if norm else "RdBu_r"
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
 
@@ -3324,6 +3333,7 @@ def _key_press(event, params):
 def _topomap_animation(
     evoked,
     ch_type,
+    cmap,
     times,
     frame_rate,
     butterfly,
@@ -3407,6 +3417,7 @@ def _topomap_animation(
         merge_channels=merge_channels,
         sphere=sphere,
         ch_type=ch_type,
+        cmap=cmap,
         image_interp=image_interp,
         extrapolate=extrapolate,
         verbose=verbose,

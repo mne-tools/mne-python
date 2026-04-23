@@ -53,6 +53,7 @@
 .. _Chris Mullins: https://crmullins.com
 .. _Christian Brodbeck: https://github.com/christianbrodbeck
 .. _Christian O'Reilly: https://github.com/christian-oreilly
+.. _Christoph Huber-Huber: https://github.com/chsquare
 .. _Christopher Dinh: https://github.com/chdinh
 .. _Chun-Hui Li: https://github.com/iamsc
 .. _Clemens Brunner: https://github.com/cbrnr
@@ -186,6 +187,7 @@
 .. _Leonardo Barbosa: https://github.com/noreun
 .. _Leonardo Rochael Almeida: https://github.com/leorochael
 .. _Liberty Hamilton: https://github.com/libertyh
+.. _Lifeng Qiu Lin: https://github.com/Gnefil
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 .. _Lukas Gemein: https://github.com/gemeinl

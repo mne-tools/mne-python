@@ -29,6 +29,7 @@ from .utils import (
     _handle_precompute,
     _make_combine_callable,
     _make_event_color_dict,
+    _normalize_annotation_colors,
     _set_title_multiple_electrodes,
     _set_window_title,
     _setup_cmap,
@@ -763,6 +764,7 @@ def plot_epochs(
     theme=None,
     overview_mode=None,
     splash=True,
+    annotation_colors=None,
 ):
     """Visualize epochs.
 
@@ -800,8 +802,12 @@ def plot_epochs(
             The new equivalent is ``events=False``.
     %(event_color)s
         Defaults to ``None``.
-    order : array of str | None
-        Order in which to plot channel types.
+    order : array-like of int | None
+        Order in which to plot data. If the array is shorter than the number of
+        channels, only the given channels are plotted. If ``None`` (default), all
+        channels are plotted. If ``group_by`` is ``'position'`` or
+        ``'selection'``, the ``order`` parameter is used only for selecting the
+        channels to be plotted.
 
         .. versionadded:: 0.18.0
     show : bool
@@ -861,6 +867,14 @@ def plot_epochs(
     %(splash)s
 
         .. versionadded:: 1.6
+    annotation_colors : dict | None
+        A dictionary mapping annotation description strings to colors. Use this to
+        override the default color assigned to specific annotation types (e.g.,
+        ``dict(bad_segment='orange')``). Colors can be any valid Matplotlib color
+        specification. Keys that do not match any annotation description in the data
+        will trigger a warning. If ``None`` (default), automatic colors are used.
+
+        .. versionadded:: 1.12.1
 
     Returns
     -------
@@ -1010,6 +1024,13 @@ def plot_epochs(
         raise TypeError(f"title must be None or a string, got a {type(title)}")
 
     precompute = _handle_precompute(precompute)
+
+    # handle annotation_colors
+    if annotation_colors is not None:
+        annotation_colors = _normalize_annotation_colors(
+            annotation_colors, epochs.annotations
+        )
+
     params = dict(
         inst=epochs,
         info=info,
@@ -1054,6 +1075,7 @@ def plot_epochs(
         ch_color_dict=color,
         epoch_color_bad=(1, 0, 0),
         epoch_colors=epoch_colors,
+        annotation_colors=annotation_colors,
         # display
         butterfly=butterfly,
         clipping=None,
