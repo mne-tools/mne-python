@@ -3239,15 +3239,6 @@ def concatenate_raws(
             on_mismatch=on_mismatch,
         )
 
-    # check if all raws have the same type
-    mixed_types = not all(type(r) is type(raws[0]) for r in raws[1:])
-    if mixed_types:
-        # preload all data before concatenating different Raw types
-        for r in raws:
-            if not r.preload:
-                r.load_data()
-        preload = True
-
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
@@ -3255,15 +3246,19 @@ def concatenate_raws(
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)
-    raws[0].append(raws[1:], preload)
 
-    if mixed_types:
+    if not all(type(r) is type(raws[0]) for r in raws[1:]):
         from .array import RawArray
 
-        out = RawArray(raws[0]._data, raws[0].info, first_samp=raws[0].first_samp)
-        out.set_annotations(raws[0].annotations)
-    else:
-        out = raws[0]
+        raws = list(raws)  # local copy of list
+        if not raws[0].preload:
+            raws[0].load_data()
+        annotations = raws[0].annotations
+        raws[0] = RawArray(raws[0]._data, raws[0].info, first_samp=raws[0].first_samp)
+        raws[0].set_annotations(annotations)
+        preload = True
+    raws[0].append(raws[1:], preload)
+    out = raws[0]
 
     if events_list is None:
         return out
