@@ -5,6 +5,10 @@ To add a package to the list:
 1. Add it to the MNE-installers if possible, and it will automatically appear.
 2. If it's on PyPI and not in the MNE-installers, add it to the PYPI_PACKAGES set.
 3. If it's not on PyPI, add it to the MANUAL_PACKAGES dictionary.
+
+If PyPI or manual, also add package name to `related_software.txt` or
+`related_software_nodeps.txt` so that it's installed at doc-build time (for package
+metadata querying).
 """
 
 # Authors: The MNE-Python contributors.
@@ -222,7 +226,7 @@ class RelatedSoftwareDirective(Directive):
         return [my_list]
 
 
-def setup(app):
+def setup(app):  # noqa: D103
     app.add_directive("related-software", RelatedSoftwareDirective)
     # Run it as soon as this is added as a Sphinx extension so that any errors
     # / new packages are reported early. The next call in run() will be cached.

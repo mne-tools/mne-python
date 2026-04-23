@@ -4,3 +4,4 @@ fsleyes
 mne-kit-gui
 mne-videobrowser
 hedtools  # because it limits our Pandas version currently
+zuna  # requires pytorch
