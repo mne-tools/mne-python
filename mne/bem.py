@@ -314,7 +314,7 @@ def _check_complete_surface(surf, copy=False, incomplete="raise", extra=""):
         fewer = (fewer[:80] + ["..."]) if len(fewer) > 80 else fewer
         fewer = ", ".join(str(f) for f in fewer)
         msg = (
-            f"Surface {_bem_surf_name[surf['id']]} has topological defects: "
+            f"Surface {_bem_surf_name[surf['id']].strip()} has topological defects: "
             f"{len(fewer)} / {len(surf['rr'])} vertices have fewer than three "
             f"neighboring triangles [{fewer}]{extra}"
         )
