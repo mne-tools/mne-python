@@ -3207,11 +3207,12 @@ def concatenate_raws(
 ):
     """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
-    .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
-              Boundaries of the raw files are annotated bad. If you wish to use
-              the data as continuous recording, you can remove the boundary
-              annotations after concatenation (see
-              :meth:`mne.Annotations.delete`).
+    .. note:: If all ``raws`` have the same type, ``raws[0]`` is modified in-place to
+              achieve the concatenation. If the types differ, a new
+              :class:`~mne.io.RawArray` is returned and all data are preloaded
+              automatically. Boundaries of the raw files are annotated bad. If you wish
+              to use the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------
@@ -3226,7 +3227,9 @@ def concatenate_raws(
     Returns
     -------
     raw : instance of Raw
-        The result of the concatenation (first Raw instance passed in).
+        The result of the concatenation. If all ``raws`` have the same type, the first
+        Raw instance passed in is returned (modified in-place). If the types differ, a
+        new :class:`~mne.io.RawArray` is returned.
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
@@ -3238,6 +3241,15 @@ def concatenate_raws(
             on_mismatch=on_mismatch,
         )
 
+    # check if all raws have the same type
+    mixed_types = not all(type(r) is type(raws[0]) for r in raws[1:])
+    if mixed_types:
+        # preload all data before concatenating different Raw types
+        for r in raws:
+            if not r.preload:
+                r.load_data()
+        preload = True
+
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
@@ -3247,10 +3259,18 @@ def concatenate_raws(
         events = concatenate_events(events_list, first, last)
     raws[0].append(raws[1:], preload)
 
-    if events_list is None:
-        return raws[0]
+    if mixed_types:
+        from .array import RawArray
+
+        out = RawArray(raws[0]._data, raws[0].info, first_samp=raws[0].first_samp)
+        out.set_annotations(raws[0].annotations)
     else:
-        return raws[0], events
+        out = raws[0]
+
+    if events_list is None:
+        return out
+    else:
+        return out, events
 
 
 @fill_doc
