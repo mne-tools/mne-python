@@ -145,10 +145,9 @@ def _apply_mpl_theme_to_kwargs(kwargs):
 
         light_defaults = DEFAULTS["color"]
         for ch_type, dark_color in _DARK_CHANNEL_OVERRIDES.items():
-            if (
-                ch_type in kwargs["ch_color_dict"]
-                and kwargs["ch_color_dict"][ch_type] == light_defaults.get(ch_type)
-            ):
+            if ch_type in kwargs["ch_color_dict"] and kwargs["ch_color_dict"][
+                ch_type
+            ] == light_defaults.get(ch_type):
                 kwargs["ch_color_dict"][ch_type] = dark_color
 
 
