@@ -5228,7 +5228,7 @@ def copy_doc(source):
     ...     def m1():
     ...         ''' this gets appended'''
     ...         pass
-    >>> print(B.m1.__doc__)
+    >>> print(B.m1.__doc__)  # doctest: +NORMALIZE_WHITESPACE
     Docstring for m1
     this gets appended
     """
