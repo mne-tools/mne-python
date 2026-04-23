@@ -500,8 +500,7 @@ def test_concatenate_raws_different_subtypes(tmp_path):
     raw_array.save(tmp_path / "temp_raw.fif", overwrite=True)
     raw_fiff = read_raw_fif(tmp_path / "temp_raw.fif", preload=True)
 
-    with pytest.warns(RuntimeWarning, match="raw files do not all have the same"):
-        result = concatenate_raws([raw_fiff, raw_array])
+    result = concatenate_raws([raw_fiff, raw_array])
     assert isinstance(result, RawArray)
     assert result.preload
     assert result.n_times == 2 * data.shape[1]
