@@ -55,6 +55,7 @@ from .._fiff.pick import (
     channel_indices_by_type,
     pick_types,
 )
+from ..defaults import DEFAULTS
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
@@ -141,8 +142,6 @@ def _apply_mpl_theme_to_kwargs(kwargs):
             kwargs[key] = _DARK_BAD_COLOR
     # channel type colors: override only entries still at their light defaults
     if "ch_color_dict" in kwargs:
-        from ..defaults import DEFAULTS
-
         light_defaults = DEFAULTS["color"]
         for ch_type, dark_color in _DARK_CHANNEL_OVERRIDES.items():
             if ch_type in kwargs["ch_color_dict"] and kwargs["ch_color_dict"][
