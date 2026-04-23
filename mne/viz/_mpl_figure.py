@@ -37,7 +37,7 @@ matplotlib.figure.Figure
 
 import datetime
 import platform
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 from functools import partial
 
@@ -84,34 +84,45 @@ ANNOTATION_FIG_CHECKBOX_COLUMN_W = 0.5
 _OLD_BUTTONS = not check_version("matplotlib", "3.7")
 
 # DARK THEME COLORS
-_DARK_BGCOLOR = "#1c1c1c"
+# These colors are duplicated from mne-qt-browser (_dark_dict). If you change one, make
+# sure to update the other as well.
+_DARK_BGCOLOR = "#1e1e1e"
 _DARK_FGCOLOR = "#d0d0d0"
-_DARK_BAD_COLOR = "#4a4a4a"
+_DARK_BAD_COLOR = "#696969"
 _DARK_BUTTON_COLOR = "#3a3a3a"
+_DARK_EVENT_COLOR = "#008b8b"
 _DARK_CHANNEL_OVERRIDES = {
-    "eeg": "#c8c8c8",
-    "eog": "#c8c8c8",
-    "emg": "#c8c8c8",
-    "misc": "#c8c8c8",
-    "stim": "#c8c8c8",
-    "resp": "#c8c8c8",
-    "chpi": "#c8c8c8",
-    "exci": "#c8c8c8",
-    "ias": "#c8c8c8",
-    "syst": "#c8c8c8",
-    "dipole": "#c8c8c8",
-    "gof": "#c8c8c8",
-    "bio": "#c8c8c8",
-    "ecog": "#c8c8c8",
-    "fnirs_cw_amplitude": "#c8c8c8",
-    "fnirs_fd_ac_amplitude": "#c8c8c8",
-    "fnirs_fd_phase": "#c8c8c8",
-    "fnirs_od": "#c8c8c8",
-    "csd": "#c8c8c8",
-    "whitened": "#c8c8c8",
-    "eyegaze": "#c8c8c8",
-    "pupil": "#c8c8c8",
-    "mag": "#7aade0",
+    # "k" (black) channels → white in dark mode
+    "eeg": "#ffffff",
+    "eog": "#ffffff",
+    "emg": "#ffffff",
+    "misc": "#ffffff",
+    "stim": "#ffffff",
+    "resp": "#ffffff",
+    "chpi": "#ffffff",
+    "exci": "#ffffff",
+    "ias": "#ffffff",
+    "syst": "#ffffff",
+    "dipole": "#ffffff",
+    "gof": "#ffffff",
+    "bio": "#ffffff",
+    "ecog": "#ffffff",
+    "fnirs_cw_amplitude": "#ffffff",
+    "fnirs_fd_ac_amplitude": "#ffffff",
+    "fnirs_fd_phase": "#ffffff",
+    "fnirs_od": "#ffffff",
+    "csd": "#ffffff",
+    "whitened": "#ffffff",
+    "eyegaze": "#ffffff",
+    "pupil": "#ffffff",
+    "mag": "#add8e6",
+    "grad": "#6495ed",
+    "ref_meg": "#b0c4de",
+    "ecg": "#ee82ee",
+    "seeg": "#f4a460",
+    "dbs": "#20b2aa",
+    "hbo": "#ff69b4",
+    "hbr": "#6495ed",
     "gsr": "#b0b055",
     "temperature": "#aa6666",
 }
@@ -148,6 +159,14 @@ def _apply_mpl_theme_to_kwargs(kwargs):
                 ch_type
             ] == light_defaults.get(ch_type):
                 kwargs["ch_color_dict"][ch_type] = dark_color
+    # event color: override if still at the light default "cyan"
+    if "event_color_dict" in kwargs:
+        d = kwargs["event_color_dict"]
+        if hasattr(d, "default_factory") and d.default_factory is not None:
+            if d.default_factory() == "cyan":
+                new_d = defaultdict(lambda: _DARK_EVENT_COLOR)
+                new_d.update(d)
+                kwargs["event_color_dict"] = new_d
 
 
 class MNEFigure(Figure):
