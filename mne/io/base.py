@@ -566,7 +566,7 @@ class BaseRaw(
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
-    def load_data(self, verbose=None, *, memmap=None):
+    def load_data(self, *, memmap=None, verbose=None):
         """Load raw data.
 
         Parameters
