@@ -813,7 +813,7 @@ class UpdateChannelsMixin:
         inst : same type as the input data
                The modified instance.
 
-        
+
         """
         return add_reference_channels(self, ref_channels, copy=False)
 
