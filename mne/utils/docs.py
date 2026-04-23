@@ -5228,9 +5228,10 @@ def copy_doc(source):
     ...     def m1():
     ...         ''' this gets appended'''
     ...         pass
-    >>> print(B.m1.__doc__)  # doctest: +NORMALIZE_WHITESPACE
+    >>> print(B.m1.__doc__)
     Docstring for m1
     this gets appended
+    <BLANKLINE>
     """
 
     def wrapper(func):
@@ -5316,6 +5317,7 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     .. versionadded:: 0.13.0
+    <BLANKLINE>
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
