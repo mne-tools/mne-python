@@ -585,4 +585,7 @@ def test_plot_components_opm_triaxial(triaxial_raw):
     ica = ICA(max_iter=1, random_state=0, n_components=3)
     ica.fit(triaxial_raw, picks="mag", verbose="error")
     fig = ica.plot_components()
-    assert len(fig.axes) == 3
+    assert len(fig.axes) == 6
+    titles = [ax.get_title() for ax in fig.axes]
+    assert any("[radial]" in title for title in titles)
+    assert any("[tangential]" in title for title in titles)

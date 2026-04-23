@@ -851,6 +851,22 @@ def test_split_opm_overlaps(triaxial_evoked):
     assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
 
 
+def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
+    """Test grouped radial/tangential topomap rendering for triaxial OPM."""
+    fig = triaxial_evoked.plot_topomap(
+        times=[0.0],
+        ch_type="mag",
+        contours=0,
+        res=8,
+        sensors=False,
+        show=False,
+    )
+    assert len(fig.axes) == 3
+    titles = [ax.get_title() for ax in fig.axes]
+    assert any("radial" in title for title in titles)
+    assert any("tangential" in title for title in titles)
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()

@@ -1868,6 +1868,7 @@ def plot_evoked_joint(
         ts_args.get("time_unit", "s"), evoked.times
     )
     topomap_args = dict() if topomap_args is None else topomap_args.copy()
+    opm_group_factor = 1
 
     got_axes = False
     illegal_args = {"show", "times", "exclude"}
@@ -1954,9 +1955,32 @@ def plot_evoked_joint(
     del times
     _, times_ts = _check_time_unit(ts_args["time_unit"], times_sec)
 
+    if len(ch_types) == 1 and set(ch_types) == {"mag"}:
+        from .topomap import _prepare_topomap_plot
+        from .topomap import _opm_coils
+
+        (
+            _,
+            _,
+            merge_channels,
+            _,
+            _,
+            _,
+            _,
+        ) = _prepare_topomap_plot(
+            evoked,
+            "mag",
+            sphere=topomap_args.get("sphere", None),
+        )
+        is_opm = any(ch["coil_type"] in _opm_coils for ch in evoked.info["chs"])
+        if is_opm and bool(merge_channels):
+            opm_group_factor = 2
+
     # prepare axes for topomap
     if not got_axes:
-        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
+        fig, ts_ax, map_ax = _prepare_joint_axes(
+            len(times_sec) * opm_group_factor, figsize=(8.0, 4.2)
+        )
         cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
@@ -2044,22 +2068,42 @@ def plot_evoked_joint(
 
     # connection lines
     # draw the connection lines between time series and topoplots
-    for timepoint, map_ax_ in zip(times_ts, map_ax):
-        con = ConnectionPatch(
-            xyA=[timepoint, ts_ax.get_ylim()[1]],
-            xyB=[0.5, 0],
-            coordsA="data",
-            coordsB="axes fraction",
-            axesA=ts_ax,
-            axesB=map_ax_,
-            color="grey",
-            linestyle="-",
-            linewidth=1.5,
-            alpha=0.66,
-            zorder=1,
-            clip_on=False,
-        )
-        fig.add_artist(con)
+    if opm_group_factor == 1:
+        for timepoint, map_ax_ in zip(times_ts, map_ax):
+            con = ConnectionPatch(
+                xyA=[timepoint, ts_ax.get_ylim()[1]],
+                xyB=[0.5, 0],
+                coordsA="data",
+                coordsB="axes fraction",
+                axesA=ts_ax,
+                axesB=map_ax_,
+                color="grey",
+                linestyle="-",
+                linewidth=1.5,
+                alpha=0.66,
+                zorder=1,
+                clip_on=False,
+            )
+            ts_ax.add_artist(con)
+    else:
+        for time_idx, timepoint in enumerate(times_ts):
+            for group_idx in range(opm_group_factor):
+                map_ax_ = map_ax[time_idx + group_idx * len(times_ts)]
+                con = ConnectionPatch(
+                    xyA=[timepoint, ts_ax.get_ylim()[1]],
+                    xyB=[0.5, 0],
+                    coordsA="data",
+                    coordsB="axes fraction",
+                    axesA=ts_ax,
+                    axesB=map_ax_,
+                    color="grey",
+                    linestyle="-",
+                    linewidth=1.0,
+                    alpha=0.5,
+                    zorder=1,
+                    clip_on=False,
+                )
+                ts_ax.add_artist(con)
 
     # mark times in time series plot
     for timepoint in times_ts:
