@@ -2028,6 +2028,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             return str(round(x, digits))
         # format as timestamp
         meas_date = self.mne.inst.info["meas_date"]
+        if meas_date is None:
+            return str(round(x, digits))
         first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
         xtime = datetime.timedelta(seconds=x)
         xdatetime = meas_date + first_time + xtime
@@ -2038,6 +2040,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _toggle_time_format(self):
         if self.mne.time_format == "float":
+            if self.mne.inst.info["meas_date"] is None:
+                return  # can't show clock time without a measurement date
             self.mne.time_format = "clock"
             x_axis_label = "Time (HH:MM:SS)"
         else:
