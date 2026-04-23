@@ -646,6 +646,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 for _spine in _ax.spines.values():
                     _spine.set_color(self.mne.fgcolor)
                 _ax.tick_params(colors=self.mne.fgcolor, labelcolor=self.mne.fgcolor)
+                _ax.xaxis.label.set_color(self.mne.fgcolor)
             self.mne.button_help.ax.set_facecolor(_DARK_BUTTON_COLOR)
             self.mne.button_help.color = _DARK_BUTTON_COLOR
             self.mne.button_help.label.set_color(self.mne.fgcolor)
