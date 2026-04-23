@@ -41,10 +41,11 @@ from mne.io import read_raw_fif
 # %%
 # Load and prepare the data
 # -------------------------
-
+# TODO: convert to text from code comment 
 # The data were collected with an Elekta Neuromag VectorView system
-# at 1000 Hz, low-pass filtered at 330 Hz and contains recordings
+# at 1000 Hz, low-pass filtered at 330 Hz and contain recordings
 # at three current amplitudes (20, 200, and 2000 nAm).
+
 # Here we load the medium-amplitude condition.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
@@ -69,19 +70,22 @@ event_id = list(range(1, 33))
 epochs = mne.Epochs(
     raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
 )
-
-# Here we plot the evoked response for the first clean dipole
-epochs["1"][1:-1].average().plot(time_unit="s")
+# We drop the first and last epoch as they contain artefacts
+epochs_clean = epochs[1:-1
+# We select the first simulated dipole for visualisation purposes
+epochs_firstdip = epochs_clean["1"]
+# Let's look at the evoked response for the first clean dipole
+# We can see that the phantom was set to produce 20 Hz sinusoidal bursts of current.
+# and the burst envelope repeats at approximately 3 Hz.
+epochs_firstdip.average().plot(time_unit="s")
+               
 # %%
-# In this data the phantom was set to produce 20 Hz sinusoidal bursts of current.
-# The burst envelope repeats at approximately 3 Hz.
-#
 # Determine peak activation using Global Field Power (GFP)
 # --------------------------------------------------------
 
 # GFP is the standard deviation across sensors at each time
 # point, providing a reference-independent measure of signal strength.
-evoked_tmp = epochs["1"][1:-1].average()
+evoked_tmp = epochs_firstdip.average()
 gfp = np.std(evoked_tmp.data, axis=0)
 times = evoked_tmp.times
 # Restrict to first burst window
@@ -96,7 +100,7 @@ print(f"Strongest peak at {t_peak * 1000:.1f} ms")
 # Here we crop the data at the peak amplitude and store the evoked data for each dipole.
 evokeds = []
 for ii in event_id:
-    evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
+    evoked = epochs_clean[str(ii)].average().crop(t_peak, t_peak)
     evoked = mne.EvokedArray(np.array(evoked.data), evoked.info, tmin=0.0)
     evokeds.append(evoked)
 # %%
@@ -104,9 +108,10 @@ for ii in event_id:
 # We use the baseline window to estimate covariance.
 # You can explore the covariance tutorial for details: :ref:`tut-compute-covariance`.
 
-cov = mne.compute_covariance(epochs, tmax=bmax)
+cov = mne.compute_covariance(epochs_clean, tmax=bmax)
 del epochs  # delete to save memory
 # %%
+# TODO: explain why this head model is used
 # We use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # to fit our phantom head model.
 subjects_dir = data_path
@@ -127,6 +132,7 @@ for evoked in evokeds:
 # Evaluate goodness of fit
 # ------------------------
 
+# TODO: explain drop in GOF at regular intervals
 # The dipole object stores the goodness of fit (GOF) for each dipole.
 gof = [dip.gof[0] for dip in dip_all]
 colors = ["#E69F00" if val < 60 else "#0072B2" for val in gof]
@@ -136,14 +142,15 @@ plt.ylabel("Goodness of fit (%)")
 plt.show()
 #
 # %%
-# We can see that GOF varies between simulated dipoles from 50 % up to 95 %.
-#
 # Compare estimated and true dipoles
 # ----------------------------------
 
+# The dipole fits closely match the true phantom data,
+# achieving sub-centimeter accuracy (mean position error 2.7mm).
+
 # We get the true dipole positions from the phantoms
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
-actual_amp = 200.0  # nAm
+actual_amp = 100.0  # nAm
 
 # estimated dipoles
 dip_pos = [dip.pos[0] for dip in dip_all]
@@ -177,12 +184,13 @@ ax3.bar(event_id, amps)
 ax3.set_xlabel("Dipole index")
 ax3.set_ylabel("Amplitude error (nAm)")
 # %%
-# The dipole fits closely match the true phantom data,
-# achieving sub-centimeter accuracy (mean position error 2.7mm).
-#
-# Visualise estimated and true dipole fits
-# ----------------------------------------
+# Visualise estimated and true dipole locations
+# ---------------------------------------------
 
+
+# We can see that the dipoles overlap, have approximately the same magnitude
+# and point in the same direction.
+     
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
 # setup dipole objects for true and estimated dipoles
@@ -214,9 +222,6 @@ fig = mne.viz.plot_dipole_locations(
     dipoles=dip_estimated, mode="arrow", subject=subject, color=(0.2, 1.0, 0.5), fig=fig
 )
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
-# %%
-# We can see that the dipoles overlap, have approximately the same magnitude
-# and point in the same direction.
 
 # %%
 # References
