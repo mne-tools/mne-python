@@ -947,7 +947,7 @@ def _to_forward_dict(
 
 
 @contextmanager
-def use_coil_def(fname):
+def use_coil_def(fname):  # numpydoc ignore=YD01
     """Use a custom coil definition file.
 
     Parameters

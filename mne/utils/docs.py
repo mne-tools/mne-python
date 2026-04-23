@@ -5238,7 +5238,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += f"\n{inspect.cleandoc(func.__doc__)}"
+            doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
         func.__doc__ = doc
         return func
 
@@ -5388,6 +5388,8 @@ def copy_function_doc_to_method_doc(source):
             + "\n".join(doc[first_parameter_end:])
         )
         func.__doc__ = f"{doc}{func_doc}"
+        if not func.__doc__.endswith("\n\n"):
+            func.__doc__ = func.__doc__ + "\n"
         return func
 
     return wrapper

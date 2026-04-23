@@ -27,7 +27,6 @@ from sphinx_gallery.sorting import ExplicitOrder
 
 import mne
 import mne.html_templates._templates
-from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,
     run_subprocess,
@@ -432,42 +431,6 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-numpydoc_validation_checks = {"all"} | set(error_ignores)
-numpydoc_validation_exclude = {  # set of regex
-    # dict subclasses
-    r"\.clear",
-    r"\.get$",
-    r"\.copy$",
-    r"\.fromkeys",
-    r"\.items",
-    r"\.keys",
-    r"\.move_to_end",
-    r"\.pop",
-    r"\.popitem",
-    r"\.setdefault",
-    r"\.update",
-    r"\.values",
-    # list subclasses
-    r"\.append",
-    r"\.count",
-    r"\.extend",
-    r"\.index",
-    r"\.insert",
-    r"\.remove",
-    r"\.sort",
-    # we currently don't document these properly (probably okay)
-    r"\.__getitem__",
-    r"\.__contains__",
-    r"\.__hash__",
-    r"\.__mul__",
-    r"\.__sub__",
-    r"\.__add__",
-    r"\.__iter__",
-    r"\.__div__",
-    r"\.__neg__",
-    # copied from sklearn
-    r"mne\.utils\.deprecated",
-}
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
