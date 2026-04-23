@@ -172,6 +172,7 @@
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
 .. _Jussi Nurminen: https://github.com/jjnurminen
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
+.. _Kalle Makela: https://github.com/Kallemakela
 .. _Katarina Slama: https://github.com/katarinaslama
 .. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Kay Robbins: https://github.com/VisLab
