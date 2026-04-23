@@ -49,8 +49,7 @@ def test_plot_connectivity_circle_label_orientation():
     # This guarantees coverage of all four quadrants, including the previously
     # broken 0–90 range (nodes n0 at 0°, n1 at 40°, and n2 at 80°).
     n_nodes = 9
-    rng = np.random.default_rng(0)
-    con = rng.uniform(0, 1, size=(n_nodes, n_nodes))
+    con = np.ones((n_nodes, n_nodes))
     np.fill_diagonal(con, 0)
     node_names = [f"n{i}" for i in range(n_nodes)]
 
@@ -66,8 +65,7 @@ def test_plot_connectivity_circle_label_orientation():
         f"Expected {n_nodes} label texts, found {len(label_texts)}"
     )
 
-    for i, name in enumerate(node_names):
-        angle = angles_deg[i]
+    for angle, name in zip(angles_deg, node_names, strict=True):
         t = label_texts[name]
         ha = t.get_ha()
 
@@ -85,4 +83,3 @@ def test_plot_connectivity_circle_label_orientation():
                 f"Node '{name}' at {angle:.1f}° (left half) should have "
                 f"ha='right', got '{ha}'"
             )
-    plt.close(fig)
