@@ -3167,7 +3167,11 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
-        _validate_type(raw[ri], BaseRaw, f"raw[{ri}]")
+        if not isinstance(raw[ri], (BaseRaw, _RawShell)):
+            raise ValueError(
+                f"raw[{ri}] type must match raw[0]: expected BaseRaw, got "
+                f"{type(raw[ri]).__name__}"
+            )
         for key in ("nchan", "sfreq"):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
@@ -3180,7 +3184,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
+                    f"raw[{ri}].info[{kind}] must match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError(f"raw[{ri}]._cals must match")
