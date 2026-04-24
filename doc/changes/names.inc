@@ -177,6 +177,7 @@
 .. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Kay Robbins: https://github.com/VisLab
 .. _Keith Doelling: https://github.com/kdoelling1919
+.. _Kidus Abebe: https://github.com/kidusabe1
 .. _Konstantinos Tsilimparis: https://contsili.github.io/
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 .. _Kristijan Armeni: https://github.com/kristijanarmeni

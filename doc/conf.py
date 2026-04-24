@@ -569,6 +569,7 @@ sphinx_gallery_conf = {
     ),
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
     "parallel": sphinx_gallery_parallel,
+    "recommender": {"enable": True},
 }
 assert is_serializable(sphinx_gallery_conf)
 # Files were renamed from plot_* with:
