@@ -27,6 +27,7 @@ from mne.utils import (
     set_config,
     set_memmap_min_size,
     sys_info,
+    update_config,
 )
 
 
@@ -104,6 +105,58 @@ def test_config(tmp_path):
     pytest.raises(TypeError, set_config, "foo", 1)
     pytest.raises(TypeError, _get_stim_channel, 1, None)
     pytest.raises(TypeError, _get_stim_channel, [1], None)
+
+
+def test_update_config_keyword_api(tmp_path):
+    """Test keyword-only update_config API (mne.update_config(use_cuda=True) etc.)."""
+    tempdir = str(tmp_path)
+    sdir1 = str(tmp_path / "subjects1")
+    sdir2 = str(tmp_path / "subjects2")
+    sdir3 = str(tmp_path / "subjects3")
+
+    mne.update_config(home_dir=tempdir, use_cuda=True)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
+
+    # bool False -- "false" (not "False")
+    update_config(home_dir=tempdir, use_cuda=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "false"
+
+    # Multiple kwargs at once; Path is coerced to str
+    update_config(
+        home_dir=tempdir, use_cuda=True, subjects_dir=Path(sdir1), set_env=False
+    )
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == str(Path(sdir1))
+
+    # Preserve semantics: omitting a kwarg leaves existing value untouched
+    update_config(home_dir=tempdir, subjects_dir=sdir2, set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"  # unchanged
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == sdir2
+
+    # Explicit "-preserve-" sentinel does the same thing
+    update_config(
+        home_dir=tempdir, use_cuda="-preserve-", subjects_dir=sdir3, set_env=False
+    )
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"  # still unchanged
+    assert get_config("SUBJECTS_DIR", home_dir=tempdir) == sdir3
+
+    # Remove a key by passing None
+    update_config(home_dir=tempdir, use_cuda=None)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) is None
+
+    # set_env=False: written to config file but not to environment
+    update_config(home_dir=tempdir, use_cuda=True, set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "true"
+    assert "MNE_USE_CUDA" not in os.environ
+
+    # Old positional key/value API is still fully backward-compatible
+    set_config("MNE_USE_CUDA", "false", home_dir=tempdir, set_env=False)
+    assert get_config("MNE_USE_CUDA", home_dir=tempdir) == "false"
+
+    with pytest.raises(TypeError, match="at least one key/value update"):
+        update_config(home_dir=tempdir)
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        update_config(home_dir=tempdir, not_a_real_key=True)
 
 
 def test_sys_info_basic():
