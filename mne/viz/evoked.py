@@ -1956,8 +1956,7 @@ def plot_evoked_joint(
     _, times_ts = _check_time_unit(ts_args["time_unit"], times_sec)
 
     if len(ch_types) == 1 and set(ch_types) == {"mag"}:
-        from .topomap import _prepare_topomap_plot
-        from .topomap import _opm_coils
+        from .topomap import _opm_coils, _prepare_topomap_plot
 
         (
             _,

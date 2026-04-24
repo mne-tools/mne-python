@@ -1809,9 +1809,12 @@ def plot_ica_components(
                 else:
                     grouped_data = [(None, data_[:, np.newaxis], pos, names)]
 
-            for group_idx, (group_label, group_data, group_pos, group_names) in enumerate(
-                grouped_data
-            ):
+            for group_idx, (
+                group_label,
+                group_data,
+                group_pos,
+                group_names,
+            ) in enumerate(grouped_data):
                 ax_idx = comp_offset * n_group_axes + group_idx
                 ax = _axes[ax_idx]
                 plot_title = comp_title
