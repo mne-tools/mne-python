@@ -37,7 +37,7 @@ matplotlib.figure.Figure
 
 import datetime
 import platform
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 from functools import partial
 
@@ -55,6 +55,7 @@ from .._fiff.pick import (
     channel_indices_by_type,
     pick_types,
 )
+from ..defaults import DEFAULTS
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
@@ -81,6 +82,91 @@ ANNOTATION_FIG_MIN_H = 2.9  # fixed part, not including radio buttons/labels
 ANNOTATION_FIG_W = 5.0
 ANNOTATION_FIG_CHECKBOX_COLUMN_W = 0.5
 _OLD_BUTTONS = not check_version("matplotlib", "3.7")
+
+# DARK THEME COLORS
+# These colors are duplicated from mne-qt-browser (_dark_dict). If you change one, make
+# sure to update the other as well.
+_DARK_BGCOLOR = "#1e1e1e"
+_DARK_FGCOLOR = "#d0d0d0"
+_DARK_BAD_COLOR = "#696969"
+_DARK_BUTTON_COLOR = "#3a3a3a"
+_DARK_EVENT_COLOR = "#008b8b"
+_DARK_CHANNEL_OVERRIDES = {
+    # "k" (black) channels → white in dark mode
+    "eeg": "#ffffff",
+    "eog": "#ffffff",
+    "emg": "#ffffff",
+    "misc": "#ffffff",
+    "stim": "#ffffff",
+    "resp": "#ffffff",
+    "chpi": "#ffffff",
+    "exci": "#ffffff",
+    "ias": "#ffffff",
+    "syst": "#ffffff",
+    "dipole": "#ffffff",
+    "gof": "#ffffff",
+    "bio": "#ffffff",
+    "ecog": "#ffffff",
+    "fnirs_cw_amplitude": "#ffffff",
+    "fnirs_fd_ac_amplitude": "#ffffff",
+    "fnirs_fd_phase": "#ffffff",
+    "fnirs_od": "#ffffff",
+    "csd": "#ffffff",
+    "whitened": "#ffffff",
+    "eyegaze": "#ffffff",
+    "pupil": "#ffffff",
+    "mag": "#add8e6",
+    "grad": "#6495ed",
+    "ref_meg": "#b0c4de",
+    "ecg": "#ee82ee",
+    "seeg": "#f4a460",
+    "dbs": "#20b2aa",
+    "hbo": "#ff69b4",
+    "hbr": "#6495ed",
+    "gsr": "#b0b055",
+    "temperature": "#aa6666",
+}
+
+
+def _resolve_mpl_theme(theme):
+    """Resolve "auto" theme to "light" or "dark" using darkdetect."""
+    if theme == "auto":
+        from .backends._utils import _qt_detect_theme
+
+        return _qt_detect_theme()
+    return theme
+
+
+def _apply_mpl_theme_to_kwargs(kwargs):
+    """Apply dark theme colors to browser kwargs in-place."""
+    theme = kwargs.get("theme", "auto")
+    if _resolve_mpl_theme(theme) != "dark":
+        return
+    # bgcolor: override if absent or still at the light default "w"
+    if kwargs.get("bgcolor", "w") == "w":
+        kwargs["bgcolor"] = _DARK_BGCOLOR
+    # fgcolor: inject if not explicitly set by the caller
+    kwargs.setdefault("fgcolor", _DARK_FGCOLOR)
+    # bad channel colors: override if still at the light default
+    for key in ("bad_color", "ch_color_bad"):
+        if kwargs.get(key, "lightgray") == "lightgray":
+            kwargs[key] = _DARK_BAD_COLOR
+    # channel type colors: override only entries still at their light defaults
+    if "ch_color_dict" in kwargs:
+        light_defaults = DEFAULTS["color"]
+        for ch_type, dark_color in _DARK_CHANNEL_OVERRIDES.items():
+            if ch_type in kwargs["ch_color_dict"] and kwargs["ch_color_dict"][
+                ch_type
+            ] == light_defaults.get(ch_type):
+                kwargs["ch_color_dict"][ch_type] = dark_color
+    # event color: override if still at the light default "cyan"
+    if "event_color_dict" in kwargs:
+        d = kwargs["event_color_dict"]
+        if hasattr(d, "default_factory") and d.default_factory is not None:
+            if d.default_factory() == "cyan":
+                new_d = defaultdict(lambda: _DARK_EVENT_COLOR)
+                new_d.update(d)
+                kwargs["event_color_dict"] = new_d
 
 
 class MNEFigure(Figure):
@@ -360,6 +446,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
         kwargs.update({"inst": inst, "figsize": figsize, "ica": ica, "xlabel": xlabel})
 
+        _apply_mpl_theme_to_kwargs(kwargs)
+
         BrowserBase.__init__(self, **kwargs)
         MNEFigure.__init__(self, **kwargs)
 
@@ -566,6 +654,24 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             vline_hscroll=vline_hscroll,
             vline_text=vline_text,
         )
+
+        # apply theme colors (dark mode only)
+        if self.mne.bgcolor == _DARK_BGCOLOR:
+            self.patch.set_facecolor(self.mne.bgcolor)
+            for _ax in (ax_hscroll, ax_vscroll):
+                _ax.set_facecolor(self.mne.bgcolor)
+            for _ax in (ax_main, ax_hscroll):
+                for _spine in _ax.spines.values():
+                    _spine.set_color(self.mne.fgcolor)
+                _ax.tick_params(colors=self.mne.fgcolor, labelcolor=self.mne.fgcolor)
+                _ax.xaxis.label.set_color(self.mne.fgcolor)
+            self.mne.button_help.ax.set_facecolor(_DARK_BUTTON_COLOR)
+            self.mne.button_help.color = _DARK_BUTTON_COLOR
+            self.mne.button_help.label.set_color(self.mne.fgcolor)
+            if ax_proj is not None:
+                self.mne.button_proj.ax.set_facecolor(_DARK_BUTTON_COLOR)
+                self.mne.button_proj.color = _DARK_BUTTON_COLOR
+                self.mne.button_proj.label.set_color(self.mne.fgcolor)
 
     def _get_size(self):
         return self.get_size_inches()
@@ -873,6 +979,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _new_child_figure(self, fig_name, *, layout=None, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
+        kwargs.setdefault("bgcolor", self.mne.bgcolor)
+        kwargs.setdefault("fgcolor", self.mne.fgcolor)
         fig = _figure(
             toolbar=False,
             parent_fig=self,
@@ -919,8 +1027,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         ax = fig.add_axes((0.01, 0.01, 0.98, 0.98))
         ax.set_axis_off()
         kwargs = dict(va="top", linespacing=1.5, usetex=False)
-        ax.text(0.42, 1, keys, ma="right", ha="right", **kwargs)
-        ax.text(0.42, 1, vals, ma="left", ha="left", **kwargs)
+        txt_keys = ax.text(0.42, 1, keys, ma="right", ha="right", **kwargs)
+        txt_vals = ax.text(0.42, 1, vals, ma="left", ha="left", **kwargs)
+        # apply theme colors
+        fig.patch.set_facecolor(fig.mne.bgcolor)
+        ax.set_facecolor(fig.mne.bgcolor)
+        txt_keys.set_color(fig.mne.fgcolor)
+        txt_vals.set_color(fig.mne.fgcolor)
 
     def _toggle_help_fig(self, event):
         """Show/hide the help dialog window."""
@@ -1060,7 +1173,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 r"$\mathbf{Esc:}$ exit annotation mode & close this window",
             ]
         )
-        instructions_ax.text(
+        instr_text = instructions_ax.text(
             0, 1, instructions, va="top", ha="left", linespacing=1.7, usetex=False
         )  # force use of MPL mathtext parser
         instructions_ax.set_axis_off()
@@ -1070,7 +1183,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             size=Fixed(3 * ANNOTATION_FIG_PAD),
             pad=Fixed(ANNOTATION_FIG_PAD),
         )
-        text_entry_ax.text(
+        new_label_text = text_entry_ax.text(
             0.4, 0.5, "New label:", va="center", ha="right", weight="bold"
         )
         fig.label = text_entry_ax.text(0.5, 0.5, "BAD_", va="center", ha="left")
@@ -1089,7 +1202,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         drag_ax = div.append_axes(
             "bottom", size=Fixed(drag_ax_height), pad=Fixed(ANNOTATION_FIG_PAD)
         )
-        check_kwargs = _get_check_kwargs()
+        check_kwargs = _get_check_kwargs(fgcolor=fig.mne.fgcolor)
         checkbox = CheckButtons(
             drag_ax,
             labels=("Draggable edges?",),
@@ -1118,6 +1231,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             text.set(position=(3 * _pad + _size, 0.45), va="center")
             for artist in lines + (rect, text):
                 artist.set_transform(drag_ax.transData)
+            rect.set_edgecolor(fig.mne.fgcolor)
+            for line in lines:
+                line.set_color(fig.mne.fgcolor)
+            text.set_color(fig.mne.fgcolor)
+        else:
+            checkbox.labels[0].set_color(fig.mne.fgcolor)
         # setup interactivity in plot window
         if fig.mne.radio_ax.buttons is None:
             col = "#ff0000"
@@ -1137,6 +1256,18 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne._callback_ids["motion_notify_event"] = self.canvas.mpl_connect(
             "motion_notify_event", self._hover
         )
+
+        # apply theme colors to annotation dialog (dark mode only)
+        if fig.mne.bgcolor == _DARK_BGCOLOR:
+            fig.patch.set_facecolor(fig.mne.bgcolor)
+            for _ax in fig.axes:
+                _ax.set_facecolor(fig.mne.bgcolor)
+            fig.button.ax.set_facecolor(_DARK_BUTTON_COLOR)
+            fig.button.color = _DARK_BUTTON_COLOR
+            for _artist in (instr_text, new_label_text, fig.label, fig.button.label):
+                _artist.set_color(fig.mne.fgcolor)
+            fig.mne.radio_ax._left_title.set_color(fig.mne.fgcolor)
+            fig.mne.show_hide_ax._right_title.set_color(fig.mne.fgcolor)
 
     def _toggle_visible_annotations(self, event):
         """Enable/disable display of annotations on a per-label basis."""
@@ -1167,7 +1298,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # populate center axes with labels & radio buttons
         ax.clear()
         title = "Existing labels:" if len(labels) else "No existing labels"
-        ax.set_title(title, size=None, loc="left")
+        ax.set_title(title, size=None, loc="left").set_color(fig.mne.fgcolor)
         if len(labels):
             if _OLD_BUTTONS:
                 ax.buttons = RadioButtons(ax, labels, **_BLIT_KWARGS)
@@ -1200,6 +1331,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 )
         else:
             ax.buttons = None
+        if ax.buttons is not None:
+            for _lbl in ax.buttons.labels:
+                _lbl.set_color(fig.mne.fgcolor)
         # adjust xlim to keep equal aspect & full width (keep circles round)
         aspect = (
             ANNOTATION_FIG_W - ANNOTATION_FIG_CHECKBOX_COLUMN_W - 3 * ANNOTATION_FIG_PAD
@@ -1228,14 +1362,16 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         check_values.update(self.mne.visible_annotations)  # existing checks
         actives = [check_values[label] for label in labels]
         # regenerate checkboxes
-        check_kwargs = _get_check_kwargs()
+        check_kwargs = _get_check_kwargs(fgcolor=fig.mne.fgcolor)
         checkboxes = CheckButtons(
             ax=fig.mne.show_hide_ax, labels=labels, actives=actives, **check_kwargs
         )
         checkboxes.on_clicked(self._toggle_visible_annotations)
         # add title, hide labels
         show_hide_title = "show/\nhide " if len(labels) else ""
-        show_hide_ax.set_title(show_hide_title, size=None, loc="right")
+        show_hide_ax.set_title(show_hide_title, size=None, loc="right").set_color(
+            fig.mne.fgcolor
+        )
         for label in checkboxes.labels:
             label.set_visible(False)
         show_hide_ax.set_axis_off()
@@ -1253,9 +1389,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 bounds = (aspect, bbox.ymin, -bbox.width, bbox.height)
                 rect.set_bounds(bounds)
                 rect.set_clip_on(False)
+                rect.set_edgecolor(fig.mne.fgcolor)
             for line in np.array(checkboxes.lines).ravel():
                 line.set_transform(show_hide_ax.transData)
                 line.set_xdata(aspect + 0.05 - np.array(line.get_xdata()))
+                line.set_color(fig.mne.fgcolor)
         # store state
         self.mne.visible_annotations = check_values
         self.mne.show_hide_annotation_checkboxes = checkboxes
@@ -1301,7 +1439,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 f"Existing labels: (duplicate label: {repr(text)})",
                 size=None,
                 loc="left",
-            )
+            ).set_color(self.mne.fig_annotation.mne.fgcolor)
             self.mne.fig_annotation.canvas.draw()
             return
         self.mne.new_annotation_labels.append(text)
@@ -1602,7 +1740,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ax,
             labels=labels,
             actives=self.mne.projs_on,
-            **_get_check_kwargs(labels=labels),
+            **_get_check_kwargs(labels=labels, fgcolor=fig.mne.fgcolor),
         )
         # gray-out already applied projectors
         if _OLD_BUTTONS:
@@ -1909,6 +2047,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             return str(round(x, digits))
         # format as timestamp
         meas_date = self.mne.inst.info["meas_date"]
+        if meas_date is None:
+            return str(round(x, digits))
         first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
         xtime = datetime.timedelta(seconds=x)
         xdatetime = meas_date + first_time + xtime
@@ -1919,6 +2059,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _toggle_time_format(self):
         if self.mne.time_format == "float":
+            if self.mne.inst.info["meas_date"] is None:
+                return  # can't show clock time without a measurement date
             self.mne.time_format = "clock"
             x_axis_label = "Time (HH:MM:SS)"
         else:
@@ -2517,13 +2659,17 @@ def _init_browser(**kwargs):
     return fig
 
 
-def _get_check_kwargs(labels=None):
+def _get_check_kwargs(labels=None, fgcolor=None):
     check_kwargs = dict()
     if not _OLD_BUTTONS:
         check_kwargs.update(
             check_props=dict(s=144, clip_on=False),
             frame_props=dict(s=144, clip_on=False),
         )
+        if fgcolor is not None:
+            # Color check marks (unfilled 'x' marker uses facecolor) and frame borders
+            check_kwargs["check_props"].update(facecolor=fgcolor)
+            check_kwargs["frame_props"].update(edgecolor=fgcolor)
         if labels is not None:
             textcolor = list()
             checkcolor = list()
@@ -2532,8 +2678,9 @@ def _get_check_kwargs(labels=None):
                     textcolor.append("0.5")
                     checkcolor.append("0.7")
                 else:
-                    textcolor.append("k")
-                    checkcolor.append("k")
+                    _clr = fgcolor if fgcolor is not None else "k"
+                    textcolor.append(_clr)
+                    checkcolor.append(_clr)
             check_kwargs["check_props"].update(facecolor=checkcolor, linewidth=1)
             check_kwargs["frame_props"].update(edgecolor=checkcolor, linewidth=1)
             check_kwargs["label_props"] = dict(color=textcolor)

@@ -4576,7 +4576,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    Only supported by the ``'qt'`` backend.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
+    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
+    stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
