@@ -258,6 +258,7 @@
 .. _Paul Pasler: https://github.com/ppasler
 .. _Paul Roujansky: https://github.com/paulroujansky
 .. _Pavel Navratil: https://github.com/navrpa13
+.. _Pavel Popov: https://github.com/paavalipopov
 .. _Peter Molfese: https://github.com/pmolfese
 .. _Phillip Alday: https://palday.bitbucket.io
 .. _Pierre Ablin: https://pierreablin.com
