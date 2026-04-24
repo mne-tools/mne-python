@@ -49,7 +49,7 @@ def test_plot_connectivity_circle_label_orientation():
     # broken 0–90 range (nodes n0 at 0°, n1 at 40°, and n2 at 80°).
     n_nodes = 9
     con = np.ones((n_nodes, n_nodes))
-    np.fill_diagonal(con, 0)
+    con[::2, ::2] = 0  # add some zeros to avoid 0-div in normalization
     node_names = [f"n{i}" for i in range(n_nodes)]
 
     fig, ax = _plot_connectivity_circle(con, node_names, show=False)
