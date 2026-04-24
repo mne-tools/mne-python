@@ -439,8 +439,9 @@ except Exception:
 else:
     pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
     pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
-    numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["checks"])
-    numpydoc_validation_exclude = pyproject["tool"]["numpydoc_validation"]["exclude"]
+    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+    numpydoc_validation_checks = set(pyproject_nv["checks"])
+    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
