@@ -24,7 +24,7 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT, _contains_ch_type
 from .._freesurfer import _mri_orientation, _reorient_image
 from ..cov import Covariance, read_cov
 from ..defaults import _handle_default
@@ -38,7 +38,7 @@ from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
 from ..preprocessing.ica import read_ica
-from ..proj import read_proj
+from ..proj import read_proj, sensitivity_map
 from ..source_estimate import SourceEstimate, read_source_estimate
 from ..source_space._source_space import _ensure_src
 from ..surface import dig_mri_distances
@@ -1544,6 +1544,7 @@ class Report:
         subject=None,
         subjects_dir=None,
         plot=False,
+        sensitivity=False,
         tags=("forward-solution",),
         section=None,
         replace=False,
@@ -1565,6 +1566,14 @@ class Report:
             If True, plot the source space of the forward solution.
 
             .. versionadded:: 1.10
+        sensitivity : bool | list of str
+            If True, compute and plot sensitivity maps for all available
+            channel types (MEG gradiometers, MEG magnetometers, and EEG).
+            If a list, compute sensitivity maps for only the specified
+            channel types (e.g., ``['grad', 'mag']``).
+            Valid channel types are ``'grad'``, ``'mag'``, and ``'eeg'``.
+
+            .. versionadded:: 1.12
         %(tags_report)s
         %(section_report)s
 
@@ -1587,6 +1596,7 @@ class Report:
             tags=tags,
             replace=replace,
             plot=plot,
+            sensitivity=sensitivity,
         )
 
     @fill_doc
@@ -3659,6 +3669,7 @@ class Report:
         title,
         image_format,
         plot,
+        sensitivity,
         section,
         tags,
         replace,
@@ -3669,10 +3680,134 @@ class Report:
 
         subject = self.subject if subject is None else subject
         subject = forward["src"][0]["subject_his_id"] if subject is None else subject
+        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
 
-        # XXX Todo
-        # Render sensitivity maps
         sensitivity_maps_html = ""
+        if sensitivity:
+            if subjects_dir is None:
+                raise ValueError(
+                    "subjects_dir must be provided to compute sensitivity maps"
+                )
+
+            info = forward["info"]
+            has_grad = _contains_ch_type(info, "grad")
+            has_mag = _contains_ch_type(info, "mag")
+            has_eeg = _contains_ch_type(info, "eeg")
+
+            all_ch_types = []
+            if has_grad:
+                all_ch_types.append("grad")
+            if has_mag:
+                all_ch_types.append("mag")
+            if has_eeg:
+                all_ch_types.append("eeg")
+
+            if not all_ch_types:
+                raise ValueError(
+                    "No MEG or EEG channels found in forward solution. "
+                    "Cannot compute sensitivity maps."
+                )
+
+            if sensitivity is True:
+                ch_types = all_ch_types
+            else:
+                ch_types = list(sensitivity)
+                for ch_type in ch_types:
+                    _check_option("ch_type", ch_type, ["grad", "mag", "eeg"])
+                    if ch_type not in all_ch_types:
+                        raise ValueError(
+                            f"Channel type '{ch_type}' not found in forward solution. "
+                            f"Available types are: {all_ch_types}"
+                        )
+
+            html_parts = []
+            for ch_type in ch_types:
+                _check_option("ch_type", ch_type, ["grad", "mag", "eeg"])
+
+            html_parts = []
+            for ch_type in ch_types:
+                stc = sensitivity_map(forward, ch_type=ch_type, mode="fixed")
+
+                stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", dict())
+                stc_plot_kwargs.update(
+                    subject=subject,
+                    subjects_dir=subjects_dir,
+                    clim=dict(kind="value", lims=[0, 50, 100]),
+                    colorbar=True,
+                )
+
+                import matplotlib.pyplot as plt
+
+                if get_3d_backend() is not None:
+                    brain = stc.plot(**stc_plot_kwargs)
+                    brain._renderer.plotter.subplot(0, 0)
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5), layout="constrained")
+                    ax.imshow(brain.screenshot(time_viewer=False, mode="rgb"))
+                    ax.axis("off")
+                    _constrain_fig_resolution(
+                        fig,
+                        max_width=stc_plot_kwargs.get("size", (800, 600))[0],
+                        max_res=self.img_max_res,
+                    )
+                    plt.close(fig)
+                    brain.close()
+                else:
+                    fig_lh = plt.figure(layout="constrained")
+                    fig_rh = plt.figure(layout="constrained")
+                    brain_lh = stc.plot(
+                        views="lat",
+                        hemi="lh",
+                        initial_time=stc.times[0],
+                        backend="matplotlib",
+                        subject=subject,
+                        subjects_dir=subjects_dir,
+                        figure=fig_lh,
+                        **stc_plot_kwargs,
+                    )
+                    brain_rh = stc.plot(
+                        views="lat",
+                        hemi="rh",
+                        initial_time=stc.times[0],
+                        subject=subject,
+                        subjects_dir=subjects_dir,
+                        backend="matplotlib",
+                        figure=fig_rh,
+                        **stc_plot_kwargs,
+                    )
+                    _constrain_fig_resolution(
+                        fig_lh,
+                        max_width=stc_plot_kwargs.get("size", (800, 600))[0],
+                        max_res=self.img_max_res,
+                    )
+                    _constrain_fig_resolution(
+                        fig_rh,
+                        max_width=stc_plot_kwargs.get("size", (800, 600))[0],
+                        max_res=self.img_max_res,
+                    )
+                    fig = fig_lh
+                    plt.close(fig_rh)
+                    brain_lh.close()
+                    brain_rh.close()
+
+                img = self._fig_to_img(fig=fig, image_format=image_format)
+                plt.close(fig)
+
+                img_id = f"forward-sensitivity-{ch_type}"
+                img_html = _html_image_element(
+                    id_=img_id,
+                    img=img,
+                    image_format=image_format,
+                    caption=f"Sensitivity map ({ch_type})",
+                    show=True,
+                    div_klass="forward-sensitivity-map",
+                    img_klass="forward-sensitivity-map",
+                    title=f"Sensitivity Map - {ch_type.upper()}",
+                    tags=(),
+                )
+                html_parts.append(img_html)
+
+            sensitivity_maps_html = "\n".join(html_parts)
+
         source_space_html = ""
         if plot:
             source_space_html = self._src_html(
