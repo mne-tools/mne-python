@@ -566,12 +566,15 @@ class BaseRaw(
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
-    def load_data(self, verbose=None):
+    def load_data(self, *, memmap=None, verbose=None):
         """Load raw data.
 
         Parameters
         ----------
         %(verbose)s
+        memmap : path-like | None
+            If not ``None``, preload data into a memory-mapped file at this
+            path. If ``None`` (default), preload data into RAM.
 
         Returns
         -------
@@ -586,7 +589,9 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
-            self._preload_data(True)
+            if memmap is not None:
+                _validate_type(memmap, "path-like", "memmap")
+            self._preload_data(memmap if memmap is not None else True)
         return self
 
     def _preload_data(self, preload):
