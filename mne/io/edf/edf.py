@@ -235,6 +235,30 @@ class RawEDF(BaseRaw):
                 np.ones((len(idx), 1)),
                 None,
             )
+
+            # Check for discontinuous EDF+D files with actual gaps
+            if edf_info.get("discontinuous", False):
+                record_times = _get_tal_record_times(tal_data[0], encoding=encoding)
+                record_length = edf_info["record_length"][0]
+                n_records = edf_info["n_records"]
+                has_gaps, gaps = _check_edf_discontinuity(
+                    record_times, record_length, n_records
+                )
+                if has_gaps:
+                    gap_info = ", ".join(
+                        [f"{onset:.3f}s (duration: {dur:.3f}s)" for onset, dur in gaps]
+                    )
+                    raise NotImplementedError(
+                        "This EDF+D file contains discontinuous data with gaps "
+                        f"between records. Gaps found at: {gap_info}. "
+                        "MNE-Python does not currently support reading EDF+D files "
+                        "with acquisition gaps. The data would be incorrectly "
+                        "treated as continuous, leading to incorrect time alignment. "
+                        "Consider using specialized tools like luna/lunapi for "
+                        "discontinuous EDF+ files, or convert the file to EDF+C "
+                        "format if the gaps are not significant for your analysis."
+                    )
+
             annotations = _read_annotations_edf(
                 tal_data[0],
                 ch_names=info["ch_names"],
@@ -447,6 +471,30 @@ class RawBDF(BaseRaw):
                 np.ones((len(idx), 1)),
                 None,
             )
+
+            # Check for discontinuous BDF+D files with actual gaps
+            if edf_info.get("discontinuous", False):
+                record_times = _get_tal_record_times(tal_data[0], encoding=encoding)
+                record_length = edf_info["record_length"][0]
+                n_records = edf_info["n_records"]
+                has_gaps, gaps = _check_edf_discontinuity(
+                    record_times, record_length, n_records
+                )
+                if has_gaps:
+                    gap_info = ", ".join(
+                        [f"{onset:.3f}s (duration: {dur:.3f}s)" for onset, dur in gaps]
+                    )
+                    raise NotImplementedError(
+                        "This BDF+D file contains discontinuous data with gaps "
+                        f"between records. Gaps found at: {gap_info}. "
+                        "MNE-Python does not currently support reading BDF+D files "
+                        "with acquisition gaps. The data would be incorrectly "
+                        "treated as continuous, leading to incorrect time alignment. "
+                        "Consider using specialized tools like luna/lunapi for "
+                        "discontinuous BDF+ files, or convert the file to BDF+C "
+                        "format if the gaps are not significant for your analysis."
+                    )
+
             annotations = _read_annotations_edf(
                 tal_data[0],
                 ch_names=info["ch_names"],
@@ -1159,8 +1207,15 @@ def _read_edf_header(
         # to determine the subtype (EDF or BDF, which differ in the
         # number of bytes they use for the data records; EDF uses 2 bytes
         # whereas BDF uses 3 bytes).
-        fid.read(44)
+        # However, we still need to check for EDF+D/BDF+D (discontinuous) files.
+        reserved = fid.read(44).decode("latin-1").rstrip()
         subtype = file_type
+
+        # Check for discontinuous EDF+D/BDF+D files
+        if reserved in ("EDF+D", "BDF+D"):
+            edf_info["discontinuous"] = True
+        else:
+            edf_info["discontinuous"] = False
 
         n_records = int(_edf_str(fid.read(8)))
         record_length = float(_edf_str(fid.read(8)))
@@ -2005,6 +2060,11 @@ def read_raw_edf(
 
     The EDF specification allows storage of subseconds in measurement date.
     However, this reader currently sets subseconds to 0 by default.
+
+    EDF+D (discontinuous) files with actual gaps between data records are not
+    supported and will raise a :class:`NotImplementedError`. EDF+D files that
+    are marked as discontinuous but have no actual gaps (e.g., from some
+    Nihon Kohden systems) will load normally.
     """
     _check_args(input_fname, preload, "edf")
 
@@ -2144,6 +2204,10 @@ def read_raw_bdf(
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
+
+    BDF+D (discontinuous) files with actual gaps between data records are not
+    supported and will raise a :class:`NotImplementedError`. BDF+D files that
+    are marked as discontinuous but have no actual gaps will load normally.
     """
     _check_args(input_fname, preload, "bdf")
 
@@ -2355,3 +2419,137 @@ def _get_annotations_gdf(edf_info, sfreq):
         desc = events[2]
 
     return onset, duration, desc
+
+
+def _get_tal_record_times(annotations, encoding="utf8"):
+    """Extract TAL record onset times from EDF+ annotation data.
+
+    In EDF+ files, each data record contains a Time-stamped Annotation List (TAL)
+    that starts with the onset time of that data record. This function extracts
+    these onset times to detect gaps between records in EDF+D (discontinuous) files.
+
+    Parameters
+    ----------
+    annotations : ndarray (n_chans, n_samples) | str
+        Channel data in EDF+ TAL format or path to annotation file.
+    encoding : str
+        Encoding to use when decoding the TAL data.
+
+    Returns
+    -------
+    record_times : list of float
+        List of onset times for each data record, in seconds.
+    """
+    pat = "([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00"
+    if isinstance(annotations, str | Path):
+        with open(annotations, "rb") as annot_file:
+            triggers = re.findall(pat.encode(), annot_file.read())
+            triggers = [tuple(map(lambda x: x.decode(encoding), t)) for t in triggers]
+    else:
+        tals = bytearray()
+        annotations = np.atleast_2d(annotations)
+        for chan in annotations:
+            this_chan = chan.ravel()
+            if this_chan.dtype == INT32:  # BDF
+                this_chan = this_chan.view(dtype=UINT8)
+                this_chan = this_chan.reshape(-1, 4)
+                this_chan = this_chan[:, :3].ravel()
+                tals.extend(this_chan)
+            else:
+                this_chan = chan.astype(np.int64)
+                tals.extend(np.uint8([this_chan % 256, this_chan // 256]).flatten("F"))
+        try:
+            triggers = re.findall(pat, tals.decode(encoding))
+        except UnicodeDecodeError:
+            return []
+
+    # Extract record onset times (first TAL entry of each record has empty description)
+    record_times = []
+    for ev in triggers:
+        onset = float(ev[0])
+        # Check if this is a record timestamp (empty description after \x14)
+        descriptions = ev[3].split("\x14")[1:]
+        # The first TAL in each record has the record onset time
+        # If there's no description, it's the record timestamp
+        if not any(descriptions):
+            record_times.append(onset)
+
+    return record_times
+
+
+def _check_edf_discontinuity(record_times, record_length, n_records, tolerance=1e-6):
+    """Check if an EDF+D file has actual gaps between records.
+
+    Parameters
+    ----------
+    record_times : list of float
+        List of onset times for each data record, extracted from TAL annotations.
+    record_length : float
+        Duration of each data record in seconds.
+    n_records : int
+        Expected number of data records.
+    tolerance : float
+        Tolerance for comparing times (in seconds).
+
+    Returns
+    -------
+    has_gaps : bool
+        True if gaps exist between records.
+    gaps : list of tuple
+        List of (onset, duration) tuples for each gap.
+
+    Raises
+    ------
+    ValueError
+        If the number of record times does not match n_records, or if record_times
+        contains non-numeric values.
+    """
+    # Handle empty/short cases early
+    if len(record_times) < 2:
+        # Validate n_records match even for edge cases
+        if len(record_times) != n_records:
+            raise ValueError(
+                f"Number of record times ({len(record_times)}) does not match "
+                f"expected number of records ({n_records})."
+            )
+        return False, []
+
+    # Validate n_records matches
+    if len(record_times) != n_records:
+        raise ValueError(
+            f"Number of record times ({len(record_times)}) does not match "
+            f"expected number of records ({n_records})."
+        )
+
+    # Convert to numpy array for validation and ensure numeric
+    try:
+        times = np.asarray(record_times, dtype=np.float64)
+    except (ValueError, TypeError) as e:
+        raise ValueError(
+            f"record_times must contain numeric values, got error: {e}"
+        ) from e
+
+    # Check for NaN or inf values
+    if not np.all(np.isfinite(times)):
+        raise ValueError("record_times contains non-finite values (NaN or inf).")
+
+    # Check if times are sorted (monotonically increasing)
+    if not np.all(np.diff(times) >= 0):
+        warn(
+            "record_times are not sorted in monotonically increasing order. "
+            "Sorting a copy for gap detection."
+        )
+        times = np.sort(times)
+
+    # Detect gaps using validated/sorted times
+    gaps = []
+    for i in range(len(times) - 1):
+        expected_next = times[i] + record_length
+        actual_next = times[i + 1]
+        gap = actual_next - expected_next
+
+        if gap > tolerance:
+            # Found a gap
+            gaps.append((expected_next, gap))
+
+    return len(gaps) > 0, gaps
