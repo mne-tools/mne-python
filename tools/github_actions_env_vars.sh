@@ -17,13 +17,18 @@ elif [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" | tee -a $GITHUB_ENV
     echo "MNE_SKIP_NETWORK_TESTS=1" | tee -a $GITHUB_ENV
     echo "MNE_QT_BACKEND=PyQt5" | tee -a $GITHUB_ENV
-else  # conda-like
+else  # conda-like or pixi
     echo "Setting conda env vars for $MNE_CI_KIND"
     if [[ "$MNE_CI_KIND" == "minimal" ]]; then
         echo "CONDA_ENV=tools/environment_minimal.yml" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
-    else  # conda, mamba (use warning level for completeness)
-        echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
+    else  # conda, mamba, pixi (use warning level for completeness)
+        if [[ "$MNE_CI_KIND" == "pixi" ]]; then
+            echo "PREFIX=pixi run" | tee -a $GITHUB_ENV;
+        else
+            echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
+        fi
+
         echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
         # TODO: Also need "|unreliable on GitHub Actions conda" on macOS, but omit for now to make sure the failure actually shows up

@@ -2,6 +2,7 @@
 
 set -eo pipefail
 
+
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
 else  # macOS or Windows
@@ -35,5 +36,5 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
 fi
 
 set -x
-pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
+${PREFIX} pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
 echo "Exited with code $?"

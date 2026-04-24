@@ -4,9 +4,9 @@ concurrency:
   cancel-in-progress: true
 on:  # yamllint disable-line rule:truthy
   push:
-    branches: ["main", "maint/*"]
+    branches: ["main", "maint/*", "pixi2"]
   pull_request:
-    branches: ["main", "maint/*"]
+    branches: ["main", "maint/*", "pixi2"]
   # adapted from spyder-ide/spyder
   workflow_dispatch:
     inputs:
@@ -81,7 +81,7 @@ jobs:
             kind: mamba
           - os: macos-15-intel  # intel: Sequoia
             python: '3.13'
-            kind: mamba
+            kind: pixi
           - os: windows-latest
             python: '3.11'
             kind: mamba
@@ -123,6 +123,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          manifest-path: tools/pixi.toml
+          # https://github.com/prefix-dev/setup-pixi/issues/139
+          activate-environment: true
+        if: matrix.kind == 'pixi'
       # Python (if conda)
       - name: Fixes for conda
         run: |
