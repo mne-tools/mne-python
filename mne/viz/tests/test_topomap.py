@@ -851,6 +851,32 @@ def test_split_opm_overlaps(triaxial_evoked):
     assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
 
 
+def test_should_use_opm_orientation_groups_only_for_triaxial():
+    """Test that OPM orientation grouping is restricted to triaxial overlaps."""
+    ch_names = [f"OPM{k:03}" for k in range(1, 7)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    with info._unlock():
+        for ch in info["chs"]:
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+
+    picks = np.arange(len(ch_names))
+    pair_overlaps = [
+        np.array(["OPM001", "OPM002"]),
+        np.array(["OPM003", "OPM004"]),
+    ]
+    triax_overlaps = [
+        np.array(["OPM001", "OPM002", "OPM003"]),
+        np.array(["OPM004", "OPM005", "OPM006"]),
+    ]
+
+    assert not topomap._should_use_opm_orientation_groups(
+        info, picks, pair_overlaps, "mag"
+    )
+    assert topomap._should_use_opm_orientation_groups(
+        info, picks, triax_overlaps, "mag"
+    )
+
+
 def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
     """Test grouped radial/tangential topomap rendering for triaxial OPM."""
     fig = triaxial_evoked.plot_topomap(

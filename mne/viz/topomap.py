@@ -359,6 +359,22 @@ def _compute_opm_orientation_topomap_data(data, ch_names, pos, overlapping_chann
     ]
 
 
+def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
+    """Return whether OPM orientation grouping should be enabled.
+
+    Grouping is only used for OPM magnetometer channels with overlap sets that
+    include at least 3 colocated channels (triaxial-style sensors).
+    """
+    if ch_type != "mag" or not merge_channels:
+        return False
+
+    pick_chs = [info["chs"][pick] for pick in picks]
+    if not pick_chs or not all(ch["coil_type"] in _opm_coils for ch in pick_chs):
+        return False
+
+    return any(len(overlap_set) >= 3 for overlap_set in merge_channels)
+
+
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
     from ..channels.layout import _merge_ch_data
@@ -1744,9 +1760,9 @@ def plot_ica_components(
 
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
     for k, picks in enumerate(pick_groups):
-        try:  # either an iterable, 1D numpy array or others
-            _axes = axes[k * max_subplots : (k + 1) * max_subplots]
-        except TypeError:  # None or Axes
+        if axes is None:
+            _axes = None
+        else:
             _axes = axes
 
         (
@@ -1767,10 +1783,8 @@ def plot_ica_components(
         data = np.atleast_2d(data)
         data = data[:, data_picks]
 
-        use_opm_orientation_groups = (
-            ch_type == "mag"
-            and any(ch["coil_type"] in _opm_coils for ch in ica.info["chs"])
-            and bool(merge_channels)
+        use_opm_orientation_groups = _should_use_opm_orientation_groups(
+            ica.info, data_picks, merge_channels, ch_type
         )
         n_group_axes = 2 if use_opm_orientation_groups else 1
 
@@ -2320,8 +2334,9 @@ def plot_evoked_topomap(
         clip_origin,
     ) = _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-    is_opm = any(ch["coil_type"] in _opm_coils for ch in evoked.info["chs"])
-    use_opm_orientation_groups = ch_type == "mag" and is_opm and bool(merge_channels)
+    use_opm_orientation_groups = _should_use_opm_orientation_groups(
+        evoked.info, picks, merge_channels, ch_type
+    )
     # check interactive
     axes_given = axes is not None
     interactive = isinstance(times, str) and times == "interactive"
@@ -2456,7 +2471,10 @@ def plot_evoked_topomap(
     grouped_data = None
     if merge_channels:
         # check modality
-        if is_opm:
+        is_opm_picks = len(picks) > 0 and all(
+            evoked.info["chs"][pick]["coil_type"] in _opm_coils for pick in picks
+        )
+        if is_opm_picks:
             modality = "opm"
         elif ch_type in _fnirs_types:
             modality = "fnirs"
