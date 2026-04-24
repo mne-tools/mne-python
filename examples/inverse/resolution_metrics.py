@@ -5,6 +5,8 @@
 Compute spatial resolution metrics in source space
 ==================================================
 
+.. tags:: examples, inverse, source-localization, statistics, visualization
+
 Compute peak localisation error and spatial deviation for the point-spread
 functions of dSPM and MNE. Plot their distributions and difference of
 distributions. This example mimics some results from :footcite:`HaukEtAl2019`,

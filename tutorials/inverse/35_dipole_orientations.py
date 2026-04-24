@@ -5,6 +5,8 @@
 The role of dipole orientations in distributed source localization
 ==================================================================
 
+.. tags:: tutorials, inverse, source-localization
+
 When performing source localization in a distributed manner
 (i.e., using MNE/dSPM/sLORETA/eLORETA),
 the source space is defined as a grid of dipoles that spans a large portion of

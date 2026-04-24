@@ -5,6 +5,8 @@
 Compute Power Spectral Density of inverse solution from single epochs
 =====================================================================
 
+.. tags:: examples, time-frequency, inverse, source-localization, epochs
+
 Compute PSD of dSPM inverse solution on single trial epochs restricted
 to a brain label. The PSD is computed using a multi-taper method with
 Discrete Prolate Spheroidal Sequence (DPSS) windows.

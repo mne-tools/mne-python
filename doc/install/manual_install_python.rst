@@ -5,6 +5,8 @@
 Installing Python
 =================
 
+.. tags:: installation, setup, python, beginners
+
 MNE-Python requires Python and several Python packages. MNE-Python
 version |version| requires Python version |min_python_version| or higher.
 

@@ -3,6 +3,8 @@
 Algorithms and other implementation details
 ===========================================
 
+.. tags:: documentation, implementation, internals
+
 This page describes some of the technical details of MNE-Python implementation.
 
 .. _units:

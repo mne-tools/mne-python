@@ -115,6 +115,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
+    "sphinx_tags",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     "sphinxcontrib.towncrier.ext",
@@ -167,6 +168,14 @@ copybutton_prompt_is_regexp = True
 # -- sphinxcontrib-towncrier configuration -----------------------------------
 
 towncrier_draft_working_directory = str(curpath.parent)
+
+# -- sphinx-tags configuration ------------------------------------------------
+
+tags_create_tags = True
+tags_output_dir = "_tags"
+tags_page_title = "Tag"
+tags_overview_title = "All Tags"
+tags_extension = ["rst"]
 
 # -- Intersphinx configuration -----------------------------------------------
 

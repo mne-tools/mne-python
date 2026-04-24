@@ -5,6 +5,8 @@
 Extracting time course from source_estimate object
 ==================================================
 
+.. tags:: examples, inverse, source-localization, visualization
+
 Load a SourceEstimate object from stc files and
 extract the time course of activation in
 individual labels, as well as in a complex label

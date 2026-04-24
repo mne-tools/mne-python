@@ -5,6 +5,8 @@
 Plotting topographic maps of evoked data
 ========================================
 
+.. tags:: examples, visualization, evoked, eeg, meg
+
 Load evoked data and plot topomaps for selected time points using
 multiple additional options.
 """

@@ -1,0 +1,1 @@
+Enable sphinx-tags and add tags to docs, tutorials, and examples. by `Aniket Singh Yadav`_.

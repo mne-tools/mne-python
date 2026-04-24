@@ -5,6 +5,8 @@
 Spectro-temporal receptive field (STRF) estimation on continuous data
 =====================================================================
 
+.. tags:: tutorials, machine-learning
+
 This demonstrates how an encoding model can be fit with multiple continuous
 inputs. In this case, we simulate the model behind a spectro-temporal receptive
 field (or STRF). First, we create a linear filter that maps patterns in

@@ -5,6 +5,8 @@
 Identify EEG Electrodes Bridged by too much Gel
 ===============================================
 
+.. tags:: examples, preprocessing, eeg, artifacts
+
 Research-grade EEG often uses a gel based system, and when too much gel is
 applied the gel conducting signal from the scalp to the electrode for one
 electrode connects with the gel conducting signal from another electrode

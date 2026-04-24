@@ -5,6 +5,8 @@
 Compute evoked ERS source power using DICS, LCMV beamformer, and dSPM
 =====================================================================
 
+.. tags:: examples, inverse, beamforming, source-localization, time-frequency
+
 Here we examine 3 ways of localizing event-related synchronization (ERS) of
 beta band activity in this dataset: :ref:`somato-dataset` using
 :term:`DICS`, :term:`LCMV beamformer`, and :term:`dSPM` applied to active and

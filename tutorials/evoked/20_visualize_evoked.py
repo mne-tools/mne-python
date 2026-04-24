@@ -5,6 +5,8 @@
 Visualizing Evoked data
 =======================
 
+.. tags:: tutorials, evoked, visualization, meg
+
 This tutorial shows the different visualization methods for
 :class:`~mne.Evoked` objects.
 

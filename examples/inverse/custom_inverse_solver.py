@@ -5,6 +5,8 @@
 Source localization with a custom inverse solver
 ================================================
 
+.. tags:: examples, inverse, source-localization, evoked, forward-model
+
 The objective of this example is to show how to plug a custom inverse solver
 in MNE in order to facilate empirical comparison with the methods MNE already
 implements (wMNE, dSPM, sLORETA, eLORETA, LCMV, DICS, (TF-)MxNE etc.).

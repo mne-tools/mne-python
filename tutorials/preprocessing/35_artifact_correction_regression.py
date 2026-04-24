@@ -5,6 +5,8 @@
 Repairing artifacts with regression
 ===================================
 
+.. tags:: tutorials, preprocessing, artifacts
+
 This tutorial covers removal of artifacts using regression as in Gratton et al.
 (1983) :footcite:`GrattonEtAl1983` and Croft & Barry (2000)
 :footcite:`CroftBarry2000`.

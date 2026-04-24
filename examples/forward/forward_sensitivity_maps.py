@@ -5,6 +5,8 @@
 Display sensitivity maps for EEG and MEG sensors
 ================================================
 
+.. tags:: examples, forward-model, eeg, meg
+
 Sensitivity maps can be produced from forward operators that
 indicate how well different sensor types will be able to detect
 neural currents from different regions of the brain.

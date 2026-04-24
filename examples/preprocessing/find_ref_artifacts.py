@@ -5,6 +5,8 @@
 Find MEG reference channel artifacts
 ====================================
 
+.. tags:: examples, preprocessing, artifacts, ica, meg
+
 Use ICA decompositions of MEG reference channels to remove intermittent noise.
 
 Many MEG systems have an array of reference channels which are used to detect

@@ -5,6 +5,8 @@
 Automated epochs metadata generation with variable time windows
 ===============================================================
 
+.. tags:: examples, epochs, events, preprocessing, eeg
+
 When working with :class:`~mne.Epochs`, :ref:`metadata <tut-epochs-metadata>` can be
 invaluable. There is an extensive tutorial on
 :ref:`how it can be generated automatically <tut-autogenerate-metadata>`.

@@ -5,6 +5,8 @@
 Computing source space SNR
 ==========================
 
+.. tags:: examples, inverse, source-localization, meg, eeg, visualization
+
 This example shows how to compute and plot source space SNR as in
 :footcite:`GoldenholzEtAl2009`.
 """

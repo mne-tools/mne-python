@@ -5,6 +5,8 @@
 Frequency and time-frequency sensor analysis
 ============================================
 
+.. tags:: tutorials, time-frequency, epochs
+
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.
 

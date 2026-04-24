@@ -5,6 +5,8 @@
 Reading XDF EEG data
 ====================
 
+.. tags:: examples, io, raw, eeg
+
 Here we read some sample XDF data. Although we do not analyze it here, this
 recording is of a short parallel auditory response (pABR) experiment
 :footcite:`PolonenkoMaddox2019` and was provided by the `Maddox Lab <Ross Maddox_>`_.

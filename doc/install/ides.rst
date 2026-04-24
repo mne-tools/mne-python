@@ -3,6 +3,8 @@
 IDE integration (VSCode, Spyder, etc.)
 ======================================
 
+.. tags:: installation, setup, ide, vscode
+
 Most users find it convenient to write and run their code in an `Integrated
 Development Environment`_ (IDE). Some popular choices for scientific
 Python development are:

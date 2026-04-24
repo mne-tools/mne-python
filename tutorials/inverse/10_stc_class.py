@@ -5,6 +5,8 @@
 The SourceEstimate data structure
 =================================
 
+.. tags:: tutorials, inverse, source-localization
+
 Source estimates, commonly referred to as
 :term:`STC (Source Time Courses) <stc>`,
 are obtained from source localization methods.

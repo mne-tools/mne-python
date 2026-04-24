@@ -5,6 +5,8 @@
 Generate simulated source data
 ==============================
 
+.. tags:: examples, simulation, source-localization, events, evoked
+
 This example illustrates how to use the :class:`mne.simulation.SourceSimulator`
 class to generate source estimates and raw data. It is meant to be a brief
 introduction and only highlights the simplest use case.

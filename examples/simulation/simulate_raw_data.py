@@ -5,6 +5,8 @@
 Generate simulated raw data
 ===========================
 
+.. tags:: examples, simulation, raw, forward-model
+
 This example generates raw data by repeating a desired source activation
 multiple times.
 """

@@ -5,6 +5,8 @@
 The Info data structure
 =======================
 
+.. tags:: tutorials, beginners, raw, epochs, evoked
+
 This tutorial describes the :class:`mne.Info` data structure, which keeps track of
 various recording details, and is attached to :class:`~mne.io.Raw`,
 :class:`~mne.Epochs`, and :class:`~mne.Evoked` objects.
