@@ -104,7 +104,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
     for ii, annot in enumerate(raw.annotations):
         assert annot["description"] == "BAD_ACQ_SKIP"
         start, stop = raw.time_as_index(
-            [annot["onset"], annot["onset"] + annot["duration"]]
+            [annot["onset"], annot["onset"] + annot["duration"]], use_rounding=False
         )
         data, _ = raw[:, start:stop]
         assert_array_equal(data[other_picks], 0.0)

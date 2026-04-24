@@ -630,16 +630,25 @@ class BaseRaw(
     def _last_time(self):
         return self.last_samp / float(self.info["sfreq"])
 
-    def time_as_index(self, times, use_rounding=False, origin=None):
+    def time_as_index(self, times, use_rounding=None, origin=None):
         """Convert time to indices.
 
         Parameters
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_rounding : bool
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
+        use_rounding : bool | None
+            If True, use rounding when converting times to indices. This can
+            help avoid non-unique indices.
+            If False, use truncation when converting times to indices.
+            If None (the default), rounding is used but a FutureWarning is
+            emitted. Pass ``True`` or ``False`` explicitly to silence the
+            warning.
+
+            .. versionchanged:: 2.0
+                The default changed from ``False`` to ``None``, which will
+                round and emit a warning. In a future release the default
+                will change to ``True``.
         origin : datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
             relative to :term:`first_samp`.
