@@ -7,15 +7,17 @@ import json
 import math
 import warnings
 from collections import namedtuple
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
+from os import PathLike
 from time import time
 from typing import Literal
 
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy import stats
 from scipy.spatial import distance
 from scipy.special import expit
@@ -435,15 +437,15 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(
         self,
-        n_components=None,
+        n_components: int | float | None = None,
         *,
-        noise_cov=None,
+        noise_cov: Covariance | None = None,
         random_state=None,
-        method="fastica",
-        fit_params=None,
-        max_iter="auto",
-        allow_ref_meg=False,
-        verbose=None,
+        method: Literal["fastica", "infomax", "picard"] = "fastica",
+        fit_params: dict | None = None,
+        max_iter: int | Literal["auto"] = "auto",
+        allow_ref_meg: bool = False,
+        verbose: bool | str | int | None = None,
     ):
         _validate_type(method, str, "method")
         _validate_type(n_components, (float, "int-like", None))
@@ -592,16 +594,16 @@ class ICA(ContainsMixin):
     @verbose
     def fit(
         self,
-        inst,
+        inst: BaseRaw | BaseEpochs,
         picks=None,
-        start=None,
-        stop=None,
-        decim=None,
-        reject=None,
-        flat=None,
-        tstep=2.0,
-        reject_by_annotation=True,
-        verbose=None,
+        start: int | None = None,
+        stop: int | None = None,
+        decim: int | None = None,
+        reject: dict | None = None,
+        flat: dict | None = None,
+        tstep: float = 2.0,
+        reject_by_annotation: bool = True,
+        verbose: bool | str | int | None = None,
     ):
         """Run the ICA decomposition on raw data.
 
@@ -1090,7 +1092,15 @@ class ICA(ContainsMixin):
             self.pca_components_[: self.n_components_],
         ).T
 
-    def get_explained_variance_ratio(self, inst, *, components=None, ch_type=None):
+    def get_explained_variance_ratio(
+        self,
+        inst: BaseRaw | BaseEpochs | Evoked,
+        *,
+        components: ArrayLike | int | None = None,
+        ch_type: Literal["mag", "grad", "planar1", "planar2", "eeg"]
+        | ArrayLike
+        | None = None,
+    ):
         """Get the proportion of data variance explained by ICA components.
 
         Parameters
@@ -1219,7 +1229,13 @@ class ICA(ContainsMixin):
         var_explained_ratio = 1 - mean_var_diff / mean_var_orig
         return var_explained_ratio
 
-    def get_sources(self, inst, add_channels=None, start=None, stop=None):
+    def get_sources(
+        self,
+        inst: BaseRaw | BaseEpochs | Evoked,
+        add_channels: list[str] | None = None,
+        start: int | float | None = None,
+        stop: int | float | None = None,
+    ):
         """Estimate sources given the unmixing matrix.
 
         This method will return the sources in the container format passed.
@@ -1384,15 +1400,15 @@ class ICA(ContainsMixin):
     @verbose
     def score_sources(
         self,
-        inst,
-        target=None,
-        score_func="pearsonr",
-        start=None,
-        stop=None,
-        l_freq=None,
-        h_freq=None,
-        reject_by_annotation=True,
-        verbose=None,
+        inst: BaseRaw | BaseEpochs | Evoked,
+        target: ArrayLike | str | None = None,
+        score_func: Callable[..., float] | str = "pearsonr",
+        start: int | float | None = None,
+        stop: int | float | None = None,
+        l_freq: float | None = None,
+        h_freq: float | None = None,
+        reject_by_annotation: bool = True,
+        verbose: bool | str | int | None = None,
     ):
         """Assign score to components based on statistic or metric.
 
@@ -1602,18 +1618,18 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_ecg(
         self,
-        inst,
-        ch_name=None,
-        threshold="auto",
-        start=None,
-        stop=None,
-        l_freq=8,
-        h_freq=16,
-        method="ctps",
-        reject_by_annotation=True,
-        measure="zscore",
-        verbose=None,
-    ):
+        inst: BaseRaw | BaseEpochs | Evoked,
+        ch_name: str | None = None,
+        threshold: float | Literal["auto"] = "auto",
+        start: int | float | None = None,
+        stop: int | float | None = None,
+        l_freq: float = 8.0,
+        h_freq: float = 16.0,
+        method: Literal["ctps", "correlation"] = "ctps",
+        reject_by_annotation: bool = True,
+        measure: Literal["zscore", "correlation"] = "zscore",
+        verbose: bool | str | int | None = None,
+    ) -> tuple[list[int], np.ndarray]:
         """Detect ECG related components.
 
         Cross-trial phase statistics :footcite:`DammersEtAl2008` or Pearson
@@ -1762,18 +1778,18 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_ref(
         self,
-        inst,
-        ch_name=None,
-        threshold=3.0,
-        start=None,
-        stop=None,
-        l_freq=None,
-        h_freq=None,
-        reject_by_annotation=True,
-        method="together",
-        measure="zscore",
-        verbose=None,
-    ):
+        inst: BaseRaw | BaseEpochs | Evoked,
+        ch_name: list[str] | None = None,
+        threshold: float | Literal["auto"] = 3.0,
+        start: int | float | None = None,
+        stop: int | float | None = None,
+        l_freq: float | None = None,
+        h_freq: float | None = None,
+        reject_by_annotation: bool = True,
+        method: Literal["together", "separate"] = "together",
+        measure: Literal["zscore", "correlation"] = "zscore",
+        verbose: bool | str | int | None = None,
+    ) -> tuple[list[int], np.ndarray | list[np.ndarray]]:
         """Detect MEG reference related components using correlation.
 
         Parameters
@@ -1933,15 +1949,15 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_muscle(
         self,
-        inst,
-        threshold=0.5,
-        start=None,
-        stop=None,
-        l_freq=7,
-        h_freq=45,
+        inst: BaseRaw | BaseEpochs | Evoked,
+        threshold: float = 0.5,
+        start: int | float | None = None,
+        stop: int | float | None = None,
+        l_freq: float = 7.0,
+        h_freq: float = 45.0,
         sphere=None,
-        verbose=None,
-    ):
+        verbose: bool | str | int | None = None,
+    ) -> tuple[list[int], np.ndarray]:
         """Detect muscle-related components.
 
         Detection is based on :footcite:`DharmapraniEtAl2016` which uses
@@ -2080,17 +2096,17 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_eog(
         self,
-        inst,
-        ch_name=None,
-        threshold=3.0,
-        start=None,
-        stop=None,
-        l_freq=1,
-        h_freq=10,
-        reject_by_annotation=True,
-        measure="zscore",
-        verbose=None,
-    ):
+        inst: BaseRaw | BaseEpochs | Evoked,
+        ch_name: str | None = None,
+        threshold: float | Literal["auto"] = 3.0,
+        start: int | float | None = None,
+        stop: int | float | None = None,
+        l_freq: float = 1.0,
+        h_freq: float = 10.0,
+        reject_by_annotation: bool = True,
+        measure: Literal["zscore", "correlation"] = "zscore",
+        verbose: bool | str | int | None = None,
+    ) -> tuple[list[int], np.ndarray | list[np.ndarray]]:
         """Detect EOG related components using correlation.
 
         Detection is based on Pearson correlation between the
@@ -2174,16 +2190,16 @@ class ICA(ContainsMixin):
     @verbose
     def apply(
         self,
-        inst,
-        include=None,
-        exclude=None,
-        n_pca_components=None,
-        start=None,
-        stop=None,
+        inst: BaseRaw | BaseEpochs | Evoked,
+        include: list[int] | None = None,
+        exclude: list[int] | None = None,
+        n_pca_components: int | float | None = None,
+        start: int | float | None = None,
+        stop: int | float | None = None,
         *,
-        on_baseline="warn",
-        verbose=None,
-    ):
+        on_baseline: Literal["warn", "ignore", "raise", "reapply"] = "warn",
+        verbose: bool | str | int | None = None,
+    ) -> BaseRaw | BaseEpochs | Evoked:
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform the data,
@@ -2423,7 +2439,13 @@ class ICA(ContainsMixin):
         return data
 
     @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
+    def save(
+        self,
+        fname: str,
+        *,
+        overwrite: bool = False,
+        verbose: bool | str | int | None = None,
+    ):
         """Store ICA solution into a fiff file.
 
         Parameters
@@ -2713,15 +2735,15 @@ def _check_start_stop(raw, start, stop):
 
 @verbose
 def ica_find_ecg_events(
-    raw,
-    ecg_source,
-    event_id=999,
-    tstart=0.0,
-    l_freq=5,
-    h_freq=35,
-    qrs_threshold="auto",
-    verbose=None,
-):
+    raw: BaseRaw,
+    ecg_source: np.ndarray,
+    event_id: int = 999,
+    tstart: float = 0.0,
+    l_freq: float = 5.0,
+    h_freq: float = 35.0,
+    qrs_threshold: float | Literal["auto"] = "auto",
+    verbose: bool | str | int | None = None,
+) -> np.ndarray:
     """Find ECG peaks from one selected ICA source.
 
     Parameters
@@ -2777,8 +2799,13 @@ def ica_find_ecg_events(
 
 @verbose
 def ica_find_eog_events(
-    raw, eog_source=None, event_id=998, l_freq=1, h_freq=10, verbose=None
-):
+    raw: BaseRaw,
+    eog_source: np.ndarray | None = None,
+    event_id: int = 998,
+    l_freq: float = 1.0,
+    h_freq: float = 10.0,
+    verbose: bool | str | int | None = None,
+) -> np.ndarray:
     """Locate EOG artifacts from one selected ICA source.
 
     Parameters
@@ -3024,7 +3051,10 @@ def _write_ica(fid, ica):
 
 
 @verbose
-def read_ica(fname, verbose=None):
+def read_ica(
+    fname: PathLike,
+    verbose: bool | str | int | None = None,
+):
     """Restore ICA solution from fif file.
 
     Parameters
@@ -3486,7 +3516,12 @@ def corrmap(
 
 
 @verbose
-def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
+def read_ica_eeglab(
+    fname: PathLike,
+    *,
+    montage_units: str = "auto",
+    verbose: bool | str | int | None = None,
+):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
