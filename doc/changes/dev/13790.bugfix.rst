@@ -1,0 +1,1 @@
+Improved error message when FreeSurfer executable is not found, by :newcontrib:`Ayushi Satodiya`.

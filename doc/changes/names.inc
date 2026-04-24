@@ -35,6 +35,7 @@
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
 .. _Austin Hurst: https://github.com/a-hurst
+.. _Ayushi Satodiya: https://github.com/ayuclan
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Benedikt Ehinger: https://www.benediktehinger.de
