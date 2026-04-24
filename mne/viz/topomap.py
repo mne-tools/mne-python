@@ -2473,15 +2473,6 @@ def plot_evoked_topomap(
             # if ch_type in _fnirs_types:
             if modality != "other":
                 merge_channels = False
-    # apply mask if requested
-    if mask is not None:
-        mask = mask.astype(bool, copy=False)
-        if ch_type == "grad":
-            mask_ = (
-                mask[np.ix_(picks[::2], time_idx)] | mask[np.ix_(picks[1::2], time_idx)]
-            )
-        else:  # mag, eeg, planar1, planar2
-            mask_ = mask[np.ix_(picks, time_idx)]
     # set up colormap
     if grouped_data is None:
         all_data = [data]
