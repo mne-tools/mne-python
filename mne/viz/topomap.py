@@ -2471,8 +2471,8 @@ def plot_evoked_topomap(
     grouped_data = None
     if merge_channels:
         # check modality
-        is_opm_picks = len(picks) > 0 and all(
-            evoked.info["chs"][pick]["coil_type"] in _opm_coils for pick in picks
+        is_opm_picks = len(evoked.info["chs"]) > 0 and all(
+            ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]
         )
         if is_opm_picks:
             modality = "opm"
