@@ -69,7 +69,7 @@ def read_raw_eyelink(
 
 @fill_doc
 class RawEyelink(BaseRaw):
-    """Raw object from an XXX file.
+    """Raw object from an Eyelink file.
 
     Parameters
     ----------
