@@ -404,6 +404,7 @@ def set_eeg_reference(
         Array of reference data subtracted from EEG channels. This will be
         ``None`` if ``projection=True``, or if ``ref_channels`` is ``"REST"`` or a
         :class:`dict`.
+
     %(set_eeg_reference_see_also_notes)s
     """
     from ..forward import Forward
