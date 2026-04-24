@@ -431,6 +431,16 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
+try:
+    import tomllib
+    # TODO VERSION: Can be removed once Python 3.11 is required
+except Exception:
+    pass
+else:
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+    numpydoc_validation_checks = set(pyproject["tool"]["numpydoc_validation"]["checks"])
+    numpydoc_validation_exclude = pyproject["tool"]["numpydoc_validation"]["exclude"]
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
