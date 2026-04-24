@@ -1,0 +1,1 @@
+Fixed an indexing bug in fNIRS support in :meth:`mne.io.BaseRaw.interpolate_bads` (and related methods) that could errantly use incorrect donor channels, by :newcontrib:`Kalle Makela`.
