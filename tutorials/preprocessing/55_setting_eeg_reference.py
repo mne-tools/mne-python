@@ -146,6 +146,13 @@ raw_avg_ref.plot()
 #
 # Creating the average reference as a projector
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# .. note:: When performing average referencing in sensor-space analyses and
+#           the original reference electrode is not present as a zero-filled
+#           channel, this must first be added using
+#           :func:`~mne.add_reference_channels` before calling
+#           :func:`~mne.set_eeg_reference` to avoid biasing the reference
+#           :footcite:`AppelhoffSanderson2023`.
 #
 # If using an average reference, it is possible to create the reference as a
 # :term:`projector` rather than subtracting the reference from the data

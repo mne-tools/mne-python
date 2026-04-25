@@ -4104,7 +4104,13 @@ Some common referencing schemes and the corresponding value for the
 - Average reference:
     A new virtual reference electrode is created by averaging the current
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
-    automatically excluded if they are properly set in ``info['bads']``.
+    automatically excluded if they are pproperly set in ``info['bads']``.
+
+    "add_reference_channels_note": """.. note:: When performing average referencing in sensor-space analyses and the
+        original reference electrode is not present as a zero-filled channel,
+        this must first be added using :func:`~mne.add_reference_channels`
+        before calling :func:`~mne.set_eeg_reference` to avoid biasing the
+        reference :footcite:`AppelhoffSanderson2023`. """,
 
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
