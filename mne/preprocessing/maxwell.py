@@ -403,34 +403,41 @@ def maxwell_filter(
     .. footbibliography::
     """  # noqa: E501
     logger.info("Maxwell filtering raw data")
-    params = _prep_maxwell_filter(
-        raw=raw,
-        origin=origin,
-        int_order=int_order,
-        ext_order=ext_order,
-        calibration=calibration,
-        cross_talk=cross_talk,
-        st_duration=st_duration,
-        st_correlation=st_correlation,
-        coord_frame=coord_frame,
-        destination=destination,
-        regularize=regularize,
-        ignore_ref=ignore_ref,
-        bad_condition=bad_condition,
-        head_pos=head_pos,
-        st_fixed=st_fixed,
-        st_only=st_only,
-        mag_scale=mag_scale,
-        skip_by_annotation=skip_by_annotation,
-        extended_proj=extended_proj,
-        st_overlap=st_overlap,
-        mc_interp=mc_interp,
-    )
-    raw_sss = _run_maxwell_filter(raw, **params)
-    # Update info
-    _update_sss_info(raw_sss, **params["update_kwargs"])
-    logger.info("[done]")
-    return raw_sss
+    # TODO: fix
+    if isinstance(origin, np.ndarray):
+        raw_mSSS = _run_mSSS(raw, origin)
+        # Update info _update_sss_info(raw_sss, **params["update_kwargs"]) ??
+        return raw_mSSS
+
+    else:
+        params = _prep_maxwell_filter(
+            raw=raw,
+            origin=origin,
+            int_order=int_order,
+            ext_order=ext_order,
+            calibration=calibration,
+            cross_talk=cross_talk,
+            st_duration=st_duration,
+            st_correlation=st_correlation,
+            coord_frame=coord_frame,
+            destination=destination,
+            regularize=regularize,
+            ignore_ref=ignore_ref,
+            bad_condition=bad_condition,
+            head_pos=head_pos,
+            st_fixed=st_fixed,
+            st_only=st_only,
+            mag_scale=mag_scale,
+            skip_by_annotation=skip_by_annotation,
+            extended_proj=extended_proj,
+            st_overlap=st_overlap,
+            mc_interp=mc_interp,
+        )
+        raw_sss = _run_maxwell_filter(raw, **params)
+        # Update info
+        _update_sss_info(raw_sss, **params["update_kwargs"])
+        logger.info("[done]")
+        return raw_sss
 
 
 @verbose
@@ -832,6 +839,37 @@ def _run_maxwell_filter(
                 )
 
     return raw_sss
+
+
+def _run_mSSS(raw, origin):
+    if len(origin) > 2:
+        # TODO: fix error msg
+        raise ValueError("n > 2")
+
+    S_in = []
+    for i in range(len(origin)):
+        [S_i, _, _, moments_i] = compute_maxwell_basis(
+            raw.info, origin=origin[i], regularize=None, bad_condition="ignore"
+        )
+        S_in.append(S_i[:, :moments_i])
+
+    S_tot = _combine_sss_basis(S_in[0], S_in[1])
+
+    raw_mSSS = maxwell_filter(
+        raw, origin="auto", regularize=None, ignore_ref=True, bad_condition="ignore"
+    )
+
+    meg_picks = pick_types(raw_mSSS.info, meg=True)
+
+    # reconstruct
+    phi_0 = raw.get_data(picks="meg")
+    pS = np.linalg.pinv(S_tot)
+    XN = pS @ phi_0
+    mSSS_data = np.real(S_tot @ XN)
+
+    raw_mSSS._data[meg_picks] = mSSS_data
+
+    return raw_mSSS
 
 
 class _MoveComp:
@@ -1864,6 +1902,20 @@ def _sss_basis(exp, all_coils):
                     n_coils,
                 )
     return S_tot
+
+
+def _combine_sss_basis(S_in1, S_in2):
+    """MSSS calculations using optimized multi-centers"""
+    # TODO: n > 2
+    S_tot = []
+    thresh = 5e-7  # 0.005 in Matlab
+    U, s, Vh = np.linalg.svd(np.concatenate((S_in1, S_in2), axis=1))
+    # apply threshold to limit dimensions of resulting basis
+    for i in range(0, np.shape(s)[0]):
+        ratio = s[i] / s[0]
+        if ratio >= thresh:
+            S_tot.append(U[:, i])
+    return np.transpose(np.array(S_tot))
 
 
 def _integrate_points(
