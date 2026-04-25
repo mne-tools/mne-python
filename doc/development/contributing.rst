@@ -661,17 +661,50 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 
     Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
-Test locally before opening pull requests (PRs)
------------------------------------------------
+Continuous integration (CI) and local testing before opening a PR
+-----------------------------------------------------------------
 
-MNE-Python uses `continuous integration`_ (CI) to ensure code quality and
-test across multiple installation targets. However, the CIs are often slower
-than testing locally, especially when other contributors also have open PRs
-(which is basically always the case). Therefore, do not rely on the CIs to
-catch bugs and style errors for you; :ref:`run the tests locally <run-tests>`
+Continuous integration (CI) uses automated systems to run tests and checks on your code
+whenever you open or update a pull request.
+MNE-Python uses `continuous integration`_ (CI) to ensure code quality,
+test across multiple platforms, and automatically validate pull requests.
+However, CI runs are slower than testing locally and some of them cost money to run.
+Therefore, *do not rely on the CIs to catch bugs and style errors for you*; 
+:ref:`run the tests locally <run-tests>`
 instead before opening a new PR and before each time you push additional
 changes to an already-open PR.
 
+MNE-Python uses the following CI services:
+
+- `GitHub Actions`_ and `Azure`_ for testing code across platforms
+- `CodeCov`_ checks how much of the code is tested
+- `CircleCI`_ for building the documentation
+
+If you are contributing for the first time, you may notice that `Github Actions`_
+jobs do not start automatically, or appear as "pending".
+
+This is expected behavior. Github Actions requires **manual approval from a
+maintainer** before running jobs submitted by new contributors. This is a
+security measure to prevent misuse of CI resources.
+
+As a result:
+
+- Github Actions jobs may remain in a *pending* or *not running* state
+- This does **not** indicate a problem with your code
+
+Once a maintainer approves your pull request, Github Actions workflows will run.
+Future contributions will not require manual approval.
+
+`CircleCI`_ requires to sign up for an account and link it with your github repository
+that you use to contribute to MNE-Python.
+
+The tests will fail if you are not a registered user before you push your changes.
+
+Before opening or updating a PR, check locally:
+
+- that all tests pass (see :ref:`run-tests`)
+- the documentation is built without errors if your changes affect it (see :ref:`build-docs`)
+- style checks pass (see :ref:`code-style`)
 
 Make tests fast and thorough
 ----------------------------
@@ -1108,11 +1141,12 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
-.. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
+.. _continuous integration: https://about.gitlab.com/topics/ci-cd/
 .. _matplotlib: https://matplotlib.org/
 .. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _CircleCI: https://circleci.com/gh/mne-tools/mne-python
+.. _CodeCov: https://about.codecov.io/
 
 .. optipng
 
