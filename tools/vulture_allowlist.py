@@ -21,6 +21,7 @@ download_is_error
 exitstatus
 startdir
 pg_backend
+mpl_backend
 recwarn
 pytestmark
 nbexec

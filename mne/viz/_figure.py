@@ -882,7 +882,7 @@ def get_browser_backend():
 
 
 @contextmanager
-def use_browser_backend(backend_name):
+def use_browser_backend(backend_name):  # numpydoc ignore=YD01
     """Create a 2D browser visualization context using the designated backend.
 
     See :func:`mne.viz.set_browser_backend` for more details on the available
