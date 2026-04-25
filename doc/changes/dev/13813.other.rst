@@ -1,0 +1,1 @@
+Adding checks in :func:`mne.stats.permutation_t_test()` to warn the user when provided with bad input values, by `Himanshu Mahor`_.

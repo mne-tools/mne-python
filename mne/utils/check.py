@@ -699,10 +699,14 @@ def _path_like(item):
         return False
 
 
-def _check_if_nan(data, msg=" to be plotted"):
+def _check_if_nan(data, on_nan="error", msg=" to be plotted"):
     """Raise if any of the values are NaN."""
+    _check_option("on_nan", on_nan, ("error", "warn"))
     if not np.isfinite(data).all():
-        raise ValueError(f"Some of the values {msg} are NaN.")
+        if on_nan == "error":
+            raise ValueError(f"Some of the values {msg} are NaN.")
+        elif on_nan == "warn":
+            warn(f"Some of the values {msg} are NaN")
 
 
 @verbose
