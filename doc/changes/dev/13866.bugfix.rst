@@ -1,0 +1,1 @@
+Completed triaxial OPM topomap grouping by rendering separate radial and tangential maps in evoked topomap, joint plot, and ICA component plotting paths, by `Pragnya Khandelwal`_.
