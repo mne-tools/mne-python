@@ -83,7 +83,9 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
     Parameters
     ----------
     library : str
-        The library name to import. Must have a ``__version__`` property.
+        The library name to import. Should have a ``__version__`` property;
+        if absent and ``min_version`` is specified, the version check will
+        fail.
     min_version : str
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
@@ -120,11 +122,14 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
         check_version = min_version and min_version != "0.0"
         get_version = check_version or return_version
         if get_version:
-            version = library.__version__
-            if strip:
+            try:
+                version = library.__version__
+            except AttributeError:
+                version = None
+            if version is not None and strip:
                 version = _strip_dev(version)
         if check_version:
-            if _compare_version(version, "<", min_version):
+            if version is None or _compare_version(version, "<", min_version):
                 ok = False
     out = (ok, version) if return_version else ok
     return out

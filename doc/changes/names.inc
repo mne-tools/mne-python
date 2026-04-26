@@ -371,4 +371,5 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
+.. _Baris Talar: https://github.com/baris-talar
 .. _Zvi Baratz: https://github.com/ZviBaratz
