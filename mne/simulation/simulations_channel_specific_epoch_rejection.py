@@ -23,7 +23,6 @@ from mne.io import read_raw_fif
 
 # Load phantom data
 # -----------------
-
 data_path = bst_phantom_elekta.data_path(verbose=True)
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname, preload=True)
@@ -31,9 +30,10 @@ raw.info["bads"] = ["MEG1933", "MEG2421"]
 events = find_events(raw, "STI201")
 tmin, tmax = -0.1, 0.1
 bmax = -0.05
+peak_t = 0.036
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
-true_amp = 200.0  # nAm
+true_amp = 100.0  # nAm
 
 rng = np.random.RandomState(42)
 
@@ -42,7 +42,7 @@ results = {"pairwise": [], "sample": []}
 
 # Loop over dipoles
 # -----------------
-for dipole_idx in range(1, 5):
+for dipole_idx in range(1, 33):  # we have 32 simulated
     epochs = mne.Epochs(
         raw,
         events,
@@ -69,14 +69,22 @@ for dipole_idx in range(1, 5):
     # array must not contain infs or NaNs
 
     # Condition 1: Pairwise covariance (NaN-aware)
-    epochs_data = epochs.copy().crop(None, bmax).get_data()
-    n_epochs, n_channels, n_times = epochs_data.shape
+    epochs_data_baseline = epochs.copy().crop(None, bmax).get_data()
+    n_epochs, n_channels, n_times = epochs_data_baseline.shape
 
-    X = epochs_data.reshape(n_epochs * n_times, n_channels)
+    X_t = epochs_data_baseline.transpose(0, 2, 1).reshape(
+        n_epochs * n_times, n_channels
+    )
+
+    # X = epochs_data_baseline.reshape(n_epochs * n_times, n_channels)
+
+    # np.allclose(X, X_t)
 
     # pairwise covariance is implemented in pandas
-    df = pd.DataFrame(X)
+    df = pd.DataFrame(X_t)
     cov_pairwise = df.cov(min_periods=2)  # how many valid samples
+
+    # Degrees of freedom are important but not sure yet
 
     # cov_pairwise_mne = mne.Covariance(
     #   cov_pairwise.values,
@@ -89,10 +97,11 @@ for dipole_idx in range(1, 5):
     cov_pairwise_mne = mne.Covariance(
         cov_pairwise.values,
         names=epochs.ch_names,
-        nfree=np.sum(~np.isnan(X[:, 0])) - 1,
+        nfree=np.sum(~np.isnan(X_t[:, 0])) - 1,
         projs=[],
         bads=[],
     )
+
     plt.imshow(cov_pairwise, aspect="auto")
     plt.colorbar()
     plt.title("Pairwise covariance")
@@ -101,11 +110,12 @@ for dipole_idx in range(1, 5):
     plt.show()
 
     # drop the 10 bad epochs that contain NaNs
-    bad_epochs = np.any(np.isnan(epochs_data), axis=(1, 2))
+    bad_epochs = np.any(np.isnan(epochs.get_data()), axis=(1, 2))
 
     epochs.drop(bad_epochs)
 
-    evoked_clean = epochs.copy().crop(0.035, 0.035).average()
+    # evoekd from clean epochs
+    evoked_clean = epochs.copy().crop(peak_t, peak_t).average()
 
     dip_pairwise, _ = fit_dipole(evoked_clean, cov_pairwise_mne, sphere)
 
