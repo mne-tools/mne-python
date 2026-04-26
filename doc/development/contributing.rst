@@ -679,7 +679,6 @@ MNE-Python uses the following CI services:
 
 If you are contributing for the first time, you may notice that `Github Actions`_
 jobs do not start automatically, or appear as "pending".
-
 This is expected behavior. Github Actions requires **manual approval from a
 maintainer** before running jobs submitted by new contributors. This is a
 security measure to prevent misuse of CI resources.
@@ -689,13 +688,12 @@ As a result:
 - Github Actions jobs may remain in a *pending* or *not running* state
 - This does **not** indicate a problem with your code
 
-Once a maintainer approves your pull request, Github Actions workflows will run.
-Future contributions will not require manual approval.
+Once you have at least one PR merged into the MNE-Python repository, future
+contributions will not require manual approval.
 
-`CircleCI`_ requires to sign up for an account and link it with your github repository
-that you use to contribute to MNE-Python.
-
-The tests will fail if you are not a registered user before you push your changes.
+`CircleCI`_ will not build the documentation unless the GitHub account of the PR's most recent commit
+is associated with a CircleCI account. Creating one is easy and free, choose "login with GitHub" on `CircleCI`_ to get started.
+If you do not do this, it will show up as a failing CI job.
 
 Before opening or updating a PR, check locally:
 
