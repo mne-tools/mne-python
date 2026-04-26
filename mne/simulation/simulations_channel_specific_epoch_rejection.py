@@ -35,14 +35,12 @@ sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 true_amp = 100.0  # nAm
 
-rng = np.random.RandomState(42)
-
 # Store for results
 results = {"pairwise": [], "sample": []}
 
 # Loop over dipoles
 # -----------------
-for dipole_idx in range(1, 33):  # we have 32 simulated
+for dipole_idx in range(1, 32):  # we have 32 simulated
     epochs = mne.Epochs(
         raw,
         events,
@@ -68,10 +66,12 @@ for dipole_idx in range(1, 33):  # we have 32 simulated
     # cov = mne.compute_covariance(epochs)
     # array must not contain infs or NaNs
 
+    # We calculate covariance on baseline window.
     # Condition 1: Pairwise covariance (NaN-aware)
     epochs_data_baseline = epochs.copy().crop(None, bmax).get_data()
     n_epochs, n_channels, n_times = epochs_data_baseline.shape
 
+    # swap channels and time and concatenate epochs
     X_t = epochs_data_baseline.transpose(0, 2, 1).reshape(
         n_epochs * n_times, n_channels
     )
@@ -85,29 +85,26 @@ for dipole_idx in range(1, 33):  # we have 32 simulated
     cov_pairwise = df.cov(min_periods=2)  # how many valid samples
 
     # Degrees of freedom are important but not sure yet
-
-    # cov_pairwise_mne = mne.Covariance(
-    #   cov_pairwise.values,
-    #   names=epochs.ch_names,
-    #   nfree=X.shape[0] - 1,
-    #   projs=[],
-    #   bads=[]
-    # )
+    nfree = n_epochs * (n_times - 1)  # samples per channel - 1
 
     cov_pairwise_mne = mne.Covariance(
-        cov_pairwise.values,
-        names=epochs.ch_names,
-        nfree=np.sum(~np.isnan(X_t[:, 0])) - 1,
-        projs=[],
-        bads=[],
+        cov_pairwise.values, names=epochs.ch_names, nfree=nfree, projs=[], bads=[]
     )
 
-    plt.imshow(cov_pairwise, aspect="auto")
+    plt.imshow(cov_pairwise_mne.data, cmap="RdBu_r", aspect="auto")
     plt.colorbar()
-    plt.title("Pairwise covariance")
+    plt.title("Pairwise Covariance")
     plt.xlabel("Channels")
     plt.ylabel("Channels")
     plt.show()
+
+    # cov_pairwise_mne = mne.Covariance(
+    #    cov_pairwise.values,
+    #    names=epochs.ch_names,
+    #    nfree=np.sum(~np.isnan(X_t[:, 0])) - 1,
+    #    projs=[],
+    #    bads=[],
+    # )
 
     # drop the 10 bad epochs that contain NaNs
     bad_epochs = np.any(np.isnan(epochs.get_data()), axis=(1, 2))
