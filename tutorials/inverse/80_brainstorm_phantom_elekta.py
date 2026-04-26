@@ -158,7 +158,8 @@ plt.show()
 # Dipoles with low goodness of fit
 # --------------------------------
 # Why do some dipoles have a low GOF?
-# Here we plot the dipole locations of the dipoles with low GOF
+# Here we plot the dipole locations of the dipoles with low GOF.
+#
 # We can see that dipoles with low GOF are deep in the brain which might explain
 # the low GOF.
 
