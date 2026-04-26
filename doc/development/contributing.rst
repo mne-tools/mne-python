@@ -692,7 +692,8 @@ Once you have at least one PR merged into the MNE-Python repository, future
 contributions will not require manual approval.
 
 `CircleCI`_ will not build the documentation unless the GitHub account of the PR's most recent commit
-is associated with a CircleCI account. Creating one is easy and free, choose "login with GitHub" on `CircleCI`_ to get started.
+is associated with a CircleCI account. Creating one is easy and free, 
+choose "login with GitHub" on `CircleCI`_ to get started.
 If you do not do this, it will show up as a failing CI job.
 
 Before opening or updating a PR, check locally:
