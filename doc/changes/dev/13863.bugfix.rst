@@ -1,4 +1,4 @@
-:func:`mne.utils.check_version` now gracefully handles packages that do not
-expose ``__version__`` at the top level when no minimum version is required.
-This improves handling of optional dependencies in ``_soft_import``, by
+``check_version`` now gracefully handles packages that do not expose
+``__version__`` at the top level when no minimum version is required,
+improving handling of optional dependencies in ``_soft_import``, by
 :newcontrib:`Baris Talar`.
