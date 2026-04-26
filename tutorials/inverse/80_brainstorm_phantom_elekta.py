@@ -41,12 +41,12 @@ from mne.io import read_raw_fif
 # %%
 # Load and prepare the data
 # -------------------------
-# TODO: convert to text from code comment 
 # The data were collected with an Elekta Neuromag VectorView system
 # at 1000 Hz, low-pass filtered at 330 Hz and contain recordings
 # at three current amplitudes (20, 200, and 2000 nAm).
-
 # Here we load the medium-amplitude condition.
+
+# Load the data
 data_path = bst_phantom_elekta.data_path(verbose=True)
 raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname)
@@ -54,50 +54,62 @@ raw = read_raw_fif(raw_fname)
 # Mark known bad channels
 raw.info["bads"] = ["MEG1933", "MEG2421"]
 
-events = find_events(raw, "STI201")
 # The first 32 events correspond to dipole activations.
+events = find_events(raw, "STI201")
+
 
 # %%
 # Epoch the data and plot evokeds
 # -------------------------------
-#
 # We epoch and baseline correct the data around the dipole events.
 
+# Epoch the data
 bmax = -0.05
 tmin, tmax = -0.1, 0.8
 event_id = list(range(1, 33))
-
 epochs = mne.Epochs(
     raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
 )
-# We drop the first and last epoch as they contain artefacts
-epochs_clean = epochs[1:-1
+
+# We drop the first and last event, it can contains dipole-switching artifacts
+epochs_clean = epochs[1:-1]
+
 # We select the first simulated dipole for visualisation purposes
 epochs_firstdip = epochs_clean["1"]
+
+# %%
 # Let's look at the evoked response for the first clean dipole
 # We can see that the phantom was set to produce 20 Hz sinusoidal bursts of current.
 # and the burst envelope repeats at approximately 3 Hz.
+
 epochs_firstdip.average().plot(time_unit="s")
-               
+
 # %%
 # Determine peak activation using Global Field Power (GFP)
 # --------------------------------------------------------
-
 # GFP is the standard deviation across sensors at each time
 # point, providing a reference-independent measure of signal strength.
+
+# Get the evoked signal of the first dipole
 evoked_tmp = epochs_firstdip.average()
+# Calculate GFP
 gfp = np.std(evoked_tmp.data, axis=0)
-times = evoked_tmp.times
+
 # Restrict to first burst window
-time_mask = (times > 0) & (times <= 0.1)
+times = evoked_tmp.times
+time_mask = (times > 0) & (times <= 0.05)
+
+# Find the peak GFP indices
 peaks, _ = find_peaks(gfp[time_mask])
 peak_indices = np.where(time_mask)[0][peaks]
+
 # Select the strongest peak
 strongest_peak_idx = peak_indices[np.argmax(gfp[peak_indices])]
 t_peak = times[strongest_peak_idx]
 print(f"Strongest peak at {t_peak * 1000:.1f} ms")
 # %%
-# Here we crop the data at the peak amplitude and store the evoked data for each dipole.
+# Here we select the peak amplitude timepoint and store the evoked data for each dipole.
+
 evokeds = []
 for ii in event_id:
     evoked = epochs_clean[str(ii)].average().crop(t_peak, t_peak)
@@ -111,9 +123,11 @@ for ii in event_id:
 cov = mne.compute_covariance(epochs_clean, tmax=bmax)
 del epochs  # delete to save memory
 # %%
-# TODO: explain why this head model is used
+# %%
 # We use a :ref:`sphere head geometry model <eeg_sphere_model>`
-# to fit our phantom head model.
+# because the Elekta phantom is designed to approximate a spherical
+# conductor with known dipole locations.
+
 subjects_dir = data_path
 fetch_phantom("otaniemi", subjects_dir=subjects_dir)
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
@@ -121,8 +135,8 @@ sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 # %%
 # Dipole fitting
 # --------------
-
 # Finally, we fit dipoles for each phantom and store them in a list.
+
 dip_all = []
 
 for evoked in evokeds:
@@ -131,20 +145,54 @@ for evoked in evokeds:
 # %%
 # Evaluate goodness of fit
 # ------------------------
-
-# TODO: explain drop in GOF at regular intervals
 # The dipole object stores the goodness of fit (GOF) for each dipole.
+# Some dipoles have lower GOF because...
 gof = [dip.gof[0] for dip in dip_all]
 colors = ["#E69F00" if val < 60 else "#0072B2" for val in gof]
 plt.bar(event_id, gof, color=colors)
 plt.xlabel("Phantom dipole estimation")
 plt.ylabel("Goodness of fit (%)")
 plt.show()
-#
+
+# %%
+# Dipoles with low goodness of fit
+# --------------------------------
+# Why do some dipoles have a low (<60) GOF?
+# Here we plot the dipole locations of the dipoles with low GOF.
+# The dipoles with low GOF are deep in the brain which might explain
+# the low GOF.
+
+# Get indices of low GOF dipoles
+low_idx = [i for i, g in enumerate(gof) if g < 60]
+low_event_ids = [event_id[i] for i in low_idx]
+
+print("Low GOF dipoles:", low_event_ids)
+
+# Let's plot the locations of the dipoles with low GOF.
+low_dips = [dip_all[i] for i in low_idx]
+
+subject = "phantom_otaniemi"
+trans = mne.transforms.Transform("head", "mri", np.eye(4))
+
+fig = mne.viz.plot_alignment(
+    evoked.info,
+    trans,
+    subject,
+    bem=sphere,
+    surfaces={"head-dense": 0.2},
+    coord_frame="head",
+    meg="helmet",
+    show_axes=True,
+    subjects_dir=subjects_dir,
+)
+
+# Plot the position and the orientation of the dipoles with low GOF
+fig = mne.viz.plot_dipole_locations(
+    dipoles=low_dips, mode="arrow", subject=subject, color=(1.0, 0.2, 0.2), fig=fig
+)
 # %%
 # Compare estimated and true dipoles
 # ----------------------------------
-
 # The dipole fits closely match the true phantom data,
 # achieving sub-centimeter accuracy (mean position error 2.7mm).
 
@@ -152,7 +200,7 @@ plt.show()
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.0  # nAm
 
-# estimated dipoles
+# Here we store the estimated dipoles
 dip_pos = [dip.pos[0] for dip in dip_all]
 dip_ori = [dip.ori[0] for dip in dip_all]
 dip_amplitude = [dip.amplitude[0] for dip in dip_all]
@@ -186,19 +234,14 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # %%
 # Visualise estimated and true dipole locations
 # ---------------------------------------------
-
-
 # We can see that the dipoles overlap, have approximately the same magnitude
 # and point in the same direction.
-     
+
 actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
 actual_gof = np.ones(len(dip))  # fake goodness-of-fit (GOF)
 # setup dipole objects for true and estimated dipoles
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 dip_estimated = mne.Dipole(dip.times, dip_pos, dip_amplitude, dip_ori, actual_gof)
-
-subject = "phantom_otaniemi"
-trans = mne.transforms.Transform("head", "mri", np.eye(4))
 
 fig = mne.viz.plot_alignment(
     evoked.info,
