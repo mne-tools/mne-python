@@ -54,7 +54,7 @@ raw = read_raw_fif(raw_fname)
 # Mark known bad channels
 raw.info["bads"] = ["MEG1933", "MEG2421"]
 
-# The first 32 events correspond to dipole activations.
+# The first 32 events correspond to dipole activations
 events = find_events(raw, "STI201")
 
 
@@ -71,15 +71,16 @@ epochs = mne.Epochs(
     raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
 )
 
-# We drop the first and last event, it can contains dipole-switching artifacts
+# We drop the first and last event, it can contain dipole-switching artifacts
 epochs_clean = epochs[1:-1]
 
 # We select the first simulated dipole for visualisation purposes
 epochs_firstdip = epochs_clean["1"]
 
 # %%
-# Let's look at the evoked response for the first clean dipole
-# We can see that the phantom was set to produce 20 Hz sinusoidal bursts of current.
+# Let's look at the evoked response for the first clean dipole.
+#
+# We can see that the phantom was set to produce 20 Hz sinusoidal bursts of current
 # and the burst envelope repeats at approximately 3 Hz.
 
 epochs_firstdip.average().plot(time_unit="s")
@@ -92,6 +93,7 @@ epochs_firstdip.average().plot(time_unit="s")
 
 # Get the evoked signal of the first dipole
 evoked_tmp = epochs_firstdip.average()
+
 # Calculate GFP
 gfp = np.std(evoked_tmp.data, axis=0)
 
@@ -116,13 +118,11 @@ for ii in event_id:
     evoked = mne.EvokedArray(np.array(evoked.data), evoked.info, tmin=0.0)
     evokeds.append(evoked)
 # %%
-# Next, we need to compute the noise covariance to capture the sensor noise structure.
-# We use the baseline window to estimate covariance.
-# You can explore the covariance tutorial for details: :ref:`tut-compute-covariance`.
+# Next, we need to compute the noise covariance in the baseline window
+# to capture the sensor noise structure (for details: :ref:`tut-compute-covariance`).
 
 cov = mne.compute_covariance(epochs_clean, tmax=bmax)
 del epochs  # delete to save memory
-# %%
 # %%
 # We use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # because the Elekta phantom is designed to approximate a spherical
@@ -146,7 +146,7 @@ for evoked in evokeds:
 # Evaluate goodness of fit
 # ------------------------
 # The dipole object stores the goodness of fit (GOF) for each dipole.
-# Some dipoles have lower GOF because...
+# Some dipoles have a low GOF (< 60 %).
 gof = [dip.gof[0] for dip in dip_all]
 colors = ["#E69F00" if val < 60 else "#0072B2" for val in gof]
 plt.bar(event_id, gof, color=colors)
@@ -157,9 +157,9 @@ plt.show()
 # %%
 # Dipoles with low goodness of fit
 # --------------------------------
-# Why do some dipoles have a low (<60) GOF?
-# Here we plot the dipole locations of the dipoles with low GOF.
-# The dipoles with low GOF are deep in the brain which might explain
+# Why do some dipoles have a low GOF?
+# Here we plot the dipole locations of the dipoles with low GOF
+# We can see that dipoles with low GOF are deep in the brain which might explain
 # the low GOF.
 
 # Get indices of low GOF dipoles
@@ -174,6 +174,7 @@ low_dips = [dip_all[i] for i in low_idx]
 subject = "phantom_otaniemi"
 trans = mne.transforms.Transform("head", "mri", np.eye(4))
 
+# Plot the position and the orientation of the dipoles with low GOF
 fig = mne.viz.plot_alignment(
     evoked.info,
     trans,
@@ -186,7 +187,6 @@ fig = mne.viz.plot_alignment(
     subjects_dir=subjects_dir,
 )
 
-# Plot the position and the orientation of the dipoles with low GOF
 fig = mne.viz.plot_dipole_locations(
     dipoles=low_dips, mode="arrow", subject=subject, color=(1.0, 0.2, 0.2), fig=fig
 )
@@ -194,7 +194,7 @@ fig = mne.viz.plot_dipole_locations(
 # Compare estimated and true dipoles
 # ----------------------------------
 # The dipole fits closely match the true phantom data,
-# achieving sub-centimeter accuracy (mean position error 2.7mm).
+# achieving sub-centimeter accuracy (mean position error 2.4mm).
 
 # We get the true dipole positions from the phantoms
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
