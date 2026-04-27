@@ -42,6 +42,8 @@ python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https:/
 python -c "import vtk"
 echo "::endgroup::"
 
+# TODO: nibabel temporarily disabled due to codeberg.org issue
+# 	git+https://github.com/nipy/nibabel \
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
 	"git+https://github.com/pyvista/pyvista" \
@@ -53,7 +55,6 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/mne-tools/mne-qt-browser \
 	git+https://github.com/pyqtgraph/pyqtgraph \
 	git+https://github.com/mne-tools/mne-bids \
-	git+https://github.com/nipy/nibabel \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
@@ -61,7 +62,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/python-quantities/python-quantities \
 	trame trame-vtk trame-vuetify nest-asyncio2 jupyter ipyevents ipympl openmeeg \
 	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
-	antio curryreader
+	antio curryreader nibabel
 echo "::endgroup::"
 
 echo "::group::Make sure we're on a NumPy 2.0 variant"
