@@ -574,6 +574,8 @@ class BaseRaw(
         memmap : path-like | None
             If not ``None``, preload data into a memory-mapped file at this
             path. If ``None`` (default), preload data into RAM.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
