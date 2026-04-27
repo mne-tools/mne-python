@@ -3387,6 +3387,11 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         ----------
         copy : bool
             Whether to yield copies of the data and measurement info, or views/pointers.
+
+        Yields
+        ------
+        epoch : instance of AverageTFR
+            The time-frequency data for a single epoch, wrapped in an AverageTFR object.
         """
         self.__iter__()
         state = self.__getstate__()

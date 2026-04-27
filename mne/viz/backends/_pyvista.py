@@ -213,7 +213,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         from .._3d import _get_3d_option
 
         # TODO VERSION change whenever PyVista min gets updated:
-        _require_version("pyvista", "use 3D rendering", "0.42")
+        _require_version("pyvista", "use 3D rendering", "0.43")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         if platform.system() == "Darwin":
@@ -720,12 +720,24 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor, mesh
 
     def text2d(
-        self, x_window, y_window, text, size=14, color="white", justification=None
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
     ):
         size = 14 if size is None else size
         position = (x_window, y_window)
         actor = self.plotter.add_text(
-            text, position=position, font_size=size, color=color, viewport=True
+            text=text,
+            position=position,
+            font_size=size,
+            color=color,
+            viewport=True,
+            font_file=font_file,
         )
         if isinstance(justification, str):
             if justification == "left":

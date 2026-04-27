@@ -1,0 +1,1 @@
+Fix bug where logging messages were sometimes errantly printed, by `Eric Larson`_.

@@ -51,7 +51,7 @@ dependencies:
   - qdarkstyle !=3.2.2
   - qtpy
   - scikit-learn >=1.4
-  - scipy >=1.12
+  - scipy >=1.13
   - sip
   - snirf
   - statsmodels >=0.6

@@ -281,7 +281,7 @@ def _check_fname(
         if not overwrite:
             raise FileExistsError(
                 "Destination file exists. Please use option "
-                '"overwrite=True" to force overwriting.'
+                f'"overwrite=True" to force overwriting of: {name}'
             )
         elif overwrite != "read":
             logger.info("Overwriting existing file.")
@@ -407,6 +407,7 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
         mne_connectivity="mne-connectivity",
         mne_gui_addons="mne-gui-addons",
         pyvista="pyvistaqt",
+        hed="hedtools",
     ).get(name, name)
 
     got_version = None

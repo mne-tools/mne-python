@@ -607,9 +607,12 @@ dependency
 bugfix
     For bug fixes. Can change code behavior with no deprecation period.
 apichange
-    Code behavior changes that require a deprecation period.
+    Changes to existing code behavior that require a deprecation period. Can include the
+    addition of new features only if existing code behavior is changed alongside this.
 newfeature
-    For new features.
+    For new features that do not change existing code behavior. If existing code
+    behavior is changed alongside the addition of these features, the changes should
+    instead be labelled as ``apichange``.
 other
     For changes that don't fit into any of the above categories, e.g.,
     internal refactorings.

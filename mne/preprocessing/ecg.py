@@ -278,8 +278,7 @@ def find_ecg_events(
     if ecg_events.size > 0:
         ecg_events = remap[ecg_events]
     else:
-        ecg_events = np.array([])
-
+        ecg_events = np.array([], int)
     n_events = len(ecg_events)
     duration_sec = len(ecg) / raw.info["sfreq"] - tstart
     duration_min = duration_sec / 60.0
@@ -429,6 +428,9 @@ def create_ecg_epochs(
         return_ecg=True,
         reject_by_annotation=reject_by_annotation,
     )
+
+    if len(events) == 0:
+        raise ValueError("No ECG events could be found.")
 
     picks = _picks_to_idx(raw.info, picks, "all", exclude=())
 
