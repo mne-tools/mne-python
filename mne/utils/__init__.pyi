@@ -56,6 +56,7 @@ __all__ = [
     "_check_stc_units",
     "_check_subject",
     "_check_time_format",
+    "_chmod_rw_R",
     "_clean_names",
     "_click_ch_name",
     "_compute_row_norms",
@@ -202,6 +203,7 @@ from ._logging import (
 )
 from ._testing import (
     ArgvSetter,
+    _chmod_rw_R,
     _click_ch_name,
     _raw_annot,
     _TempDir,

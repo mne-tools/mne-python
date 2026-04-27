@@ -20,7 +20,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import object_diff
+from mne.utils import _chmod_rw_R, object_diff
 
 base_dir = Path(__file__).parent / "data"
 egi_fname = base_dir / "test_egi.raw"
@@ -338,6 +338,7 @@ def test_io_egi_pns_mff(tmp_path):
     # EEG missing
     new_mff = tmp_path / "temp.mff"
     shutil.copytree(egi_mff_pns_fname, new_mff)
+    _chmod_rw_R(new_mff)
     read_raw_egi(new_mff, verbose="error")
     os.remove(new_mff / "info1.xml")
     os.remove(new_mff / "signal1.bin")
@@ -594,6 +595,7 @@ def test_egi_mff_bad_xml(tmp_path):
     """Test that corrupt XML files are gracefully handled."""
     pytest.importorskip("defusedxml")
     mff_fname = shutil.copytree(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
+    _chmod_rw_R(mff_fname)
     bad_xml = mff_fname / "bad.xml"
     bad_xml.write_text("<foo>", encoding="utf-8")
     # Missing coordinate file
