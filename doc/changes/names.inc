@@ -34,8 +34,8 @@
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
-.. _Ayushi Satodiya: https://github.com/ayuclan
 .. _Austin Hurst: https://github.com/a-hurst
+.. _Ayushi Satodiya: https://github.com/ayuclan
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Benedikt Ehinger: https://www.benediktehinger.de
@@ -188,8 +188,8 @@
 .. _Laurent Le Mentec: https://github.com/LaurentLM
 .. _Leonardo Barbosa: https://github.com/noreun
 .. _Leonardo Rochael Almeida: https://github.com/leorochael
-.. _Lifeng Qiu Lin: https://github.com/Gnefil
 .. _Liberty Hamilton: https://github.com/libertyh
+.. _Lifeng Qiu Lin: https://github.com/Gnefil
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 .. _Lukas Gemein: https://github.com/gemeinl
