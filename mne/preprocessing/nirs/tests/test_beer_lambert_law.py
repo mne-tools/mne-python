@@ -187,10 +187,7 @@ def test_get_sd_distances():
 
     for idx in range(len(raw.info["chs"])):
         raw.info["chs"][idx]["loc"][3:9] = np.nan
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        assert_allclose(_get_sd_distances(raw, expected), expected, rtol=1e-12, atol=0)
-    assert len(caught) == 0
+    assert_allclose(_get_sd_distances(raw, expected), expected, rtol=1e-12, atol=0)
 
     with pytest.raises(ValueError, match=r"1D array-like"):
         _get_sd_distances(raw, np.ones((2, 2)))

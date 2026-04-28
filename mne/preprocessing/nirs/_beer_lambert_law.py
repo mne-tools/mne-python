@@ -19,7 +19,7 @@ from ..nirs import (
 )
 
 
-def beer_lambert_law(raw, ppf=6.0, sd_distances=None):
+def beer_lambert_law(raw, ppf=6.0, *, sd_distances=None):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
@@ -35,6 +35,8 @@ def beer_lambert_law(raw, ppf=6.0, sd_distances=None):
         Source-detector distances in meters. If ``None``, distances are read
         from ``raw.info['chs']``. If array-like, the values must have a distance
         for each channel, matching the order in ``info['chs']``.
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -167,13 +169,13 @@ def _get_sd_distances(raw, sd_distances):
             "sd_distances must be a float or a 1D array-like, got "
             f"shape {sd_distances.shape}"
         )
-    if len(sd_distances) == n_channels:
-        return sd_distances
-    raise ValueError(
-        "sd_distances must be a float or an array-like with length matching "
-        f"the len(raw.info['chs']) ({n_channels}), "
-        f"got length {len(sd_distances)}"
-    )
+    if len(sd_distances) != n_channels:
+        raise ValueError(
+            "sd_distances must be a float or an array-like with length matching "
+            f"the len(raw.info['chs']) ({n_channels}), "
+            f"got length {len(sd_distances)}"
+        )
+    return sd_distances
 
 
 def _load_absorption(freqs):

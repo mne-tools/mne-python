@@ -65,7 +65,7 @@ def short_channels(info, threshold=0.01):
 def _has_source_detector_distances(info, picks=None):
     """Return True if source-detector distances can be computed."""
     distances = source_detector_distances(info, picks=picks)
-    return len(distances) > 0 and np.isfinite(distances).all() and np.all(distances > 0)
+    return len(distances) > 0 and np.all(distances > 0)
 
 
 def _channel_frequencies(info):
