@@ -4,39 +4,44 @@ Plot grouped triaxial OPM topomaps
 =====================================
 
 This example demonstrates grouped radial/tangential topomap rendering for
-colocated triaxial OPM sensors using a small segment of the UCL OPM auditory
-dataset. The grouped rendering places radial maps alongside tangential maps
-so orientation information is explicit.
-
+colocated triaxial OPM sensors. The grouped rendering places radial maps
+alongside tangential maps so orientation information is explicit.
 """
 # Authors: MNE contributors
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
 
-# Load a small segment of the UCL OPM dataset
-subject = "sub-002"
-data_path = mne.datasets.ucl_opm_auditory.data_path()
-opm_file = (
-    data_path / subject / "ses-001" / "meg" / "sub-002_ses-001_task-aef_run-001_meg.bin"
+# Create synthetic triaxial OPM data
+# Simulate three colocated OPM sensors with radial and tangential orientations
+n_channels = 6  # 3 locations × 2 orientations (radial + tangential)
+n_samples = 500
+sfreq = 100.0
+
+# Create synthetic channel info with triaxial OPM layout
+ch_names = [f"G{i // 2}-{['RAD', 'TAN'][i % 2]}" for i in range(n_channels)]
+ch_types = ["mag"] * n_channels
+info = mne.create_info(ch_names, sfreq, ch_types)
+
+# Set channel locations in a line to simulate colocated triplets
+locs = np.array([[0, i // 2 * 0.01, 0] for i in range(n_channels)])
+info.set_montage(
+    mne.channels.make_dig_montage(
+        ch_pos={name: loc for name, loc in zip(ch_names, locs)}
+    )
 )
 
-# Read and crop for speed
-raw = mne.io.read_raw_fil(opm_file, verbose="error")
-raw.crop(120, 210).load_data()
+# Create synthetic data
+data = np.random.randn(n_channels, n_samples) * 1e-12  # Tesla
+data[::2] += (
+    np.sin(2 * np.pi * 10 * np.arange(n_samples) / sfreq) * 1e-12
+)  # 10 Hz signal
 
-# Create epochs and average to get evoked
-events = mne.find_events(raw, min_duration=0.1)
-epochs = mne.Epochs(
-    raw, events, tmin=-0.1, tmax=0.4, baseline=(None, 0), verbose="error"
-)
-evoked = epochs.average()
+# Create evoked object
+evoked = mne.EvokedArray(data, info, tmin=-0.5)
 
-# Find a peak time and plot grouped topomap
-t_peak = evoked.times[np.argmax(np.std(evoked.copy().pick("meg").data, axis=0))]
-fig = evoked.plot_topomap(times=[float(t_peak)], ch_type="mag")
-plt.show()
+# Plot grouped topomap showing radial and tangential maps side-by-side
+fig = evoked.plot_topomap(times=[0.0], ch_type="mag")
