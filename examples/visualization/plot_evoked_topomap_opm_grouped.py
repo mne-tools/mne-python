@@ -11,6 +11,7 @@ so orientation information is explicit.
 """
 # Authors: MNE contributors
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import matplotlib.pyplot as plt
 import numpy as np
