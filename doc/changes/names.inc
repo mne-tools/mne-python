@@ -34,6 +34,7 @@
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
+.. _Ayushi Satodiya: https://github.com/ayuclan
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
