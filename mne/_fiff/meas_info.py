@@ -1287,16 +1287,16 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         safeguards to ensure all fields remain in sync).
 
         Some common methods that safely modify the ``info`` object include:
-        * :meth:`mne.io.Raw.add_proj`, :meth:`mne.Epochs.add_proj`,
-          :meth:`mne.Evoked.add_proj`
-        * :meth:`mne.io.Raw.del_proj`, :meth:`mne.Epochs.del_proj`,
-          :meth:`mne.Evoked.del_proj`
-        * :meth:`mne.io.Raw.set_channel_types`,
-          :meth:`mne.Epochs.set_channel_types`,
-          :meth:`mne.Evoked.set_channel_types`
-        * :meth:`mne.io.Raw.set_meas_date`,
-          :meth:`mne.Epochs.set_meas_date`,
-          :meth:`mne.Evoked.set_meas_date`
+    * :meth:`mne.io.Raw.add_proj`, :meth:`mne.Epochs.add_proj`,
+      :meth:`mne.Evoked.add_proj`
+    * :meth:`mne.io.Raw.del_proj`, :meth:`mne.Epochs.del_proj`,
+      :meth:`mne.Evoked.del_proj`
+    * :meth:`mne.io.Raw.set_channel_types`,
+      :meth:`mne.Epochs.set_channel_types`,
+      :meth:`mne.Evoked.set_channel_types`
+    * :meth:`mne.io.Raw.set_meas_date`,
+      :meth:`mne.Epochs.set_meas_date`,
+      :meth:`mne.Evoked.set_meas_date`
 
     Parameters
     ----------
