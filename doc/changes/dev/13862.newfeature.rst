@@ -1,0 +1,6 @@
+- Fix :func:`mne.preprocessing.nirs.beer_lambert_law` to support explicitly
+  provided ``sd_distances`` during Beer-Lambert conversion. When valid
+  source-detector distances are already present in ``raw.info``, overriding them
+  now emits a warning, and when all inferred distances are invalid and no
+  explicit distances are provided, a ``ValueError`` is raised instead of
+  silently producing zero concentrations. (`#13862 <https://github.com/mne-tools/mne-python/pull/13862>`_ by `Kalle Makela`_)
