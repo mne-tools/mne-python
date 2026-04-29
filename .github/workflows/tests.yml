@@ -138,8 +138,11 @@ jobs:
       - name: Verify that the pixi env is on PATH
         if: matrix.kind == 'pixi'
         run: |
-          if [[ "$(which python)" != *'/.pixi/'* ]]; then
-            echo "Python is NOT running from a virtual environment"
+          want="/.pixi/"
+          got="$(which python)"
+          if [[ "$got" != *"$want"* ]]; then
+            echo "Python is NOT running from a virtual environment."
+            echo "Got : $got"
             exit 1
           fi
       # Python (if conda)
