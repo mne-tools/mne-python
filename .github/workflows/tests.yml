@@ -111,10 +111,6 @@ jobs:
         timeout-minutes: 80
         with:
           detached: true
-      # Bash login shell on MacOS prepend /usr/bin to PATH, which masks all other installations of Python
-      - name: Workaround for macOS behavior on login shells
-        run: echo "export PATH=\"${{ github.workspace }}/.pixi/envs/default/bin:$PATH\"" | tee -a ~/.bash_profile
-        if: startsWith(matrix.os, 'macos')
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
       - uses: pyvista/setup-headless-display-action@v4
@@ -127,12 +123,25 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
+      # Python (if pixi)
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           manifest-path: tools/pixi.toml
           # https://github.com/prefix-dev/setup-pixi/issues/139
           activate-environment: true
+          frozen: true
         if: matrix.kind == 'pixi'
+      # Bash login shell on MacOS prepend /usr/bin to PATH, which masks all other installations of Python
+      - name: Workaround for macOS behavior on login shells
+        run: echo "export PATH=\"${{ github.workspace }}/.pixi/envs/default/bin:$PATH\"" | tee -a ~/.bash_profile
+        if: startsWith(matrix.os, 'macos')
+      - name: Verify that the pixi env is on PATH
+        if: matrix.kind == 'pixi'
+        run: |
+          if [[ "$(which python)" != *'/.pixi/'* ]]; then
+            echo "Python is NOT running from a virtual environment"
+            exit 1
+          fi
       # Python (if conda)
       - name: Fixes for conda
         run: |
