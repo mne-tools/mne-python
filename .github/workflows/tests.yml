@@ -126,7 +126,7 @@ jobs:
       # Python (if pixi)
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          manifest-path: tools/pixi.toml
+          manifest-path: tools/ci/macos-intel/pixi.toml
           # https://github.com/prefix-dev/setup-pixi/issues/139
           activate-environment: true
           frozen: true
