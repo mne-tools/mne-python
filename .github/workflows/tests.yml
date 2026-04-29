@@ -4,9 +4,9 @@ concurrency:
   cancel-in-progress: true
 on:  # yamllint disable-line rule:truthy
   push:
-    branches: ["main", "maint/*", "pixi2"]
+    branches: ["main", "maint/*"]
   pull_request:
-    branches: ["main", "maint/*", "pixi2"]
+    branches: ["main", "maint/*"]
   # adapted from spyder-ide/spyder
   workflow_dispatch:
     inputs:
@@ -111,6 +111,10 @@ jobs:
         timeout-minutes: 80
         with:
           detached: true
+      # Bash login shell on MacOS prepend /usr/bin to PATH, which masks all other installations of Python
+      - name: Workaround for macOS behavior on login shells
+        run: echo "export PATH=\"${{ github.workspace }}/.pixi/envs/default/bin:$PATH\"" | tee -a ~/.bash_profile
+        if: startsWith(matrix.os, 'macos')
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
       - uses: pyvista/setup-headless-display-action@v4
