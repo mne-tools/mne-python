@@ -246,6 +246,13 @@ t_peak = evoked.times[np.argmax(np.std(evoked.copy().pick("meg").data, axis=0))]
 fig = evoked.plot_joint(picks="mag")
 
 # %%
+# Demonstrating grouped OPM topomaps
+# ----------------------------------
+# The UCL OPM auditory dataset has already been loaded above, so this extra
+# figure reuses the same real evoked object without any additional downloads.
+fig = evoked.plot_topomap(times=[t_peak], ch_type="mag")
+
+# %%
 # Visualizing coregistration
 # --------------------------
 # By design, the sensors in this dataset are already in the scanner RAS coordinate
