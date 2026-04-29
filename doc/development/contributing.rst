@@ -658,6 +658,34 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 
     Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
+
+.. _taking-over-a-stale-pr:
+
+Taking over a stale pull request
+---------------------------------
+
+If a pull request has been abandoned, you can take it over. Always credit
+the original author by adding a ``Co-authored-by`` trailer to your commit
+message::
+
+    Co-authored-by: Original Author Name <their-email@example.com>
+
+To build on top of their existing branch:
+
+.. code-block:: bash
+
+    git remote add original-author https://github.com/<their-username>/mne-python.git
+    git fetch original-author
+    git checkout -b takeover-XXXXX original-author/<their-branch-name>
+
+Then push to your fork and open a new PR referencing the original
+(e.g., "Takes over :gh:`XXXXX`"). Make sure their name is in
+``doc/changes/names.inc`` and credit them in the changelog entry, e.g.:
+
+.. code-block:: rst
+
+    Short description, by `Your Name`_ and `Original Author`_. (:gh:`XXXXX`)
+
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
 
