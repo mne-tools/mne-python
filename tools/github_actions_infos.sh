@@ -2,4 +2,4 @@
 
 which mne
 mne sys_info -pd
-${PREFIX} python -c "import numpy; numpy.show_config()"
+python -c "import numpy; numpy.show_config()"
