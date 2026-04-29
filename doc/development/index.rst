@@ -17,7 +17,7 @@ please consider posting your questions on our `MNE Forum`_.
 Users and contributors to MNE-Python are expected to follow our
 `code of conduct`_.
 
-The `contributing guide`_ has details on the preferred contribution workflow
+The :ref:`contributing guide <contributing>` has details on the preferred contribution workflow
 and the recommended system configuration for a smooth contribution/development
 experience.
 
