@@ -134,7 +134,7 @@ jobs:
       # Bash login shell on MacOS prepend /usr/bin to PATH, which masks all other installations of Python
       - name: Workaround for macOS behavior on login shells
         run: echo 'export PATH="${{ github.workspace }}/tools/ci/macos-intel/.pixi/envs/default/bin:$PATH"' | tee -a ~/.bash_profile
-        if: startsWith(matrix.os, 'macos')
+        if: startsWith(matrix.os, 'macos') && matrix.kind == 'pixi'
       - name: Verify that the pixi env is on PATH
         if: matrix.kind == 'pixi'
         run: |
