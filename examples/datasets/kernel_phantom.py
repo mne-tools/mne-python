@@ -56,7 +56,7 @@ fig.axes[0].axvline(t_peak, color="k", ls=":", lw=3, zorder=2)
 # The Kernel OPM phantom data is triaxial, so we can demonstrate the grouped
 # radial and tangential topomap rendering:
 
-fig = evoked.plot_topomap(times=[t_peak], ch_type="mag", merge_channels=True)
+fig = evoked.plot_topomap(times=[t_peak], ch_type="mag")
 fig = evoked.plot_joint(times=[t_peak], picks="mag")
 
 # %%
