@@ -684,7 +684,7 @@ Then push to your fork and open a new PR referencing the original
 
 .. code-block:: rst
 
-    Short description, by `Your Name`_ and `Original Author`_. (:gh:`XXXXX`)
+    Short description of the changes, by `Your Name`_ and `Original Author`_.
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
