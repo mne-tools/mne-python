@@ -680,7 +680,7 @@ To build on top of their existing branch:
 
 Then push to your fork and open a new PR referencing the original
 (e.g., "Takes over :gh:`XXXXX`"). Make sure their name is in
-``doc/changes/names.inc`` and credit them in the changelog entry, e.g.:
+``doc/changes/names.inc`` and credit the original author in the changelog entry, e.g.:
 
 .. code-block:: rst
 
