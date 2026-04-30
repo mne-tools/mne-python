@@ -77,7 +77,7 @@ def permutation_t_test(
     """
     from .cluster_level import _get_1samp_orders
 
-    _check_if_nan(X)
+    _check_if_nan(X, msg="in the data array for permutations testing")
     n_samples, n_tests = X.shape
     X2 = np.mean(X**2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)
