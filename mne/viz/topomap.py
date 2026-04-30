@@ -372,6 +372,10 @@ def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
     if not pick_chs or not all(ch["coil_type"] in _opm_coils for ch in pick_chs):
         return False
 
+    # merge_channels should be a list of overlap sets, not a boolean
+    if not isinstance(merge_channels, (list, tuple)):
+        return False
+
     return any(len(overlap_set) >= 3 for overlap_set in merge_channels)
 
 

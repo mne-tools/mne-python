@@ -106,3 +106,14 @@ mne.viz.plot_dipole_locations(
 )
 mne.viz.plot_dipole_locations(dipoles=dip, mode="arrow", color=(0.2, 1.0, 0.5), fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=30, elevation=70, distance=0.4)
+
+# %%
+# Grouped OPM topomap visualization
+# ==================================
+#
+# Since Kernel OPMs are triaxial sensors (measuring Bx, By, Bz directions),
+# we can visualize them as grouped topomaps showing radial and tangential
+# components side-by-side. This is only done when merge_channels=True
+# and there are multiple colocated channels at each location:
+
+fig = evoked.plot_topomap(times=[t_peak], merge_channels=True, sphere=sphere)
