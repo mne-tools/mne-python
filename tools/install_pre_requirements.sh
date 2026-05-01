@@ -34,10 +34,6 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"matplotlib>=3.11.0.dev0" \
 	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
-# Needs https://github.com/dipy/dipy/pull/3678
-# "dipy>=1.12.0.dev0"
-# Needs https://github.com/PyTables/PyTables/pull/1286
-# "tables>=3.10.3.dev0"
 echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
