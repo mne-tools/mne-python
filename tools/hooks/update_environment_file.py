@@ -50,17 +50,21 @@ req_python = remove_spaces(pyproj["project"]["requires-python"])
 # split package name from version spec
 translations = dict(neo="python-neo")
 conda_deps = set()
+version_spec_overrides = {
+    # Help the solver work faster by specifying these (should be updated periodically):
+    "PySide6": "==6.10.2",
+    "vtk": "==9.6.1",
+}
+for key in version_spec_overrides:
+    assert any(dep.startswith(key) for dep in deps), (
+        f"Need to adjust code below if {key} is not a dependency: {deps}"
+    )
 for dep in deps:
     package_name, version_spec = split_dep(dep)
+    version_spec = version_spec_overrides.get(dep, version_spec)
     # handle package name differences
     package_name = translations.get(package_name, package_name)
-    # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
-    # `environment.yaml` breaks the solver. 6.9.1 has a bug, and 6.9.2 needs newer
     # C deps that mean we need to upgrade VTK etc.
-    if package_name == "PySide6":
-        version_spec = "==6.10.2"
-    if package_name == "vtk":
-        version_spec = "==9.6.1"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging

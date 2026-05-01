@@ -46,7 +46,7 @@ dependencies:
   - pyarrow
   - pybv
   - pymatreader
-  - PySide6 ==6.10.2
+  - PySide6 !=6.7.0,!=6.8.0,!=6.8.0.1,!=6.9.1
   - python-neo
   - python-picard >=0.4
   - pyvista >=0.43
@@ -64,7 +64,7 @@ dependencies:
   - trame
   - trame-vtk
   - trame-vuetify
-  - vtk ==9.6.1
+  - vtk >=9.2
   - xlrd
   - pip:
       - pymef
