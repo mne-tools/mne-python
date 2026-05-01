@@ -9,24 +9,22 @@ INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	echo "::group::Uninstalling MNE"
-	conda remove -c conda-forge --force -yq mne-base
+	conda remove -c conda-forge --force -y mne-base
 	echo "::endgroup::"
 	# If using bare environment.yml and not on windows, do a non-editable install
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
 	fi
 	# If on minimal, just install testing deps
-	if [[ "${MNE_CI_KIND}" == "minimal" ]]; then
-		GROUP="test"
-		EXTRAS=""
-		STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
-		echo "::group::Upgrading pip installation"
-		python -m pip install --upgrade pip  # upgrade pip to support --group
-		echo "::endgroup::"
-	else
-		GROUP="test_extra"
-		EXTRAS="[hdf5]"
-	fi
+	GROUP="test_extra"
+	EXTRAS="[hdf5]"
+elif [[ "${MNE_CI_KIND}" == "minimal" ]]; then
+	GROUP="test"
+	EXTRAS=""
+	STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
+	echo "::group::Upgrading pip installation"
+	python -m pip install --upgrade pip  # upgrade pip to support --group
+	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	GROUP=""  # group "test" already included when pylock file generated
 	EXTRAS=""
