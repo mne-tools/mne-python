@@ -22,7 +22,7 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
         deps |= set(section_deps)
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
-deps |= {"pip", "mamba", "conda", "nomkl"}
+deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
 # not on conda-forge
 pip_deps = {"pymef"}
 deps -= pip_deps
