@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7ae6c526d72eda5c0ea3ada84f0eaf98a0c5c427",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 0,
+      "d": 37
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 14,
+      "d": 15
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 51,
+      "d": 0
+    }
+  }
+}
