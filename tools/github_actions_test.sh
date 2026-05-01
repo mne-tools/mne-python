@@ -13,7 +13,7 @@ elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
   fi
 elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
   CONDITION="not (slowtest or pgtest)"
-else:
+else
   echo "✕ ERROR: Unrecognized CI_OS_NAME=${CI_OS_NAME}"
   exit 1
 fi
