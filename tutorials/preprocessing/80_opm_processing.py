@@ -243,6 +243,7 @@ epochs = mne.Epochs(
 )
 evoked = epochs.average()
 t_peak = evoked.times[np.argmax(np.std(evoked.copy().pick("meg").data, axis=0))]
+fig = evoked.plot_joint(picks="mag")
 
 # %%
 # Visualizing coregistration

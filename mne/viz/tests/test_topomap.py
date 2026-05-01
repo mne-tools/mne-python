@@ -852,7 +852,7 @@ def test_split_opm_overlaps(triaxial_evoked):
 
 
 def test_should_use_opm_orientation_groups_only_for_triaxial():
-    """Test that OPM orientation grouping is restricted to triaxial overlaps."""
+    """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
     ch_names = [f"OPM{k:03}" for k in range(1, 7)]
     info = create_info(ch_names, 1000.0, ch_types="mag")
     with info._unlock():
@@ -869,9 +869,8 @@ def test_should_use_opm_orientation_groups_only_for_triaxial():
         np.array(["OPM004", "OPM005", "OPM006"]),
     ]
 
-    assert not topomap._should_use_opm_orientation_groups(
-        info, picks, pair_overlaps, "mag"
-    )
+    # Both biaxial and triaxial overlaps should trigger grouping
+    assert topomap._should_use_opm_orientation_groups(info, picks, pair_overlaps, "mag")
     assert topomap._should_use_opm_orientation_groups(
         info, picks, triax_overlaps, "mag"
     )

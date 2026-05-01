@@ -226,7 +226,8 @@ def _find_overlaps(info, ch_type, sphere, modality="fnirs"):
     channels_to_exclude = list()
 
     if len(locs3d) > 1 and np.min(dist) < 1e-10:
-        overlapping_mask = np.triu(squareform(dist < 1e-10))
+        # Use symmetric distance matrix to find all colocated channel groups
+        overlapping_mask = squareform(dist < 1e-10)
         for chan_idx in range(overlapping_mask.shape[0]):
             already_overlapped = list(
                 itertools.chain.from_iterable(overlapping_channels)
@@ -362,8 +363,8 @@ def _compute_opm_orientation_topomap_data(data, ch_names, pos, overlapping_chann
 def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
     """Return whether OPM orientation grouping should be enabled.
 
-    Grouping is only used for OPM magnetometer channels with overlap sets that
-    include at least 3 colocated channels (triaxial-style sensors).
+    Grouping is used for OPM magnetometer channels with overlap sets that
+    include at least 2 colocated channels (biaxial or triaxial sensors).
     """
     if ch_type != "mag" or not merge_channels:
         return False
@@ -376,7 +377,7 @@ def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
     if not isinstance(merge_channels, (list, tuple)):
         return False
 
-    return any(len(overlap_set) >= 3 for overlap_set in merge_channels)
+    return any(len(overlap_set) >= 2 for overlap_set in merge_channels)
 
 
 def _plot_update_evoked_topomap(params, bools):
