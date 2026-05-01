@@ -4,7 +4,7 @@ set -eo pipefail
 
 GOT_PYTHON=$(which python)
 echo "Checking Python found at:"
-echo "  $(which python) == ${GOT_PYTHON}"
+echo "  \$(which python) == ${GOT_PYTHON}"
 echo "for"
 echo "  \$MNE_CI_KIND   == ${MNE_CI_KIND}"
 if [[ "${MNE_CI_KIND}" == "conda" ]] || [[ "${MNE_CI_KIND}" == "mamba" ]]; then
