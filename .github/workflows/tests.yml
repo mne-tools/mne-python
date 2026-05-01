@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - uses: pre-commit/action@v3.0.1
       - run: pip install mypy numpy scipy vulture
       - run: mypy
@@ -77,7 +77,7 @@ jobs:
             python: '3.13'
             kind: conda
           - os: macos-latest  # arm64 (Apple Silicon): Sequoia
-            python: '3.13'
+            python: '3.14'
             kind: pip
           - os: macos-15-intel  # intel: Sequoia
             python: '3.13'
