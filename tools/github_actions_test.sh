@@ -4,8 +4,18 @@ set -eo pipefail
 
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
-else  # macOS or Windows
+elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
+  # detect arch and run slowtest on arm64 only (pgtest is already ultraslow on macOS)
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    CONDITION="not (ultraslowtest or pgtest)"
+  else
+    CONDITION="not (slowtest or pgtest)"
+  fi
+elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
   CONDITION="not (slowtest or pgtest)"
+else:
+  echo "✕ ERROR: Unrecognized CI_OS_NAME=${CI_OS_NAME}"
+  exit 1
 fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then
   USE_DIRS=mne/viz/
