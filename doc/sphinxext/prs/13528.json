@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "80788c8b3ef913bfd796c10290442704a36afcdb",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13528.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from mne.utils import _pl, warn
 
-README_PATH = Path(__file__).parents[2] / "README.rst"
+README_PATH = Path(__file__).parents[1] / "README.rst"
 BEGIN = ".. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓"
 END = ".. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑"
 

@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -92,7 +92,7 @@ jobs:
             python: '3.10'
             kind: old
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -107,7 +107,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: Warpbuilds/action-debugger@v1.3
         timeout-minutes: 80
         with:
           detached: true
@@ -143,7 +143,7 @@ jobs:
             fi
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
@@ -151,9 +151,20 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: ${{ !startswith(matrix.kind, 'pip') }}
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
         timeout-minutes: 20
+      # Python (if old)
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: ${{ matrix.python }}
+        if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_dependencies.sh
+      - run: python ./tools/github_actions_check_old_env.py
+        if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
@@ -165,13 +176,13 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()

@@ -66,7 +66,7 @@ from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannel
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
-from .fixes import rng_uniform
+from .fixes import _reshape_view, rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
@@ -97,6 +97,7 @@ from .utils import (
     check_fname,
     check_random_state,
     copy_function_doc_to_method_doc,
+    legacy,
     logger,
     object_size,
     repr_html,
@@ -394,7 +395,7 @@ class BaseEpochs(
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        Defaults to ``(None, 0)``, i.e. beginning of the data until
         time point zero.
     %(raw_epochs)s
     %(picks_all)s
@@ -702,6 +703,7 @@ class BaseEpochs(
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
 
+    @legacy(alt="mne.Epochs.reset_index()")
     def reset_drop_log_selection(self):
         """Reset the drop_log and selection entries.
 
@@ -710,6 +712,17 @@ class BaseEpochs(
         integers, respectively). This can be useful when concatenating
         many Epochs instances, as ``drop_log`` can accumulate many entries
         which can become problematic when saving.
+        """
+        self.reset_index()
+
+    def reset_index(self):
+        """Reset the epochs index.
+
+        This resets the epochs indexing and drop log so that ``self.selection`` becomes
+        a simple increasing sequence starting at zero and ``self.drop_log`` becomes a
+        tuple of empty tuples of the same length. The operation is in-place and is
+        useful when creating epochs from a subset of events (using ``event_id``) and the
+        original event indexes are not relevant anymore.
         """
         self.selection = np.arange(len(self.events))
         self.drop_log = (tuple(),) * len(self.events)
@@ -748,7 +761,7 @@ class BaseEpochs(
         Parameters
         ----------
         %(baseline_epochs)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -966,6 +979,11 @@ class BaseEpochs(
         copy : bool
             If False copies of data and measurement info will be omitted
             to save time.
+
+        Yields
+        ------
+        evoked : instance of Evoked
+            The epochs as a sequence of Evoked objects, one per epoch.
         """
         self.__iter__()
 
@@ -1308,6 +1326,7 @@ class BaseEpochs(
         theme=None,
         overview_mode=None,
         splash=True,
+        annotation_colors=None,
     ):
         return plot_epochs(
             self,
@@ -1334,6 +1353,7 @@ class BaseEpochs(
             theme=theme,
             overview_mode=overview_mode,
             splash=splash,
+            annotation_colors=annotation_colors,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
@@ -1543,6 +1563,20 @@ class BaseEpochs(
         -------
         epochs : instance of Epochs
             The epochs with indices dropped. Operates in-place.
+
+        Notes
+        -----
+        This method expects zero-based indices into the currently remaining
+        epochs, not the original event indices (as found in
+        the ``selection`` attribute). If some epochs were previously dropped (possibly
+        automatically, e.g., due to rejection thresholds or being too close to recording
+        start or end), you may need to convert indices before calling this method::
+
+            # epochs.selection contains the original indices (which are also shown by
+            # epochs.plot()) of the remaining epochs
+            plot_idx = 1  # index shown in epochs.plot()
+            drop_idx = np.where(epochs.selection == plot_idx)[0]
+            epochs.drop(drop_idx)
         """
         indices = np.atleast_1d(indices)
 
@@ -3248,7 +3282,7 @@ def make_metadata(
 
         # Determine which events fall into the current time window
         if start_sample is None and isinstance(tmin, list):
-            # Lower bound is the the current or the closest previpus event with a name
+            # Lower bound is the current or the closest previous event with a name
             # in "tmin"; if there is no such event (e.g., beginning of the recording is
             # being approached), the upper lower becomes the last event in the
             # recording.
@@ -3272,7 +3306,7 @@ def make_metadata(
             window_start_sample = row_event.sample + start_sample
 
         if stop_sample is None and isinstance(tmax, list):
-            # Upper bound is the the current or the closest following event with a name
+            # Upper bound is the current or the closest following event with a name
             # in "tmax"; if there is no such event (e.g., end of the recording is being
             # approached), the upper bound becomes the last event in the recording.
             next_matching_events = events_df.loc[
@@ -3436,7 +3470,7 @@ class Epochs(BaseEpochs):
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        Defaults to ``(None, 0)``, i.e. beginning of the data until
         time point zero.
     %(picks_all)s
     preload : bool
@@ -4479,7 +4513,7 @@ class EpochsFIF(BaseEpochs):
         else:
             data = data.astype(np.float64)
 
-        data.shape = raw.epoch_shape
+        data = _reshape_view(data, raw.epoch_shape)
         data *= raw.cals
         return data
 

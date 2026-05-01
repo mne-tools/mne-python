@@ -48,6 +48,7 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
+from ..fixes import _reshape_view
 from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label
@@ -440,14 +441,13 @@ def _read_forward_meas_info(tree, fid):
     # Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
-        raise ValueError("MEG/head coordinate transformation not found")
-    cand = tag.data
-    if cand["from"] == coord_device and cand["to"] == coord_head:
-        info["dev_head_t"] = cand
-    elif cand["from"] == coord_ctf_head and cand["to"] == coord_head:
-        info["ctf_head_t"] = cand
+        info["dev_head_t"] = None  # EEG-only
     else:
-        raise ValueError("MEG/head coordinate transformation not found")
+        cand = tag.data
+        if cand["from"] == coord_device and cand["to"] == coord_head:
+            info["dev_head_t"] = cand
+        elif cand["from"] == coord_ctf_head and cand["to"] == coord_head:
+            info["ctf_head_t"] = cand
 
     bads = _read_bad_channels(fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
@@ -1106,9 +1106,8 @@ def write_forward_meas_info(fid, info):
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
     # get transformation from CTF and DEVICE to HEAD coordinate frame
     meg_head_t = info.get("dev_head_t", info.get("ctf_head_t"))
-    if meg_head_t is None:
-        raise ValueError("Head<-->sensor transform not found")
-    write_coord_trans(fid, meg_head_t)
+    if meg_head_t is not None:
+        write_coord_trans(fid, meg_head_t)
 
     ch_names_mapping = dict()
     if "chs" in info:
@@ -1430,13 +1429,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G.shape = (G.shape[0], -1, 3)
+        G = _reshape_view(G, (G.shape[0], -1, 3))
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G.shape = (G.shape[0], -1)
+        G = _reshape_view(G, (G.shape[0], -1))
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:

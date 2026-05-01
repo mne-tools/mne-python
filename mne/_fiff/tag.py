@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 from scipy.sparse import csc_array, csr_array
 
+from ..fixes import _reshape_view
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_date
 from .constants import (
@@ -177,7 +178,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data.shape = dims
+        data = _reshape_view(data, dims)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())

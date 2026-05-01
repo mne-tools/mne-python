@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ea2ae10b5f17af15361a0f6f3fc431cd654292cb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/release.yaml": {
+      "a": 2,
+      "d": 0
+    },
+    ".github/workflows/autopush.yml": {
+      "a": 36,
+      "d": 0
+    },
+    ".github/workflows/credit.yml": {
+      "a": 7,
+      "d": 6
+    },
+    ".github/workflows/spec_zero.yml": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

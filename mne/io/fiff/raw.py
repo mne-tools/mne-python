@@ -17,6 +17,7 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
+from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,
@@ -424,7 +425,7 @@ class Raw(BaseRaw):
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
                 try:
-                    one.shape = (nsamp, nchan)
+                    one = _reshape_view(one, (nsamp, nchan))
                 except AttributeError:  # one is None
                     n_bad += picksamp
                 else:

@@ -243,7 +243,7 @@ class ProjMixin:
 
         Returns
         -------
-        self : instance of Raw | Epochs | Evoked
+        self : same type as the input data
             The data container.
         """
         if isinstance(projs, Projection):
@@ -283,7 +283,7 @@ class ProjMixin:
 
         Returns
         -------
-        self : instance of Raw | Epochs | Evoked
+        self : same type as the input data
             The instance.
 
         Notes
@@ -362,7 +362,7 @@ class ProjMixin:
 
         Returns
         -------
-        self : instance of Raw | Epochs | Evoked
+        self : same type as the input data
             The instance.
         """
         if isinstance(idx, str) and idx == "all":

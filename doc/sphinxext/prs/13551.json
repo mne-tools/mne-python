@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1df1f18a2de5d3069bdfd8f5a4a50efaf6440ef8",
+  "authors": [
+    {
+      "n": "Shruti Bhale",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13551.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

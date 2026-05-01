@@ -367,7 +367,7 @@ Substantial portions of this document were adapted from the
 <https://github.com/scipy/scipy/blob/main/doc/source/dev/governance.rst>`_,
 which in turn was adapted from
 `Jupyter/IPython project's governance document
-<https://github.com/jupyter/governance/blob/main/archive/governance.md>`_ and
+<https://github.com/jupyter/governance/blob/9603851c420c2b214fb0d714f3c57d97d6fa2cad/archive/governance.md>`_ and
 `NumPy's governance document
 <https://github.com/numpy/numpy/blob/master/doc/source/dev/governance/governance.rst>`_.
 

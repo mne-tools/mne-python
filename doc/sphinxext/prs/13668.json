@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8dd298f48f27a678ccde2e2bfa6a5f57e274c584",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/institutional-partners.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

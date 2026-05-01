@@ -18,6 +18,7 @@ from mne import (
     Epochs,
     compute_covariance,
     compute_proj_evoked,
+    compute_rank,
     make_fixed_length_events,
     read_cov,
     read_events,
@@ -357,6 +358,21 @@ def test_plot_evoked_image():
         evoked.plot_image(clim=[-4, 4])
 
 
+def test_plot_white_rank():
+    """Test plot_white with a combined-MEG rank arg."""
+    cov = read_cov(cov_fname)
+    cov["method"] = "empirical"
+    cov["projs"] = []  # avoid warnings
+    evoked = _get_epochs().average()
+    evoked.set_eeg_reference("average")  # Avoid warnings
+    rank = compute_rank(evoked, "info")
+    assert "grad" not in rank
+    assert "mag" not in rank
+    assert "meg" in rank
+    evoked.plot_white(cov)
+    evoked.plot_white(cov, rank=rank)
+
+
 def test_plot_white():
     """Test plot_white."""
     cov = read_cov(cov_fname)
@@ -373,9 +389,9 @@ def test_plot_white():
     evoked.plot_white(cov, rank={"grad": 8}, time_unit="s", axes=fig.axes[:4])
     with pytest.raises(ValueError, match=r"must have shape \(4,\), got \(2,"):
         evoked.plot_white(cov, axes=fig.axes[:2])
-    with pytest.raises(ValueError, match="When not using SSS"):
+    with pytest.raises(ValueError, match="exceeds the number"):
         evoked.plot_white(cov, rank={"meg": 306})
-    evoked.plot_white([cov, cov], time_unit="s")
+    evoked.plot_white([cov, cov], rank={"meg": 9}, time_unit="s")
     plt.close("all")
 
     fig = plot_evoked_white(evoked, [cov, cov])
@@ -450,7 +466,7 @@ def test_plot_compare_evokeds(evoked):
     plt.close("all")  # close the previous figures as to avoid a too many figs warning
     info_tmp = mne.create_info(["pupil_left"], evoked.info["sfreq"], ["pupil"])
     evoked_et = mne.EvokedArray(np.ones_like(evoked.times).reshape(1, -1), info_tmp)
-    figs = plot_compare_evokeds(evoked_et, show_sensors=False)
+    figs = plot_compare_evokeds(evoked_et, show_sensors=False, picks="eyetrack")
     assert len(figs) == 1
     # test plotting only invalid channel types
     info_tmp = mne.create_info(["ias"], evoked.info["sfreq"], ["ias"])

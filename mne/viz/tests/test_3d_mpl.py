@@ -86,7 +86,7 @@ def test_plot_volume_source_estimates_basic(
     want_str = f"({want_p[0]:0.1f}, {want_p[1]:0.1f}, {want_p[2]:0.1f}) mm"
     assert want_str in log, (want_str, init_p)
     for ax_idx in [0, 2, 3, 4]:
-        _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
+        _fake_click(fig, fig.axes[ax_idx], (0.5, 0.5))
     _fake_keypress(fig, "left")
     _fake_keypress(fig, "shift+right")
     if bg_img is not None:

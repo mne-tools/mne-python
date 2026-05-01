@@ -20,6 +20,7 @@ from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
 from ...epochs import BaseEpochs
 from ...event import read_events
+from ...fixes import _reshape_view
 from ...utils import (
     Bunch,
     _check_fname,
@@ -187,7 +188,7 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
         pos_array = np.array(pos, float)
-        pos_array.shape = (-1, 3)
+        pos_array = _reshape_view(pos_array, (-1, 3))
 
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).any(axis=1)

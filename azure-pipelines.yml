@@ -114,7 +114,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e . --group=test
             displayName: 'Install dependencies with pip'
@@ -133,7 +133,7 @@ stages:
               key: $(testing_version)
               path: /home/vsts/mne_data
             displayName: 'Cache testing data'
-          - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+          - bash: ./tools/github_actions_download.sh
             displayName: 'Get test data'
           - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'slow and mne-qt-browser tests'
@@ -188,7 +188,7 @@ stages:
               key: $(testing_version)
               path: /home/vsts/mne_data
             displayName: 'Cache testing data'
-          - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+          - bash: ./tools/github_actions_download.sh
             displayName: 'Get test data'
           - bash: |
               set -eo pipefail
@@ -245,6 +245,7 @@ stages:
           PYTHONIOENCODING: 'utf-8'
           AZURE_CI_WINDOWS: 'true'
           PYTHON_ARCH: 'x64'
+          MNE_CI_KIND: $(TEST_MODE)
         timeoutInMinutes: 95
         strategy:
           maxParallel: 4
@@ -284,7 +285,7 @@ stages:
               key: $(testing_version)
               path: C:\Users\VssAdministrator\mne_data
             displayName: 'Cache testing data'
-          - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+          - bash: ./tools/github_actions_download.sh
             displayName: 'Get test data'
           - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'Run tests'

@@ -28,6 +28,7 @@ from ..._freesurfer import (
     vertex_to_mni,
 )
 from ...defaults import DEFAULTS, _handle_default
+from ...fixes import _reshape_view
 from ...surface import _marching_cubes, _mesh_borders, mesh_edges
 from ...transforms import (
     Transform,
@@ -1708,8 +1709,12 @@ class Brain:
             between 0 and 255), the default "auto" chooses a default divergent
             colormap, if "center" is given (currently "icefire"), otherwise a
             default sequential colormap (currently "rocket").
-        alpha : float in [0, 1]
-            Alpha level to control opacity of the overlay.
+        alpha : float in [0, 1] | array, shape (n_vertices,)
+            Alpha level to control opacity of the overlay. A scalar applies
+            globally, while a 1D array applies per-vertex opacity.
+
+            .. versionchanged:: 1.12
+               Added support for per-vertex alpha.
         vertices : numpy array
             Vertices for which the data is defined (needed if
             ``len(data) < nvtx``).
@@ -2230,7 +2235,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].faces.shape
+                    keep_idx = _reshape_view(keep_idx, self.geo[hemi].faces.shape)
                     keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
@@ -2791,6 +2796,7 @@ class Brain:
         col=0,
         font_size=None,
         justification=None,
+        font_file=None,
     ):
         """Add a text to the visualization.
 
@@ -2819,6 +2825,10 @@ class Brain:
             The font size to use.
         justification : str | None
             The text justification.
+        font_file : str | None
+            Path to an absolute path of a font file to use for rendering
+            the text. See https://freetype.org/freetype2/docs/index.html for a list of
+            supported font file formats.
         """
         _validate_type(name, (str, None), "name")
         name = text if name is None else name
@@ -2835,6 +2845,7 @@ class Brain:
                     color=color,
                     size=font_size,
                     justification=justification,
+                    font_file=font_file,
                 )
                 if "text" not in self._actors:
                     self._actors["text"] = dict()
@@ -3978,7 +3989,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].orig_faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].orig_faces.shape
+                    keep_idx = _reshape_view(keep_idx, self.geo[hemi].orig_faces.shape)
                     keep_idx = self.geo[hemi].orig_faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:

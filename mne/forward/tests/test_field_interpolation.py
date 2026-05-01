@@ -19,6 +19,7 @@ from scipy.interpolate import interp1d
 import mne
 from mne import Epochs, make_fixed_length_events, pick_types, read_evokeds
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._field_interpolation import _setup_dots
 from mne.forward._lead_dots import (
@@ -85,7 +86,7 @@ def test_legendre_val():
         ctheta = rng.rand(20, 30) * 2.0 - 1.0
         beta = rng.rand(20, 30) * 0.8
         c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), lut_fun, n_fact)
-        c1.shape = beta.shape
+        c1 = _reshape_view(c1, beta.shape)
 
         # compare to numpy
         n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]

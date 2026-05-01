@@ -681,11 +681,9 @@ def _get_gpu_info():
 def _get_total_memory():
     """Return the total memory of the system in bytes."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            [
-                "powershell.exe",
-                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
-            ]
+            [ps, "-c", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"]
         ).decode()
         # Can get for example a "running scripts is disabled on this system"
         # error where "o" will be a long string rather than an int
@@ -708,8 +706,9 @@ def _get_total_memory():
 def _get_cpu_brand():
     """Return the CPU brand string."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            ["powershell.exe", "(Get-CimInstance Win32_Processor).Name"]
+            [ps, "-c", "(Get-CimInstance Win32_Processor).Name"]
         ).decode()
         cpu_brand = o.strip().splitlines()[-1]
     elif platform.system() == "Linux":
@@ -777,15 +776,15 @@ def sys_info(
     out("Executable".ljust(ljust) + sys.executable + "\n")
     try:
         cpu_brand = _get_cpu_brand()
-    except Exception:
-        cpu_brand = "?"
+    except Exception as exc:
+        cpu_brand = f"? (could not determine: {exc})"
     out("CPU".ljust(ljust) + f"{cpu_brand} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
         total_memory = _get_total_memory()
-    except UnknownPlatformError:
-        total_memory = "?"
+    except Exception as exc:
+        total_memory = f"? (could not determine: {exc})"
     else:
         total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
@@ -840,6 +839,7 @@ def sys_info(
         "curryreader",
         "mffpy",
         "pybv",
+        "pymef",
         "antio",
         "defusedxml",
         "",
@@ -848,6 +848,7 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
+            "hedtools",
             "statsmodels",
             "numpydoc",
             "jupyter_client",
@@ -877,6 +878,7 @@ def sys_info(
     except Exception:  # in case someone overrides sys.stdout in an unsafe way
         unicode = False
     mne_version_good = True
+    import_names = dict(hedtools="hed")
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -897,7 +899,8 @@ def sys_info(
         if last:
             pre = "└"
         try:
-            mod = import_module(mod_name.replace("-", "_"))
+            import_name = import_names.get(mod_name, mod_name.replace("-", "_"))
+            mod = import_module(import_name)
         except Exception:
             unavailable.append(mod_name)
         else:

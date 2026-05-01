@@ -82,6 +82,12 @@ initiate a recurring series of tutorials that could be advertised widely. Such e
 might even provide a small revenue stream for MNE-Python, to support things like
 continuous integration costs.
 
+Documentation interactivity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+With jupyterlite support landing `in sphinx-gallery <https://sphinx-gallery.github.io/stable/configuration.html#jupyterlite>`__,
+we should work on allowing users to run examples interactively on our website.
+See :gh:`13616` for more details and discussion.
+
 
 In progress
 -----------

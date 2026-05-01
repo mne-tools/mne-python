@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
@@ -369,7 +367,7 @@ class Evoked(
         Parameters
         ----------
         %(baseline_evoked)s
-            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
         %(verbose)s
 
@@ -799,12 +797,13 @@ class Evoked(
         ch_type=None,
         times=None,
         frame_rate=None,
+        *,
+        cmap=None,
         butterfly=False,
         blit=True,
         show=True,
         time_unit="s",
         sphere=None,
-        *,
         image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT,
         vmin=None,
@@ -831,6 +830,11 @@ class Evoked(
         frame_rate : int | None
             Frame rate for the animation in Hz. If None,
             frame rate = sfreq / 10. Defaults to None.
+        cmap : matplotlib colormap | None
+            Colormap to use. If None, 'Reds' is used for all positive data,
+            otherwise defaults to 'RdBu_r'.
+
+            .. versionadded:: 1.12.0
         butterfly : bool
             Whether to plot the data as butterfly plot under the topomap.
             Defaults to False.
@@ -882,6 +886,7 @@ class Evoked(
             vmin=vmin,
             vmax=vmax,
             verbose=verbose,
+            cmap=cmap,
         )
 
     def as_type(self, ch_type="grad", mode="fast"):
@@ -2006,6 +2011,8 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
 
     if not isinstance(evoked, list | tuple):
         evoked = [evoked]
+    if not len(evoked):
+        raise ValueError("No evoked data to write")
 
     warned = False
     # Create the file and save the essentials

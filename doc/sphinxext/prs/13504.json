@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d6320e9f0a47b65563783946057d1f238ff10d01",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/export/tests/test_export.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/report/report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/dev/Makefile": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

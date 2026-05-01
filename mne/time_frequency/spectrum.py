@@ -46,7 +46,11 @@ from ..utils.check import (
     check_fname,
 )
 from ..utils.misc import _pl
-from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
+from ..utils.spectrum import (
+    _convert_old_birthday_format,
+    _get_instance_type_string,
+    _split_psd_kwargs,
+)
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
@@ -391,7 +395,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = state["freqs"]
         self._dims = state["dims"]
         self._sfreq = state["sfreq"]
-        self.info = Info(**state["info"])
+        self.info = Info(**_convert_old_birthday_format(state["info"]))
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
         self._weights = state.get("weights")  # objs saved before #12747 won't have
@@ -1752,7 +1756,7 @@ def read_spectrum(fname):
         n_jobs=None,
         verbose=None,
     )
-    Klass = EpochsSpectrum if hdf5_dict["inst_type_str"] == "Epochs" else Spectrum
+    Klass = EpochsSpectrum if "epoch" in hdf5_dict["dims"] else Spectrum
     return Klass(hdf5_dict, **defaults)
 
 

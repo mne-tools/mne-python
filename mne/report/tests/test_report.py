@@ -26,6 +26,7 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
+from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
@@ -507,7 +508,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs.shape = (len(imgs), -1)
+    imgs = _reshape_view(imgs, (len(imgs), -1))
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
@@ -1030,8 +1031,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         eog_evoked=ica_eog_evoked,
         ecg_scores=ica_ecg_scores,
         eog_scores=ica_eog_scores,
+        plot_sources=True,
     )
-    assert "ICA component 2" in r._content[-1].html
+    assert "ICA component 2" in r._content[-2].html
+    assert "Sources" in r._content[-1].html
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(
@@ -1041,6 +1044,16 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         picks=[0],
     )
     r.add_ica(ica=ica, title="my ica with picks=None", inst=epochs_baseline, picks=None)
+
+    # plot_sources=True with inst=None should raise a ValueError
+    with pytest.raises(ValueError, match="Cannot plot ICA sources because inst=None"):
+        r.add_ica(
+            ica=ica,
+            title="my ica sources no inst",
+            inst=None,
+            plot_sources=True,
+        )
+
     r.add_covariance(cov=cov, info=raw_fname, title="my cov")
     r.add_forward(
         forward=fwd_fname,
