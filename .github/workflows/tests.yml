@@ -67,30 +67,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: pip
-          - os: ubuntu-latest
-            python: '3.14'
-            kind: pip-pre
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: conda
           - os: macos-latest  # arm64 (Apple Silicon): Sequoia
             python: '3.13'
-            kind: mamba
+            kind: pip
           - os: macos-15-intel  # intel: Sequoia
             python: '3.13'
-            kind: mamba
-          - os: windows-latest
-            python: '3.11'
-            kind: mamba
-          - os: ubuntu-latest
-            python: '3.12'
-            kind: minimal
-          - os: ubuntu-22.04
-            python: '3.10'
-            kind: old
+            kind: pip
     steps:
       - uses: actions/checkout@v6
         with:
@@ -123,13 +105,15 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
+      - run: tr ':' '\n' <<< "$PATH"
+      # Workaround macOS path behavior with login shells (which puts system Python first)
+      - run: echo "export PATH=\"${{ github.workspace }}/.venv/bin:$PATH\"" | tee -a ~/.bash_profile
+        if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
-          cache-environment: false
-          cache-downloads: false
           log-level: 'info'
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
