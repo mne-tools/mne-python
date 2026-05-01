@@ -5,6 +5,7 @@ channels:
 dependencies:
   - python >=3.10
   - antio >=0.5.0
+  - conda
   - curryreader >=0.1.2
   - darkdetect
   - decorator >=5.1
@@ -29,6 +30,7 @@ dependencies:
   - matplotlib >=3.8
   - mffpy >=0.5.7
   - mne-qt-browser
+  - nest-asyncio2
   - nibabel >=2.0
   - nilearn
   - nomkl
@@ -64,6 +66,5 @@ dependencies:
   - vtk ==9.6.1
   - xlrd
   - pip:
-      - nest-asyncio2
       - pymef
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'
