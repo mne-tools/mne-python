@@ -124,7 +124,6 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
         id: setup-python
-      - run: tr ':' '\n' <<< "$PATH"
       # Workaround macOS path behavior with login shells (which puts system Python first)
       - run: echo "export PATH=\"${{ steps.setup-python.outputs.python-path }}:$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
         if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
