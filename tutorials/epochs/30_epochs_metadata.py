@@ -5,6 +5,8 @@
 Working with Epoch metadata
 ===========================
 
+.. tags:: tutorials, epochs, eeg, visualization
+
 This tutorial shows how to add metadata to `~mne.Epochs` objects, and
 how to use :ref:`Pandas query strings <pandas:indexing.query>` to select and
 plot epochs based on metadata properties.

@@ -4,6 +4,8 @@
 Divide continuous data into equally-spaced epochs
 =================================================
 
+.. tags:: tutorials, epochs, raw, connectivity, meg
+
 This tutorial shows how to segment continuous data into a set of epochs spaced
 equidistantly in time. The epochs will not be created based on experimental events;
 instead, the continuous data will be "chunked" into consecutive epochs (which may be

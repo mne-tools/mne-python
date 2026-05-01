@@ -5,6 +5,8 @@
 Compute a cross-spectral density (CSD) matrix
 =============================================
 
+.. tags:: examples, connectivity, time-frequency, beamforming
+
 A cross-spectral density (CSD) matrix is similar to a covariance matrix, but in
 the time-frequency domain. It is the first step towards computing
 sensor-to-sensor coherence or a DICS beamformer.

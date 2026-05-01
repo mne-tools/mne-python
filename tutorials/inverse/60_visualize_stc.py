@@ -5,6 +5,8 @@
 Visualize source time courses (stcs)
 ====================================
 
+.. tags:: tutorials, inverse, visualization, source-localization
+
 This tutorial focuses on visualization of :term:`source estimates <STC>`.
 
 Surface Source Estimates

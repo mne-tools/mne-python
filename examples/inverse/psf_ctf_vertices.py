@@ -5,6 +5,8 @@
 Plot point-spread functions (PSFs) and cross-talk functions (CTFs)
 ==================================================================
 
+.. tags:: examples, inverse, source-localization, forward-model, visualization
+
 Visualise PSF and CTF at one vertex for sLORETA.
 """
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>

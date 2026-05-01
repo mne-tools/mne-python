@@ -5,6 +5,8 @@
 Plot single trial activity, grouped by ROI and sorted by RT
 ===========================================================
 
+.. tags:: examples, visualization, epochs, eeg, events
+
 This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.
 

@@ -5,6 +5,8 @@
 Compute power and phase lock in label of the source space
 =========================================================
 
+.. tags:: examples, time-frequency, source-localization, inverse, epochs
+
 Compute time-frequency maps of power and phase lock in the source space.
 The inverse method is linear based on dSPM inverse operator.
 

@@ -5,6 +5,8 @@
 Transform EEG data using current source density (CSD)
 =====================================================
 
+.. tags:: examples, preprocessing, eeg, visualization
+
 This script shows an example of how to use CSD
 :footcite:`PerrinEtAl1987,PerrinEtAl1989,Cohen2014,KayserTenke2015`.
 CSD takes the spatial Laplacian of the sensor signal (derivative in both

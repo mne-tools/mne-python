@@ -5,6 +5,8 @@
 Source localization with MNE, dSPM, sLORETA, and eLORETA
 ========================================================
 
+.. tags:: tutorials, inverse, source-localization, evoked
+
 The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """

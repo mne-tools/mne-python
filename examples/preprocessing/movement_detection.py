@@ -5,6 +5,8 @@
 Annotate movement artifacts and reestimate dev_head_t
 =====================================================
 
+.. tags:: examples, preprocessing, artifacts, meg, visualization
+
 Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the
 head position, the bigger the cancellation due to different locations.

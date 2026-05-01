@@ -5,6 +5,8 @@
 Compute MNE inverse solution on evoked data with a mixed source space
 =====================================================================
 
+.. tags:: examples, inverse, source-localization, forward-model, visualization
+
 Create a mixed source space and compute an MNE inverse solution on an evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>

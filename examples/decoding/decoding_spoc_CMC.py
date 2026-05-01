@@ -5,6 +5,8 @@
 Continuous Target Decoding with SPoC
 ====================================
 
+.. tags:: examples, decoding, meg, connectivity, classification
+
 Source Power Comodulation (SPoC) :footcite:`DahneEtAl2014` allows to identify
 the composition of
 orthogonal spatial filters that maximally correlate with a continuous target.

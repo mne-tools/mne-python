@@ -5,6 +5,8 @@
 Plotting the full vector-valued MNE solution
 ============================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 The source space that is used for the inverse computation defines a set of
 dipoles, distributed across the cortex. When visualizing a source estimate, it
 is sometimes useful to show the dipole directions in addition to their

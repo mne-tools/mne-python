@@ -5,6 +5,8 @@
 Non-parametric 1 sample cluster statistic on single trial power
 ===============================================================
 
+.. tags:: tutorials, statistics, cluster-permutation, time-frequency
+
 This script shows how to estimate significant clusters in time-frequency power
 estimates. It uses a non-parametric statistical procedure based on permutations and
 cluster level statistics.

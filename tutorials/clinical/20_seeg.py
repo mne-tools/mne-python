@@ -5,6 +5,8 @@
 Working with sEEG data
 ======================
 
+.. tags:: tutorials, clinical, source-localization, visualization
+
 MNE-Python supports working with more than just MEG and EEG data. Here we show
 some of the functions that can be used to facilitate working with
 stereoelectroencephalography (sEEG) data.

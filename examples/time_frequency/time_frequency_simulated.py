@@ -5,6 +5,8 @@
 Time-frequency on simulated data (Multitaper vs. Morlet vs. Stockwell vs. Hilbert)
 ==================================================================================
 
+.. tags:: examples, time-frequency, evoked, epochs, meg
+
 This example demonstrates the different time-frequency estimation methods
 on simulated data. It shows the time-frequency resolution trade-off
 and the problem of estimation variance. In addition it highlights

@@ -5,6 +5,8 @@
 Repairing artifacts with ICA
 ============================
 
+.. tags:: tutorials, preprocessing, ica, artifacts
+
 This tutorial covers the basics of independent components analysis (ICA) and shows how
 ICA can be used for artifact repair; an extended example illustrates repair of ocular
 and heartbeat artifacts. For conceptual background on ICA, see

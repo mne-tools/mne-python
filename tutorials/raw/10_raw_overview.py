@@ -5,6 +5,8 @@
 The Raw data structure: continuous data
 =======================================
 
+.. tags:: tutorials, raw, io, beginners
+
 This tutorial covers the basics of working with raw EEG/MEG data in Python. It
 introduces the :class:`~mne.io.Raw` data structure in detail, including how to
 load, query, subselect, export, and plot data from a :class:`~mne.io.Raw`

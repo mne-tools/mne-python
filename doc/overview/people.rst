@@ -5,6 +5,8 @@
 Current Project Leadership and Institutional Partners
 =====================================================
 
+.. tags:: development, governance, community
+
 .. _maintainer-team-people:
 
 Maintainer Team

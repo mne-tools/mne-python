@@ -6,6 +6,8 @@
 Installing MNE-Python
 ======================
 
+.. tags:: installation, setup, beginners, advanced
+
 
 .. when https://github.com/executablebooks/sphinx-design/issues/66 is fixed,
    prepend |cloud-arrow-down| |ensp| to the "Download installers" button text

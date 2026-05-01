@@ -5,6 +5,8 @@
 Non-parametric between conditions cluster statistic on single trial power
 =========================================================================
 
+.. tags:: tutorials, statistics, time-frequency, cluster-permutation
+
 This script shows how to compare clusters in time-frequency
 power estimates between conditions. It uses a non-parametric
 statistical procedure based on permutations and cluster

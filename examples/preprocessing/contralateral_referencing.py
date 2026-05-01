@@ -5,6 +5,8 @@
 Using contralateral referencing for EEG
 =======================================
 
+.. tags:: examples, preprocessing, eeg, raw
+
 Instead of using a single reference electrode for all channels, some
 researchers reference the EEG electrodes in each hemisphere to an electrode in
 the contralateral hemisphere (often an electrode over the mastoid bone; this is

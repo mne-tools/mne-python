@@ -4,6 +4,8 @@
 The typical M/EEG workflow
 ==========================
 
+.. tags:: documentation, workflow, preprocessing, source-localization
+
 Overview
 ========
 

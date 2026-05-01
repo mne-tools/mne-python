@@ -5,6 +5,8 @@
 Compute Rap-Music on evoked data
 ================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 Compute a Recursively Applied and Projected MUltiple Signal Classification
 (RAP-MUSIC) :footcite:`MosherLeahy1999` on evoked data.
 """

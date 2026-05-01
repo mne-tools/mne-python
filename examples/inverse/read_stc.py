@@ -5,6 +5,8 @@
 Reading an STC file
 ===================
 
+.. tags:: examples, inverse, source-localization, io, visualization
+
 STC files contain activations on cortex ie. source
 reconstructions
 """

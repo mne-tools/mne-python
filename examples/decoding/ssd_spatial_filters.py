@@ -5,6 +5,8 @@
 Compute spatial filters with Spatio-Spectral Decomposition (SSD)
 ================================================================
 
+.. tags:: examples, decoding, time-frequency, preprocessing
+
 In this example, we will compute spatial filters for retaining
 oscillatory brain activity and down-weighting 1/f background signals
 as proposed by :footcite:`NikulinEtAl2011`.

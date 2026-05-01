@@ -5,6 +5,8 @@
 Whitening evoked data with a noise covariance
 =============================================
 
+.. tags:: examples, visualization, evoked, preprocessing, meg
+
 Evoked data are loaded and then whitened using a given noise covariance
 matrix. It's an excellent quality check to see if baseline signals match
 the assumption of Gaussian white noise during the baseline period.

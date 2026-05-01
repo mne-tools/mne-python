@@ -5,6 +5,8 @@
 Compute and visualize ERDS maps
 ===============================
 
+.. tags:: examples, time-frequency, statistics, eeg, epochs
+
 This example calculates and displays ERDS maps of event-related EEG data.
 ERDS (sometimes also written as ERD/ERS) is short for event-related
 desynchronization (ERD) and event-related synchronization (ERS)

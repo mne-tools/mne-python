@@ -5,6 +5,8 @@
 Spatiotemporal permutation F-test on full sensor data
 =====================================================
 
+.. tags:: tutorials, statistics, cluster-permutation
+
 Tests for differential evoked responses in at least one condition using a permutation
 clustering test. The FieldTrip neighbor templates will be used to determine the
 adjacency between sensors. This serves as a spatial prior to the clustering.

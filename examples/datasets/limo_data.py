@@ -5,6 +5,8 @@
 Single trial linear regression analysis with the LIMO dataset
 =============================================================
 
+.. tags:: examples, datasets, eeg, statistics, epochs
+
 Here we explore the structure of the data contained in the
 `LIMO dataset`_.
 This example replicates and extends some of the main analysis

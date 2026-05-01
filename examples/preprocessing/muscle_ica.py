@@ -5,6 +5,8 @@
 Removing muscle ICA components
 ==============================
 
+.. tags:: examples, preprocessing, ica, artifacts, eeg
+
 Gross movements produce widespread high-frequency activity across all channels
 that is usually not recoverable and so the epoch must be rejected as shown in
 :ref:`ex-muscle-artifacts`. More ubiquitously than gross movements, muscle

@@ -5,6 +5,8 @@
 Compute source power using DICS beamformer
 ==========================================
 
+.. tags:: examples, beamforming, inverse, connectivity
+
 Compute a Dynamic Imaging of Coherent Sources (DICS) :footcite:`GrossEtAl2001`
 filter from single-trial activity to estimate source power across a frequency
 band. This example demonstrates how to source localize the event-related

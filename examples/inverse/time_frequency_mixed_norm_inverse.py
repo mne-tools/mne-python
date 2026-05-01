@@ -5,6 +5,8 @@
 Compute MxNE with time-frequency sparse prior
 =============================================
 
+.. tags:: examples, inverse, source-localization, time-frequency, evoked
+
 The TF-MxNE solver is a distributed inverse method (like dSPM or sLORETA)
 that promotes focal (sparse) sources (such as dipole fitting techniques)
 :footcite:`GramfortEtAl2013b,GramfortEtAl2011`.

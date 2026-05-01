@@ -5,6 +5,8 @@
 EEG analysis - Event-Related Potentials (ERPs)
 ==============================================
 
+.. tags:: tutorials, evoked, eeg, epochs, preprocessing
+
 This tutorial shows how to perform standard ERP analyses in MNE-Python. Most of
 the material here is covered in other tutorials too, but for convenience the
 functions and methods most useful for ERP analyses are collected here, with

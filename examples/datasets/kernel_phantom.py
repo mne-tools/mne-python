@@ -4,6 +4,8 @@
 Kernel OPM phantom data
 =======================
 
+.. tags:: examples, datasets, meg, evoked, inverse
+
 In this dataset, a Neuromag phantom was placed inside the Kernel OPM helmet and
 stimulated with 7 modules active (121 channels). Here we show some example traces.
 """

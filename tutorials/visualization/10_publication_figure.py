@@ -5,6 +5,8 @@
 Make figures more publication ready
 ===================================
 
+.. tags:: tutorials, visualization, evoked
+
 In this example, we show several use cases to take MNE plots and
 customize them for a more publication-ready look.
 """

@@ -5,6 +5,8 @@
 Compute a sparse inverse solution using the Gamma-MAP empirical Bayesian method
 ===============================================================================
 
+.. tags:: examples, inverse, gamma-map, sparse, bayesian
+
 See :footcite:`WipfNagarajan2009` for details.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>

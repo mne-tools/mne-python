@@ -5,6 +5,8 @@
 Plot point-spread functions (PSFs) for a volume
 ===============================================
 
+.. tags:: examples, inverse, source-localization, forward-model, visualization
+
 Visualise PSF at one volume vertex for sLORETA.
 """
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>

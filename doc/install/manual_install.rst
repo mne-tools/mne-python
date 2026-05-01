@@ -4,6 +4,8 @@
 Install via :code:`pip` or :code:`conda`
 ========================================
 
+.. tags:: installation, setup, pip, conda
+
 .. hint::
    If you're unfamiliar with Python, we recommend using our :ref:`installers`
    instead.

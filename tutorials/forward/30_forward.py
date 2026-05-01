@@ -5,6 +5,8 @@
 Head model and forward computation
 ==================================
 
+.. tags:: tutorials, forward-model, bem, source-localization
+
 The aim of this tutorial is to be a getting started for forward computation.
 
 For more extensive details and presentation of the general concepts for forward

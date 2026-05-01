@@ -5,6 +5,8 @@
 Generate simulated evoked data
 ==============================
 
+.. tags:: examples, simulation, evoked, source-localization
+
 Use :func:`~mne.simulation.simulate_sparse_stc` to simulate evoked data.
 """
 # Author: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>

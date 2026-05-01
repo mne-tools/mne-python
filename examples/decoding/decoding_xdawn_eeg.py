@@ -5,6 +5,8 @@
 XDAWN Decoding From EEG data
 ============================
 
+.. tags:: examples, decoding, eeg, classification, evoked
+
 ERP decoding with Xdawn :footcite:`RivetEtAl2009,RivetEtAl2011`. For each event
 type, a set of spatial Xdawn filters are trained and applied on the signal.
 Channels are concatenated and rescaled to create features vectors that will be

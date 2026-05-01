@@ -5,6 +5,8 @@
 Show EOG artifact timing
 ========================
 
+.. tags:: examples, preprocessing, artifacts, epochs, visualization
+
 Compute the distribution of timing for EOG artifacts.
 
 """

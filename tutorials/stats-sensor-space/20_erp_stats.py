@@ -5,6 +5,8 @@
 Visualising statistical significance thresholds on EEG data
 ===========================================================
 
+.. tags:: tutorials, statistics, eeg
+
 MNE-Python provides a range of tools for statistical hypothesis testing
 and the visualisation of the results. Here, we show a few options for
 exploratory and confirmatory tests - e.g., targeted t-tests, cluster-based

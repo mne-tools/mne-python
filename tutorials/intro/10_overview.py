@@ -5,6 +5,8 @@
 Overview of MEG/EEG analysis with MNE-Python
 ============================================
 
+.. tags:: tutorials, beginners, meg, eeg, workflow
+
 This tutorial covers the basic EEG/MEG pipeline for event-related analysis: loading
 data, epoching, averaging, plotting, and estimating cortical activity from sensor data.
 It introduces the core MNE-Python data structures `~mne.io.Raw`, `~mne.Epochs`,

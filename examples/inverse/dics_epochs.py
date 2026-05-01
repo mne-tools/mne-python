@@ -5,6 +5,8 @@
 Compute source level time-frequency timecourses using a DICS beamformer
 =======================================================================
 
+.. tags:: examples, inverse, beamforming, time-frequency, source-localization
+
 In this example, a Dynamic Imaging of Coherent Sources (DICS) :footcite:`GrossEtAl2001`
 beamformer is used to transform sensor-level time-frequency objects to the source level.
 We will look at the event-related synchronization (ERS) of beta band activity in the

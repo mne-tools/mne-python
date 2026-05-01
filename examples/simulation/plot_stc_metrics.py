@@ -3,6 +3,8 @@
 Compare simulated and estimated source activity
 ===============================================
 
+.. tags:: examples, simulation, source-localization, inverse, statistics
+
 This example illustrates how to compare the simulated and estimated
 source time courses (STC) by computing different metrics. Simulated
 source is a cortical region or dipole. It is meant to be a brief

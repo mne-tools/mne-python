@@ -5,6 +5,8 @@
 Interpolate MEG or EEG data to any montage
 ======================================================
 
+.. tags:: examples, preprocessing, eeg, meg, evoked
+
 This example demonstrates both EEG montage interpolation and MEG system
 transformation.
 

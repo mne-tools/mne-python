@@ -5,6 +5,8 @@
 Receptive Field Estimation and Prediction
 =========================================
 
+.. tags:: examples, decoding, eeg, machine-learning, classification
+
 This example reproduces figures from Lalor et al.'s mTRF toolbox in
 MATLAB :footcite:`CrosseEtAl2016`. We will show how the
 :class:`mne.decoding.ReceptiveField` class

@@ -5,6 +5,8 @@
 Compute MNE-dSPM inverse solution on evoked data in volume source space
 =======================================================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 Compute dSPM inverse solution on MNE evoked dataset in a volume source
 space and stores the solution in a nifti file for visualisation.
 """

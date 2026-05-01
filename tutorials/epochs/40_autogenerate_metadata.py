@@ -5,6 +5,8 @@
 Auto-generating Epochs metadata
 ===============================
 
+.. tags:: tutorials, epochs, events, eeg, evoked
+
 This tutorial shows how to auto-generate metadata for `~mne.Epochs`, based on
 events via `mne.epochs.make_metadata`.
 

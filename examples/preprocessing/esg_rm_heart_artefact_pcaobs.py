@@ -5,6 +5,8 @@
 Principal Component Analysis - Optimal Basis Sets (PCA-OBS) removing cardiac artefact
 =====================================================================================
 
+.. tags:: examples, preprocessing, artifacts, eeg
+
 This script shows an example of how to use an adaptation of PCA-OBS
 :footcite:`NiazyEtAl2005`. PCA-OBS was originally designed to remove
 the ballistocardiographic artefact in simultaneous EEG-fMRI. Here, it

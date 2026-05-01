@@ -5,6 +5,8 @@
 Plot the MNE brain and helmet
 =============================
 
+.. tags:: examples, visualization, meg, evoked
+
 This tutorial shows how to make the MNE helmet + brain image.
 """
 

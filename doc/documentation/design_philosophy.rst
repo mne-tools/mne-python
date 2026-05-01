@@ -3,6 +3,8 @@
 Design philosophy
 =================
 
+.. tags:: documentation, design, workflow
+
 Interactive versus scripted analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -5,6 +5,8 @@
 Extracting the time series of activations in a label
 ====================================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 We first apply a dSPM inverse operator to get signed activations in a label
 (with positive and negative values) and we then compare different strategies
 to average the times series in a label. We compare a simple average, with an

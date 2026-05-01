@@ -5,6 +5,8 @@
 Visualizing epoched data
 ========================
 
+.. tags:: tutorials, epochs, visualization, time-frequency
+
 This tutorial shows how to plot epoched data as time series, how to plot the
 spectral density of epoched data, how to plot epochs as an imagemap, and how to
 plot the sensor locations and projectors stored in `~mne.Epochs` objects.

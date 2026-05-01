@@ -5,6 +5,8 @@
 Reading/Writing a noise covariance matrix
 =========================================
 
+.. tags:: examples, io, inverse, visualization
+
 How to plot a noise covariance matrix.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>

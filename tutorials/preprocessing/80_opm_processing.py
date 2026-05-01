@@ -5,6 +5,8 @@
 Preprocessing optically pumped magnetometer (OPM) MEG data
 ==========================================================
 
+.. tags:: tutorials, preprocessing, meg
+
 This tutorial covers preprocessing steps that are specific to :term:`OPM`
 MEG data. OPMs use a different sensing technology than traditional
 :term:`SQUID` MEG systems, which leads to several important differences for

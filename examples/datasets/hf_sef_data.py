@@ -5,6 +5,8 @@
 HF-SEF dataset
 ==============
 
+.. tags:: examples, datasets, meg, evoked
+
 This example looks at high-frequency SEF responses.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)

@@ -5,6 +5,8 @@
 DICS for power mapping
 ======================
 
+.. tags:: tutorials, beamforming, connectivity, simulation
+
 In this tutorial, we'll simulate two signals originating from two
 locations on the cortex. These signals will be sinusoids, so we'll be looking
 at oscillatory activity (as opposed to evoked activity).

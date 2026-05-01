@@ -9,6 +9,8 @@ r"""
 Decoding (MVPA)
 ===============
 
+.. tags:: tutorials, decoding, machine-learning, classification
+
 .. include:: ../../links.inc
 
 Design philosophy

@@ -4,6 +4,8 @@
 Frequently Asked Questions (FAQ)
 ================================
 
+.. tags:: help, faq, troubleshooting
+
 .. highlight:: python
 
 General MNE-Python issues

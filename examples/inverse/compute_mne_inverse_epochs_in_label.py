@@ -5,6 +5,8 @@
 Compute MNE-dSPM inverse solution on single epochs
 ==================================================
 
+.. tags:: examples, inverse, source-localization, epochs, evoked
+
 Compute dSPM inverse solution on single trial epochs restricted
 to a brain label.
 """

@@ -5,6 +5,8 @@
 Permutation F-test on sensor data with 1D cluster level
 =======================================================
 
+.. tags:: examples, statistics, cluster-permutation, evoked
+
 One tests if the evoked response is significantly different
 between conditions. Multiple comparison problem is addressed
 with cluster level permutation test.

@@ -5,6 +5,8 @@
 Regression on continuous data (rER[P/F])
 ========================================
 
+.. tags:: examples, statistics, raw, evoked, meg
+
 This demonstrates how rER[P/F]s - regressing the continuous data - is a
 generalisation of traditional averaging. If all preprocessing steps
 are the same, no overlap between epochs exists, and if all

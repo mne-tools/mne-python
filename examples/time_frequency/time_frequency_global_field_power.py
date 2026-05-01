@@ -5,6 +5,8 @@
 Explore event-related dynamics for specific frequency bands
 ===========================================================
 
+.. tags:: examples, time-frequency, evoked, meg, epochs
+
 The objective is to show you how to explore spectrally localized
 effects. For this purpose we adapt the method described in
 :footcite:`HariSalmelin1997` and use it on the somato dataset.

@@ -3,6 +3,8 @@
 Datasets Overview
 #################
 
+.. tags:: documentation, datasets, examples
+
 .. note:: Contributing datasets to MNE-Python
     :class: sidebar
 

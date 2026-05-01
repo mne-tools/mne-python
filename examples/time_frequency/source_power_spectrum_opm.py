@@ -5,6 +5,8 @@
 Compute source power spectral density (PSD) of VectorView and OPM data
 ======================================================================
 
+.. tags:: examples, time-frequency, source-localization, inverse, meg
+
 Here we compute the resting state from raw for data recorded using
 a Neuromag VectorView system and a custom OPM system.
 The pipeline is meant to mostly follow the Brainstorm :footcite:`TadelEtAl2011`

@@ -5,6 +5,8 @@
 Creating MNE-Python data structures from scratch
 ================================================
 
+.. tags:: tutorials, simulation, raw, epochs, evoked
+
 This tutorial shows how to create MNE-Python's core data structures using an
 existing :class:`NumPy array <numpy.ndarray>` of (real or synthetic) data.
 

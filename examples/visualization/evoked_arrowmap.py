@@ -5,6 +5,8 @@
 Plotting topographic arrowmaps of evoked data
 =============================================
 
+.. tags:: examples, visualization, evoked, meg
+
 Load evoked data and plot arrowmaps along with the topomap for selected time
 points. An arrowmap is based upon the Hosaka-Cohen transformation and
 represents an estimation of the current flow underneath the MEG sensors.

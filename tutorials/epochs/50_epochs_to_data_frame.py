@@ -5,6 +5,8 @@
 Exporting Epochs to Pandas DataFrames
 =====================================
 
+.. tags:: tutorials, epochs, meg, eeg, visualization
+
 This tutorial shows how to export the data in :class:`~mne.Epochs` objects to a
 :class:`Pandas DataFrame <pandas.DataFrame>`, and applies a typical Pandas
 :doc:`split-apply-combine <pandas:user_guide/groupby>` workflow to examine the

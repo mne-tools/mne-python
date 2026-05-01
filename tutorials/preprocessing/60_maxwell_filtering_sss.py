@@ -5,6 +5,8 @@
 Signal-space separation (SSS) and Maxwell filtering
 ===================================================
 
+.. tags:: tutorials, preprocessing, meg
+
 This tutorial covers reducing environmental noise and compensating for head
 movement with SSS and Maxwell filtering.
 

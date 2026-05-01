@@ -5,6 +5,8 @@
 Linear classifier on sensor data with plot patterns and filters
 ===============================================================
 
+.. tags:: examples, decoding, meg, eeg, machine-learning, classification
+
 Here decoding, a.k.a MVPA or supervised machine learning, is applied to M/EEG
 data in sensor space. Fit a linear classifier with the LinearModel object
 providing topographical patterns which are more neurophysiologically

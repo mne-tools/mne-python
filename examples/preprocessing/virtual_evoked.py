@@ -5,6 +5,8 @@
 Remap MEG channel types
 =======================
 
+.. tags:: examples, preprocessing, evoked, meg, visualization
+
 In this example, MEG data are remapped from one channel type to another.
 This is useful to:
 

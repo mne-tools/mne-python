@@ -5,6 +5,8 @@
 Sensitivity map of SSP projections
 ==================================
 
+.. tags:: examples, visualization, artifacts, forward-model
+
 This example shows the sources that have a forward field
 similar to the first SSP vector correcting for ECG.
 """

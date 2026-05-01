@@ -5,6 +5,8 @@
 Installing MNE-C
 ================
 
+.. tags:: installation, mne-c, legacy-tools
+
 System requirements
 ^^^^^^^^^^^^^^^^^^^
 

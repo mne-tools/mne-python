@@ -5,6 +5,8 @@
 Extracting and visualizing subject head movement
 ================================================
 
+.. tags:: tutorials, preprocessing, meg
+
 Continuous head movement can be encoded during MEG recordings by use of
 HPI coils that continuously emit sinusoidal signals. These signals can then be
 extracted from the recording and used to estimate head position as a function

@@ -5,6 +5,8 @@
 Getting impedances from raw files
 =================================
 
+.. tags:: examples, io, eeg, raw
+
 Many EEG systems provide impedance measurements for each channel within their file
 format. MNE does not parse this information and does not store it in the
 :class:`~mne.io.Raw` object. However, it is possible to extract this information from

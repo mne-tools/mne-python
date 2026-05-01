@@ -5,6 +5,8 @@
 EEG source localization given electrode locations on an MRI
 ===========================================================
 
+.. tags:: tutorials, inverse, eeg, forward-model, source-localization
+
 This tutorial explains how to compute the forward operator from EEG data when the
 electrodes are in MRI voxel coordinates.
 """

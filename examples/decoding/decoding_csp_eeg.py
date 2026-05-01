@@ -5,6 +5,8 @@
 Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 ===========================================================================
 
+.. tags:: examples, decoding, eeg, csp
+
 Decoding of motor imagery applied to EEG data decomposed using CSP. A
 classifier is then applied to features extracted on CSP-filtered signals.
 

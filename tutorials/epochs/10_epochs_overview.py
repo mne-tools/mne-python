@@ -5,6 +5,8 @@
 The Epochs data structure: discontinuous data
 =============================================
 
+.. tags:: tutorials, epochs, events, beginners
+
 This tutorial covers the basics of creating and working with :term:`epoched
 <epochs>` data. It introduces the :class:`~mne.Epochs` data structure in
 detail, including how to load, query, subselect, export, and plot data from an

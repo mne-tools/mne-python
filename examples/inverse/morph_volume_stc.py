@@ -5,6 +5,8 @@
 Morph volumetric source estimate
 ================================
 
+.. tags:: examples, inverse, source-localization, freesurfer, visualization
+
 This example demonstrates how to morph an individual subject's
 :class:`mne.VolSourceEstimate` to a common reference space. We achieve this using
 :class:`mne.SourceMorph`. Data will be morphed based on an affine transformation and

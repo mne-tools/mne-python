@@ -5,6 +5,8 @@
 Compute Trap-Music on evoked data
 =================================
 
+.. tags:: examples, inverse, source-localization, evoked, visualization
+
 Compute a Truncated Recursively Applied and Projected MUltiple Signal Classification
 (TRAP-MUSIC) :footcite:`Makela2018` on evoked data.
 """

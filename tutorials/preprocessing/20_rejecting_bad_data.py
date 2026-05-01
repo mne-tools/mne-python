@@ -5,6 +5,8 @@
 Rejecting bad data spans and breaks
 ===================================
 
+.. tags:: tutorials, preprocessing, artifacts, rejection, annotations
+
 This tutorial covers:
 
 - manual marking of bad spans of data,

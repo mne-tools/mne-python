@@ -5,6 +5,8 @@
 Working with ECoG data
 ======================
 
+.. tags:: tutorials, clinical, visualization, preprocessing
+
 MNE supports working with more than just MEG and EEG data. Here we show some of the
 functions that can be used to facilitate working with electrocorticography (ECoG) data.
 

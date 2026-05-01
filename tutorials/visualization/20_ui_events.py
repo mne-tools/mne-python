@@ -5,6 +5,8 @@
 Using the event system to link figures
 ======================================
 
+.. tags:: tutorials, visualization, ui-events
+
 Many of MNE-Python's figures are interactive. For example, you can select channels or
 scroll through time. The event system allows you to link figures together so that
 interacting with one figure will simultaneously update another figure.

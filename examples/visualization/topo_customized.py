@@ -5,6 +5,8 @@
 Plot custom topographies for MEG sensors
 ========================================
 
+.. tags:: examples, visualization, time-frequency, meg
+
 This example exposes the :func:`~mne.viz.iter_topography` function that makes
 it very easy to generate custom sensor topography plots.
 Here we will plot the power spectrum of each channel on a topographic

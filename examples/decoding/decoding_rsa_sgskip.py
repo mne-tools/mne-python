@@ -5,6 +5,8 @@
 Representational Similarity Analysis
 ====================================
 
+.. tags:: examples, decoding, statistics, classification
+
 Representational Similarity Analysis is used to perform summary statistics
 on supervised classifications where the number of classes is relatively high.
 It consists in characterizing the structure of the confusion matrix to infer

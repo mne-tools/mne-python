@@ -5,6 +5,8 @@
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 
+.. tags:: tutorials, preprocessing, fnirs, artifacts
+
 This tutorial covers how to convert functional near-infrared spectroscopy (fNIRS) data
 from raw measurements to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR)
 concentration, view the average waveform, and topographic representation of the

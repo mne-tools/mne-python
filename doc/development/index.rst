@@ -1,6 +1,8 @@
 MNE-Python Development
 ======================
 
+.. tags:: development, contributing, governance
+
 .. NOTE: this first section (up until "overview of contribution process") is
    basically a copy/paste of CONTRIBUTING.md from the repository root, with one
    sentence deleted to avoid self-referential linking. Changes made here should

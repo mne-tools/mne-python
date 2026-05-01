@@ -9,6 +9,8 @@ r"""
 Importing data from fNIRS devices
 =================================
 
+.. tags:: tutorials, io, fnirs
+
 fNIRS devices consist of two kinds of optodes: light sources (AKA "emitters" or
 "transmitters") and light detectors (AKA "receivers"). Channels are defined as
 source-detector pairs, and channel locations are defined as the midpoint

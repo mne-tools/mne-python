@@ -5,6 +5,8 @@
 FreeSurfer MRI reconstruction
 =============================
 
+.. tags:: tutorials, freesurfer, forward-model, source-localization
+
 This tutorial covers how to use FreeSurfer alongside MNE-Python, to handle the
 structural MRI data that we use to build subject-specific anatomical models of
 the scalp, inner/outer skull, and cortical surface.

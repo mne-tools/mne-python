@@ -5,6 +5,8 @@
 Annotate muscle artifacts
 =========================
 
+.. tags:: examples, preprocessing, artifacts, meg, visualization
+
 Muscle contractions produce high frequency activity that can mask brain signal
 of interest. Muscle artifacts can be produced when clenching the jaw,
 swallowing, or twitching a cranial muscle. Muscle artifacts are most

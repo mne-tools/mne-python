@@ -5,6 +5,8 @@
 From raw data to dSPM on SPM Faces dataset
 ==========================================
 
+.. tags:: examples, datasets, preprocessing, ica, inverse, source-localization
+
 Runs a full pipeline using MNE-Python. This example does quite a bit of processing, so
 even on a fast machine it can take several minutes to complete.
 """

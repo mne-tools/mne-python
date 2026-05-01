@@ -5,6 +5,8 @@
 Plotting whitened data
 ======================
 
+.. tags:: tutorials, evoked, visualization, preprocessing, epochs
+
 This tutorial demonstrates how to plot :term:`whitened <whitening>` evoked data.
 
 Data are whitened for many processes, including dipole fitting, source

@@ -5,6 +5,8 @@
 Working with events
 ===================
 
+.. tags:: tutorials, raw, events, annotations
+
 This tutorial describes event representation and how event arrays are used to subselect
 data.
 

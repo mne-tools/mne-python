@@ -5,6 +5,8 @@
 Compute cross-talk functions for LCMV beamformers
 =================================================
 
+.. tags:: examples, inverse, beamforming, source-localization, visualization
+
 Visualise cross-talk functions at one vertex for LCMV beamformers computed
 with different data covariance matrices, which affects their cross-talk
 functions.

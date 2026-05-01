@@ -5,6 +5,8 @@
 Modifying data in-place
 =======================
 
+.. tags:: tutorials, beginners, in-place, preprocessing, workflow
+
 Many of MNE-Python's data objects (`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`, etc)
 have methods that modify the data in-place (either optionally or obligatorily). This can
 be advantageous when working with large datasets because it reduces the amount of

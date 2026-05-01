@@ -5,6 +5,8 @@
 Plot a cortical parcellation
 ============================
 
+.. tags:: examples, visualization, source-localization
+
 In this example, we download the HCP-MMP1.0 parcellation
 :footcite:`GlasserEtAl2016` and show it on ``fsaverage``.
 We will also download the customized 448-label aparc

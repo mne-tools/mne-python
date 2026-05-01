@@ -5,6 +5,8 @@
 Shifting time-scale in evoked data
 ==================================
 
+.. tags:: examples, preprocessing, evoked, meg, visualization
+
 """
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #

@@ -5,6 +5,8 @@
 Setting the EEG reference
 =========================
 
+.. tags:: tutorials, preprocessing, eeg
+
 This tutorial describes how to set or change the EEG reference in MNE-Python.
 
 As usual we'll start by importing the modules we need, loading some

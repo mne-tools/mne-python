@@ -5,6 +5,8 @@
 Source alignment and coordinate frames
 ======================================
 
+.. tags:: tutorials, forward-model, visualization, meg
+
 This tutorial shows how to visually assess the spatial alignment of MEG sensor
 locations, digitized scalp landmark and sensor locations, and MRI volumes. This
 alignment process is crucial for computing the forward solution, as is

@@ -5,6 +5,8 @@
 Computing a covariance matrix
 =============================
 
+.. tags:: tutorials, forward-model, covariance, inverse
+
 Many methods in MNE, including source estimation and some classification algorithms,
 require covariance estimations from the recordings. In this tutorial we cover the basics
 of sensor covariance computations and construct a noise covariance matrix that can be
