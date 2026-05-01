@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -252,6 +253,8 @@ def test_normal_orth():
 def test_marching_cubes(dtype, value, smooth, order):
     """Test creating surfaces via marching cubes."""
     pytest.importorskip("pyvista")
+    if os.getenv("MNE_CI_KIND") in ("conda", "mamba"):
+        pytest.skip("VTK on conda CIs segfaults")
     data = np.zeros((50, 50, 50), dtype=dtype, order=order)
     data[20:30, 20:30, 20:30] = value
     level = [value]
