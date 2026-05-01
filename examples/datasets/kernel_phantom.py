@@ -116,4 +116,6 @@ mne.viz.set_3d_view(figure=fig, azimuth=30, elevation=70, distance=0.4)
 # components side-by-side. This is only done when merge_channels=True
 # and there are multiple colocated channels at each location:
 
-fig = evoked.plot_topomap(times=[t_peak], merge_channels=True, sphere=sphere)
+fig = evoked.plot_joint(
+    times=[t_peak], topomap_args=dict(merge_channels=True, sphere=sphere)
+)
