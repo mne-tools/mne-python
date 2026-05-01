@@ -24,7 +24,7 @@ recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "conda", "nomkl"}
 deps -= {"pymef"}  # not on conda-forge
-pip_deps = {"      - pymef"}
+pip_deps = {"pymef"}
 
 
 def remove_spaces(version_spec):
@@ -64,7 +64,7 @@ for dep in deps:
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
-        pip_deps.add(f"    {line}")
+        pip_deps.add(line[4:])
     else:
         conda_deps.add(line)
 
@@ -72,7 +72,7 @@ for dep in deps:
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
 pip_section = f"""\
   - pip:
-{newline.join(sorted(pip_deps, key=str.casefold))}
+{newline.join(sorted((f"      - {dep}" for dep in pip_deps), key=str.casefold))}
 """
 pip_section = pip_section if len(pip_deps) else ""
 # prepare the env file
