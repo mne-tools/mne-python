@@ -61,7 +61,7 @@ for key in version_spec_overrides:
     )
 for dep in deps:
     package_name, version_spec = split_dep(dep)
-    version_spec = version_spec_overrides.get(dep, version_spec)
+    version_spec = version_spec_overrides.get(package_name, version_spec)
     # handle package name differences
     package_name = translations.get(package_name, package_name)
     # C deps that mean we need to upgrade VTK etc.
