@@ -3,7 +3,7 @@
 set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-STD_ARGS="--progress-bar off --upgrade"
+STD_ARGS="--progress-bar off --upgrade --only-binary=\"numpy,scipy,matplotlib,numba,llvmlite\""
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
