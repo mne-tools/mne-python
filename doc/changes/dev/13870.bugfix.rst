@@ -1,4 +1,2 @@
-``check_version`` now gracefully handles packages that do not expose
-``__version__`` at the top level when no minimum version is required,
-improving handling of optional dependencies in ``_soft_import``, by
+Fix handling of optional dependencies that don't specify a version attribute, by
 :newcontrib:`Baris Talar`.
