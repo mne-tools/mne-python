@@ -3,7 +3,8 @@
 set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-STD_ARGS="--progress-bar off --upgrade --only-binary=numpy,scipy,matplotlib,numba,llvmlite"
+ONLY_BINARY_ARG="--only-binary=numpy,scipy,matplotlib,numba,llvmlite"
+STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
@@ -61,6 +62,6 @@ else
 	echo "::group::Installing MNE in development mode using pip"
 fi
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
+python -m pip install $STD_ARGS $ONLY_BINARY_ARG $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 set +x
 echo "::endgroup::"
