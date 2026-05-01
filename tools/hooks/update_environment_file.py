@@ -23,8 +23,9 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "conda", "nomkl"}
-deps -= {"pymef"}  # not on conda-forge
+# not on conda-forge
 pip_deps = {"pymef"}
+deps -= pip_deps
 
 
 def remove_spaces(version_spec):
