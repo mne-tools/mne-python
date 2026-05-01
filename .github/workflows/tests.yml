@@ -123,11 +123,33 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
+      # Python (if conda)
+      - name: Fixes for conda
+        run: |
+          # For some reason on Linux we get crashes
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sed -i "/numba/d" environment.yml
+          fi
+          # And on Windows and macOS PySide6.9.0 segfaults
+          PYSIDE_VER=6.10.2
+          VTK_VER=9.6.1
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            sed -i "" "s/  - PySide6 .*/  - PySide6 =$PYSIDE_VER/g" environment.yml
+            sed -i "" "s/  - vtk .*/  - vtk =$VTK_VER/g" environment.yml
+
+          else
+            sed -i "s/  - PySide6 .*/  - PySide6 =$PYSIDE_VER/g" environment.yml
+            sed -i "s/  - vtk .*/  - vtk =$VTK_VER/g" environment.yml
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
+            fi
+          fi
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
-          log-level: 'info'
+          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
