@@ -4582,7 +4582,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    Only supported by the ``'qt'`` backend.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
+    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
+    stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
@@ -5237,6 +5239,7 @@ def copy_doc(source):
     >>> print(B.m1.__doc__)
     Docstring for m1
     this gets appended
+    <BLANKLINE>
     """
 
     def wrapper(func):
@@ -5244,7 +5247,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += f"\n{inspect.cleandoc(func.__doc__)}"
+            doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
         func.__doc__ = doc
         return func
 
@@ -5322,6 +5325,7 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     .. versionadded:: 0.13.0
+    <BLANKLINE>
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
@@ -5394,6 +5398,8 @@ def copy_function_doc_to_method_doc(source):
             + "\n".join(doc[first_parameter_end:])
         )
         func.__doc__ = f"{doc}{func_doc}"
+        if not func.__doc__.endswith("\n\n"):
+            func.__doc__ = func.__doc__ + "\n"
         return func
 
     return wrapper

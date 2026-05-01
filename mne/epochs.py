@@ -979,6 +979,11 @@ class BaseEpochs(
         copy : bool
             If False copies of data and measurement info will be omitted
             to save time.
+
+        Yields
+        ------
+        evoked : instance of Evoked
+            The epochs as a sequence of Evoked objects, one per epoch.
         """
         self.__iter__()
 

@@ -6,6 +6,7 @@
 
 import inspect
 import os
+import shutil
 import sys
 import tempfile
 import traceback
@@ -417,3 +418,23 @@ def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
         f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
     )
     assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"
+
+
+def _chmod_rw_R(path):
+    assert os.path.isdir(path), f"Expected a directory, got {path}"
+    os.chmod(path, 0o700 | os.stat(path).st_mode)
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            this_name = os.path.join(root, name)
+            os.chmod(this_name, 0o600 | os.stat(this_name).st_mode)
+        for name in dirs:
+            this_name = os.path.join(root, name)
+            os.chmod(this_name, 0o770 | os.stat(this_name).st_mode)
+
+
+def copytree_rw(src, dst):
+    """Copy a directory tree and make it read/write."""
+    assert os.path.isdir(src), f"Expected a directory, got {src}"
+    shutil.copytree(src, dst)
+    _chmod_rw_R(dst)
+    return dst
