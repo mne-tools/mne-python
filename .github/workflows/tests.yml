@@ -122,7 +122,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-        if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
+        if: startswith(matrix.kind, 'pip')
         id: setup-python
       # Workaround macOS path behavior with login shells (which puts system Python first)
       - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
@@ -136,7 +136,7 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
+        if: matrix.kind == 'conda' || matrix.kind == 'mamba' || matrix.kind == 'minimal'
         timeout-minutes: 20
       # Python (if old)
       - uses: astral-sh/setup-uv@v8.1.0

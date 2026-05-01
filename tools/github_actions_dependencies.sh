@@ -8,10 +8,8 @@ STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	# This will fail if mne-base is not in the env (like in our minimal env, so ||true them):
 	echo "::group::Uninstalling MNE"
-	conda remove -c conda-forge --force -yq mne-base || true
-	python -m pip uninstall -y mne || true
+	conda remove -c conda-forge --force -yq mne-base
 	echo "::endgroup::"
 	# If using bare environment.yml and not on windows, do a non-editable install
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
