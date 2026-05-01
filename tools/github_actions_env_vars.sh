@@ -15,7 +15,7 @@ elif [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" | tee -a $GITHUB_ENV
     echo "MNE_SKIP_NETWORK_TESTS=1" | tee -a $GITHUB_ENV
     echo "MNE_QT_BACKEND=PyQt5" | tee -a $GITHUB_ENV
-else  # conda-like
+elif [[ "$MNE_CI_KIND" == "conda" ]] || [[ "$MNE_CI_KIND" == "mamba" ]]; then
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
@@ -25,5 +25,8 @@ else  # conda-like
         echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
     fi
     echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
+else
+    echo "✕ ERROR: Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
+    exit 1
 fi
 set +x
