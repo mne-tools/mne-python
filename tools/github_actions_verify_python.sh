@@ -2,11 +2,19 @@
 
 set -eo pipefail
 
+WANT_PYTHON_VERSION="$1"
+if [[ -z "$WANT_PYTHON_VERSION" ]]; then
+	echo "✕ ERROR: Missing required argument: want Python version (e.g., 3.10)"
+	exit 1
+fi
+
 GOT_PYTHON=$(which python)
+GOT_PYTHON_VERSION=$(python --version)
 echo "Checking Python found at:"
-echo "  \$(which python) == ${GOT_PYTHON}"
+echo "  \$(which python)     == ${GOT_PYTHON}"
+echo "  \$(python --version) == ${GOT_PYTHON_VERSION}"
 echo "for"
-echo "  \$MNE_CI_KIND   == ${MNE_CI_KIND}"
+echo "  \$MNE_CI_KIND        == ${MNE_CI_KIND}"
 if [[ "${MNE_CI_KIND}" == "conda" ]] || [[ "${MNE_CI_KIND}" == "mamba" ]]; then
 	WANT="micromamba/envs/mne"
 elif [[ "${MNE_CI_KIND}" == "old" ]]; then
@@ -23,4 +31,10 @@ if [[ "${GOT_PYTHON}" != *"${WANT}"* ]]; then
 	exit 1
 else
 	echo "☑ Found expected \"${WANT}\""
+fi
+if [[ "${GOT_PYTHON_VERSION}" != *"${WANT_PYTHON_VERSION}"* ]]; then
+	echo "✕ ERROR: Did not find expected Python version \"${WANT_PYTHON_VERSION}\""
+	exit 1
+else
+	echo "☑ Found expected Python version \"${WANT_PYTHON_VERSION}\""
 fi
