@@ -49,7 +49,7 @@ req_python = remove_spaces(pyproj["project"]["requires-python"])
 
 # split package name from version spec
 translations = dict(neo="python-neo")
-conda_deps = set()
+conda_dep_lines = set()
 version_spec_overrides = {
     # Help the solver work faster by specifying these (should be updated periodically):
     "PySide6": "==6.10.2",
@@ -71,7 +71,7 @@ for dep in deps:
     if ";" in version_spec:
         pip_deps.add(line[4:])
     else:
-        conda_deps.add(line)
+        conda_dep_lines.add(line)
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
@@ -88,7 +88,7 @@ channels:
   - conda-forge
 dependencies:
   - python {req_python}
-{newline.join(sorted(conda_deps, key=str.casefold))}
+{newline.join(sorted(conda_dep_lines, key=str.casefold))}
 {pip_section}"""  # noqa: E501
 
 (repo_root / "environment.yml").write_text(env)
