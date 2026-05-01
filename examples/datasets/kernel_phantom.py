@@ -115,6 +115,4 @@ mne.viz.set_3d_view(figure=fig, azimuth=30, elevation=70, distance=0.4)
 # we can visualize them as grouped topomaps showing radial and tangential
 # components side-by-side when multiple colocated channels are detected:
 
-fig = evoked.plot_joint(
-    times=[t_peak], topomap_args=dict(sphere=sphere)
-)
+fig = evoked.plot_joint(times=[t_peak], topomap_args=dict(sphere=sphere))
