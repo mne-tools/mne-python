@@ -127,7 +127,7 @@ jobs:
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
-          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
+          log-level: 'info'
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
