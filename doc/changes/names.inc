@@ -295,6 +295,7 @@
 .. _Sebastian Major: https://github.com/major-s
 .. _Sena Er: https://github.com/sena-neuro
 .. _Senwen Deng: https://snwn.de
+.. _Seth Bashford: https://github.com/sbashford
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
