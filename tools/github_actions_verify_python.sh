@@ -18,7 +18,8 @@ else
 	exit 1
 fi
 if [[ "${GOT_PYTHON}" != *"${WANT}"* ]]; then
-	echo "ERROR: Did not find \"${WANT}\""
+	echo "ERROR: Did not find \"${WANT}\" from PATH:"
+	tr ':' '\n' <<< "$PATH"
 	exit 1
 else
 	echo "OK: Found expected \"${WANT}\""
