@@ -11,11 +11,10 @@ if [ ! -z "$CONDA_ENV" ]; then
 	echo "::group::Uninstalling MNE"
 	conda remove -c conda-forge --force -y mne-base
 	echo "::endgroup::"
-	# If using bare environment.yml and not on windows, do a non-editable install
-	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
+	# If not on windows, do a non-editable install
+	if [[ "${RUNNER_OS}" != "Windows" ]]; then
 		INSTALL_ARGS=""
 	fi
-	# If on minimal, just install testing deps
 	GROUP="test_extra"
 	EXTRAS="[hdf5]"
 elif [[ "${MNE_CI_KIND}" == "minimal" ]]; then
