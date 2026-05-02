@@ -314,7 +314,7 @@ def _check_complete_surface(surf, copy=False, incomplete="raise", extra=""):
         fewer = (fewer[:80] + ["..."]) if len(fewer) > 80 else fewer
         fewer = ", ".join(str(f) for f in fewer)
         msg = (
-            f"Surface {_bem_surf_name[surf['id']]} has topological defects: "
+            f"Surface {_bem_surf_name[surf['id']].strip()} has topological defects: "
             f"{len(fewer)} / {len(surf['rr'])} vertices have fewer than three "
             f"neighboring triangles [{fewer}]{extra}"
         )
@@ -1313,7 +1313,19 @@ def make_watershed_bem(
         f"\nResults dir = {ws_dir}\nCommand = {' '.join(cmd)}\n"
     )
     os.makedirs(op.join(ws_dir))
-    run_subprocess_env(cmd)
+    try:
+        run_subprocess_env(cmd)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "FreeSurfer executable 'mri_watershed' not found.\n\n"
+            "This usually means FreeSurfer is not properly configured.\n"
+            "Make sure:\n"
+            "- FREESURFER_HOME is set\n"
+            "- $FREESURFER_HOME/bin is in your PATH\n"
+            "- You started Python/Jupyter from a terminal where "
+            "SetupFreeSurfer.sh is sourced\n\n"
+            "See https://mne.tools/stable/install/index.html for details."
+        ) from e
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)

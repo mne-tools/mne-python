@@ -279,6 +279,54 @@ disable_error_code = [
 ignore_errors = false
 module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 
+[tool.numpydoc_validation]
+checks = [
+  "all",  # report on all checks, except the below
+  "ES01",  # no extended summary
+  "EX01",  # no examples
+  "EX02",  # examples failed (we test them separately)
+  "GL01",  # Docstring should start in the line immediately after the quotes
+  "PR04",  # Parameter "shape (n_channels" has no type
+  "RT02",  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
+  "SA01",  # no see also
+  "SA04",  # no description in See Also
+]
+exclude = [
+  # dict subclasses
+  '\.clear',
+  '\.get$',
+  '\.copy$',
+  '\.fromkeys',
+  '\.items',
+  '\.keys',
+  '\.move_to_end',
+  '\.pop',
+  '\.popitem',
+  '\.setdefault',
+  '\.update',
+  '\.values',
+  # list subclasses
+  '\.append',
+  '\.count',
+  '\.extend',
+  '\.index',
+  '\.insert',
+  '\.remove',
+  '\.sort',
+  # we currently don't document these properly (probably okay)
+  '\.__getitem__',
+  '\.__contains__',
+  '\.__hash__',
+  '\.__mul__',
+  '\.__sub__',
+  '\.__add__',
+  '\.__iter__',
+  '\.__div__',
+  '\.__neg__',
+  # copied from sklearn
+  'mne\.utils\.deprecated',
+]
+
 [tool.pytest.ini_options]
 # -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
 # don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
@@ -407,6 +455,9 @@ all = true
 ignore_case = true
 spaces_before_inline_comment = 2
 trailing_comma_inline_array = true
+
+[tool.tomlsort.overrides."tool.numpydoc_validation.exclude"]
+inline_arrays = false
 
 [tool.towncrier]
 directory = "doc/changes/dev/"

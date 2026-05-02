@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bd6f9cc0dbc585d0f27e2defe572b9ffa334f660",
+  "authors": [
+    {
+      "n": "Aman Srivastava",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13710.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 21,
+      "d": 0
+    },
+    "examples/preprocessing/plot_epoch_quality.py": {
+      "a": 120,
+      "d": 0
+    }
+  }
+}
