@@ -167,8 +167,6 @@ jobs:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
-      - run: pytest mne/viz -k test_brain_gc
-      - run: pytest mne/tests/test_surface.py -k cubes
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
       - uses: codecov/codecov-action@v6
         with:
