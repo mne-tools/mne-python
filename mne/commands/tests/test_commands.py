@@ -49,6 +49,7 @@ from mne.datasets import testing
 from mne.io import read_info, read_raw_fif, show_fiff
 from mne.utils import (
     ArgvSetter,
+    _chmod_rw_R,
     _record_warnings,
     _stamp_to_dt,
     requires_freesurfer,
@@ -207,6 +208,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     shutil.copy(t1_path, t1_path_new)
     shutil.copy(headseg_path, headseg_path_new)
     shutil.copy(surf_path, surf_path_new)
+    _chmod_rw_R(tmp_path)
 
     cmd = (
         "-s",

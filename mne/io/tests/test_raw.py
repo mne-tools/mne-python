@@ -843,6 +843,18 @@ def _read_raw_arange(preload=False, verbose=None):
     return _RawArange(preload, verbose)
 
 
+def test_load_data_memmap(tmp_path):
+    """Test loading raw data into a memmap via load_data."""
+    raw = _read_raw_arange(preload=False)
+    memmap_fname = tmp_path / "raw-load-data-memmap.dat"
+    raw.load_data(memmap=memmap_fname)
+
+    assert raw.preload
+    assert isinstance(raw._data, np.memmap)
+    assert Path(raw._data.filename) == memmap_fname
+    assert_array_equal(raw._data[:, 0], np.arange(1, 9))
+
+
 def test_test_raw_reader():
     """Test _test_raw_reader."""
     _test_raw_reader(_read_raw_arange, test_scaling=False, test_rank="less")
