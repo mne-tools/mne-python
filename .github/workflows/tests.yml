@@ -67,9 +67,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - os: ubuntu-latest
+            python: '3.13'
+            kind: pip
+          - os: ubuntu-latest
+            python: '3.14'
+            kind: pip-pre
+          - os: ubuntu-latest
+            python: '3.13'
+            kind: conda
+          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
+            python: '3.14'
+            kind: pip
+          - os: macos-15-intel  # intel: Sequoia
+            python: '3.13'
+            kind: pip
           - os: windows-latest
             python: '3.11'
             kind: pip
+          - os: ubuntu-latest
+            python: '3.12'
+            kind: minimal
+          - os: ubuntu-22.04
+            python: '3.10'
+            kind: old
     steps:
       - uses: actions/checkout@v6
         with:
@@ -128,7 +149,7 @@ jobs:
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
-        timeout-minutes: 5
+        timeout-minutes: 10
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
@@ -147,8 +168,6 @@ jobs:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
-      - run: pytest mne/viz -k test_brain_gc
-      - run: pytest mne/tests/test_surface.py -k cubes
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
       - uses: codecov/codecov-action@v6
         with:
