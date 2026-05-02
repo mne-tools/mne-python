@@ -130,7 +130,16 @@ jobs:
           frozen: true
         if: matrix.kind == 'pixi'
       # Workaround macOS path behavior with login shells (which puts system Python first)
-      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
+      - run: |  # zizmor: ignore[template-injection]
+          if [[ $MNE_CI_KIND == "pip" ]];
+            prepend_path=$(dirname ${{ steps.setup-python.outputs.python-path }})
+          elif [[ $MNE_CI_KIND == "pixi" ]]; then
+            prepend_path="${{ github.workspace }}/tools/ci/macos-intel/.pixi/envs/default/bin"
+          else
+            echo "Unsupported CI Kind: $MNE_CI_KIND"
+            exit 1
+          fi
+          echo "export PATH=\"$prepend_path:$PATH\"" | tee -a ~/.bash_profile
         if: (startswith(matrix.kind, 'pip') || matrix.kind == 'pixi') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
