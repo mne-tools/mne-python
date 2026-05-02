@@ -12,7 +12,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	conda remove -c conda-forge --force -y mne-base
 	echo "::endgroup::"
 	# If not on windows, do a non-editable install
-	if [[ "${RUNNER_OS}" != "Windows" ]]; then
+	if [[ "${CI_OS_NAME}" != "windows"* ]]; then
 		INSTALL_ARGS=""
 	fi
 	GROUP="test_extra"
@@ -22,7 +22,7 @@ elif [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 	EXTRAS=""
 	STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
 	echo "::group::Upgrading pip installation"
-	python -m pip install --upgrade pip  # upgrade pip to support --group
+	python -m pip install --upgrade pip setuptools
 	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	GROUP=""  # group "test" already included when pylock file generated
@@ -35,10 +35,12 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
+	python -m pip install --upgrade pip setuptools
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
+	python -m pip install $STD_ARGS pip setuptools
 	STD_ARGS="$STD_ARGS --pre"
-	${SCRIPT_DIR}/install_pre_requirements.sh || exit 1
+	${SCRIPT_DIR}/install_pre_requirements.sh
 	GROUP="test_extra"
 	EXTRAS=""
 fi
@@ -58,5 +60,4 @@ else
 fi
 set -x
 python -m pip install $STD_ARGS $ONLY_BINARY_ARG $INSTALL_ARGS .$EXTRAS $GROUP_ARG
-set +x
 echo "::endgroup::"

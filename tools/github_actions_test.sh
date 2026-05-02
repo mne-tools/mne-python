@@ -23,7 +23,7 @@ else
   USE_DIRS="mne/"
 fi
 JUNIT_PATH="junit-results.xml"
-if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
+if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
   PROJ_PATH="$(pwd)"
   JUNIT_PATH="$PROJ_PATH/${JUNIT_PATH}"
   # Use the installed version after adding all (excluded) test files
