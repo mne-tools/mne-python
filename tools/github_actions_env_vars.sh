@@ -19,7 +19,7 @@ elif [[ "$MNE_CI_KIND" == "conda" ]] || [[ "$MNE_CI_KIND" == "mamba" ]]; then
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
-    echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults|Accelerate|Flakey verbose behavior|VTK on conda).*" | tee -a $GITHUB_ENV
+    echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults|Accelerate|Flakey verbose behavior).*" | tee -a $GITHUB_ENV
     # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
     if [[ "$RUNNER_OS" == "macOS" ]]; then
         echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
