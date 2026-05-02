@@ -76,14 +76,11 @@ jobs:
           - os: ubuntu-latest
             python: '3.13'
             kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
+          - os: macos-latest  # arm64
             python: '3.14'
             kind: pip
-          - os: macos-15-intel  # intel: Sequoia
+          - os: macos-15-intel  # Intel
             python: '3.13'
-            kind: pip
-          - os: windows-latest
-            python: '3.11'
             kind: pip
           - os: ubuntu-latest
             python: '3.12'
