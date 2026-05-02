@@ -15,7 +15,7 @@ elif [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" | tee -a $GITHUB_ENV
     echo "MNE_SKIP_NETWORK_TESTS=1" | tee -a $GITHUB_ENV
     echo "MNE_QT_BACKEND=PyQt5" | tee -a $GITHUB_ENV
-elif [[ "$MNE_CI_KIND" == "conda" ]] || [[ "$MNE_CI_KIND" == "mamba" ]]; then
+elif [[ "$MNE_CI_KIND" == "conda" ]]; then
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV

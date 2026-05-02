@@ -67,30 +67,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: pip
-          - os: ubuntu-latest
-            python: '3.14'
-            kind: pip-pre
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
-            python: '3.14'
-            kind: pip
-          - os: macos-15-intel  # intel: Sequoia
-            python: '3.13'
-            kind: pip
           - os: windows-latest
             python: '3.11'
-            kind: mamba
-          - os: ubuntu-latest
-            python: '3.12'
-            kind: minimal
-          - os: ubuntu-22.04
-            python: '3.10'
-            kind: old
+            kind: pip
     steps:
       - uses: actions/checkout@v6
         with:
@@ -136,7 +115,7 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
+        if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
       - uses: astral-sh/setup-uv@v8.1.0
@@ -167,6 +146,8 @@ jobs:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
+      - run: pytest mne/viz -k test_brain_gc
+      - run: pytest mne/tests/test_surface.py -k cubes
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
       - uses: codecov/codecov-action@v6
         with:

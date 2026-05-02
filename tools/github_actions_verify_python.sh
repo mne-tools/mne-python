@@ -15,7 +15,7 @@ echo "  \$(which python)     == ${GOT_PYTHON}"
 echo "  \$(python --version) == ${GOT_PYTHON_VERSION}"
 echo "for"
 echo "  \$MNE_CI_KIND        == ${MNE_CI_KIND}"
-if [[ "${MNE_CI_KIND}" == "conda" ]] || [[ "${MNE_CI_KIND}" == "mamba" ]]; then
+if [[ "${MNE_CI_KIND}" == "conda" ]]; then
 	WANT="micromamba/envs/mne"
 elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	WANT="mne-python/mne-python/.venv/bin"
