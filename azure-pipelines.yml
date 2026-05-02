@@ -141,15 +141,6 @@ stages:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: 'Codecov'
             condition: succeededOrFailed()
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: '**/junit-*.xml'
-              testRunTitle: 'Publish test results for $(Agent.JobName)'
-              failTaskOnFailedTests: true
-            condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@2
-            inputs:
-              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
 
       - job: Linux_Qt_Bindings
         pool:
@@ -223,15 +214,6 @@ stages:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: 'Codecov'
             condition: succeededOrFailed()
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: '**/junit-*.xml'
-              testRunTitle: 'Publish test results for $(Agent.JobName)'
-              failTaskOnFailedTests: true
-            condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@2
-            inputs:
-              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
 
       - job: Windows
         pool:
@@ -292,12 +274,3 @@ stages:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: 'Codecov'
             condition: succeededOrFailed()
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: '**/junit-*.xml'
-              testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
-              failTaskOnFailedTests: true
-            condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@2
-            inputs:
-              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
