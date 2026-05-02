@@ -81,7 +81,7 @@ jobs:
             kind: pip
           - os: macos-15-intel  # Intel
             python: '3.13'
-            kind: pip
+            kind: pixi
           - os: ubuntu-latest
             python: '3.12'
             kind: minimal
