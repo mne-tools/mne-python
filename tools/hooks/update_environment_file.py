@@ -53,7 +53,7 @@ conda_dep_lines = set()
 version_spec_overrides = {
     # Help the solver work faster by specifying these (should be updated periodically):
     "PySide6": "==6.10.2",
-    "vtk": "==9.6.1",
+    "vtk": "==9.6.0",
 }
 for key in version_spec_overrides:
     assert any(dep.startswith(key) for dep in deps), (
