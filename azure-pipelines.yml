@@ -84,7 +84,7 @@ stages:
     jobs:
       - job: Linux_Ultraslow_PG
         pool:
-          vmImage: 'ubuntu-22.04'
+          vmImage: 'ubuntu-latest'
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
@@ -144,7 +144,7 @@ stages:
 
       - job: Linux_Qt_Bindings
         pool:
-          vmImage: 'ubuntu-24.04'
+          vmImage: 'ubuntu-latest'
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
