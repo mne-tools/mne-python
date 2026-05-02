@@ -149,6 +149,7 @@ jobs:
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
+      - run: pytest mne/tests/test_surface.py -k cubes
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
