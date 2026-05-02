@@ -4,8 +4,18 @@ set -eo pipefail
 
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
-else  # macOS or Windows
+elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
+  # detect arch and run slowtest on arm64 only (pgtest is already ultraslow on macOS)
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    CONDITION="not (ultraslowtest or pgtest)"
+  else
+    CONDITION="not (slowtest or pgtest)"
+  fi
+elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
   CONDITION="not (slowtest or pgtest)"
+else
+  echo "✕ ERROR: Unrecognized CI_OS_NAME=${CI_OS_NAME}"
+  exit 1
 fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then
   USE_DIRS=mne/viz/
@@ -13,7 +23,7 @@ else
   USE_DIRS="mne/"
 fi
 JUNIT_PATH="junit-results.xml"
-if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
+if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
   PROJ_PATH="$(pwd)"
   JUNIT_PATH="$PROJ_PATH/${JUNIT_PATH}"
   # Use the installed version after adding all (excluded) test files
