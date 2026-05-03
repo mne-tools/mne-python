@@ -20,7 +20,16 @@ from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import HEAD_SIZE_DEFAULT
 from ...transforms import _sph_to_cart
-from ...utils import _DefaultEventParser, fill_doc, logger, verbose, warn
+from ...utils import (
+    _check_dict_keys,
+    _check_range,
+    _DefaultEventParser,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
 from ..base import BaseRaw
 
 
@@ -49,6 +58,7 @@ class RawBrainVision(BaseRaw):
         ``False``.
 
         .. versionadded:: 1.8
+    %(brainvision_overrides)s
     %(preload)s
     %(verbose)s
 
@@ -90,9 +100,11 @@ class RawBrainVision(BaseRaw):
         misc="auto",
         scale=1.0,
         ignore_marker_types=False,
+        overrides=None,
         preload=False,
         verbose=None,
     ):  # noqa: D107
+        overrides = _validate_overrides(overrides)
         # Channel info and events
         logger.info(f"Extracting parameters from {vhdr_fname}...")
         hdr_fname = op.abspath(vhdr_fname)
@@ -107,7 +119,7 @@ class RawBrainVision(BaseRaw):
             mrk_fname,
             montage,
             orig_units,
-        ) = _get_hdr_info(hdr_fname, eog, misc, scale)
+        ) = _get_hdr_info(hdr_fname, eog, misc, scale, overrides)
 
         with open(data_fname, "rb") as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
@@ -146,11 +158,11 @@ class RawBrainVision(BaseRaw):
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
-        # Get annotations from marker file
-        annots = read_annotations(
-            mrk_fname, info["sfreq"], ignore_marker_types=ignore_marker_types
-        )
-        self.set_annotations(annots)
+        if mrk_fname is not None:
+            annots = read_annotations(
+                mrk_fname, info["sfreq"], ignore_marker_types=ignore_marker_types
+            )
+            self.set_annotations(annots)
 
         # Drop the fake ahdr channel if needed
         if ahdr_format:
@@ -391,6 +403,47 @@ def _check_bv_version(header, kind):
             warn(_data_err % (kind, header))
 
 
+_OVERRIDES_VALID_KEYS = frozenset(
+    {"data_fname", "marker_fname", "n_channels", "sfreq", "ch_names", "units_fallback"}
+)
+
+
+def _validate_overrides(overrides):
+    """Validate the ``overrides`` dict for ``read_raw_brainvision``."""
+    _validate_type(overrides, (dict, None), "overrides")
+    if overrides is None:
+        return {}
+    _check_dict_keys(
+        overrides, _OVERRIDES_VALID_KEYS, "override key(s)", "valid override keys"
+    )
+    if "data_fname" in overrides:
+        _validate_type(overrides["data_fname"], "path-like", "overrides['data_fname']")
+    if "marker_fname" in overrides and overrides["marker_fname"] is not False:
+        _validate_type(
+            overrides["marker_fname"],
+            "path-like",
+            "overrides['marker_fname']",
+            extra="(or False to skip annotation reading)",
+        )
+    if "n_channels" in overrides:
+        _validate_type(overrides["n_channels"], "int-like", "overrides['n_channels']")
+        _check_range(overrides["n_channels"], 1, np.inf, "overrides['n_channels']")
+    if "sfreq" in overrides:
+        _validate_type(overrides["sfreq"], "numeric", "overrides['sfreq']")
+        _check_range(
+            overrides["sfreq"], 0, np.inf, "overrides['sfreq']", min_inclusive=False
+        )
+    if "ch_names" in overrides:
+        _validate_type(overrides["ch_names"], (list, tuple), "overrides['ch_names']")
+        for i, name in enumerate(overrides["ch_names"]):
+            _validate_type(name, str, f"overrides['ch_names'][{i}]")
+        if len(set(overrides["ch_names"])) != len(overrides["ch_names"]):
+            raise ValueError("overrides['ch_names'] must contain unique names")
+    if "units_fallback" in overrides:
+        _validate_type(overrides["units_fallback"], str, "overrides['units_fallback']")
+    return overrides
+
+
 _orientation_dict = dict(MULTIPLEXED="F", VECTORIZED="C")
 _fmt_dict = dict(INT_16="short", INT_32="int", IEEE_FLOAT_32="single")
 _fmt_byte_dict = dict(short=2, int=4, single=4)
@@ -488,7 +541,7 @@ def _aux_hdr_info(hdr_fname):
 
 
 @fill_doc
-def _get_hdr_info(hdr_fname, eog, misc, scale):
+def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     """Extract all the information from the header file.
 
     Parameters
@@ -505,6 +558,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by header file,
         units are in microvolts. Default scale factor is 1.
+    overrides : dict | None
+        Validated dict of header overrides (see :func:`read_raw_brainvision`).
 
     Returns
     -------
@@ -517,14 +572,16 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         Orientation of the binary data.
     n_samples : int
         Number of data points in the binary data file.
-    mrk_fname : str
-        Path to the marker file.
+    mrk_fname : str | None
+        Path to the marker file. ``None`` when ``overrides['marker_fname']`` is
+        ``False``, signalling that the caller should skip annotation reading.
     montage : DigMontage
         Coordinates of the channels, if present in the header file.
     orig_units : dict
         Dictionary mapping channel names to their units as specified in the header file.
         Example: {'FC1': 'nV'}
     """
+    overrides = {} if overrides is None else overrides
     scale = float(scale)
     ext = op.splitext(hdr_fname)[-1]
     ahdr_format = ext == ".ahdr"
@@ -536,6 +593,10 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
     info._unlocked = True
+
+    if "sfreq" in overrides:
+        info["sfreq"] = overrides["sfreq"]
+        warn(f"sfreq overridden: {info['sfreq']} Hz")
 
     order = cfg.get(cinfostr, "DataOrientation")
     if order not in _orientation_dict:
@@ -558,27 +619,45 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(hdr_fname)
-    data_fname = op.join(path, cfg.get(cinfostr, "DataFile"))
-    mrk_fname = op.join(path, cfg.get(cinfostr, "MarkerFile"))
+    if "data_fname" in overrides:
+        data_fname = op.join(path, overrides["data_fname"])
+        warn(f"data_fname overridden: {data_fname!r}")
+    else:
+        data_fname = op.join(path, cfg.get(cinfostr, "DataFile"))
+
+    if "marker_fname" in overrides:
+        mrk_override = overrides["marker_fname"]
+        if mrk_override is False:
+            mrk_fname = None
+            warn("marker_fname overridden: annotation reading skipped")
+        else:
+            mrk_fname = op.join(path, mrk_override)
+            warn(f"marker_fname overridden: {mrk_fname!r}")
+    else:
+        mrk_fname = op.join(path, cfg.get(cinfostr, "MarkerFile"))
 
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
     regexp = r"^Mk\d+=New Segment,.*,\d+,\d+,-?\d+,(\d{20})$"
-    with open(mrk_fname) as tmp_mrk_f:
-        lines = tmp_mrk_f.readlines()
+    info["meas_date"] = None
+    if mrk_fname is not None:
+        with open(mrk_fname) as tmp_mrk_f:
+            lines = tmp_mrk_f.readlines()
 
-    for line in lines:
-        match = re.findall(regexp, line.strip())
-        # Always take first measurement date we find
-        if match:
-            date_str = match[0]
-            info["meas_date"] = _str_to_meas_date(date_str)
-            break
-    else:
-        info["meas_date"] = None
+        for line in lines:
+            match = re.findall(regexp, line.strip())
+            # Always take first measurement date we find
+            if match:
+                date_str = match[0]
+                info["meas_date"] = _str_to_meas_date(date_str)
+                break
 
     # load channel labels
-    nchan = cfg.getint(cinfostr, "NumberOfChannels")
+    if "n_channels" in overrides:
+        nchan = overrides["n_channels"]
+        warn(f"n_channels overridden: {nchan}")
+    else:
+        nchan = cfg.getint(cinfostr, "NumberOfChannels")
     if ahdr_format:
         # add one fake channel for ahdr format
         nchan += 1
@@ -603,8 +682,12 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     ch_dict = dict()
     misc_chs = dict()
     orig_units = dict()
+    dropped_ci_rows = 0
     for chan, props in cfg.items("Channel Infos"):
         n = int(re.findall(r"ch(\d+)", chan)[0]) - 1
+        if n >= nchan:
+            dropped_ci_rows += 1
+            continue
         props = props.split(",")
 
         # default to µV, following the BV specs; the unit is only allowed to be
@@ -633,6 +716,12 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         ranges[n] = _unit_dict.get(unit, 1) * scale
         if unit not in ("V", "mV", "µV", "uV", "nV"):
             misc_chs[name] = FIFF.FIFF_UNIT_CEL if unit == "C" else FIFF.FIFF_UNIT_NONE
+    if dropped_ci_rows:
+        warn(
+            f"n_channels override ({nchan}) dropped {dropped_ci_rows} trailing "
+            f"[Channel Infos] entry(ies)."
+        )
+
     if ahdr_format:
         ch_dict[_AHDR_CHANNEL_NAME] = _AHDR_CHANNEL_NAME
         ch_names[-1] = _AHDR_CHANNEL_NAME
@@ -682,8 +771,33 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 "explicitly."
             )
 
+    synthesized_chs: set[str] = set()
     if np.isnan(cals).any():
-        raise RuntimeError("Missing channel units")
+        missing_idx = np.where(np.isnan(cals))[0]
+        units_fallback = overrides.get("units_fallback")
+        if units_fallback is None:
+            raise RuntimeError(
+                f"Incomplete [Channel Infos]: missing entries at indices "
+                f"{missing_idx.tolist()}. Pass overrides={{'units_fallback': "
+                f"'<unit>'}} (e.g. 'µV') to recover with default values."
+            )
+        fallback_range = _unit_dict.get(units_fallback, 1) * scale
+        for n in missing_idx:
+            if not ch_names[n]:
+                ch_names[n] = f"Ch{n + 1}"
+            cals[n] = 1.0
+            ranges[n] = fallback_range
+            orig_units[ch_names[n]] = units_fallback
+            synthesized_chs.add(ch_names[n])
+            if (
+                units_fallback not in ("V", "mV", "µV", "uV", "nV")
+                and ch_names[n] not in misc
+            ):
+                misc.append(ch_names[n])
+        warn(
+            f"units_fallback overridden: filled {len(missing_idx)} entries with "
+            f"resolution=1.0, unit={units_fallback!r}."
+        )
 
     # Attempts to extract filtering info from header. If not found, both are set to
     # zero.
@@ -748,6 +862,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         for i, ch in enumerate(ch_names, 1):
             if ahdr_format and i == len(ch_names) and ch == _AHDR_CHANNEL_NAME:
                 break
+            if ch in synthesized_chs:
+                continue
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
                 line_amp = settings[idx + i]
@@ -888,6 +1004,22 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     f"Hz{nyquist}) will be stored."
                 )
 
+    if "ch_names" in overrides:
+        new_names = list(overrides["ch_names"])
+        if ahdr_format and len(new_names) == nchan - 1:
+            new_names.append(_AHDR_CHANNEL_NAME)
+        if len(new_names) != nchan:
+            raise ValueError(
+                f"overrides['ch_names'] has length {len(overrides['ch_names'])} "
+                f"but the file declares {nchan} channels."
+            )
+        name_map = dict(zip(ch_names, new_names))
+        ch_names = new_names
+        orig_units = {name_map.get(k, k): v for k, v in orig_units.items()}
+        misc_chs = {name_map.get(k, k): v for k, v in misc_chs.items()}
+        misc = [name_map.get(m, m) if isinstance(m, str) else m for m in misc]
+        warn(f"ch_names overridden: {nchan} channel(s) renamed")
+
     # Creates a list of dicts of eeg channels for raw.info
     logger.info("Setting channel info structure...")
     info["chs"] = []
@@ -939,6 +1071,7 @@ def read_raw_brainvision(
     misc="auto",
     scale=1.0,
     ignore_marker_types=False,
+    overrides=None,
     preload=False,
     verbose=None,
 ) -> RawBrainVision:
@@ -965,6 +1098,7 @@ def read_raw_brainvision(
         ``False``.
 
         .. versionadded:: 1.8
+    %(brainvision_overrides)s
     %(preload)s
     %(verbose)s
 
@@ -1002,6 +1136,7 @@ def read_raw_brainvision(
         misc=misc,
         scale=scale,
         ignore_marker_types=ignore_marker_types,
+        overrides=overrides,
         preload=preload,
         verbose=verbose,
     )
