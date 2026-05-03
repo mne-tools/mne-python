@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - uses: pre-commit/action@v3.0.1
       - run: pip install mypy numpy scipy vulture
       - run: mypy
@@ -76,15 +76,12 @@ jobs:
           - os: ubuntu-latest
             python: '3.13'
             kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
+          - os: macos-latest  # arm64
+            python: '3.14'
+            kind: pip
+          - os: macos-15-intel  # Intel
             python: '3.13'
-            kind: mamba
-          - os: macos-15-intel  # intel: Sequoia
-            python: '3.13'
-            kind: mamba
-          - os: windows-latest
-            python: '3.11'
-            kind: mamba
+            kind: pip
           - os: ubuntu-latest
             python: '3.12'
             kind: minimal
@@ -122,36 +119,21 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-        if: startswith(matrix.kind, 'pip')
+        if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
+        id: setup-python
+      # Workaround macOS path behavior with login shells (which puts system Python first)
+      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
+        if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
-      - name: Fixes for conda
-        run: |
-          # For some reason on Linux we get crashes
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sed -i "/numba/d" environment.yml
-          fi
-          # And on Windows and macOS PySide6.9.0 segfaults
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
-            sed -i "" "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
-
-          else
-            sed -i "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
-            sed -i "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
-            if [[ "$RUNNER_OS" == "Windows" ]]; then
-              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
-            fi
-          fi
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
-          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
+          log-level: 'info'
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             -v
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
+        if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
       - uses: astral-sh/setup-uv@v8.1.0
@@ -162,7 +144,9 @@ jobs:
             **/pylock.ci-old.toml
           python-version: ${{ matrix.python }}
         if: matrix.kind == 'old'
+      - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
+        timeout-minutes: 10
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)

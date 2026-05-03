@@ -36,6 +36,7 @@
 .. _Asish Panda: https://github.com/kaichogami
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
+.. _Baris Talar: https://github.com/baris-talar
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Benedikt Ehinger: https://www.benediktehinger.de
@@ -311,6 +312,7 @@
 .. _Sebastian Major: https://github.com/major-s
 .. _Sena Er: https://github.com/sena-neuro
 .. _Senwen Deng: https://snwn.de
+.. _Seth Bashford: https://github.com/sbashford
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
