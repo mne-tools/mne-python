@@ -1,0 +1,419 @@
+{
+  "merge_commit_sha": "d8ce70a7f0c60b92557caccf6e89db8200557f2e",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/spec_zero.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".mailmap": {
+      "a": 6,
+      "d": 1
+    },
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "CITATION.cff": {
+      "a": 57,
+      "d": 17
+    },
+    "SECURITY.md": {
+      "a": 3,
+      "d": 3
+    },
+    "codemeta.json": {
+      "a": 169,
+      "d": 49
+    },
+    "doc/_static/versions.json": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/changes/dev.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/changes/dev/13024.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13059.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13196.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13408.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13518.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13520.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13521.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13525.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13526.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13528.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13532.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13539.bugfix.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/dev/13541.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13549.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13551.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13558.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13566.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13570.newfeature.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/dev/13579.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13585.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13591.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13593.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13595.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13596.other.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/changes/dev/13602.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13606.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13610.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13611.dependency.rst": {
+      "a": 0,
+      "d": 7
+    },
+    "doc/changes/dev/13619.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13628.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13630.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13647.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13654.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13669.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13672.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13674.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13675.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13685.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13686.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13687.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13688.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13697.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13698.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13699.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13700.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13703.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13706.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13713.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13714.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13718.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13719.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13723.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13729.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13736.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13746.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13749.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13753.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13756.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13759.bugfix.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/dev/13764.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13765.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13769.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13771.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13777.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13778.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13787.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13806.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/dev/13814.dependency.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/changes/v1.12.rst": {
+      "a": 139,
+      "d": 0
+    },
+    "doc/development/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13619.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13639.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13686.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13697.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13699.json": {
+      "a": 79,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13753.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13756.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13759.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13777.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13778.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13805.json": {
+      "a": 163,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13806.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13807.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13809.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13810.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13812.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13814.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13817.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13818.json": {
+      "a": 19,
+      "d": 0
+    },
+    "ignore_words.txt": {
+      "a": 32,
+      "d": 31
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

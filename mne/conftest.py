@@ -213,6 +213,7 @@ def pytest_configure(config: pytest.Config):
     # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
     # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
     ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
+    ignore:Implicitly cleaning up.*:ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

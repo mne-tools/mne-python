@@ -1,1 +1,1 @@
-Clarify average EEG reference behavior in documentation for :func:`~mne.add_reference_channels`, by `Deep Kaur`_ (:newcontrib:`Deep Kaur`)
+Add notes to :func:`~mne.set_eeg_reference` and :ref:`_tut-set-eeg-ref` about the correct procedure to create an average reference, by :newcontrib:`Deep Kaur`.

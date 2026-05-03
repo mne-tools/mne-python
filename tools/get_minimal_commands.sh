@@ -79,4 +79,3 @@ which mne_surf2bem
 mne_surf2bem --version
 which mri_average
 mri_average --version
-set +x
