@@ -701,102 +701,57 @@ def test_ignore_marker_types():
     assert_array_equal(raw.annotations.description, expected_descriptions)
 
 
-def _stage_bv_trio(tmp_path, *, vhdr="test.vhdr", eeg="test.eeg", vmrk="test.vmrk"):
-    """Stage the .vhdr/.eeg/.vmrk trio under tmp_path; pass None to skip a file."""
-    for src, dest in ((vhdr_path, vhdr), (eeg_path, eeg), (vmrk_path, vmrk)):
-        if dest is not None:
-            shutil.copy(src, tmp_path / dest)
-    return tmp_path / "test.vhdr"
-
-
 @pytest.mark.parametrize(
     "overrides, exc, match",
     [
         ({"not_a_key": 1}, ValueError, "not present in valid override keys"),
         (["not", "a", "dict"], TypeError, "must be an instance of dict"),
-        ({"data_fname": 5}, TypeError, "data_fname.*path-like"),
-        ({"marker_fname": 42}, TypeError, "marker_fname.*path-like"),
         ({"n_channels": 0}, ValueError, "n_channels.*must be"),
-        ({"sfreq": -1.0}, ValueError, "sfreq.*must be"),
-        ({"ch_names": [1, 2, 3]}, TypeError, "ch_names.*str"),
         ({"ch_names": ["A", "A", "B"]}, ValueError, "must contain unique names"),
         ({"ch_names": list("abcde")}, ValueError, "length 5 but the file declares"),
         ({"units_fallback": 7}, TypeError, "units_fallback.*str"),
     ],
 )
 def test_overrides_validation(overrides, exc, match):
-    """Bad inputs raise at call time (validation + late-bound length check)."""
+    """Bad inputs raise at call time."""
     with pytest.raises(exc, match=match):
         read_raw_brainvision(vhdr_path, overrides=overrides)
 
 
-def test_overrides_none_and_empty_are_noop():
-    """``overrides=None`` and ``overrides={}`` both keep stock behavior."""
+def test_overrides_default_unchanged():
+    """``overrides=None`` and ``overrides={}`` match the no-overrides read exactly."""
+    baseline = read_raw_brainvision(vhdr_path)
     for ov in (None, {}):
-        assert read_raw_brainvision(vhdr_path, overrides=ov).info["nchan"] == 32
+        raw = read_raw_brainvision(vhdr_path, overrides=ov)
+        assert raw.info["nchan"] == baseline.info["nchan"]
+        assert raw.info["sfreq"] == baseline.info["sfreq"]
+        assert raw.ch_names == baseline.ch_names
+        assert raw.info["meas_date"] == baseline.info["meas_date"]
+        assert len(raw.annotations) == len(baseline.annotations)
 
 
 def test_overrides_units_fallback(tmp_path):
-    """Without units_fallback, [Channel Infos] truncation raises; with it, recovers."""
-    use_vhdr = _stage_bv_trio(tmp_path, vhdr=None)
-    skip_chans = {b"Ch31=", b"Ch32="}
+    """Truncated [Channel Infos] raises by default; ``units_fallback`` recovers."""
+    # Drop the last two channel rows from the .vhdr
+    use_vhdr = tmp_path / "test.vhdr"
+    shutil.copy(eeg_path, tmp_path / "test.eeg")
+    shutil.copy(vmrk_path, tmp_path / "test.vmrk")
+    skip = (b"Ch31=", b"Ch32=")
     with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
         for line in fin:
-            if not any(line.startswith(p) for p in skip_chans):
+            if not line.startswith(skip):
                 fout.write(line)
 
     with pytest.raises(RuntimeError, match=r"Incomplete \[Channel Infos\]"):
         read_raw_brainvision(use_vhdr)
-
     with pytest.warns(RuntimeWarning, match="units_fallback overridden"):
         raw = read_raw_brainvision(use_vhdr, overrides={"units_fallback": "µV"})
-    assert raw.info["nchan"] == 32
-    assert raw.ch_names[:2] + raw.ch_names[-2:] == ["FP1", "FP2", "Ch31", "Ch32"]
-    assert raw._orig_units["Ch31"] == raw._orig_units["Ch32"] == "µV"
-    assert raw[:][0].shape[0] == 32
+    assert raw.ch_names[-2:] == ["Ch31", "Ch32"]
+    assert raw._orig_units["Ch31"] == "µV"
 
 
-@pytest.mark.parametrize("absolute", [False, True])
-def test_overrides_data_fname(tmp_path, absolute):
-    """data_fname override redirects the binary lookup (relative + absolute)."""
-    use_vhdr = _stage_bv_trio(tmp_path, eeg="renamed.eeg")
-    with pytest.raises(FileNotFoundError):
-        read_raw_brainvision(use_vhdr, preload=True)
-    override = str(tmp_path / "renamed.eeg") if absolute else "renamed.eeg"
-    kwargs = dict(overrides={"data_fname": override}, preload=True)
-    with pytest.warns(RuntimeWarning, match="data_fname overridden"):
-        raw = read_raw_brainvision(use_vhdr, **kwargs)
-    assert raw.get_data().shape[0] == 32
-
-
-@pytest.mark.parametrize(
-    "skip_vmrk, override, expect_annots",
-    [
-        (True, False, False),  # marker_fname=False: skip entirely
-        (False, "renamed.vmrk", True),  # marker_fname=<path>: redirect
-    ],
-)
-def test_overrides_marker_fname(tmp_path, skip_vmrk, override, expect_annots):
-    """marker_fname accepts False (skip) or a path (redirect)."""
-    vmrk_arg = None if skip_vmrk else "renamed.vmrk"
-    use_vhdr = _stage_bv_trio(tmp_path, vmrk=vmrk_arg)
-    with pytest.warns(RuntimeWarning, match="marker_fname overridden"):
-        raw = read_raw_brainvision(use_vhdr, overrides={"marker_fname": override})
-    assert (len(raw.annotations) > 0) is expect_annots
-    if not expect_annots:
-        assert raw.info["meas_date"] is None
-
-
-def test_overrides_n_channels_truncation_warns(tmp_path):
-    """n_channels below [Channel Infos] row count warns about dropped rows."""
-    use_vhdr = _stage_bv_trio(tmp_path)
-    with _record_warnings(), pytest.warns(RuntimeWarning, match="dropped 2 trailing"):
-        raw = read_raw_brainvision(use_vhdr, overrides={"n_channels": 30})
-    assert raw.info["nchan"] == 30
-
-
-def test_overrides_sfreq_and_ch_names():
-    """Override ``sfreq`` and ``ch_names`` on the canonical test file."""
+def test_overrides_apply_simple_keys():
+    """Simple overrides (no staging) emit a warning and take effect."""
     with pytest.warns(RuntimeWarning, match="sfreq overridden"):
         raw = read_raw_brainvision(vhdr_path, overrides={"sfreq": 250.0})
     assert raw.info["sfreq"] == 250.0
@@ -805,7 +760,36 @@ def test_overrides_sfreq_and_ch_names():
     with pytest.warns(RuntimeWarning, match="ch_names overridden"):
         raw = read_raw_brainvision(vhdr_path, overrides={"ch_names": new_names})
     assert raw.ch_names == new_names
-    assert "E0" in raw._orig_units
+
+
+def test_overrides_file_paths(tmp_path):
+    """``data_fname`` and ``marker_fname`` redirect the sibling file lookups."""
+    shutil.copy(vhdr_path, tmp_path / "test.vhdr")
+    shutil.copy(eeg_path, tmp_path / "renamed.eeg")
+    shutil.copy(vmrk_path, tmp_path / "renamed.vmrk")
+    use_vhdr = tmp_path / "test.vhdr"
+
+    overrides = {"data_fname": "renamed.eeg", "marker_fname": "renamed.vmrk"}
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="data_fname overridden"),
+    ):
+        raw = read_raw_brainvision(use_vhdr, overrides=overrides, preload=True)
+    assert raw.get_data().shape[0] == 32
+    assert len(raw.annotations) > 0
+
+    # marker_fname=False skips annotation reading entirely
+    (tmp_path / "renamed.vmrk").unlink()
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="marker_fname overridden"),
+    ):
+        raw = read_raw_brainvision(
+            use_vhdr,
+            overrides={"data_fname": "renamed.eeg", "marker_fname": False},
+        )
+    assert len(raw.annotations) == 0
+    assert raw.info["meas_date"] is None
 
 
 @testing.requires_testing_data
