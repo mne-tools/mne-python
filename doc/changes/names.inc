@@ -70,6 +70,7 @@
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
+.. _Deep Kaur: https://github.com/Dpereaptkhamur-13
 .. _Demetres Kostas: https://github.com/kostasde
 .. _Denis Engemann: https://denis-engemann.de
 .. _Dev Parikh: https://github.com/devparikh0506
