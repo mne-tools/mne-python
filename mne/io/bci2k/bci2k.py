@@ -11,23 +11,23 @@ from ..._fiff.meas_info import create_info
 from ...utils import verbose
 from ..base import BaseRaw
 
-_VOLT_SCALE = {"v": 1.0, "mv": 1e-3, "muv": 1e-6, "uv": 1e-6, "nv": 1e-9}
-_FREQ_SCALE = {"hz": 1.0, "khz": 1e3}
+_VOLT_SCALE = {"v": 1.0, "mv": 1e-3, "muv": 1e-6, "uv": 1e-6, "nv": 1e-9, "": 1e-6}
+_FREQ_SCALE = {"hz": 1.0, "khz": 1e3, "": 1.0}
 
 
-def _parse_value_with_unit(token, unit_scale=None):
+def _parse_value_with_unit(token, unit_scale):
     """Split a numeric token with optional unit into value and scale."""
     text = str(token).strip().replace("µ", "u")
-    m = re.search(r"([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*([a-zA-Z]*)", text)
-    if m is None:
-        raise ValueError(f"Could not parse numeric value from {token!r}")
-    num = float(m.group(1))
-    unit = m.group(2).lower()
-    if unit_scale is None:
-        scale = 1.0
+    m = re.search(r"[a-zA-Z]+$", text)
+    if m:
+        num = float(text[:m.start()])
+        unit = m.group().lower()
     else:
-        scale = unit_scale.get(unit, 1.0)
-    return num, scale
+        num = float(text)
+        unit = ""
+    if unit not in unit_scale:
+        raise ValueError(f"Unrecognized unit '{unit}' in token '{token}'.")
+    return num, unit_scale[unit]
 
 
 def _parse_bci2k_header(fname):
@@ -182,7 +182,7 @@ def _read_bci2k_data(fname, info_dict):
             raise ValueError(
                 "Expected SourceChOffset and SourceChGain lengths to match SourceCh."
             )
-        offsets_arr = np.array([_parse_value_with_unit(val)[0] for val in offsets])
+        offsets_arr = np.array([float(val) for val in offsets])
         gain_parsed = [_parse_value_with_unit(val, unit_scale=_VOLT_SCALE) for val in gains]
         gains_arr = np.array([val for val, _ in gain_parsed])
         gain_scales = np.array([scale for _, scale in gain_parsed])
