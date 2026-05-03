@@ -82,6 +82,7 @@ manual_renames = {
     "Hansuja ": "Hansuja Budhiraja",  # 13765
     "jwelzel": "Julius Welzel",  # 11118
     "Katia": "Katia Al-Amir",  # 13225
+    "Lifeng": "Lifeng Qiu Lin",  # 13797
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -281,6 +282,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
         and "50266005+mne-bot" not in email
+        and "copilot@github.com" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
