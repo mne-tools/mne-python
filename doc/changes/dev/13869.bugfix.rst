@@ -1,0 +1,1 @@
+Fix SourceChGain/SourceChOffset calibration in BCI2000 reader so EEG data is returned in volts, by :newcontrib:`Hansuja Budhiraja`.
