@@ -20,7 +20,7 @@ def _parse_value_with_unit(token, unit_scale):
     text = str(token).strip().replace("µ", "u")
     m = re.search(r"[a-zA-Z]+$", text)
     if m:
-        num = float(text[:m.start()])
+        num = float(text[: m.start()])
         unit = m.group().lower()
     else:
         num = float(text)
@@ -185,7 +185,9 @@ def _read_bci2k_data(fname, info_dict):
                 "Expected SourceChOffset and SourceChGain lengths to match SourceCh."
             )
         offsets_arr = np.array([_parse_value_with_unit(val)[0] for val in offsets])
-        gain_parsed = [_parse_value_with_unit(val, unit_scale=_VOLT_SCALE) for val in gains]
+        gain_parsed = [
+            _parse_value_with_unit(val, unit_scale=_VOLT_SCALE) for val in gains
+        ]
         gains_arr = np.array([val for val, _ in gain_parsed])
         gain_scales = np.array([scale for _, scale in gain_parsed])
         signal = (signal + offsets_arr[:, np.newaxis]) * (
