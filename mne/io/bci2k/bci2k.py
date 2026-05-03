@@ -82,7 +82,9 @@ def _parse_bci2k_header(fname):
                     left, right = line.split("=", 1)
                     left_tokens = left.strip().split()
                     name = left_tokens[-1]
-                    param_type = left_tokens[-2].lower() if len(left_tokens) >= 2 else ""
+                    param_type = (
+                        left_tokens[-2].lower() if len(left_tokens) >= 2 else ""
+                    )
                     rhs = right.split("//", 1)[0].strip()
                     rhs_tokens = rhs.split()
                     if not rhs_tokens:
@@ -182,7 +184,7 @@ def _read_bci2k_data(fname, info_dict):
             raise ValueError(
                 "Expected SourceChOffset and SourceChGain lengths to match SourceCh."
             )
-        offsets_arr = np.array([float(val) for val in offsets])
+        offsets_arr = np.array([_parse_value_with_unit(val)[0] for val in offsets])
         gain_parsed = [_parse_value_with_unit(val, unit_scale=_VOLT_SCALE) for val in gains]
         gains_arr = np.array([val for val, _ in gain_parsed])
         gain_scales = np.array([scale for _, scale in gain_parsed])

@@ -29,7 +29,7 @@ def test_read_raw_bci2k():
     assert events.ndim == 2
     assert events.shape[1] == 3
     assert "RawBCI2k" in repr(raw)
-   
+
     info_dict = _parse_bci2k_header(bci2k_fname)
     assert info_dict["params"]["SourceChOffset"] == ["0", "0"]
     assert info_dict["params"]["SourceChGain"] == ["0.1muV", "0.1muV"]
