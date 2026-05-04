@@ -111,4 +111,4 @@ mne.viz.set_3d_view(figure=fig, azimuth=30, elevation=70, distance=0.4)
 # For more information on OPM data visualization, see the OPM preprocessing
 # tutorial:
 #
-# - :ref:`ex-opm-processing`
+# - :ref:`tut-opm-processing`
