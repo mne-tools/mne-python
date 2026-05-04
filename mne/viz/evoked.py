@@ -1956,9 +1956,7 @@ def plot_evoked_joint(
 
     # prepare axes for topomap
     if not got_axes:
-        fig, ts_ax, map_ax = _prepare_joint_axes(
-            len(times_sec), figsize=(8.0, 4.2)
-        )
+        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
         cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
