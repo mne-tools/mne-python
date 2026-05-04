@@ -595,8 +595,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     info._unlocked = True
 
     if "sfreq" in overrides:
+        logger.info(f"Overriding sfreq {info['sfreq']} -> {overrides['sfreq']} Hz")
         info["sfreq"] = overrides["sfreq"]
-        warn(f"sfreq overridden: {info['sfreq']} Hz")
 
     order = cfg.get(cinfostr, "DataOrientation")
     if order not in _orientation_dict:
@@ -621,18 +621,22 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     path = op.dirname(hdr_fname)
     if "data_fname" in overrides:
         data_fname = op.join(path, overrides["data_fname"])
-        warn(f"data_fname overridden: {data_fname!r}")
+        logger.info(
+            f"Overriding DataFile {cfg.get(cinfostr, 'DataFile')!r} -> "
+            f"{overrides['data_fname']!r}"
+        )
     else:
         data_fname = op.join(path, cfg.get(cinfostr, "DataFile"))
 
     if "marker_fname" in overrides:
         mrk_override = overrides["marker_fname"]
+        header_mrk = cfg.get(cinfostr, "MarkerFile")
         if mrk_override is False:
             mrk_fname = None
-            warn("marker_fname overridden: annotation reading skipped")
+            logger.info(f"Overriding MarkerFile {header_mrk!r} -> skipped")
         else:
             mrk_fname = op.join(path, mrk_override)
-            warn(f"marker_fname overridden: {mrk_fname!r}")
+            logger.info(f"Overriding MarkerFile {header_mrk!r} -> {mrk_override!r}")
     else:
         mrk_fname = op.join(path, cfg.get(cinfostr, "MarkerFile"))
 
@@ -655,7 +659,10 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     # load channel labels
     if "n_channels" in overrides:
         nchan = overrides["n_channels"]
-        warn(f"n_channels overridden: {nchan}")
+        logger.info(
+            f"Overriding NumberOfChannels "
+            f"{cfg.getint(cinfostr, 'NumberOfChannels')} -> {nchan}"
+        )
     else:
         nchan = cfg.getint(cinfostr, "NumberOfChannels")
     if ahdr_format:
@@ -794,9 +801,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
                 and ch_names[n] not in misc
             ):
                 misc.append(ch_names[n])
-        warn(
-            f"units_fallback overridden: filled {len(missing_idx)} entries with "
-            f"resolution=1.0, unit={units_fallback!r}."
+        logger.info(
+            f"Filled {len(missing_idx)} missing [Channel Infos] entries with "
+            f"resolution=1.0, unit={units_fallback!r}"
         )
 
     # Attempts to extract filtering info from header. If not found, both are set to
@@ -1014,11 +1021,11 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
                 f"but the file declares {nchan} channels."
             )
         name_map = dict(zip(ch_names, new_names))
+        logger.info(f"Overriding ch_names {ch_names!r} -> {new_names!r}")
         ch_names = new_names
         orig_units = {name_map.get(k, k): v for k, v in orig_units.items()}
         misc_chs = {name_map.get(k, k): v for k, v in misc_chs.items()}
         misc = [name_map.get(m, m) if isinstance(m, str) else m for m in misc]
-        warn(f"ch_names overridden: {nchan} channel(s) renamed")
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info("Setting channel info structure...")

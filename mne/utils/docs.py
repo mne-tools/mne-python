@@ -570,35 +570,41 @@ brain_kwargs : dict | None
     ``dict(silhouette=True)``).
 """
 
+docdict["brain_update"] = """
+update : bool
+    Force an update of the plot. Defaults to True.
+"""
+
 docdict["brainvision_overrides"] = """
 overrides : dict | None
     Optional overrides for values parsed from the ``.vhdr`` header. Used to
     read non-spec-compliant files where the header contradicts the actual
     layout. ``None`` (default) keeps stock behavior. Recognized keys:
 
-    - ``"data_fname"`` (path-like) — replaces ``[Common Infos] DataFile=``.
-      Relative paths resolve against the directory of ``vhdr_fname``.
-    - ``"marker_fname"`` (path-like or ``False``) — replaces
-      ``[Common Infos] MarkerFile=``. ``False`` skips annotation reading.
-    - ``"n_channels"`` (int) — replaces ``[Common Infos] NumberOfChannels``.
-      For ``.ahdr`` files, this is the user-facing count.
-    - ``"sfreq"`` (float) — overrides the sampling frequency.
-    - ``"ch_names"`` (list[str]) — replaces names from ``[Channel Infos]``.
-      Length must equal ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1``
-      is also accepted; the synthetic AHDR name is appended automatically).
-    - ``"units_fallback"`` (str, e.g. ``"µV"``) — recovers an incomplete
-      ``[Channel Infos]`` section by filling missing entries with
-      ``resolution=1.0`` and this unit; missing names become ``"Ch<N>"``.
+    ``"data_fname"`` (path-like)
+        Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+        the directory of ``vhdr_fname``.
+    ``"marker_fname"`` (path-like or ``False``)
+        Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+        reading.
+    ``"n_channels"`` (int)
+        Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+        this is the user-facing count.
+    ``"sfreq"`` (float)
+        Overrides the sampling frequency.
+    ``"ch_names"`` (list[str])
+        Replaces names from ``[Channel Infos]``. Length must equal
+        ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+        accepted; the synthetic AHDR name is appended automatically).
+    ``"units_fallback"`` (str, e.g. ``"µV"``)
+        Recovers an incomplete ``[Channel Infos]`` section by filling missing
+        entries with ``resolution=1.0`` and this unit; missing names become
+        ``"Ch<N>"``.
 
-    Each applied override emits a ``RuntimeWarning``. Unknown keys raise
+    Each applied override is logged at INFO level. Unknown keys raise
     ``ValueError``.
 
     .. versionadded:: 1.13
-"""
-
-docdict["brain_update"] = """
-update : bool
-    Force an update of the plot. Defaults to True.
 """
 
 docdict["browser"] = """

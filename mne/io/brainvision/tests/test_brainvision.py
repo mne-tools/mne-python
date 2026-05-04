@@ -744,21 +744,18 @@ def test_overrides_units_fallback(tmp_path):
 
     with pytest.raises(RuntimeError, match=r"Incomplete \[Channel Infos\]"):
         read_raw_brainvision(use_vhdr)
-    with pytest.warns(RuntimeWarning, match="units_fallback overridden"):
-        raw = read_raw_brainvision(use_vhdr, overrides={"units_fallback": "µV"})
+    raw = read_raw_brainvision(use_vhdr, overrides={"units_fallback": "µV"})
     assert raw.ch_names[-2:] == ["Ch31", "Ch32"]
     assert raw._orig_units["Ch31"] == "µV"
 
 
 def test_overrides_apply_simple_keys():
-    """Simple overrides (no staging) emit a warning and take effect."""
-    with pytest.warns(RuntimeWarning, match="sfreq overridden"):
-        raw = read_raw_brainvision(vhdr_path, overrides={"sfreq": 250.0})
+    """Simple overrides take effect."""
+    raw = read_raw_brainvision(vhdr_path, overrides={"sfreq": 250.0})
     assert raw.info["sfreq"] == 250.0
 
     new_names = [f"E{i}" for i in range(32)]
-    with pytest.warns(RuntimeWarning, match="ch_names overridden"):
-        raw = read_raw_brainvision(vhdr_path, overrides={"ch_names": new_names})
+    raw = read_raw_brainvision(vhdr_path, overrides={"ch_names": new_names})
     assert raw.ch_names == new_names
 
 
@@ -770,24 +767,16 @@ def test_overrides_file_paths(tmp_path):
     use_vhdr = tmp_path / "test.vhdr"
 
     overrides = {"data_fname": "renamed.eeg", "marker_fname": "renamed.vmrk"}
-    with (
-        _record_warnings(),
-        pytest.warns(RuntimeWarning, match="data_fname overridden"),
-    ):
-        raw = read_raw_brainvision(use_vhdr, overrides=overrides, preload=True)
+    raw = read_raw_brainvision(use_vhdr, overrides=overrides, preload=True)
     assert raw.get_data().shape[0] == 32
     assert len(raw.annotations) > 0
 
     # marker_fname=False skips annotation reading entirely
     (tmp_path / "renamed.vmrk").unlink()
-    with (
-        _record_warnings(),
-        pytest.warns(RuntimeWarning, match="marker_fname overridden"),
-    ):
-        raw = read_raw_brainvision(
-            use_vhdr,
-            overrides={"data_fname": "renamed.eeg", "marker_fname": False},
-        )
+    raw = read_raw_brainvision(
+        use_vhdr,
+        overrides={"data_fname": "renamed.eeg", "marker_fname": False},
+    )
     assert len(raw.annotations) == 0
     assert raw.info["meas_date"] is None
 
