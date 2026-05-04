@@ -108,11 +108,7 @@ mne.viz.plot_dipole_locations(dipoles=dip, mode="arrow", color=(0.2, 1.0, 0.5), 
 mne.viz.set_3d_view(figure=fig, azimuth=30, elevation=70, distance=0.4)
 
 # %%
-# Grouped OPM topomap visualization
-# ==================================
+# For more information on OPM data visualization, see the OPM preprocessing
+# tutorial:
 #
-# Kernel OPMs measure multiple magnetic field directions (Bx, By, Bz).
-# We can visualize colocated channels as grouped topomaps showing radial and
-# tangential components side-by-side for clearer interpretation of the data:
-
-fig = evoked.plot_joint(times=[t_peak], topomap_args=dict(sphere=sphere))
+# - :ref:`ex-opm-processing`
