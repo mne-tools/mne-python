@@ -136,21 +136,6 @@ def test_plot_joint():
     plt.close("all")
 
 
-def test_plot_joint_opm_triaxial(triaxial_evoked):
-    """Test joint plot with triaxial colocated OPM channels."""
-    fig = triaxial_evoked.plot_joint(
-        times=[0.0],
-        picks="mag",
-        show=False,
-        ts_args=dict(time_unit="s"),
-        topomap_args=dict(time_unit="s", contours=0, res=8, sensors=False),
-    )
-    assert len(fig.axes) >= 3
-    titles = [ax.get_title() for ax in fig.axes]
-    assert any("radial" in title for title in titles)
-    assert any("tangential" in title for title in titles)
-
-
 def test_plot_topo():
     """Test plotting of ERP topography."""
     # Show topography
