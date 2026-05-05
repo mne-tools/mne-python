@@ -155,7 +155,7 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
-        settings, _, _, _ = _aux_hdr_info(hdr_fname, sfreq_override=info["sfreq"])
+        settings, _, _, _, _ = _aux_hdr_info(hdr_fname, sfreq_override=info["sfreq"])
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
@@ -361,7 +361,7 @@ def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False
         if not op.exists(hdr_fname):
             hdr_fname = op.splitext(fname)[0] + ".ahdr"
         logger.info(f"Finding 'sfreq' from header file: {hdr_fname}")
-        _, _, _, info = _aux_hdr_info(hdr_fname)
+        _, _, _, info, _ = _aux_hdr_info(hdr_fname)
         sfreq = info["sfreq"]
 
     # skip the first "New Segment" marker (as it only contains the recording time)
@@ -405,8 +405,17 @@ def _check_bv_version(header, kind):
 
 
 _OVERRIDES_VALID_KEYS = frozenset(
-    {"data_fname", "marker_fname", "n_channels", "sfreq", "ch_names", "units_fallback"}
-    | {"data_orientation", "data_format", "binary_format"}
+    {
+        "data_fname",
+        "marker_fname",
+        "n_channels",
+        "sfreq",
+        "ch_names",
+        "units_fallback",
+        "data_orientation",
+        "data_format",
+        "binary_format",
+    }
 )
 
 
@@ -577,14 +586,22 @@ def _aux_hdr_info(hdr_fname, sfreq_override=None):
     if not cfg.has_section(cinfostr):
         cinfostr = "Common infos"  # NeurOne BrainVision export workaround
 
-    # Sampling interval is given in microsec; sfreq_override skips the cfg lookup
-    if sfreq_override is None:
-        sfreq = 1e6 / cfg.getfloat(cinfostr, "SamplingInterval")
-    else:
-        sfreq = sfreq_override
+    # Sampling interval is given in microsec. Try cfg first so we can report
+    # the original value when the caller passes ``sfreq_override``.
+    try:
+        cfg_sfreq = 1e6 / cfg.getfloat(cinfostr, "SamplingInterval")
+    except (configparser.NoOptionError, configparser.NoSectionError) as exc:
+        if sfreq_override is None:
+            raise RuntimeError(
+                f"Could not parse SamplingInterval from {hdr_fname}: {exc}. "
+                "Pass overrides={'sfreq': <value>} to read_raw_brainvision to "
+                "supply it explicitly."
+            ) from exc
+        cfg_sfreq = None
+    sfreq = sfreq_override if sfreq_override is not None else cfg_sfreq
     info = _empty_info(sfreq)
     info._unlocked = False
-    return settings, cfg, cinfostr, info
+    return settings, cfg, cinfostr, info, cfg_sfreq
 
 
 @fill_doc
@@ -638,12 +655,18 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             f"'{ext}'."
         )
 
-    settings, cfg, cinfostr, info = _aux_hdr_info(
+    settings, cfg, cinfostr, info, cfg_sfreq = _aux_hdr_info(
         hdr_fname, sfreq_override=overrides.get("sfreq")
     )
     info._unlocked = True
     if "sfreq" in overrides:
-        logger.info(f"Overriding sfreq -> {overrides['sfreq']} Hz")
+        if cfg_sfreq is None:
+            logger.info(
+                f"SamplingInterval not parseable from header; using "
+                f"overrides['sfreq']={overrides['sfreq']} Hz"
+            )
+        else:
+            logger.info(f"Overriding sfreq {cfg_sfreq} Hz -> {overrides['sfreq']} Hz")
 
     order = _hdr_get(cfg, cinfostr, "DataOrientation", overrides, "data_orientation")
     if order not in _orientation_dict:

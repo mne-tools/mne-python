@@ -6,6 +6,7 @@
 
 import configparser
 import datetime
+import inspect
 import re
 import shutil
 from pathlib import Path
@@ -722,16 +723,21 @@ def test_overrides_validation(overrides, exc, match):
         read_raw_brainvision(vhdr_path, overrides=overrides)
 
 
-def test_overrides_default_unchanged():
-    """``overrides=None`` and ``overrides={}`` match the no-overrides read exactly."""
+def test_overrides_default_is_none():
+    """The ``overrides`` parameter defaults to ``None``."""
+    sig = inspect.signature(read_raw_brainvision)
+    assert sig.parameters["overrides"].default is None
+
+
+def test_overrides_empty_dict_unchanged():
+    """``overrides={}`` matches the no-overrides read exactly."""
     baseline = read_raw_brainvision(vhdr_path)
-    for ov in (None, {}):
-        raw = read_raw_brainvision(vhdr_path, overrides=ov)
-        assert raw.info["nchan"] == baseline.info["nchan"]
-        assert raw.info["sfreq"] == baseline.info["sfreq"]
-        assert raw.ch_names == baseline.ch_names
-        assert raw.info["meas_date"] == baseline.info["meas_date"]
-        assert len(raw.annotations) == len(baseline.annotations)
+    raw = read_raw_brainvision(vhdr_path, overrides={})
+    assert raw.info["nchan"] == baseline.info["nchan"]
+    assert raw.info["sfreq"] == baseline.info["sfreq"]
+    assert raw.ch_names == baseline.ch_names
+    assert raw.info["meas_date"] == baseline.info["meas_date"]
+    assert len(raw.annotations) == len(baseline.annotations)
 
 
 def test_overrides_units_fallback(tmp_path):
@@ -786,33 +792,64 @@ def test_overrides_file_paths(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "key, override, header_key, recoverable, check",
+    "key, override, header_key, expected_exc, check",
     [
         # MarkerFile is optional per BV spec → recoverable without an override
         (
             "marker_fname",
             False,
             "MarkerFile",
-            True,
+            None,
             lambda r: r.info["meas_date"] is None,
         ),
         # The rest are spec-required → must be supplied via overrides
-        ("data_fname", "test.eeg", "DataFile", False, lambda r: r.info["nchan"] == 32),
-        ("n_channels", 32, "NumberOfChannels", False, lambda r: r.info["nchan"] == 32),
+        (
+            "data_fname",
+            "test.eeg",
+            "DataFile",
+            configparser.NoOptionError,
+            lambda r: r.info["nchan"] == 32,
+        ),
+        (
+            "n_channels",
+            32,
+            "NumberOfChannels",
+            configparser.NoOptionError,
+            lambda r: r.info["nchan"] == 32,
+        ),
+        # sfreq raises RuntimeError with a hint pointing to overrides['sfreq']
         (
             "sfreq",
             1000.0,
             "SamplingInterval",
-            False,
+            RuntimeError,
             lambda r: r.info["sfreq"] == 1000.0,
         ),
-        ("data_orientation", "MULTIPLEXED", "DataOrientation", False, lambda r: True),
-        ("data_format", "BINARY", "DataFormat", False, lambda r: True),
-        ("binary_format", "INT_16", "BinaryFormat", False, lambda r: True),
+        (
+            "data_orientation",
+            "MULTIPLEXED",
+            "DataOrientation",
+            configparser.NoOptionError,
+            lambda r: True,
+        ),
+        (
+            "data_format",
+            "BINARY",
+            "DataFormat",
+            configparser.NoOptionError,
+            lambda r: True,
+        ),
+        (
+            "binary_format",
+            "INT_16",
+            "BinaryFormat",
+            configparser.NoOptionError,
+            lambda r: True,
+        ),
     ],
 )
 def test_overrides_recover_missing_header_keys(
-    tmp_path, key, override, header_key, recoverable, check
+    tmp_path, key, override, header_key, expected_exc, check
 ):
     """Overrides recover when the header is missing the corresponding key."""
     shutil.copy(eeg_path, tmp_path / "test.eeg")
@@ -821,10 +858,10 @@ def test_overrides_recover_missing_header_keys(
     skip = (f"{header_key}=".encode(),)
     with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
         fout.writelines(line for line in fin if not line.startswith(skip))
-    if recoverable:
+    if expected_exc is None:
         assert check(read_raw_brainvision(use_vhdr))
     else:
-        with pytest.raises(configparser.NoOptionError, match=header_key.lower()):
+        with pytest.raises(expected_exc, match=header_key.lower()):
             read_raw_brainvision(use_vhdr)
     assert check(
         read_raw_brainvision(use_vhdr, overrides={key: override}, preload=True)
