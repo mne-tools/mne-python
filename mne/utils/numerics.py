@@ -199,9 +199,7 @@ def _gen_events(n_epochs):
     return events
 
 
-def _reject_data_segments(
-    data, reject, flat, decim, info, tstep, *, return_drop_var=False
-):
+def _reject_data_segments(data, reject, flat, decim, info, tstep):
     """Reject data segments using peak-to-peak amplitude."""
     from .._fiff.pick import channel_indices_by_type
     from ..epochs import _is_good
@@ -214,7 +212,6 @@ def _reject_data_segments(
     this_start = 0
     this_stop = 0
     drop_inds = []
-    drop_var = []
     for first in range(0, data.shape[1], step):
         last = first + step
         data_buffer = data[:, first:last]
@@ -234,8 +231,6 @@ def _reject_data_segments(
         else:
             logger.info(f"Artifact detected in [{first}, {last}]")
             drop_inds.append((first, last))
-            if return_drop_var:
-                drop_var.append(np.var(data_buffer, axis=1))
     data = data_clean[:, :this_stop]
     if not data.any():
         raise RuntimeError(
@@ -243,14 +238,7 @@ def _reject_data_segments(
             "consider updating your rejection "
             "thresholds."
         )
-    out = (data, drop_inds)
-    if return_drop_var:
-        drop_var = np.reshape(
-            np.array(drop_var), (len(drop_inds), data.shape[0]), copy=False
-        )
-        assert drop_var.shape == (len(drop_inds), data.shape[0])
-        out += (drop_var,)
-    return out
+    return data, drop_inds
 
 
 def _get_inst_data(inst):

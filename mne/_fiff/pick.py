@@ -1309,6 +1309,7 @@ def _picks_str_to_idx(
     #
     # first: check our special cases
     #
+
     picks_generic = list()
     if len(picks) == 1:
         if picks[0] in ("all", "data", "data_or_ica"):
