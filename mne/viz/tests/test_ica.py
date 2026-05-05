@@ -298,11 +298,14 @@ def test_plot_ica_properties_reject(kind):
     raw.set_montage("standard_1020")
     ica = ICA(
         n_components=2,
-        method="picard",
         random_state=0,
-        fit_params=dict(ortho=False, extended=True),
+        max_iter=1,
     )
-    with pytest.warns(RuntimeWarning, match="filtered"), catch_logging(True) as log:
+    with (
+        pytest.warns(RuntimeWarning, match="filtered"),
+        pytest.warns(Warning, match="converge"),
+        catch_logging(True) as log,
+    ):
         ica.fit(raw, reject=dict(eeg=500e-6))
     log = log.getvalue()
     assert log.count("Artifact detected") == 1  # dropped one epoch
