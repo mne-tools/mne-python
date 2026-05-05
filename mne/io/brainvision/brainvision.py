@@ -693,7 +693,6 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
         path, _hdr_get(cfg, cinfostr, "DataFile", overrides, "data_fname")
     )
 
-    # MarkerFile is optional per BV spec: missing/empty/override=False = no markers
     if overrides.get("marker_fname") is False:
         logger.info("Overriding MarkerFile -> skipped")
         mrk_fname = None
@@ -702,6 +701,13 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             cfg, cinfostr, "MarkerFile", overrides, "marker_fname", missing=""
         )
         mrk_fname = op.join(path, mrk) if mrk else None
+        # Recover from a stale MarkerFile= reference (common after BIDS renames).
+        if mrk_fname and not op.isfile(mrk_fname):
+            sibling = op.splitext(hdr_fname)[0] + ".vmrk"
+            found = op.isfile(sibling)
+            tail = f"using {op.basename(sibling)!r}" if found else "no annotations"
+            warn(f"MarkerFile {op.basename(mrk_fname)!r} not found; {tail}.")
+            mrk_fname = sibling if found else None
 
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation

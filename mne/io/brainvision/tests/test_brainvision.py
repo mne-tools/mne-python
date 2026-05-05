@@ -879,6 +879,26 @@ def test_empty_marker_file_means_no_markers(tmp_path):
     assert len(raw.annotations) == 0 and raw.info["meas_date"] is None
 
 
+@pytest.mark.parametrize(
+    "with_sibling, match", [(True, "using"), (False, "no annotations")]
+)
+def test_marker_fname_stale_fallback(tmp_path, with_sibling, match):
+    """Stale ``MarkerFile=`` falls back to sibling ``.vmrk`` or warns and skips."""
+    new_vhdr = tmp_path / "renamed.vhdr"
+    shutil.copy(vhdr_path, new_vhdr)
+    shutil.copy(eeg_path, tmp_path / "renamed.eeg")
+    if with_sibling:
+        shutil.copy(vmrk_path, tmp_path / "renamed.vmrk")
+    new_vhdr.write_text(
+        new_vhdr.read_text()
+        .replace("test.eeg", "renamed.eeg")
+        .replace("test.vmrk", "missing.vmrk")
+    )
+    with pytest.warns(RuntimeWarning, match=match):
+        raw = read_raw_brainvision(new_vhdr)
+    assert (len(raw.annotations) > 0) is with_sibling
+
+
 @testing.requires_testing_data
 def test_read_vhdr_annotations_and_events(tmp_path):
     """Test load brainvision annotations and parse them to events."""
