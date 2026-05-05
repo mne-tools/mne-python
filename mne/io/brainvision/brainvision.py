@@ -155,7 +155,7 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
-        settings, _, _, _ = _aux_hdr_info(hdr_fname)
+        settings, _, _, _ = _aux_hdr_info(hdr_fname, sfreq_override=info["sfreq"])
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
@@ -530,7 +530,7 @@ def _hdr_get(cfg, section, option, overrides, key, *, getter="get", missing=_MIS
         return missing
 
 
-def _aux_hdr_info(hdr_fname):
+def _aux_hdr_info(hdr_fname, sfreq_override=None):
     """Aux function for _get_hdr_info."""
     with open(hdr_fname, "rb") as f:
         # extract the first section to resemble a cfg
@@ -577,12 +577,11 @@ def _aux_hdr_info(hdr_fname):
     if not cfg.has_section(cinfostr):
         cinfostr = "Common infos"  # NeurOne BrainVision export workaround
 
-    # get sampling info
-    # Sampling interval is given in microsec
-    try:
+    # Sampling interval is given in microsec; sfreq_override skips the cfg lookup
+    if sfreq_override is None:
         sfreq = 1e6 / cfg.getfloat(cinfostr, "SamplingInterval")
-    except configparser.NoOptionError:
-        sfreq = float("nan")  # caller may recover via overrides=dict(sfreq=...)
+    else:
+        sfreq = sfreq_override
     info = _empty_info(sfreq)
     info._unlocked = False
     return settings, cfg, cinfostr, info
@@ -639,14 +638,12 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             f"'{ext}'."
         )
 
-    settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
+    settings, cfg, cinfostr, info = _aux_hdr_info(
+        hdr_fname, sfreq_override=overrides.get("sfreq")
+    )
     info._unlocked = True
-
     if "sfreq" in overrides:
-        logger.info(f"Overriding sfreq {info['sfreq']} -> {overrides['sfreq']} Hz")
-        info["sfreq"] = overrides["sfreq"]
-    elif np.isnan(info["sfreq"]):
-        raise configparser.NoOptionError("samplinginterval", cinfostr)
+        logger.info(f"Overriding sfreq -> {overrides['sfreq']} Hz")
 
     order = _hdr_get(cfg, cinfostr, "DataOrientation", overrides, "data_orientation")
     if order not in _orientation_dict:
