@@ -238,13 +238,11 @@ def _plot_ica_properties(
 
     # image and erp
     # we create a new epoch with dropped rows
-    epoch_data = epochs_src.get_data(copy=False)
-    epoch_data = np.insert(
-        arr=epoch_data,
-        obj=(dropped_indices - np.arange(len(dropped_indices))).astype(int),
-        values=0.0,
-        axis=0,
-    )
+    src_data = epochs_src.get_data(copy=False)
+    n = len(src_data) + len(dropped_indices)
+    epoch_data = np.zeros((n,) + (src_data.shape[1:]), dtype=src_data.dtype)
+    use_idx = np.setdiff1d(np.arange(n), dropped_indices)
+    epoch_data[use_idx] = src_data
     from ..epochs import EpochsArray
 
     epochs_src = EpochsArray(
@@ -283,9 +281,11 @@ def _plot_ica_properties(
         range(len(epoch_var)), epoch_var, alpha=0.5, facecolor=[0, 0, 0], lw=0
     )
     # rejected epochs in red
+    # TODO: This can't be right as the variance is computed on the good/remaining
+    # epochs, so these are by necessity zero
     var_ax.scatter(
         dropped_indices,
-        epoch_var[dropped_indices],
+        0,
         alpha=1.0,
         facecolor=[1, 0, 0],
         lw=0,
@@ -610,7 +610,6 @@ def _fast_plot_ica_properties(
         )
     del reject
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
-    dropped_src = ica_data
 
     # spectrum
     Nyquist = inst.info["sfreq"] / 2.0
@@ -656,16 +655,6 @@ def _fast_plot_ica_properties(
 
         # we reconstruct an epoch_variance with 0 where indexes where dropped
         epoch_var = np.var(ica_data[idx], axis=1)
-        drop_var = np.var(dropped_src[idx], axis=1)
-        drop_indices_corrected = (
-            dropped_indices - np.arange(len(dropped_indices))
-        ).astype(int)
-        epoch_var = np.insert(
-            arr=epoch_var,
-            obj=drop_indices_corrected,
-            values=drop_var[dropped_indices],
-            axis=0,
-        )
 
         # the actual plot
         fig = _plot_ica_properties(
@@ -772,7 +761,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
                 )
         # getting dropped epochs indexes
         if drop_inds is not None:
-            dropped_indices = [(d[0] // len(epochs_src.times)) + 1 for d in drop_inds]
+            dropped_indices = [(d[0] // len(epochs_src.times)) for d in drop_inds]
         kind = "Segment"
     else:
         drop_inds = None

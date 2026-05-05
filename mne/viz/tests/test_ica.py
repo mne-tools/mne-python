@@ -13,6 +13,7 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from mne import (
     Annotations,
     Epochs,
+    create_info,
     make_fixed_length_events,
     pick_types,
     read_cov,
@@ -143,7 +144,7 @@ def test_plot_ica_components():
 
 
 @pytest.mark.slowtest
-def test_plot_ica_properties():
+def test_plot_ica_properties_basic():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
@@ -279,6 +280,33 @@ def test_plot_ica_properties():
     fig = ica.plot_properties(raw_all_bad, picks=[0], **topoargs)
     assert_equal(len(fig), 1)
     plt.close("all")
+
+
+@pytest.mark.parametrize("kind", ["first", "last"])
+def test_plot_ica_properties_reject(kind):
+    """Check for gh-13879."""
+    sfreq, duration = 100.0, 10.0
+    n_samples = int(sfreq * duration)
+    rng = np.random.default_rng(0)
+    n_channels = 3
+    data = rng.uniform(-3e-6, 3e-6, size=(n_channels, n_samples))
+    assert kind in ("first", "last")
+    idx = 0 if kind == "first" else -1
+    data[0, idx] = 1000e-6
+    info = create_info(["Fz", "Cz", "C2"], sfreq, "eeg")
+    raw = RawArray(data, info)
+    raw.set_montage("standard_1020")
+    ica = ICA(
+        n_components=2,
+        method="picard",
+        random_state=0,
+        fit_params=dict(ortho=False, extended=True),
+    )
+    with pytest.warns(RuntimeWarning, match="filtered"), catch_logging(True) as log:
+        ica.fit(raw, reject=dict(eeg=500e-6))
+    log = log.getvalue()
+    assert log.count("Artifact detected") == 1  # dropped one epoch
+    ica.plot_properties(raw, picks=[0], show=False)
 
 
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):

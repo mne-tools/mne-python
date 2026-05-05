@@ -320,7 +320,6 @@ ica.plot_components()
 
 # %%
 # .. note::
-#
 #     `~mne.preprocessing.ICA.plot_components` (which plots the scalp
 #     field topographies for each component) has an optional ``inst`` parameter
 #     that takes an instance of `~mne.io.Raw` or `~mne.Epochs`.
