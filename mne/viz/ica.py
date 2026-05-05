@@ -595,8 +595,8 @@ def _fast_plot_ica_properties(
     good_indices = np.setdiff1d(np.arange(len(epochs_src_picked)), bad_indices)
 
     # spectrum
-    Nyquist = ica.info["sfreq"] / 2.0
-    lp = ica.info["lowpass"]
+    Nyquist = epochs_src_picked.info["sfreq"] / 2.0
+    lp = epochs_src_picked.info["lowpass"]
     if "fmax" not in psd_args:
         psd_args["fmax"] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args["fmax"] > lp)
