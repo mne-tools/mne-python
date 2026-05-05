@@ -309,7 +309,9 @@ def test_plot_ica_properties_reject(kind):
         ica.fit(raw, reject=dict(eeg=500e-6))
     log = log.getvalue()
     assert log.count("Artifact detected") == 1  # dropped one epoch
-    ica.plot_properties(raw, picks=[0], show=False)
+    fig = ica.plot_properties(raw, picks=[0], show=False)
+    # TODO: Assert stuff about axis limits, etc.
+    assert fig
 
 
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
