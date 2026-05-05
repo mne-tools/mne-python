@@ -306,12 +306,12 @@ def _plot_ica_properties(
     # remove half of yticks if more than 5
     yt = erp_ax.get_yticks()
     if len(yt) > 5:
-        erp_ax.yaxis.set_ticks(yt[::2])
+        erp_ax.set_yticks(yt[::2])
 
     # remove xticks - erp plot shows xticks for both image and erp plot
-    image_ax.xaxis.set_ticks([])
+    image_ax.set_xticks([])
     yt = image_ax.get_yticks()
-    image_ax.yaxis.set_ticks(yt[1:])
+    image_ax.set_yticks(yt[1:])
     image_ax.set_ylim([-0.5, n_trials + 0.5])
 
     def _set_scale(ax, scale):
@@ -325,10 +325,6 @@ def _plot_ica_properties(
     set_title_and_labels(spec_ax, "Spectrum", "Frequency (Hz)", psd_ylabel)
     spec_ax.yaxis.labelpad = 0
     spec_ax.set_xlim(freqs[[0, -1]])
-    ylim = spec_ax.get_ylim()
-    air = np.diff(ylim)[0] * 0.1
-    spec_ax.set_ylim(ylim[0] - air, ylim[1] + air)
-    image_ax.axhline(0, color="k", linewidth=0.5)
     if log_scale:
         _set_scale(spec_ax, "log")
 
@@ -700,13 +696,13 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
 
         if reject == "auto":
             reject = ica.reject_
+        # First we try making epochs in the normal way and see if we have enough
         events = make_fixed_length_events(inst, duration=2)
         kwargs = dict(
             tmin=0,
             tmax=2 - 1.0 / inst.info["sfreq"],
             baseline=None,
             verbose="error",
-            preload=True,
             proj=False,
         )
         epochs = Epochs(
@@ -714,48 +710,43 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
             events,
             reject=reject,
             reject_by_annotation=reject_by_annotation,
+            preload=False,
             **kwargs,
-        )
-        # if all epochs were dropped by annotations, stitch the good segments
-        # together so that the plot can still be generated
-        epochs_src = None
+        ).drop_bad(verbose="error")
+        # If all epochs were dropped, stitch the good segments according to
+        # reject_by_annotation back together and get sources for those, subject to
+        # the reject param
         if reject_by_annotation and len(epochs) == 0:
-            epochs_good = Epochs(
-                inst,
-                events,
+            good_data = inst.get_data(reject_by_annotation="omit")
+            inst_stitched = RawArray(good_data, inst.info.copy(), verbose="error")
+            events_stitched = make_fixed_length_events(inst_stitched, duration=2)
+            epochs_stitched = Epochs(
+                inst_stitched,
+                events_stitched,
                 reject=reject,
                 reject_by_annotation=False,
+                preload=False,
                 **kwargs,
-            )
-            got_samps = len(epochs_good) * len(epochs.times)
+            ).drop_bad(verbose="error")
+            got_samps = len(epochs_stitched) * len(epochs_stitched.times)
             min_samples = int(2 * inst.info["sfreq"])
             if got_samps >= min_samples:
-                good_data = np.reshape(
-                    np.transpose(epochs_good.get_data(), [1, 0, 2]),
-                    (len(epochs.ch_names), got_samps),
-                )
-                inst_good = RawArray(good_data, inst.info.copy(), verbose="error")
-                epochs_src = Epochs(
-                    ica.get_sources(inst_good),
-                    events,
-                    reject=reject,
-                    reject_by_annotation=False,
-                    **kwargs,
-                )
-        if epochs_src is None:
-            ica.get_sources(inst)
-            epochs_src = Epochs(
-                ica.get_sources(inst),
-                events,
-                # We have already rejected by annotation and reject above, but we don't
-                # here so we can keep data for bad epochs around
-                reject=None,
-                reject_by_annotation=False,
-                **kwargs,
-            )
-            bad_indices = np.where([len(log) for log in epochs.drop_log])[0]
-            assert len(epochs_src) == len(epochs) + len(bad_indices)
+                inst = inst_stitched
+                events = events_stitched
+                epochs = epochs_stitched
+        epochs_src = Epochs(
+            ica.get_sources(inst),
+            events,
+            # We have already rejected by annotation and reject above, but we don't
+            # here so we can keep data for bad epochs around
+            reject=None,
+            reject_by_annotation=False,
+            preload=True,
+            **kwargs,
+        )
+        bad_indices = np.where([len(log) for log in epochs.drop_log])[0]
         kind = "Segment"
+        assert len(epochs_src) == len(epochs) + len(bad_indices)
     else:
         epochs_src = ica.get_sources(inst)
         kind = "Epochs"

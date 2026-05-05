@@ -285,8 +285,8 @@ def test_plot_ica_properties_basic():
 @pytest.mark.parametrize("kind", ["first", "last"])
 def test_plot_ica_properties_reject(kind):
     """Check for gh-13879."""
-    sfreq, duration = 100.0, 10.0
-    n_samples = int(sfreq * duration)
+    sfreq, n_epochs = 100.0, 5
+    n_samples = int(sfreq * n_epochs * 2.0)  # 2s per segment
     rng = np.random.default_rng(0)
     n_channels = 3
     data = rng.uniform(-3e-6, 3e-6, size=(n_channels, n_samples))
@@ -309,9 +309,19 @@ def test_plot_ica_properties_reject(kind):
         ica.fit(raw, reject=dict(eeg=500e-6))
     log = log.getvalue()
     assert log.count("Artifact detected") == 1  # dropped one epoch
-    fig = ica.plot_properties(raw, picks=[0], show=False)
-    # TODO: Assert stuff about axis limits, etc.
-    assert fig
+    figs = ica.plot_properties(raw, picks=[0], show=False)
+    assert len(figs) == 1
+    fig = figs[0]
+    img_ax = fig.axes[1]
+    img_ylim = img_ax.get_ylim()
+    assert img_ylim[0] == -0.5
+    assert img_ylim[1] == n_epochs + 0.5
+    hist_ax = fig.axes[-1]
+    var_ax = fig.axes[-2]
+    min_hist = np.min(hist_ax.lines[0].get_ydata())
+    assert min_hist > 0
+    scatter_x, _ = var_ax.collections[0].get_offsets().data.T
+    assert_array_equal(scatter_x, np.arange(n_epochs))
 
 
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
