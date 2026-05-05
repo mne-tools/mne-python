@@ -52,6 +52,11 @@ t_peak = 0.016  # based on visual inspection of evoked
 fig.axes[0].axvline(t_peak, color="k", ls=":", lw=3, zorder=2)
 
 # %%
+# Because these OPM sensors are colocated in biaxial pairs, topomaps are
+# grouped into radial and tangential components.
+evoked.plot_topomap(times=[t_peak], ch_type="mag", show=True)
+
+# %%
 # The data covariance has an interesting structure because of densely packed sensors:
 
 cov = mne.compute_covariance(epochs, tmax=-0.01)
