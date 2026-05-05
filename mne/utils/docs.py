@@ -600,6 +600,13 @@ overrides : dict | None
         Recovers an incomplete ``[Channel Infos]`` section by filling missing
         entries with ``resolution=1.0`` and this unit; missing names become
         ``"Ch<N>"``.
+    ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+        Replaces ``[Common Infos] DataOrientation=``.
+    ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+        Replaces ``[Common Infos] DataFormat=``.
+    ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+        Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+        effective ``DataFormat`` is ``"BINARY"``.
 
     Each applied override is logged at INFO level. Unknown keys raise
     ``ValueError``.

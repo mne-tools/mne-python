@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import configparser
 import datetime
 import re
 import shutil
@@ -710,6 +711,9 @@ def test_ignore_marker_types():
         ({"ch_names": ["A", "A", "B"]}, ValueError, "must contain unique names"),
         ({"ch_names": list("abcde")}, ValueError, "length 5 but the file declares"),
         ({"units_fallback": 7}, TypeError, "units_fallback.*str"),
+        ({"data_orientation": "SIDEWAYS"}, ValueError, "Invalid.*data_orientation"),
+        ({"data_format": "PARQUET"}, ValueError, "Invalid.*data_format"),
+        ({"binary_format": "FLOAT_64"}, ValueError, "Invalid.*binary_format"),
     ],
 )
 def test_overrides_validation(overrides, exc, match):
@@ -779,6 +783,63 @@ def test_overrides_file_paths(tmp_path):
     )
     assert len(raw.annotations) == 0
     assert raw.info["meas_date"] is None
+
+
+@pytest.mark.parametrize(
+    "key, override, header_key, recoverable, check",
+    [
+        # MarkerFile is optional per BV spec → recoverable without an override
+        (
+            "marker_fname",
+            False,
+            "MarkerFile",
+            True,
+            lambda r: r.info["meas_date"] is None,
+        ),
+        # The rest are spec-required → must be supplied via overrides
+        ("data_fname", "test.eeg", "DataFile", False, lambda r: r.info["nchan"] == 32),
+        ("n_channels", 32, "NumberOfChannels", False, lambda r: r.info["nchan"] == 32),
+        (
+            "sfreq",
+            1000.0,
+            "SamplingInterval",
+            False,
+            lambda r: r.info["sfreq"] == 1000.0,
+        ),
+        ("data_orientation", "MULTIPLEXED", "DataOrientation", False, lambda r: True),
+        ("data_format", "BINARY", "DataFormat", False, lambda r: True),
+        ("binary_format", "INT_16", "BinaryFormat", False, lambda r: True),
+    ],
+)
+def test_overrides_recover_missing_header_keys(
+    tmp_path, key, override, header_key, recoverable, check
+):
+    """Overrides recover when the header is missing the corresponding key."""
+    shutil.copy(eeg_path, tmp_path / "test.eeg")
+    shutil.copy(vmrk_path, tmp_path / "test.vmrk")
+    use_vhdr = tmp_path / f"no_{key}.vhdr"
+    skip = (f"{header_key}=".encode(),)
+    with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
+        fout.writelines(line for line in fin if not line.startswith(skip))
+    if recoverable:
+        assert check(read_raw_brainvision(use_vhdr))
+    else:
+        with pytest.raises(configparser.NoOptionError, match=header_key.lower()):
+            read_raw_brainvision(use_vhdr)
+    assert check(
+        read_raw_brainvision(use_vhdr, overrides={key: override}, preload=True)
+    )
+
+
+def test_empty_marker_file_means_no_markers(tmp_path):
+    """Empty ``MarkerFile=`` value is spec-compliant and means no markers."""
+    shutil.copy(eeg_path, tmp_path / "test.eeg")
+    use_vhdr = tmp_path / "empty_marker.vhdr"
+    with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
+        for line in fin:
+            fout.write(b"MarkerFile=\n" if line.startswith(b"MarkerFile=") else line)
+    raw = read_raw_brainvision(use_vhdr)
+    assert len(raw.annotations) == 0 and raw.info["meas_date"] is None
 
 
 @testing.requires_testing_data

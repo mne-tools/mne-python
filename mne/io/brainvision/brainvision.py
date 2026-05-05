@@ -22,6 +22,7 @@ from ...defaults import HEAD_SIZE_DEFAULT
 from ...transforms import _sph_to_cart
 from ...utils import (
     _check_dict_keys,
+    _check_option,
     _check_range,
     _DefaultEventParser,
     _validate_type,
@@ -405,6 +406,7 @@ def _check_bv_version(header, kind):
 
 _OVERRIDES_VALID_KEYS = frozenset(
     {"data_fname", "marker_fname", "n_channels", "sfreq", "ch_names", "units_fallback"}
+    | {"data_orientation", "data_format", "binary_format"}
 )
 
 
@@ -416,31 +418,53 @@ def _validate_overrides(overrides):
     _check_dict_keys(
         overrides, _OVERRIDES_VALID_KEYS, "override key(s)", "valid override keys"
     )
-    if "data_fname" in overrides:
-        _validate_type(overrides["data_fname"], "path-like", "overrides['data_fname']")
+
+    def _name(key):
+        return f"overrides['{key}']"
+
+    type_specs = {
+        "data_fname": "path-like",
+        "n_channels": "int-like",
+        "sfreq": "numeric",
+        "ch_names": (list, tuple),
+        "units_fallback": str,
+    }
+    for key, type_ in type_specs.items():
+        if key in overrides:
+            _validate_type(overrides[key], type_, _name(key))
+
+    range_specs = {
+        "n_channels": dict(min_val=1, max_val=np.inf),
+        "sfreq": dict(min_val=0, max_val=np.inf, min_inclusive=False),
+    }
+    for key, kw in range_specs.items():
+        if key in overrides:
+            _check_range(overrides[key], name=_name(key), **kw)
+
+    enum_specs = {
+        "data_orientation": tuple(_orientation_dict),
+        "data_format": ("BINARY", "ASCII"),
+        "binary_format": tuple(_fmt_dict),
+    }
+    for key, allowed in enum_specs.items():
+        if key in overrides:
+            _check_option(_name(key), overrides[key], allowed)
+
+    # marker_fname accepts False as a sentinel for "skip annotations"
     if "marker_fname" in overrides and overrides["marker_fname"] is not False:
         _validate_type(
             overrides["marker_fname"],
             "path-like",
-            "overrides['marker_fname']",
+            _name("marker_fname"),
             extra="(or False to skip annotation reading)",
         )
-    if "n_channels" in overrides:
-        _validate_type(overrides["n_channels"], "int-like", "overrides['n_channels']")
-        _check_range(overrides["n_channels"], 1, np.inf, "overrides['n_channels']")
-    if "sfreq" in overrides:
-        _validate_type(overrides["sfreq"], "numeric", "overrides['sfreq']")
-        _check_range(
-            overrides["sfreq"], 0, np.inf, "overrides['sfreq']", min_inclusive=False
-        )
+    # ch_names: per-element type + uniqueness
     if "ch_names" in overrides:
-        _validate_type(overrides["ch_names"], (list, tuple), "overrides['ch_names']")
         for i, name in enumerate(overrides["ch_names"]):
             _validate_type(name, str, f"overrides['ch_names'][{i}]")
         if len(set(overrides["ch_names"])) != len(overrides["ch_names"]):
             raise ValueError("overrides['ch_names'] must contain unique names")
-    if "units_fallback" in overrides:
-        _validate_type(overrides["units_fallback"], str, "overrides['units_fallback']")
+
     return overrides
 
 
@@ -483,6 +507,27 @@ def _str_to_meas_date(date_str):
 
     meas_date = meas_date.replace(tzinfo=timezone.utc)
     return meas_date
+
+
+_MISSING = object()
+
+
+def _hdr_get(cfg, section, option, overrides, key, *, getter="get", missing=_MISSING):
+    """Read header value or apply ``overrides[key]``; log when overriding."""
+    fn = getattr(cfg, getter)
+    if key in overrides:
+        try:
+            original = fn(section, option)
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            original = "(missing)"
+        logger.info(f"Overriding {option} {original!r} -> {overrides[key]!r}")
+        return overrides[key]
+    try:
+        return fn(section, option)
+    except (configparser.NoOptionError, configparser.NoSectionError):
+        if missing is _MISSING:
+            raise
+        return missing
 
 
 def _aux_hdr_info(hdr_fname):
@@ -534,7 +579,10 @@ def _aux_hdr_info(hdr_fname):
 
     # get sampling info
     # Sampling interval is given in microsec
-    sfreq = 1e6 / cfg.getfloat(cinfostr, "SamplingInterval")
+    try:
+        sfreq = 1e6 / cfg.getfloat(cinfostr, "SamplingInterval")
+    except configparser.NoOptionError:
+        sfreq = float("nan")  # caller may recover via overrides=dict(sfreq=...)
     info = _empty_info(sfreq)
     info._unlocked = False
     return settings, cfg, cinfostr, info
@@ -597,15 +645,17 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     if "sfreq" in overrides:
         logger.info(f"Overriding sfreq {info['sfreq']} -> {overrides['sfreq']} Hz")
         info["sfreq"] = overrides["sfreq"]
+    elif np.isnan(info["sfreq"]):
+        raise configparser.NoOptionError("samplinginterval", cinfostr)
 
-    order = cfg.get(cinfostr, "DataOrientation")
+    order = _hdr_get(cfg, cinfostr, "DataOrientation", overrides, "data_orientation")
     if order not in _orientation_dict:
         raise NotImplementedError(f"Data Orientation {order} is not supported")
     order = _orientation_dict[order]
 
-    data_format = cfg.get(cinfostr, "DataFormat")
+    data_format = _hdr_get(cfg, cinfostr, "DataFormat", overrides, "data_format")
     if data_format == "BINARY":
-        fmt = cfg.get("Binary Infos", "BinaryFormat")
+        fmt = _hdr_get(cfg, "Binary Infos", "BinaryFormat", overrides, "binary_format")
         if fmt not in _fmt_dict:
             raise NotImplementedError(f"Datatype {fmt} is not supported")
         fmt = _fmt_dict[fmt]
@@ -619,26 +669,19 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(hdr_fname)
-    if "data_fname" in overrides:
-        data_fname = op.join(path, overrides["data_fname"])
-        logger.info(
-            f"Overriding DataFile {cfg.get(cinfostr, 'DataFile')!r} -> "
-            f"{overrides['data_fname']!r}"
-        )
-    else:
-        data_fname = op.join(path, cfg.get(cinfostr, "DataFile"))
+    data_fname = op.join(
+        path, _hdr_get(cfg, cinfostr, "DataFile", overrides, "data_fname")
+    )
 
-    if "marker_fname" in overrides:
-        mrk_override = overrides["marker_fname"]
-        header_mrk = cfg.get(cinfostr, "MarkerFile")
-        if mrk_override is False:
-            mrk_fname = None
-            logger.info(f"Overriding MarkerFile {header_mrk!r} -> skipped")
-        else:
-            mrk_fname = op.join(path, mrk_override)
-            logger.info(f"Overriding MarkerFile {header_mrk!r} -> {mrk_override!r}")
+    # MarkerFile is optional per BV spec: missing/empty/override=False = no markers
+    if overrides.get("marker_fname") is False:
+        logger.info("Overriding MarkerFile -> skipped")
+        mrk_fname = None
     else:
-        mrk_fname = op.join(path, cfg.get(cinfostr, "MarkerFile"))
+        mrk = _hdr_get(
+            cfg, cinfostr, "MarkerFile", overrides, "marker_fname", missing=""
+        )
+        mrk_fname = op.join(path, mrk) if mrk else None
 
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
@@ -657,14 +700,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
                 break
 
     # load channel labels
-    if "n_channels" in overrides:
-        nchan = overrides["n_channels"]
-        logger.info(
-            f"Overriding NumberOfChannels "
-            f"{cfg.getint(cinfostr, 'NumberOfChannels')} -> {nchan}"
-        )
-    else:
-        nchan = cfg.getint(cinfostr, "NumberOfChannels")
+    nchan = _hdr_get(
+        cfg, cinfostr, "NumberOfChannels", overrides, "n_channels", getter="getint"
+    )
     if ahdr_format:
         # add one fake channel for ahdr format
         nchan += 1
