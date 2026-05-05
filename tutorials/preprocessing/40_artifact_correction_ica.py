@@ -255,7 +255,7 @@ filt_raw = raw.copy().filter(l_freq=1.0, h_freq=None)
 #     baseline correction.
 
 ica = ICA(n_components=15, max_iter="auto", random_state=97)
-ica.fit(filt_raw)
+ica.fit(filt_raw, reject=dict(eeg=200e-6))  # avoid a couple of big artifacts
 ica
 
 # %%

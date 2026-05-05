@@ -1238,7 +1238,7 @@ def _picks_to_idx(
             extra_repr = ", treated as range({n_chan})"
         else:
             picks = none  # let _picks_str_to_idx handle it
-            extra_repr = f'None, treated as "{none}"'
+            extra_repr = f', treated as "{none}"'
 
     #
     # slice
@@ -1309,7 +1309,6 @@ def _picks_str_to_idx(
     #
     # first: check our special cases
     #
-
     picks_generic = list()
     if len(picks) == 1:
         if picks[0] in ("all", "data", "data_or_ica"):

@@ -15,7 +15,6 @@ from .._fiff.pick import _picks_to_idx, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj
 from ..defaults import DEFAULTS, _handle_default
 from ..utils import (
-    _reject_data_segments,
     _validate_type,
     fill_doc,
     verbose,
@@ -202,13 +201,10 @@ def _create_properties_layout(figsize=None, fig=None):
 def _plot_ica_properties(
     pick,
     ica,
-    inst,
     psds_mean,
     freqs,
-    n_trials,
-    epoch_var,
     plot_lowpass_edge,
-    epochs_src,
+    this_epochs_src,
     set_title_and_labels,
     plot_std,
     psd_ylabel,
@@ -219,7 +215,7 @@ def _plot_ica_properties(
     fig,
     axes,
     kind,
-    dropped_indices,
+    bad_indices,
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -237,21 +233,15 @@ def _plot_ica_properties(
     )
 
     # image and erp
-    # we create a new epoch with dropped rows
-    src_data = epochs_src.get_data(copy=False)
-    n = len(src_data) + len(dropped_indices)
-    epoch_data = np.zeros((n,) + (src_data.shape[1:]), dtype=src_data.dtype)
-    use_idx = np.setdiff1d(np.arange(n), dropped_indices)
-    epoch_data[use_idx] = src_data
-    from ..epochs import EpochsArray
-
-    epochs_src = EpochsArray(
-        epoch_data, epochs_src.info, tmin=epochs_src.tmin, verbose=0
-    )
-
+    n_trials = len(this_epochs_src)
+    epoch_var = np.var(this_epochs_src.get_data(), axis=-1)
+    assert epoch_var.shape[1] == 1  # single channel
+    epoch_var = epoch_var[:, 0]
+    assert epoch_var.shape == (len(this_epochs_src),)
+    this_epochs_src._data[bad_indices] = 0
     plot_epochs_image(
-        epochs_src,
-        picks=pick,
+        this_epochs_src,
+        picks=[0],
         axes=[image_ax, erp_ax],
         combine=None,
         colorbar=False,
@@ -270,47 +260,40 @@ def _plot_ica_properties(
             alpha=0.2,
         )
     if plot_lowpass_edge:
-        spec_ax.axvline(
-            inst.info["lowpass"], lw=2, linestyle="--", color="k", alpha=0.2
-        )
+        spec_ax.axvline(ica.info["lowpass"], lw=2, linestyle="--", color="k", alpha=0.2)
 
     # epoch variance
+    good_indices = np.setdiff1d(np.arange(n_trials), bad_indices)
     var_ax_divider = make_axes_locatable(var_ax)
-    hist_ax = var_ax_divider.append_axes("right", size="33%", pad="2.5%")
-    var_ax.scatter(
-        range(len(epoch_var)), epoch_var, alpha=0.5, facecolor=[0, 0, 0], lw=0
-    )
+    hist_ax = var_ax_divider.append_axes("right", size="33%", pad="2.5%", sharey=var_ax)
+    facecolor = np.zeros((len(epoch_var), 3))
+    alpha = np.full(len(epoch_var), 0.5)
     # rejected epochs in red
-    # TODO: This can't be right as the variance is computed on the good/remaining
-    # epochs, so these are by necessity zero
+    facecolor[bad_indices] = [1, 0, 0]
+    alpha[bad_indices] = 0.75
     var_ax.scatter(
-        dropped_indices,
-        np.zeros(len(dropped_indices)),
-        alpha=1.0,
-        facecolor=[1, 0, 0],
-        lw=0,
+        np.arange(n_trials), epoch_var, alpha=alpha, facecolor=facecolor, lw=0
     )
     # compute percentage of dropped epochs
-    var_percent = float(len(dropped_indices)) / float(len(epoch_var)) * 100.0
+    var_percent = 100 * len(bad_indices) / n_trials
 
     # histogram & histogram
+    epoch_var_good = epoch_var[good_indices]
     _, counts, _ = hist_ax.hist(
-        epoch_var, orientation="horizontal", color="k", alpha=0.5
+        epoch_var_good, orientation="horizontal", color="k", alpha=0.5
     )
 
     # kde
-    ymin, ymax = hist_ax.get_ylim()
     try:
-        kde = gaussian_kde(epoch_var)
+        kde = gaussian_kde(epoch_var_good)
     except np.linalg.LinAlgError:
         pass  # singular: happens when there is nothing plotted
     else:
-        x = np.linspace(ymin, ymax, 50)
+        x = np.linspace(epoch_var_good.min(), epoch_var_good.max(), 50)
         kde_ = kde(x)
         kde_ /= kde_.max() or 1.0
         kde_ *= hist_ax.get_xlim()[-1] * 0.9
         hist_ax.plot(kde_, x, color="k")
-        hist_ax.set_ylim(ymin, ymax)
 
     # aesthetics
     # ----------
@@ -319,7 +302,7 @@ def _plot_ica_properties(
     # erp
     set_title_and_labels(erp_ax, [], "Time (s)", "AU")
     erp_ax.spines["right"].set_color("k")
-    erp_ax.set_xlim(epochs_src.times[[0, -1]])
+    erp_ax.set_xlim(this_epochs_src.times[[0, -1]])
     # remove half of yticks if more than 5
     yt = erp_ax.get_yticks()
     if len(yt) > 5:
@@ -603,23 +586,26 @@ def _fast_plot_ica_properties(
     # calculations
     # ------------
     if isinstance(precomputed_data, tuple):
-        kind, dropped_indices, epochs_src, data = precomputed_data
+        kind, bad_indices, epochs_src = precomputed_data
     else:
-        kind, dropped_indices, epochs_src, data = _prepare_data_ica_properties(
+        kind, bad_indices, epochs_src = _prepare_data_ica_properties(
             inst, ica, reject_by_annotation, reject
         )
-    del reject
-    ica_data = np.swapaxes(data[:, picks, :], 0, 1)
+    del reject, inst
+    if len(epochs_src) == 0:
+        return [fig]
+    epochs_src_picked = epochs_src.pick(picks)
+    del epochs_src
+    good_indices = np.setdiff1d(np.arange(len(epochs_src_picked)), bad_indices)
 
     # spectrum
-    Nyquist = inst.info["sfreq"] / 2.0
-    lp = inst.info["lowpass"]
+    Nyquist = ica.info["sfreq"] / 2.0
+    lp = ica.info["lowpass"]
     if "fmax" not in psd_args:
         psd_args["fmax"] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args["fmax"] > lp)
-    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
-    # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
-    # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
+    # we've already restricted picks in epochs_src_picked, so here we do picks=all
+    spectrum = epochs_src_picked[good_indices].compute_psd(picks="all", **psd_args)
     psds, freqs = spectrum.get_data(return_freqs=True, picks="all", exclude=[])
     # we also pass exclude=[] so that when this is called by right-clicking in
     # a plot_sources() window on an ICA component name that has been marked as
@@ -653,20 +639,14 @@ def _fast_plot_ica_properties(
         if idx > 0:
             fig, axes = _create_properties_layout(figsize=figsize)
 
-        # we reconstruct an epoch_variance with 0 where indexes where dropped
-        epoch_var = np.var(ica_data[idx], axis=1)
-
         # the actual plot
         fig = _plot_ica_properties(
             pick,
             ica,
-            inst,
             psds_mean,
             freqs,
-            ica_data.shape[1],
-            epoch_var,
             plot_lowpass_edge,
-            epochs_src,
+            epochs_src_picked.copy().pick(picks=[idx]),
             set_title_and_labels,
             plot_std,
             psd_ylabel,
@@ -677,7 +657,7 @@ def _fast_plot_ica_properties(
             fig,
             axes,
             kind,
-            dropped_indices,
+            bad_indices,
         )
         all_fig.append(fig)
 
@@ -710,65 +690,76 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
     data : array of shape (n_epochs, n_ica_sources, n_times)
         A view on epochs ICA sources data.
     """
-    from ..epochs import BaseEpochs
+    from ..epochs import BaseEpochs, Epochs, make_fixed_length_events
     from ..io import BaseRaw, RawArray
 
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
+    bad_indices = []
     if isinstance(inst, BaseRaw):
         # when auto, delegate reject to the ica
-        from ..epochs import make_fixed_length_epochs
 
         if reject == "auto":
             reject = ica.reject_
-        drop_inds = None
-        dropped_indices = []
-        if reject is None:
-            inst_current = inst
-        else:
-            data = inst.get_data()
-            data, drop_inds = _reject_data_segments(
-                data, reject, flat=None, decim=None, info=inst.info, tstep=2.0
-            )
-            inst_current = RawArray(data, inst.info)
-        # break up continuous signal into segments; suppress "All epochs were
-        # dropped!" because we handle that case gracefully below
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", "All epochs were dropped!", RuntimeWarning
-            )
-            epochs_src = make_fixed_length_epochs(
-                ica.get_sources(inst_current),
-                duration=2,
-                preload=True,
-                reject_by_annotation=reject_by_annotation,
-                proj=False,
-                verbose=False,
-            )
+        events = make_fixed_length_events(inst, duration=2)
+        kwargs = dict(
+            tmin=0,
+            tmax=2 - 1.0 / inst.info["sfreq"],
+            baseline=None,
+            verbose="error",
+            preload=True,
+            proj=False,
+        )
+        epochs = Epochs(
+            inst,
+            events,
+            reject=reject,
+            reject_by_annotation=reject_by_annotation,
+            **kwargs,
+        )
         # if all epochs were dropped by annotations, stitch the good segments
         # together so that the plot can still be generated
-        if reject_by_annotation and len(epochs_src) == 0:
-            good_data = inst_current.get_data(reject_by_annotation="omit")
+        epochs_src = None
+        if reject_by_annotation and len(epochs) == 0:
+            epochs_good = Epochs(
+                inst,
+                events,
+                reject=reject,
+                reject_by_annotation=False,
+                **kwargs,
+            )
+            got_samps = len(epochs_good) * len(epochs.times)
             min_samples = int(2 * inst.info["sfreq"])
-            if good_data.shape[1] >= min_samples:
-                inst_good = RawArray(good_data, inst_current.info.copy(), verbose=False)
-                epochs_src = make_fixed_length_epochs(
-                    ica.get_sources(inst_good),
-                    duration=2,
-                    preload=True,
-                    reject_by_annotation=False,
-                    proj=False,
-                    verbose=False,
+            if got_samps >= min_samples:
+                good_data = np.reshape(
+                    np.transpose(epochs_good.get_data(), [1, 0, 2]),
+                    (len(epochs.ch_names), got_samps),
                 )
-        # getting dropped epochs indexes
-        if drop_inds is not None:
-            dropped_indices = [(d[0] // len(epochs_src.times)) for d in drop_inds]
+                inst_good = RawArray(good_data, inst.info.copy(), verbose="error")
+                epochs_src = Epochs(
+                    ica.get_sources(inst_good),
+                    events,
+                    reject=reject,
+                    reject_by_annotation=False,
+                    **kwargs,
+                )
+        if epochs_src is None:
+            ica.get_sources(inst)
+            epochs_src = Epochs(
+                ica.get_sources(inst),
+                events,
+                # We have already rejected by annotation and reject above, but we don't
+                # here so we can keep data for bad epochs around
+                reject=None,
+                reject_by_annotation=False,
+                **kwargs,
+            )
+            bad_indices = np.where([len(log) for log in epochs.drop_log])[0]
+            assert len(epochs_src) == len(epochs) + len(bad_indices)
         kind = "Segment"
     else:
-        drop_inds = None
         epochs_src = ica.get_sources(inst)
-        dropped_indices = []
         kind = "Epochs"
-    return kind, dropped_indices, epochs_src, epochs_src.get_data(copy=False)
+    return kind, bad_indices, epochs_src
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=None):

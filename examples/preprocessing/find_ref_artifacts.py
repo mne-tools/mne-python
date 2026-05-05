@@ -24,7 +24,6 @@ standard channels, and those components whose weights are particularly heavy
 on the reference channels are removed.
 
 This technique is fully described and validated in :footcite:`HannaEtAl2020`
-
 """
 # Authors: Jeff Hanna <jeff.hanna@gmail.com>
 #
