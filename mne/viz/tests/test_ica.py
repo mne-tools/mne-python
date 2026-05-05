@@ -279,7 +279,6 @@ def test_plot_ica_properties_basic():
     raw_all_bad.del_proj()
     fig = ica.plot_properties(raw_all_bad, picks=[0], **topoargs)
     assert_equal(len(fig), 1)
-    plt.close("all")
 
 
 @pytest.mark.parametrize("kind", ["first", "last"])
@@ -494,7 +493,6 @@ def test_plot_ica_overlay():
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
-    plt.close("all")
 
     # smoke test for CTF
     raw = read_raw_fif(raw_ctf_fname)
