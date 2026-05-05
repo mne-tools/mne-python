@@ -260,7 +260,9 @@ def _plot_ica_properties(
             alpha=0.2,
         )
     if plot_lowpass_edge:
-        spec_ax.axvline(ica.info["lowpass"], lw=2, linestyle="--", color="k", alpha=0.2)
+        spec_ax.axvline(
+            this_epochs_src.info["lowpass"], lw=2, linestyle="--", color="k", alpha=0.2
+        )
 
     # epoch variance
     good_indices = np.setdiff1d(np.arange(n_trials), bad_indices)
