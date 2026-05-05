@@ -285,7 +285,7 @@ def _plot_ica_properties(
     # epochs, so these are by necessity zero
     var_ax.scatter(
         dropped_indices,
-        0,
+        np.zeros(len(dropped_indices)),
         alpha=1.0,
         facecolor=[1, 0, 0],
         lw=0,
