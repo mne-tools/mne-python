@@ -590,8 +590,6 @@ def _fast_plot_ica_properties(
             inst, ica, reject_by_annotation, reject
         )
     del reject, inst
-    if len(epochs_src) == 0:
-        return [fig]
     epochs_src_picked = epochs_src.pick(picks)
     del epochs_src
     good_indices = np.setdiff1d(np.arange(len(epochs_src_picked)), bad_indices)
@@ -749,6 +747,11 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         bad_indices = np.where([len(log) for log in epochs.drop_log])[0]
         kind = "Segment"
         assert len(epochs_src) == len(epochs) + len(bad_indices)
+        if len(epochs_src) == len(bad_indices):
+            raise RuntimeError(
+                f"No clean 2-second segments found out of {len(events)} using "
+                f"{reject=} and {reject_by_annotation=}."
+            )
     else:
         epochs_src = ica.get_sources(inst)
         kind = "Epochs"

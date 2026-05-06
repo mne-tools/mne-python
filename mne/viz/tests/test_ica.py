@@ -321,6 +321,8 @@ def test_plot_ica_properties_reject(kind):
     assert min_hist > 0
     scatter_x, _ = var_ax.collections[0].get_offsets().data.T
     assert_array_equal(scatter_x, np.arange(n_epochs))
+    with pytest.raises(RuntimeError, match="No clean"):
+        ica.plot_properties(raw, reject=dict(eeg=1e-6))
 
 
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
