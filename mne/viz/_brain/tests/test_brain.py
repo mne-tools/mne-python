@@ -138,23 +138,27 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
     assert len(mesh._overlays) == 0
     mesh.add_overlay(
         scalars=np.array([0, 1, 1, 0]),
-        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        colormap=np.array([(255, 255, 255, 255), (0, 0, 0, 0)]),
         rng=[0, 1],
         opacity=None,
         name="test1",
     )
-    assert mesh._current_colors is not None
+    assert_array_equal(
+        mesh._current_colors, [[1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
+    )
     assert mesh._cached_colors is None
     assert len(mesh._overlays) == 1
     assert "test1" in mesh._overlays
     mesh.add_overlay(
-        scalars=np.array([1, 0, 0, 1]),
-        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        scalars=np.array([1, 1, 0, 0]),
+        colormap=np.array([(255, 255, 255, 255), (0, 0, 0, 0)]),
         rng=[0, 1],
         opacity=None,
         name="test2",
     )
-    assert mesh._current_colors is not None
+    assert_array_equal(
+        mesh._current_colors, [[1, 1, 1, 1], [0, 0, 0, 0], [1, 1, 1, 1], [1, 1, 1, 1]]
+    )
     assert mesh._cached_colors is not None
     assert len(mesh._overlays) == 2
     assert "test2" in mesh._overlays
@@ -162,6 +166,28 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
     assert "test2" not in mesh._overlays
     mesh.update()
     assert len(mesh._overlays) == 1
+
+    mesh.remove_overlay("test1")
+    mesh.update()
+
+    opacity = np.array([0.0, 0.5, 1.0, 0.25])
+    mesh.add_overlay(
+        scalars=np.array([0, 1, 1, 0]),
+        colormap=np.array([(255, 255, 255, 255), (0, 0, 0, 255)]),
+        rng=[0, 1],
+        opacity=opacity,
+        name="test3",
+    )
+    assert_allclose(mesh._current_colors[:, 3], opacity, atol=1.0 / 255.0)
+
+    with pytest.raises(ValueError, match="one value per vertex"):
+        mesh.add_overlay(
+            scalars=np.array([0, 1, 1, 0]),
+            colormap=np.array([(255, 255, 255, 255), (0, 0, 0, 255)]),
+            rng=[0, 1],
+            opacity=np.array([0.1, 0.2, 0.3]),
+            name="bad-opacity",
+        )
     mesh._clean()
 
 

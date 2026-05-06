@@ -11,6 +11,7 @@ __all__ = [
     "Evoked",
     "EvokedArray",
     "Forward",
+    "HEDAnnotations",
     "Info",
     "Label",
     "MixedSourceEstimate",
@@ -262,6 +263,7 @@ from ._freesurfer import (
 )
 from .annotations import (
     Annotations,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     events_from_annotations,

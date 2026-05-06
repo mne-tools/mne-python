@@ -7,7 +7,9 @@ PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
 STD_ARGS="--progress-bar off --upgrade --pre"
-QT_BINDING="PySide6"
+if [[ "$MNE_QT_BACKEND" == "" ]]; then
+	MNE_QT_BACKEND="PySide6"
+fi
 
 # Dependencies of scientific-python-nightly-wheels are installed here so that
 # we can use strict --index-url (instead of --extra-index-url) below
@@ -16,7 +18,7 @@ echo "::group::Prerequisites"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr \
-	"$QT_BINDING!=6.9.1" \
+	"$MNE_QT_BACKEND!=6.9.1" \
 	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
 	matplotlib
 python -m pip uninstall -yq numpy
@@ -24,21 +26,21 @@ echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"numpy>=2.1.0.dev0" \
-	"scipy>=1.15.0.dev0" \
-	"scikit-learn>=1.6.dev0" \
-	"pandas>=3.0.0.dev0" \
-	"statsmodels>=0.15.0.dev697" \
+	"numpy>=2.5.0.dev0" \
+	"scipy>=1.18.0.dev0" \
+	"scikit-learn>=1.9.dev0" \
+	"pandas>=3.1.0.dev0" \
 	"dipy>=1.12.0.dev0" \
 	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
+	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
 echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260405.dev0"
 python -c "import vtk"
 echo "::endgroup::"
 
@@ -69,5 +71,5 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 echo "::endgroup::"
 
 echo "::group::Check Qt import"
-${SCRIPT_DIR}/check_qt_import.sh "$QT_BINDING"
+${SCRIPT_DIR}/check_qt_import.sh "$MNE_QT_BACKEND"
 echo "::endgroup::"

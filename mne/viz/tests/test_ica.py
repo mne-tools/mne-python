@@ -265,6 +265,21 @@ def test_plot_ica_properties():
     # don't drop
     ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
 
+    # test fallback when ALL 2-second epoch windows are contaminated by annotations: one
+    # bad segment per window so every epoch is dropped, but the inter-annotation gaps
+    # stitch together to >= 2 s of clean data.
+    annot_all_bad = Annotations(
+        onset=[0.5, 2.5, 4.5, 6.5],
+        duration=[1.0, 1.0, 1.0, 1.0],
+        description=["BAD"] * 4,
+    )
+    raw_all_bad = _get_raw(preload=True).set_annotations(annot_all_bad).crop(0, 8)
+    raw_all_bad.pick(np.arange(10))
+    raw_all_bad.del_proj()
+    fig = ica.plot_properties(raw_all_bad, picks=[0], **topoargs)
+    assert_equal(len(fig), 1)
+    plt.close("all")
+
 
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     """Test plotting of ICA panel."""
@@ -559,3 +574,15 @@ def test_plot_components_opm():
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
     assert len(fig.axes) == 10
+
+
+@pytest.mark.slowtest
+@pytest.mark.filterwarnings(
+    "ignore:FastICA did not converge.*:sklearn.exceptions.ConvergenceWarning"
+)
+def test_plot_components_opm_triaxial(triaxial_raw):
+    """Test OPM component topomaps with colocated triaxial channels."""
+    ica = ICA(max_iter=1, random_state=0, n_components=3)
+    ica.fit(triaxial_raw, picks="mag", verbose="error")
+    fig = ica.plot_components()
+    assert len(fig.axes) == 3

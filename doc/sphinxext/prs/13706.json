@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "0de3a350081f4e9fe0a92888773e798aa2faec7c",
+  "authors": [
+    {
+      "n": "Pragnya ",
+      "e": "prag1704@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13706.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/brain.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/viz/_3d_overlay.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d_overlay.py": {
+      "a": 36,
+      "d": 0
+    }
+  }
+}

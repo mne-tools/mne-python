@@ -18,6 +18,7 @@ from mne.preprocessing.nirs import (
     _check_channels_ordered,
     _fnirs_optode_names,
     _fnirs_spread_bads,
+    _has_source_detector_distances,
     _optode_position,
     _validate_nirs_info,
     beer_lambert_law,
@@ -536,6 +537,22 @@ def test_optode_names():
     src_names, det_names = _fnirs_optode_names(info)
     assert_array_equal(src_names, [f"S{n}" for n in range(1, 4)])
     assert_array_equal(det_names, [f"D{n}" for n in ["1", "11", "17"]])
+
+
+def test_has_source_detector_distances():
+    """Ensure source-detector distance availability is detected."""
+    ch_names = ["S1_D1 760", "S1_D1 850", "S2_D1 760", "S2_D1 850"]
+    info = create_info(ch_names=ch_names, ch_types=np.repeat("fnirs_od", 4), sfreq=1.0)
+    assert not _has_source_detector_distances(info)
+    for idx in range(2):
+        info["chs"][idx]["loc"][3:6] = [0.0, 0.0, 0.0]
+        info["chs"][idx]["loc"][6:9] = [0.03, 0.0, 0.0]
+    assert _has_source_detector_distances(info, picks=[0, 1])
+    assert not _has_source_detector_distances(info)  # some chs missing
+    for idx in range(2, 4):
+        info["chs"][idx]["loc"][3:6] = [0.01, 0.0, 0.0]
+        info["chs"][idx]["loc"][6:9] = [0.04, 0.0, 0.0]
+    assert _has_source_detector_distances(info)
 
 
 @testing.requires_testing_data

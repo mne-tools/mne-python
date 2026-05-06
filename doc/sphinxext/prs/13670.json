@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b8496fa0b4bd482125822ed4b3baa01dd0042294",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13669.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}
