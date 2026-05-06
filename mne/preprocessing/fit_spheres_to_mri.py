@@ -34,6 +34,7 @@ def fit_spheres_to_mri(subjects_dir, subject, bem_surf, trans, n_spheres,show_sp
     ## --- required imports
 
     import nibabel as nib
+    import os
     import numpy as np
     import vedo
     from scipy.spatial import KDTree
@@ -61,7 +62,7 @@ def fit_spheres_to_mri(subjects_dir, subject, bem_surf, trans, n_spheres,show_sp
     s_tree = KDTree(scalp['rr'])
     brain_volume = b.volume()
     print(f'Brain vedo:     {brain_volume * m3_to_cc:8.2f} cc')
-    brain_vol = nib.load(subjects_dir / subject / 'mri' / 'brainmask.mgz')
+    brain_vol = nib.load(os.path.join(subjects_dir,subject,'mri','brainmask.mgz'))
     brain_rr = np.array(np.where(brain_vol.get_fdata())).T
     brain_rr = apply_trans(brain_vol.header.get_vox2ras_tkr(), brain_rr) / 1000. #apply a transformation matrix
     del brain_vol #delete brain volume
