@@ -77,6 +77,7 @@ raw_tog = raw.copy()
 ica_kwargs = dict(
     method="picard",
     fit_params=dict(tol=1e-4),  # use a high tol here for speed
+    random_state=99,
 )
 all_picks = mne.pick_types(raw_tog.info, meg=True, ref_meg=True)
 ica_tog = ICA(n_components=60, max_iter="auto", allow_ref_meg=True, **ica_kwargs)
