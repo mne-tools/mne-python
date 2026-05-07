@@ -101,6 +101,7 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 .. _Famous077: https://github.com/Famous077
+.. _Farzah11: https://github.com/Farzah11
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan

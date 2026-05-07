@@ -1,1 +1,1 @@
-Add notes to :func:`~mne.set_eeg_reference` and :ref:`_tut-set-eeg-ref` about the correct procedure to create an average reference, by :newcontrib:`Deep Kaur`.
+Add notes to :func:`~mne.set_eeg_reference` and :ref:`_tut-set-eeg-ref` about the correct procedure to create an average reference, by :newcontrib:`Deep Kaur` and :newcontrib:`Farzah11`.
