@@ -765,6 +765,10 @@ class BaseRaw(
                     meas_date - new_annotations.orig_time
                 ).total_seconds()
             new_annotations._orig_time = meas_date
+            # Tag with _first_time so the public onset accessor can return values
+            # in raw.times reference (0-indexed from first_samp) instead of the
+            # internal meas_date-relative reference.
+            new_annotations._raw_first_time = self._first_time
 
             self._annotations = new_annotations
 
@@ -1730,7 +1734,9 @@ class BaseRaw(
 
         raws = []
         for annot in annotations:
-            onset = annot["onset"] - self.first_time
+            # annot["onset"] is already in raw.times reference (0-indexed from
+            # first_samp) when the annotation comes from raw.annotations.
+            onset = annot["onset"]
             # be careful about near-zero errors (crop is very picky about this,
             # e.g., -1e-8 is an error)
             if -self.info["sfreq"] / 2 < onset < 0:

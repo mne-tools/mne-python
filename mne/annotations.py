@@ -512,8 +512,12 @@ class Annotations:
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
             out_keys = ("onset", "duration", "description", "orig_time")
+            # When attached to a Raw object, subtract _raw_first_time so that
+            # ann["onset"] is in raw.times reference (usable directly with
+            # raw.get_data(tmin=...) and raw.plot(start=...)).
+            _raw_ft = getattr(self, "_raw_first_time", 0.0)
             out_vals = (
-                self.onset[key],
+                self.onset[key] - _raw_ft,
                 self.duration[key],
                 self.description[key],
                 self.orig_time,
@@ -527,7 +531,7 @@ class Annotations:
             return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
-            return Annotations(
+            result = Annotations(
                 onset=self.onset[key],
                 duration=self.duration[key],
                 description=self.description[key],
@@ -535,6 +539,11 @@ class Annotations:
                 ch_names=self.ch_names[key],
                 extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
             )
+            # Propagate the raw-times reference tag so that sliced annotations
+            # still return onsets in raw.times reference.
+            if hasattr(self, "_raw_first_time"):
+                result._raw_first_time = self._raw_first_time
+            return result
 
     @fill_doc
     def append(self, onset, duration, description, ch_names=None, *, extras=None):
@@ -2370,8 +2379,10 @@ def events_from_annotations(
             good_events = annot_offset - _onsets >= chunk_duration - tol
             if good_events.any():
                 _onsets = _onsets[good_events]
+                # annot["onset"] is in raw.times reference (origin=None),
+                # not meas_date reference, so use origin=None here.
                 _inds = raw.time_as_index(
-                    _onsets, use_rounding=use_rounding, origin=annotations.orig_time
+                    _onsets, use_rounding=use_rounding, origin=None
                 )
                 _inds += raw.first_samp
                 inds = np.append(inds, _inds)
