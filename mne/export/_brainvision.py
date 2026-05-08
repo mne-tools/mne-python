@@ -118,7 +118,7 @@ def _mne_annots2pybv_events(raw):
     for annot in raw.annotations:
         # handle onset and duration: seconds to sample, relative to
         # raw.first_samp / raw.first_time
-        onset = annot["onset"] - raw.first_time
+        onset = annot["onset"]
         onset = raw.time_as_index(onset).astype(int)[0]
         duration = int(annot["duration"] * raw.info["sfreq"])
 

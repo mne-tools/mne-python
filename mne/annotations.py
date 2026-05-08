@@ -582,7 +582,8 @@ class Annotations:
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
-        self.onset = np.append(self.onset, onset)
+        _raw_ft = getattr(self, "_raw_first_time", 0.0)
+        self.onset = np.append(self.onset, onset + _raw_ft)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
         self.ch_names = np.append(self.ch_names, ch_names)

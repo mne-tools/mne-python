@@ -765,9 +765,9 @@ class BaseRaw(
                     meas_date - new_annotations.orig_time
                 ).total_seconds()
             new_annotations._orig_time = meas_date
-            # Tag with _first_time so the public onset accessor can return values
-            # in raw.times reference (0-indexed from first_samp) instead of the
-            # internal meas_date-relative reference.
+            # Tag with _raw_first_time so the public onset accessor can return
+            # values in raw.times reference (0-indexed from first_samp) instead
+            # of the internal meas_date-relative reference.
             new_annotations._raw_first_time = self._first_time
 
             self._annotations = new_annotations
