@@ -582,8 +582,7 @@ class Annotations:
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
-        _raw_ft = getattr(self, "_raw_first_time", 0.0)
-        self.onset = np.append(self.onset, onset + _raw_ft)
+        self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
         self.ch_names = np.append(self.ch_names, ch_names)
@@ -1507,11 +1506,15 @@ class EpochAnnotationsMixin:
 
         # for each Epoch-Annotation overlap occurrence:
         for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
+            # Use the raw onset array (internal reference) so the relative
+            # onset calculation stays consistent with epoch_tzeros, which is
+            # also in the internal (meas_date-relative) reference frame.
+            this_onset = self._annotations.onset[annot_ix]
             this_annot = self._annotations[annot_ix]
             this_tzero = epoch_tzeros[epo_ix]
             # adjust annotation onset to be relative to epoch tzero...
             annot = (
-                this_annot["onset"] - this_tzero,
+                this_onset - this_tzero,
                 this_annot["duration"],
                 this_annot["description"],
             )

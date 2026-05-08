@@ -301,6 +301,7 @@
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 .. _Samuel Louviot: https://github.com/Sam54000
 .. _Samuel Powell: https://github.com/samuelpowell
+.. _Sanskaar Undale: https://github.com/SanskaarUndale21
 .. _Santeri Ruuskanen: https://github.com/ruuskas
 .. _Santi Martínez: https://github.com/szz-dvl
 .. _Sara Sommariva: https://github.com/sarasommariva

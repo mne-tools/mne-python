@@ -1,0 +1,1 @@
+Fix :meth:`mne.Annotations.__getitem__` (i.e., ``raw.annotations[i]["onset"]``) to return onset times in ``raw.times`` reference (0-indexed from ``first_samp``) instead of ``meas_date``-relative time, making the value directly usable with :meth:`mne.io.BaseRaw.get_data` and :meth:`mne.io.BaseRaw.plot`, by `Sanskaar Undale`_.
