@@ -1364,3 +1364,65 @@ def test_plotting_scalebars(browser_backend, qtbot):
         else:
             yvals = this_bar.get_ydata()
         assert_allclose(yvals, [ci - delta, ci + delta], err_msg=err_msg)
+
+
+@pytest.mark.parametrize("theme", ("light", "dark"))
+def test_raw_plot_theme(theme, mpl_backend):
+    """Test dark/light theme for the matplotlib browser backend."""
+    import matplotlib.colors as mcolors
+
+    from mne.viz._mpl_figure import (
+        _DARK_BAD_COLOR,
+        _DARK_BGCOLOR,
+        _DARK_CHANNEL_OVERRIDES,
+        _DARK_FGCOLOR,
+    )
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+    fig = raw.plot(theme=theme)
+
+    def _hex(c):
+        return mcolors.to_hex(c)
+
+    if theme == "dark":
+        assert _hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+        assert _hex(fig.mne.fgcolor) == _DARK_FGCOLOR
+        assert _hex(fig.mne.ch_color_bad) == _DARK_BAD_COLOR
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _DARK_CHANNEL_OVERRIDES["eeg"]
+        assert _hex(fig.patch.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_hscroll.get_facecolor()) == _DARK_BGCOLOR
+    else:  # light
+        assert _hex(fig.mne.bgcolor) == _hex("w")
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _hex("k")
+        assert _hex(fig.patch.get_facecolor()) == _hex("w")
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _hex("w")
+    plt.close("all")
+
+
+def test_raw_plot_theme_auto(mpl_backend, monkeypatch):
+    """Test theme="auto" resolves via _resolve_mpl_theme for the mpl backend."""
+    import matplotlib.colors as mcolors
+
+    import mne.viz._mpl_figure as mpl_fig
+    from mne.viz._mpl_figure import _DARK_BGCOLOR
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "dark")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+    plt.close("all")
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "light")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == mcolors.to_hex("w")
+    plt.close("all")

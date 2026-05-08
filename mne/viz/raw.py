@@ -119,7 +119,7 @@ def plot_raw(
         specification. Keys that do not match any annotation description in the data
         will trigger a warning. If ``None`` (default), automatic colors are used.
 
-        .. versionadded:: 1.13
+        .. versionadded:: 1.12.1
     annotation_regex : str
         A regex pattern applied to each annotation's label.
         Matching labels remain visible, non-matching labels are hidden.

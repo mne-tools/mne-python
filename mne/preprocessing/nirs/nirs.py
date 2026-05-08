@@ -62,6 +62,12 @@ def short_channels(info, threshold=0.01):
     return source_detector_distances(info) < threshold
 
 
+def _has_source_detector_distances(info, picks=None):
+    """Return True if source-detector distances can be computed."""
+    distances = source_detector_distances(info, picks=picks)
+    return len(distances) > 0 and np.all(distances > 0)
+
+
 def _channel_frequencies(info):
     """Return the light frequency for each channel."""
     # Only valid for fNIRS data before conversion to haemoglobin

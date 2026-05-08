@@ -575,6 +575,45 @@ update : bool
     Force an update of the plot. Defaults to True.
 """
 
+docdict["brainvision_overrides"] = """
+overrides : dict | None
+    Optional overrides for values parsed from the ``.vhdr`` header. Used to
+    read non-spec-compliant files where the header contradicts the actual
+    layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+    ``"data_fname"`` (path-like)
+        Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+        the directory of ``vhdr_fname``.
+    ``"marker_fname"`` (path-like or ``False``)
+        Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+        reading.
+    ``"n_channels"`` (int)
+        Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+        this is the user-facing count.
+    ``"sfreq"`` (float)
+        Overrides the sampling frequency.
+    ``"ch_names"`` (list[str])
+        Replaces names from ``[Channel Infos]``. Length must equal
+        ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+        accepted; the synthetic AHDR name is appended automatically).
+    ``"units_fallback"`` (str, e.g. ``"µV"``)
+        Recovers an incomplete ``[Channel Infos]`` section by filling missing
+        entries with ``resolution=1.0`` and this unit; missing names become
+        ``"Ch<N>"``.
+    ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+        Replaces ``[Common Infos] DataOrientation=``.
+    ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+        Replaces ``[Common Infos] DataFormat=``.
+    ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+        Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+        effective ``DataFormat`` is ``"BINARY"``.
+
+    Each applied override is logged at INFO level. Unknown keys raise
+    ``ValueError``.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["browser"] = """
 fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
     Browser instance.
@@ -835,10 +874,10 @@ colorbar : bool
 """
 
 docdict["colormap"] = """
-colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-    Name of colormap to use or a custom look up table. If array, must
-    be (n x 3) or (n x 4) array for with RGB or RGBA values between
-    0 and 255.
+colormap : str | matplotlib.colors.Colormap
+    Name of colormap to use or a custom Matplotlib colormap instance. If passing
+    a custom colormap, it must be an instance of :class:`matplotlib.colors.Colormap`
+    (e.g., :class:`matplotlib.colors.ListedColormap`).
 """
 
 _combine_template = """
@@ -4576,7 +4615,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    Only supported by the ``'qt'`` backend.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
+    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
+    stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
@@ -5231,6 +5272,7 @@ def copy_doc(source):
     >>> print(B.m1.__doc__)
     Docstring for m1
     this gets appended
+    <BLANKLINE>
     """
 
     def wrapper(func):
@@ -5238,7 +5280,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += f"\n{inspect.cleandoc(func.__doc__)}"
+            doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
         func.__doc__ = doc
         return func
 
@@ -5316,6 +5358,7 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     .. versionadded:: 0.13.0
+    <BLANKLINE>
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
@@ -5388,6 +5431,8 @@ def copy_function_doc_to_method_doc(source):
             + "\n".join(doc[first_parameter_end:])
         )
         func.__doc__ = f"{doc}{func_doc}"
+        if not func.__doc__.endswith("\n\n"):
+            func.__doc__ = func.__doc__ + "\n"
         return func
 
     return wrapper

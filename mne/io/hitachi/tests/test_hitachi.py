@@ -226,7 +226,7 @@ def test_hitachi_basic(
     want = [np.nan] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.0)
     raw_od_bad = optical_density(raw)
-    with pytest.warns(RuntimeWarning, match="will be zero"):
+    with pytest.raises(ValueError, match="all zero or NaN"):
         beer_lambert_law(raw_od_bad, ppf=6)
     # bad distances (too big)
     if versions[0] == "1.18" and len(fnames) == 1:

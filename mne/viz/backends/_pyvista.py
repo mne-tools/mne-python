@@ -46,10 +46,7 @@ from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTab
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import vtkCellDataToPointData, vtkGlyph3D
-from vtkmodules.vtkFiltersGeneral import (
-    vtkMarchingContourFilter,
-    vtkTransformPolyDataFilter,
-)
+from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
     vtkArrowSource,
@@ -71,6 +68,13 @@ from vtkmodules.vtkRenderingCore import (
     vtkVolume,
 )
 from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
+
+try:
+    from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
+except ImportError:  # TODO VERSION VTK 9.7+
+    from vtkmodules.vtkFiltersGeneral import (
+        vtkTransformPolyDataFilter as vtkTransformFilter,
+    )
 
 _FIGURES = dict()
 
@@ -694,7 +698,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             if tr is not None:
                 # fix orientation
                 glyph.Update()
-                trp = vtkTransformPolyDataFilter()
+                trp = vtkTransformFilter()
                 trp.SetInputData(glyph.GetOutput())
                 trp.SetTransform(tr)
                 glyph = trp
@@ -1263,7 +1267,7 @@ def _arrow_glyph(grid, factor):
     # fix position
     tr = vtkTransform()
     tr.Translate(0.5, 0.0, 0.0)
-    trp = vtkTransformPolyDataFilter()
+    trp = vtkTransformFilter()
     trp.SetInputConnection(glyph.GetOutputPort())
     trp.SetTransform(tr)
     trp.Update()

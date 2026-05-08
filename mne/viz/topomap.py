@@ -312,6 +312,23 @@ def _find_radial_channel(info, overlapping_set):
     return radial_sensor
 
 
+def _split_opm_overlaps(overlapping_channels):
+    """Split OPM overlap sets into radial and tangential channel groups.
+
+    This keeps the first channel from each overlap set, which is the radial
+    channel as determined by :func:`_find_overlaps`, separate from the
+    remaining tangential channels. The result can be used by later plotting
+    code to render separate topomaps per orientation family.
+    """
+    radial = [overlap_set[0] for overlap_set in overlapping_channels]
+    tangential = list(
+        itertools.chain.from_iterable(
+            overlap_set[1:] for overlap_set in overlapping_channels
+        )
+    )
+    return radial, tangential
+
+
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
     from ..channels.layout import _merge_ch_data

@@ -39,6 +39,7 @@ from mne.utils import (
     Bunch,
     _assert_no_instances,
     _check_qt_version,
+    _chmod_rw_R,
     _pl,
     _record_warnings,
     _TempDir,
@@ -212,6 +213,7 @@ def pytest_configure(config: pytest.Config):
     # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
     # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
     ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
+    ignore:Implicitly cleaning up.*:ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -771,6 +773,7 @@ def subjects_dir_tmp(tmp_path):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
     for key in ("sample", "fsaverage"):
         shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    _chmod_rw_R(tmp_path)
     return str(tmp_path)
 
 
@@ -788,6 +791,7 @@ def subjects_dir_tmp_few(tmp_path):
         shutil.copytree(
             test_path / "subjects" / "sample" / dirname, sample_path / dirname
         )
+    _chmod_rw_R(subjects_path)
     return subjects_path
 
 
