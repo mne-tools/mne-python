@@ -1919,6 +1919,9 @@ fun : callable
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
+docdict["fun_applyfun_epochs"] = applyfun_fun_base.format(
+    " if ``channel_wise=True`` and ``(n_epochs, n_channels, n_times)`` otherwise"
+)
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
 )
