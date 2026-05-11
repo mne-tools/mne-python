@@ -63,7 +63,9 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     if not blink_annots:
         warn(f"No annotations matching {match} found. Aborting.")
         return raw
-    _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze)
+    _interpolate_blinks(
+        raw, buffer, blink_annots, match, interpolate_gaze=interpolate_gaze
+    )
 
     # remove bad from the annotation description
     for desc in match:
@@ -73,7 +75,7 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     return raw
 
 
-def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
+def _interpolate_blinks(raw, buffer, blink_annots, match, interpolate_gaze):
     """Interpolate eyetracking signals during blinks in-place."""
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
@@ -88,7 +90,7 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
                 continue
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
-        starts, ends = _annotations_starts_stops(raw, "BAD_blink")
+        starts, ends = _annotations_starts_stops(raw, match)
         starts = np.divide(starts, raw.info["sfreq"])
         ends = np.divide(ends, raw.info["sfreq"])
         for annot, start, end in zip(blink_annots, starts, ends):

@@ -1,0 +1,1 @@
+Fix :func:`mne.preprocessing.eyetracking.interpolate_blinks` silently ignoring the ``match`` argument: the internal helper hardcoded ``"BAD_blink"`` when fetching annotation start/stop indices, so any extra descriptions in ``match`` (for example ``"BAD_NAN"`` produced by :func:`mne.preprocessing.annotate_nan`) were dropped, by :newcontrib:`Macdara Ó Murchú`.

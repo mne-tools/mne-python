@@ -197,6 +197,7 @@
 .. _Luke Bloy: https://www.research.chop.edu/imaging/team
 .. _Lukáš Hejtmánek: https://github.com/hejtmy
 .. _Lx37: https://github.com/Lx37
+.. _Macdara Ó Murchú: https://github.com/m4cd4r4
 .. _Mads Jensen: https://github.com/MadsJensen
 .. _Maggie Clarke: https://github.com/mdclarke
 .. _Mainak Jas: https://jasmainak.github.io

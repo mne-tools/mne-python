@@ -5,6 +5,7 @@
 import numpy as np
 import pytest
 
+import mne
 from mne import create_info
 from mne.annotations import _annotations_starts_stops
 from mne.datasets.testing import data_path, requires_testing_data
@@ -71,3 +72,39 @@ def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze, crop):
     if interpolate_gaze:
         assert not np.isnan(data[0, blink_ind]).any()  # left eye
         assert not np.isnan(data[1, blink_ind]).any()  # right eye
+
+
+def test_interpolate_blinks_match_list(eyetrack_raw):
+    """Test that ``match`` argument is honoured for non-default descriptions.
+
+    Regression test for the bug where `_interpolate_blinks` hardcoded the
+    ``BAD_blink`` description when fetching annotation starts/stops, causing
+    any extra descriptions in ``match`` (such as ``BAD_NAN`` produced by
+    `~mne.preprocessing.annotate_nan`) to be silently dropped.
+    """
+    raw = eyetrack_raw
+    pupil_idx = raw.ch_names.index("pupil")
+    # Place blink-style zero gaps and NaN-style gaps in disjoint windows so we
+    # can tell which were interpolated.
+    raw._data[pupil_idx, 10:20] = 0.0
+    raw._data[pupil_idx, 40:50] = np.nan
+    sfreq = raw.info["sfreq"]
+    raw.set_annotations(
+        mne.Annotations(
+            onset=[10 / sfreq, 40 / sfreq],
+            duration=[10 / sfreq, 10 / sfreq],
+            description=["BAD_blink", "BAD_NAN"],
+            ch_names=[("pupil",), ("pupil",)],
+        )
+    )
+
+    interpolate_blinks(raw, buffer=0.0, match=["BAD_blink", "BAD_NAN"])
+
+    pupil = raw._data[pupil_idx]
+    # The NaN window must no longer contain NaNs - this is the bug under test.
+    # Before the fix, only BAD_blink windows were interpolated and the BAD_NAN
+    # window was silently left untouched.
+    assert not np.isnan(pupil[40:50]).any(), (
+        "BAD_NAN window was not interpolated; match argument was ignored"
+    )
+    assert not np.isnan(pupil[10:20]).any()
