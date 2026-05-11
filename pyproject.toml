@@ -185,6 +185,7 @@ full-no-qt = [
   "threadpoolctl",
   "traitlets",
   "trame",
+  "trame-pyvista",
   "trame-vtk",
   "trame-vuetify",
   "vtk >= 9.2",
