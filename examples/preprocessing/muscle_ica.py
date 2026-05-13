@@ -48,9 +48,7 @@ ica.plot_sources(raw)
 
 # %%
 # By inspection, let's select out the muscle-artifact components based on
-# :footcite:`DharmapraniEtAl2016` manually.
-#
-# The criteria are:
+# :footcite:`DharmapraniEtAl2016` manually. The criteria are:
 #
 # - Positive slope of log-log power spectrum between 7 and 75 Hz
 #   (here just flat because it's not in log-log)

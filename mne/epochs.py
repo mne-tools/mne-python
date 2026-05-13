@@ -979,6 +979,11 @@ class BaseEpochs(
         copy : bool
             If False copies of data and measurement info will be omitted
             to save time.
+
+        Yields
+        ------
+        evoked : instance of Evoked
+            The epochs as a sequence of Evoked objects, one per epoch.
         """
         self.__iter__()
 
@@ -1321,6 +1326,7 @@ class BaseEpochs(
         theme=None,
         overview_mode=None,
         splash=True,
+        annotation_colors=None,
     ):
         return plot_epochs(
             self,
@@ -1347,6 +1353,7 @@ class BaseEpochs(
             theme=theme,
             overview_mode=overview_mode,
             splash=splash,
+            annotation_colors=annotation_colors,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
@@ -2038,7 +2045,7 @@ class BaseEpochs(
                 for run_idx, ch_idx in enumerate(picks):
                     self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:
-            self._data = _check_fun(fun, data_in, **kwargs)
+            self._data[:, picks, :] = _check_fun(fun, data_in[:, picks, :], **kwargs)
 
         return self
 

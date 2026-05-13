@@ -44,6 +44,7 @@ from mne.io import read_info
 from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
 from mne.utils import (
+    _chmod_rw_R,
     _record_warnings,
     catch_logging,
     check_version,
@@ -231,6 +232,7 @@ def test_bem_model_topology(tmp_path):
             subjects_dir / "sample" / "bem" / fname,
             tmp_path / "foo" / "bem" / fname,
         )
+    _chmod_rw_R(tmp_path)
     outer_fname = tmp_path / "foo" / "bem" / "outer_skull.surf"
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]

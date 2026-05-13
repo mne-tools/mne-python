@@ -823,6 +823,7 @@ def sys_info(
         # "trame",  # no version, see https://github.com/Kitware/trame/issues/183
         "trame_client",
         "trame_server",
+        "trame_pyvista",
         "trame_vtk",
         "trame_vuetify",
         "",
