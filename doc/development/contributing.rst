@@ -587,12 +587,14 @@ deprecation period when the stated release is being prepared:
   parameter, and (if found) update them to use the new function / parameter.
 
 
+.. _`changelog-guide`:
+
 Describe your changes in the changelog
 --------------------------------------
 
-Include in your changeset a brief description of the change in the
-:ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
-properly-named ``.rst`` files to create a changelog. This can be
+Include in your changeset a brief description of the changes, which will appear in the
+:ref:`changelog <whats_new>`, using towncrier_ format. This aggregates small,
+properly named ``.rst`` files to create a changelog. This can be
 skipped for very minor changes like correcting typos in the documentation.
 
 There are six separate sections for changes, based on change type.
@@ -1024,8 +1026,9 @@ down the road. Here are the guidelines:
   you are specifically asked by a maintainer to PR into another branch (e.g.,
   for backports or maintenance bugfixes to the current stable version).
 
-- Don't forget to include in your PR a brief description of the change in the
-  :ref:`changelog <whats_new>` (:file:`doc/whats_new.rst`).
+- Don't forget to include in your PR a brief description of the change in a
+  changelog entry (see :ref:`the changelog section <changelog-guide>` above
+  for instructions).
 
 - Our community uses the following commit tags and conventions:
 
