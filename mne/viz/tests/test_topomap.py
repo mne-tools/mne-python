@@ -840,6 +840,17 @@ def test_prepare_topomap_plot_opm_non_quspin_coils():
     assert sum(name.endswith("MERGE-REMOVE") for name in merged_names) == 4
 
 
+def test_split_opm_overlaps(triaxial_evoked):
+    """Test splitting colocated OPM overlap sets into orientation groups."""
+    _picks, _pos, merge_channels, _merged_names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+
+    radial, tangential = topomap._split_opm_overlaps(merge_channels)
+    assert radial == ["OPM001", "OPM004"]
+    assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()

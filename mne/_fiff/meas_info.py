@@ -2352,14 +2352,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     if len(meas) == 0:
         raise ValueError("Could not find measurement data")
     if len(meas) > 1:
-        raise ValueError("Cannot read more that 1 measurement data")
+        raise ValueError("Cannot read more than 1 measurement data")
     meas = meas[0]
 
     meas_info = dir_tree_find(meas, FIFF.FIFFB_MEAS_INFO)
     if len(meas_info) == 0:
         raise ValueError("Could not find measurement info")
     if len(meas_info) > 1:
-        raise ValueError("Cannot read more that 1 measurement info")
+        raise ValueError("Cannot read more than 1 measurement info")
     meas_info = meas_info[0]
 
     #   Read measurement info

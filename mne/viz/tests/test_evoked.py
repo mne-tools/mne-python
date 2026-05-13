@@ -373,6 +373,7 @@ def test_plot_white_rank():
     evoked.plot_white(cov, rank=rank)
 
 
+@pytest.mark.slowtest
 def test_plot_white():
     """Test plot_white."""
     cov = read_cov(cov_fname)
