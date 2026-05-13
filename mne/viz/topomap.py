@@ -77,7 +77,12 @@ from .utils import (
 )
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
-_opm_coils = (FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2)
+_opm_coils = (
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG,
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
+    FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
+)
 
 
 # 3.8+ uses a single Collection artist rather than .collections
@@ -305,6 +310,23 @@ def _find_radial_channel(info, overlapping_set):
     radial_sensor = overlapping_set[np.argmax(radial_score)]
 
     return radial_sensor
+
+
+def _split_opm_overlaps(overlapping_channels):
+    """Split OPM overlap sets into radial and tangential channel groups.
+
+    This keeps the first channel from each overlap set, which is the radial
+    channel as determined by :func:`_find_overlaps`, separate from the
+    remaining tangential channels. The result can be used by later plotting
+    code to render separate topomaps per orientation family.
+    """
+    radial = [overlap_set[0] for overlap_set in overlapping_channels]
+    tangential = list(
+        itertools.chain.from_iterable(
+            overlap_set[1:] for overlap_set in overlapping_channels
+        )
+    )
+    return radial, tangential
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -1292,6 +1314,8 @@ def _plot_topomap(
             pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
             data, _ = _merge_ch_data(data[picks], ch_type, [])
             data = data.reshape(-1)
+            if names is not None:
+                names = [names[p] for p in picks[::2]]
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)

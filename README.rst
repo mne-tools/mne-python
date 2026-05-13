@@ -74,12 +74,12 @@ The minimum required dependencies to run MNE-Python are:
 
 - `Python <https://www.python.org>`__ ≥ 3.10
 - `NumPy <https://numpy.org>`__ ≥ 1.26
-- `SciPy <https://scipy.org>`__ ≥ 1.11
+- `SciPy <https://scipy.org>`__ ≥ 1.13
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.8
 - `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
-- `tqdm <https://tqdm.github.io>`__
-- `Jinja2 <https://palletsprojects.com/p/jinja/>`__
-- `decorator <https://github.com/micheles/decorator>`__
+- `tqdm <https://tqdm.github.io>`__ ≥ 4.66
+- `Jinja2 <https://palletsprojects.com/p/jinja/>`__ ≥ 3.1
+- `decorator <https://github.com/micheles/decorator>`__ ≥ 5.1
 - `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
 - `packaging <https://packaging.pypa.io/en/stable/>`__
 

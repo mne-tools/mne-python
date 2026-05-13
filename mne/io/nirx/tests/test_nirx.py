@@ -4,7 +4,6 @@
 
 import datetime as dt
 import os
-import shutil
 
 import numpy as np
 import pytest
@@ -22,6 +21,7 @@ from mne.preprocessing.nirs import (
     source_detector_distances,
 )
 from mne.transforms import _get_trans, apply_trans
+from mne.utils import copytree_rw
 
 testing_path = data_path(download=False)
 fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
@@ -246,7 +246,7 @@ def test_nirx_missing_warn():
 @requires_testing_data
 def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
+    copytree_rw(fname_nirx_15_2_short, str(tmp_path) + "/data/")
     os.rename(
         tmp_path / "data" / "NIRS-2019-08-23_001.evt",
         tmp_path / "data" / "NIRS-2019-08-23_001.xxx",
@@ -259,7 +259,7 @@ def test_nirx_missing_evt(tmp_path):
 @requires_testing_data
 def test_nirx_dat_warn(tmp_path):
     """Test reading NIRX files when missing data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
+    copytree_rw(fname_nirx_15_2_short, str(tmp_path) + "/data/")
     os.rename(
         tmp_path / "data" / "NIRS-2019-08-23_001.dat",
         tmp_path / "data" / "NIRS-2019-08-23_001.tmp",
@@ -461,7 +461,7 @@ def test_nirx_15_3_short():
 def test_locale_encoding(tmp_path):
     """Test NIRx encoding."""
     fname = tmp_path / "latin"
-    shutil.copytree(fname_nirx_15_2, fname)
+    copytree_rw(fname_nirx_15_2, fname)
     hdr_fname = fname / "NIRS-2019-10-02_003.hdr"
     hdr = list()
     with open(hdr_fname, "rb") as fid:

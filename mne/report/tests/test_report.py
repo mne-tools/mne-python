@@ -1031,8 +1031,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         eog_evoked=ica_eog_evoked,
         ecg_scores=ica_ecg_scores,
         eog_scores=ica_eog_scores,
+        plot_sources=True,
     )
-    assert "ICA component 2" in r._content[-1].html
+    assert "ICA component 2" in r._content[-2].html
+    assert "Sources" in r._content[-1].html
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(
@@ -1042,6 +1044,16 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         picks=[0],
     )
     r.add_ica(ica=ica, title="my ica with picks=None", inst=epochs_baseline, picks=None)
+
+    # plot_sources=True with inst=None should raise a ValueError
+    with pytest.raises(ValueError, match="Cannot plot ICA sources because inst=None"):
+        r.add_ica(
+            ica=ica,
+            title="my ica sources no inst",
+            inst=None,
+            plot_sources=True,
+        )
+
     r.add_covariance(cov=cov, info=raw_fname, title="my cov")
     r.add_forward(
         forward=fwd_fname,
