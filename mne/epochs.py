@@ -2045,7 +2045,7 @@ class BaseEpochs(
                 for run_idx, ch_idx in enumerate(picks):
                     self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:
-            self._data = _check_fun(fun, data_in, **kwargs)
+            self._data[:, picks, :] = _check_fun(fun, data_in[:, picks, :], **kwargs)
 
         return self
 
