@@ -57,7 +57,9 @@ def _compare_version(version_a, operator, version_b):
 
 
 ###############################################################################
-# NumPy 2.5 deprecates .shape assignment, but .reshape(copy=False) requires 2.1+
+# NumPy 2.5 removes .shape assignment, but .reshape(copy=False) requires 2.1+
+
+# TODO VERSION remove on NumPy 2.1+
 
 
 def _reshape_view(arr, shape):
@@ -66,10 +68,8 @@ def _reshape_view(arr, shape):
     This function provides compatibility across NumPy versions for reshaping
     arrays as views. On NumPy >= 2.1, it uses ``reshape(copy=False)`` which
     explicitly fails if a view cannot be created. On older versions, it uses
-    direct shape assignment which has the same behavior but is deprecated in
-    NumPy 2.5+.
-
-    Can be removed once NumPy 2.1 is the minimum supported version.
+    direct shape assignment which has the same behavior but is being removed
+    as of NumPy 2.5+.
 
     Parameters
     ----------
@@ -765,8 +765,7 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
     return h_minimum[:n_out]
 
 
-# SciPy 1.15 deprecates sph_harm for sph_harm_y and using it will trigger a
-# DeprecationWarning. This is a backport of the new function for older SciPy versions.
+# TODO VERSION SciPy 1.15+ (sph_harm -> sph_harm_y)
 def sph_harm_y(n, m, theta, phi, *, diff_n=0):
     """Wrap scipy.special.sph_harm for sph_harm_y."""
     # Can be removed once we no longer support scipy < 1.15.0
