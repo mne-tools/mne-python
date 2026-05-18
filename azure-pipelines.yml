@@ -111,7 +111,6 @@ stages:
               architecture: 'x64'
               addToPath: true
             displayName: 'Get Python'
-          # TODO: REVERT THE MNE-QT-BROWSER CHANGE
           - bash: |
               set -eo pipefail
               python -m pip install --progress-bar off --upgrade pip
@@ -160,7 +159,6 @@ stages:
               architecture: 'x64'
               addToPath: true
             displayName: 'Get Python'
-          # TODO: USE NON-FORK FOR QT BROWSER
           - bash: |
               set -eo pipefail
               python -m pip install --progress-bar off --upgrade pip
