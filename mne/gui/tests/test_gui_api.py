@@ -8,7 +8,7 @@ import pytest
 pytest.importorskip("nibabel")
 
 
-def test_gui_api(renderer_notebook, nbexec, *, backend="qt"):
+def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     """Test GUI API."""
     import contextlib
     import warnings
@@ -380,4 +380,4 @@ def test_gui_api(renderer_notebook, nbexec, *, backend="qt"):
 
 def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
-    test_gui_api(None, None, backend="qt")
+    test_gui_api_notebook(None, None, backend="qt")
