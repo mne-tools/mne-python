@@ -1266,8 +1266,7 @@ def qt_windows_closed(request, qapp, qtbot):
     n_before = len(qapp.topLevelWidgets())
     marks = set(mark.name for mark in request.node.iter_markers())
     yield
-    gc.collect()
-    qtbot.wait(100)  # give things time to close
+    qapp.processEvents()
     gc.collect()
     if "allow_unclosed" in marks:
         return
