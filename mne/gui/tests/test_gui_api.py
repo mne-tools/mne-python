@@ -380,7 +380,6 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     del renderer
 
 
-@pytest.mark.skipif()
 def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     from qtpy import API_NAME as api
