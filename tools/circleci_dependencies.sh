@@ -1,6 +1,6 @@
 #!/bin/bash -ef
 
-ONLY_BINARY="--only-binary \"numpy,dipy,scipy,matplotlib,pandas,statsmodels,netCDF4,h5py\""
+ONLY_BINARY=":all:"
 
 set -x
 python -m pip install --upgrade "pip>=25.1" build
