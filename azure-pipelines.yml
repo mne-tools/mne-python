@@ -134,7 +134,7 @@ stages:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/gui mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/report"
-          MNE_TEST_ALLOW_SKIP: '^$'  # nothing
+          MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
         steps:
           - bash: ./tools/setup_xvfb.sh
           - task: UsePythonVersion@0
@@ -204,6 +204,7 @@ stages:
           PYTHONUNBUFFERED: 1
           AZURE_CI_WINDOWS: 'true'
           MNE_CI_KIND: $(TEST_MODE)
+          MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
         timeoutInMinutes: 95
         strategy:
           maxParallel: 4
@@ -211,9 +212,11 @@ stages:
             3.11 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.11'
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires MNE-C|CUDA not| on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults).*$"
             3.13 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.13'
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|CUDA not|Numba not| on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults).*$"
         steps:
           - task: UsePythonVersion@0
             inputs:
