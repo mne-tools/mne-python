@@ -44,7 +44,7 @@ stages:
               versionSpec: '3.14'
               architecture: 'x64'
               addToPath: true
-            displayName: 'Get Python'
+            displayName: Get Python
           - bash: |
               set -eo pipefail
               python -m pip install --progress-bar off --upgrade pip build
@@ -53,19 +53,19 @@ stages:
               pre-commit install --install-hooks
             displayName: Install dependencies
           - bash: make pre-commit
-            displayName: 'make pre-commit'
+            displayName: make pre-commit
             condition: always()
           - bash: make nesting
-            displayName: 'make nesting'
+            displayName: make nesting
             condition: always()
           - bash: make check-readme
-            displayName: 'make check-readme'
+            displayName: make check-readme
             condition: always()
           - bash: mypy
-            displayName: 'mypy'
+            displayName: mypy
             condition: always()
           - bash: vulture
-            displayName: 'vulture'
+            displayName: vulture
             condition: always()
 
   - stage: Test
@@ -88,14 +88,14 @@ stages:
               set -xeo pipefail
               ./tools/setup_xvfb.sh
               sudo apt install -yq tcsh
-            displayName: 'Install Ubuntu dependencies'
+            displayName: Install Ubuntu dependencies
           - bash: ./tools/get_minimal_commands.sh
-            displayName: 'Get minimal commands'
+            displayName: Get minimal commands
           - bash: |
               echo $PATH
               mne_surf2bem --version
               fsl_rigid_register --version
-            displayName: 'Test minimal commands'
+            displayName: Test minimal commands
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '3.12'
@@ -105,26 +105,26 @@ stages:
               set -xeo pipefail
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --only-binary=":all:" -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef
-            displayName: 'Install dependencies with pip'
+            displayName: Install dependencies with pip
           - bash: ./tools/check_qt_import.sh PySide6
-            displayName: 'Check Qt import'
+            displayName: Check Qt import
           - bash: |
               set -xeo pipefail
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .*(PySide6=.*)$"
             displayName: Print config
           - bash: ./tools/get_testing_version.sh
-            displayName: 'Get testing version'
+            displayName: Get testing version
           - task: Cache@2
             inputs:
               key: $(testing_version)
               path: /home/vsts/mne_data
           - bash: ./tools/github_actions_download.sh
-            displayName: 'Download testing data'
+            displayName: Download testing data
           - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
-            displayName: 'slow and mne-qt-browser tests'
+            displayName: slow and mne-qt-browser tests
           - bash: bash <(curl -s https://codecov.io/bash)
-            displayName: 'Codecov'
+            displayName: Codecov
             condition: succeededOrFailed()
 
       - job: Linux_Qt_Bindings
@@ -147,7 +147,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --only-binary=":all:" -e .[full-pyside6] --group=test_extra "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip"
               python -c "import vtk"
-            displayName: 'Install dependencies with pip'
+            displayName: Install dependencies with pip
           - bash: |
               set -xeo pipefail
               which mne
@@ -155,15 +155,15 @@ stages:
               python ./tools/check_mne_location.py
             displayName: Print config
           - bash: ./tools/get_testing_version.sh
-            displayName: 'Get testing version'
+            displayName: Get testing version
           - task: Cache@2
             inputs:
               key: $(testing_version)
               path: /home/vsts/mne_data
           - bash: ./tools/github_actions_download.sh
-            displayName: 'Download testing data'
+            displayName: Download testing data
           - bash: ./tools/check_qt_import.sh PySide6
-            displayName: 'Check Qt import'
+            displayName: Check Qt import
           - bash: |
               set -xeo pipefail
               python -m pip install "PySide6!=6.8.0,!=6.8.0.1,!=6.9.1"
@@ -172,14 +172,14 @@ stages:
               export MNE_TEST_ALLOW_SKIP="^.*PySide6 causes segfaults.*$"
               PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PySide6
-            displayName: 'PySide6'
+            displayName: PySide6
           - bash: |
               set -xeo pipefail
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
               PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
-            displayName: 'PyQt6'
+            displayName: PyQt6
           # PyQt5 leaves cruft behind, so run it last
           - bash: |
               set -eo pipefail
@@ -188,9 +188,9 @@ stages:
               mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
               PYTEST_QT_API=PyQt5 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
-            displayName: 'PyQt5'
+            displayName: PyQt5
           - bash: bash <(curl -s https://codecov.io/bash)
-            displayName: 'Codecov'
+            displayName: Codecov
             condition: succeededOrFailed()
 
       - job: Windows
@@ -236,10 +236,10 @@ stages:
             inputs:
               key: $(testing_version)
               path: C:\Users\VssAdministrator\mne_data
-            displayName: 'Cache testing data'
+            displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
           - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml -vv mne
-            displayName: 'Run tests'
+            displayName: Run tests
           - bash: bash <(curl -s https://codecov.io/bash)
-            displayName: 'Codecov'
+            displayName: Codecov
             condition: succeededOrFailed()
