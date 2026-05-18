@@ -1,6 +1,6 @@
 #!/bin/bash -ef
 
-ONLY_BINARY=":all:"
+ONLY_BINARY="--only-binary=:all:"
 
 set -x
 python -m pip install --upgrade "pip>=25.1" build
