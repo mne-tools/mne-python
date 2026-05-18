@@ -27,7 +27,7 @@ dependencies:
   - jupyter
   - lazy_loader >=0.3
   - mamba
-  - matplotlib >=3.8
+  - matplotlib >=3.9
   - mffpy >=0.5.7
   - mne-qt-browser
   - nest-asyncio2
