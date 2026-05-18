@@ -1145,7 +1145,9 @@ def numba_conditional(monkeypatch, request):
 @pytest.fixture(scope="session")
 def _nbclient():
     try:
+        import jupyter  # noqa
         import nbformat
+        import nest_asyncio2  # noqa
         import trame  # noqa
         from ipywidgets import Button  # noqa
         from jupyter_client import AsyncKernelManager

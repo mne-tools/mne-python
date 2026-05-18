@@ -6,7 +6,7 @@ set -x
 python -m pip install --upgrade "pip>=25.1" build
 # rpy2 3.6.7 (or its deps) cause problems with our installed R version, so pin them
 python -m pip install --upgrade --progress-bar off $ONLY_BINARY \
-    -ve .[full] \
+    -ve .[full-pyside6] \
     --group=test \
     --group=doc-full \
     "rpy2==3.6.6" "rpy2-rinterface==3.6.5" "rpy2-robjects==3.6.4" \
