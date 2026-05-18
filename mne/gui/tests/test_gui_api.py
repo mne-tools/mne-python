@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
+
 import pytest
 
 # These will skip all tests in this scope
@@ -378,6 +380,11 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     del renderer
 
 
+@pytest.mark.skipif()
 def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
+    from qtpy import API_NAME as api
+
+    if os.getenv("AZURE_CI") == "true" and api == "PySide6":
+        pytest.skip("PySide6 causes segfaults on Azure")
     test_gui_api_notebook(None, None, backend="qt")
