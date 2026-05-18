@@ -95,7 +95,6 @@ def pytest_configure(config: pytest.Config):
         "ultraslowtest: mark a test as ultraslow or to be run rarely",
         "pgtest: mark a test as relevant for mne-qt-browser",
         "pvtest: mark a test as relevant for pyvistaqt",
-        "allow_unclosed: allow unclosed pyvistaqt instances",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -1258,18 +1257,16 @@ def nirx_snirf(request):
 
 
 @pytest.fixture
-def qt_windows_closed(request, qapp, qtbot):
+def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
     qapp.processEvents()
     gc.collect()
     n_before = len(qapp.topLevelWidgets())
-    marks = set(mark.name for mark in request.node.iter_markers())
     yield
-    qapp.processEvents()
+    for _ in range(2):
+        qapp.processEvents()
     gc.collect()
-    if "allow_unclosed" in marks:
-        return
     # Don't check when the test fails
     if not _test_passed(request):
         return
