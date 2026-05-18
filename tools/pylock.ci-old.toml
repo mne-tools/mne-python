@@ -231,9 +231,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/af/cd/ce6e848bbf2c323
 
 [[packages]]
 name = "matplotlib"
-version = "3.8.0"
-sdist = { url = "https://files.pythonhosted.org/packages/23/e1/77016194621fb1356aafeb2186f07b5dede62ea2043bf03f82325c4fccc5/matplotlib-3.8.0.tar.gz", upload-time = 2023-09-15T04:49:03Z, size = 35864435, hashes = { sha256 = "df8505e1c19d5c2c26aff3497a7cbd3ccfc2e97043d1e4db3e76afa399164b69" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/b5/24/aaccf324ce862bb82277e8814d2aebbb2a2c160d04e95aa2b8c9dc3137a9/matplotlib-3.8.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2023-09-15T04:50:03Z, size = 11610560, hashes = { sha256 = "d670b9348e712ec176de225d425f150dc8e37b13010d85233c539b547da0be39" } }]
+version = "3.9.0"
+sdist = { url = "https://files.pythonhosted.org/packages/c5/a4/a7236bf8b0137deff48737c6ccf2154ef4486e57c6a5b7c309bf515992bd/matplotlib-3.9.0.tar.gz", upload-time = 2024-05-15T23:38:15Z, size = 36069890, hashes = { sha256 = "e6d29ea6c19e34b30fb7d88b7081f869a03014f66fe06d62cc77d5a6ea88ed7a" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/a7/68/16e7b9154fae61fb29f0f3450b39b855b89e6d2c598d67302e70f96883af/matplotlib-3.9.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2024-05-15T23:37:12Z, size = 8296303, hashes = { sha256 = "eaf3978060a106fab40c328778b148f590e27f6fa3cd15a19d6892575bce387d" } }]
 
 [[packages]]
 name = "matplotlib-inline"

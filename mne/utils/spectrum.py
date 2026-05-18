@@ -106,7 +106,7 @@ def _split_psd_kwargs(*, plot_fun=None, kwargs=None):
 
 
 def _convert_old_birthday_format(info):
-    """Convert deprecated birthday tuple to datetime."""
+    """Convert old birthday tuple to datetime."""
     subject_info = info.get("subject_info")
     if subject_info is not None:
         birthday = subject_info.get("birthday")

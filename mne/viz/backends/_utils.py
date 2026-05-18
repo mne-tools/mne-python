@@ -193,7 +193,9 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     out = app
     if splash:
         pixmap = QPixmap(f"{icons_path}/mne_splash.png")
-        pixmap.setDevicePixelRatio(QGuiApplication.primaryScreen().devicePixelRatio())
+        screen = QGuiApplication.primaryScreen()
+        ratio = screen.devicePixelRatio() if screen else 1
+        pixmap.setDevicePixelRatio(ratio)
         args = (pixmap,)
         if _should_raise_window():
             args += (Qt.WindowStaysOnTopHint,)

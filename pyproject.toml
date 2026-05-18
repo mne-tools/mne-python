@@ -102,7 +102,7 @@ dependencies = [
   "decorator >= 5.1",
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
+  "matplotlib >= 3.9",  # released 2024-05-15, will become 3.10 on 2026-12-14
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
