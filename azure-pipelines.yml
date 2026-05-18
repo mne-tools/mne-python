@@ -137,6 +137,7 @@ stages:
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
         steps:
           - bash: ./tools/setup_xvfb.sh
+            displayName: Setup up Xvfb
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '3.14'
