@@ -3,7 +3,7 @@
 set -x
 python -m pip install --upgrade "pip>=25.1" build
 # rpy2 3.6.7 (or its deps) cause problems with our installed R version, so pin them
-python -m pip install --upgarde --only-binary=numpy,scipy \
+python -m pip install --upgrade --only-binary=numpy,scipy \
     "rpy2==3.6.6" "rpy2-rinterface==3.6.5" "rpy2-robjects==3.6.4" mne-ari
 python -m pip install --upgrade --only-binary=:all: \
     -ve .[full-pyside6] \
