@@ -72,37 +72,37 @@ class _BuiltinStandardMontage:
 
 _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
-        name="standard_1005",
-        description="Electrodes are named and positioned according to the "
-        "international 10-05 system (343+3 locations)",
+        name="colin27_1005",
+        description="Electrodes are named according to the international 10-05 system "
+        "and positioned on the Colin27 head model (343+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_1020",
-        description="Electrodes are named and positioned according to the "
-        "international 10-20 system (94+3 locations)",
+        name="colin27_1020",
+        description="Electrodes are named according to the international extended 10-20"
+        " system and positioned on the Colin27 head model (94+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_alphabetic",
-        description="Electrodes are named with LETTER-NUMBER combinations "
-        "(A1, B2, F4, …) (65+3 locations)",
+        name="colin27_alphabetic",
+        description="Electrodes are named with LETTER-NUMBER combinations (A1, B2, F4, "
+        "…) and positioned on the Colin27 head model (65+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_postfixed",
-        description="Electrodes are named according to the international "
-        "10-20 system using postfixes for intermediate positions "
-        "(100+3 locations)",
+        name="colin27_postfixed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using postfixes for intermediate positions and positioned on the "
+        "Colin27 head model(100+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_prefixed",
-        description="Electrodes are named according to the international "
-        "10-20 system using prefixes for intermediate positions "
-        "(74+3 locations)",
+        name="colin27_prefixed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using prefixes for intermediate positions and positioned on the "
+        "Colin27 head model (74+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_primed",
-        description="Electrodes are named according to the international "
-        "10-20 system using prime marks (' and '') for "
-        "intermediate positions (100+3 locations)",
+        name="colin27_primed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using prime marks (' and '') for intermediate positions and positioned"
+        " on the Colin27 head model (100+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="biosemi16",
@@ -192,6 +192,18 @@ _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
         name="brainproducts-RNP-BA-128",
         description="Brain Products with 10-10 electrode names (128 channels)",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1005",
+        description="10–05 electrode names and locations using a spherical head model",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1010",
+        description="10–10 electrode names and locations using a spherical head model",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1020",
+        description="10–20 electrode names and locations using a spherical head model",
     ),
 ]
 
@@ -1978,7 +1990,7 @@ def make_standard_montage(kind, head_size="auto"):
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
         Can be None to not scale the read sizes. ``'auto'`` (default) will
-        use 95mm for all montages except the ``'standard*'``, ``'mgh*'``, and
+        use 95mm for all montages except the ``'colin27*'``, ``'mgh*'``, and
         ``'artinis*'``, which are already in fsaverage's MRI coordinates
         (same as MNI).
 
@@ -2013,7 +2025,7 @@ def make_standard_montage(kind, head_size="auto"):
     _validate_type(head_size, ("numeric", str, None), "head_size")
     if isinstance(head_size, str):
         _check_option("head_size", head_size, ("auto",), extra="when str")
-        if kind.startswith(("standard", "mgh", "artinis")):
+        if kind.startswith(("colin27", "mgh", "artinis")):
             head_size = None
         else:
             head_size = HEAD_SIZE_DEFAULT

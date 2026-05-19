@@ -1421,7 +1421,7 @@ def test_set_montage_mgh(rename):
         atol = 3e-3  # different subsets of channel locations
         assert rename == "custom"
         assert len(_MGH60) == 60
-        mon = make_standard_montage("standard_1020")
+        mon = make_standard_montage("colin27_1020")
         assert len(mon._get_ch_pos()) == 94
 
         def renamer(x):
@@ -1434,7 +1434,7 @@ def test_set_montage_mgh(rename):
         raw.set_montage(mon)
 
     if mon is not None:
-        # first two are 'Fp1' and 'Fz', take them from standard_1020.elc --
+        # first two are 'Fp1' and 'Fz', take them from colin27_1020.elc --
         # they should not be changed on load!
         want_pos = [[-29.4367, 83.9171, -6.9900], [0.1123, 88.2470, -1.7130]]
         got_pos = [
@@ -1990,7 +1990,7 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_COUNT = 28
+    EXPECTED_COUNT = 31
 
     montages = get_builtin_montages()
     assert len(montages) == EXPECTED_COUNT
@@ -2169,5 +2169,5 @@ def test_set_montage_meg_eeg_no_digitization():
     epochs = EpochsArray(data, info)
 
     # This must not raise IndexError (regression test for GH-12011)
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1005")
     epochs.set_montage(montage, on_missing="ignore")

@@ -25,7 +25,7 @@ def test_standard_montages_have_fids(kind):
     for k, v in fids.items():
         assert v is not None, k
     for d in montage.dig:
-        if kind.startswith(("artinis", "standard", "mgh")):
+        if kind.startswith(("artinis", "colin27", "mgh")):
             want = FIFF.FIFFV_COORD_MRI
         else:
             want = FIFF.FIFFV_COORD_UNKNOWN
@@ -53,6 +53,9 @@ def test_standard_montage_errors():
         ["biosemi32", 1e-8],
         ["biosemi64", 1e-8],
         ["brainproducts-RNP-BA-128", 1e-8],
+        ["spherical_1005", 1e-4],
+        ["spherical_1010", 1e-4],
+        ["spherical_1020", 1e-4],
     ],
 )
 def test_standard_montages_on_sphere(kind, tol, head_size):
@@ -73,8 +76,8 @@ def test_standard_montages_on_sphere(kind, tol, head_size):
 def test_standard_superset():
     """Test some properties that should hold for superset montages."""
     # new montages, tweaked to end up at the same size as the others
-    m_1005 = make_standard_montage("standard_1005", 0.0970)
-    m_1020 = make_standard_montage("standard_1020", 0.0991)
+    m_1005 = make_standard_montage("colin27_1005", 0.0970)
+    m_1020 = make_standard_montage("colin27_1020", 0.0991)
     assert len(set(m_1005.ch_names) - set(m_1020.ch_names)) > 0
     # XXX weird that this is not a proper superset...
     assert set(m_1020.ch_names) - set(m_1005.ch_names) == {"O10", "O9"}
@@ -82,6 +85,35 @@ def test_standard_superset():
     for key, value in m_1020._get_ch_pos().items():
         if key not in ("O10", "O9"):
             assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)
+
+
+def test_spherical_montages_superset():
+    """Test superset relations and position consistency for spherical montages."""
+    m_1005 = make_standard_montage("spherical_1005")
+    m_1010 = make_standard_montage("spherical_1010")
+    m_1020 = make_standard_montage("spherical_1020")
+
+    # strict superset chain (1005 ⊃ 1010 ⊃ 1020)
+    assert set(m_1010.ch_names) < set(m_1005.ch_names)
+    assert set(m_1020.ch_names) < set(m_1010.ch_names)
+
+    # shared channel positions are consistent across the chain
+    p_1005 = m_1005._get_ch_pos()
+    p_1010 = m_1010._get_ch_pos()
+    p_1020 = m_1020._get_ch_pos()
+    for key in p_1010:
+        assert_allclose(p_1005[key], p_1010[key], atol=1e-5, err_msg=key)
+    for key in p_1020:
+        assert_allclose(p_1010[key], p_1020[key], atol=1e-5, err_msg=key)
+
+    # fiducials are at the canonical head-frame cardinal directions
+    from mne._fiff._digitization import _get_fid_coords
+
+    fids, _ = _get_fid_coords(m_1005.dig)
+    head_size = HEAD_SIZE_DEFAULT
+    assert_allclose(fids["nasion"], [0, head_size, 0], atol=1e-4)
+    assert_allclose(fids["lpa"], [-head_size, 0, 0], atol=1e-4)
+    assert_allclose(fids["rpa"], [head_size, 0, 0], atol=1e-4)
 
 
 def _simulate_artinis_octamon():

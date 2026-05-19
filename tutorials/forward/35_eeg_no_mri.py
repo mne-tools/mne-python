@@ -54,9 +54,8 @@ raw = mne.io.read_raw_edf(raw_fname, preload=True)
 # Clean channel names to be able to use a standard 1005 montage
 eegbci.standardize(raw)
 
-# Read and set the EEG electrode locations, which are already in fsaverage's
-# space (MNI space) for standard_1020:
-montage = mne.channels.make_standard_montage("standard_1005")
+# Read and set the EEG electrode locations using a spherical 10-05 montage:
+montage = mne.channels.make_standard_montage("spherical_1005")
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
