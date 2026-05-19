@@ -167,7 +167,6 @@ stages:
             displayName: Check Qt import
           - bash: |
               set -xeo pipefail
-              python -m pip install "PySide6!=6.8.0,!=6.8.0.1,!=6.9.1"
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
               export MNE_TEST_ALLOW_SKIP="^.*PySide6 causes segfaults.*$"
@@ -176,6 +175,7 @@ stages:
             displayName: PySide6
           - bash: |
               set -xeo pipefail
+              python -m pip install PyQt6
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
               PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}

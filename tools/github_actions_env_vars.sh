@@ -8,7 +8,7 @@ if [[ "$MNE_CI_KIND" == "pip"* ]] || [[ "$MNE_CI_KIND" == "minimal" ]]; then
         # We should test an eager import somewhere, might as well be here
         echo "EAGER_IMPORT=true" | tee -a $GITHUB_ENV
         # Make sure nothing unexpected is skipped
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|Numba not).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(CUDA not|Numba not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
     fi
     echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
 elif [[ "$MNE_CI_KIND" == "old" ]]; then
@@ -19,7 +19,7 @@ elif [[ "$MNE_CI_KIND" == "conda" ]]; then
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
-    echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|Accelerate|Flakey verbose behavior).*" | tee -a $GITHUB_ENV
+    echo "MNE_TEST_ALLOW_SKIP=.*(CUDA not|Accelerate|Flakey verbose behavior|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
     # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
     if [[ "$CI_OS_NAME" == "macos"* ]]; then
         echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV

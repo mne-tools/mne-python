@@ -384,6 +384,8 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     from qtpy import API_NAME as api
 
-    if os.getenv("AZURE_CI") == "true" and api == "PySide6":
-        pytest.skip("PySide6 causes segfaults on Azure")
+    if (
+        os.getenv("AZURE_CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+    ) and api == "PySide6":
+        pytest.skip("PySide6 causes intermittent segfaults on CIs")
     test_gui_api_notebook(None, None, backend="qt")
