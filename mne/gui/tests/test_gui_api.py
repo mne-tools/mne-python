@@ -391,5 +391,5 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     if (
         os.getenv("AZURE_CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
     ) and api == "PySide6":
-        pytest.skip("PySide6 causes intermittent segfaults on CIs")
+        pytest.skip("PySide6 causes segfaults on CIs sometimes")
     test_gui_api_notebook(None, None, backend="qt")
