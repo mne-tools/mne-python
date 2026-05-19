@@ -46,7 +46,7 @@ print(impedances[0])  # impedances measurement at the beginning of the recording
 # We can visualize the impedances on a topographic map; below we show a topography of
 # impedances before and after the recording for the EEG channels only.
 
-raw.pick("eeg").set_montage("spherical_1005")
+raw.pick("eeg").set_montage("spherical_1005", on_missing="warn")
 impedances = [{ch: imp[ch] for ch in raw.ch_names} for imp in impedances]
 
 f, ax = plt.subplots(1, 2, layout="constrained", figsize=(10, 5))
