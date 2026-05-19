@@ -208,6 +208,16 @@ _BUILTIN_STANDARD_MONTAGES = [
 ]
 
 
+# Deprecated montage names: removed in MNE 1.13, to be errored in MNE 1.14.
+_DEPRECATED_STANDARD_MONTAGES = {
+    "standard_1005": "colin27_1005",
+    "standard_1020": "colin27_1020",
+    "standard_alphabetic": "colin27_alphabetic",
+    "standard_postfixed": "colin27_postfixed",
+    "standard_prefixed": "colin27_prefixed",
+    "standard_primed": "colin27_primed",
+}
+
 # We could eventually add mne/data/helmets/Kernel_Flux_ch_pos.txt if we added
 # the normals and deduplicate... but can wait until someone has a use case!
 _MEG_CANONICAL_FILES = {
@@ -1234,6 +1244,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             ch["loc"] = np.full(12, np.nan)
         return
     if isinstance(montage, str):  # load builtin montage
+        if montage in _DEPRECATED_STANDARD_MONTAGES:
+            new_name = _DEPRECATED_STANDARD_MONTAGES[montage]
+            warn(
+                f"Montage name '{montage}' is deprecated and will be removed in MNE "
+                f"1.14. Use '{new_name}' instead.",
+                FutureWarning,
+            )
+            montage = new_name
         _check_option(
             parameter="montage",
             value=montage,
@@ -2017,6 +2035,14 @@ def make_standard_montage(kind, head_size="auto"):
     from ._standard_montage_utils import standard_montage_look_up_table
 
     _validate_type(kind, str, "kind")
+    if kind in _DEPRECATED_STANDARD_MONTAGES:
+        new_kind = _DEPRECATED_STANDARD_MONTAGES[kind]
+        warn(
+            f"Montage name '{kind}' is deprecated and will be removed in MNE 1.14. Use "
+            f"'{new_kind}' instead.",
+            FutureWarning,
+        )
+        kind = new_kind
     _check_option(
         parameter="kind",
         value=kind,

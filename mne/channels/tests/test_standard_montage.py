@@ -39,6 +39,17 @@ def test_standard_montage_errors():
         _ = make_standard_montage("not-here")
 
 
+def test_standard_montage_deprecated():
+    """Test that standard_* montage names emit a FutureWarning and redirect."""
+    from mne.channels.montage import _DEPRECATED_STANDARD_MONTAGES
+
+    for old_name, new_name in _DEPRECATED_STANDARD_MONTAGES.items():
+        with pytest.warns(FutureWarning, match=f"'{old_name}' is deprecated"):
+            m_old = make_standard_montage(old_name)
+        m_new = make_standard_montage(new_name)
+        assert m_old.ch_names == m_new.ch_names
+
+
 @pytest.mark.parametrize("head_size", (HEAD_SIZE_DEFAULT, 0.05))
 @pytest.mark.parametrize(
     "kind, tol",
