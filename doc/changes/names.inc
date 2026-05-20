@@ -40,6 +40,7 @@
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Benedikt Ehinger: https://www.benediktehinger.de
+.. _Bhargav Kowshik: https://github.com/bkowshik
 .. _Bradley Voytek: https://github.com/voytek
 .. _Britta Westner: https://britta-wstnr.github.io
 .. _Bruno Aristimunha: https://bruaristimunha.github.io
