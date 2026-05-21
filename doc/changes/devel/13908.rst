@@ -1,0 +1,3 @@
+- Add new "About MNE-Python" top-level section to the website, consolidating
+  governance, changelog, bibliography, citation pages, and a new overview
+  page (:gh:`13575`). By :ghuser:`Omesh37`.

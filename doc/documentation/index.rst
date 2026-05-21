@@ -57,7 +57,5 @@ Documentation for the related C and MATLAB tools are available here:
    Command-line tools<../generated/commands>
    ../help/migrating
    cookbook
-   cite
-   cited
 
 .. include:: ../links.inc
