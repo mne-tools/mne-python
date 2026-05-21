@@ -185,7 +185,7 @@ def test_plot_topomap_animation(capsys):
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode local to 0" in out
+    assert "extrapolation mode local to mean" in out
     assert fig.axes[0].images[0].get_cmap().name == "viridis"
 
 
@@ -201,7 +201,7 @@ def test_plot_topomap_animation_csd(capsys):
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
+    assert "extrapolation mode head to mean" in out
 
 
 @pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
@@ -210,7 +210,7 @@ def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     fig, anim = fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
+    assert "extrapolation mode head to mean" in out
     assert len(fig.axes) == 2
 
 

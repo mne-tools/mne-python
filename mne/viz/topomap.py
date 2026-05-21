@@ -2489,8 +2489,10 @@ def _plot_evoked_topomap(
             modality = "fnirs"
         else:
             modality = "other"
-        # merge data
-        all_data, _ = _merge_ch_data(all_data, ch_type, ch_names, modality=modality)
+        # merge data (need to copy the names on the first call, modified inplace)
+        all_data, _ = _merge_ch_data(
+            all_data, ch_type, list(ch_names), modality=modality
+        )
         data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
         # if ch_type in _fnirs_types:
         if modality != "other":

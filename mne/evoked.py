@@ -791,7 +791,7 @@ class Evoked(
             topomap_args=topomap_args,
         )
 
-    @fill_doc
+    @verbose
     def animate_topomap(
         self,
         *,
