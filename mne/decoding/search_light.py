@@ -743,17 +743,74 @@ def _gl_score(estimators, scoring, X, y, pb):
     """
     # FIXME: The level parallelization may be a bit high, and might be memory
     # consuming. Perhaps need to lower it down to the loop across X slices.
-    score_shape = [len(estimators), X.shape[-1]]
-    for jj in range(X.shape[-1]):
-        for ii, est in enumerate(estimators):
-            _score = scoring(est, X[..., jj], y)
-            # Initialize array of predictions on the first score iteration
-            if (ii == 0) and (jj == 0):
-                dtype = type(_score)
-                score = np.zeros(score_shape, dtype)
-            score[ii, jj, ...] = _score
+    n_sample, n_iter = X.shape[0], X.shape[-1]
+    n_train = len(estimators)
+    score_shape = [n_train, n_iter]
+    score = None
 
-            pb.update(jj * len(estimators) + ii + 1)
+    # Detect whether we can batch the estimator. Recognised:
+    # * predict,
+    # * predict_proba
+    # * decision_function
+    # * "default" (= predict)
+    # * A tuple of those: roc_auc = ("decision_function", "predict_proba")
+    score_func = getattr(scoring, "_score_func", None)
+    rm         = getattr(scoring, "_response_method", None)
+    valid = {"predict", "predict_proba", "decision_function"}
+    if rm == "default":
+        response_method = "predict"
+    elif isinstance(rm, str) and rm in valid:
+        response_method = rm
+    elif isinstance(rm, tuple) and all(m in valid for m in rm):
+        response_method = rm
+    else:
+        response_method = None
+    can_batch = score_func is not None and response_method is not None
+
+    # If we can't batch we do a simple nested loop.
+    # Covers scoring=None / unrecognised scorers
+    if not can_batch:
+        for jj in range(n_iter):
+            for ii, est in enumerate(estimators):
+                _score = scoring(est, X[..., jj], y)
+                if (ii == 0) and (jj == 0):
+                    score = np.zeros(score_shape, type(_score))
+                score[ii, jj, ...] = _score
+                pb.update(jj * n_train + ii + 1)
+        return score
+
+    # We can batch; the logic is: reshape X, predict once, reshape back, score
+    # First: stack X across slices for one batched response call per estimator
+    X_stack = np.moveaxis(X, -1, 1)
+    X_stack = X_stack.reshape(n_sample * n_iter, *X_stack.shape[2:])
+
+    # Use the provided response method, or pick the first one supported
+    # by the estimator
+    if isinstance(response_method, str):
+        method = response_method
+    else:
+        for m in response_method:
+            if hasattr(estimators[0], m):
+                method = m
+                break
+
+    # Ensures score_func(..., **kwargs) doesn't crash when scoring._kwargs=None
+    kwargs = scoring._kwargs or {}
+
+    for ii, est in enumerate(estimators):
+        y_pred = getattr(est, method)(X_stack)
+        # predict_proba returns probabilities for both classes; use the
+        # positive-class probabilities expected by binary scorers
+        if method == "predict_proba" and y_pred.ndim == 2 and y_pred.shape[1] == 2:
+            y_pred = y_pred[:, 1]
+        # Now, reshape back the prediction, then score
+        y_pred = y_pred.reshape((n_sample, n_iter) + y_pred.shape[1:])
+        for jj in range(n_iter):
+            _score = scoring._sign * score_func(y, y_pred[:, jj], **kwargs)
+            if (ii == 0) and (jj == 0):
+                score = np.zeros(score_shape, type(_score))
+            score[ii, jj, ...] = _score
+            pb.update(ii * n_iter + jj + 1)
     return score
 
 
