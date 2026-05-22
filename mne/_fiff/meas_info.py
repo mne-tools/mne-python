@@ -58,7 +58,12 @@ from .pick import (
     get_channel_type_constants,
     pick_types,
 )
-from .proc_history import _read_proc_history, _write_proc_history
+from .proc_history import (
+    _read_mf_data,
+    _read_proc_history,
+    _write_mf_data,
+    _write_proc_history,
+)
 from .proj import (
     Projection,
     _normalize_proj,
@@ -1071,6 +1076,12 @@ class HeliumInfo(ValidatedDict):
             types="numeric",
             cast=float,
         ),
+        "gantry_angle": partial(
+            _check_types,
+            name='helium_info["gantry_angle"]',
+            types="numeric",
+            cast=int,
+        ),
         "helium_level": partial(
             _check_types,
             name='helium_info["helium_level"]',
@@ -1314,6 +1325,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     comps : list of dict
         CTF software gradient compensation data.
         See Notes for more information.
+    cross_talk : dict | None
+        Cross-talk information added at acquisition time by MEGIN systems.
     ctf_head_t : Transform | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
@@ -1344,7 +1357,9 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         Name of the person that ran the experiment.
     file_id : dict | None
         The FIF globally unique ID. See Notes for more information.
-    gantry_angle : float | None
+    fine_calibration : dict | None
+        Fine calibration information added at acquisition time by MEGIN systems.
+    gantry_angle : int | None
         Tilt angle of the gantry in degrees.
     helium_info : dict | None
         Information about the device helium. See Notes for details.
@@ -1698,6 +1713,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "comps": "comps cannot be set directly. "
         "Please use method Raw.apply_gradient_compensation() "
         "instead.",
+        "cross_talk": "cross_talk cannot be set directly.",
         "ctf_head_t": "ctf_head_t cannot be set directly.",
         "custom_ref_applied": "custom_ref_applied cannot be set directly. "
         "Please use method inst.set_eeg_reference() "
@@ -1711,6 +1727,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "events": "events cannot be set directly.",
         "experimenter": partial(_check_types, name="experimenter", types=(str, None)),
         "file_id": "file_id cannot be set directly.",
+        "fine_calibration": "fine_calibration cannot be set directly.",
         "gantry_angle": "gantry_angle cannot be set directly.",
         "helium_info": partial(
             _check_types, name="helium_info", types=(dict, None), cast=HeliumInfo
@@ -2319,7 +2336,7 @@ def _write_bad_channels(fid, bads, ch_names_mapping):
         ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
         bads = _rename_list(bads, ch_names_mapping)
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list_sanitized(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, "bads")
+        write_name_list_sanitized(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, name="bads")
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
@@ -2452,7 +2469,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             line_freq = float(tag.data.item())
         elif kind == FIFF.FIFF_GANTRY_ANGLE:
             tag = read_tag(fid, pos)
-            gantry_angle = float(tag.data.item())
+            gantry_angle = int(tag.data.item())
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
             custom_ref_applied = int(tag.data.item())
@@ -2587,6 +2604,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         for k in range(hpi_meas["nent"]):
             kind = hpi_meas["directory"][k].kind
             pos = hpi_meas["directory"][k].pos
+            if kind == FIFF.FIFF_BLOCK_ID:
+                hm["block_id"] = read_tag(fid, pos).data
+            if kind == FIFF.FIFF_PARENT_BLOCK_ID:
+                hm["parent_id"] = read_tag(fid, pos).data
             if kind == FIFF.FIFF_CREATOR:
                 hm["creator"] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
@@ -2711,6 +2732,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if kind == FIFF.FIFF_HE_LEVEL_RAW:
                 tag = read_tag(fid, pos)
                 hi["he_level_raw"] = float(tag.data.item())
+            elif kind == FIFF.FIFF_GANTRY_ANGLE:
+                tag = read_tag(fid, pos)
+                hi["gantry_angle"] = int(tag.data.item())
             elif kind == FIFF.FIFF_HELIUM_LEVEL:
                 tag = read_tag(fid, pos)
                 hi["helium_level"] = float(tag.data.item())
@@ -2754,6 +2778,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hc.append(this_coil)
             hs["hpi_coils"] = hc
     info["hpi_subsystem"] = hs
+
+    #   Read cross-talk and fine cal
+    cross_talk = _read_mf_data(fid, tree, kind="cross_talk")
+    if len(cross_talk):
+        info["cross_talk"] = cross_talk
+    fine_calibration = _read_mf_data(fid, tree, kind="fine_calibration")
+    if len(fine_calibration):
+        info["fine_calibration"] = fine_calibration
 
     #   Read processing history
     info["proc_history"] = _read_proc_history(fid, tree)
@@ -2970,6 +3002,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   HPI Measurement
     for hpi_meas in info["hpi_meas"]:
         start_block(fid, FIFF.FIFFB_HPI_MEAS)
+        if hpi_meas.get("block_id") is not None:
+            write_id(fid, FIFF.FIFF_BLOCK_ID, hpi_meas["block_id"])
+        if hpi_meas.get("parent_id") is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, hpi_meas["parent_id"])
         if hpi_meas.get("creator") is not None:
             write_string(fid, FIFF.FIFF_CREATOR, hpi_meas["creator"])
         if hpi_meas.get("sfreq") is not None:
@@ -3023,13 +3059,6 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info["dev_ctf_t"] is not None:
         write_coord_trans(fid, info["dev_ctf_t"])
 
-    #   Projectors
-    ch_names_mapping = _make_ch_names_mapping(info["chs"])
-    _write_proj(fid, info["projs"], ch_names_mapping=ch_names_mapping)
-
-    #   Bad channels
-    _write_bad_channels(fid, info["bads"], ch_names_mapping=ch_names_mapping)
-
     #   General
     if info.get("experimenter") is not None:
         write_string(fid, FIFF.FIFF_EXPERIMENTER, info["experimenter"])
@@ -3051,17 +3080,14 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_float(fid, FIFF.FIFF_HIGHPASS, info["highpass"])
     if info.get("line_freq") is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info["line_freq"])
-    if info.get("gantry_angle") is not None:
-        write_float(fid, FIFF.FIFF_GANTRY_ANGLE, info["gantry_angle"])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
+    if info.get("gantry_angle") is not None:
+        write_int(fid, FIFF.FIFF_GANTRY_ANGLE, info["gantry_angle"])
     if info.get("custom_ref_applied"):
         write_int(fid, FIFF.FIFF_MNE_CUSTOM_REF, info["custom_ref_applied"])
     if info.get("xplotter_layout"):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info["xplotter_layout"])
-
-    #  Channel information
-    _write_ch_infos(fid, info["chs"], reset_range, ch_names_mapping)
 
     # Subject information
     if info.get("subject_info") is not None:
@@ -3090,6 +3116,16 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_SUBJECT)
         del si
 
+    #   Projectors
+    ch_names_mapping = _make_ch_names_mapping(info["chs"])
+    _write_proj(fid, info["projs"], ch_names_mapping=ch_names_mapping)
+
+    #  Channel information
+    _write_ch_infos(fid, info["chs"], reset_range, ch_names_mapping)
+
+    _write_mf_data(fid, info, kind="cross_talk")
+    _write_mf_data(fid, info, kind="fine_calibration")
+
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)
         di = info["device_info"]
@@ -3106,6 +3142,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         hi = info["helium_info"]
         if hi.get("he_level_raw") is not None:
             write_float(fid, FIFF.FIFF_HE_LEVEL_RAW, hi["he_level_raw"])
+        if hi.get("gantry_angle") is not None:
+            write_int(fid, FIFF.FIFF_GANTRY_ANGLE, hi["gantry_angle"])
         if hi.get("helium_level") is not None:
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
@@ -3130,6 +3168,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
                 end_block(fid, FIFF.FIFFB_HPI_COIL)
         end_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
         del hs
+
+    #   Bad channels
+    _write_bad_channels(fid, info["bads"], ch_names_mapping=ch_names_mapping)
 
     #   CTF compensation info
     comps = info["comps"]

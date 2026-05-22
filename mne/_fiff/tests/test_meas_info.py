@@ -91,7 +91,9 @@ elp_fname = kit_data_dir / "test_elp.txt"
 
 data_path = testing.data_path(download=False)
 sss_path = data_path / "SSS"
+triux_path = data_path / "SSS" / "TRIUX"
 sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
+tri_sss_ctc_cal_fname = triux_path / "triux_bmlhus_erm_ctc_cal_raw_sss.fif"
 ctf_fname = data_path / "CTF" / "testdata_ctf.ds"
 raw_invalid_bday_fname = data_path / "misc" / "sample_invalid_birthday_raw.fif"
 
@@ -303,7 +305,7 @@ def test_read_write_info(tmp_path):
 
     with info._unlock():
         if info["gantry_angle"] is None:  # future testing data may include it
-            info["gantry_angle"] = 0.0  # Elekta supine position
+            info["gantry_angle"] = 0  # Elekta supine position
     gantry_angle = info["gantry_angle"]
 
     meas_id = info["meas_id"]
@@ -1108,8 +1110,9 @@ def test_csr_csc(tmp_path):
     # CSC
     assert isinstance(ct, sparse.csc_array)
     fname = tmp_path / "test.fif"
-    write_info(fname, info)
-    info_read = read_info(fname)
+    write_info(fname, info, verbose="debug")
+    info_read = read_info(fname, verbose="debug")
+    assert "decoupler" in info_read["proc_history"][0]["max_info"]["sss_ctc"]
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
     assert isinstance(ct_read, sparse.csc_array)
     assert_array_equal(ct_read.toarray(), ct.toarray())
@@ -1506,3 +1509,32 @@ def test_proj_id_entries():
         info["proj_id"] = "bad"
     with pytest.raises(TypeError, match="must be an instance"):
         info["proj_id"] = np.array([123])
+
+
+@testing.requires_testing_data
+def test_ct_fc_infd(tmp_path):
+    """Test that cross-talk and fine calibration info are read correctly."""
+    raw = read_raw_fif(raw_fname)
+    raw_sss = read_raw_fif(tri_sss_ctc_cal_fname)
+    with raw.info._unlock():
+        for key_to, key_from in (
+            ("cross_talk", "sss_ctc"),
+            ("fine_calibration", "sss_cal"),
+        ):
+            raw.info[key_to] = raw_sss.info["proc_history"][0]["max_info"][key_from]
+        raw.info["cross_talk"]["parent_block_id"] = dict(
+            version=4,
+            machid=np.ones(2, int),
+            secs=1,
+            usecs=2,
+        )
+    del raw_sss
+    raw.info._check_consistency()
+    # all entries present
+    assert len(raw.info["cross_talk"]) == 6
+    assert len(raw.info["fine_calibration"]) == 2
+    fname = tmp_path / "test-raw.fif"
+    raw.save(fname)
+    raw_read = read_raw_fif(fname)
+    assert_object_equal(raw.info["cross_talk"], raw_read.info["cross_talk"])
+    assert_object_equal(raw.info["fine_calibration"], raw_read.info["fine_calibration"])

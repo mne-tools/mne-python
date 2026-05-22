@@ -2,10 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
+
 import numpy as np
 
 from ..fixes import _csc_array_cast
-from ..utils import _check_fname, warn
+from ..utils import _check_fname, logger, warn
 from .constants import FIFF
 from .open import fiff_open, read_tag
 from .tag import _float_item, _int_item, find_tag
@@ -203,15 +205,49 @@ _max_st_ids = (FIFF.FIFF_SSS_JOB, FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_LENGTH
 _max_st_writers = (write_int, write_float, write_float)
 _max_st_casters = (_int_item, _float_item, _float_item)
 
-_sss_ctc_keys = ("block_id", "date", "creator", "decoupler")
+
+def _sss_ctc_ch_name_clean(tag_data):
+    """Clean channel names from CTC files."""
+    chs = _safe_name_list(tag_data, "read", "ch_names")
+    # CTC files can have null chars in the last entry, e.g.:
+    # [..., 'MEG2642', 'MEG2643', 'MEG2641\x00 ... \x00']
+    if len(chs) > 0:
+        chs[-1] = chs[-1].split("\x00")[0]
+    return chs
+
+
+_sss_ctc_keys = (
+    "block_id",
+    "parent_block_id",
+    "date",
+    "creator",
+    "decoupler",
+    "ch_names",
+)
 _sss_ctc_ids = (
     FIFF.FIFF_BLOCK_ID,
+    FIFF.FIFF_PARENT_BLOCK_ID,
     FIFF.FIFF_MEAS_DATE,
     FIFF.FIFF_CREATOR,
     FIFF.FIFF_DECOUPLER_MATRIX,
+    FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
 )
-_sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse)
-_sss_ctc_casters = (dict, np.array, str, _csc_array_cast)
+_sss_ctc_writers = (
+    write_id,
+    write_id,
+    write_int,
+    write_string,
+    write_float_sparse,
+    partial(write_name_list_sanitized, name="ch_names"),
+)
+_sss_ctc_casters = (
+    dict,
+    dict,
+    np.array,
+    str,
+    _csc_array_cast,
+    _sss_ctc_ch_name_clean,
+)
 
 _sss_cal_keys = ("cal_chans", "cal_corrs")
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
@@ -219,12 +255,46 @@ _sss_cal_writers = (write_int_matrix, write_float_matrix)
 _sss_cal_casters = (np.array, np.array)
 
 
+def _write_mf_data(fid, info, *, kind):
+    this_data = info.get(kind, None)
+    if not this_data:  # empty or None
+        return
+    logger.debug("Writing %s info with keys: %s", kind, list(this_data))
+    del info
+    if kind == "cross_talk":
+        keys = _sss_ctc_keys
+        ids = _sss_ctc_ids
+        writers = _sss_ctc_writers
+        block = FIFF.FIFFB_CHANNEL_DECOUPLER
+    elif kind == "fine_calibration":
+        keys = _sss_cal_keys
+        ids = _sss_cal_ids
+        writers = _sss_cal_writers
+        block = FIFF.FIFFB_SSS_CAL
+    elif kind == "max_st":
+        keys = _max_st_keys
+        ids = _max_st_ids
+        writers = _max_st_writers
+        block = FIFF.FIFFB_SSS_ST_INFO
+    else:
+        assert kind == "sss_info"
+        keys = _sss_info_keys
+        ids = _sss_info_ids
+        writers = _sss_info_writers
+        block = FIFF.FIFFB_SSS_INFO
+    start_block(fid, block)
+    for key, id_, writer in zip(keys, ids, writers):
+        if key in this_data:
+            writer(fid, id_, this_data[key])
+    end_block(fid, block)
+
+
 def _read_ctc(fname):
     """Read cross-talk correction matrix."""
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     f, tree, _ = fiff_open(fname)
     with f as fid:
-        sss_ctc = _read_maxfilter_record(fid, tree)["sss_ctc"]
+        sss_ctc = _read_mf_data(fid, tree, kind="cross_talk")
         bad_str = f"Invalid cross-talk FIF: {fname}"
         if len(sss_ctc) == 0:
             raise ValueError(bad_str)
@@ -239,107 +309,60 @@ def _read_ctc(fname):
 
 def _read_maxfilter_record(fid, tree):
     """Read maxfilter processing record from file."""
-    sss_info_block = dir_tree_find(tree, FIFF.FIFFB_SSS_INFO)  # 502
-    sss_info = dict()
-    if len(sss_info_block) > 0:
-        sss_info_block = sss_info_block[0]
-        for i_ent in range(sss_info_block["nent"]):
-            kind = sss_info_block["directory"][i_ent].kind
-            pos = sss_info_block["directory"][i_ent].pos
-            for key, id_, cast in zip(_sss_info_keys, _sss_info_ids, _sss_info_casters):
-                if kind == id_:
-                    tag = read_tag(fid, pos)
-                    sss_info[key] = cast(tag.data)
-                    break
-
-    max_st_block = dir_tree_find(tree, FIFF.FIFFB_SSS_ST_INFO)  # 504
-    max_st = dict()
-    if len(max_st_block) > 0:
-        max_st_block = max_st_block[0]
-        for i_ent in range(max_st_block["nent"]):
-            kind = max_st_block["directory"][i_ent].kind
-            pos = max_st_block["directory"][i_ent].pos
-            for key, id_, cast in zip(_max_st_keys, _max_st_ids, _max_st_casters):
-                if kind == id_:
-                    tag = read_tag(fid, pos)
-                    max_st[key] = cast(tag.data)
-                    break
-
-    sss_ctc_block = dir_tree_find(tree, FIFF.FIFFB_CHANNEL_DECOUPLER)  # 501
-    sss_ctc = dict()
-    if len(sss_ctc_block) > 0:
-        sss_ctc_block = sss_ctc_block[0]
-        for i_ent in range(sss_ctc_block["nent"]):
-            kind = sss_ctc_block["directory"][i_ent].kind
-            pos = sss_ctc_block["directory"][i_ent].pos
-            for key, id_, cast in zip(_sss_ctc_keys, _sss_ctc_ids, _sss_ctc_casters):
-                if kind == id_:
-                    tag = read_tag(fid, pos)
-                    sss_ctc[key] = cast(tag.data)
-                    break
-            else:
-                if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
-                    tag = read_tag(fid, pos)
-                    chs = _safe_name_list(tag.data, "read", "proj_items_chs")
-                    # This list can null chars in the last entry, e.g.:
-                    # [..., 'MEG2642', 'MEG2643', 'MEG2641\x00 ... \x00']
-                    chs[-1] = chs[-1].split("\x00")[0]
-                    sss_ctc["proj_items_chs"] = chs
-
-    sss_cal_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CAL)  # 503
-    sss_cal = dict()
-    if len(sss_cal_block) > 0:
-        sss_cal_block = sss_cal_block[0]
-        for i_ent in range(sss_cal_block["nent"]):
-            kind = sss_cal_block["directory"][i_ent].kind
-            pos = sss_cal_block["directory"][i_ent].pos
-            for key, id_, cast in zip(_sss_cal_keys, _sss_cal_ids, _sss_cal_casters):
-                if kind == id_:
-                    tag = read_tag(fid, pos)
-                    sss_cal[key] = cast(tag.data)
-                    break
-
-    max_info = dict(sss_info=sss_info, sss_ctc=sss_ctc, sss_cal=sss_cal, max_st=max_st)
+    max_info = dict()
+    for key, kind in (
+        ("sss_info", "sss_info"),
+        ("sss_ctc", "cross_talk"),
+        ("sss_cal", "fine_calibration"),
+        ("max_st", "max_st"),
+    ):
+        this_data = _read_mf_data(fid, tree, kind=kind)
+        if this_data:
+            max_info[key] = this_data
     return max_info
+
+
+def _read_mf_data(fid, tree, *, kind):
+    if kind == "cross_talk":
+        block = FIFF.FIFFB_CHANNEL_DECOUPLER  # 501
+        keys = _sss_ctc_keys
+        ids = _sss_ctc_ids
+        casters = _sss_ctc_casters
+    elif kind == "fine_calibration":
+        block = FIFF.FIFFB_SSS_CAL  # 503
+        keys = _sss_cal_keys
+        ids = _sss_cal_ids
+        casters = _sss_cal_casters
+    elif kind == "max_st":
+        block = FIFF.FIFFB_SSS_ST_INFO  # 504
+        keys = _max_st_keys
+        ids = _max_st_ids
+        casters = _max_st_casters
+    else:
+        assert kind == "sss_info"
+        block = FIFF.FIFFB_SSS_INFO  # 502
+        keys = _sss_info_keys
+        ids = _sss_info_ids
+        casters = _sss_info_casters
+    sss_kind_block = dir_tree_find(tree, block)
+    sss_out = dict()
+    if len(sss_kind_block) > 0:
+        logger.debug("Reading %s info with keys: %s", kind, list(keys))
+        sss_kind_block = sss_kind_block[0]
+        for i_ent in range(sss_kind_block["nent"]):
+            kind = sss_kind_block["directory"][i_ent].kind
+            pos = sss_kind_block["directory"][i_ent].pos
+            for key, id_, cast in zip(keys, ids, casters):
+                if kind == id_:
+                    tag = read_tag(fid, pos)
+                    sss_out[key] = cast(tag.data)
+                    break
+    return sss_out
 
 
 def _write_maxfilter_record(fid, record):
     """Write maxfilter processing record to file."""
-    sss_info = record["sss_info"]
-    if len(sss_info) > 0:
-        start_block(fid, FIFF.FIFFB_SSS_INFO)
-        for key, id_, writer in zip(_sss_info_keys, _sss_info_ids, _sss_info_writers):
-            if key in sss_info:
-                writer(fid, id_, sss_info[key])
-        end_block(fid, FIFF.FIFFB_SSS_INFO)
-
-    max_st = record["max_st"]
-    if len(max_st) > 0:
-        start_block(fid, FIFF.FIFFB_SSS_ST_INFO)
-        for key, id_, writer in zip(_max_st_keys, _max_st_ids, _max_st_writers):
-            if key in max_st:
-                writer(fid, id_, max_st[key])
-        end_block(fid, FIFF.FIFFB_SSS_ST_INFO)
-
-    sss_ctc = record["sss_ctc"]
-    if len(sss_ctc) > 0:  # dict has entries
-        start_block(fid, FIFF.FIFFB_CHANNEL_DECOUPLER)
-        for key, id_, writer in zip(_sss_ctc_keys, _sss_ctc_ids, _sss_ctc_writers):
-            if key in sss_ctc:
-                writer(fid, id_, sss_ctc[key])
-        if "proj_items_chs" in sss_ctc:
-            write_name_list_sanitized(
-                fid,
-                FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                sss_ctc["proj_items_chs"],
-                "proj_items_chs",
-            )
-        end_block(fid, FIFF.FIFFB_CHANNEL_DECOUPLER)
-
-    sss_cal = record["sss_cal"]
-    if len(sss_cal) > 0:
-        start_block(fid, FIFF.FIFFB_SSS_CAL)
-        for key, id_, writer in zip(_sss_cal_keys, _sss_cal_ids, _sss_cal_writers):
-            if key in sss_cal:
-                writer(fid, id_, sss_cal[key])
-        end_block(fid, FIFF.FIFFB_SSS_CAL)
+    _write_mf_data(fid, record, kind="sss_info")
+    _write_mf_data(fid, record, kind="max_st")
+    _write_mf_data(fid, record, kind="cross_talk")
+    _write_mf_data(fid, record, kind="fine_calibration")
