@@ -652,7 +652,7 @@ class BaseRaw(
             emitted. Pass ``True`` or ``False`` explicitly to silence the
             warning.
 
-            .. versionchanged:: 2.0
+            .. versionchanged:: 1.13
                 The default changed from ``False`` to ``None``, which will
                 round and emit a warning. In a future release the default
                 will change to ``True``.
