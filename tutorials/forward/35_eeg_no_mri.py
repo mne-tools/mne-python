@@ -54,7 +54,7 @@ raw = mne.io.read_raw_edf(raw_fname, preload=True)
 # Clean channel names to be able to use a standard 1005 montage
 eegbci.standardize(raw)
 
-# Read and set the EEG electrode locations using an anantomically
+# Read and set the EEG electrode locations using an anatomically
 # shaped 10-05 montage:
 montage = mne.channels.make_standard_montage("colin27_1005")
 raw.set_montage(montage)
