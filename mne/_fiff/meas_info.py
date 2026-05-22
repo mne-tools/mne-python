@@ -2780,10 +2780,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info["hpi_subsystem"] = hs
 
     #   Read cross-talk and fine cal
-    cross_talk = _read_mf_data(fid, tree, kind="cross_talk")
+    cross_talk = _read_mf_data(fid, tree, kind="sss_ctc")
     if len(cross_talk):
         info["cross_talk"] = cross_talk
-    fine_calibration = _read_mf_data(fid, tree, kind="fine_calibration")
+    fine_calibration = _read_mf_data(fid, tree, kind="sss_cal")
     if len(fine_calibration):
         info["fine_calibration"] = fine_calibration
 
@@ -3123,8 +3123,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #  Channel information
     _write_ch_infos(fid, info["chs"], reset_range, ch_names_mapping)
 
-    _write_mf_data(fid, info, kind="cross_talk")
-    _write_mf_data(fid, info, kind="fine_calibration")
+    _write_mf_data(fid, info, kind="sss_ctc", key="cross_talk")
+    _write_mf_data(fid, info, kind="sss_cal", key="fine_calibration")
 
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)

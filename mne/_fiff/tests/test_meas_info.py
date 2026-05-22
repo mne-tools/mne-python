@@ -1112,6 +1112,8 @@ def test_csr_csc(tmp_path):
     fname = tmp_path / "test.fif"
     write_info(fname, info, verbose="debug")
     info_read = read_info(fname, verbose="debug")
+    assert "max_info" in info_read["proc_history"][0]
+    assert "sss_ctc" in info_read["proc_history"][0]["max_info"]
     assert "decoupler" in info_read["proc_history"][0]["max_info"]["sss_ctc"]
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
     assert isinstance(ct_read, sparse.csc_array)

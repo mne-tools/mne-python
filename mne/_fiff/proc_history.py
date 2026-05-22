@@ -254,34 +254,46 @@ _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
 _sss_cal_writers = (write_int_matrix, write_float_matrix)
 _sss_cal_casters = (np.array, np.array)
 
+_io_map = dict(
+    sss_ctc=dict(
+        keys=_sss_ctc_keys,
+        ids=_sss_ctc_ids,
+        casters=_sss_ctc_casters,
+        writers=_sss_ctc_writers,
+        block=FIFF.FIFFB_CHANNEL_DECOUPLER,
+    ),
+    sss_cal=dict(
+        keys=_sss_cal_keys,
+        ids=_sss_cal_ids,
+        casters=_sss_cal_casters,
+        writers=_sss_cal_writers,
+        block=FIFF.FIFFB_SSS_CAL,
+    ),
+    sss_info=dict(
+        keys=_sss_info_keys,
+        ids=_sss_info_ids,
+        casters=_sss_info_casters,
+        writers=_sss_info_writers,
+        block=FIFF.FIFFB_SSS_INFO,
+    ),
+    max_st=dict(
+        keys=_max_st_keys,
+        ids=_max_st_ids,
+        casters=_max_st_casters,
+        writers=_max_st_writers,
+        block=FIFF.FIFFB_SSS_ST_INFO,
+    ),
+)
 
-def _write_mf_data(fid, info, *, kind):
-    this_data = info.get(kind, None)
+
+def _write_mf_data(fid, info, *, kind, key=None):
+    key = kind if key is None else key
+    this_data = info.get(key, dict())
     if not this_data:  # empty or None
         return
+    del info, key
     logger.debug("Writing %s info with keys: %s", kind, list(this_data))
-    del info
-    if kind == "cross_talk":
-        keys = _sss_ctc_keys
-        ids = _sss_ctc_ids
-        writers = _sss_ctc_writers
-        block = FIFF.FIFFB_CHANNEL_DECOUPLER
-    elif kind == "fine_calibration":
-        keys = _sss_cal_keys
-        ids = _sss_cal_ids
-        writers = _sss_cal_writers
-        block = FIFF.FIFFB_SSS_CAL
-    elif kind == "max_st":
-        keys = _max_st_keys
-        ids = _max_st_ids
-        writers = _max_st_writers
-        block = FIFF.FIFFB_SSS_ST_INFO
-    else:
-        assert kind == "sss_info"
-        keys = _sss_info_keys
-        ids = _sss_info_ids
-        writers = _sss_info_writers
-        block = FIFF.FIFFB_SSS_INFO
+    keys, ids, _, writers, block = _io_map[kind].values()
     start_block(fid, block)
     for key, id_, writer in zip(keys, ids, writers):
         if key in this_data:
@@ -294,7 +306,7 @@ def _read_ctc(fname):
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     f, tree, _ = fiff_open(fname)
     with f as fid:
-        sss_ctc = _read_mf_data(fid, tree, kind="cross_talk")
+        sss_ctc = _read_mf_data(fid, tree, kind="sss_ctc")
         bad_str = f"Invalid cross-talk FIF: {fname}"
         if len(sss_ctc) == 0:
             raise ValueError(bad_str)
@@ -310,40 +322,14 @@ def _read_ctc(fname):
 def _read_maxfilter_record(fid, tree):
     """Read maxfilter processing record from file."""
     max_info = dict()
-    for key, kind in (
-        ("sss_info", "sss_info"),
-        ("sss_ctc", "cross_talk"),
-        ("sss_cal", "fine_calibration"),
-        ("max_st", "max_st"),
-    ):
-        this_data = _read_mf_data(fid, tree, kind=kind)
-        if this_data:
-            max_info[key] = this_data
+    for key in _io_map:
+        this_data = _read_mf_data(fid, tree, kind=key)
+        max_info[key] = this_data or dict()  # always add, even if empty
     return max_info
 
 
 def _read_mf_data(fid, tree, *, kind):
-    if kind == "cross_talk":
-        block = FIFF.FIFFB_CHANNEL_DECOUPLER  # 501
-        keys = _sss_ctc_keys
-        ids = _sss_ctc_ids
-        casters = _sss_ctc_casters
-    elif kind == "fine_calibration":
-        block = FIFF.FIFFB_SSS_CAL  # 503
-        keys = _sss_cal_keys
-        ids = _sss_cal_ids
-        casters = _sss_cal_casters
-    elif kind == "max_st":
-        block = FIFF.FIFFB_SSS_ST_INFO  # 504
-        keys = _max_st_keys
-        ids = _max_st_ids
-        casters = _max_st_casters
-    else:
-        assert kind == "sss_info"
-        block = FIFF.FIFFB_SSS_INFO  # 502
-        keys = _sss_info_keys
-        ids = _sss_info_ids
-        casters = _sss_info_casters
+    keys, ids, casters, _, block = _io_map[kind].values()
     sss_kind_block = dir_tree_find(tree, block)
     sss_out = dict()
     if len(sss_kind_block) > 0:
@@ -364,5 +350,5 @@ def _write_maxfilter_record(fid, record):
     """Write maxfilter processing record to file."""
     _write_mf_data(fid, record, kind="sss_info")
     _write_mf_data(fid, record, kind="max_st")
-    _write_mf_data(fid, record, kind="cross_talk")
-    _write_mf_data(fid, record, kind="fine_calibration")
+    _write_mf_data(fid, record, kind="sss_ctc")
+    _write_mf_data(fid, record, kind="sss_cal")
