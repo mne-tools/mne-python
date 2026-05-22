@@ -807,6 +807,12 @@ def _gl_score(estimators, scoring, X, y, pb):
         if name == "accuracy_score" and response_method == "predict":
             def batched_score(y_pred):
                 return sign * (y_pred == y[:, None]).mean(axis=0)
+        elif name == "balanced_accuracy_score" and response_method == "predict":
+            classes = np.unique(y)
+            def batched_score(y_pred):
+                return sign * np.stack(
+                    [(y_pred[y == c] == c).mean(axis=0) for c in classes]
+                ).mean(axis=0)
 
     for ii, est in enumerate(estimators):
         y_pred = getattr(est, method)(X_stack)
