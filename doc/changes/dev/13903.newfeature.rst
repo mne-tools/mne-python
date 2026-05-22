@@ -1,1 +1,1 @@
-Add spherical 10–05, 10–10, and 10–20 montages (``spherical_1005``, ``spherical_1010``, ``spherical_1020``) and rename ``standard_1005`` to ``colin27_1005`` and ``standard_1020`` to ``colin27_1020``, respectively, by `Clemens Brunner`_.
+Add idealized spherical 10–05, 10–10, and 10–20 montages (``spherical_1005``, ``spherical_1010``, ``spherical_1020``), by `Clemens Brunner`_.
