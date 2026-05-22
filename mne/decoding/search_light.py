@@ -768,7 +768,7 @@ def _gl_score(estimators, scoring, X, y, pb):
     # * "default" (= predict)
     # * A tuple of those: roc_auc = ("decision_function", "predict_proba")
     score_func = getattr(scoring, "_score_func", None)
-    rm         = getattr(scoring, "_response_method", None)
+    rm = getattr(scoring, "_response_method", None)
     valid = {"predict", "predict_proba", "decision_function"}
     if rm == "default":
         response_method = "predict"
@@ -818,30 +818,36 @@ def _gl_score(estimators, scoring, X, y, pb):
     if not kwargs and y.ndim == 1:
         name = getattr(score_func, "__name__", "")
         if name == "accuracy_score" and response_method == "predict":
+
             def batched_score(y_pred):
                 return sign * (y_pred == y[:, None]).mean(axis=0)
         elif name == "balanced_accuracy_score" and response_method == "predict":
             classes = np.unique(y)
+
             def batched_score(y_pred):
                 return sign * np.stack(
                     [(y_pred[y == c] == c).mean(axis=0) for c in classes]
                 ).mean(axis=0)
         elif name == "roc_auc_score" and method in (
-            "predict_proba", "decision_function"
+            "predict_proba",
+            "decision_function",
         ):
             classes = np.unique(y)
             if len(classes) == 2:  # multi-class needs ovr/ovo; defer
                 pos = y == classes[1]
                 n_pos, n_neg = int(pos.sum()), int((~pos).sum())
                 if n_pos and n_neg:  # degenerate folds raise downstream in sklearn
+
                     def batched_score(y_pred):
                         # Mann-Whitney U identity with average-rank tie
                         # correction. Equivalent to sklearn's roc_auc within
                         # floating point precision, but different computaion
                         ranks = rankdata(y_pred, method="average", axis=0)
-                        return sign * (
-                            ranks[pos].sum(axis=0) - n_pos * (n_pos + 1) / 2.0
-                        ) / (n_pos * n_neg)
+                        return (
+                            sign
+                            * (ranks[pos].sum(axis=0) - n_pos * (n_pos + 1) / 2.0)
+                            / (n_pos * n_neg)
+                        )
 
     for ii, est in enumerate(estimators):
         y_pred = getattr(est, method)(X_stack)
