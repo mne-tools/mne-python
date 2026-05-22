@@ -187,7 +187,7 @@ def test_documented():
     """Test that standard montages are documented."""
     montage_dir = Path(_mne_file).parent / "channels" / "data" / "montages"
     montage_files = Path(montage_dir).glob("*")
-    montage_names = [f.stem for f in montage_files]
+    montage_names = [f.stem for f in montage_files if f.name != "README.md"]
 
     assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
     assert set(montage_names) == set([m.name for m in _BUILTIN_STANDARD_MONTAGES])
