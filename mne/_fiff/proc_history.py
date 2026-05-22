@@ -255,20 +255,6 @@ _sss_cal_writers = (write_int_matrix, write_float_matrix)
 _sss_cal_casters = (np.array, np.array)
 
 _io_map = dict(
-    sss_ctc=dict(
-        keys=_sss_ctc_keys,
-        ids=_sss_ctc_ids,
-        casters=_sss_ctc_casters,
-        writers=_sss_ctc_writers,
-        block=FIFF.FIFFB_CHANNEL_DECOUPLER,
-    ),
-    sss_cal=dict(
-        keys=_sss_cal_keys,
-        ids=_sss_cal_ids,
-        casters=_sss_cal_casters,
-        writers=_sss_cal_writers,
-        block=FIFF.FIFFB_SSS_CAL,
-    ),
     sss_info=dict(
         keys=_sss_info_keys,
         ids=_sss_info_ids,
@@ -282,6 +268,20 @@ _io_map = dict(
         casters=_max_st_casters,
         writers=_max_st_writers,
         block=FIFF.FIFFB_SSS_ST_INFO,
+    ),
+    sss_ctc=dict(
+        keys=_sss_ctc_keys,
+        ids=_sss_ctc_ids,
+        casters=_sss_ctc_casters,
+        writers=_sss_ctc_writers,
+        block=FIFF.FIFFB_CHANNEL_DECOUPLER,
+    ),
+    sss_cal=dict(
+        keys=_sss_cal_keys,
+        ids=_sss_cal_ids,
+        casters=_sss_cal_casters,
+        writers=_sss_cal_writers,
+        block=FIFF.FIFFB_SSS_CAL,
     ),
 )
 
@@ -348,7 +348,5 @@ def _read_mf_data(fid, tree, *, kind):
 
 def _write_maxfilter_record(fid, record):
     """Write maxfilter processing record to file."""
-    _write_mf_data(fid, record, kind="sss_info")
-    _write_mf_data(fid, record, kind="max_st")
-    _write_mf_data(fid, record, kind="sss_ctc")
-    _write_mf_data(fid, record, kind="sss_cal")
+    for key in _io_map:
+        _write_mf_data(fid, record, kind=key)
