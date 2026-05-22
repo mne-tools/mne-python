@@ -1079,7 +1079,7 @@ class HeliumInfo(ValidatedDict):
         "gantry_angle": partial(
             _check_types,
             name='helium_info["gantry_angle"]',
-            types="numeric",
+            types="int-like",
             cast=int,
         ),
         "helium_level": partial(
