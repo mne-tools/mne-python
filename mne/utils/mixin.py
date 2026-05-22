@@ -520,9 +520,16 @@ class TimeMixin:
         """
         from ..source_estimate import _BaseSourceEstimate
 
+        if isinstance(self, _BaseSourceEstimate):
+            sfreq = 1.0 / self.tstep
+        else:
+            sfreq = self.info["sfreq"]
+        index = (np.atleast_1d(times) - self.times[0]) * sfreq
+
         if use_rounding is None:
             # Turned off temporarily to see the impact of the change without
-            # crashing on a FutureWarning
+            # crashing on a FutureWarning. Only crash, explicitely, if the
+            # values with and without rounding are different.
             #
             # warn(
             # "The default of use_rounding=False is being changed to True "
@@ -530,13 +537,10 @@ class TimeMixin:
             # "use_rounding=False explicitly to silence this warning.",
             # FutureWarning,
             # )
+            if index != np.round(index):
+                raise RuntimeError(f"This would have returned a different value: {index=}, different from {np.round(index)=}.")
             use_rounding = True
 
-        if isinstance(self, _BaseSourceEstimate):
-            sfreq = 1.0 / self.tstep
-        else:
-            sfreq = self.info["sfreq"]
-        index = (np.atleast_1d(times) - self.times[0]) * sfreq
         if use_rounding:
             index = np.round(index)
         return index.astype(int)
