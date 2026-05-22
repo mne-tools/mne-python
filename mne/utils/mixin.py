@@ -540,7 +540,8 @@ class TimeMixin:
             if not np.array_equal(index.astype(int), np.round(index)):
                 raise RuntimeError(
                     f"Would have returned a different value: {index=}, "
-                    f"different from {np.round(index)=}.")
+                    f"different from {np.round(index)=}."
+                )
             use_rounding = True
 
         if use_rounding:
