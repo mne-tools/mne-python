@@ -294,7 +294,7 @@ def test_plot_ica_properties_reject(kind):
     data[0, idx] = 1000e-6
     info = create_info(["Fz", "Cz", "C2"], sfreq, "eeg")
     raw = RawArray(data, info)
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
     ica = ICA(
         n_components=2,
         random_state=0,
