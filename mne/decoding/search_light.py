@@ -797,6 +797,15 @@ def _gl_score(estimators, scoring, X, y, pb):
     # Ensures score_func(..., **kwargs) doesn't crash when scoring._kwargs=None
     kwargs = scoring._kwargs or {}
 
+    # Fast path: vectorised accuracy. Skips the per-jj score_func call and
+    # computes (y_pred == y[:, None]).mean(axis=0) for all slices at once.
+    fast_accuracy = (
+        getattr(score_func, "__name__", "") == "accuracy_score"
+        and not kwargs
+        and response_method == "predict"
+        and y.ndim == 1
+    )
+
     for ii, est in enumerate(estimators):
         y_pred = getattr(est, method)(X_stack)
         # predict_proba returns probabilities for both classes; use the
@@ -805,12 +814,20 @@ def _gl_score(estimators, scoring, X, y, pb):
             y_pred = y_pred[:, 1]
         # Now, reshape back the prediction, then score
         y_pred = y_pred.reshape((n_sample, n_iter) + y_pred.shape[1:])
-        for jj in range(n_iter):
-            _score = scoring._sign * score_func(y, y_pred[:, jj], **kwargs)
-            if (ii == 0) and (jj == 0):
-                score = np.zeros(score_shape, type(_score))
-            score[ii, jj, ...] = _score
-            pb.update(ii * n_iter + jj + 1)
+        # Either we can also score with a batch, here, or we loop again, below
+        if fast_accuracy:
+            row = scoring._sign * (y_pred == y[:, None]).mean(axis=0)
+            if ii == 0:
+                score = np.zeros(score_shape, row.dtype)
+            score[ii] = row
+            pb.update((ii + 1) * n_iter)
+        else:
+            for jj in range(n_iter):
+                _score = scoring._sign * score_func(y, y_pred[:, jj], **kwargs)
+                if (ii == 0) and (jj == 0):
+                    score = np.zeros(score_shape, type(_score))
+                score[ii, jj, ...] = _score
+                pb.update(ii * n_iter + jj + 1)
     return score
 
 
