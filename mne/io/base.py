@@ -682,7 +682,7 @@ class BaseRaw(
             delta = (origin - first_samp_in_abs_time).total_seconds()
         times = np.atleast_1d(times) + delta
 
-        return super().time_as_index(times, use_rounding)
+        return super().time_as_index(times, use_rounding=use_rounding)
 
     @property
     def _raw_lengths(self):
