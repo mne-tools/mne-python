@@ -5,6 +5,7 @@
 import logging
 
 import numpy as np
+from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
@@ -825,6 +826,22 @@ def _gl_score(estimators, scoring, X, y, pb):
                 return sign * np.stack(
                     [(y_pred[y == c] == c).mean(axis=0) for c in classes]
                 ).mean(axis=0)
+        elif name == "roc_auc_score" and method in (
+            "predict_proba", "decision_function"
+        ):
+            classes = np.unique(y)
+            if len(classes) == 2:  # multi-class needs ovr/ovo; defer
+                pos = y == classes[1]
+                n_pos, n_neg = int(pos.sum()), int((~pos).sum())
+                if n_pos and n_neg:  # degenerate folds raise downstream in sklearn
+                    def batched_score(y_pred):
+                        # Mann-Whitney U identity with average-rank tie
+                        # correction. Equivalent to sklearn's roc_auc within
+                        # floating point precision, but different computaion
+                        ranks = rankdata(y_pred, method="average", axis=0)
+                        return sign * (
+                            ranks[pos].sum(axis=0) - n_pos * (n_pos + 1) / 2.0
+                        ) / (n_pos * n_neg)
 
     for ii, est in enumerate(estimators):
         y_pred = getattr(est, method)(X_stack)

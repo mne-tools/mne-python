@@ -7,7 +7,7 @@ from inspect import signature
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 sklearn = pytest.importorskip("sklearn")
 
@@ -246,7 +246,11 @@ def test_generalization_light(metadata_routing):
     gl.fit(X, y)
     score = gl.score(X, y)
     auc = roc_auc_score(y, gl.estimators_[0].predict_proba(X[..., 0])[..., 1])
-    assert_equal(score[0, 0], auc)
+
+    # The rank identity implemented when batching gives the same AUC as sklearn
+    # within floating point precision, but implements it with different
+    # operations. A bit-exact match would need a loop, defeating the batching.
+    assert_allclose(score[0, 0], auc)
 
     for scoring in ["foo", 999]:
         gl = GeneralizingEstimator(logreg, scoring=scoring)
@@ -267,7 +271,8 @@ def test_generalization_light(metadata_routing):
         [roc_auc_score(y - 1, _y_pred) for _y_pred in _y_preds]
         for _y_preds in gl.decision_function(X).transpose(1, 2, 0)
     ]
-    assert_array_equal(score, manual_score)
+    # allclose instead of equal: see above, batching roc_auc forces this.
+    assert_allclose(score, manual_score)
 
     # n_jobs
     gl = GeneralizingEstimator(logreg, n_jobs=2)
