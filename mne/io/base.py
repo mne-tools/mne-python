@@ -637,7 +637,7 @@ class BaseRaw(
     def _last_time(self):
         return self.last_samp / float(self.info["sfreq"])
 
-    def time_as_index(self, times, use_rounding=None, origin=None):
+    def time_as_index(self, times, *, use_rounding=None, origin=None):
         """Convert time to indices.
 
         Parameters

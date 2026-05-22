@@ -493,7 +493,7 @@ def _check_decim(info, decim, offset, check_filter=True):
 class TimeMixin:
     """Class for time operations on any MNE object that has a time axis."""
 
-    def time_as_index(self, times, use_rounding=None):
+    def time_as_index(self, times, *, use_rounding=None):
         """Convert time to indices.
 
         Parameters
