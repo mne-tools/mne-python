@@ -841,7 +841,7 @@ def _gl_score(estimators, scoring, X, y, pb):
                     def batched_score(y_pred):
                         # Mann-Whitney U identity with average-rank tie
                         # correction. Equivalent to sklearn's roc_auc within
-                        # floating point precision, but different computaion
+                        # floating point precision, but different computation
                         ranks = rankdata(y_pred, method="average", axis=0)
                         return (
                             sign
