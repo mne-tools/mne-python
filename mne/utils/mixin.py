@@ -528,7 +528,7 @@ class TimeMixin:
 
         if use_rounding is None:
             # Turned off temporarily to see the impact of the change without
-            # crashing on a FutureWarning. Only crash, explicitely, if the
+            # crashing on a FutureWarning. Only crash, explicitly, if the
             # values with and without rounding are different.
             #
             # warn(
@@ -539,8 +539,8 @@ class TimeMixin:
             # )
             if not np.array_equal(index.astype(int), np.round(index))
                 raise RuntimeError(
-                    f"This would have returned a different value: {index=}, different from {np.round(index)=}."
-                )
+                    f"Would have returned a different value: {index=}, "
+                    f"different from {np.round(index)=}.")
             use_rounding = True
 
         if use_rounding:
