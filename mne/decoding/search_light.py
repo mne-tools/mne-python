@@ -748,6 +748,18 @@ def _gl_score(estimators, scoring, X, y, pb):
     score_shape = [n_train, n_iter]
     score = None
 
+    # scoring=None goes through sklearn's _PassthroughScorer, which delegates
+    # to estimator.score(X, y). For a classifier inheriting
+    # ClassifierMixin.score unchanged, that's accuracy which we now set. We
+    # compare `type(est).score.__qualname__` rather than `.__name__` because
+    # the bare name is "score" no matter which class defined the method. A bare
+    # method has qualname "ClassifierMixin.score", whereas any override
+    # resolves to "<Subclass>.score". We only take over bare methods.
+    if len(estimators) and getattr(scoring, "_score_func", None) is None:
+        qname = getattr(type(estimators[0]).score, "__qualname__", "")
+        if qname == "ClassifierMixin.score":
+            scoring = check_scoring(estimators[0], "accuracy")
+
     # Detect whether we can batch the estimator. Recognised:
     # * predict,
     # * predict_proba
