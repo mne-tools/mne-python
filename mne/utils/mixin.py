@@ -538,7 +538,9 @@ class TimeMixin:
             # FutureWarning,
             # )
             if index != np.round(index):
-                raise RuntimeError(f"This would have returned a different value: {index=}, different from {np.round(index)=}.")
+                raise RuntimeError(
+                    f"This would have returned a different value: {index=}, different from {np.round(index)=}."
+                )
             use_rounding = True
 
         if use_rounding:
