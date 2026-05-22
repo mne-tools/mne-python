@@ -4,9 +4,7 @@ The idealized spherical montages (`spherical_1005`, `spherical_1010`, `spherical
 - https://github.com/sappelhoff/eeg_positions/blob/main/data/Nz-T10-Iz-T9/standard_1010_3D.tsv
 - https://github.com/sappelhoff/eeg_positions/blob/main/data/Nz-T10-Iz-T9/standard_1020_3D.tsv
 
-The `colin27_*` montages are also based on the 10–05 system, but the idealized locations were fit on the Colin27 head model (a high-resolution MRI scan of a single subject), similar to the description in this tutorial:
-
-https://www.fieldtriptoolbox.org/tutorial/sensor/opm_helmet_design/
+The `colin27_*` montages are also based on the 10–05 system, but the idealized locations were fit on the Colin27 head model (a high-resolution MRI scan of a single subject), similar to the description in [this tutorial](https://www.fieldtriptoolbox.org/tutorial/sensor/opm_helmet_design/).
 
 They are available in [FieldTrip](https://github.com/fieldtrip/fieldtrip):
 
