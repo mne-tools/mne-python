@@ -537,7 +537,7 @@ class TimeMixin:
             # "use_rounding=False explicitly to silence this warning.",
             # FutureWarning,
             # )
-            if not np.array_equal(index.astype(int), np.round(index))
+            if not np.array_equal(index.astype(int), np.round(index)):
                 raise RuntimeError(
                     f"Would have returned a different value: {index=}, "
                     f"different from {np.round(index)=}.")
