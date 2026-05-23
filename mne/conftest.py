@@ -47,7 +47,6 @@ from mne.utils import (
     numerics,
 )
 from mne.viz._figure import use_browser_backend
-from mne.viz.backends._utils import _init_mne_qtapp
 
 # data from sample dataset
 test_path = testing.data_path(download=False)
@@ -96,7 +95,6 @@ def pytest_configure(config: pytest.Config):
         "ultraslowtest: mark a test as ultraslow or to be run rarely",
         "pgtest: mark a test as relevant for mne-qt-browser",
         "pvtest: mark a test as relevant for pyvistaqt",
-        "allow_unclosed: allow unclosed pyvistaqt instances",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -751,7 +749,7 @@ def _check_skip_backend(name):
 
 
 @pytest.fixture(scope="session")
-def pixel_ratio():
+def pixel_ratio(qapp):
     """Get the pixel ratio."""
     # _check_qt_version will init an app for us, so no need for us to do it
     if not check_version("pyvista", "0.32") or not _check_qt_version():
@@ -759,8 +757,7 @@ def pixel_ratio():
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow
 
-    app = _init_mne_qtapp()
-    app.processEvents()
+    qapp.processEvents()
     window = QMainWindow()
     window.setAttribute(Qt.WA_DeleteOnClose, True)
     ratio = float(window.devicePixelRatio())
@@ -1145,7 +1142,9 @@ def numba_conditional(monkeypatch, request):
 @pytest.fixture(scope="session")
 def _nbclient():
     try:
+        import jupyter  # noqa
         import nbformat
+        import nest_asyncio2  # noqa
         import trame  # noqa
         from ipywidgets import Button  # noqa
         from jupyter_client import AsyncKernelManager
@@ -1258,24 +1257,20 @@ def nirx_snirf(request):
 
 
 @pytest.fixture
-def qt_windows_closed(request):
+def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    app = _init_mne_qtapp()
-
-    app.processEvents()
+    qapp.processEvents()
     gc.collect()
-    n_before = len(app.topLevelWidgets())
-    marks = set(mark.name for mark in request.node.iter_markers())
+    n_before = len(qapp.topLevelWidgets())
     yield
-    app.processEvents()
+    for _ in range(2):
+        qapp.processEvents()
     gc.collect()
-    if "allow_unclosed" in marks:
-        return
     # Don't check when the test fails
     if not _test_passed(request):
         return
-    widgets = app.topLevelWidgets()
+    widgets = qapp.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
 
