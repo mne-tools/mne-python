@@ -664,11 +664,11 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 Taking over a stale pull request
 ---------------------------------
 
-If a pull request has been abandoned, you can take it over. Always credit
-the original author by adding a ``Co-authored-by`` trailer to your commit
-message::
-
-    Co-authored-by: Original Author Name <their-email@example.com>
+If a pull request has been abandoned, you can take it over. A PR is generally
+considered abandoned when there have been no commits for at least two weeks and the
+author has not indicated they plan to continue, and after you have pinged them
+about their intent and received no response for one week (or they confirm they
+will not continue).
 
 To build on top of their existing branch:
 
@@ -678,13 +678,24 @@ To build on top of their existing branch:
     git fetch original-author
     git checkout -b takeover-XXXXX original-author/<their-branch-name>
 
-Then push to your fork and open a new PR referencing the original
-(e.g., "Takes over :gh:`XXXXX`"). Make sure their name is in
-``doc/changes/names.inc`` and credit the original author in the changelog entry, e.g.:
+Then push to your fork and open a new PR. Reference the original in the PR
+description (e.g., "Takes over :gh:`XXXXX`") and keep any original issue
+linking (e.g., "Fixes #XYZ"). If you have already started your own branch,
+you can add the original author as a remote and rebase or cherry-pick their
+commits.
+
+Make sure their name is in ``doc/changes/names.inc`` and credit them in the
+changelog entry, e.g.:
 
 .. code-block:: rst
 
     Short description of the changes, by `Your Name`_ and `Original Author`_.
+
+Always credit the original author by adding a ``Co-authored-by`` trailer to at
+least one commit (for example, the commit that adds or edits the changelog
+entry)::
+
+    Co-authored-by: Original Author Name <their-email@example.com>
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
