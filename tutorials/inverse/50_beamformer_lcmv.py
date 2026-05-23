@@ -271,12 +271,13 @@ brain = stc_vec.plot_3d(
     clim=dict(kind="value", lims=lims),
     hemi="both",
     size=(600, 600),
-    views=["sagittal"],
+    views=["lateral"],
     # Could do this for a 3-panel figure:
     # view_layout='horizontal', views=['coronal', 'sagittal', 'axial'],
     brain_kwargs=dict(silhouette=True),
     **kwargs,
 )
+brain.show_view("lateral", hemi="rh")
 
 # %%
 # Visualize the activity of the maximum voxel with all three components

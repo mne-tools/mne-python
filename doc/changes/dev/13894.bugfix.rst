@@ -1,0 +1,1 @@
+Fix bug where ``picks`` was ignored in :meth:`mne.Epochs.apply_function` when ``channel_wise=False``, by `Thomas Binns`_.

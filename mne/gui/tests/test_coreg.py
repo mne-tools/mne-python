@@ -34,7 +34,12 @@ nirsport2_raw_path = (
 snirf_nirsport2_raw_path = (
     data_path / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"
 )
-
+# PyVista <-> NumPy 2.4 dev (https://github.com/pyvista/pyvista/issues/8484)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Setting the dtype on a NumPy array.*:DeprecationWarning"
+    ),
+]
 
 pytest.importorskip("nibabel")
 

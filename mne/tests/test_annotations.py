@@ -2130,6 +2130,103 @@ def test_hed_annotations():
     assert list(empty_ann.hed_string) == []
 
 
+def test_hed_annotations_mixed_concatenation():
+    """Test concatenation of HEDAnnotations with regular Annotations."""
+    pytest.importorskip("hed")
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, "
+        "(Tone, Frequency/550 Hz)"
+    )
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+
+    hed = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.2],
+        description=["tone", "press"],
+        hed_string=[tone, press],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    reg = Annotations(
+        onset=[2, 3],
+        duration=[0.3, 0.4],
+        description=["plain1", "plain2"],
+        extras=[{"run": 3}, {}],
+    )
+
+    # --- Annotations += HEDAnnotations ---
+    combined = reg.copy()
+    combined += hed
+    assert isinstance(combined, Annotations)
+    assert not isinstance(combined, HEDAnnotations)
+    assert len(combined) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined.extras[0]["HED"] == tone
+    assert combined.extras[1]["HED"] == press
+    assert "HED" not in combined.extras[2]
+    assert "HED" not in combined.extras[3]
+    # pre-existing extras preserved
+    assert combined.extras[0]["run"] == 1
+    assert combined.extras[1]["run"] == 2
+    assert combined.extras[2]["run"] == 3
+
+    # --- HEDAnnotations += Annotations ---
+    combined2 = hed.copy()
+    combined2 += reg
+    # result is plain Annotations (rebinding semantics)
+    assert isinstance(combined2, Annotations)
+    assert not isinstance(combined2, HEDAnnotations)
+    assert len(combined2) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined2.extras[0]["HED"] == tone
+    assert combined2.extras[1]["HED"] == press
+    assert "HED" not in combined2.extras[2]
+    assert "HED" not in combined2.extras[3]
+    # pre-existing extras preserved
+    assert combined2.extras[0]["run"] == 1
+    assert combined2.extras[2]["run"] == 3
+
+    # --- non-mutating + operators ---
+    hed_orig = hed.copy()
+    reg_orig = reg.copy()
+
+    out1 = reg + hed
+    assert isinstance(out1, Annotations)
+    assert not isinstance(out1, HEDAnnotations)
+    assert len(out1) == 4
+    assert out1.extras[0]["HED"] == tone
+    assert out1.extras[1]["HED"] == press
+
+    out2 = hed + reg
+    assert isinstance(out2, Annotations)
+    assert not isinstance(out2, HEDAnnotations)
+    assert len(out2) == 4
+    assert out2.extras[0]["HED"] == tone
+    assert out2.extras[1]["HED"] == press
+
+    # originals are not mutated
+    assert hed == hed_orig
+    assert reg == reg_orig
+
+    # --- ch_names are preserved ---
+    hed_ch = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[tone],
+        ch_names=[["EEG 001"]],
+    )
+    reg_ch = Annotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        ch_names=[["EEG 002"]],
+    )
+    out3 = reg_ch + hed_ch
+    # sorted by onset: hed_ch(0) then reg_ch(1)
+    assert out3[0]["ch_names"] == ("EEG 001",)
+    assert out3[1]["ch_names"] == ("EEG 002",)
+
+
 def test_hed_annotations_to_data_frame():
     """Test HEDAnnotations.to_data_frame()."""
     pytest.importorskip("hed")

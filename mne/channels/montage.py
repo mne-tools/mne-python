@@ -72,37 +72,37 @@ class _BuiltinStandardMontage:
 
 _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
-        name="standard_1005",
-        description="Electrodes are named and positioned according to the "
-        "international 10-05 system (343+3 locations)",
+        name="colin27_1005",
+        description="Electrodes are named according to the international 10-05 system "
+        "and positioned on the Colin27 head model (343+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_1020",
-        description="Electrodes are named and positioned according to the "
-        "international 10-20 system (94+3 locations)",
+        name="colin27_1020",
+        description="Electrodes are named according to the international extended 10-20"
+        " system and positioned on the Colin27 head model (94+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_alphabetic",
-        description="Electrodes are named with LETTER-NUMBER combinations "
-        "(A1, B2, F4, …) (65+3 locations)",
+        name="colin27_alphabetic",
+        description="Electrodes are named with LETTER-NUMBER combinations (A1, B2, F4, "
+        "…) and positioned on the Colin27 head model (65+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_postfixed",
-        description="Electrodes are named according to the international "
-        "10-20 system using postfixes for intermediate positions "
-        "(100+3 locations)",
+        name="colin27_postfixed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using postfixes for intermediate positions and positioned on the "
+        "Colin27 head model(100+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_prefixed",
-        description="Electrodes are named according to the international "
-        "10-20 system using prefixes for intermediate positions "
-        "(74+3 locations)",
+        name="colin27_prefixed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using prefixes for intermediate positions and positioned on the "
+        "Colin27 head model (74+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_primed",
-        description="Electrodes are named according to the international "
-        "10-20 system using prime marks (' and '') for "
-        "intermediate positions (100+3 locations)",
+        name="colin27_primed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using prime marks (' and '') for intermediate positions and positioned"
+        " on the Colin27 head model (100+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="biosemi16",
@@ -193,8 +193,30 @@ _BUILTIN_STANDARD_MONTAGES = [
         name="brainproducts-RNP-BA-128",
         description="Brain Products with 10-10 electrode names (128 channels)",
     ),
+    _BuiltinStandardMontage(
+        name="spherical_1005",
+        description="10–05 electrode names and locations using a spherical head model",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1010",
+        description="10–10 electrode names and locations using a spherical head model",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1020",
+        description="10–20 electrode names and locations using a spherical head model",
+    ),
 ]
 
+
+# Deprecated montage names: removed in MNE 1.13, to be errored in MNE 1.14.
+_DEPRECATED_STANDARD_MONTAGES = {
+    "standard_1005": "colin27_1005",
+    "standard_1020": "colin27_1020",
+    "standard_alphabetic": "colin27_alphabetic",
+    "standard_postfixed": "colin27_postfixed",
+    "standard_prefixed": "colin27_prefixed",
+    "standard_primed": "colin27_primed",
+}
 
 # We could eventually add mne/data/helmets/Kernel_Flux_ch_pos.txt if we added
 # the normals and deduplicate... but can wait until someone has a use case!
@@ -1222,6 +1244,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             ch["loc"] = np.full(12, np.nan)
         return
     if isinstance(montage, str):  # load builtin montage
+        if montage in _DEPRECATED_STANDARD_MONTAGES:
+            new_name = _DEPRECATED_STANDARD_MONTAGES[montage]
+            warn(
+                f"Montage name '{montage}' is deprecated and will be removed in MNE "
+                f"1.14. Use '{new_name}' instead.",
+                FutureWarning,
+            )
+            montage = new_name
         _check_option(
             parameter="montage",
             value=montage,
@@ -1256,7 +1286,12 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     # keep reference location from EEG-like channels if they
     # already exist and are all the same.
     # Note: ref position is an empty list for fieldtrip data
-    if len(ref_pos) and ref_pos[0].any() and (ref_pos[0] == ref_pos).all():
+    if (
+        len(ref_pos)
+        and ref_pos[0].any()
+        and (ref_pos[0] == ref_pos).all()
+        and not np.array_equal(ref_pos[0], [1.0, 0.0, 0.0])
+    ):
         eeg_ref_pos = ref_pos[0]
         # since we have an EEG reference position, we have
         # to add it into the info['dig'] as EEG000
@@ -1973,7 +2008,7 @@ def make_standard_montage(kind, head_size="auto"):
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
         Can be None to not scale the read sizes. ``'auto'`` (default) will
-        use 95mm for all montages except the ``'standard*'``, ``'mgh*'``, and
+        use 95mm for all montages except the ``'colin27*'``, ``'mgh*'``, and
         ``'artinis*'``, which are already in fsaverage's MRI coordinates
         (same as MNI).
 
@@ -2000,6 +2035,14 @@ def make_standard_montage(kind, head_size="auto"):
     from ._standard_montage_utils import standard_montage_look_up_table
 
     _validate_type(kind, str, "kind")
+    if kind in _DEPRECATED_STANDARD_MONTAGES:
+        new_kind = _DEPRECATED_STANDARD_MONTAGES[kind]
+        warn(
+            f"Montage name '{kind}' is deprecated and will be removed in MNE 1.14. Use "
+            f"'{new_kind}' instead.",
+            FutureWarning,
+        )
+        kind = new_kind
     _check_option(
         parameter="kind",
         value=kind,
@@ -2008,7 +2051,7 @@ def make_standard_montage(kind, head_size="auto"):
     _validate_type(head_size, ("numeric", str, None), "head_size")
     if isinstance(head_size, str):
         _check_option("head_size", head_size, ("auto",), extra="when str")
-        if kind.startswith(("standard", "mgh", "artinis")):
+        if kind.startswith(("colin27", "mgh", "artinis")):
             head_size = None
         else:
             head_size = HEAD_SIZE_DEFAULT

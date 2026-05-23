@@ -10,7 +10,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne.channels.channels
-from mne import Epochs, pick_channels, pick_types, read_events
+from mne import Epochs, create_info, pick_channels, pick_types, read_events
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.channels import make_dig_montage, make_standard_montage
@@ -333,6 +333,44 @@ def test_interpolation_nirs():
     assert raw_haemo.info["bads"] == []
 
 
+def test_interpolation_nirs_reordered_picks():
+    """Test NIRS interpolation uses the closest donor in raw channel space."""
+    ch_names = [
+        "S1_D1 760",
+        "S1_D1 850",
+        "S2_D2 760",
+        "S2_D2 850",
+        "S3_D3 760",
+        "S3_D3 850",
+        "S10_D10 760",
+        "S10_D10 850",
+    ]
+    info = create_info(ch_names, sfreq=1.0, ch_types=["fnirs_cw_amplitude"] * 8)
+    pair_positions = {
+        "S1_D1": (0.009, 0.0, 0.0),
+        "S2_D2": (0.010, 0.0, 0.0),
+        "S3_D3": (0.030, 0.0, 0.0),
+        "S10_D10": (0.040, 0.0, 0.0),
+    }
+    for idx, ch in enumerate(info["chs"]):
+        pair = ch["ch_name"].rsplit(" ", 1)[0]
+        ch["loc"][:3] = pair_positions[pair]
+        ch["loc"][9] = 760.0 if idx % 2 == 0 else 850.0
+    data = np.arange(len(ch_names), dtype=float).reshape(-1, 1)
+    data = np.repeat(data, 5, axis=1)
+    raw = RawArray(data, info, verbose=False)
+    raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
+
+    raw.interpolate_bads(
+        method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
+    )
+
+    # Bad S2_D2 should copy from the nearest good pair, S1_D1.
+    picks_bad = pick_channels(raw.ch_names, ["S2_D2 760", "S2_D2 850"], exclude=[])
+    picks_want = pick_channels(raw.ch_names, ["S1_D1 760", "S1_D1 850"], exclude=[])
+    assert_allclose(raw.get_data(picks=picks_bad), raw.get_data(picks=picks_want))
+
+
 @testing.requires_testing_data
 def test_interpolation_ecog():
     """Test interpolation for ECoG."""
@@ -421,6 +459,27 @@ def test_nan_interpolation(raw):
     raw.interpolate_bads(method="nan", reset_bads=False)
     assert raw.info["bads"] == ch_to_interp
 
+    store = raw.info["chs"][1]["loc"]
+    # for on_bad_position="raise"
+    raw.info["bads"] = ch_to_interp
+    raw.info["chs"][1]["loc"] = np.full(12, np.nan)
+    with pytest.raises(ValueError, match="have invalid sensor position"):
+        # DOES NOT interpolates at all. So raw.info["bads"] remains as is
+        raw.interpolate_bads(on_bad_position="raise")
+
+    # for on_bad_position="warn"
+    with pytest.warns(RuntimeWarning, match="have invalid sensor position"):
+        # this DOES the interpolation BUT with a warning
+        # so raw.info["bad"] will be empty again,
+        # and interpolated channel with be all np.nan
+        raw.interpolate_bads(on_bad_position="warn")
+
+    # for on_bad_position="ignore"
+    raw.info["bads"] = ch_to_interp
+    assert raw.interpolate_bads(on_bad_position="ignore")
+    assert np.isnan(bad_chs).all, "Interpolated channel should be all NaN"
+    raw.info["chs"][1]["loc"] = store
+
     # make sure other channels are untouched
     raw.drop_channels(ch_to_interp)
     good_chs = raw.get_data()
@@ -442,7 +501,9 @@ def test_method_str():
     raw.interpolate_bads(method="spline")
 
 
-@pytest.mark.parametrize("montage_name", ["biosemi16", "standard_1020"])
+@pytest.mark.parametrize(
+    "montage_name", ["biosemi16", "spherical_1005", "colin27_1020"]
+)
 @pytest.mark.parametrize("method", ["spline", "MNE"])
 @pytest.mark.parametrize("data_type", ["raw", "epochs", "evoked"])
 def test_interpolate_to_eeg(montage_name, method, data_type):
@@ -535,8 +596,11 @@ def test_interpolate_to_meg(monkeypatch):
     monkeypatch.setattr(  # for speed
         mne.channels.channels, "_ALLOWED_INTERPOLATION_MODES", ("point",)
     )
+    evoked.resample(evoked.info["sfreq"] / 2)  # speed up even more
     kwargs = dict(mode="point", origin=(0.0, 0.0, 0.04))
     evoked_ctf = evoked.interpolate_to("ctf151", **kwargs)
+    # test whether .info["sfreq"] was preserved across interpolation
+    assert evoked_ctf.info["sfreq"] == evoked.info["sfreq"]
     evoked_ctf.pick(evoked_ctf.ch_names[::4])
     evoked_rt = evoked_ctf.interpolate_to("neuromag", **kwargs).pick(evoked.ch_names)
     corrcoef = np.corrcoef(evoked.data.ravel(), evoked_rt.data.ravel())[0, 1]

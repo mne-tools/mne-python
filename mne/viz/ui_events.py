@@ -14,8 +14,6 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import contextlib
 import re
 import weakref
@@ -470,7 +468,7 @@ def unlink(fig, *, verbose=None):
 
 
 @contextlib.contextmanager
-def disable_ui_events(fig):
+def disable_ui_events(fig):  # numpydoc ignore=YD01
     """Temporarily disable generation of UI events. Use as context manager.
 
     Parameters
