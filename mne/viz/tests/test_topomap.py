@@ -794,7 +794,8 @@ def test_plot_topomap_opm():
     fig_evoked = evoked.plot_topomap(
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
-    assert len(fig_evoked.axes) == 5
+    # Biaxial OPM pairs trigger grouped rendering (4 radial + 4 tangential + 2 colorbars)
+    assert len(fig_evoked.axes) == 10
 
 
 def test_prepare_topomap_plot_opm_non_quspin_coils():
@@ -851,6 +852,59 @@ def test_split_opm_overlaps(triaxial_evoked):
     assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
 
 
+def test_opm_tangential_rms_unsigned(triaxial_evoked):
+    """Test that tangential OPM data is RMS magnitude and unsigned."""
+    picks, pos, merge_channels, names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+    data = triaxial_evoked.data[picks]
+    grouped = topomap._compute_opm_orientation_topomap_data(
+        data, names, pos, merge_channels
+    )
+    tangential = [group for group in grouped if group[0] == "tangential"][0]
+    assert np.all(tangential[1] >= 0)
+    assert tangential[4]
+
+
+def test_should_use_opm_orientation_groups_only_for_triaxial():
+    """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
+    ch_names = [f"OPM{k:03}" for k in range(1, 7)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    with info._unlock():
+        for ch in info["chs"]:
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+
+    picks = np.arange(len(ch_names))
+    pair_overlaps = [
+        np.array(["OPM001", "OPM002"]),
+        np.array(["OPM003", "OPM004"]),
+    ]
+    triax_overlaps = [
+        np.array(["OPM001", "OPM002", "OPM003"]),
+        np.array(["OPM004", "OPM005", "OPM006"]),
+    ]
+
+    # Both biaxial and triaxial overlaps should trigger grouping
+    assert topomap._should_use_opm_orientation_groups(info, picks, pair_overlaps, "mag")
+    assert topomap._should_use_opm_orientation_groups(
+        info, picks, triax_overlaps, "mag"
+    )
+
+
+def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
+    """Test grouped radial/tangential topomap rendering for triaxial OPM."""
+    fig = triaxial_evoked.plot_topomap(
+        times=[0.0],
+        ch_type="mag",
+        contours=0,
+        res=8,
+        sensors=False,
+        show=False,
+    )
+    assert len(fig.axes) == 4
+    titles = [ax.get_title() for ax in fig.axes]
+    assert any("radial" in title for title in titles)
+    assert any("tangential" in title for title in titles)
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
