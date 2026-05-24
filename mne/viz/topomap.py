@@ -1807,8 +1807,7 @@ def plot_ica_components(
             sphere,
             clip_origin,
         ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
-        cmap = _setup_cmap(cmap, n_axes=len(picks))
-        disp_names = _prepare_sensor_names(names, show_names)
+    _setup_cmap(cmap, n_axes=len(picks))
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         data = np.dot(
