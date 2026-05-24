@@ -44,15 +44,6 @@ REFERENCE_NAMES = ("VREF", "Vertex Reference")
 # - [ ] Replace _read_header with mffpy functions?
 
 
-def _read_mff(input_fname):
-    """Read EGI MFF file."""
-    mff_reader = _get_mff_reader(input_fname)
-    eeg = _get_eeg_data(mff_reader)
-    info = _get_info(mff_reader)
-    annotations = _get_annotations(mff_reader, info)
-    return eeg, info, annotations
-
-
 def _get_mff_startdatetime(mff_reader):
     """Get start datetime from mff_reader with nanosecond workaround."""
     try:
