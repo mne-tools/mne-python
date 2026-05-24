@@ -24,7 +24,7 @@ from ...channels.montage import make_dig_montage
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
 from ..base import BaseRaw
-from .events import _combine_triggers, _read_events, _triage_include_exclude
+from .events import _combine_triggers, _triage_include_exclude
 from .general import (
     _block_r,
     _extract,
@@ -78,6 +78,80 @@ def _get_mff_startdatetime(mff_reader):
         # Python's %z can't always handle colons, so remove them
         time_str = re.sub(r'([+-]\d{2}):(\d{2})$', r'\1\2', time_str)
         return datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+
+
+def _read_events(input_fname, egi_info):
+    """Read EGI event tracks from an MFF directory."""
+    from mffpy.xml_files import XML, EventTrack
+
+    mff_reader = _get_mff_reader(input_fname)
+    start_dt = _get_mff_startdatetime(mff_reader)
+    sfreq = egi_info["sfreq"]
+    n_samples = egi_info["last_samps"][-1]
+
+    mff_events = OrderedDict()
+    for basename in mff_reader.directory.listdir():
+        lower_name = basename.lower()
+        if not lower_name.endswith(".xml") or basename.startswith("._"):
+            continue
+        stem = Path(basename).stem
+        try:
+            with mff_reader.directory.filepointer(stem) as fp:
+                xml_obj = XML.from_file(fp, recover=False)
+        except Exception as err:
+            if "XMLSyntaxError" in type(err).__name__:
+                warn(f"Could not parse the XML file {basename}. Skipping it.")
+            continue
+        if not isinstance(xml_obj, EventTrack):
+            continue
+        try:
+            for event in xml_obj.events:
+                code = event.get("code") or event.get("label") or xml_obj.name
+                begin_time = event.get("beginTime")
+                if code is None or begin_time is None:
+                    continue
+                sample = int(np.floor((begin_time - start_dt).total_seconds() * sfreq))
+                if 0 <= sample < n_samples:
+                    mff_events.setdefault(code, []).append(sample)
+        except Exception:
+            _soft_import("defusedxml", "reading EGI MFF event tracks")
+            from defusedxml import ElementTree as ET
+
+            xml_path = op.join(str(input_fname), basename)
+            try:
+                root = ET.parse(xml_path).getroot()
+            except Exception as err:
+                if (
+                    "ParseError" in type(err).__name__
+                    or "XMLSyntaxError" in type(err).__name__
+                ):
+                    warn(f"Could not parse the XML file {basename}. Skipping it.")
+                continue
+            for event_el in root.iter():
+                if event_el.tag.split("}")[-1] != "event":
+                    continue
+                event_fields = {}
+                for child in event_el:
+                    event_fields[child.tag.split("}")[-1]] = child.text
+                code = (
+                    event_fields.get("code")
+                    or event_fields.get("label")
+                    or xml_obj.name
+                )
+                begin_time = _parse_egi_datetime(event_fields.get("beginTime"))
+                if code is None or begin_time is None:
+                    continue
+                sample = int(np.floor((begin_time - start_dt).total_seconds() * sfreq))
+                if 0 <= sample < n_samples:
+                    mff_events.setdefault(code, []).append(sample)
+
+    event_codes = list(mff_events.keys())
+    egi_events = np.zeros((len(event_codes), n_samples))
+    for event_idx, code in enumerate(event_codes):
+        if len(mff_events[code]):
+            egi_events[event_idx, np.array(mff_events[code], dtype=int)] = 1
+    egi_info["event_codes"] = event_codes
+    return egi_events, egi_info, mff_events
 
 
 def _get_mff_reader(input_fname):
