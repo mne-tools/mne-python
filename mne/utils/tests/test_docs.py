@@ -203,7 +203,8 @@ Parameters
 a : int
     Parameter a
 b : int
-    Parameter b"""
+    Parameter b
+"""
     )
 
     assert (
@@ -214,7 +215,8 @@ Docstring for f2.
 Returns
 -------
 nothing.
-method_f3 own docstring"""
+method_f3 own docstring
+"""
     )
 
     assert A.method_f3.__doc__ == "Docstring for f3.\n\n"

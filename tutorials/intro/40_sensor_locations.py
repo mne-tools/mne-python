@@ -199,7 +199,7 @@ ax3d.view_init(azim=70, elev=15)
 # functions (see :ref:`dig-formats`). The resulting `montage <mne.channels.DigMontage>`
 # can then be added to `~mne.io.Raw` objects by passing it as an argument to the
 # :meth:`~mne.io.Raw.set_montage` method (just as we did before with the name of the
-# predefined ``'standard_1020'`` montage). Once loaded, locations can be plotted with
+# predefined ``'spherical_1020'`` montage). Once loaded, locations can be plotted with
 # the :meth:`~mne.channels.DigMontage.plot` method and saved with the
 # :meth:`~mne.channels.DigMontage.save` method of the
 # `montage <mne.channels.DigMontage>` object.

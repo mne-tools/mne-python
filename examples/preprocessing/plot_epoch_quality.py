@@ -32,7 +32,7 @@ print(__doc__)
 raw_fname = eegbci.load_data(subjects=3, runs=(3,))[0]
 raw = mne.io.read_raw(raw_fname, preload=True)
 eegbci.standardize(raw)
-montage = mne.channels.make_standard_montage("standard_1005")
+montage = mne.channels.make_standard_montage("spherical_1005")
 raw.set_montage(montage)
 
 events, event_id = mne.events_from_annotations(raw)

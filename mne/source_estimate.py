@@ -3219,6 +3219,8 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy import sparse
+
     if src[0]["dist"] is None:
         raise RuntimeError(
             "src must have distances included, consider using "
@@ -3226,11 +3228,12 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         )
     blocks = [s["dist"][s["vertno"], :][:, s["vertno"]] for s in src]
     # Ensure we keep explicit zeros; deal with changes in SciPy
-    for block in blocks:
+    for bi, block in enumerate(blocks):
         if isinstance(block, np.ndarray):
             block[block == 0] = -np.inf
         else:
             block.data[block.data == 0] == -1
+        blocks[bi] = sparse.csr_array(block)  # avoid SciPy dep warning about mat->arr
     edges = sparse.block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
