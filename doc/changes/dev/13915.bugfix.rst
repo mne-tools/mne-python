@@ -1,0 +1,1 @@
+Fix iteration errors caused by `_read_event_log_block` returning `None` when reading Nihon Kohden log files, by `Tom Ma`_.
