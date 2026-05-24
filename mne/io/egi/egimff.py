@@ -54,7 +54,7 @@ def _read_mff(input_fname):
 
 
 def _get_mff_startdatetime(mff_reader):
-    """Get start datetime from mff_reader, with workaround for nanosecond precision bug."""
+    """Get start datetime from mff_reader with nanosecond workaround."""
     try:
         return mff_reader.startdatetime
     except (ValueError, AttributeError):
@@ -71,7 +71,8 @@ def _get_mff_startdatetime(mff_reader):
             raise
         time_str = time_elem.text
         # Handle timestamps with up to 9 decimal places by truncating to 6
-        # e.g., "2017-09-20T09:55:44.072000000+01:00" -> "2017-09-20T09:55:44.072000+01:00"
+        # e.g. "2017-09-20T09:55:44.072000000+01:00" ->
+        # "2017-09-20T09:55:44.072000+01:00"
         # Both formats: +0100 (without colon) and +01:00 (with colon)
         if "+" in time_str or "-" in time_str[-6:]:
             # Truncate nanoseconds in decimal part (keep only 6 digits)
@@ -79,6 +80,16 @@ def _get_mff_startdatetime(mff_reader):
         # Python's %z can't always handle colons, so remove them
         time_str = re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", time_str)
         return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f%z")
+
+
+def _parse_egi_datetime(time_str):
+    """Parse an EGI datetime string with the same nanosecond workaround."""
+    if time_str is None:
+        return None
+    if "+" in time_str or "-" in time_str[-6:]:
+        time_str = re.sub(r"\.(\d{6})\d+([+-])", r".\1\2", time_str)
+    time_str = re.sub(r"([+-]\d{2}):(\d{2})$", r"\1\2", time_str)
+    return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f%z")
 
 
 def _read_events(input_fname, egi_info):
@@ -422,8 +433,8 @@ def _read_mff_header(filepath):
             n_chans = n_chans + 1
     if n_chans != summaryinfo["n_channels"]:
         raise RuntimeError(
-            "Number of defined channels (%d) did not match the "
-            "expected channels (%d)" % (n_chans, summaryinfo["n_channels"])
+            f"Number of defined channels ({n_chans}) did not match the expected "
+            f"channels ({summaryinfo['n_channels']})"
         )
 
     # Check presence of PNS data
@@ -818,8 +829,8 @@ class RawMff(BaseRaw):
                 annot["description"].append("BAD_EGI_PSG")
             elif pns_samples != eeg_samples:
                 raise RuntimeError(
-                    "PNS samples (%d) did not match EEG samples (%d)"
-                    % (pns_samples, eeg_samples)
+                    f"PNS samples ({pns_samples}) did not match EEG samples "
+                    f"({eeg_samples})"
                 )
 
         super().__init__(
@@ -1272,7 +1283,8 @@ def _import_mffpy(why="read averaged .mff files"):
         def _patched_parse_time_str(cls, txt):
             """Parse time string with support for 9-decimal nanoseconds."""
             # Truncate nanoseconds to 6 decimal places if present
-            # e.g., "2017-09-20T09:55:44.072000000+01:00" -> "2017-09-20T09:55:44.072000+01:00"
+            # e.g. "2017-09-20T09:55:44.072000000+01:00" ->
+            # "2017-09-20T09:55:44.072000+01:00"
             if txt and "." in txt:
                 txt = re.sub(r"\.(\d{6})\d+([+-])", r".\1\2", txt)
             return original_parse_time_str(txt)
