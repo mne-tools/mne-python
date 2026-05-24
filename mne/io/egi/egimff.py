@@ -83,6 +83,13 @@ def _parse_egi_datetime(time_str):
     return datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f%z")
 
 
+def _get_mff_reader(input_fname):
+    mffpy = _import_mffpy()
+    mff_reader = mffpy.Reader(input_fname)
+    mff_reader.set_unit("EEG", "V")  # XXX: set PNS unit
+    return mff_reader
+
+
 def _read_events(input_fname, egi_info):
     """Read EGI event tracks from an MFF directory."""
     from mffpy.xml_files import XML, EventTrack
@@ -155,13 +162,6 @@ def _read_events(input_fname, egi_info):
             egi_events[event_idx, np.array(mff_events[code], dtype=int)] = 1
     egi_info["event_codes"] = event_codes
     return egi_events, egi_info, mff_events
-
-
-def _get_mff_reader(input_fname):
-    mffpy = _import_mffpy()
-    mff_reader = mffpy.Reader(input_fname)
-    mff_reader.set_unit("EEG", "V")  # XXX: set PNS unit
-    return mff_reader
 
 
 def _get_montage(mff_reader):
@@ -316,6 +316,25 @@ def _get_annotations(mff_reader, mne_info):
     event_annots = _get_event_annotations(mff_reader, mne_info)
     gap_annots = _get_gap_annotations(mff_reader)
     return event_annots + gap_annots
+
+
+def _read_mff(input_fname):
+    """Read EGI MFF file using the mffpy-backed helpers.
+
+    Returns
+    -------
+    eeg : array-like
+        Raw EEG data as returned by `_get_eeg_data`.
+    info : dict
+        MNE `info` structure built by `_get_info`.
+    annotations : instance of `mne.Annotations`
+        Annotations built from events and gaps via `_get_annotations`.
+    """
+    mff_reader = _get_mff_reader(input_fname)
+    eeg = _get_eeg_data(mff_reader)
+    info = _get_info(mff_reader)
+    annotations = _get_annotations(mff_reader, info)
+    return eeg, info, annotations
 
 
 def _read_mff_header(filepath):
