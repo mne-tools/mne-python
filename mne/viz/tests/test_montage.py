@@ -63,10 +63,10 @@ def test_plot_montage():
 @pytest.mark.parametrize(
     "name, n",
     [
-        ("standard_1005", 342),
-        ("standard_postfixed", 85),
-        ("standard_primed", 85),
-        ("standard_1020", 93),
+        ("colin27_1005", 342),
+        ("colin27_postfixed", 85),
+        ("colin27_primed", 85),
+        ("colin27_1020", 93),
     ],
 )
 def test_plot_defect_montage(name, n):

@@ -501,7 +501,9 @@ def test_method_str():
     raw.interpolate_bads(method="spline")
 
 
-@pytest.mark.parametrize("montage_name", ["biosemi16", "standard_1020"])
+@pytest.mark.parametrize(
+    "montage_name", ["biosemi16", "spherical_1005", "colin27_1020"]
+)
 @pytest.mark.parametrize("method", ["spline", "MNE"])
 @pytest.mark.parametrize("data_type", ["raw", "epochs", "evoked"])
 def test_interpolate_to_eeg(montage_name, method, data_type):
