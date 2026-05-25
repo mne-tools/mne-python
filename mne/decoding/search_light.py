@@ -755,17 +755,14 @@ def _gl_score(estimators, scoring, X, y, pb):
     # compare `type(est).score.__qualname__` rather than `.__name__` because
     # the bare name is "score" no matter which class defined the method. A bare
     # method has qualname "ClassifierMixin.score", whereas any override
-    # resolves to "<Subclass>.score". We only take over bare methods.
+    # resolves to "<Subclass>.score". We only override the bare implementation.
     if len(estimators) and getattr(scoring, "_score_func", None) is None:
         qname = getattr(type(estimators[0]).score, "__qualname__", "")
         if qname == "ClassifierMixin.score":
             scoring = check_scoring(estimators[0], "accuracy")
 
-    # Detect whether we can batch the estimator. Recognised:
-    # * predict,
-    # * predict_proba
-    # * decision_function
-    # * "default" (= predict)
+    # Detect whether we can batch the estimator. Supported methods:
+    # * predict, predict_proba, decision_function, * "default" (= predict),
     # * A tuple of those: roc_auc = ("decision_function", "predict_proba")
     score_func = getattr(scoring, "_score_func", None)
     rm = getattr(scoring, "_response_method", None)
@@ -780,8 +777,7 @@ def _gl_score(estimators, scoring, X, y, pb):
         response_method = None
     can_batch = score_func is not None and response_method is not None
 
-    # If we can't batch we do a simple nested loop.
-    # Covers scoring=None / unrecognised scorers
+    # If we can't batch, fall back to a simple nested loop for scoring
     if not can_batch:
         for jj in range(n_iter):
             for ii, est in enumerate(estimators):
@@ -792,13 +788,16 @@ def _gl_score(estimators, scoring, X, y, pb):
                 pb.update(jj * n_train + ii + 1)
         return score
 
-    # We can batch; the logic is: reshape X, predict once, reshape back, score
-    # First: stack X across slices for one batched response call per estimator
+    # If we can batch; the logic is: reshape X; for each estimator: predict;
+    # reshape back; score with batching if we can and with a loop if not.
+    # Use the provided response method, or pick the first one supported
+    # by the estimator
+    # Collapse the last dimension into the sample dimension:
+    # (n_trials, ..., n_times) -> (n_trials * n_times, ...)
     X_stack = np.moveaxis(X, -1, 1)
     X_stack = X_stack.reshape(n_sample * n_iter, *X_stack.shape[2:])
 
-    # Use the provided response method, or pick the first one supported
-    # by the estimator
+    # Resolve the prediction method to call later.
     if isinstance(response_method, str):
         method = response_method
     else:
@@ -807,12 +806,13 @@ def _gl_score(estimators, scoring, X, y, pb):
                 method = m
                 break
 
-    # Ensures score_func(..., **kwargs) doesn't crash when scoring._kwargs=None
+    # Extract scoring args if any. Don't batch if non-default arguments; also
+    # ensures score_func(..., **kwargs) won't crash when scoring._kwargs=None
     kwargs = scoring._kwargs or {}
 
-    # Batched path: when we recognise score_func, build `batched_score` that
-    # scores all n_iter slices in a single vectorised reduction. it stays None
-    # for unrecognised scorers which falls back to nested loops
+    # When we recognise score_func, we build `batched_score` that scores in a
+    # single vectorised reduction.
+    # `batched_score`=None for unrecognised scorers: fall back to nested loops
     sign = scoring._sign
     batched_score = None
     if not kwargs and y.ndim == 1:
@@ -849,6 +849,8 @@ def _gl_score(estimators, scoring, X, y, pb):
                             / (n_pos * n_neg)
                         )
 
+    # For each estimator: predict, then score either vectorially or
+    # slice-by-slice.
     for ii, est in enumerate(estimators):
         y_pred = getattr(est, method)(X_stack)
         # predict_proba returns probabilities for both classes; use the
@@ -857,12 +859,12 @@ def _gl_score(estimators, scoring, X, y, pb):
             y_pred = y_pred[:, 1]
         # Now, reshape back the prediction, then score
         y_pred = y_pred.reshape((n_sample, n_iter) + y_pred.shape[1:])
-        # Either we can score with batching (if) or we loop again (else)
+        # Use vectorized scoring when available; otherwise score slice-by-slice.
         if batched_score is not None:
-            row = batched_score(y_pred)
+            _score = batched_score(y_pred)
             if ii == 0:
-                score = np.zeros(score_shape, row.dtype)
-            score[ii] = row
+                score = np.zeros(score_shape, _score.dtype)
+            score[ii] = _score
             pb.update((ii + 1) * n_iter)
         else:
             for jj in range(n_iter):
