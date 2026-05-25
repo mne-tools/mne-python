@@ -141,6 +141,14 @@ raw_new_ref.plot()
 raw_avg_ref = raw.copy().set_eeg_reference(ref_channels="average")
 raw_avg_ref.plot()
 
+# .. note::
+#     When computing an average reference, if the dataset does not include
+#     the original reference electrode, the average will be biased because the
+#     missing channel is ignored. To avoid this, first add a zero-valued
+#     reference channel using :func:`mne.add_reference_channels`. This ensures
+#     that all intended channels, including the original reference, contribute
+#     correctly to the average.
+
 # %%
 # .. _section-avg-ref-proj:
 #
