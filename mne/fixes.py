@@ -136,19 +136,6 @@ def _safe_svd(A, **kwargs):
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
-def _csc_array_cast(x):
-    from scipy.sparse import csc_array
-
-    return csc_array(x)
-
-
-# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
-def _eye_array(n, *, format="csr"):  # noqa: A002
-    from scipy import sparse
-
-    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
-
-
 ###############################################################################
 # NumPy Generator (NumPy 1.17)
 
@@ -707,7 +694,7 @@ def _close_event(fig):
 
 
 ###############################################################################
-# SciPy 1.14+ minimum_phase half=True option
+# TODO VERSION SciPy 1.14+ minimum_phase half=True option
 
 
 def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
@@ -778,8 +765,7 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
 
 
 ###############################################################################
-# TODO VERSION: Can be removed once pymatreader >= 1.2.2 is the minimum
-# supported version.
+# TODO VERSION: Can be removed once pymatreader >= 1.2.2 is the min version
 
 
 def _whosmat(fname):
@@ -898,6 +884,8 @@ def _whosmat_hdf5(fname):
 # workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
 # we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
 # from the file-like object.
+
+
 def read_from_file_or_buffer(
     file: str | bytes | os.PathLike | io.IOBase,
     dtype: numpy.typing.DTypeLike = float,

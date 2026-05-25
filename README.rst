@@ -75,7 +75,7 @@ The minimum required dependencies to run MNE-Python are:
 - `Python <https://www.python.org>`__ ≥ 3.10
 - `NumPy <https://numpy.org>`__ ≥ 1.26
 - `SciPy <https://scipy.org>`__ ≥ 1.13
-- `Matplotlib <https://matplotlib.org>`__ ≥ 3.8
+- `Matplotlib <https://matplotlib.org>`__ ≥ 3.9
 - `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
 - `tqdm <https://tqdm.github.io>`__ ≥ 4.66
 - `Jinja2 <https://palletsprojects.com/p/jinja/>`__ ≥ 3.1

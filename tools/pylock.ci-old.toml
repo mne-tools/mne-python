@@ -448,12 +448,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/ac/22/0fc6119373ee933
 
 [[packages]]
 name = "scikit-learn"
-version = "1.4.0"
-sdist = { url = "https://files.pythonhosted.org/packages/a0/25/f95b39549240d07c7fefa2ab0f81ac418f0ea192c53334f655bbed5015f9/scikit-learn-1.4.0.tar.gz", upload-time = 2024-01-18T09:22:23Z, size = 7706781, hashes = { sha256 = "d4373c984eba20e393216edd51a3e3eede56cbe93d4247516d205643c3b93121" } }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/61/047b353f0ad550226ef962da182b4a09b689eb6df6bd84a03e44f9ee95bb/scikit_learn-1.4.0-1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2024-01-18T20:53:12Z, size = 12113336, hashes = { sha256 = "e98632da8f6410e6fb6bf66937712c949b4010600ccd3f22a5388a83e610cc3c" } },
-    { url = "https://files.pythonhosted.org/packages/73/b9/3cb1d6aa07d10c66d8ab6d990163e973b3d29a945418058104affad3d4b6/scikit_learn-1.4.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2024-01-18T09:21:34Z, size = 12113327, hashes = { sha256 = "0aba2a20d89936d6e72d95d05e3bf1db55bca5c5920926ad7b92c34f5e7d3bbe" } },
-]
+version = "1.5.0"
+sdist = { url = "https://files.pythonhosted.org/packages/bf/8a/06e499bca463905000f50e461c9445e949aafdd33ea3b62024aa2238b83d/scikit_learn-1.5.0.tar.gz", upload-time = 2024-05-21T16:34:07Z, size = 7820839, hashes = { sha256 = "789e3db01c750ed6d496fa2db7d50637857b451e57bcae863bff707c1247bef7" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/1e/7d/1a2ea8eb5b4df373c30c7418cf26305a4a05e2a0e56c80a8043b791595f3/scikit_learn-1.5.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", upload-time = 2024-05-21T16:33:13Z, size = 13343697, hashes = { sha256 = "2c75ea812cd83b1385bbfa94ae971f0d80adb338a9523f6bbcb5e0b0381151d4" } }]
 
 [[packages]]
 name = "scipy"
