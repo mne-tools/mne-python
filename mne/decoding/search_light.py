@@ -793,7 +793,7 @@ def _gl_score(estimators, scoring, X, y, pb):
     # Use the provided response method, or pick the first one supported
     # by the estimator
     # Collapse the last dimension into the sample dimension:
-    # (n_trials, ..., n_times) -> (n_trials * n_times, ...)
+    # (n_sample, ..., n_iter) -> (n_sample * n_iter, ...)
     X_stack = np.moveaxis(X, -1, 1)
     X_stack = X_stack.reshape(n_sample * n_iter, *X_stack.shape[2:])
 
