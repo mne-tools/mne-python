@@ -414,6 +414,10 @@ def set_eeg_reference(
         logger.info("Applying a custom dict-based reference.")
         return _apply_dict_reference(inst, ref_channels)
 
+    # We need 'ref_channels' to be a list, even for a single channel name.
+    if isinstance(ref_channels, str) and ref_channels not in ("average", "REST"):
+        ref_channels = [ref_channels]
+
     ch_type = _get_ch_type(inst, ch_type)
 
     if projection:  # average reference projector
