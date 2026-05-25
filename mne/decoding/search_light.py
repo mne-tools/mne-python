@@ -788,16 +788,14 @@ def _gl_score(estimators, scoring, X, y, pb):
                 pb.update(jj * n_train + ii + 1)
         return score
 
-    # If we can batch; the logic is: reshape X; for each estimator: predict;
+    # If we batch, the logic is: reshape X; for each estimator: predict;
     # reshape back; score with batching if we can and with a loop if not.
-    # Use the provided response method, or pick the first one supported
-    # by the estimator
-    # Collapse the last dimension into the sample dimension:
+    # Collapse the n_iter into the n_sample dimension:
     # (n_sample, ..., n_iter) -> (n_sample * n_iter, ...)
     X_stack = np.moveaxis(X, -1, 1)
     X_stack = X_stack.reshape(n_sample * n_iter, *X_stack.shape[2:])
 
-    # Resolve the prediction method to call later.
+    # Resolve the prediction method to call later
     if isinstance(response_method, str):
         method = response_method
     else:
