@@ -46,10 +46,7 @@ from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTab
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import vtkCellDataToPointData, vtkGlyph3D
-from vtkmodules.vtkFiltersGeneral import (
-    vtkMarchingContourFilter,
-    vtkTransformPolyDataFilter,
-)
+from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
     vtkArrowSource,
@@ -71,6 +68,13 @@ from vtkmodules.vtkRenderingCore import (
     vtkVolume,
 )
 from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
+
+try:
+    from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
+except ImportError:  # TODO VERSION VTK 9.7+
+    from vtkmodules.vtkFiltersGeneral import (
+        vtkTransformPolyDataFilter as vtkTransformFilter,
+    )
 
 _FIGURES = dict()
 
@@ -213,7 +217,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         from .._3d import _get_3d_option
 
         # TODO VERSION change whenever PyVista min gets updated:
-        _require_version("pyvista", "use 3D rendering", "0.42")
+        _require_version("pyvista", "use 3D rendering", "0.43")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         if platform.system() == "Darwin":
@@ -694,7 +698,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             if tr is not None:
                 # fix orientation
                 glyph.Update()
-                trp = vtkTransformPolyDataFilter()
+                trp = vtkTransformFilter()
                 trp.SetInputData(glyph.GetOutput())
                 trp.SetTransform(tr)
                 glyph = trp
@@ -720,12 +724,24 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor, mesh
 
     def text2d(
-        self, x_window, y_window, text, size=14, color="white", justification=None
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
     ):
         size = 14 if size is None else size
         position = (x_window, y_window)
         actor = self.plotter.add_text(
-            text, position=position, font_size=size, color=color, viewport=True
+            text=text,
+            position=position,
+            font_size=size,
+            color=color,
+            viewport=True,
+            font_file=font_file,
         )
         if isinstance(justification, str):
             if justification == "left":
@@ -1251,7 +1267,7 @@ def _arrow_glyph(grid, factor):
     # fix position
     tr = vtkTransform()
     tr.Translate(0.5, 0.0, 0.0)
-    trp = vtkTransformPolyDataFilter()
+    trp = vtkTransformFilter()
     trp.SetInputConnection(glyph.GetOutputPort())
     trp.SetTransform(tr)
     trp.Update()

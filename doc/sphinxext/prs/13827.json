@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a432320f1c8f1ba6356ac696f76b012244eba4a3",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 3
+    },
+    "examples/preprocessing/plot_epoch_quality.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

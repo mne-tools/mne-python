@@ -834,13 +834,16 @@ def test_make_forward_no_meg(tmp_path):
     src = setup_volume_source_space(pos=pos)
     bem = make_sphere_model()
     trans = None
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1020")
     info = create_info(["Cz"], 1000.0, "eeg").set_montage(montage)
+    assert info["dev_head_t"] is None  # gh-13604
     fwd = make_forward_solution(info, trans, src, bem)
+    assert fwd["info"]["dev_head_t"] is None
     fname = tmp_path / "test-fwd.fif"
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     assert_allclose(fwd["sol"]["data"], fwd_read["sol"]["data"])
+    assert fwd_read["info"]["dev_head_t"] is None
 
 
 def test_use_coil_def(tmp_path):

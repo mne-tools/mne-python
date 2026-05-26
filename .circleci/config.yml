@@ -131,7 +131,8 @@ jobs:
       - run:
           name: Check Qt
           command: |
-            ./tools/check_qt_import.sh PyQt6
+            set -x
+            ./tools/check_qt_import.sh ${MNE_QT_BACKEND}
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:

@@ -16,7 +16,6 @@ from numpy.testing import (
 from scipy import linalg, sparse, stats
 
 from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
-from mne.fixes import _eye_array
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
     f_oneway,
@@ -381,7 +380,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
             )
         )
         # nesting here is time then space:
-        adjacency_2a = combine_adjacency(_eye_array(2), adjacency)
+        adjacency_2a = combine_adjacency(sparse.eye_array(2), adjacency)
         assert_array_equal(
             adjacency_2.toarray().astype(bool), adjacency_2a.toarray().astype(bool)
         )

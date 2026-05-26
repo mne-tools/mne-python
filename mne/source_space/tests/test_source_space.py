@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 from pathlib import Path
-from shutil import copytree
 
 import numpy as np
 import pytest
@@ -43,7 +42,7 @@ from mne.source_space import (
 )
 from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.utils import _record_warnings, requires_mne, run_subprocess
+from mne.utils import _record_warnings, copytree_rw, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -563,7 +562,7 @@ def test_setup_source_space(tmp_path):
 def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
     pytest.importorskip("nibabel")
-    copytree(subjects_dir / "sample", tmp_path / "sample")
+    copytree_rw(subjects_dir / "sample", tmp_path / "sample")
     args = [] if spacing == 7 else ["--spacing", str(spacing)]
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
     monkeypatch.setenv("SUBJECT", "sample")

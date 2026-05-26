@@ -489,12 +489,15 @@ class Annotations:
                 "orig_time should be the same to add/concatenate 2 annotations (got "
                 f"{self.orig_time} != {other.orig_time})"
             )
+        extras = other.extras
+        if hasattr(other, "hed_string"):
+            extras = _hed_extras_from_hed_annotations(other)
         return self.append(
             other.onset,
             other.duration,
             other.description,
             other.ch_names,
-            extras=other.extras,
+            extras=extras,
         )
 
     def __iter__(self):
@@ -982,6 +985,11 @@ class _HEDStrings(list):
         self._objs.append(hs)
 
 
+def _hed_extras_from_hed_annotations(annot):
+    """Convert HEDAnnotations hed_string data into extras dicts with "HED" key."""
+    return [{**d, "HED": str(hs)} for d, hs in zip(annot.extras, annot.hed_string)]
+
+
 @fill_doc
 class HEDAnnotations(Annotations):
     """Annotations object for annotating segments of raw data with HED tags.
@@ -1024,6 +1032,16 @@ class HEDAnnotations(Annotations):
 
     Notes
     -----
+    When concatenating annotations using the ``+`` operator or ``+=``:
+
+    - ``HEDAnnotations + HEDAnnotations`` returns a
+      :class:`~mne.HEDAnnotations`.
+    - ``HEDAnnotations + Annotations`` returns a plain
+      :class:`~mne.Annotations`, with HED strings preserved in
+      ``extras["HED"]``.
+    - ``Annotations + HEDAnnotations`` returns a plain
+      :class:`~mne.Annotations`, with HED strings preserved in
+      ``extras["HED"]``.
 
     .. versionadded:: 1.12
     """
@@ -1211,9 +1229,18 @@ class HEDAnnotations(Annotations):
     def __iadd__(self, other):
         """Add (concatenate) two HEDAnnotations objects in-place."""
         if not isinstance(other, type(self)):
-            raise TypeError(
-                f"Cannot concatenate {type(self).__name__} and {type(other).__name__}."
+            # Convert self to plain Annotations, preserving HED in extras
+            extras = _hed_extras_from_hed_annotations(self)
+            result = Annotations(
+                onset=self.onset,
+                duration=self.duration,
+                description=self.description,
+                orig_time=self.orig_time,
+                ch_names=self.ch_names,
+                extras=extras,
             )
+            result += other
+            return result
         if len(self) == 0:
             self._orig_time = other.orig_time
         if self.orig_time != other.orig_time:
@@ -1769,7 +1796,12 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
+    fname,
+    sfreq="auto",
+    uint16_codec=None,
+    encoding="utf8",
+    ignore_marker_types=False,
+    data_format="auto",
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1803,6 +1835,8 @@ def read_annotations(
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
         descriptions). Defaults to ``False``.
+    data_format : str
+        Only used by CNT files, see :func:`mne.io.read_raw_cnt` for details.
 
     Returns
     -------
@@ -1847,6 +1881,7 @@ def read_annotations(
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
         ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".cnt": {"data_format": data_format},
         ".dat": {"sfreq": sfreq},
         ".cdt": {"sfreq": sfreq},
         ".cef": {"sfreq": sfreq},

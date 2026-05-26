@@ -28,7 +28,7 @@ from mne.preprocessing.nirs import (
     source_detector_distances,
 )
 from mne.transforms import _get_trans, apply_trans
-from mne.utils import catch_logging
+from mne.utils import _chmod_rw_R, catch_logging
 
 testing_path = data_path(download=False)
 # SfNIRS files
@@ -252,8 +252,9 @@ def test_snirf_against_nirx():
 @requires_testing_data
 def test_snirf_nonstandard(tmp_path):
     """Test custom tags."""
-    shutil.copy(sfnirs_homer_103_wShort, str(tmp_path) + "/mod.snirf")
     fname = str(tmp_path) + "/mod.snirf"
+    shutil.copy(sfnirs_homer_103_wShort, fname)
+    _chmod_rw_R(tmp_path)
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
         f.create_dataset("nirs/metaDataTags/middleName", data=[b"X"])
@@ -287,8 +288,9 @@ def test_snirf_nonstandard(tmp_path):
 @requires_testing_data
 def test_snirf_empty_landmark_labels(tmp_path):
     """Test reading SNIRF files with empty landmarkLabels (gh-13627)."""
-    shutil.copy(sfnirs_homer_103_wShort, tmp_path / "empty_labels.snirf")
     fname = tmp_path / "empty_labels.snirf"
+    shutil.copy(sfnirs_homer_103_wShort, fname)
+    _chmod_rw_R(tmp_path)
 
     # Modify file to have landmarkPos3D but empty/scalar landmarkLabels
     with h5py.File(fname, "r+") as f:
@@ -586,6 +588,7 @@ def test_sample_rate_jitter(tmp_path):
     # Create a clean copy and ensure it loads without error
     new_file = tmp_path / "snirf_nirsport2_2019.snirf"
     copy2(snirf_nirsport2_20219, new_file)
+    _chmod_rw_R(tmp_path)
     read_raw_snirf(new_file)
 
     # Edit the file and add jitter within tolerance (0.99%)

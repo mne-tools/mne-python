@@ -11,13 +11,17 @@ PHANTOM_MANIFEST_PATH = Path(__file__).parent
 
 
 @verbose
-def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
+def fetch_phantom(kind="otaniemi", subjects_dir=None, *, verbose=None):
     """Fetch and update a phantom subject.
 
     Parameters
     ----------
     kind : str
         The kind of phantom to fetch. Can only be ``'otaniemi'`` (default).
+
+        .. versionchanged:: 1.12
+           The default is now properly set in the signature so it doesn't need to be
+           provided.
     %(subjects_dir)s
     %(verbose)s
 

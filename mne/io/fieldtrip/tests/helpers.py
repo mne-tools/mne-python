@@ -49,7 +49,7 @@ info_long_fields = ("hpi_meas", "projs")
 
 system_to_reader_fn_dict = {
     "neuromag306": mne.io.read_raw_fif,
-    "CNT": partial(mne.io.read_raw_cnt),
+    "CNT": partial(mne.io.read_raw_cnt, data_format="int16"),
     "CTF": partial(mne.io.read_raw_ctf, clean_names=True),
     "BTI": partial(
         mne.io.read_raw_bti,

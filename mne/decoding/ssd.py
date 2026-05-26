@@ -14,10 +14,11 @@ from ..utils import (
     _validate_type,
     fill_doc,
     logger,
+    verbose,
 )
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
 
 
 @fill_doc
@@ -127,7 +128,7 @@ class SSD(_GEDTransformer):
         self.restr_type = restr_type
         self.rank = rank
 
-        cov_callable = partial(
+        self.cov_callable = partial(
             _ssd_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
@@ -139,12 +140,44 @@ class SSD(_GEDTransformer):
             rank=rank,
             sort_by_spectral_ratio=sort_by_spectral_ratio,
         )
+        self.mod_ged_callable = _ssd_mod
         super().__init__(
             n_components=n_components,
-            cov_callable=cov_callable,
-            mod_ged_callable=_ssd_mod,
+            cov_callable=self.cov_callable,
+            mod_ged_callable=self.mod_ged_callable,
             restr_type=restr_type,
         )
+
+    _required_state_keys = (
+        "cov_method_params",
+        "filt_params_noise",
+        "filt_params_signal",
+        "info",
+        "n_components",
+        "n_fft",
+        "picks",
+        "rank",
+        "reg",
+        "restr_type",
+        "return_filtered",
+        "sort_by_spectral_ratio",
+    )
+
+    def _restore_callables(self):
+        """Restore SSD-specific callables after loading state."""
+        self.cov_callable = partial(
+            _ssd_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            picks=self.picks,
+            n_fft=self.n_fft,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            rank=self.rank,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        )
+        self.mod_ged_callable = _ssd_mod
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -350,3 +383,30 @@ class SSD(_GEDTransformer):
         pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+@verbose
+def read_ssd(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.SSD` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to an SSD file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    ssd : instance of :class:`~mne.decoding.SSD`
+        The loaded SSD object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.SSD.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, SSD, verbose=verbose)

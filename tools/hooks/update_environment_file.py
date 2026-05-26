@@ -22,8 +22,10 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
         deps |= set(section_deps)
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
-deps |= {"pip", "mamba", "nomkl"}
-deps -= {"nest-asyncio2", "pymef"}  # not on conda-forge
+deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
+# not on conda-forge
+pip_deps = {"pymef"}
+deps -= pip_deps
 
 
 def remove_spaces(version_spec):
@@ -47,30 +49,35 @@ req_python = remove_spaces(pyproj["project"]["requires-python"])
 
 # split package name from version spec
 translations = dict(neo="python-neo")
-pip_deps = {"      - nest-asyncio2", "      - pymef"}
-conda_deps = set()
+conda_dep_lines = set()
+version_spec_overrides = {
+    # Help the solver work faster by specifying these (should be updated periodically):
+    "PySide6": "==6.10.2",
+    "vtk": "==9.6.0",
+}
+for key in version_spec_overrides:
+    assert any(dep.startswith(key) for dep in deps), (
+        f"Need to adjust code below if {key} is not a dependency: {deps}"
+    )
 for dep in deps:
     package_name, version_spec = split_dep(dep)
+    version_spec = version_spec_overrides.get(package_name, version_spec)
     # handle package name differences
     package_name = translations.get(package_name, package_name)
-    # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
-    # `environment.yaml` breaks the solver. 6.9.1 has a bug, and 6.9.2 needs newer
     # C deps that mean we need to upgrade VTK etc.
-    if package_name == "PySide6":
-        version_spec = "!=6.9.1"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
-        pip_deps.add(f"    {line}")
+        pip_deps.add(line[4:])
     else:
-        conda_deps.add(line)
+        conda_dep_lines.add(line)
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
 pip_section = f"""\
   - pip:
-{newline.join(sorted(pip_deps, key=str.casefold))}
+{newline.join(sorted((f"      - {dep}" for dep in pip_deps), key=str.casefold))}
 """
 pip_section = pip_section if len(pip_deps) else ""
 # prepare the env file
@@ -81,7 +88,7 @@ channels:
   - conda-forge
 dependencies:
   - python {req_python}
-{newline.join(sorted(conda_deps, key=str.casefold))}
+{newline.join(sorted(conda_dep_lines, key=str.casefold))}
 {pip_section}"""  # noqa: E501
 
 (repo_root / "environment.yml").write_text(env)

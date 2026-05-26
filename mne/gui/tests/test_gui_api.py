@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
+
 import pytest
 
 from mne.utils import _check_qt_version
@@ -10,7 +12,7 @@ from mne.utils import _check_qt_version
 pytest.importorskip("nibabel")
 
 
-def test_gui_api(renderer_notebook, nbexec, *, backend="qt"):
+def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     """Test GUI API."""
     import contextlib
     import warnings
@@ -386,6 +388,8 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     # TODO: After merging https://github.com/mne-tools/mne-python/pull/11567
     # The Qt CI run started failing about 50% of the time, so let's skip this
     # for now.
-    if api == "PySide6":
+    if (
+        os.getenv("AZURE_CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+    ) and api == "PySide6":
         pytest.skip("PySide6 causes segfaults on CIs sometimes")
-    test_gui_api(None, None, backend="qt")
+    test_gui_api_notebook(None, None, backend="qt")

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "dd7612c104429bb2638e2e45fcd9a9e66de0b6cd",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13778.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

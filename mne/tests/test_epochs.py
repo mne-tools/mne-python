@@ -4832,20 +4832,21 @@ def test_apply_function():
     info = mne.create_info(n_channels, 1000.0, "eeg")
     epochs = mne.EpochsArray(data, info, events)
     data_epochs = epochs.get_data()
+    picks = np.arange(3)
+    non_picks = np.arange(3, n_channels)
 
     # apply_function to all channels at once
     def fun(data):
         """Reverse channel order without changing values."""
         return np.eye(data.shape[1])[::-1] @ data
 
-    want = data_epochs[:, ::-1]
-    got = epochs.apply_function(fun, channel_wise=False).get_data()
+    want = np.concatenate(
+        [data_epochs[:, picks][:, ::-1], data_epochs[:, non_picks]], axis=1
+    )  # only reverse channel order of picks
+    got = epochs.apply_function(fun, picks=picks, channel_wise=False).get_data()
     assert_array_equal(want, got)
 
     # apply_function channel-wise (to first 3 channels) by replacing with mean
-    picks = np.arange(3)
-    non_picks = np.arange(3, n_channels)
-
     def fun(data):
         return np.full_like(data, data.mean())
 

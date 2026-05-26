@@ -21,12 +21,13 @@ from numpy.testing import (
 
 import mne.channels.montage
 from mne import (
-    __file__ as _mne_file,
-)
-from mne import (
+    EpochsArray,
     create_info,
     pick_types,
     read_evokeds,
+)
+from mne import (
+    __file__ as _mne_file,
 )
 from mne._fiff._digitization import (
     _count_points_by_type,
@@ -186,7 +187,7 @@ def test_documented():
     """Test that standard montages are documented."""
     montage_dir = Path(_mne_file).parent / "channels" / "data" / "montages"
     montage_files = Path(montage_dir).glob("*")
-    montage_names = [f.stem for f in montage_files]
+    montage_names = [f.stem for f in montage_files if f.name != "README.md"]
 
     assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
     assert set(montage_names) == set([m.name for m in _BUILTIN_STANDARD_MONTAGES])
@@ -1420,7 +1421,7 @@ def test_set_montage_mgh(rename):
         atol = 3e-3  # different subsets of channel locations
         assert rename == "custom"
         assert len(_MGH60) == 60
-        mon = make_standard_montage("standard_1020")
+        mon = make_standard_montage("colin27_1020")
         assert len(mon._get_ch_pos()) == 94
 
         def renamer(x):
@@ -1433,7 +1434,7 @@ def test_set_montage_mgh(rename):
         raw.set_montage(mon)
 
     if mon is not None:
-        # first two are 'Fp1' and 'Fz', take them from standard_1020.elc --
+        # first two are 'Fp1' and 'Fz', take them from colin27_1020.elc --
         # they should not be changed on load!
         want_pos = [[-29.4367, 83.9171, -6.9900], [0.1123, 88.2470, -1.7130]]
         got_pos = [
@@ -1989,7 +1990,7 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_COUNT = 28
+    EXPECTED_COUNT = 31
 
     montages = get_builtin_montages()
     assert len(montages) == EXPECTED_COUNT
@@ -2145,3 +2146,28 @@ def test_fnirs_montage():
     raw.set_channel_types({ch_name: "eeg" for ch_name in raw.ch_names[-2:]})
     with pytest.raises(ValueError, match="mix of fNIRS"):
         raw.get_montage()
+
+
+def test_set_montage_meg_eeg_no_digitization():
+    """Regression test for GH-12011.
+
+    set_montage() must not crash when MEG+EEG info has EEG reference
+    positions set to the [1, 0, 0] sentinel (digitization was skipped).
+    """
+    ch_names = [f"EEG{i:03d}" for i in range(1, 11)] + ["MEG0111"]
+    ch_types = ["eeg"] * 10 + ["grad"]
+    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types=ch_types)
+
+    # Simulate MEG reader behaviour when digitization is skipped:
+    # EEG ref position (loc[3:6]) is set to the [1, 0, 0] sentinel
+    with info._unlock():
+        for ch in info["chs"]:
+            if ch["ch_name"].startswith("EEG"):
+                ch["loc"][3:6] = [1.0, 0.0, 0.0]
+
+    data = np.zeros((1, len(ch_names), 100))
+    epochs = EpochsArray(data, info)
+
+    # This must not raise IndexError (regression test for GH-12011)
+    montage = make_standard_montage("spherical_1005")
+    epochs.set_montage(montage, on_missing="ignore")

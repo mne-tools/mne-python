@@ -27,17 +27,19 @@ register_assert_rewrite("mne.utils._testing")
 
 # ruff: noqa: E402
 import mne
-from mne import Epochs, pick_types, read_events
+from mne import Epochs, create_info, make_fixed_length_epochs, pick_types, read_events
+from mne._fiff.constants import FIFF
 from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
-from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
+from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
     _assert_no_instances,
     _check_qt_version,
+    _chmod_rw_R,
     _pl,
     _record_warnings,
     _TempDir,
@@ -45,7 +47,6 @@ from mne.utils import (
     numerics,
 )
 from mne.viz._figure import use_browser_backend
-from mne.viz.backends._utils import _init_mne_qtapp
 
 # data from sample dataset
 test_path = testing.data_path(download=False)
@@ -94,7 +95,6 @@ def pytest_configure(config: pytest.Config):
         "ultraslowtest: mark a test as ultraslow or to be run rarely",
         "pgtest: mark a test as relevant for mne-qt-browser",
         "pvtest: mark a test as relevant for pyvistaqt",
-        "allow_unclosed: allow unclosed pyvistaqt instances",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -211,6 +211,7 @@ def pytest_configure(config: pytest.Config):
     # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
     # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
     ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
+    ignore:Implicitly cleaning up.*:ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -547,6 +548,47 @@ def _bias_params(evoked, noise_cov, fwd):
 
 
 @pytest.fixture
+def triaxial_raw():
+    """Create a small triaxial OPM raw for regression tests."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+            [-0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 2000))
+    return RawArray(data, info, verbose="error")
+
+
+@pytest.fixture
+def triaxial_evoked(triaxial_raw):
+    """Create a small triaxial OPM evoked for regression tests."""
+    return make_fixed_length_epochs(triaxial_raw).average()
+
+
+@pytest.fixture
 def garbage_collect():
     """Garbage collect on exit."""
     yield
@@ -707,7 +749,7 @@ def _check_skip_backend(name):
 
 
 @pytest.fixture(scope="session")
-def pixel_ratio():
+def pixel_ratio(qapp):
     """Get the pixel ratio."""
     # _check_qt_version will init an app for us, so no need for us to do it
     if not check_version("pyvista", "0.32") or not _check_qt_version():
@@ -715,8 +757,7 @@ def pixel_ratio():
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow
 
-    app = _init_mne_qtapp()
-    app.processEvents()
+    qapp.processEvents()
     window = QMainWindow()
     window.setAttribute(Qt.WA_DeleteOnClose, True)
     ratio = float(window.devicePixelRatio())
@@ -729,6 +770,7 @@ def subjects_dir_tmp(tmp_path):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
     for key in ("sample", "fsaverage"):
         shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    _chmod_rw_R(tmp_path)
     return str(tmp_path)
 
 
@@ -746,6 +788,7 @@ def subjects_dir_tmp_few(tmp_path):
         shutil.copytree(
             test_path / "subjects" / "sample" / dirname, sample_path / dirname
         )
+    _chmod_rw_R(subjects_path)
     return subjects_path
 
 
@@ -998,6 +1041,7 @@ def brain_gc(request):
     from mne.viz import Brain
 
     ignore = set(id(o) for o in gc.get_objects())
+    vtk_ignores = ("vtkBuffer_IhE",)
     yield
     close_func()
     if not _test_passed(request):
@@ -1012,7 +1056,11 @@ def brain_gc(request):
         except Exception:  # old Python, probably
             pass
         else:
-            if name.startswith("vtk") and id(o) not in ignore:
+            if (
+                name.startswith("vtk")
+                and name not in vtk_ignores
+                and id(o) not in ignore
+            ):
                 bad.append(name)
         del o
     del objs, ignore, Brain
@@ -1094,7 +1142,9 @@ def numba_conditional(monkeypatch, request):
 @pytest.fixture(scope="session")
 def _nbclient():
     try:
+        import jupyter  # noqa
         import nbformat
+        import nest_asyncio2  # noqa
         import trame  # noqa
         from ipywidgets import Button  # noqa
         from jupyter_client import AsyncKernelManager
@@ -1207,24 +1257,20 @@ def nirx_snirf(request):
 
 
 @pytest.fixture
-def qt_windows_closed(request):
+def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    app = _init_mne_qtapp()
-
-    app.processEvents()
+    qapp.processEvents()
     gc.collect()
-    n_before = len(app.topLevelWidgets())
-    marks = set(mark.name for mark in request.node.iter_markers())
+    n_before = len(qapp.topLevelWidgets())
     yield
-    app.processEvents()
+    for _ in range(2):
+        qapp.processEvents()
     gc.collect()
-    if "allow_unclosed" in marks:
-        return
     # Don't check when the test fails
     if not _test_passed(request):
         return
-    widgets = app.topLevelWidgets()
+    widgets = qapp.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
 

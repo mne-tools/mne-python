@@ -17,14 +17,17 @@ please consider posting your questions on our `MNE Forum`_.
 Users and contributors to MNE-Python are expected to follow our
 `code of conduct`_.
 
-The `contributing guide`_ has details on the preferred contribution workflow
+The :ref:`contributing` has details on the preferred contribution workflow
 and the recommended system configuration for a smooth contribution/development
 experience.
+
+.. note::
+    It's a good idea to always reference the version of the contributing guide `on the development version of our website`_, as this will be the most up-to-date.
 
 .. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _`MNE Forum`: https://mne.discourse.group
 .. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
-.. _`contributing guide`: https://mne.tools/dev/development/contributing.html
+.. _`on the development version of our website`: https://mne.tools/dev/development/contributing.html
 
 .. toctree::
    :hidden:

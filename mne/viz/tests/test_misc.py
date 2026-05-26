@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 
 from mne import (
     SourceEstimate,
+    create_info,
     pick_events,
     read_cov,
     read_dipole,
@@ -134,6 +135,12 @@ def test_plot_cov():
     # test complex numbers
     cov["data"] = cov.data * (1 + 1j)
     fig1, fig2 = cov.plot(raw.info)
+
+    # Test no plottable channel types caught
+    raw.del_proj("all")  # allow us to change channel types
+    raw.set_channel_types({ch: "misc" for ch in raw.ch_names}, on_unit_change="ignore")
+    with pytest.raises(RuntimeError, match="No plottable channel types found"):
+        cov.plot(raw.info, exclude=raw.ch_names[6:])
 
 
 @testing.requires_testing_data
@@ -312,18 +319,51 @@ def test_plot_dipole_amplitudes():
     dipoles.plot_amplitudes(show=False)
 
 
-def test_plot_csd():
+@pytest.mark.parametrize(
+    "ch_types",
+    [
+        None,
+        "eeg",
+        "ecog",
+        ["grad", "dbs"],
+        "misc",
+    ],
+)
+def test_plot_csd(ch_types):
     """Test plotting of CSD matrices."""
+    if isinstance(ch_types, list):
+        n_ch_types = len(ch_types)
+        n_ch = 2 * n_ch_types
+        ch_types = np.repeat(ch_types, 2).tolist()
+    else:
+        n_ch = 2
+    ch_names = [f"CH{i + 1}" for i in range(n_ch)]
+    n_data = n_ch * (n_ch + 1) // 2
+
     csd = CrossSpectralDensity(
-        [1, 2, 3],
-        ["CH1", "CH2"],
+        np.arange(1, n_data + 1),
+        ch_names,
         frequencies=[(10, 20)],
         n_fft=1,
         tmin=0,
         tmax=1,
     )
-    plot_csd(csd, mode="csd")  # Plot cross-spectral density
-    plot_csd(csd, mode="coh")  # Plot coherence
+
+    if ch_types is None:
+        info = None
+        expected_n_figs = 1
+    else:
+        info = create_info(ch_names, sfreq=1.0, ch_types=ch_types)
+        unique_types = set(ch_types) if isinstance(ch_types, list) else {ch_types}
+        expected_n_figs = len(unique_types)
+
+    for mode in ("csd", "coh"):
+        if ch_types == "misc":
+            with pytest.raises(RuntimeError, match="No plottable channel types"):
+                plot_csd(csd, info=info, mode=mode, show=False)
+        else:
+            figs = plot_csd(csd, info=info, mode=mode, show=False)
+            assert len(figs) == expected_n_figs
 
 
 @pytest.mark.slowtest  # Slow on Azure

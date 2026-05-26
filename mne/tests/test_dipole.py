@@ -365,6 +365,8 @@ def test_min_distance_fit_dipole():
 
     with pytest.raises(ValueError, match="min_dist should be positive"):
         fit_dipole(evoked, cov, fname_bem, fname_trans, -1.0)
+    with pytest.raises(ValueError, match="not spherical"):
+        fit_dipole(evoked, cov, bem, trans=None)
 
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):

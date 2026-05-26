@@ -20,10 +20,6 @@ MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), "data", "montages")
 _str = "U100"
 
 
-# In standard_1020, T9=LPA, T10=RPA, Nasion is the same as Iz with a
-# sign-flipped Y value
-
-
 def _egi_256(head_size):
     fname = op.join(MONTAGE_PATH, "EGI_256.csd")
     montage = _read_csd(fname, head_size)
@@ -118,6 +114,37 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
     )
 
 
+def _read_spherical_tsv(fname, head_size):
+    ch_names = []
+    pos = []
+    with open(fname) as f:
+        f.readline()  # skip header
+        for row in csv.reader(f, delimiter="\t"):
+            ch_name, x, y, z, *_ = row
+            ch_names.append(ch_name)
+            pos.append((x, y, z))
+    pos = np.array(pos, dtype=float)
+    ch_pos = _check_dupes_odict(ch_names, pos)
+
+    nasion = ch_pos.pop("NAS")
+    lpa = ch_pos.pop("LPA")
+    rpa = ch_pos.pop("RPA")
+
+    if head_size is not None:
+        scale = head_size / np.median(
+            np.linalg.norm(np.array(list(ch_pos.values())), axis=1)
+        )
+        for value in ch_pos.values():
+            value *= scale
+        nasion = nasion * scale
+        lpa = lpa * scale
+        rpa = rpa * scale
+
+    return make_dig_montage(
+        ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
+    )
+
+
 standard_montage_look_up_table = {
     "EGI_256": _egi_256,
     "easycap-M1": partial(_easycap, basename="easycap-M1.txt"),
@@ -138,23 +165,23 @@ standard_montage_look_up_table = {
     "biosemi64": partial(_biosemi, basename="biosemi64.txt"),
     "mgh60": partial(_mgh_or_standard, basename="mgh60.elc", coord_frame="mri"),
     "mgh70": partial(_mgh_or_standard, basename="mgh70.elc", coord_frame="mri"),
-    "standard_1005": partial(
-        _mgh_or_standard, basename="standard_1005.elc", coord_frame="mri"
+    "colin27_1005": partial(
+        _mgh_or_standard, basename="colin27_1005.elc", coord_frame="mri"
     ),
-    "standard_1020": partial(
-        _mgh_or_standard, basename="standard_1020.elc", coord_frame="mri"
+    "colin27_1020": partial(
+        _mgh_or_standard, basename="colin27_1020.elc", coord_frame="mri"
     ),
-    "standard_alphabetic": partial(
-        _mgh_or_standard, basename="standard_alphabetic.elc", coord_frame="mri"
+    "colin27_alphabetic": partial(
+        _mgh_or_standard, basename="colin27_alphabetic.elc", coord_frame="mri"
     ),
-    "standard_postfixed": partial(
-        _mgh_or_standard, basename="standard_postfixed.elc", coord_frame="mri"
+    "colin27_postfixed": partial(
+        _mgh_or_standard, basename="colin27_postfixed.elc", coord_frame="mri"
     ),
-    "standard_prefixed": partial(
-        _mgh_or_standard, basename="standard_prefixed.elc", coord_frame="mri"
+    "colin27_prefixed": partial(
+        _mgh_or_standard, basename="colin27_prefixed.elc", coord_frame="mri"
     ),
-    "standard_primed": partial(
-        _mgh_or_standard, basename="standard_primed.elc", coord_frame="mri"
+    "colin27_primed": partial(
+        _mgh_or_standard, basename="colin27_primed.elc", coord_frame="mri"
     ),
     "artinis-octamon": partial(
         _mgh_or_standard, coord_frame="mri", basename="artinis-octamon.elc"
@@ -164,6 +191,15 @@ standard_montage_look_up_table = {
     ),
     "brainproducts-RNP-BA-128": partial(
         _easycap, basename="brainproducts-RNP-BA-128.txt"
+    ),
+    "spherical_1005": partial(
+        _read_spherical_tsv, op.join(MONTAGE_PATH, "spherical_1005.tsv")
+    ),
+    "spherical_1010": partial(
+        _read_spherical_tsv, op.join(MONTAGE_PATH, "spherical_1010.tsv")
+    ),
+    "spherical_1020": partial(
+        _read_spherical_tsv, op.join(MONTAGE_PATH, "spherical_1020.tsv")
     ),
 }
 

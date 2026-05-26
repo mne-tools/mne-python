@@ -4,7 +4,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import configparser
 import datetime
+import inspect
 import re
 import shutil
 from pathlib import Path
@@ -699,6 +701,202 @@ def test_ignore_marker_types():
         "O  1",
     ]
     assert_array_equal(raw.annotations.description, expected_descriptions)
+
+
+@pytest.mark.parametrize(
+    "overrides, exc, match",
+    [
+        ({"not_a_key": 1}, ValueError, "not present in valid override keys"),
+        (["not", "a", "dict"], TypeError, "must be an instance of dict"),
+        ({"n_channels": 0}, ValueError, "n_channels.*must be"),
+        ({"ch_names": ["A", "A", "B"]}, ValueError, "must contain unique names"),
+        ({"ch_names": list("abcde")}, ValueError, "length 5 but the file declares"),
+        ({"units_fallback": 7}, TypeError, "units_fallback.*str"),
+        ({"data_orientation": "SIDEWAYS"}, ValueError, "Invalid.*data_orientation"),
+        ({"data_format": "PARQUET"}, ValueError, "Invalid.*data_format"),
+        ({"binary_format": "FLOAT_64"}, ValueError, "Invalid.*binary_format"),
+    ],
+)
+def test_overrides_validation(overrides, exc, match):
+    """Bad inputs raise at call time."""
+    with pytest.raises(exc, match=match):
+        read_raw_brainvision(vhdr_path, overrides=overrides)
+
+
+def test_overrides_default_is_none():
+    """The ``overrides`` parameter defaults to ``None``."""
+    sig = inspect.signature(read_raw_brainvision)
+    assert sig.parameters["overrides"].default is None
+
+
+def test_overrides_empty_dict_unchanged():
+    """``overrides={}`` matches the no-overrides read exactly."""
+    baseline = read_raw_brainvision(vhdr_path)
+    raw = read_raw_brainvision(vhdr_path, overrides={})
+    assert raw.info["nchan"] == baseline.info["nchan"]
+    assert raw.info["sfreq"] == baseline.info["sfreq"]
+    assert raw.ch_names == baseline.ch_names
+    assert raw.info["meas_date"] == baseline.info["meas_date"]
+    assert len(raw.annotations) == len(baseline.annotations)
+
+
+def test_overrides_units_fallback(tmp_path):
+    """Truncated [Channel Infos] raises by default; ``units_fallback`` recovers."""
+    # Drop the last two channel rows from the .vhdr
+    use_vhdr = tmp_path / "test.vhdr"
+    shutil.copy(eeg_path, tmp_path / "test.eeg")
+    shutil.copy(vmrk_path, tmp_path / "test.vmrk")
+    skip = (b"Ch31=", b"Ch32=")
+    with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
+        for line in fin:
+            if not line.startswith(skip):
+                fout.write(line)
+
+    with pytest.raises(RuntimeError, match=r"Incomplete \[Channel Infos\]"):
+        read_raw_brainvision(use_vhdr)
+    raw = read_raw_brainvision(use_vhdr, overrides={"units_fallback": "µV"})
+    assert raw.ch_names[-2:] == ["Ch31", "Ch32"]
+    assert raw._orig_units["Ch31"] == "µV"
+
+
+def test_overrides_apply_simple_keys():
+    """Simple overrides take effect."""
+    raw = read_raw_brainvision(vhdr_path, overrides={"sfreq": 250.0})
+    assert raw.info["sfreq"] == 250.0
+
+    new_names = [f"E{i}" for i in range(32)]
+    raw = read_raw_brainvision(vhdr_path, overrides={"ch_names": new_names})
+    assert raw.ch_names == new_names
+
+
+def test_overrides_file_paths(tmp_path):
+    """``data_fname`` and ``marker_fname`` redirect the sibling file lookups."""
+    shutil.copy(vhdr_path, tmp_path / "test.vhdr")
+    shutil.copy(eeg_path, tmp_path / "renamed.eeg")
+    shutil.copy(vmrk_path, tmp_path / "renamed.vmrk")
+    use_vhdr = tmp_path / "test.vhdr"
+
+    overrides = {"data_fname": "renamed.eeg", "marker_fname": "renamed.vmrk"}
+    raw = read_raw_brainvision(use_vhdr, overrides=overrides, preload=True)
+    assert raw.get_data().shape[0] == 32
+    assert len(raw.annotations) > 0
+
+    # marker_fname=False skips annotation reading entirely
+    (tmp_path / "renamed.vmrk").unlink()
+    raw = read_raw_brainvision(
+        use_vhdr,
+        overrides={"data_fname": "renamed.eeg", "marker_fname": False},
+    )
+    assert len(raw.annotations) == 0
+    assert raw.info["meas_date"] is None
+
+
+@pytest.mark.parametrize(
+    "key, override, header_key, expected_exc, check",
+    [
+        # MarkerFile is optional per BV spec → recoverable without an override
+        (
+            "marker_fname",
+            False,
+            "MarkerFile",
+            None,
+            lambda r: r.info["meas_date"] is None,
+        ),
+        # The rest are spec-required → must be supplied via overrides
+        (
+            "data_fname",
+            "test.eeg",
+            "DataFile",
+            configparser.NoOptionError,
+            lambda r: r.info["nchan"] == 32,
+        ),
+        (
+            "n_channels",
+            32,
+            "NumberOfChannels",
+            configparser.NoOptionError,
+            lambda r: r.info["nchan"] == 32,
+        ),
+        # sfreq raises RuntimeError with a hint pointing to overrides['sfreq']
+        (
+            "sfreq",
+            1000.0,
+            "SamplingInterval",
+            RuntimeError,
+            lambda r: r.info["sfreq"] == 1000.0,
+        ),
+        (
+            "data_orientation",
+            "MULTIPLEXED",
+            "DataOrientation",
+            configparser.NoOptionError,
+            lambda r: True,
+        ),
+        (
+            "data_format",
+            "BINARY",
+            "DataFormat",
+            configparser.NoOptionError,
+            lambda r: True,
+        ),
+        (
+            "binary_format",
+            "INT_16",
+            "BinaryFormat",
+            configparser.NoOptionError,
+            lambda r: True,
+        ),
+    ],
+)
+def test_overrides_recover_missing_header_keys(
+    tmp_path, key, override, header_key, expected_exc, check
+):
+    """Overrides recover when the header is missing the corresponding key."""
+    shutil.copy(eeg_path, tmp_path / "test.eeg")
+    shutil.copy(vmrk_path, tmp_path / "test.vmrk")
+    use_vhdr = tmp_path / f"no_{key}.vhdr"
+    skip = (f"{header_key}=".encode(),)
+    with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
+        fout.writelines(line for line in fin if not line.startswith(skip))
+    if expected_exc is None:
+        assert check(read_raw_brainvision(use_vhdr))
+    else:
+        with pytest.raises(expected_exc, match=header_key.lower()):
+            read_raw_brainvision(use_vhdr)
+    assert check(
+        read_raw_brainvision(use_vhdr, overrides={key: override}, preload=True)
+    )
+
+
+def test_empty_marker_file_means_no_markers(tmp_path):
+    """Empty ``MarkerFile=`` value is spec-compliant and means no markers."""
+    shutil.copy(eeg_path, tmp_path / "test.eeg")
+    use_vhdr = tmp_path / "empty_marker.vhdr"
+    with open(vhdr_path, "rb") as fin, open(use_vhdr, "wb") as fout:
+        for line in fin:
+            fout.write(b"MarkerFile=\n" if line.startswith(b"MarkerFile=") else line)
+    raw = read_raw_brainvision(use_vhdr)
+    assert len(raw.annotations) == 0 and raw.info["meas_date"] is None
+
+
+@pytest.mark.parametrize(
+    "with_sibling, match", [(True, "using"), (False, "no annotations")]
+)
+def test_marker_fname_stale_fallback(tmp_path, with_sibling, match):
+    """Stale ``MarkerFile=`` falls back to sibling ``.vmrk`` or warns and skips."""
+    new_vhdr = tmp_path / "renamed.vhdr"
+    shutil.copy(vhdr_path, new_vhdr)
+    shutil.copy(eeg_path, tmp_path / "renamed.eeg")
+    if with_sibling:
+        shutil.copy(vmrk_path, tmp_path / "renamed.vmrk")
+    new_vhdr.write_text(
+        new_vhdr.read_text()
+        .replace("test.eeg", "renamed.eeg")
+        .replace("test.vmrk", "missing.vmrk")
+    )
+    with pytest.warns(RuntimeWarning, match=match):
+        raw = read_raw_brainvision(new_vhdr)
+    assert (len(raw.annotations) > 0) is with_sibling
 
 
 @testing.requires_testing_data

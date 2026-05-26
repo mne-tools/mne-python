@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8bc3d9700d85eae402c3ff17066b8add35ab9752",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13687.bugfix.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/13700.bugfix.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

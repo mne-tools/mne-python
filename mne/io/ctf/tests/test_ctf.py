@@ -32,7 +32,13 @@ from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 from mne.transforms import apply_trans
-from mne.utils import _clean_names, _record_warnings, _stamp_to_dt, catch_logging
+from mne.utils import (
+    _clean_names,
+    _record_warnings,
+    _stamp_to_dt,
+    catch_logging,
+    copytree_rw,
+)
 
 ctf_dir = testing.data_path(download=False) / "CTF"
 ctf_fname_continuous = "testdata_ctf.ds"
@@ -75,7 +81,7 @@ def test_read_ctf(tmp_path):
     # Create a dummy .eeg file so we can test our reading/application of it
     os.mkdir(op.join(temp_dir, "randpos"))
     ctf_eeg_fname = op.join(temp_dir, "randpos", ctf_fname_catch)
-    shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
+    copytree_rw(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
@@ -689,7 +695,7 @@ def _bad_res4_grad_comp(dsdir):
 def test_missing_res4(tmp_path):
     """Test that res4 missing is handled gracefully."""
     use_ds = tmp_path / ctf_fname_continuous
-    shutil.copytree(ctf_dir / ctf_fname_continuous, tmp_path / ctf_fname_continuous)
+    copytree_rw(ctf_dir / ctf_fname_continuous, tmp_path / ctf_fname_continuous)
     read_raw_ctf(use_ds)
     os.remove(use_ds / (ctf_fname_continuous[:-2] + "meg4"))
     with pytest.raises(OSError, match="could not find the following"):

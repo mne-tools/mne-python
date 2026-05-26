@@ -1468,11 +1468,11 @@ def test_info_bad():
 
 def test_get_montage():
     """Test ContainsMixin.get_montage()."""
-    ch_names = make_standard_montage("standard_1020").ch_names
+    ch_names = make_standard_montage("spherical_1005").ch_names
     sfreq = 512
     data = np.zeros((len(ch_names), sfreq * 2))
     raw = RawArray(data, create_info(ch_names, sfreq, "eeg"))
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
 
     assert len(raw.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
@@ -1480,7 +1480,7 @@ def test_get_montage():
 
     # test info
     raw = RawArray(data, create_info(ch_names, sfreq, "eeg"))
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
 
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]

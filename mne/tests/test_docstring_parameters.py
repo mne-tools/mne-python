@@ -48,6 +48,20 @@ public_modules = [
     "mne.viz",
 ]
 
+pyproject_path = Path(__file__).parents[2] / "pyproject.toml"
+if not pyproject_path.is_file():
+    pytest.skip(f"pyproject.toml not found: {pyproject_path}", allow_module_level=True)
+try:
+    import tomllib
+except ModuleNotFoundError:
+    # TODO VERSION: Remove this when Python 3.11+ is required
+    pytest.skip("tomllib not available", allow_module_level=True)
+
+pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+numpydoc_checks = pyproject["tool"]["numpydoc_validation"]["checks"]
+assert numpydoc_checks[0] == "all"
+error_ignores = set(numpydoc_checks[1:])
+
 
 def _func_name(func, cls=None):
     """Get the name."""
@@ -73,21 +87,6 @@ tab_ignores = [
     "mne.channels.tests.test_montage",
     "mne.io.curry.tests.test_curry",
 ]
-error_ignores = {
-    # These we do not live by:
-    "GL01",  # Docstring should start in the line immediately after the quotes
-    "GL02",  # Closing quotes on own line (doesn't work on Python 3.13 anyway)
-    "EX01",
-    "EX02",  # examples failed (we test them separately)
-    "ES01",  # no extended summary
-    "SA01",  # no see also
-    "YD01",  # no yields section
-    "SA04",  # no description in See Also
-    "PR04",  # Parameter "shape (n_channels" has no type
-    "RT02",  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
-    # XXX should also verify that | is used rather than , to separate params
-    # XXX should maybe also restore the parameter-desc-length < 800 char check
-}
 error_ignores_specific = {  # specific instances to skip
     ("regress_artifact", "SS05"),  # "Regress" is actually imperative
 }

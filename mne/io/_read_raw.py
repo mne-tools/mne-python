@@ -26,6 +26,7 @@ def _get_supported():
     from . import (
         read_raw_ant,
         read_raw_artemis123,
+        read_raw_bci2k,
         read_raw_bdf,
         read_raw_boxy,
         read_raw_brainvision,
@@ -79,7 +80,10 @@ def _get_supported():
         ".ds": dict(CTF=read_raw_ctf),
         ".txt": dict(BOXY=read_raw_boxy),
         # Curry
-        ".dat": dict(CURRY=read_raw_curry),
+        ".dat": dict(
+            CURRY=read_raw_curry,
+            BCI2K=read_raw_bci2k,
+        ),
         ".dap": dict(CURRY=read_raw_curry),
         ".rs3": dict(CURRY=read_raw_curry),
         ".cdt": dict(CURRY=read_raw_curry),
@@ -130,6 +134,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
 
     * `~mne.io.read_raw_ant`
     * `~mne.io.read_raw_artemis123`
+    * `~mne.io.read_raw_bci2k`
     * `~mne.io.read_raw_bdf`
     * `~mne.io.read_raw_boxy`
     * `~mne.io.read_raw_brainvision`
