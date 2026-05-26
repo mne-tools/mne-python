@@ -479,7 +479,7 @@ def set_eeg_reference(
     # the legacy union-of-types behavior.
     if ref_channels == "average" and len(ch_type) > 1 and not joint:
         for this_ch_type in ch_type:
-            ch_dict = {this_ch_type: True, "meg": False, "ref_meg": False}
+            ch_dict = {this_ch_type: True}
             ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
             logger.info(
                 f"Applying average reference for "
