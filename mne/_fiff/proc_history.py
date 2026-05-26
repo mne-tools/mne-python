@@ -5,8 +5,8 @@
 from functools import partial
 
 import numpy as np
+from scipy.sparse import csc_array
 
-from ..fixes import _csc_array_cast
 from ..utils import _check_fname, logger, warn
 from .constants import FIFF
 from .open import fiff_open, read_tag
@@ -245,7 +245,7 @@ _sss_ctc_casters = (
     dict,
     np.array,
     str,
-    _csc_array_cast,
+    csc_array,
     _sss_ctc_ch_name_clean,
 )
 
