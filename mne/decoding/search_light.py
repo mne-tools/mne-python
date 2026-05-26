@@ -841,7 +841,6 @@ def _gl_score(estimators, scoring, X, y, pb):
     n_iter = X.shape[-1]
     n_train = len(estimators)
     score_shape = [n_train, n_iter]
-    score = None
 
     scoring = _resolve_scoring_for_classifier(scoring, estimators)
     response_method, can_batch = _detect_response_method(scoring)
