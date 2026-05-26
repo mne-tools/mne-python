@@ -1760,7 +1760,6 @@ def plot_ica_components(
     """  # noqa E501
     from matplotlib.pyplot import Axes
 
-    from ..channels.layout import _merge_ch_data
     from ..epochs import BaseEpochs
     from ..io import BaseRaw
 
