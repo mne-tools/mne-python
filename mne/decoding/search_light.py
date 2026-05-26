@@ -744,7 +744,7 @@ def _gl_score(estimators, scoring, X, y, pb):
     """
     # FIXME: The level parallelization may be a bit high, and might be memory
     # consuming. Perhaps need to lower it down to the loop across X slices.
-    n_sample, n_iter = X.shape[0], X.shape[-1]
+    n_iter = X.shape[-1]
     n_train = len(estimators)
     score_shape = [n_train, n_iter]
     score = None
@@ -788,14 +788,8 @@ def _gl_score(estimators, scoring, X, y, pb):
                 pb.update(jj * n_train + ii + 1)
         return score
 
-    # If we batch, the logic is: reshape X; for each estimator: predict;
-    # reshape back; score with batching if we can and with a loop if not.
-    # Collapse the n_iter into the n_sample dimension:
-    # (n_sample, ..., n_iter) -> (n_sample * n_iter, ...)
-    X_stack = np.moveaxis(X, -1, 1)
-    X_stack = X_stack.reshape(n_sample * n_iter, *X_stack.shape[2:])
-
-    # Resolve the prediction method to call later
+    # Resolve a single method name for _gl_transform: pick the first available
+    # if response_method is a tuple (e.g. roc_auc).
     if isinstance(response_method, str):
         method = response_method
     else:
@@ -804,12 +798,21 @@ def _gl_score(estimators, scoring, X, y, pb):
                 method = m
                 break
 
+    # Batch all predictions through _gl_transform. y_pred shape:
+    # (n_sample, n_train, n_iter) or (n_sample, n_train, n_iter, n_classes).
+    y_pred = _gl_transform(estimators, X, method, pb)
+
+    # Binary predict_proba: take the positive-class column to match sklearn
+    # scorer expectations for binary problems.
+    if method == "predict_proba" and y_pred.ndim == 4 and y_pred.shape[-1] == 2:
+        y_pred = y_pred[..., 1]
+
     # Extract scoring args if any. Don't batch if non-default arguments; also
     # ensures score_func(..., **kwargs) won't crash when scoring._kwargs=None
     kwargs = scoring._kwargs or {}
 
     # When we recognise score_func, we build `batched_score` that scores in a
-    # single vectorised reduction.
+    # single vectorised reduction over (n_sample, n_train, n_iter).
     # `batched_score`=None for unrecognised scorers: fall back to nested loops
     sign = scoring._sign
     batched_score = None
@@ -818,7 +821,7 @@ def _gl_score(estimators, scoring, X, y, pb):
         if name == "accuracy_score" and response_method == "predict":
 
             def batched_score(y_pred):
-                return sign * (y_pred == y[:, None]).mean(axis=0)
+                return sign * (y_pred == y[:, None, None]).mean(axis=0)
         elif name == "balanced_accuracy_score" and response_method == "predict":
             classes = np.unique(y)
 
@@ -847,30 +850,17 @@ def _gl_score(estimators, scoring, X, y, pb):
                             / (n_pos * n_neg)
                         )
 
-    # For each estimator: predict, then score either vectorially or
-    # slice-by-slice.
-    for ii, est in enumerate(estimators):
-        y_pred = getattr(est, method)(X_stack)
-        # predict_proba returns probabilities for both classes; use the
-        # positive-class probabilities expected by binary scorers
-        if method == "predict_proba" and y_pred.ndim == 2 and y_pred.shape[1] == 2:
-            y_pred = y_pred[:, 1]
-        # Now, reshape back the prediction, then score
-        y_pred = y_pred.reshape((n_sample, n_iter) + y_pred.shape[1:])
-        # Use vectorized scoring when available; otherwise score slice-by-slice.
-        if batched_score is not None:
-            _score = batched_score(y_pred)
-            if ii == 0:
-                score = np.zeros(score_shape, _score.dtype)
-            score[ii] = _score
-            pb.update((ii + 1) * n_iter)
-        else:
+    # Reduce predictions to scores. Vectorised if we recognised the scorer,
+    # otherwise nested loops over (estimator, slice).
+    if batched_score is not None:
+        score = batched_score(y_pred)
+    else:
+        for ii in range(n_train):
             for jj in range(n_iter):
-                _score = sign * score_func(y, y_pred[:, jj], **kwargs)
+                _score = sign * score_func(y, y_pred[:, ii, jj], **kwargs)
                 if (ii == 0) and (jj == 0):
                     score = np.zeros(score_shape, type(_score))
                 score[ii, jj, ...] = _score
-                pb.update(ii * n_iter + jj + 1)
     return score
 
 
