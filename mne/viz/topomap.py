@@ -408,6 +408,8 @@ def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
         return False
 
     return any(len(overlap_set) >= 2 for overlap_set in merge_channels)
+
+
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
     from ..channels.layout import _merge_ch_data
@@ -1792,9 +1794,9 @@ def plot_ica_components(
 
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
     for k, picks in enumerate(pick_groups):
-        try:  # either an iterable, 1D numpy array or others
-            _axes = axes[k * max_subplots : (k + 1) * max_subplots]
-        except TypeError:  # None or Axes
+        if axes is None:
+            _axes = None
+        else:
             _axes = axes
 
         (
@@ -1806,7 +1808,7 @@ def plot_ica_components(
             sphere,
             clip_origin,
         ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
-    _setup_cmap(cmap, n_axes=len(picks))
+        _setup_cmap(cmap, n_axes=len(picks))
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         data = np.dot(

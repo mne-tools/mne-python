@@ -905,6 +905,8 @@ def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
     titles = [ax.get_title() for ax in fig.axes]
     assert any("radial" in title for title in titles)
     assert any("tangential" in title for title in titles)
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
