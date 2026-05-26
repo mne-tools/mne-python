@@ -53,7 +53,7 @@ dependencies:
   - pyvistaqt >=0.11
   - qdarkstyle !=3.2.2
   - qtpy
-  - scikit-learn >=1.4
+  - scikit-learn >=1.5
   - scipy >=1.13
   - sip
   - snirf

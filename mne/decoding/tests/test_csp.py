@@ -499,7 +499,7 @@ def test_csp_component_ordering():
 @parametrize_with_checks([CSP(), SPoC()])
 def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.5")  # TODO VERSION remove on 1.5+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     check(estimator)
 
 
