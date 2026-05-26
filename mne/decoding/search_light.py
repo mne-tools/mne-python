@@ -716,6 +716,100 @@ def _gl_init_pred(y_pred, X, n_train):
     return y_pred
 
 
+def _resolve_scoring_for_classifier(scoring, estimators):
+    """Promote scoring=None to 'accuracy' for default estimator.
+
+    scoring=None goes through sklearn's ``_PassthroughScorer``, which delegates
+    to ``estimator.score(X, y)``. For a classifier that inherits
+    ``ClassifierMixin.score`` unchanged, that's accuracy — which we can batch.
+    We compare ``type(est).score.__qualname__`` rather than ``.__name__``
+    because the bare name is "score" regardless of the defining class. A bare
+    method has qualname "ClassifierMixin.score"; any override resolves to
+    "<Subclass>.score", which we leave untouched.
+    """
+    if len(estimators) and getattr(scoring, "_score_func", None) is None:
+        qname = getattr(type(estimators[0]).score, "__qualname__", "")
+        if qname == "ClassifierMixin.score":
+            scoring = check_scoring(estimators[0], "accuracy")
+    return scoring
+
+
+def _detect_response_method(scoring):
+    """Return (response_method, can_batch) for ``scoring``.
+
+    If we can batch the estimator (one of predict, predict_proba,
+    decision_function, or a tuple of those) then we return that, and
+    can_batch is True if additionally _score_func is None (default).
+    Otherwise we return None (for the response_method) and False
+    """
+    score_func = getattr(scoring, "_score_func", None)
+    rm = getattr(scoring, "_response_method", None)
+    valid = {"predict", "predict_proba", "decision_function"}
+    if rm == "default":
+        response_method = "predict"
+    elif isinstance(rm, str) and rm in valid:
+        response_method = rm
+    elif isinstance(rm, tuple) and all(m in valid for m in rm):
+        response_method = rm
+    else:
+        response_method = None
+    can_batch = score_func is not None and response_method is not None
+    return response_method, can_batch
+
+
+def _make_batched_score(score_func, response_method, method, y, sign, kwargs):
+    """Return a callable ``y_pred``->score per task, None if not recognised.
+
+    The returned callable expects ``y_pred`` of shape
+    ``(n_sample, n_train, n_iter)`` and returns shape ``(n_train, n_iter)``.
+    Falls back to None for any scorer with non-default ``kwargs`` or
+    multi-target ``y``, both of which require a slice-by-slice loop.
+    """
+    if kwargs or y.ndim != 1:
+        return None
+    name = getattr(score_func, "__name__", "")
+
+    if name == "accuracy_score" and response_method == "predict":
+
+        def batched_score(y_pred):
+            return sign * (y_pred == y[:, None, None]).mean(axis=0)
+
+        return batched_score
+
+    if name == "balanced_accuracy_score" and response_method == "predict":
+        classes = np.unique(y)
+
+        def batched_score(y_pred):
+            return sign * np.stack(
+                [(y_pred[y == c] == c).mean(axis=0) for c in classes]
+            ).mean(axis=0)
+
+        return batched_score
+
+    if name == "roc_auc_score" and method in ("predict_proba", "decision_function"):
+        classes = np.unique(y)
+        if len(classes) != 2:  # multi-class needs ovr/ovo; defer
+            return None
+        pos = y == classes[1]
+        n_pos, n_neg = int(pos.sum()), int((~pos).sum())
+        if not (n_pos and n_neg):  # degenerate folds raise downstream in sklearn
+            return None
+
+        def batched_score(y_pred):
+            # Mann-Whitney U identity with average-rank tie correction.
+            # Equivalent to sklearn's roc_auc within floating point precision,
+            # but different computation.
+            ranks = rankdata(y_pred, method="average", axis=0)
+            return (
+                sign
+                * (ranks[pos].sum(axis=0) - n_pos * (n_pos + 1) / 2.0)
+                / (n_pos * n_neg)
+            )
+
+        return batched_score
+    return None
+
+
 def _gl_score(estimators, scoring, X, y, pb):
     """Score GeneralizingEstimator in parallel.
 
@@ -749,33 +843,8 @@ def _gl_score(estimators, scoring, X, y, pb):
     score_shape = [n_train, n_iter]
     score = None
 
-    # scoring=None goes through sklearn's _PassthroughScorer, which delegates
-    # to estimator.score(X, y). For a classifier inheriting
-    # ClassifierMixin.score unchanged, that's accuracy which we now set. We
-    # compare `type(est).score.__qualname__` rather than `.__name__` because
-    # the bare name is "score" no matter which class defined the method. A bare
-    # method has qualname "ClassifierMixin.score", whereas any override
-    # resolves to "<Subclass>.score". We only override the bare implementation.
-    if len(estimators) and getattr(scoring, "_score_func", None) is None:
-        qname = getattr(type(estimators[0]).score, "__qualname__", "")
-        if qname == "ClassifierMixin.score":
-            scoring = check_scoring(estimators[0], "accuracy")
-
-    # Detect whether we can batch the estimator. Supported methods:
-    # * predict, predict_proba, decision_function, * "default" (= predict),
-    # * A tuple of those: roc_auc = ("decision_function", "predict_proba")
-    score_func = getattr(scoring, "_score_func", None)
-    rm = getattr(scoring, "_response_method", None)
-    valid = {"predict", "predict_proba", "decision_function"}
-    if rm == "default":
-        response_method = "predict"
-    elif isinstance(rm, str) and rm in valid:
-        response_method = rm
-    elif isinstance(rm, tuple) and all(m in valid for m in rm):
-        response_method = rm
-    else:
-        response_method = None
-    can_batch = score_func is not None and response_method is not None
+    scoring = _resolve_scoring_for_classifier(scoring, estimators)
+    response_method, can_batch = _detect_response_method(scoring)
 
     # If we can't batch, fall back to a simple nested loop for scoring
     if not can_batch:
@@ -807,48 +876,14 @@ def _gl_score(estimators, scoring, X, y, pb):
     if method == "predict_proba" and y_pred.ndim == 4 and y_pred.shape[-1] == 2:
         y_pred = y_pred[..., 1]
 
-    # Extract scoring args if any. Don't batch if non-default arguments; also
-    # ensures score_func(..., **kwargs) won't crash when scoring._kwargs=None
-    kwargs = scoring._kwargs or {}
-
-    # When we recognise score_func, we build `batched_score` that scores in a
-    # single vectorised reduction over (n_sample, n_train, n_iter).
-    # `batched_score`=None for unrecognised scorers: fall back to nested loops
+    # `scoring._kwargs or {}` also guards score_func(..., **kwargs) against
+    # scoring._kwargs being None.
+    score_func = scoring._score_func
     sign = scoring._sign
-    batched_score = None
-    if not kwargs and y.ndim == 1:
-        name = getattr(score_func, "__name__", "")
-        if name == "accuracy_score" and response_method == "predict":
-
-            def batched_score(y_pred):
-                return sign * (y_pred == y[:, None, None]).mean(axis=0)
-        elif name == "balanced_accuracy_score" and response_method == "predict":
-            classes = np.unique(y)
-
-            def batched_score(y_pred):
-                return sign * np.stack(
-                    [(y_pred[y == c] == c).mean(axis=0) for c in classes]
-                ).mean(axis=0)
-        elif name == "roc_auc_score" and method in (
-            "predict_proba",
-            "decision_function",
-        ):
-            classes = np.unique(y)
-            if len(classes) == 2:  # multi-class needs ovr/ovo; defer
-                pos = y == classes[1]
-                n_pos, n_neg = int(pos.sum()), int((~pos).sum())
-                if n_pos and n_neg:  # degenerate folds raise downstream in sklearn
-
-                    def batched_score(y_pred):
-                        # Mann-Whitney U identity with average-rank tie
-                        # correction. Equivalent to sklearn's roc_auc within
-                        # floating point precision, but different computation
-                        ranks = rankdata(y_pred, method="average", axis=0)
-                        return (
-                            sign
-                            * (ranks[pos].sum(axis=0) - n_pos * (n_pos + 1) / 2.0)
-                            / (n_pos * n_neg)
-                        )
+    kwargs = scoring._kwargs or {}
+    batched_score = _make_batched_score(
+        score_func, response_method, method, y, sign, kwargs
+    )
 
     # Reduce predictions to scores. Vectorised if we recognised the scorer,
     # otherwise nested loops over (estimator, slice).
