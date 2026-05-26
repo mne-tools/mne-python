@@ -15,7 +15,7 @@ from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import BaggingClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
-from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.metrics import check_scoring, make_scorer, roc_auc_score
 from sklearn.model_selection import cross_val_predict
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
@@ -296,6 +296,78 @@ def test_generalization_light(metadata_routing):
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
+
+
+@pytest.mark.parametrize(
+    "scoring, est_name, method",
+    [
+        (None, "logreg", "predict"),
+        ("accuracy", "logreg", "predict"),
+        ("balanced_accuracy", "logreg", "predict"),
+        ("roc_auc", "logreg", "decision_function"),
+        ("neg_log_loss", "logreg", "predict_proba"),
+        (None, "ridge", "predict"),
+        ("roc_auc_multiclass", "logreg", "predict_proba"),
+        ("accuracy_kwargs", "logreg", "predict"),
+    ],
+)
+def test_gl_score_branches(scoring, est_name, method):
+    """Test _gl_score against its own can_batch=False nested-loop fallback."""
+    n_trials, n_sensors, n_iter = 12, 3, 4
+    rng = np.random.RandomState(0)
+    X = rng.randn(n_trials, n_sensors, n_iter)
+    y = rng.randint(0, 3 if scoring == "roc_auc_multiclass" else 2, n_trials)
+    per_slice = scoring in ("neg_log_loss", "roc_auc_multiclass", "accuracy_kwargs")
+    # liblinear is binary-only, switch to lbfgs for the multi-class case.
+    solver = "lbfgs" if scoring == "roc_auc_multiclass" else "liblinear"
+    if scoring == "roc_auc_multiclass":
+        scoring = make_scorer(
+            roc_auc_score, response_method="predict_proba", multi_class="ovr"
+        )
+    elif scoring == "accuracy_kwargs":
+        # start from the default scorer but add a kwarg to prevent batching
+        acc_func = check_scoring(LogisticRegression(), "accuracy")._score_func
+        scoring = make_scorer(acc_func, normalize=False)
+    est = Ridge() if est_name == "ridge" else LogisticRegression(solver=solver)
+    gl = GeneralizingEstimator(est, scoring=scoring).fit(X, y)
+
+    # Measure batching: count pred and call scores. Wraps `fn` calls so they
+    # append to a bucket; preserve __name__ because _gl_score matches it
+    def counting(fn, bucket):
+        def wrapped(*a, **k):
+            bucket.append(1)
+            return fn(*a, **k)
+
+        wrapped.__name__ = getattr(fn, "__name__", wrapped.__name__)
+        return wrapped
+
+    # First we count calls to scorer
+    score_calls = []
+    scorer = check_scoring(est, scoring)
+    if getattr(scorer, "_score_func", None) is not None:
+        scorer._score_func = counting(scorer._score_func, score_calls)
+
+    # Now we count calls to the estimator that _gl_score will call (hardcoded)
+    pred_calls = []
+    for e in gl.estimators_:
+        setattr(e, method, counting(getattr(e, method), pred_calls))
+
+    # Batched path: assert call counts immediately so the buckets only reflect
+    # this run (the reference run below would otherwise add to them).
+    gl.scoring = scorer
+    actual = gl.score(X, y)
+    assert len(pred_calls) == (n_iter if est_name != "ridge" else n_iter**2)
+    assert len(score_calls) == (n_iter**2 if per_slice else 0)
+
+    # Reference: force can_batch=False. _score_func set (non-None) bypasses the
+    # qname coercion; missing _response_method makes can_batch False.
+    def force_fallback(e, X, y):
+        return scorer(e, X, y)
+
+    force_fallback._score_func = id
+    gl.scoring = force_fallback
+    expected = gl.score(X, y)
+    assert_allclose(actual, expected)
 
 
 @pytest.mark.parametrize(
