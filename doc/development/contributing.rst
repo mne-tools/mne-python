@@ -667,40 +667,47 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 .. _taking-over-a-stale-pr:
 
 Taking over a stale pull request
----------------------------------
+--------------------------------
 
-If a pull request has been abandoned, you can take it over. A PR is generally
-considered abandoned when there have been no commits for at least two weeks and the
-author has not indicated they plan to continue, and after you have pinged them
-about their intent and received no response for one week (or they confirm they
-will not continue).
+If a pull request has been abandoned, someone else can take it over. A PR is generally
+considered abandoned when there have been no commits for several weeks, and the original
+author has not already indicated that they plan to continue at a later time. In this
+case, first ping the author in a comment on the PR, asking if they intend to continue
+working on it. If the original author replies that they do not intend to continue the
+work, or there is no reply after at least 2 weeks, you can take over the PR.
 
-To build on top of their existing branch:
+To build on top of the original author's existing work, you can add a copy of the branch
+they were working on to your fork:
 
 .. code-block:: bash
 
-    git remote add original-author https://github.com/<their-username>/mne-python.git
+    git remote add original-author https://github.com/original-author/mne-python.git
     git fetch original-author
-    git checkout -b takeover-XXXXX original-author/<their-branch-name>
+    git checkout -b your-branch-name original-author/their-branch-name
 
-Then push to your fork and open a new PR. Reference the original in the PR
-description (e.g., "Takes over :gh:`XXXXX`") and keep any original issue
-linking (e.g., "Fixes #XYZ"). If you have already started your own branch,
-you can add the original author as a remote and rebase or cherry-pick their
-commits.
+You can then push any further commits to, and open a PR from, this new branch on your
+fork.
 
-Make sure their name is in ``doc/changes/names.inc`` and credit them in the
-changelog entry, e.g.:
+Reference the original PR number in the description of the new PR (e.g., "Takes over
+#12345"), and keep any links to the corresponding issue (e.g., "Fixes #12340").
+
+Before the PR is merged, make sure the original author is credited for their existing
+work. To credit them in the documentation, add their name to ``doc/changes/names.inc``,
+if not already included, and add them as an author in the changelog entry, e.g.:
 
 .. code-block:: rst
 
-    Short description of the changes, by `Your Name`_ and `Original Author`_.
+    Short description of the changes, by `Your Name`_ and `Original Author Name`_.
 
-Always credit the original author by adding a ``Co-authored-by`` trailer to at
-least one commit (for example, the commit that adds or edits the changelog
-entry)::
+To credit the original author in the code, add their name and email as a co-author to
+the end of at least one commit message (e.g., the commit that adds the changelog
+entry):
 
-    Co-authored-by: Original Author Name <their-email@example.com>
+.. code-block:: rst
+
+    Your commit message
+    
+    Co-authored-by: Original Author Name <original-author-email@example.com>
 
 Continuous integration (CI) and local testing before opening a PR
 -----------------------------------------------------------------
