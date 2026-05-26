@@ -794,7 +794,8 @@ def test_plot_topomap_opm():
     fig_evoked = evoked.plot_topomap(
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
-    # Biaxial OPM pairs trigger grouped rendering (4 radial + 4 tangential + 2 colorbars)
+    # Biaxial OPM pairs trigger grouped rendering
+    # (4 radial + 4 tangential + 2 colorbars)
     assert len(fig_evoked.axes) == 10
 
 

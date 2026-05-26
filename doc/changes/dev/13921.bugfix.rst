@@ -1,0 +1,1 @@
+Ensure grouped OPM tangential topomaps use unsigned RMS magnitude and per-group colormap scaling, aligning behavior with Neuromag-style grouping, by `Pragnya Khandelwal`_.
