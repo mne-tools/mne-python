@@ -289,21 +289,23 @@ def _read_nihon_header(fname):
 
 
 def _read_event_log_block(fid, t_block, version):
+    empty_logs = np.empty(0, dtype="|S45")
+
     fid.seek(0x92 + t_block * 20)
     data = np.fromfile(fid, np.uint32, 1)
     if data.size == 0 or data[0] == 0:
-        return
+        return empty_logs
     t_blk_address = data[0]
 
     fid.seek(t_blk_address + 0x1)
     data = np.fromfile(fid, "|S16", 1).astype("U16")
     if data.size == 0 or data[0] != version:
-        return
+        warn(f"Event log version mismatch: expected '{version}', got '{data}'")
 
     fid.seek(t_blk_address + 0x12)
     data = np.fromfile(fid, np.uint8, 1)
     if data.size == 0:
-        return
+        return empty_logs
     n_logs = data[0]
 
     fid.seek(t_blk_address + 0x14)
