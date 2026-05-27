@@ -235,13 +235,6 @@ def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
     description = _check_description(description, n)
     ch_names = _check_ch_names_annot(ch_names, n)
 
-    if not (len(onset) == len(duration) == len(description) == len(ch_names)):
-        raise ValueError(
-            "Onset, duration, description, and ch_names must be "
-            f"equal in sizes, got {len(onset)}, {len(duration)}, "
-            f"{len(description)}, and {len(ch_names)}."
-        )
-
     extras = _validate_extras(extras, len(onset))
     return onset, duration, description, ch_names, extras
 
