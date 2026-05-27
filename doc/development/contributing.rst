@@ -683,13 +683,13 @@ they were working on to your fork:
 
     git remote add original-author https://github.com/original-author/mne-python.git
     git fetch original-author
-    git checkout -b your-branch-name original-author/their-branch-name
+    git checkout -b some-new-feature original-author/some-new-feature
 
 You can then push any further commits to, and open a PR from, this new branch on your
 fork.
 
-Reference the original PR number in the description of the new PR (e.g., "Takes over
-#12345"), and keep any links to the corresponding issue (e.g., "Fixes #12340").
+Reference the original PR number in the description of the new PR (e.g., "Closes
+#12345 (supersedes)"), and keep any links to the corresponding issue (e.g., "Fixes #12340").
 
 Before the PR is merged, make sure the original author is credited for their existing
 work. To credit them in the documentation, add their name to ``doc/changes/names.inc``,
