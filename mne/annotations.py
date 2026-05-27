@@ -215,6 +215,11 @@ def _check_ch_names_annot(ch_names, n):
     if ch_names is None:
         ch_names = [()] * n
     ch_names = list(ch_names)
+    if len(ch_names) != n:
+        raise ValueError(
+            f"Length of ch_names ({len(ch_names)}) must match the length of "
+            f"existing annotations ({n})."
+        )
     for ai, ch in enumerate(ch_names):
         _validate_type(ch, (list, tuple, np.ndarray), f"ch_names[{ai}]")
         ch_names[ai] = tuple(ch)
