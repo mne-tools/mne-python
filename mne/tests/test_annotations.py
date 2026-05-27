@@ -1778,6 +1778,14 @@ def test_setter_validation():
     assert len(annots.description) == 4
     assert all(annots.description == "bad")
 
+    # ch_names mismatch should raise
+    with pytest.raises(ValueError, match="Length of ch_names"):
+        annots.ch_names = [(), ()]
+
+    # valid ch_names assignment (correct length) should succeed
+    annots.ch_names = [("MEG 0111",), (), (), ()]
+    assert annots.ch_names[0] == ("MEG 0111",)
+
 
 @pytest.mark.parametrize("meas_date", (None, 1))
 @pytest.mark.parametrize("set_meas_date", ("before", "after"))
