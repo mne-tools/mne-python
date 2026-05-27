@@ -85,7 +85,7 @@ raw.pick([f"EEG 0{n:02}" for n in range(41, 60)])
 # raw.set_eeg_reference(ref_channels=['M1', 'M2'])
 
 # use a bipolar reference (contralateral)
-# raw.set_bipolar_reference(anode=['F3'], cathode=['F4'])
+# raw.set_bipolar_reference(anode='F3', cathode='F4')
 
 # %%
 # If a scalp electrode was used as reference but was not saved alongside the
@@ -109,7 +109,7 @@ raw.plot()
 # ``copy=False``.
 
 # add new reference channel (all zero)
-raw_new_ref = mne.add_reference_channels(raw, ref_channels=["EEG 999"])
+raw_new_ref = mne.add_reference_channels(raw, ref_channels="EEG 999")
 raw_new_ref.plot()
 
 # %%
@@ -218,7 +218,7 @@ for title, _raw in zip(["Original", "REST (∞)"], [raw, raw_rest]):
 # :footcite:`YaoEtAl2019` which creates a new virtual channel
 # named ``EEG 054-EEG 055``.
 
-raw_bip_ref = mne.set_bipolar_reference(raw, anode=["EEG 054"], cathode=["EEG 055"])
+raw_bip_ref = mne.set_bipolar_reference(raw, anode="EEG 054", cathode="EEG 055")
 raw_bip_ref.plot()
 
 # %%
