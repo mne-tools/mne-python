@@ -616,7 +616,8 @@ def test_plot_components_opm():
     ica = ICA(max_iter=1, random_state=0, n_components=10)
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
-    assert len(fig.axes) == 10
+    # Biaxial OPM overlaps render grouped radial+tangential maps.
+    assert len(fig.axes) == 20
 
 
 @pytest.mark.slowtest
