@@ -169,7 +169,7 @@ def _check_onset(onset, n=None):
     if n is not None and len(onset) != n:
         raise ValueError(
             f"Length of onset ({len(onset)}) must match the length of "
-            f"existing duration ({n})."
+            f"existing annotations ({n})."
         )
     return onset
 
