@@ -193,7 +193,7 @@ def _check_duration(duration, n):
 
 def _check_description(description, n):
     """Convert and validate description to a 1D str array of length n."""
-    description = np.array(description, dtype=str)
+    description = np.atleast_1d(np.array(description, dtype=str))
     if description.ndim == 0 or description.shape == (1,):
         description = np.repeat(description, n)
     if description.ndim != 1:
