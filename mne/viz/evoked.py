@@ -1954,9 +1954,24 @@ def plot_evoked_joint(
     del times
     _, times_ts = _check_time_unit(ts_args["time_unit"], times_sec)
 
-    # prepare axes for topomap
+    ch_type = ch_types.pop()  # set should only contain one element
+    use_opm_orientation_groups = False
+    if ch_type == "mag":
+        from .topomap import _should_use_opm_orientation_groups
+
+        picks_topo, _, merge_channels, *_ = _prepare_topomap_plot(
+            evoked, ch_type, sphere=topomap_args.get("sphere")
+        )
+        use_opm_orientation_groups = _should_use_opm_orientation_groups(
+            evoked.info, picks_topo, merge_channels, ch_type
+        )
+    n_group_axes = 2 if use_opm_orientation_groups else 1
+
+    # prepare axes for topomap and butterfly plots
     if not got_axes:
-        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
+        fig, ts_ax, map_ax = _prepare_joint_axes(
+            len(times_sec) * n_group_axes, figsize=(8.0, 4.2)
+        )
         cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
@@ -2002,7 +2017,7 @@ def plot_evoked_joint(
 
     # topomap
     contours = topomap_args.get("contours", 6)
-    ch_type = ch_types.pop()  # set should only contain one element
+
     # Since the data has all the ch_types, we get the limits from the plot.
     vmin, vmax = (None, None)
     norm = ch_type == "grad"

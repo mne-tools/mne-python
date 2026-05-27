@@ -1808,7 +1808,7 @@ def plot_ica_components(
             sphere,
             clip_origin,
         ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
-        _setup_cmap(cmap, n_axes=len(picks))
+        cmap = _setup_cmap(cmap, n_axes=len(picks))
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         data = np.dot(
@@ -2688,7 +2688,7 @@ def plot_evoked_topomap(
             if cn is not None:
                 cbar.set_ticks(group_contours[group_idx])
             cbar.ax.tick_params(labelsize=7)
-            if cmap[1]:
+            if group_cmaps[group_idx][1]:
                 for im in group_images:
                     im.axes.CB = DraggableColorbar(
                         cbar, im, kind="evoked_topomap", ch_type=ch_type
