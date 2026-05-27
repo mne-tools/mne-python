@@ -717,6 +717,10 @@ ch_type : list of str | str
     .. versionadded:: 0.19
     .. versionchanged:: 1.2
        ``list-of-str`` is now supported with ``projection=True``.
+    .. versionchanged:: 1.13
+       ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+       now applies a per-channel-type reference by default (set ``joint=True``
+       for the previous union-of-types behavior).
 """
 
 _ch_type_topomap_base = """\
@@ -2310,11 +2314,16 @@ item : int | slice | array-like | str
 
 docdict["joint_set_eeg_reference"] = """
 joint : bool
-    How to handle list-of-str ``ch_type``. If False (default), one projector
-    is created per channel type. If True, one projector is created across
-    all channel types. This is only used when ``projection=True``.
+    How to handle list-of-str ``ch_type``. If False (default), the reference is
+    computed per channel type (one projector per type when ``projection=True``;
+    one average reference subtracted per type when ``projection=False`` and
+    ``ref_channels="average"``). If True, a single reference is computed across
+    all listed channel types.
 
     .. versionadded:: 1.2
+    .. versionchanged:: 1.13
+       Now also applies when ``projection=False``. Previously, the
+       ``projection=False`` path silently behaved as if ``joint=True``.
 """
 
 # %%
