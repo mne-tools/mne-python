@@ -1,1 +1,1 @@
-Added a JupyterLite GitHub Actions workflow to automatically build a Wasm-compatible interactive documentation site by :user:`natinew77-creator`.
+Added a JupyterLite GitHub Actions workflow to automatically build a Wasm-compatible interactive documentation site by Natneal Belete.
