@@ -562,7 +562,7 @@ class BaseRaw(
             )
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith("bad"):
-                    return descr
+                    return str(descr)
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
