@@ -79,7 +79,7 @@ raw.pick([f"EEG 0{n:02}" for n in range(41, 60)])
 # earlobe or mastoid channels, so this is just for demonstration purposes:
 
 # use a single channel reference (left earlobe)
-# raw.set_eeg_reference(ref_channels=['A1'])
+# raw.set_eeg_reference(ref_channels='A1')
 
 # use average of mastoid channels as reference
 # raw.set_eeg_reference(ref_channels=['M1', 'M2'])
@@ -116,7 +116,7 @@ raw_new_ref.plot()
 # .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
 
 # set reference to `EEG 050`
-raw_new_ref.set_eeg_reference(ref_channels=["EEG 050"])
+raw_new_ref.set_eeg_reference(ref_channels="EEG 050")
 raw_new_ref.plot()
 
 # %%
