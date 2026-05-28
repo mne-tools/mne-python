@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import platform
+from functools import wraps
 from inspect import signature
 
 import numpy as np
@@ -331,14 +332,14 @@ def test_gl_score_branches(scoring, est_name, method):
     est = Ridge() if est_name == "ridge" else LogisticRegression(solver=solver)
     gl = GeneralizingEstimator(est, scoring=scoring).fit(X, y)
 
-    # Measure batching: count pred and call scores. Wraps `fn` calls so they
-    # append to a bucket; preserve __name__ because _gl_score matches it
+    # Measure batching: count pred/call scores. Wraps `fn` calls so they append
+    # to a bucket; @wraps preserves __name__ (needed as _gl_score matches it)
     def counting(fn, bucket):
+        @wraps(fn)
         def wrapped(*a, **k):
             bucket.append(1)
             return fn(*a, **k)
 
-        wrapped.__name__ = getattr(fn, "__name__", wrapped.__name__)
         return wrapped
 
     # First we count calls to scorer
