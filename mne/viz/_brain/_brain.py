@@ -1967,6 +1967,10 @@ class Brain:
                 if "caption" in annot:
                     for _ in self._iter_views(hemi):
                         self.plotter.remove_actor(annot["caption"], render=False)
+                    try:
+                        self.plotter.RemoveObserver(annot["obs"])
+                    except AttributeError:  # can happen during cleanup
+                        pass
             self._annots[hemi].clear()
         self._renderer._update()
 
@@ -2989,10 +2993,10 @@ class Brain:
                 )
 
         if hover:
-            self.plotter.AddObserver("MouseMoveEvent", self._on_annotation_hover)
+            obs = self.plotter.AddObserver("MouseMoveEvent", self._on_annotation_hover)
             for hemi in hemis:
                 caption = self._create_caption()
-                self._annots[hemi][-1].update(caption=caption)
+                self._annots[hemi][-1].update(caption=caption, obs=obs)
                 for _ in self._iter_views(hemi):
                     self.plotter.add_actor(
                         caption,
