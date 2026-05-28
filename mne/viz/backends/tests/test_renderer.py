@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import pytest
+from matplotlib.font_manager import findfont
 
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
@@ -167,6 +168,14 @@ def test_3d_backend(renderer):
         text=txt_text,
         size=txt_size,
         justification="right",
+    )
+    # test font_file passthrough with a real font from matplotlib
+    font_path = findfont("serif")
+    rend.text2d(
+        x_window=txt_x + 0.1,
+        y_window=txt_y + 0.1,
+        text="font test",
+        font_file=font_path,
     )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(

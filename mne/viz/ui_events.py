@@ -468,7 +468,7 @@ def unlink(fig, *, verbose=None):
 
 
 @contextlib.contextmanager
-def disable_ui_events(fig):
+def disable_ui_events(fig):  # numpydoc ignore=YD01
     """Temporarily disable generation of UI events. Use as context manager.
 
     Parameters

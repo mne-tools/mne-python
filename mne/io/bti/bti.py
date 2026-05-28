@@ -1056,7 +1056,7 @@ def _1020_names():
     from mne.channels import make_standard_montage
 
     return set(
-        ch_name.lower() for ch_name in make_standard_montage("standard_1005").ch_names
+        ch_name.lower() for ch_name in make_standard_montage("spherical_1005").ch_names
     )
 
 
