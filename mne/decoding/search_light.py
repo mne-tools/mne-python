@@ -681,7 +681,7 @@ def _gl_transform(estimators, X, method, pb):
 
     Returns
     -------
-    Xt : array, shape (n_samples, n_estimators, n_slices) | (n_samples, n_estimators, n_slices, n_classes)
+    Xt : array, shape (n_samples, n_estimators, n_slices[, n_classes])
         Predictions for each (estimator, slice) pair. The trailing axis is
         present when ``method`` returns multi-output (e.g. ``predict_proba``).
     """  # noqa: E501
