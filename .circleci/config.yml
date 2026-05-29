@@ -31,7 +31,8 @@ jobs:
       image: ubuntu-2404:current
     # large 4 vCPUs 15GB mem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
-    resource_class: large
+    # https://circleci.com/docs/guides/execution-managed/using-docker/#docker-gen2-benefits
+    resource_class: large.gen2
     steps:
       - restore_cache:
           keys:
