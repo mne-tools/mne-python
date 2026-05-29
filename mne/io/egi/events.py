@@ -4,8 +4,7 @@
 # Copyright the MNE-Python contributors.
 
 from datetime import datetime
-from glob import glob
-from os.path import basename, join, splitext
+from os.path import basename, splitext
 
 import numpy as np
 
@@ -55,8 +54,8 @@ def _read_mff_events(filename, sfreq, start_time):
     # mffpy.Reader for locating the Events.xml files inside the MFF.
     _soft_import("mffpy", "reading EGI MFF data")
     _soft_import("defusedxml", "reading EGI MFF data")
-    import mffpy
     import defusedxml.ElementTree as DET
+    import mffpy
 
     reader = mffpy.Reader(filename)
     # Quick pre-scan: warn on any XML files that cannot be parsed (test
@@ -67,7 +66,7 @@ def _read_mff_events(filename, sfreq, start_time):
         files_list = []
     tracks = []
     for xml_name in files_list:
-        if not xml_name.lower().endswith('.xml'):
+        if not xml_name.lower().endswith(".xml"):
             continue
         stem0 = splitext(basename(xml_name))[0]
         try:
@@ -75,7 +74,10 @@ def _read_mff_events(filename, sfreq, start_time):
                 try:
                     DET.parse(fptest)
                 except Exception as exc:
-                    warn(f"Could not parse the XML file {xml_name}: {exc}", RuntimeWarning)
+                    warn(
+                        f"Could not parse the XML file {xml_name}: {exc}",
+                        RuntimeWarning,
+                    )
         except Exception:
             # ignore files that cannot be opened via mffpy API
             continue
@@ -86,14 +88,17 @@ def _read_mff_events(filename, sfreq, start_time):
         with reader.directory.filepointer(stem) as fp:
             try:
                 root = DET.parse(fp).getroot()
-            except Exception as exc:
+            except Exception:
                 # fallback: try reading as bytes and parse string
                 try:
                     fp.seek(0)
                     txt = fp.read()
                     root = DET.fromstring(txt)
                 except Exception as exc2:
-                    warn(f"Could not parse the XML file {xml_name}: {exc2}", RuntimeWarning)
+                    warn(
+                        f"Could not parse the XML file {xml_name}: {exc2}",
+                        RuntimeWarning,
+                    )
                     continue
         # identify eventTrack root (namespace-insensitive)
         if _ns(root.tag) == "eventTrack":
@@ -110,7 +115,9 @@ def _read_mff_events(filename, sfreq, start_time):
                 tag = _ns(child.tag)
                 ev[tag] = child.text
             # parse times and duration
-            event_start = _parse_mffpy_datetime(ev.get("beginTime"), tzinfo=start_time.tzinfo)
+            event_start = _parse_mffpy_datetime(
+                ev.get("beginTime"), tzinfo=start_time.tzinfo
+            )
             if event_start is None:
                 continue
             start_sec = (event_start - start_time).total_seconds()

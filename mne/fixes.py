@@ -166,6 +166,8 @@ def _parse_mffpy_datetime(time_str, *, tzinfo=None):
     if parsed.tzinfo is None and tzinfo is not None:
         parsed = parsed.replace(tzinfo=tzinfo)
     return parsed
+
+
 ###############################################################################
 # NumPy Generator (NumPy 1.17)
 
