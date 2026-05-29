@@ -165,6 +165,10 @@ standard_montage_look_up_table = {
     "biosemi64": partial(_biosemi, basename="biosemi64.txt"),
     "mgh60": partial(_mgh_or_standard, basename="mgh60.elc", coord_frame="mri"),
     "mgh70": partial(_mgh_or_standard, basename="mgh70.elc", coord_frame="mri"),
+    # Created using https://gist.github.com/larsoner/5af20934521278927c8a3056df2bcb69
+    "fsaverage_1005": partial(
+        _mgh_or_standard, basename="fsaverage_1005.sfp", coord_frame="mri"
+    ),
     "colin27_1005": partial(
         _mgh_or_standard, basename="colin27_1005.elc", coord_frame="mri"
     ),

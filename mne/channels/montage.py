@@ -72,6 +72,12 @@ class _BuiltinStandardMontage:
 
 _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
+        name="fsaverage_1005",
+        description="Electrodes are named according to the international 10-05 system "
+        "and positioned on the fsaverage head model (343+3 locations)",
+    ),
+    # TODO: Do we need all the others?
+    _BuiltinStandardMontage(
         name="colin27_1005",
         description="Electrodes are named according to the international 10-05 system "
         "and positioned on the Colin27 head model (343+3 locations)",
@@ -2008,9 +2014,9 @@ def make_standard_montage(kind, head_size="auto"):
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
         Can be None to not scale the read sizes. ``'auto'`` (default) will
-        use 95mm for all montages except the ``'colin27*'``, ``'mgh*'``, and
-        ``'artinis*'``, which are already in fsaverage's MRI coordinates
-        (same as MNI).
+        use 95mm for all montages except the ``'fsaverage*'``,
+        ``'colin27*'``, ``'mgh*'``, and ``'artinis*'``, which are already in
+        fsaverage's MRI coordinates (same as MNI).
 
     Returns
     -------
@@ -2051,7 +2057,7 @@ def make_standard_montage(kind, head_size="auto"):
     _validate_type(head_size, ("numeric", str, None), "head_size")
     if isinstance(head_size, str):
         _check_option("head_size", head_size, ("auto",), extra="when str")
-        if kind.startswith(("colin27", "mgh", "artinis")):
+        if kind.startswith(("fsaverage", "colin27", "mgh", "artinis")):
             head_size = None
         else:
             head_size = HEAD_SIZE_DEFAULT
