@@ -9,6 +9,7 @@ from os.path import basename, join, splitext
 
 import numpy as np
 
+from ...fixes import _parse_mffpy_datetime
 from ...utils import _soft_import, _validate_type, logger, warn
 
 
@@ -23,7 +24,9 @@ def _read_events(input_fname, info):
         Header info array.
     """
     n_samples = info["last_samps"][-1]
-    mff_events, event_codes = _read_mff_events(input_fname, info["sfreq"])
+    mff_events, event_codes = _read_mff_events(
+        input_fname, info["sfreq"], info["meas_dt_local"]
+    )
     info["n_events"] = len(event_codes)
     info["event_codes"] = event_codes
     events = np.zeros([info["n_events"], info["n_segments"] * n_samples])
@@ -35,8 +38,8 @@ def _read_events(input_fname, info):
     return events, info, mff_events
 
 
-def _read_mff_events(filename, sfreq):
-    """Extract the events.
+def _read_mff_events(filename, sfreq, start_time):
+    """Extract the events with mffpy.
 
     Parameters
     ----------
@@ -44,41 +47,97 @@ def _read_mff_events(filename, sfreq):
         File path.
     sfreq : float
         The sampling frequency
+    start_time : datetime
+        The recording start time used as the event anchor.
     """
-    orig = {}
-    for xml_file in glob(join(filename, "*.xml")):
-        xml_type = splitext(basename(xml_file))[0]
-        et = _parse_xml(xml_file)
-        if et is not None:
-            orig[xml_type] = et
-    xml_files = orig.keys()
-    xml_events = [x for x in xml_files if x[:7] == "Events_"]
-    for item in orig["info"]:
-        if "recordTime" in item:
-            start_time = _ns2py_time(item["recordTime"])
-            break
+    # Use defusedxml to parse Events XML directly (avoid mffpy's strict
+    # datetime parsing which may include nanosecond fractions). We still use
+    # mffpy.Reader for locating the Events.xml files inside the MFF.
+    _soft_import("mffpy", "reading EGI MFF data")
+    _soft_import("defusedxml", "reading EGI MFF data")
+    import mffpy
+    import defusedxml.ElementTree as DET
+
+    reader = mffpy.Reader(filename)
+    # Quick pre-scan: warn on any XML files that cannot be parsed (test
+    # coverage expects a warning when arbitrary XML is corrupt).
+    try:
+        files_list = sorted(reader.directory.listdir())
+    except Exception:
+        files_list = []
+    tracks = []
+    for xml_name in files_list:
+        if not xml_name.lower().endswith('.xml'):
+            continue
+        stem0 = splitext(basename(xml_name))[0]
+        try:
+            with reader.directory.filepointer(stem0) as fptest:
+                try:
+                    DET.parse(fptest)
+                except Exception as exc:
+                    warn(f"Could not parse the XML file {xml_name}: {exc}", RuntimeWarning)
+        except Exception:
+            # ignore files that cannot be opened via mffpy API
+            continue
+    for xml_name in files_list:
+        if not splitext(basename(xml_name))[0].startswith("Events"):
+            continue
+        stem = splitext(basename(xml_name))[0]
+        with reader.directory.filepointer(stem) as fp:
+            try:
+                root = DET.parse(fp).getroot()
+            except Exception as exc:
+                # fallback: try reading as bytes and parse string
+                try:
+                    fp.seek(0)
+                    txt = fp.read()
+                    root = DET.fromstring(txt)
+                except Exception as exc2:
+                    warn(f"Could not parse the XML file {xml_name}: {exc2}", RuntimeWarning)
+                    continue
+        # identify eventTrack root (namespace-insensitive)
+        if _ns(root.tag) == "eventTrack":
+            tracks.append(root)
+
     markers = []
     code = []
-    for xml in xml_events:
-        for event in orig[xml][2:]:
-            event_start = _ns2py_time(event["beginTime"])
-            start = (event_start - start_time).total_seconds()
-            if event["code"] not in code:
-                code.append(event["code"])
-            marker = {
-                "name": event["code"],
-                "start": start,
-                "start_sample": int(np.trunc(start * sfreq)),
-                "end": start + float(event["duration"]) / 1e9,
-                "chan": None,
-            }
-            markers.append(marker)
-    events_tims = dict()
-    for ev in code:
-        trig_samp = list(
-            c["start_sample"] for n, c in enumerate(markers) if c["name"] == ev
-        )
-        events_tims.update({ev: trig_samp})
+    for root in tracks:
+        # each child 'event' element
+        for event_el in root.findall("{*}event"):
+            # extract fields by tag name ignoring namespace
+            ev = {}
+            for child in event_el:
+                tag = _ns(child.tag)
+                ev[tag] = child.text
+            # parse times and duration
+            event_start = _parse_mffpy_datetime(ev.get("beginTime"), tzinfo=start_time.tzinfo)
+            if event_start is None:
+                continue
+            start_sec = (event_start - start_time).total_seconds()
+            code_str = ev.get("code", "")
+            if code_str not in code:
+                code.append(code_str)
+            # duration in xml is typically in nanoseconds
+            duration = None
+            if ev.get("duration") is not None:
+                try:
+                    duration = int(ev.get("duration")) / 1e9
+                except Exception:
+                    duration = None
+            markers.append(
+                {
+                    "name": code_str,
+                    "start": start_sec,
+                    "start_sample": int(np.trunc(start_sec * sfreq)),
+                    "end": start_sec + (duration if duration is not None else 0.0),
+                    "chan": None,
+                }
+            )
+
+    events_tims = {
+        ev: [marker["start_sample"] for marker in markers if marker["name"] == ev]
+        for ev in code
+    }
     return events_tims, code
 
 
