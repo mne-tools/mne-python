@@ -140,7 +140,7 @@ def _safe_svd(A, **kwargs):
 def _parse_mffpy_datetime(time_str, *, tzinfo=None):
     """Parse an MFF timestamp with nanosecond fractional seconds.
 
-    TODO VERSION: Remove once mffpy fixes EventTrack.beginTime parsing.
+    TODO VERSION: Remove once BEL-Public/mffpy#133 is released.
     Upstream issue: https://github.com/BEL-Public/mffpy/issues/138
     """
     if time_str is None:

@@ -57,33 +57,15 @@ def _read_mff_events(filename, sfreq, start_time):
     import mffpy
 
     reader = mffpy.Reader(filename)
-    # Quick pre-scan: warn on any XML files that cannot be parsed (test
-    # coverage expects a warning when arbitrary XML is corrupt).
     try:
         files_list = sorted(reader.directory.listdir())
     except Exception:
         files_list = []
     tracks = []
     for xml_name in files_list:
-        if not xml_name.lower().endswith(".xml"):
-            continue
-        stem0 = splitext(basename(xml_name))[0]
-        try:
-            with reader.directory.filepointer(stem0) as fptest:
-                try:
-                    DET.parse(fptest)
-                except Exception as exc:
-                    warn(
-                        f"Could not parse the XML file {xml_name}: {exc}",
-                        RuntimeWarning,
-                    )
-        except Exception:
-            # ignore files that cannot be opened via mffpy API
-            continue
-    for xml_name in files_list:
-        if not splitext(basename(xml_name))[0].startswith("Events"):
-            continue
         stem = splitext(basename(xml_name))[0]
+        if not stem.startswith("Events"):
+            continue
         with reader.directory.filepointer(stem) as fp:
             try:
                 root = DET.parse(fp).getroot()
