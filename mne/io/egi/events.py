@@ -148,18 +148,6 @@ def _read_mff_events(filename, sfreq, start_time):
     return events_tims, code
 
 
-def _parse_xml(xml_file: str) -> list[dict[str, str]] | None:
-    """Parse XML file."""
-    defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
-    try:
-        xml = defusedxml.ElementTree.parse(xml_file)
-    except defusedxml.ElementTree.ParseError as e:
-        warn(f"Could not parse the XML file {xml_file}: {e}")
-        return
-    root = xml.getroot()
-    return _xml2list(root)
-
-
 def _xml2list(root):
     """Parse XML item."""
     output = []
@@ -214,15 +202,6 @@ def _xml2dict(root):
         else:
             output.update({_ns(element.tag): element.text})
     return output
-
-
-def _ns2py_time(nstime):
-    """Parse times."""
-    nsdate = nstime[0:10]
-    nstime0 = nstime[11:26]
-    nstime00 = nsdate + " " + nstime0
-    pytime = datetime.strptime(nstime00, "%Y-%m-%d %H:%M:%S.%f")
-    return pytime
 
 
 def _combine_triggers(data, remapping=None):
