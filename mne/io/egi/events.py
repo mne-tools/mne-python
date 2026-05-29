@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime
 from os.path import basename, splitext
 
 import numpy as np
