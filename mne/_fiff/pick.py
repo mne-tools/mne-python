@@ -106,7 +106,7 @@ def get_channel_type_constants(include_defaults=False):
         ),
         fnirs_td_gated_amplitude=dict(
             kind=FIFF.FIFFV_FNIRS_CH,
-            unit=FIFF.FIFF_UNIT_V,
+            unit=FIFF.FIFF_UNIT_UNITLESS,
             coil_type=FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
         ),
         fnirs_td_moments_intensity=dict(
