@@ -27,8 +27,8 @@ from mne.transforms import _frame_to_str, _verbose_frames
 from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-REPO = "mne-tools"
-COMMIT = "e27f68cbf74dbfc5193ad429cc77900a59475181"
+REPO = "larsoner"  # TODO: Replace with upstream once merged
+COMMIT = "63cdf5d64a7006d2b8d21931bd7c4d898e310df8"
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -91,7 +91,9 @@ _missing_coil_def = (
     304,  # fNIRS frequency domain AC amplitude
     305,  # fNIRS frequency domain phase
     306,  # fNIRS time domain gated amplitude
-    307,  # fNIRS time domain moments amplitude
+    307,  # fNIRS time domain moments intensity
+    308,  # fNIRS time domain moments mean
+    309,  # fNIRS time domain moments variance
     400,  # Eye-tracking gaze position
     401,  # Eye-tracking pupil size
     1000,  # For testing the MCG software
