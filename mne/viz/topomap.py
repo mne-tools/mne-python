@@ -76,7 +76,18 @@ from .utils import (
     plt_show,
 )
 
-_fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
+_fnirs_types = (
+    "hbo",
+    "hbr",
+    "fnirs_cw_amplitude",
+    "fnirs_od",
+    "fnirs_fd_ac_amplitude",
+    "fnirs_fd_phase",
+    "fnirs_td_gated_amplitude",
+    "fnirs_td_moments_intensity",
+    "fnirs_td_moments_mean",
+    "fnirs_td_moments_variance",
+)
 _opm_coils = (
     FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG,
     FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
