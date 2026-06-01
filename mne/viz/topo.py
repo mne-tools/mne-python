@@ -1047,12 +1047,19 @@ def _plot_evoked_topo(
                 [
                     x
                     for x in types_used
-                    if x in ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od",
-                            "fnirs_fd_ac_amplitude", "fnirs_fd_phase",
-                            "fnirs_td_gated_amplitude",
-                            "fnirs_td_moments_intensity",
-                            "fnirs_td_moments_mean",
-                            "fnirs_td_moments_variance")
+                    if x
+                    in (
+                        "hbo",
+                        "hbr",
+                        "fnirs_cw_amplitude",
+                        "fnirs_od",
+                        "fnirs_fd_ac_amplitude",
+                        "fnirs_fd_phase",
+                        "fnirs_td_gated_amplitude",
+                        "fnirs_td_moments_intensity",
+                        "fnirs_td_moments_mean",
+                        "fnirs_td_moments_variance",
+                    )
                 ]
             )
             > 0

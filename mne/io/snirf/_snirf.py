@@ -221,9 +221,7 @@ class RawSNIRF(BaseRaw):
             # SNIRF labels are stored separately for user access.
             all_src_idx = np.unique(
                 [
-                    _correct_shape(
-                        np.array(dat.get(f"nirs/data1/{c}/sourceIndex"))
-                    )[0]
+                    _correct_shape(np.array(dat.get(f"nirs/data1/{c}/sourceIndex")))[0]
                     for c in channels
                 ]
             )
@@ -231,9 +229,9 @@ class RawSNIRF(BaseRaw):
 
             all_det_idx = np.unique(
                 [
-                    _correct_shape(
-                        np.array(dat.get(f"nirs/data1/{c}/detectorIndex"))
-                    )[0]
+                    _correct_shape(np.array(dat.get(f"nirs/data1/{c}/detectorIndex")))[
+                        0
+                    ]
                     for c in channels
                 ]
             )
@@ -575,9 +573,7 @@ class RawSNIRF(BaseRaw):
                     "%Y-%m-%d%H:%M:%S.%f%z",
                 ]:
                     try:
-                        meas_date = datetime.datetime.strptime(
-                            str_datetime, dt_code
-                        )
+                        meas_date = datetime.datetime.strptime(str_datetime, dt_code)
                     except ValueError:
                         pass
                     else:
@@ -629,14 +625,13 @@ class RawSNIRF(BaseRaw):
                     continue
                 onsets = data[:, 0]
                 durations = data[:, 1]
-                group_name = _correct_shape(
-                    np.array(dat.get(f"/nirs/{key}/name"))
-                )[0].decode("UTF-8")
+                group_name = _correct_shape(np.array(dat.get(f"/nirs/{key}/name")))[
+                    0
+                ].decode("UTF-8")
                 raw_labels = dat.get(f"/nirs/{key}/dataLabels")
                 if raw_labels is not None:
                     labels = [
-                        lbl.decode("UTF-8") if isinstance(lbl, bytes)
-                        else str(lbl)
+                        lbl.decode("UTF-8") if isinstance(lbl, bytes) else str(lbl)
                         for lbl in np.array(raw_labels)
                     ]
                 else:
@@ -655,9 +650,7 @@ class RawSNIRF(BaseRaw):
                     descs = []
                     for row in data:
                         matched = [
-                            name
-                            for col, name in type_cols.items()
-                            if row[col] == 1.0
+                            name for col, name in type_cols.items() if row[col] == 1.0
                         ]
                         descs.append(matched[0] if matched else group_name)
                     annot.append(onsets, durations, descs)
