@@ -5,7 +5,7 @@
 import numpy as np
 
 from ..._fiff.constants import FIFF
-from ...annotations import _annotations_starts_stops
+from ...annotations import _sync_onset
 from ...io import BaseRaw
 from ...utils import _check_preload, _validate_type, logger, warn
 
@@ -77,6 +77,15 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
     """Interpolate eyetracking signals during blinks in-place."""
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
+    # Compute the start/stop time (in seconds, relative to the raw start) of each
+    # matched annotation directly from ``blink_annots``. Deriving these from the
+    # passed annotations (rather than re-querying a hardcoded ``"BAD_blink"``)
+    # ensures every annotation in ``match`` is interpolated over and that the
+    # start/stop times stay aligned with ``blink_annots`` in the loop below.
+    onsets = _sync_onset(raw, np.array([annot["onset"] for annot in blink_annots]))
+    durations = np.array([annot["duration"] for annot in blink_annots])
+    starts = raw.time_as_index(onsets, use_rounding=True) / raw.info["sfreq"]
+    ends = raw.time_as_index(onsets + durations, use_rounding=True) / raw.info["sfreq"]
     # iterate over each eyetrack channel and interpolate the blinks
     interpolated_chs = []
     for ci, ch_info in enumerate(raw.info["chs"]):
@@ -88,9 +97,6 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
                 continue
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
-        starts, ends = _annotations_starts_stops(raw, "BAD_blink")
-        starts = np.divide(starts, raw.info["sfreq"])
-        ends = np.divide(ends, raw.info["sfreq"])
         for annot, start, end in zip(blink_annots, starts, ends):
             if "ch_names" not in annot or not annot["ch_names"]:
                 msg = f"Blink annotation missing values for 'ch_names' key: {annot}"

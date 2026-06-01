@@ -111,6 +111,7 @@
 .. _Florin Pop: https://github.com/florin-pop
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
 .. _Fu-Te Wong: https://github.com/zuxfoucault
+.. _gaoflow: https://github.com/gaoflow
 .. _Gennadiy Belonosov: https://github.com/Genuster
 .. _Geoff Brookshire: https://github.com/gbrookshire
 .. _George O'Neill: https://georgeoneill.github.io
