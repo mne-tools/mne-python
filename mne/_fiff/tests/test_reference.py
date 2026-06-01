@@ -257,6 +257,10 @@ def test_set_eeg_reference():
     with pytest.raises(ValueError, match='supported for ref_channels="averag'):
         set_eeg_reference(raw, ["EEG 001"], True, True)
 
+    # Test passing a single channel name as string
+    reref, ref_data = set_eeg_reference(raw, "EEG 001", copy=True)
+    _test_reference(raw, reref, ref_data, ["EEG 001"])
+
 
 @pytest.mark.parametrize(
     "ch_type, msg",

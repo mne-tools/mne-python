@@ -663,6 +663,52 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 
     Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
+
+.. _taking-over-a-stale-pr:
+
+Taking over a stale pull request
+--------------------------------
+
+If a pull request has been abandoned, someone else can take it over. A PR is generally
+considered abandoned when there have been no commits for several weeks, and the original
+author has not already indicated that they plan to continue at a later time. In this
+case, first ping the author in a comment on the PR, asking if they intend to continue
+working on it. If the original author replies that they do not intend to continue the
+work, or there is no reply after at least 2 weeks, you can take over the PR.
+
+To build on top of the original author's existing work, you can add a copy of the branch
+they were working on to your fork:
+
+.. code-block:: bash
+
+    git remote add original-author https://github.com/original-author/mne-python.git
+    git fetch original-author
+    git checkout -b some-new-feature original-author/some-new-feature
+
+You can then push any further commits to, and open a PR from, this new branch on your
+fork.
+
+Reference the original PR number in the description of the new PR (e.g., "Closes
+#12345 (supersedes)"), and keep any links to the corresponding issue (e.g., "Fixes #12340").
+
+Before the PR is merged, make sure the original author is credited for their existing
+work. To credit them in the documentation, add their name to ``doc/changes/names.inc``,
+if not already included, and add them as an author in the changelog entry, e.g.:
+
+.. code-block:: rst
+
+    Short description of the changes, by `Your Name`_ and `Original Author Name`_.
+
+To credit the original author in the code, add their name and email as a co-author to
+the end of at least one commit message (e.g., the commit that adds the changelog
+entry):
+
+.. code-block:: rst
+
+    Your commit message
+    
+    Co-authored-by: Original Author Name <original-author-email@example.com>
+
 Continuous integration (CI) and local testing before opening a PR
 -----------------------------------------------------------------
 
