@@ -872,6 +872,7 @@ def test_opm_tangential_rms_unsigned(triaxial_evoked):
     assert np.all(tangential[1] >= 0)
     assert tangential[4]
 
+
 def test_should_use_opm_orientation_groups_only_for_triaxial():
     """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
     ch_names = [f"OPM{k:03}" for k in range(1, 7)]
