@@ -2203,7 +2203,7 @@ def test_set_montage_meg_eeg_no_digitization():
 def test_1020_equivalence(kind):
     """Test equivalence (or lack thereof) of 10-20 electrode sets."""
     # At some point we should maybe make all of these have the same sets of channel
-    # names. But given their different providences, let's live with them being different
+    # names. But given their different provenances, let's live with them being different
     # for now, and fix if users run into issues.
 
     # colin has no 1010 variant
