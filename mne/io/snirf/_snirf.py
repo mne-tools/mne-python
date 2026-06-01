@@ -216,39 +216,41 @@ class RawSNIRF(BaseRaw):
 
             # Source and detector labels are optional fields.
             # Use S1, S2, S3, etc if not specified.
-            if "sourceLabels_disabled" in dat["nirs/probe"]:
-                # This is disabled as
-                # MNE-Python does not currently support custom source names.
-                # Instead, sources must be integer values.
-                sources = np.array(dat.get("nirs/probe/sourceLabels"))
-                sources = [s.decode("UTF-8") for s in sources]
-            else:
-                sources = np.unique(
-                    [
-                        _correct_shape(
-                            np.array(dat.get(f"nirs/data1/{c}/sourceIndex"))
-                        )[0]
-                        for c in channels
-                    ]
-                )
-                sources = {int(s): f"S{int(s)}" for s in sources}
+            # MNE channel names must follow S{int}_D{int} format,
+            # so we always generate integer-based names. The original
+            # SNIRF labels are stored separately for user access.
+            all_src_idx = np.unique(
+                [
+                    _correct_shape(
+                        np.array(dat.get(f"nirs/data1/{c}/sourceIndex"))
+                    )[0]
+                    for c in channels
+                ]
+            )
+            sources = {int(s): f"S{int(s)}" for s in all_src_idx}
 
-            if "detectorLabels_disabled" in dat["nirs/probe"]:
-                # This is disabled as
-                # MNE-Python does not currently support custom detector names.
-                # Instead, detector must be integer values.
-                detectors = np.array(dat.get("nirs/probe/detectorLabels"))
-                detectors = [d.decode("UTF-8") for d in detectors]
-            else:
-                detectors = np.unique(
-                    [
-                        _correct_shape(
-                            np.array(dat.get(f"nirs/data1/{c}/detectorIndex"))
-                        )[0]
-                        for c in channels
-                    ]
-                )
-                detectors = {int(d): f"D{int(d)}" for d in detectors}
+            all_det_idx = np.unique(
+                [
+                    _correct_shape(
+                        np.array(dat.get(f"nirs/data1/{c}/detectorIndex"))
+                    )[0]
+                    for c in channels
+                ]
+            )
+            detectors = {int(d): f"D{int(d)}" for d in all_det_idx}
+
+            snirf_source_labels = None
+            snirf_detector_labels = None
+            if "sourceLabels" in dat["nirs/probe"]:
+                snirf_source_labels = [
+                    s.decode("UTF-8") if isinstance(s, bytes) else str(s)
+                    for s in np.array(dat.get("nirs/probe/sourceLabels"))
+                ]
+            if "detectorLabels" in dat["nirs/probe"]:
+                snirf_detector_labels = [
+                    d.decode("UTF-8") if isinstance(d, bytes) else str(d)
+                    for d in np.array(dat.get("nirs/probe/detectorLabels"))
+                ]
 
             # Extract source and detector locations
             # 3D positions are optional in SNIRF,
@@ -559,33 +561,35 @@ class RawSNIRF(BaseRaw):
             with info._unlock():
                 info["dig"] = dig
 
-            str_date = _correct_shape(
-                np.array(dat.get("/nirs/metaDataTags/MeasurementDate"))
-            )[0].decode("UTF-8")
-            str_time = _correct_shape(
-                np.array(dat.get("/nirs/metaDataTags/MeasurementTime"))
-            )[0].decode("UTF-8")
-            str_datetime = str_date + str_time
+            raw_date = dat.get("/nirs/metaDataTags/MeasurementDate")
+            raw_time = dat.get("/nirs/metaDataTags/MeasurementTime")
+            if raw_date is not None and raw_time is not None:
+                str_date = _correct_shape(np.array(raw_date))[0].decode("UTF-8")
+                str_time = _correct_shape(np.array(raw_time))[0].decode("UTF-8")
+                str_datetime = str_date + str_time
 
-            # Several formats have been observed so we try each in turn
-            for dt_code in [
-                "%Y-%m-%d%H:%M:%SZ",
-                "%Y-%m-%d%H:%M:%S",
-                "%Y-%m-%d%H:%M:%S.%f",
-                "%Y-%m-%d%H:%M:%S.%f%z",
-            ]:
-                try:
-                    meas_date = datetime.datetime.strptime(str_datetime, dt_code)
-                except ValueError:
-                    pass
+                for dt_code in [
+                    "%Y-%m-%d%H:%M:%SZ",
+                    "%Y-%m-%d%H:%M:%S",
+                    "%Y-%m-%d%H:%M:%S.%f",
+                    "%Y-%m-%d%H:%M:%S.%f%z",
+                ]:
+                    try:
+                        meas_date = datetime.datetime.strptime(
+                            str_datetime, dt_code
+                        )
+                    except ValueError:
+                        pass
+                    else:
+                        break
                 else:
-                    break
+                    warn(
+                        "Extraction of measurement date from SNIRF file "
+                        "failed. The date is being set to January 1st, "
+                        f"2000, instead of {str_datetime}"
+                    )
+                    meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
             else:
-                warn(
-                    "Extraction of measurement date from SNIRF file failed. "
-                    "The date is being set to January 1st, 2000, "
-                    f"instead of {str_datetime}"
-                )
                 meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
             meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
             with info._unlock():
@@ -618,12 +622,51 @@ class RawSNIRF(BaseRaw):
             # blob/master/snirf_specification.md#nirsistimjdata
             annot = Annotations([], [], [])
             for key in dat["nirs"]:
-                if "stim" in key:
-                    data = np.atleast_2d(np.array(dat.get(f"/nirs/{key}/data")))
-                    if data.shape[1] >= 3:
-                        desc = _correct_shape(np.array(dat.get(f"/nirs/{key}/name")))[0]
-                        annot.append(data[:, 0], data[:, 1], desc.decode("UTF-8"))
+                if "stim" not in key:
+                    continue
+                data = np.atleast_2d(np.array(dat.get(f"/nirs/{key}/data")))
+                if data.shape[1] < 2:
+                    continue
+                onsets = data[:, 0]
+                durations = data[:, 1]
+                group_name = _correct_shape(
+                    np.array(dat.get(f"/nirs/{key}/name"))
+                )[0].decode("UTF-8")
+                raw_labels = dat.get(f"/nirs/{key}/dataLabels")
+                if raw_labels is not None:
+                    labels = [
+                        lbl.decode("UTF-8") if isinstance(lbl, bytes)
+                        else str(lbl)
+                        for lbl in np.array(raw_labels)
+                    ]
+                else:
+                    labels = []
+                # Look for one-hot "Type.X" or "BlockType.X" columns
+                type_cols = {
+                    i: lbl.split(".")[-1]
+                    for i, lbl in enumerate(labels)
+                    if "." in lbl
+                    and any(
+                        prefix in lbl
+                        for prefix in ("BlockType.", "Type.", "TrialType.")
+                    )
+                }
+                if type_cols and data.shape[1] > max(type_cols):
+                    descs = []
+                    for row in data:
+                        matched = [
+                            name
+                            for col, name in type_cols.items()
+                            if row[col] == 1.0
+                        ]
+                        descs.append(matched[0] if matched else group_name)
+                    annot.append(onsets, durations, descs)
+                else:
+                    annot.append(onsets, durations, group_name)
             self.set_annotations(annot, emit_warning=False)
+
+            self._snirf_source_labels = snirf_source_labels
+            self._snirf_detector_labels = snirf_detector_labels
 
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
