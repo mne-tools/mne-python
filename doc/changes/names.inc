@@ -39,6 +39,7 @@
 .. _Baris Talar: https://github.com/baris-talar
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
+.. _Ben Tang: https://github.com/bentang18
 .. _Benedikt Ehinger: https://www.benediktehinger.de
 .. _Bhargav Kowshik: https://github.com/bkowshik
 .. _Bradley Voytek: https://github.com/voytek
