@@ -1764,7 +1764,7 @@ def test_setter_validation():
     with pytest.raises(ValueError, match="Length of duration"):
         annots.duration = annots.duration[:2]
 
-    # description mismatch should raise (the bug drammock reported)
+    # description mismatch should raise
     with pytest.raises(ValueError, match="Length of description"):
         annots.description = annots.description[:2]
 
