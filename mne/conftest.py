@@ -94,7 +94,8 @@ def pytest_configure(config: pytest.Config):
         "slowtest: mark a test as slow",
         "ultraslowtest: mark a test as ultraslow or to be run rarely",
         "pgtest: mark a test as relevant for mne-qt-browser",
-        "pvtest: mark a test as relevant for pyvistaqt",
+        # used by PyVista's MNE integration tests (but also useful in some testing):
+        "pvtest: mark a test as relevant for pyvista",
     ):
         config.addinivalue_line("markers", marker)
 
