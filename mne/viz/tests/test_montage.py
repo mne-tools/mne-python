@@ -63,7 +63,8 @@ def test_plot_montage():
 @pytest.mark.parametrize(
     "name, n",
     [
-        ("fsaverage_1005", 342),
+        ("fsaverage_1005", 338),
+        ("spherical_1005", 347),
         ("colin27_1005", 342),
         ("colin27_postfixed", 85),
         ("colin27_primed", 85),

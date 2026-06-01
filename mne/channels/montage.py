@@ -74,9 +74,13 @@ _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
         name="fsaverage_1005",
         description="Electrodes are named according to the international 10-05 system "
-        "and positioned on the fsaverage head model (343+3 locations)",
+        "and positioned on the fsaverage head model (335+3 locations)",
     ),
-    # TODO: Do we need all the others?
+    _BuiltinStandardMontage(
+        name="fsaverage_1020",
+        description="Electrodes are named according to the international 10-20 system "
+        "and positioned on the fsaverage head model (21+3 locations)",
+    ),
     _BuiltinStandardMontage(
         name="colin27_1005",
         description="Electrodes are named according to the international 10-05 system "
@@ -96,7 +100,7 @@ _BUILTIN_STANDARD_MONTAGES = [
         name="colin27_postfixed",
         description="Electrodes are named according to the international extended 10-20"
         " system using postfixes for intermediate positions and positioned on the "
-        "Colin27 head model(100+3 locations)",
+        "Colin27 head model (100+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="colin27_prefixed",
@@ -136,19 +140,19 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="easycap-M1",
-        description="EasyCap with 10-05 electrode names (74 locations)",
+        description="EasyCap with 10-05 electrode names (74+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="easycap-M10",
-        description="EasyCap with numbered electrodes (61 locations)",
+        description="EasyCap with numbered electrodes (61+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="easycap-M43",
-        description="EasyCap with numbered electrodes (64 locations)",
+        description="EasyCap with numbered electrodes (64+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="EGI_256",
-        description="Geodesic Sensor Net (256 locations)",
+        description="Geodesic Sensor Net (256+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="GSN-HydroCel-32",
@@ -197,19 +201,22 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="brainproducts-RNP-BA-128",
-        description="Brain Products with 10-10 electrode names (128 channels)",
+        description="Brain Products with 10-10 electrode names (130+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="spherical_1005",
-        description="10–05 electrode names and locations using a spherical head model",
+        description="10–05 electrode names and locations using a spherical head model"
+        " (344+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="spherical_1010",
-        description="10–10 electrode names and locations using a spherical head model",
+        description="10–10 electrode names and locations using a spherical head model"
+        " (70+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="spherical_1020",
-        description="10–20 electrode names and locations using a spherical head model",
+        description="10–20 electrode names and locations using a spherical head model"
+        " (21+3 locations)",
     ),
 ]
 
