@@ -62,6 +62,9 @@ jobs:
             if [[ $(cat merge.txt) != "" ]]; then
               echo "Merging $(cat merge.txt)";
               git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+            elif [[ "$CIRCLE_PROJECT_USERNAME" != "mne-tools" ]]; then
+              echo "On CIRCLE_PROJECT_USERNAME=\"$CIRCLE_PROJECT_USERNAME\" repo rather than mne-tools, merging upstream/main."
+              git pull --ff-only upstream main;
             else
               if [[ "$CIRCLE_BRANCH" == "main" ]]; then
                 KIND=dev
