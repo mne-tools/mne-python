@@ -685,6 +685,38 @@ def test_sample_rate_jitter(tmp_path):
 
 
 @requires_testing_data
+def test_get_dataunit_scaling():
+    """Test CMIXF-12 and legacy Hb unit scaling."""
+    from mne.io.snirf._snirf import _get_dataunit_scaling
+
+    # Legacy shorthand: [prefix]M
+    assert _get_dataunit_scaling("M") == 1.0
+    assert _get_dataunit_scaling("mM") == 1e-3
+    assert _get_dataunit_scaling("uM") == 1e-6
+    assert _get_dataunit_scaling("nM") == 1e-9
+    # CMIXF-12: [prefix]mol / L
+    assert _get_dataunit_scaling("mol/L") == 1.0
+    assert _get_dataunit_scaling("mmol/L") == 1e-3
+    assert _get_dataunit_scaling("umol/L") == 1e-6
+    assert _get_dataunit_scaling("nmol/L") == 1e-9
+    assert _get_dataunit_scaling("pmol/L") == 1e-12
+    # CMIXF-12: [prefix]mol / dm^3  (dm^3 = L)
+    assert _get_dataunit_scaling("mol/dm^3") == 1.0
+    assert _get_dataunit_scaling("mmol/dm^3") == 1e-3
+    assert _get_dataunit_scaling("umol/dm^3") == 1e-6
+    # CMIXF-12: [prefix]mol / m^3  (1 m^3 = 1000 L)
+    assert _get_dataunit_scaling("mol/m^3") == 1e-3
+    assert _get_dataunit_scaling("mmol/m^3") == 1e-6
+    # Non-standard lowercase liter
+    assert _get_dataunit_scaling("mol/l") == 1.0
+    assert _get_dataunit_scaling("mmol/l") == 1e-3
+    # Empty string default
+    assert _get_dataunit_scaling("") == 1.0
+    # Unsupported unit
+    with pytest.raises(RuntimeError, match="not supported"):
+        _get_dataunit_scaling("bad_unit")
+
+
 def test_snirf_multiple_wavelengths():
     """Test importing synthetic SNIRF files with >=3 wavelengths."""
     raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)
