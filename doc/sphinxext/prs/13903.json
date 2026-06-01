@@ -1,0 +1,167 @@
+{
+  "merge_commit_sha": "db75c70718876e61e893faff5a14be2e3573f55d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13903.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13903.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/read_impedances.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/muscle_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_epoch_quality.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/roi_erpimage_by_rt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/_fiff/tests/test_pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 52,
+      "d": 16
+    },
+    "mne/channels/data/montages/README.md": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/channels/data/montages/colin27_1005.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/colin27_1020.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/colin27_alphabetic.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/colin27_postfixed.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/colin27_prefixed.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/colin27_primed.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/spherical_1005.tsv": {
+      "a": 349,
+      "d": 0
+    },
+    "mne/channels/data/montages/spherical_1010.tsv": {
+      "a": 75,
+      "d": 0
+    },
+    "mne/channels/data/montages/spherical_1020.tsv": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 61,
+      "d": 23
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 46,
+      "d": 3
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_interpolate.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
