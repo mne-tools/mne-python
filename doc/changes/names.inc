@@ -175,7 +175,7 @@
 .. _Judy D Zhu: https://github.com/JD-Zhu
 .. _Juergen Dammers: https://github.com/jdammers
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
-.. _Julien Dubois: https://github.com/julien-dubois-k
+.. _Julien Dubois: https://github.com/jcrdubois
 .. _Jussi Nurminen: https://github.com/jjnurminen
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
 .. _Kalle Makela: https://github.com/Kallemakela
