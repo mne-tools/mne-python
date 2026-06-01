@@ -1992,7 +1992,7 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_COUNT = 33
+    EXPECTED_COUNT = 34
 
     montages = get_builtin_montages()
     assert len(montages) == EXPECTED_COUNT, (
@@ -2199,13 +2199,16 @@ def test_set_montage_meg_eeg_no_digitization():
     epochs.set_montage(montage, on_missing="ignore")
 
 
-@pytest.mark.parametrize("kind", ("1020", "1005"))
+@pytest.mark.parametrize("kind", ("1005", "1010", "1020"))
 def test_1020_equivalence(kind):
     """Test equivalence (or lack thereof) of 10-20 electrode sets."""
     # At some point we should maybe make all of these have the same sets of channel
     # names. But given their different providences, let's live with them being different
     # for now, and fix if users run into issues.
-    colin = make_standard_montage(f"colin27_{kind}")
+
+    # colin has no 1010 variant
+    colin_kind = "1005" if kind == "1010" else kind
+    colin = make_standard_montage(f"colin27_{colin_kind}")
     fsaverage = make_standard_montage(f"fsaverage_{kind}")
     spherical = make_standard_montage(f"spherical_{kind}")
     for montage in (colin, fsaverage, spherical):
@@ -2240,7 +2243,7 @@ def test_1020_equivalence(kind):
         assert extra_colin.issubset(colin_names)
         assert fsaverage_names == colin_names - extra_colin
     else:
-        assert kind == "1020"
+        assert kind in ("1010", "1020")
         assert fsaverage_names == spherical_names
         # Our colin27 contains a bunch of extra names, so don't bother with extra list
         # here, just check subset

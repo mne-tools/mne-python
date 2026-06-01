@@ -176,6 +176,10 @@ standard_montage_look_up_table = {
         _read_eeg_positions_tsv,
         basename="fsaverage_1005.tsv",
     ),
+    "fsaverage_1010": partial(
+        _read_eeg_positions_tsv,
+        basename="fsaverage_1010.tsv",
+    ),
     "fsaverage_1020": partial(
         _read_eeg_positions_tsv,
         basename="fsaverage_1020.tsv",

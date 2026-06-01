@@ -77,6 +77,11 @@ _BUILTIN_STANDARD_MONTAGES = [
         "and positioned on the fsaverage head model (335+3 locations)",
     ),
     _BuiltinStandardMontage(
+        name="fsaverage_1010",
+        description="Electrodes are named according to the international 10-10 system "
+        "and positioned on the fsaverage head model (70+3 locations)",
+    ),
+    _BuiltinStandardMontage(
         name="fsaverage_1020",
         description="Electrodes are named according to the international 10-20 system "
         "and positioned on the fsaverage head model (21+3 locations)",
