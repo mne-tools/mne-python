@@ -794,8 +794,9 @@ def test_plot_topomap_opm():
     fig_evoked = evoked.plot_topomap(
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
-    # Biaxial OPM pairs trigger grouped rendering (4 radial + 4 tangential + 1 colorbar)
-    assert len(fig_evoked.axes) == 9
+    # Biaxial OPM pairs trigger grouped rendering
+    # (4 radial + 4 tangential + 2 colorbars)
+    assert len(fig_evoked.axes) == 10
 
 
 def test_prepare_topomap_plot_opm_non_quspin_coils():
@@ -852,6 +853,25 @@ def test_split_opm_overlaps(triaxial_evoked):
     assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
 
 
+def test_opm_tangential_rms_unsigned(triaxial_evoked):
+    """Test that tangential OPM data is RMS magnitude and unsigned."""
+    picks, pos, merge_channels, names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+    data = triaxial_evoked.data[picks]
+    grouped = topomap._compute_orientation_group_data(
+        data,
+        names,
+        pos,
+        ch_type="mag",
+        modality="opm",
+        merge_channels=merge_channels,
+        use_opm_orientation_groups=True,
+    )
+    tangential = [group for group in grouped if group[0] == "tangential"][0]
+    assert np.all(tangential[1] >= 0)
+    assert tangential[4]
+
 def test_should_use_opm_orientation_groups_only_for_triaxial():
     """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
     ch_names = [f"OPM{k:03}" for k in range(1, 7)]
@@ -887,7 +907,7 @@ def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
         sensors=False,
         show=False,
     )
-    assert len(fig.axes) == 3
+    assert len(fig.axes) == 4
     titles = [ax.get_title() for ax in fig.axes]
     assert any("radial" in title for title in titles)
     assert any("tangential" in title for title in titles)

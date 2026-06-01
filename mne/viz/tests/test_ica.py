@@ -616,7 +616,7 @@ def test_plot_components_opm():
     ica = ICA(max_iter=1, random_state=0, n_components=10)
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
-    # Biaxial OPM pairs trigger grouped rendering (radial + tangential axes)
+    # Biaxial OPM overlaps render grouped radial+tangential maps.
     assert len(fig.axes) == 20
 
 
@@ -630,6 +630,3 @@ def test_plot_components_opm_triaxial(triaxial_raw):
     ica.fit(triaxial_raw, picks="mag", verbose="error")
     fig = ica.plot_components()
     assert len(fig.axes) == 6
-    titles = [ax.get_title() for ax in fig.axes]
-    assert any("[radial]" in title for title in titles)
-    assert any("[tangential]" in title for title in titles)

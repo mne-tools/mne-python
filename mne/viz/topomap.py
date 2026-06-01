@@ -330,34 +330,61 @@ def _split_opm_overlaps(overlapping_channels):
     return radial, tangential
 
 
-def _compute_opm_orientation_topomap_data(data, ch_names, pos, overlapping_channels):
-    """Compute radial and tangential OPM topomap data from overlap sets."""
+def _rms(data, axis=0):
+    """Compute root-mean-square magnitude along an axis."""
+    return np.sqrt(np.mean(data**2, axis=axis))
+
+
+def _compute_orientation_group_data(
+    data,
+    ch_names,
+    pos,
+    *,
+    ch_type,
+    modality,
+    merge_channels,
+    use_opm_orientation_groups,
+):
+    """Compute grouped topomap data for OPM/Neuromag-like orientations."""
     from ..channels.layout import _merge_ch_data
 
-    # Radial data matches the existing OPM merge behavior and position layout.
-    radial_data, radial_names = _merge_ch_data(
-        data.copy(), "mag", copy.copy(ch_names), modality="opm"
-    )
-    radial_pos = pos
+    if merge_channels:
+        if modality == "opm" and use_opm_orientation_groups:
+            radial_data, radial_names = _merge_ch_data(
+                data.copy(), "mag", copy.copy(ch_names), modality="opm"
+            )
+            radial_pos = pos
 
-    name_lookup = [name.removesuffix("_MERGE-REMOVE") for name in ch_names]
-    tangential_data = []
-    tangential_names = []
-    tangential_pos = []
-    for overlap_set in overlapping_channels:
-        idx = [name_lookup.index(ch_name) for ch_name in overlap_set[1:]]
-        # Collapse multiple tangential channels at one location using RMS.
-        tangential_data.append(np.sqrt(np.mean(data[idx] ** 2, axis=0)))
-        tangential_names.append(f"{overlap_set[0]}t")
-        tangential_pos.append(radial_pos[radial_names.index(overlap_set[0])])
+            name_lookup = [name.removesuffix("_MERGE-REMOVE") for name in ch_names]
+            tangential_data = []
+            tangential_names = []
+            tangential_pos = []
+            for overlap_set in merge_channels:
+                idx = [name_lookup.index(ch_name) for ch_name in overlap_set[1:]]
+                # Collapse multiple tangential channels at one location using RMS.
+                tangential_data.append(_rms(data[idx], axis=0))
+                tangential_names.append(f"{overlap_set[0]}t")
+                tangential_pos.append(radial_pos[radial_names.index(overlap_set[0])])
 
-    tangential_data = np.array(tangential_data)
-    tangential_pos = np.array(tangential_pos)
+            tangential_data = np.array(tangential_data)
+            tangential_pos = np.array(tangential_pos)
 
-    return [
-        ("radial", radial_data, radial_pos, radial_names),
-        ("tangential", tangential_data, tangential_pos, tangential_names),
-    ]
+            return [
+                ("radial", radial_data, radial_pos, radial_names, False),
+                (
+                    "tangential",
+                    tangential_data,
+                    tangential_pos,
+                    tangential_names,
+                    True,
+                ),
+            ]
+
+        data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
+        group_norm = ch_type == "grad"
+        return [(None, data, pos, ch_names, group_norm)]
+
+    return [(None, data, pos, ch_names, False)]
 
 
 def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
@@ -1732,7 +1759,6 @@ def plot_ica_components(
     """  # noqa E501
     from matplotlib.pyplot import Axes
 
-    from ..channels.layout import _merge_ch_data
     from ..epochs import BaseEpochs
     from ..io import BaseRaw
 
@@ -1817,22 +1843,23 @@ def plot_ica_components(
             if len(set(ica.get_channel_types())) > 1:
                 comp_title += f" ({ch_type})"
 
-            if use_opm_orientation_groups:
-                grouped_data = _compute_opm_orientation_topomap_data(
-                    data_[:, np.newaxis], names, pos, merge_channels
-                )
-            else:
-                if merge_channels:
-                    data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
-                    grouped_data = [(None, data_[:, np.newaxis], pos, names_)]
-                else:
-                    grouped_data = [(None, data_[:, np.newaxis], pos, names)]
+            modality = "opm" if use_opm_orientation_groups else "other"
+            grouped_data = _compute_orientation_group_data(
+                data_[:, np.newaxis],
+                copy.copy(names),
+                pos,
+                ch_type=ch_type,
+                modality=modality,
+                merge_channels=merge_channels,
+                use_opm_orientation_groups=use_opm_orientation_groups,
+            )
 
             for group_idx, (
                 group_label,
                 group_data,
                 group_pos,
                 group_names,
+                group_norm,
             ) in enumerate(grouped_data):
                 ax_idx = comp_offset * n_group_axes + group_idx
                 ax = _axes[ax_idx]
@@ -1840,7 +1867,8 @@ def plot_ica_components(
                 if group_label is not None:
                     plot_title += f" [{group_label}]"
                 subplot_titles.append(ax.set_title(plot_title, fontsize=12, **kwargs))
-                _vlim = _setup_vmin_vmax(group_data[:, 0], *vlim)
+                _vlim = _setup_vmin_vmax(group_data[:, 0], *vlim, norm=group_norm)
+                group_cmap = _setup_cmap(cmap, n_axes=len(picks), norm=group_norm)
                 im = plot_topomap(
                     group_data[:, 0].flatten(),
                     group_pos,
@@ -1855,7 +1883,7 @@ def plot_ica_components(
                     border=border,
                     res=res,
                     size=size,
-                    cmap=cmap[0],
+                    cmap=group_cmap[0],
                     vlim=_vlim,
                     cnorm=cnorm,
                     axes=ax,
@@ -1867,7 +1895,7 @@ def plot_ica_components(
                     cbar, cax = _add_colorbar(
                         ax,
                         im,
-                        cmap,
+                        group_cmap,
                         title="AU",
                         format_=cbar_fmt,
                         kind="ica_comp_topomap",
@@ -2386,7 +2414,8 @@ def plot_evoked_topomap(
         )
     # create axes
     n_groups = 2 if use_opm_orientation_groups else 1
-    want_axes = n_times * n_groups + int(colorbar)
+    n_cbar = int(colorbar) * n_groups
+    want_axes = n_times * n_groups + n_cbar
     if interactive:
         height_ratios = [5, 1]
         nrows = 2
@@ -2413,6 +2442,12 @@ def plot_evoked_topomap(
                 f"each time{cbar_err}), got {len(axes)}."
             )
     del want_axes
+    if axes_given and colorbar:
+        plot_axes = axes[:-n_cbar]
+        cbar_axes = axes[-n_cbar:]
+    else:
+        plot_axes = axes
+        cbar_axes = []
     # find first index that's >= (to rounding error) to each time point
     time_idx = [
         np.where(
@@ -2473,59 +2508,61 @@ def plot_evoked_topomap(
 
     # apply scalings and merge channels
     data *= scaling
-    grouped_data = None
-    if merge_channels:
-        # check modality
-        is_opm_picks = len(evoked.info["chs"]) > 0 and all(
-            ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]
+    # check modality
+    is_opm_picks = len(evoked.info["chs"]) > 0 and all(
+        ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]
+    )
+    if is_opm_picks:
+        modality = "opm"
+    elif ch_type in _fnirs_types:
+        modality = "fnirs"
+    else:
+        modality = "other"
+
+    grouped_data = _compute_orientation_group_data(
+        data,
+        ch_names,
+        pos,
+        ch_type=ch_type,
+        modality=modality,
+        merge_channels=merge_channels,
+        use_opm_orientation_groups=use_opm_orientation_groups,
+    )
+
+    if modality != "other" or use_opm_orientation_groups:
+        merge_channels = False
+
+    # set up colormaps, vlims, and contours per group
+    group_vlims = []
+    group_cmaps = []
+    group_contours = []
+    for group_label, group_data, group_pos, group_names, group_norm in grouped_data:
+        group_vlim = [
+            _setup_vmin_vmax(group_data[:, i], *vlim, norm=group_norm)
+            for i in range(n_times)
+        ]
+        group_vlim = [np.min(group_vlim), np.max(group_vlim)]
+        if not isinstance(contours, list | np.ndarray):
+            _, group_contour = _set_contour_locator(*group_vlim, contours)
+        else:
+            group_contour = contours
+            if vlim[0] is None and np.any(group_contour < group_vlim[0]):
+                group_vlim[0] = group_contour[0]
+            if vlim[1] is None and np.any(group_contour > group_vlim[1]):
+                group_vlim[1] = group_contour[-1]
+        group_vlims.append(group_vlim)
+        group_cmaps.append(
+            _setup_cmap(cmap, n_axes=n_times, norm=group_vlim[0] >= 0)[0]
         )
-        if is_opm_picks:
-            modality = "opm"
-        elif ch_type in _fnirs_types:
-            modality = "fnirs"
-        else:
-            modality = "other"
-        if modality == "opm" and use_opm_orientation_groups:
-            grouped_data = _compute_opm_orientation_topomap_data(
-                data, ch_names, pos, merge_channels
-            )
-            merge_channels = False
-        else:
-            # merge data
-            data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
-            # if ch_type in _fnirs_types:
-            if modality != "other":
-                merge_channels = False
-    # set up colormap
-    if grouped_data is None:
-        all_data = [data]
-    else:
-        all_data = [group_[1] for group_ in grouped_data]
-    _vlim = [
-        _setup_vmin_vmax(group_data[:, i], *vlim, norm=merge_channels)
-        for group_data in all_data
-        for i in range(n_times)
-    ]
-    _vlim = [np.min(_vlim), np.max(_vlim)]
-    cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
-    # set up contours
-    if not isinstance(contours, list | np.ndarray):
-        _, contours = _set_contour_locator(*_vlim, contours)
-    else:
-        if vlim[0] is None and np.any(contours < _vlim[0]):
-            _vlim[0] = contours[0]
-        if vlim[1] is None and np.any(contours > _vlim[1]):
-            _vlim[1] = contours[-1]
+        group_contours.append(group_contour)
 
     # prepare for main loop over times
     kwargs = dict(
         sensors=sensors,
         res=res,
-        cmap=cmap[0],
         cnorm=cnorm,
         mask_params=mask_params,
         outlines=outlines,
-        contours=contours,
         image_interp=image_interp,
         show=False,
         extrapolate=extrapolate,
@@ -2534,22 +2571,26 @@ def plot_evoked_topomap(
         ch_type=ch_type,
     )
     images, contours_ = [], []
-    if grouped_data is None:
-        grouped_data = [(None, data, pos, ch_names)]
-
-    for group_idx, (group_label, group_data, group_pos, group_names) in enumerate(
-        grouped_data
-    ):
+    for group_idx, (
+        group_label,
+        group_data,
+        group_pos,
+        group_names,
+        _group_norm,
+    ) in enumerate(grouped_data):
         kwargs["names"] = _prepare_sensor_names(group_names, show_names)
+        kwargs["cmap"] = group_cmaps[group_idx]
+        kwargs["contours"] = group_contours[group_idx]
+        group_vlim = group_vlims[group_idx]
         for average_idx, (time, this_average) in enumerate(zip(times, average)):
             ax_idx = group_idx * n_times + average_idx
             tp, cn, interp = _plot_topomap(
                 group_data[:, average_idx],
                 group_pos,
-                axes=axes[ax_idx],
+                axes=plot_axes[ax_idx],
                 mask=None,
-                vmin=_vlim[0],
-                vmax=_vlim[1],
+                vmin=group_vlim[0],
+                vmax=group_vlim[1],
                 **kwargs,
             )
 
@@ -2569,12 +2610,12 @@ def plot_evoked_topomap(
                     del from_time, to_time, tmin_, tmax_
                 if group_label is not None:
                     axes_title = f"{group_label}\n{axes_title}"
-                axes[ax_idx].set_title(axes_title)
+                plot_axes[ax_idx].set_title(axes_title)
 
     if interactive:
         # Add a slider to the figure and start publishing and subscribing to time_change
         # events.
-        kwargs.update(vlim=_vlim)
+        kwargs.update(vlim=group_vlims[0], cmap=group_cmaps[0])
         axes.append(fig.add_subplot(gs[1]))
         slider = Slider(
             axes[-1],
@@ -2625,17 +2666,30 @@ def plot_evoked_topomap(
         else:  # use the default behavior
             cax = None
 
-        cbar = fig.colorbar(images[-1], ax=axes, cax=cax, format=cbar_fmt, shrink=0.6)
-        if unit is not None:
-            cbar.ax.set_title(unit)
-        if cn is not None:
-            cbar.set_ticks(contours)
-        cbar.ax.tick_params(labelsize=7)
-        if cmap[1]:
-            for im in images:
-                im.axes.CB = DraggableColorbar(
-                    cbar, im, kind="evoked_topomap", ch_type=ch_type
-                )
+        for group_idx in range(n_groups):
+            group_images = images[group_idx * n_times : (group_idx + 1) * n_times]
+            group_axes = plot_axes[group_idx * n_times : (group_idx + 1) * n_times]
+            if axes_given and colorbar:
+                cax = cbar_axes[group_idx]
+            else:
+                cax = None
+            cbar = fig.colorbar(
+                group_images[-1],
+                ax=group_axes,
+                cax=cax,
+                format=cbar_fmt,
+                shrink=0.6,
+            )
+            if unit is not None:
+                cbar.ax.set_title(unit)
+            if cn is not None:
+                cbar.set_ticks(group_contours[group_idx])
+            cbar.ax.tick_params(labelsize=7)
+            if group_cmaps[group_idx][1]:
+                for im in group_images:
+                    im.axes.CB = DraggableColorbar(
+                        cbar, im, kind="evoked_topomap", ch_type=ch_type
+                    )
 
     if proj == "interactive":
         _check_delayed_ssp(evoked)
