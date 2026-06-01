@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6a0ffdff19cd69224d0d38706ed0da6fae8e2402",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codeql-analysis.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 17,
+      "d": 11
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

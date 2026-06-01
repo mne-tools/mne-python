@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "692eccee2a4f71113d0a9316c3bd37fea813d979",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Erica R Peterson",
+      "e": "38704848+nordme@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13813.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/permutations.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 19,
+      "d": 0
+    }
+  }
+}
