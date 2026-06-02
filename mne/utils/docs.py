@@ -644,11 +644,17 @@ by_event_type : bool
 # C
 
 docdict["calibration_maxwell_cal"] = """
-calibration : str | None
-    Path to the ``'.dat'`` file with fine calibration coefficients.
-    File can have 1D or 3D gradiometer imbalance correction.
-    This file is machine/site-specific.
-"""
+calibration : path-like | bool | None
+    Path to the .dat file with fine calibration information.
+    If None, will use the ``info["fine_calibration"]`` entry if present.
+    If True, this entry must be present in the info and will be used.
+    If ``False``, no calibration will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control calibration using
+       ``info["fine_calibration"]``, and ``None`` now uses ``info["fine_calibration"]``
+       if available.
+    """
 
 docdict["cbar_fmt_topomap"] = """\
 cbar_fmt : str
@@ -1048,8 +1054,16 @@ docdict["create_eog_epochs"] = """This function will:
 """
 
 docdict["cross_talk_maxwell"] = """
-cross_talk : str | None
+cross_talk : path-like | bool | None
     Path to the FIF file with cross-talk correction information.
+    If None, will use the ``info["cross_talk"]`` entry if present.
+    If True, this entry must be present in the info and will be used.
+    If ``False``, no cross-talk correction will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control cross-talk correction using
+       ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+       if available.
 """
 
 # %%
