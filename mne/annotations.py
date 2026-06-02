@@ -158,53 +158,47 @@ def _validate_extras(extras, length: int):
     return _AnnotationsExtrasList(extras or [None] * length)
 
 
-def _check_onset(onset, n=None):
-    """Convert and validate onset to a 1D float array."""
-    onset = np.atleast_1d(np.array(onset, dtype=float))
-    if onset.ndim != 1:
+def _ensure_1d(arr, *, dtype, name):
+    arr = np.atleast_1d(np.array(arr, dtype=dtype))
+    if arr.ndim != 1:
         raise ValueError(
-            f"Onset must be a one dimensional array, got {onset.ndim} (shape "
-            f"{onset.shape})."
+            f"{name} must be a one dimensional array, got {arr.ndim} (shape "
+            f"{arr.shape})."
         )
-    if n is not None and len(onset) != n:
+    return arr
+
+
+def _check_length(arr, n, *, name):
+    if len(arr) != n:
         raise ValueError(
-            f"Length of onset ({len(onset)}) must match the length of "
+            f"Length of {name} ({len(arr)}) must match the length of "
             f"existing annotations ({n})."
         )
+
+
+def _check_onset(onset, n=None):
+    """Convert and validate onset to a 1D float array."""
+    onset = _ensure_1d(onset, dtype=float, name="onset")
+    if n is not None:
+        _check_length(onset, n, name="onset")
     return onset
 
 
 def _check_duration(duration, n):
     """Convert and validate duration to a 1D float array of length n."""
-    duration = np.array(duration, dtype=float)
-    if duration.ndim == 0 or duration.shape == (1,):
+    duration = _ensure_1d(duration, dtype=float, name="duration")
+    if duration.shape == (1,):
         duration = np.repeat(duration, n)
-    if duration.ndim != 1:
-        raise ValueError(
-            f"Duration must be a one dimensional array, got {duration.ndim}."
-        )
-    if len(duration) != n:
-        raise ValueError(
-            f"Length of duration ({len(duration)}) must match the length of "
-            f"existing onset ({n})."
-        )
+    _check_length(duration, n, name="duration")
     return duration
 
 
 def _check_description(description, n):
     """Convert and validate description to a 1D str array of length n."""
-    description = np.atleast_1d(np.array(description, dtype=str))
-    if description.ndim == 0 or description.shape == (1,):
+    description = _ensure_1d(description, dtype=str, name="description")
+    if description.shape == (1,):
         description = np.repeat(description, n)
-    if description.ndim != 1:
-        raise ValueError(
-            f"Description must be a one dimensional array, got {description.ndim}."
-        )
-    if len(description) != n:
-        raise ValueError(
-            f"Length of description ({len(description)}) must match the "
-            f"length of existing onset ({n})."
-        )
+    _check_length(description, n, name="description")
     _safe_name_list(description, "write", "description")
     return description
 
@@ -215,11 +209,7 @@ def _check_ch_names_annot(ch_names, n):
     if ch_names is None:
         ch_names = [()] * n
     ch_names = list(ch_names)
-    if len(ch_names) != n:
-        raise ValueError(
-            f"Length of ch_names ({len(ch_names)}) must match the length of "
-            f"existing annotations ({n})."
-        )
+    _check_length(ch_names, n, name="ch_names")
     for ai, ch in enumerate(ch_names):
         _validate_type(ch, (list, tuple, np.ndarray), f"ch_names[{ai}]")
         ch_names[ai] = tuple(ch)
