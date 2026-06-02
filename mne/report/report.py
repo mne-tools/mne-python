@@ -500,7 +500,7 @@ def _fig_to_img(
         pil_kwargs = dict()
         if image_format == "webp":
             # Here quality means speed/size tradeoff (either way the result is lossless)
-            pil_kwargs.update(lossless=False, quality=80)
+            pil_kwargs.update(lossless=True, quality=50)
         elif image_format == "png":
             pil_kwargs.update(optimize=True, compress_level=9)
         output.seek(0)
@@ -1551,13 +1551,13 @@ class Report:
 
             .. versionadded:: 1.9
         %(stc_plot_kwargs_report)s
+            Note that the default ``stc_plot_kwargs["size"] = (450, 450)``.
+            The ``width`` parameter will be constrained to
+            ``min(size[1], self.img_max_width)`` if ``self.img_max_width``
+            is not ``None``.
 
         Notes
         -----
-        .. versionchanged:: 1.13
-           The size of the obtained brain images (in pixels) now comes from the
-           ``size`` argument of ``stc_plot_kwargs``, which has a default
-           ``size=(450, 450)``. The ``report.img_max_res`` is now ignored.
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
@@ -4539,7 +4539,12 @@ class Report:
 
         stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
-
+        # we need to set the size based on the min (img_max_width can be None)
+        if self.img_max_width is not None:
+            stc_plot_kwargs["size"] = (
+                stc_plot_kwargs["size"][0],
+                min(stc_plot_kwargs["size"][1], self.img_max_width),
+            )
         if get_3d_backend() is not None:
             brain = stc.plot(**stc_plot_kwargs)
             brain._renderer.plotter.subplot(0, 0)

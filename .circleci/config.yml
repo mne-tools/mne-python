@@ -219,7 +219,7 @@ jobs:
           keys:
             - data-cache-ds004388
       - run:
-          name: Get data
+          name: Get data and triage examples to run
           # This limit could be increased, but this is helpful for finding slow ones
           # (even ~2GB datasets should be downloadable in this time from good
           # providers)
