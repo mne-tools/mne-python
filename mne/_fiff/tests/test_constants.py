@@ -27,8 +27,8 @@ from mne.transforms import _frame_to_str, _verbose_frames
 from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-REPO = "larsoner"  # TODO: Replace with upstream once merged
-COMMIT = "63cdf5d64a7006d2b8d21931bd7c4d898e310df8"
+REPO = "mne-tools"
+COMMIT = "9ccb09d69daa8332f2e7252638ba397b60ba2502"
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
