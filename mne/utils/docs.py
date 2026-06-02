@@ -654,7 +654,7 @@ calibration : path-like | bool | None
        Support for ``bool`` to explicitly control calibration using
        ``info["fine_calibration"]``, and ``None`` now uses ``info["fine_calibration"]``
        if available.
-    """
+"""
 
 docdict["cbar_fmt_topomap"] = """\
 cbar_fmt : str
