@@ -2562,7 +2562,7 @@ def _write_cov(fid, cov):
     #   Channel names
     if cov["names"] is not None and len(cov["names"]) > 0:
         write_name_list_sanitized(
-            fid, FIFF.FIFF_MNE_ROW_NAMES, cov["names"], 'cov["names"]'
+            fid, FIFF.FIFF_MNE_ROW_NAMES, cov["names"], name='cov["names"]'
         )
 
     #   Data

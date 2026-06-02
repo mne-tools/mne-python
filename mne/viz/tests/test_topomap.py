@@ -169,24 +169,47 @@ def test_plot_projs_topomap_joint(meg, vlim, raw):
     assert len(fig.axes) == 4  # 2 mag, 2 grad
 
 
-def test_plot_topomap_animation(capsys):
+def test_plot_topomap_animation(capsys, tmp_path):
     """Test topomap plotting."""
-    # evoked
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-
-    # Test animation
-    fig, anim = evoked.animate_topomap(
-        ch_type="grad",
-        times=[0, 0.1],
-        cmap="viridis",
-        butterfly=False,
-        time_unit="s",
-        verbose="debug",
-    )
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    with pytest.warns(FutureWarning, match=".* vmin .* deprecated.*"):
+        fig, anim = evoked.animate_topomap(
+            times=[0, 0.1],
+            cmap="viridis",
+            vmin=0,
+            vmax=10,
+            verbose="debug",
+        )
     out, _ = capsys.readouterr()
-    assert "extrapolation mode local to 0" in out
+    assert "extrapolation mode local to mean" in out
     assert fig.axes[0].images[0].get_cmap().name == "viridis"
+
+    # saving
+    PIL = pytest.importorskip("PIL")
+    gif_path = tmp_path / "test.gif"
+    anim.save(gif_path, writer="pillow")
+    assert gif_path.exists()
+    with PIL.Image.open(gif_path) as img:
+        assert img.format == "GIF"
+        assert img.n_frames == 2
+        for frame in PIL.ImageSequence.Iterator(img):
+            assert frame.format == "GIF"
+            data = np.array(frame)
+            assert data.any()  # not all empty
+
+    # failure modes
+    evoked.pick("mag")
+    with pytest.raises(ValueError, match="No channels of type"):
+        evoked.animate_topomap(ch_type="eeg")
+    fig, axes = plt.subplots(1, 4)
+    with pytest.raises(ValueError, match="it must have length 2"):
+        evoked.animate_topomap(axes=axes)
+    with pytest.raises(ValueError, match="it must have length 3"):
+        evoked.animate_topomap(axes=axes, butterfly=True)
+    with pytest.raises(TypeError, match="axes must be an instance"):
+        evoked.animate_topomap(axes="test")
+    with pytest.raises(TypeError, match=r"axes\[0\] must be an instance"):
+        evoked.animate_topomap(axes=["test", "test"])
 
 
 def test_plot_topomap_animation_csd(capsys):
@@ -201,17 +224,12 @@ def test_plot_topomap_animation_csd(capsys):
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
+    assert "extrapolation mode head to mean" in out
 
 
-@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
-def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
+def test_plot_topomap_animation_nirs(fnirs_evoked):
     """Test topomap plotting for nirs data."""
-    fig, anim = fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
-    out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
-    assert len(fig.axes) == 2
+    fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
 
 
 def test_plot_evoked_topomap_errors(evoked, monkeypatch):

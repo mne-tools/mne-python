@@ -50,6 +50,11 @@ _.three_d_array
 _.requires_fit
 _.regressor_tags
 
+# report
+_.grab_frame
+_.finish
+_.setup
+
 deep
 
 # Backward compat or rarely used
