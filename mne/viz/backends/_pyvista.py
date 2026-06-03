@@ -46,10 +46,7 @@ from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTab
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import vtkCellDataToPointData, vtkGlyph3D
-from vtkmodules.vtkFiltersGeneral import (
-    vtkMarchingContourFilter,
-    vtkTransformPolyDataFilter,
-)
+from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
     vtkArrowSource,
@@ -71,6 +68,13 @@ from vtkmodules.vtkRenderingCore import (
     vtkVolume,
 )
 from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
+
+try:
+    from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
+except ImportError:  # TODO VERSION VTK 9.7+
+    from vtkmodules.vtkFiltersGeneral import (
+        vtkTransformPolyDataFilter as vtkTransformFilter,
+    )
 
 _FIGURES = dict()
 
@@ -259,6 +263,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._hide_axes()
         self._toggle_antialias()
         self._enable_depth_peeling()
+        self._picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -694,7 +699,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             if tr is not None:
                 # fix orientation
                 glyph.Update()
-                trp = vtkTransformPolyDataFilter()
+                trp = vtkTransformFilter()
                 trp.SetInputData(glyph.GetOutput())
                 trp.SetTransform(tr)
                 glyph = trp
@@ -903,7 +908,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.RenderEvent, on_mouse_move)
         add_obs(vtkCommand.LeftButtonPressEvent, on_button_press)
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
-        self._picker = vtkCellPicker()
         self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self._picker.SetVolumeOpacityIsovalue(0.0)
 
@@ -1067,7 +1071,7 @@ def _compute_normals(mesh):
         )
 
 
-def _add_mesh(plotter, *args, **kwargs):
+def _add_mesh(plotter, **kwargs):
     """Patch PyVista add_mesh."""
     mesh = kwargs.get("mesh")
     if "smooth_shading" in kwargs:
@@ -1080,7 +1084,7 @@ def _add_mesh(plotter, *args, **kwargs):
         kwargs["render"] = False
     if "reset_camera" not in kwargs:
         kwargs["reset_camera"] = False
-    actor = plotter.add_mesh(*args, **kwargs)
+    actor = plotter.add_mesh(**kwargs)
     if smooth_shading and "Normals" in mesh.point_data:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
@@ -1263,7 +1267,7 @@ def _arrow_glyph(grid, factor):
     # fix position
     tr = vtkTransform()
     tr.Translate(0.5, 0.0, 0.0)
-    trp = vtkTransformPolyDataFilter()
+    trp = vtkTransformFilter()
     trp.SetInputConnection(glyph.GetOutputPort())
     trp.SetTransform(tr)
     trp.Update()

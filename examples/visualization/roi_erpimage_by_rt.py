@@ -72,7 +72,7 @@ mapping = {
 }
 raw.rename_channels(mapping)
 raw.set_channel_types({"EOG1": "eog", "EOG2": "eog"})
-raw.set_montage("standard_1020")
+raw.set_montage("spherical_1005")
 
 events = mne.events_from_annotations(raw, event_id)[0]
 

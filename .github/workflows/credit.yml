@@ -39,7 +39,7 @@ jobs:
           git config --global user.name "mne[bot]"
           BRANCH=credit/$(date '+%Y%m%d')
           git checkout -b $BRANCH
-          git commit -am "mne[bot]: Update code credit"
+          git commit -am "mne[bot]: Update code credit [skip azp] [skip actions]"
           git push origin $BRANCH
           PR_NUM=$(gh pr create --base main --head $BRANCH --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to \`doc/sphinxext/credit_tools.py\` or \`.mailmap\` etc. to get CircleCI to pass.*" --label "no-changelog-entry-needed")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY

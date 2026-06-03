@@ -1,0 +1,7 @@
+Improved :class:`mne.Report` by:
+
+- Using ``"agg"`` backend for 2D plots to avoid windows unnecessarily popping up
+- Improving :meth:`~mne.Report.add_stc` by using direct capture of brain images, allowing direct control of image size using ``stc_plot_kwargs["size"]``
+- Improving :meth:`~mne.Report.add_evokeds` evoked topomap plotting by using :meth:`mne.Evoked.animate_topomap` with ``butterfly=True`` rather than re-plotting each topomap in a loop
+
+Also improved :meth:`mne.Evoked.animate_topomap` by deduplicating code with :meth:`mne.Evoked.plot_topomap`. Changes by `Eric Larson`_.

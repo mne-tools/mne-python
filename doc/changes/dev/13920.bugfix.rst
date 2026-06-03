@@ -1,0 +1,1 @@
+Fix :func:`mne.set_eeg_reference` so that passing a list of channel types with ``projection=False`` and ``ref_channels="average"`` now references each channel type independently by default (matching the ``projection=True`` path), by :newcontrib:`Ben Tang`. Previously a single average was computed across the union of the listed types. Pass ``joint=True`` for the previous behavior.

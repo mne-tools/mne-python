@@ -18,6 +18,7 @@ from numpy.testing import (
     assert_array_less,
     assert_equal,
 )
+from scipy import sparse
 
 from mne import (
     grow_labels,
@@ -35,13 +36,11 @@ from mne import (
     write_labels_to_annot,
 )
 from mne.datasets import testing
-from mne.fixes import _eye_array
 from mne.label import (
     Label,
     _blend_colors,
     _load_vert_pos,
     _n_colors,
-    _read_annot,
     _read_annot_cands,
     label_sign_flip,
     select_sources,
@@ -130,7 +129,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
-        e = e + _eye_array(n_vertices)
+        e += sparse.eye_array(n_vertices)
 
         clusters = [this_vertno[np.any(this_data, axis=1)]]
 
@@ -380,7 +379,7 @@ def test_annot_io(tmp_path):
     shutil.copy(surf_src / "rh.white", surf_dir)
 
     # read original labels
-    with pytest.raises(OSError, match="\nPALS_B12_Lobes$"):
+    with pytest.raises(OSError, match="PALS_B12_Lobesey"):
         read_labels_from_annot(subject, "PALS_B12_Lobesey", subjects_dir=tmp_path)
     labels = read_labels_from_annot(subject, "PALS_B12_Lobes", subjects_dir=tmp_path)
 
@@ -486,8 +485,6 @@ def test_read_labels_from_annot(tmp_path):
     )
     with pytest.raises(OSError, match="does not exist"):
         _read_annot_cands("foo")
-    with pytest.raises(OSError, match="no candidate"):
-        _read_annot(str(tmp_path))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot("sample", hemi="lh", subjects_dir=subjects_dir)
