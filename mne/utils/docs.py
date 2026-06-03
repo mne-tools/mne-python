@@ -646,8 +646,8 @@ by_event_type : bool
 docdict["calibration_maxwell_cal"] = """
 calibration : path-like | bool | None
     Path to the .dat file with fine calibration information.
-    If None, will use the ``info["fine_calibration"]`` entry if present.
-    If True, this entry must be present in the info and will be used.
+    If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
     If ``False``, no calibration will be applied.
 
     .. versionchanged:: 1.13
@@ -1056,8 +1056,8 @@ docdict["create_eog_epochs"] = """This function will:
 docdict["cross_talk_maxwell"] = """
 cross_talk : path-like | bool | None
     Path to the FIF file with cross-talk correction information.
-    If None, will use the ``info["cross_talk"]`` entry if present.
-    If True, this entry must be present in the info and will be used.
+    If ``None``, will use the ``info["cross_talk"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
     If ``False``, no cross-talk correction will be applied.
 
     .. versionchanged:: 1.13
