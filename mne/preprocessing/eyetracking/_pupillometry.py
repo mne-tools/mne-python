@@ -5,7 +5,7 @@
 import numpy as np
 
 from ..._fiff.constants import FIFF
-from ...annotations import _sync_onset
+from ...annotations import _annotations_starts_stops
 from ...io import BaseRaw
 from ...utils import _check_preload, _validate_type, logger, warn
 
@@ -63,7 +63,9 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     if not blink_annots:
         warn(f"No annotations matching {match} found. Aborting.")
         return raw
-    _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze)
+    _interpolate_blinks(
+        raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze, match=match
+    )
 
     # remove bad from the annotation description
     for desc in match:
@@ -73,19 +75,17 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     return raw
 
 
-def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
+def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze, match):
     """Interpolate eyetracking signals during blinks in-place."""
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
-    # Compute the start/stop time (in seconds, relative to the raw start) of each
-    # matched annotation directly from ``blink_annots``. Deriving these from the
-    # passed annotations (rather than re-querying a hardcoded ``"BAD_blink"``)
-    # ensures every annotation in ``match`` is interpolated over and that the
-    # start/stop times stay aligned with ``blink_annots`` in the loop below.
-    onsets = _sync_onset(raw, np.array([annot["onset"] for annot in blink_annots]))
-    durations = np.array([annot["duration"] for annot in blink_annots])
-    starts = raw.time_as_index(onsets, use_rounding=True) / raw.info["sfreq"]
-    ends = raw.time_as_index(onsets + durations, use_rounding=True) / raw.info["sfreq"]
+    # Derive the start/stop time (in seconds) of every matched annotation. Passing
+    # ``match`` (rather than re-querying a hardcoded ``"BAD_blink"``) ensures all
+    # descriptions in ``match`` are interpolated over and that the start/stop times
+    # stay aligned with ``blink_annots`` in the loop below.
+    starts, ends = _annotations_starts_stops(raw, match)
+    starts = starts / raw.info["sfreq"]
+    ends = ends / raw.info["sfreq"]
     # iterate over each eyetrack channel and interpolate the blinks
     interpolated_chs = []
     for ci, ch_info in enumerate(raw.info["chs"]):
