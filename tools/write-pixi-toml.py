@@ -6,6 +6,19 @@ from pathlib import Path
 
 import tomlkit
 
+
+def pip_to_pixi(dependencies_list):
+    """Convert pip dependency specifier strings to a pixi-style dict."""
+    out = dict()
+    for dep in dependencies_list:
+        if " " in dep:
+            name, version = dep.split(" ", maxsplit=1)
+        else:
+            name, version = dep, "*"
+        out[name] = version
+    return out
+
+
 pypi_dependencies = ["pymef"]  # "nest-asyncio2", "pyobjc-framework-Cocoa"]
 
 pyproject_fpath = Path(__file__).resolve().parent.parent / "pyproject.toml"
@@ -38,8 +51,8 @@ dependencies = sorted(set(dependencies) - set(pypi_dependencies))
 
 out = {
     "workspace": workspace,
-    "dependencies": dependencies,
-    "pypi-dependencies": pypi_dependencies,
+    "dependencies": pip_to_pixi(dependencies),
+    "pypi-dependencies": pip_to_pixi(pypi_dependencies),
 }
 with open("pixi-new.toml", "w") as fid:
-    tomlkit.dump(out, fid, sort_keys=True)
+    tomlkit.dump(out, fid, sort_keys=False)
