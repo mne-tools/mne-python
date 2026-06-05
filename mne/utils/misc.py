@@ -497,7 +497,13 @@ def _auto_weakref(function):
     __weakref_values__ = dict()
     evaldict = dict(__weakref_values__=__weakref_values__)
     for name, value in zip(names, function.__closure__):
-        __weakref_values__[name] = weakref.ref(value.cell_contents)
+        try:
+            __weakref_values__[name] = weakref.ref(value.cell_contents)
+        except TypeError:  # pragma: no cover
+            raise TypeError(
+                f"Cannot create weak reference to {name} "
+                f"(type {type(value.cell_contents)})"
+            )
     body = dedent(inspect.getsource(function))
     body = body.splitlines()
     for li, line in enumerate(body):

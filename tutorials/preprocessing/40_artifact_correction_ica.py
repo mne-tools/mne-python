@@ -537,7 +537,7 @@ for subj in range(1, 5):
     raw = mne.io.read_raw_edf(fname).load_data().resample(50)
     # remove trailing `.` from channel names so we can set montage
     mne.datasets.eegbci.standardize(raw)
-    raw.set_montage("standard_1005")
+    raw.set_montage("spherical_1005")
     # high-pass filter
     raw_filt = raw.copy().load_data().filter(l_freq=1.0, h_freq=None)
     # fit ICA, using low max_iter for speed

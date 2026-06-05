@@ -1974,7 +1974,7 @@ class BaseEpochs(
 
         Parameters
         ----------
-        %(fun_applyfun)s
+        %(fun_applyfun_epochs)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
         %(n_jobs)s Ignored if ``channel_wise=False`` as the workload

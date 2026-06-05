@@ -39,7 +39,9 @@
 .. _Baris Talar: https://github.com/baris-talar
 .. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
+.. _Ben Tang: https://github.com/bentang18
 .. _Benedikt Ehinger: https://www.benediktehinger.de
+.. _Bhargav Kowshik: https://github.com/bkowshik
 .. _Bradley Voytek: https://github.com/voytek
 .. _Britta Westner: https://britta-wstnr.github.io
 .. _Bruno Aristimunha: https://bruaristimunha.github.io
@@ -211,6 +213,7 @@
 .. _Martin Luessi: https://github.com/mluessi
 .. _Martin Oberg: https://github.com/obergmartin
 .. _Martin Schulz: https://github.com/marsipu
+.. _Mathias Sablé-Meyer: https://s-m.ac/
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
 .. _Mathurin Massias: https://mathurinm.github.io/
 .. _Mats van Es: https://github.com/matsvanes

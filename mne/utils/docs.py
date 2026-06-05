@@ -717,6 +717,10 @@ ch_type : list of str | str
     .. versionadded:: 0.19
     .. versionchanged:: 1.2
        ``list-of-str`` is now supported with ``projection=True``.
+    .. versionchanged:: 1.13
+       ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+       now applies a per-channel-type reference by default (set ``joint=True``
+       for the previous union-of-types behavior).
 """
 
 _ch_type_topomap_base = """\
@@ -1919,6 +1923,11 @@ fun : callable
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
+docdict["fun_applyfun_epochs"] = applyfun_fun_base.format(
+    " if ``channel_wise=True`` (because it will apply to 1-D"
+    " slices along the times axis) and"
+    " ``(n_epochs, len(picks), n_times)`` otherwise"
+)
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
 )
@@ -2086,7 +2095,7 @@ Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
 or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 
->>> mon = mne.channels.make_standard_montage('standard_1020')
+>>> mon = mne.channels.make_standard_montage('spherical_1005')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
 >>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
@@ -2305,11 +2314,16 @@ item : int | slice | array-like | str
 
 docdict["joint_set_eeg_reference"] = """
 joint : bool
-    How to handle list-of-str ``ch_type``. If False (default), one projector
-    is created per channel type. If True, one projector is created across
-    all channel types. This is only used when ``projection=True``.
+    How to handle list-of-str ``ch_type``. If False (default), the reference is
+    computed per channel type (one projector per type when ``projection=True``;
+    one average reference subtracted per type when ``projection=False`` and
+    ``ref_channels="average"``). If True, a single reference is computed across
+    all listed channel types.
 
     .. versionadded:: 1.2
+    .. versionchanged:: 1.13
+       Now also applies when ``projection=False``. Previously, the
+       ``projection=False`` path silently behaved as if ``joint=True``.
 """
 
 # %%

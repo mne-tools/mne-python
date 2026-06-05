@@ -24,7 +24,7 @@ doc = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "pyxdf",
   "pyzmq != 24.0.0",
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
@@ -40,7 +40,7 @@ doc-full = ["rpy2", {include-group = "doc"}]
 # the 'old' environment CI test run
 lockfile_extras = [
   "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
 ]
 test = [
   "codespell",
@@ -102,7 +102,7 @@ dependencies = [
   "decorator >= 5.1",
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
+  "matplotlib >= 3.9",  # released 2024-05-15, will become 3.10 on 2026-12-14
   "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
   "packaging",
   "pooch >= 1.5",
@@ -178,7 +178,7 @@ full-no-qt = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "sip",
   "snirf",
   "statsmodels >= 0.6",
