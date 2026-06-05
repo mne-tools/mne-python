@@ -704,8 +704,8 @@ def _get_lengthunit_scaling(length_unit):
         )
 
 
-_SI_PREFIXES = {"": 1, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15}
-_VOLUME_IN_LITERS = {"L": 1, "l": 1, "dm^3": 1, "m^3": 1e3}
+_SI_PREFIXES = {"": 1.0, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15}
+_VOLUME_IN_LITERS = {"L": 1.0, "l": 1.0, "dm^3": 1.0, "m^3": 1e3}
 
 
 def _get_dataunit_scaling(hbx_unit):
