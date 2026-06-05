@@ -603,7 +603,7 @@ class ExtendedTimeMixin(TimeMixin):
 
         Returns
         -------
-        inst : instance of Raw, Epochs, Evoked, AverageTFR, or SourceEstimate
+        inst : same type as the input data
             The cropped time-series object, modified in-place.
 
         Notes

@@ -2387,7 +2387,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs, Evoked or SourceEstimate
+        inst : same type as the input data
             The object with the filtering applied.
 
         See Also
@@ -2480,7 +2480,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs, Evoked, SourceEstimate, or Raw
+        inst : same type as the input data
             The filtered data.
 
         See Also
@@ -2616,7 +2616,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs or Evoked
+        inst : same type as the input data
             The resampled object.
 
         See Also

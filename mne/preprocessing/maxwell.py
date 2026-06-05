@@ -2901,7 +2901,7 @@ def _read_cross_talk(cross_talk, ch_names):
     ctc = None
     if cross_talk is not None:
         sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc["proj_items_chs"]
+        ctc_chs = sss_ctc["ch_names"]
         # checking for extra space ambiguity in channel names
         # between old and new fif files
         if ch_names[0] not in ctc_chs:

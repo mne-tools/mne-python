@@ -57,5 +57,5 @@ def test_timefrequency_basic():
 @parametrize_with_checks([TimeFrequency([300, 400], 1000.0, n_cycles=0.25)])
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     check(estimator)

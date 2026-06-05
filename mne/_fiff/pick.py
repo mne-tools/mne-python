@@ -1093,7 +1093,7 @@ _PICK_TYPES_DATA_DICT = dict(
     dbs=True,
     temperature=False,
     gsr=False,
-    eyetrack=True,
+    eyetrack=False,
 )
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ["ref_meg"])
 _MEG_CH_TYPES_SPLIT = ("mag", "grad", "planar1", "planar2")
@@ -1238,7 +1238,7 @@ def _picks_to_idx(
             extra_repr = ", treated as range({n_chan})"
         else:
             picks = none  # let _picks_str_to_idx handle it
-            extra_repr = f'None, treated as "{none}"'
+            extra_repr = f', treated as "{none}"'
 
     #
     # slice

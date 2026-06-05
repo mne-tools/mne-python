@@ -85,6 +85,7 @@ def test_scalp_coupling_index_multi_wavelength():
     Similar to test in test_scalp_coupling_index, considers cases
     specific to multi-wavelength data.
     """
+    pytest.importorskip("h5py")
     raw = optical_density(read_raw_snirf(fname_labnirs_multi_wavelength))
     times = np.arange(raw.n_times) / raw.info["sfreq"]
     signal = np.sin(2 * np.pi * 1.0 * times) + 1

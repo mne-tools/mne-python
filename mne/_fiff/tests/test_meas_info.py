@@ -91,7 +91,9 @@ elp_fname = kit_data_dir / "test_elp.txt"
 
 data_path = testing.data_path(download=False)
 sss_path = data_path / "SSS"
+triux_path = data_path / "SSS" / "TRIUX"
 sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
+tri_sss_ctc_cal_fname = triux_path / "triux_bmlhus_erm_ctc_cal_raw_sss.fif"
 ctf_fname = data_path / "CTF" / "testdata_ctf.ds"
 raw_invalid_bday_fname = data_path / "misc" / "sample_invalid_birthday_raw.fif"
 
@@ -303,7 +305,7 @@ def test_read_write_info(tmp_path):
 
     with info._unlock():
         if info["gantry_angle"] is None:  # future testing data may include it
-            info["gantry_angle"] = 0.0  # Elekta supine position
+            info["gantry_angle"] = 0  # Elekta supine position
     gantry_angle = info["gantry_angle"]
 
     meas_id = info["meas_id"]
@@ -743,7 +745,7 @@ def _test_anonymize_info(base_info, tmp_path):
         base_info["subject_info"].update(
             birthday=date(1987, 4, 8),
             his_id="foobar",
-            sex=0,
+            sex=1,
         )
 
     # generate expected info...
@@ -812,7 +814,7 @@ def _test_anonymize_info(base_info, tmp_path):
     exp_info_2 = exp_info.copy()
     with exp_info_2._unlock():
         exp_info_2["subject_info"]["his_id"] = "foobar"
-        exp_info_2["subject_info"]["sex"] = 0
+        exp_info_2["subject_info"]["sex"] = 1
         exp_info_2["subject_info"]["hand"] = 1
 
     # exp 3 tests is a supplied daysback
@@ -842,12 +844,54 @@ def _test_anonymize_info(base_info, tmp_path):
     new_info = anonymize_info(base_info.copy(), keep_his=True)
     _check_equiv(new_info, exp_info_2, err_msg="anon keep_his mismatch")
 
+    # keep only his_id
+    new_info = anonymize_info(base_info.copy(), keep_his="his_id")
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only sex
+    new_info = anonymize_info(base_info.copy(), keep_his="sex")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his="hand")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and sex
+    new_info = anonymize_info(base_info.copy(), keep_his=["his_id", "sex"])
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his=["hand"])
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and hand
+    new_info = anonymize_info(base_info.copy(), keep_his=("his_id", "hand"))
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # invalid keep_his values
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his="invalid_field")
+
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his=["his_id", "invalid"])
+
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     _check_equiv(new_info, exp_info_3, err_msg="anon daysback mismatch")
 
     with pytest.raises(RuntimeError, match="anonymize_info generated"):
         anonymize_info(base_info.copy(), daysback=delta_t_3.days)
-    # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
     with base_info._unlock():
@@ -1066,8 +1110,11 @@ def test_csr_csc(tmp_path):
     # CSC
     assert isinstance(ct, sparse.csc_array)
     fname = tmp_path / "test.fif"
-    write_info(fname, info)
-    info_read = read_info(fname)
+    write_info(fname, info, verbose="debug")
+    info_read = read_info(fname, verbose="debug")
+    assert "max_info" in info_read["proc_history"][0]
+    assert "sss_ctc" in info_read["proc_history"][0]["max_info"]
+    assert "decoupler" in info_read["proc_history"][0]["max_info"]["sss_ctc"]
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
     assert isinstance(ct_read, sparse.csc_array)
     assert_array_equal(ct_read.toarray(), ct.toarray())
@@ -1426,11 +1473,11 @@ def test_info_bad():
 
 def test_get_montage():
     """Test ContainsMixin.get_montage()."""
-    ch_names = make_standard_montage("standard_1020").ch_names
+    ch_names = make_standard_montage("spherical_1005").ch_names
     sfreq = 512
     data = np.zeros((len(ch_names), sfreq * 2))
     raw = RawArray(data, create_info(ch_names, sfreq, "eeg"))
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
 
     assert len(raw.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
@@ -1438,7 +1485,7 @@ def test_get_montage():
 
     # test info
     raw = RawArray(data, create_info(ch_names, sfreq, "eeg"))
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
 
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
@@ -1464,3 +1511,32 @@ def test_proj_id_entries():
         info["proj_id"] = "bad"
     with pytest.raises(TypeError, match="must be an instance"):
         info["proj_id"] = np.array([123])
+
+
+@testing.requires_testing_data
+def test_ct_fc_infd(tmp_path):
+    """Test that cross-talk and fine calibration info are read correctly."""
+    raw = read_raw_fif(raw_fname)
+    raw_sss = read_raw_fif(tri_sss_ctc_cal_fname)
+    with raw.info._unlock():
+        for key_to, key_from in (
+            ("cross_talk", "sss_ctc"),
+            ("fine_calibration", "sss_cal"),
+        ):
+            raw.info[key_to] = raw_sss.info["proc_history"][0]["max_info"][key_from]
+        raw.info["cross_talk"]["parent_block_id"] = dict(
+            version=4,
+            machid=np.ones(2, int),
+            secs=1,
+            usecs=2,
+        )
+    del raw_sss
+    raw.info._check_consistency()
+    # all entries present
+    assert len(raw.info["cross_talk"]) == 6
+    assert len(raw.info["fine_calibration"]) == 2
+    fname = tmp_path / "test-raw.fif"
+    raw.save(fname)
+    raw_read = read_raw_fif(fname)
+    assert_object_equal(raw.info["cross_talk"], raw_read.info["cross_talk"])
+    assert_object_equal(raw.info["fine_calibration"], raw_read.info["fine_calibration"])

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "77d0960277bf5347f2b3e515f61407fc32d71ea3",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/v1.12.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/io/cnt/_utils.py": {
+      "a": 113,
+      "d": 28
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 106,
+      "d": 105
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 59,
+      "d": 18
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

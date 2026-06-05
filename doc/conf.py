@@ -27,7 +27,6 @@ from sphinx_gallery.sorting import ExplicitOrder
 
 import mne
 import mne.html_templates._templates
-from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,
     run_subprocess,
@@ -289,6 +288,7 @@ numpydoc_xref_aliases = {
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
     "RawANT": "mne.io.Raw",
+    "RawBCI2k": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -306,6 +306,7 @@ numpydoc_xref_aliases = {
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
@@ -317,13 +318,18 @@ numpydoc_xref_aliases = {
 numpydoc_xref_ignore = {
     # words
     "and",
+    "as",
     "between",
+    "data",
     "instance",
     "instances",
+    "input",
     "of",
     "default",
+    "same",
     "shape",
     "or",
+    "the",
     "with",
     "length",
     "pair",
@@ -425,42 +431,17 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-numpydoc_validation_checks = {"all"} | set(error_ignores)
-numpydoc_validation_exclude = {  # set of regex
-    # dict subclasses
-    r"\.clear",
-    r"\.get$",
-    r"\.copy$",
-    r"\.fromkeys",
-    r"\.items",
-    r"\.keys",
-    r"\.move_to_end",
-    r"\.pop",
-    r"\.popitem",
-    r"\.setdefault",
-    r"\.update",
-    r"\.values",
-    # list subclasses
-    r"\.append",
-    r"\.count",
-    r"\.extend",
-    r"\.index",
-    r"\.insert",
-    r"\.remove",
-    r"\.sort",
-    # we currently don't document these properly (probably okay)
-    r"\.__getitem__",
-    r"\.__contains__",
-    r"\.__hash__",
-    r"\.__mul__",
-    r"\.__sub__",
-    r"\.__add__",
-    r"\.__iter__",
-    r"\.__div__",
-    r"\.__neg__",
-    # copied from sklearn
-    r"mne\.utils\.deprecated",
-}
+try:
+    import tomllib
+    # TODO VERSION: Can be removed once Python 3.11 is required
+except Exception:
+    pass
+else:
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+    numpydoc_validation_checks = set(pyproject_nv["checks"])
+    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
@@ -726,6 +707,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
+    "https://www.crnl.fr",
     # Not rendered by linkcheck builder
     r"ides\.html",
 ]
@@ -985,7 +967,7 @@ html_context = {
             klass="only-dark",
         ),
         dict(
-            name="Commissariat à l´énergie atomique et aux énergies alternatives",  # noqa E501
+            name="Commissariat à l´énergie atomique et aux énergies alternatives",
             img="CEA.png",
             url="http://www.cea.fr/",
             size=md,
@@ -1090,7 +1072,7 @@ html_context = {
             klass="only-dark",
         ),
         dict(
-            name="Institut national de recherche en informatique et en automatique",  # noqa E501
+            name="Institut national de recherche en informatique et en automatique",
             img="inria.png",
             url="https://www.inria.fr/",
             size=xl,
@@ -1210,7 +1192,7 @@ html_context = {
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
@@ -1224,14 +1206,14 @@ html_context = {
         ),
         dict(
             title="Statistics",
-            text="Parametric and non-parametric, permutation tests and clustering.",  # noqa E501
+            text="Parametric and non-parametric, permutation tests and clustering.",
             url="auto_tutorials/stats-source-space/index.html",
             img="sphx_glr_20_cluster_1samp_spatiotemporal_001.png",
             alt="Clusters",
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cd888c17eaf1bb004550f969fc28ade808225430",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
