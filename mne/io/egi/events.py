@@ -7,7 +7,6 @@ from os.path import basename, splitext
 
 import numpy as np
 
-from ...fixes import _parse_mffpy_datetime
 from ...utils import _soft_import, _validate_type, logger, warn
 
 
@@ -37,81 +36,61 @@ def _read_events(input_fname, info):
 
 
 def _read_mff_events(filename, sfreq, start_time):
-    """Extract the events with mffpy.
-
-    Parameters
-    ----------
-    filename : path-like
-        File path.
-    sfreq : float
-        The sampling frequency
-    start_time : datetime
-        The recording start time used as the event anchor.
-    """
-    # Use defusedxml to parse Events XML directly (avoid mffpy's strict
-    # datetime parsing which may include nanosecond fractions). We still use
-    # mffpy.Reader for locating the Events.xml files inside the MFF.
+    """Extract the events with mffpy."""
+    # 1. Trigger MNE's helpful error message if the package is missing
     _soft_import("mffpy", "reading EGI MFF data")
-    _soft_import("defusedxml", "reading EGI MFF data")
-    import defusedxml.ElementTree as DET
+
+    # 2. Now it is safe to do the actual imports locally
     import mffpy
+    from mffpy.xml_files import XML
 
     reader = mffpy.Reader(filename)
     try:
         files_list = sorted(reader.directory.listdir())
     except Exception:
         files_list = []
+
     tracks = []
     for xml_name in files_list:
         stem = splitext(basename(xml_name))[0]
+        # Only parse actual Event XML files to save I/O
         if not stem.startswith("Events"):
             continue
+
         with reader.directory.filepointer(stem) as fp:
-            try:
-                root = DET.parse(fp).getroot()
-            except Exception:
-                # fallback: try reading as bytes and parse string
-                try:
-                    fp.seek(0)
-                    txt = fp.read()
-                    root = DET.fromstring(txt)
-                except Exception as exc2:
-                    warn(
-                        f"Could not parse the XML file {xml_name}: {exc2}",
-                        RuntimeWarning,
-                    )
-                    continue
-        # identify eventTrack root (namespace-insensitive)
-        if _ns(root.tag) == "eventTrack":
-            tracks.append(root)
+            # Let mffpy 0.11 handle all the heavy lifting!
+            track = XML.from_file(fp)
+            tracks.append(track)
 
     markers = []
     code = []
-    for root in tracks:
-        # each child 'event' element
-        for event_el in root.findall("{*}event"):
-            # extract fields by tag name ignoring namespace
-            ev = {}
-            for child in event_el:
-                tag = _ns(child.tag)
-                ev[tag] = child.text
-            # parse times and duration
-            event_start = _parse_mffpy_datetime(
-                ev.get("beginTime"), tzinfo=start_time.tzinfo
-            )
-            if event_start is None:
+
+    for track in tracks:
+        for event in track.events:
+            code_str = event.get("code")
+            if code_str is None:
                 continue
-            start_sec = (event_start - start_time).total_seconds()
-            code_str = ev.get("code", "")
+
             if code_str not in code:
                 code.append(code_str)
-            # duration in xml is typically in nanoseconds
-            duration = None
-            if ev.get("duration") is not None:
+
+            # mffpy 0.11 properly parses beginTime into a datetime object
+            event_start = event.get("beginTime")
+            if event_start is None:
+                continue
+
+            if event_start.tzinfo is None and start_time.tzinfo is not None:
+                event_start = event_start.replace(tzinfo=start_time.tzinfo)
+
+            start_sec = (event_start - start_time).total_seconds()
+
+            duration = event.get("duration")
+            if duration is not None:
                 try:
-                    duration = int(ev.get("duration")) / 1e9
+                    duration = int(duration) / 1e9
                 except Exception:
                     duration = None
+
             markers.append(
                 {
                     "name": code_str,
@@ -127,62 +106,6 @@ def _read_mff_events(filename, sfreq, start_time):
         for ev in code
     }
     return events_tims, code
-
-
-def _xml2list(root):
-    """Parse XML item."""
-    output = []
-    for element in root:
-        if len(element) > 0:
-            if element[0].tag != element[-1].tag:
-                output.append(_xml2dict(element))
-            else:
-                output.append(_xml2list(element))
-
-        elif element.text:
-            text = element.text.strip()
-            if text:
-                tag = _ns(element.tag)
-                output.append({tag: text})
-
-    return output
-
-
-def _ns(s):
-    """Remove namespace, but only if there is a namespace to begin with."""
-    if "}" in s:
-        return "}".join(s.split("}")[1:])
-    else:
-        return s
-
-
-def _xml2dict(root):
-    """Use functions instead of Class.
-
-    remove namespace based on
-    http://stackoverflow.com/questions/2148119
-    """
-    output = {}
-    if root.items():
-        output.update(dict(root.items()))
-
-    for element in root:
-        if len(element) > 0:
-            if len(element) == 1 or element[0].tag != element[1].tag:
-                one_dict = _xml2dict(element)
-            else:
-                one_dict = {_ns(element[0].tag): _xml2list(element)}
-
-            if element.items():
-                one_dict.update(dict(element.items()))
-            output.update({_ns(element.tag): one_dict})
-
-        elif element.items():
-            output.update({_ns(element.tag): dict(element.items())})
-
-        else:
-            output.update({_ns(element.tag): element.text})
-    return output
 
 
 def _combine_triggers(data, remapping=None):

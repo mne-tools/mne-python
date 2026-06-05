@@ -158,7 +158,7 @@ full-no-qt = [
   "ipywidgets",
   "joblib >= 0.8",
   "jupyter",
-  "mffpy >= 0.5.7",
+  "mffpy >= 0.11.0",
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",

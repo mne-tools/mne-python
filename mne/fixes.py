@@ -20,7 +20,6 @@ import io
 import operator as operator_module
 import os
 import warnings
-from datetime import datetime
 from math import log
 
 import numpy as np
@@ -135,37 +134,6 @@ def _safe_svd(A, **kwargs):
 
         warn(f"SVD error ({exp}), attempting to use GESVD instead of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
-
-
-def _parse_mffpy_datetime(time_str, *, tzinfo=None):
-    """Parse an MFF timestamp with nanosecond fractional seconds.
-
-    TODO VERSION: Remove once BEL-Public/mffpy#133 is released.
-    Upstream issue: https://github.com/BEL-Public/mffpy/issues/138
-    """
-    if time_str is None:
-        return None
-    stripped = time_str.strip()
-    tz_pos = max(stripped.rfind("+"), stripped.rfind("-"))
-    tz = ""
-    core = stripped
-    if tz_pos > stripped.find("T"):
-        core = stripped[:tz_pos]
-        tz = stripped[tz_pos:]
-    if "." in core:
-        left, frac = core.split(".", 1)
-        core = f"{left}.{(frac + '000000')[:6]}"
-    if tz and ":" in tz:
-        tz = tz.replace(":", "")
-    formatted = core + tz
-    fmt = "%Y-%m-%dT%H:%M:%S.%f%z" if tz else "%Y-%m-%dT%H:%M:%S.%f"
-    try:
-        parsed = datetime.strptime(formatted, fmt)
-    except ValueError:
-        parsed = datetime.strptime(formatted.split(".")[0], "%Y-%m-%dT%H:%M:%S%z")
-    if parsed.tzinfo is None and tzinfo is not None:
-        parsed = parsed.replace(tzinfo=tzinfo)
-    return parsed
 
 
 ###############################################################################
