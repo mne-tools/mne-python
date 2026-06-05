@@ -3681,6 +3681,8 @@ class Report:
 
             html_parts = []
             for ch_type in ch_types:
+                # TODO: Eventually mode should be a kwarg, and be allowed to be a list
+                # (which would create a slider rather than one image)
                 stc = sensitivity_map(forward, ch_type=ch_type, mode="fixed")
 
                 stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", dict())
