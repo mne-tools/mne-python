@@ -1,0 +1,1 @@
+Refactor the EGI MFF reader to use ``mffpy`` for metadata parsing, improving robustness and maintainability. This includes a shim for PNS sensor parsing to bypass an upstream bug in ``mffpy`` and resolves channel naming inconsistencies, by `Pragnya Khandelwal`_.
