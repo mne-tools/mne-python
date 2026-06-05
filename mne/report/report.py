@@ -1854,6 +1854,7 @@ class Report:
         title,
         projs=None,
         topomap_kwargs=None,
+        add_rate="auto",
         tags=("ssp",),
         joint=False,
         picks_trace=None,
@@ -1903,6 +1904,7 @@ class Report:
             section=section,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
+            add_rate=add_rate,
             replace=replace,
             joint=joint,
         )
@@ -3611,6 +3613,24 @@ class Report:
                 replace=replace,
             )
 
+
+    @staticmethod
+    def _event_estimate(epochs, projs):
+        rate_caption = None
+        n_events = len(epochs.drop_log)
+        event_times = [ev[0] / epochs.info['sfreq'] for ev in epochs.events]
+        if len(event_times) > 1:
+            duration_sec = event_times[-1] - event_times[0]
+            duration_min = duration_sec / 60.0
+        else:
+            duration_min = 0.0
+            return None
+        if duration_min > 0:
+            rate = n_events / duration_min
+            unit = "BPM" if any(any(kw in p["desc"].lower() for kw in ("ecg", "heart")) for p in projs) else "events/min"
+            rate_caption = f"Estimated rate: {rate:.1f} {unit}"
+        return rate_caption
+
     @_use_agg
     def _add_projs(
         self,
@@ -3622,16 +3642,20 @@ class Report:
         tags,
         section,
         topomap_kwargs,
+        add_rate,
         replace,
         picks_trace=None,
         joint=False,
     ):
         evoked = None
+        epochs = None
         if isinstance(info, Info):  # no-op
             pass
         elif isinstance(getattr(info, "info", None), Info):  # try to get the file name
             if isinstance(info, Evoked):
                 evoked = info
+            if isinstance(info, BaseEpochs):
+                epochs = info
             info = info.info
         else:  # read from a file
             info = read_info(info, verbose=False)
@@ -3644,6 +3668,18 @@ class Report:
             projs = info["projs"]
         elif not isinstance(projs, list):
             projs = read_proj(projs)
+
+        rate_caption = None
+
+        if add_rate is False or epochs is None:
+            pass
+        elif add_rate is True:
+            rate_caption = self._event_estimate(epochs, projs)
+        elif add_rate == "auto":
+            if any(any(kw in p["desc"].lower() for kw in ("ecg", "eog", "blink")) for p in projs):
+                rate_caption = self._event_estimate(epochs, projs)
+            else:
+                rate_caption = None
 
         if not projs:
             raise ValueError("No SSP projectors found")
@@ -3682,7 +3718,7 @@ class Report:
         self._add_figure(
             fig=fig,
             title=title,
-            caption=None,
+            caption=rate_caption,
             image_format=image_format,
             tags=tags,
             section=section,
