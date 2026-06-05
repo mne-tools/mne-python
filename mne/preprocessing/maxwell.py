@@ -509,8 +509,9 @@ def _prep_maxwell_filter(
         if "cross_talk" not in raw.info:
             raise RuntimeError(f"{cross_talk=}, but info['cross_talk'] is None.")
         cross_talk = raw.info["cross_talk"]
-    else:  # cross_talk is False
+    elif cross_talk is False:
         cross_talk = None
+    # otherwise, it's path-like
 
     if calibration is None:
         calibration = raw.info.get("fine_calibration")
@@ -518,8 +519,9 @@ def _prep_maxwell_filter(
         if "fine_calibration" not in raw.info:
             raise RuntimeError(f"{calibration=}, but info['fine_calibration'] is None.")
         calibration = raw.info["fine_calibration"]
-    else:  # calibration is False
+    elif calibration is False:
         calibration = None
+    # otherwise, it's path-like
 
     _check_info(
         raw.info,
