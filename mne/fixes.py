@@ -910,3 +910,34 @@ def read_from_file_or_buffer(
         dtype = np.dtype(dtype)
         buffer = file.read(dtype.itemsize * count)
         return np.frombuffer(buffer, dtype=dtype, count=count)
+
+
+def _get_mffpy_pns_sensors(pns_obj):
+    """Safely extract PNS sensors from mffpy PNSSet object.
+
+    TODO VERSION: Remove once BEL-Public/mffpy#142 is released.
+    mffpy <= 0.11.0 raises KeyError: 'conversion' when parsing pnsSet.xml files
+    that contain a <conversion> tag.
+    """
+    try:
+        # Try native mffpy parsing (will work once bug is patched upstream)
+        sensors = pns_obj.sensors
+        if isinstance(sensors, dict):
+            return list(sensors.values())
+        return list(sensors)
+    except Exception:
+        # Fallback: recursively iterate through the raw XML tree to bypass namespaces
+        sensors = []
+        for sensor_el in pns_obj.root.iter():
+            if sensor_el.tag.endswith("sensor"):
+                sensor_dict = {}
+                for prop in sensor_el:
+                    # Safely strip out XML namespaces
+                    # (e.g., '{http://...}name' -> 'name')
+                    tag = prop.tag.split("}")[-1] if "}" in prop.tag else prop.tag
+                    if tag == "name":
+                        sensor_dict["name"] = prop.text or ""
+                    elif tag == "unit":
+                        sensor_dict["unit"] = prop.text or ""
+                sensors.append(sensor_dict)
+        return sensors
