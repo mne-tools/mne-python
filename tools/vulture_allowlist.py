@@ -112,6 +112,8 @@ _.FrequencyUnit
 _.wavelengths
 _.sourcePos3D
 _.detectorPos3D
+_._snirf_source_labels
+_._snirf_detector_labels
 
 # numerics.py
 _.noise_variance_
