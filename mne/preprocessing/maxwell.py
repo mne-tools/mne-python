@@ -503,19 +503,22 @@ def _prep_maxwell_filter(
     # cross_talk=None (or True) means "use built-in ones if in info"
     _validate_type(cross_talk, (None, bool, dict, "path-like"))
     _validate_type(calibration, (None, bool, dict, "path-like"))
-    if cross_talk is True or cross_talk is None:
-        need_cross_talk = cross_talk is True
+    if cross_talk is None:
         cross_talk = raw.info.get("cross_talk")
-        if cross_talk is None and need_cross_talk:
-            raise RuntimeError(f"{cross_talk=} but info['cross_talk'] is None.")
-    elif cross_talk is False:
+    elif cross_talk is True:
+        if "cross_talk" not in raw.info:
+            raise RuntimeError(f"{cross_talk=}, but info['cross_talk'] is None.")
+        cross_talk = raw.info["cross_talk"]
+    else:  # cross_talk is False
         cross_talk = None
-    if calibration is True or calibration is None:
-        need_calibration = calibration is True
+
+    if calibration is None:
         calibration = raw.info.get("fine_calibration")
-        if calibration is None and need_calibration:
-            raise RuntimeError(f"{calibration=} but info['fine_calibration'] is None.")
-    elif calibration is False:
+    elif calibration is True:
+        if "fine_calibration" not in raw.info:
+            raise RuntimeError(f"{calibration=}, but info['fine_calibration'] is None.")
+        calibration = raw.info["fine_calibration"]
+    else:  # calibration is False
         calibration = None
 
     _check_info(
