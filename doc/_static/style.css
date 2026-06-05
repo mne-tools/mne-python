@@ -364,22 +364,29 @@ div.card {
     background-color: var(--mne-color-card-header);
 }
 
-/* *************************************** homepage funder/institution logos */
-div#funder-logos div.card,
-div#funder-logos div.card img,
-div#institution-logos div.card,
-div#institution-logos div.card img,
+/* ************************************************ funder/institution logos */
+div#sponsor-logos div.card,
+div#sponsor-logos div.card img,
 div#contributor-avatars div.card,
-div#contributor-avatars div.card img {
-    background-color: unset;
+div#contributor-avatars div.card img,
+img.instlogo {
+    background-color: unset !important;
     border: none;
     border-radius: unset;
+}
+img.instlogo {
+    margin: 0.25rem;
+    max-height: 3rem;
+    max-width: 5rem;
 }
 div#contributor-avatars div.card img {
     width: 2.5em;
 }
 .contributor-avatar {
     clip-path: circle(closest-side);
+}
+p.centerlast {
+    text-align-last: center;
 }
 
 /* ************************************************************ funders page */

@@ -24,6 +24,7 @@ from numpydoc import docscrape
 from sphinx.config import is_serializable
 from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import ExplicitOrder
+from yaml import safe_load
 
 import mne
 import mne.html_templates._templates
@@ -879,13 +880,49 @@ html_copy_source = False
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
 
-# accommodate different logo shapes (width values in rem)
-xs = "2"
-sm = "2.5"
-md = "3"
-lg = "4.5"
-xl = "5"
-xxl = "6"
+# sponsor and partner logos
+with open("_static/sponsors.yml") as fid:
+    sponsors_partners = safe_load(fid)
+sizes = sponsors_partners.pop("sizes")
+# sponsors
+current_sponsors = list()
+for key, val in sponsors_partners["sponsors"].items():
+    if key not in sponsors_partners["current"]:
+        continue
+    val["size"] = str(val["size"])
+    if "img" in val:
+        current_sponsors.append(val)
+    else:
+        assert "light" in val and "dark" in val
+        for mode in ("light", "dark"):
+            current_sponsors.append(
+                dict(
+                    title=val["title"],
+                    img=val[mode],
+                    size=val["size"],
+                    url=val["url"],
+                    klass=f"only-{mode}",
+                )
+            )
+# institutions
+current_institutions = list()
+for key, val in sponsors_partners["partner_institutions"].items():
+    if key not in sponsors_partners["current"]:
+        continue
+    val["size"] = str(val["size"])
+    if "img" in val:
+        current_institutions.append(val)
+    else:
+        assert "light" in val and "dark" in val
+        for mode in ("light", "dark"):
+            current_institutions.append(
+                dict(
+                    title=val["title"],
+                    img=val[mode],
+                    size=val["size"],
+                    klass=f"only-{mode}",
+                )
+            )
 # variables to pass to HTML templating engine
 html_context = {
     "default_mode": "auto",
@@ -894,292 +931,8 @@ html_context = {
     "github_repo": "mne-python",
     "github_version": "main",
     "doc_path": "doc",
-    "funders": [
-        dict(img="nih.svg", size="3", title="National Institutes of Health"),
-        dict(img="nsf.png", size="3.5", title="US National Science Foundation"),
-        dict(
-            img="erc.svg",
-            size="3.5",
-            title="European Research Council",
-            klass="only-light",
-        ),
-        dict(
-            img="erc-dark.svg",
-            size="3.5",
-            title="European Research Council",
-            klass="only-dark",
-        ),
-        dict(img="doe.svg", size="3", title="US Department of Energy"),
-        dict(img="anr.svg", size="3.5", title="Agence Nationale de la Recherche"),
-        dict(
-            img="cds.svg",
-            size="1.75",
-            title="Paris-Saclay Center for Data Science",
-            klass="only-light",
-        ),
-        dict(
-            img="cds-dark.svg",
-            size="1.75",
-            title="Paris-Saclay Center for Data Science",
-            klass="only-dark",
-        ),
-        dict(img="google.svg", size="2.25", title="Google"),
-        dict(img="amazon.svg", size="2.5", title="Amazon"),
-        dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),
-    ],
-    "institutions": [
-        dict(
-            name="Massachusetts General Hospital",
-            img="MGH.svg",
-            url="https://www.massgeneral.org/",
-            size=sm,
-        ),
-        dict(
-            name="Athinoula A. Martinos Center for Biomedical Imaging",
-            img="Martinos.png",
-            url="https://martinos.org/",
-            size=md,
-        ),
-        dict(
-            name="Harvard Medical School",
-            img="Harvard.png",
-            url="https://hms.harvard.edu/",
-            size=sm,
-        ),
-        dict(
-            name="Massachusetts Institute of Technology",
-            img="MIT.svg",
-            url="https://web.mit.edu/",
-            size=md,
-        ),
-        dict(
-            name="New York University",
-            img="NYU.svg",
-            url="https://www.nyu.edu/",
-            size=xs,
-            klass="only-light",
-        ),
-        dict(
-            name="New York University",
-            img="NYU-dark.svg",
-            url="https://www.nyu.edu/",
-            size=xs,
-            klass="only-dark",
-        ),
-        dict(
-            name="Commissariat à l´énergie atomique et aux énergies alternatives",
-            img="CEA.png",
-            url="http://www.cea.fr/",
-            size=md,
-        ),
-        dict(
-            name="Aalto-yliopiston perustieteiden korkeakoulu",
-            img="Aalto.svg",
-            url="https://sci.aalto.fi/",
-            size=md,
-            klass="only-light",
-        ),
-        dict(
-            name="Aalto-yliopiston perustieteiden korkeakoulu",
-            img="Aalto-dark.svg",
-            url="https://sci.aalto.fi/",
-            size=md,
-            klass="only-dark",
-        ),
-        dict(
-            name="Télécom ParisTech",
-            img="Telecom_Paris_Tech.svg",
-            url="https://www.telecom-paris.fr/",
-            size=md,
-        ),
-        dict(
-            name="University of Washington",
-            img="Washington.svg",
-            url="https://www.washington.edu/",
-            size=md,
-            klass="only-light",
-        ),
-        dict(
-            name="University of Washington",
-            img="Washington-dark.svg",
-            url="https://www.washington.edu/",
-            size=md,
-            klass="only-dark",
-        ),
-        dict(
-            name="Institut du Cerveau et de la Moelle épinière",
-            img="ICM.jpg",
-            url="https://icm-institute.org/",
-            size=md,
-        ),
-        dict(
-            name="Boston University", img="BU.svg", url="https://www.bu.edu/", size=lg
-        ),
-        dict(
-            name="Institut national de la santé et de la recherche médicale",
-            img="Inserm.svg",
-            url="https://www.inserm.fr/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Institut national de la santé et de la recherche médicale",
-            img="Inserm-dark.svg",
-            url="https://www.inserm.fr/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Forschungszentrum Jülich",
-            img="Julich.svg",
-            url="https://www.fz-juelich.de/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Forschungszentrum Jülich",
-            img="Julich-dark.svg",
-            url="https://www.fz-juelich.de/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Technische Universität Ilmenau",
-            img="Ilmenau.svg",
-            url="https://www.tu-ilmenau.de/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Technische Universität Ilmenau",
-            img="Ilmenau-dark.svg",
-            url="https://www.tu-ilmenau.de/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Berkeley Institute for Data Science",
-            img="BIDS.svg",
-            url="https://bids.berkeley.edu/",
-            size=lg,
-            klass="only-light",
-        ),
-        dict(
-            name="Berkeley Institute for Data Science",
-            img="BIDS-dark.svg",
-            url="https://bids.berkeley.edu/",
-            size=lg,
-            klass="only-dark",
-        ),
-        dict(
-            name="Institut national de recherche en informatique et en automatique",
-            img="inria.png",
-            url="https://www.inria.fr/",
-            size=xl,
-        ),
-        dict(
-            name="Aarhus Universitet",
-            img="Aarhus.svg",
-            url="https://www.au.dk/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Aarhus Universitet",
-            img="Aarhus-dark.svg",
-            url="https://www.au.dk/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Karl-Franzens-Universität Graz",
-            img="Graz.svg",
-            url="https://www.uni-graz.at/",
-            size=md,
-        ),
-        dict(
-            name="SWPS Uniwersytet Humanistycznospołeczny",
-            img="SWPS.svg",
-            url="https://www.swps.pl/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="SWPS Uniwersytet Humanistycznospołeczny",
-            img="SWPS-dark.svg",
-            url="https://www.swps.pl/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Max-Planck-Institut für Bildungsforschung",
-            img="MPIB.svg",
-            url="https://www.mpib-berlin.mpg.de/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Max-Planck-Institut für Bildungsforschung",
-            img="MPIB-dark.svg",
-            url="https://www.mpib-berlin.mpg.de/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Macquarie University",
-            img="Macquarie.svg",
-            url="https://www.mq.edu.au/",
-            size=lg,
-            klass="only-light",
-        ),
-        dict(
-            name="Macquarie University",
-            img="Macquarie-dark.svg",
-            url="https://www.mq.edu.au/",
-            size=lg,
-            klass="only-dark",
-        ),
-        dict(
-            name="AE Studio",
-            img="AE-Studio-light.svg",
-            url="https://ae.studio/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="AE Studio",
-            img="AE-Studio-dark.svg",
-            url="https://ae.studio/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Children’s Hospital of Philadelphia Research Institute",
-            img="CHOP.svg",
-            url="https://www.research.chop.edu/imaging",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Children’s Hospital of Philadelphia Research Institute",
-            img="CHOP-dark.svg",
-            url="https://www.research.chop.edu/imaging",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Donders Institute for Brain, Cognition and Behaviour at Radboud University",  # noqa E501
-            img="Donders.png",
-            url="https://www.ru.nl/donders/",
-            size=xl,
-        ),
-        dict(
-            name="Fondation Campus Biotech Geneva",
-            img="FCBG.svg",
-            url="https://fcbg.ch/",
-            size=sm,
-        ),
-    ],
+    "sponsors": current_sponsors,
+    "institutions": current_institutions,
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
     "carousel": [
@@ -1682,7 +1435,9 @@ def make_custom_redirects(app, exception):
         else:
             to_path = Path(app.outdir) / to
             assert to_path.is_file(), to_path
-        # recreate folders that no longer exist
+        # recreate overview folder (only for redirects now)
+        os.makedirs(Path(app.outdir) / "overview", exist_ok=True)
+        # recreate gallery folders that no longer exist
         defunct_gallery_folders = (
             "misc",
             "discussions",

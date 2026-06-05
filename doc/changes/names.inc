@@ -332,6 +332,7 @@
 .. _Stefan Appelhoff: https://stefanappelhoff.com
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
 .. _Steinn Hauser Magnusson: https://github.com/steinnhauser
+.. _Stephanie Jones: https://sites.brown.edu/stephanie-r-jones-lab/
 .. _Steven Bethard: https://github.com/bethard
 .. _Steven Bierer: https://github.com/neurolaunch
 .. _Steven Gutstein: https://github.com/smgutstein

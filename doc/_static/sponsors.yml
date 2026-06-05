@@ -1,0 +1,192 @@
+current:
+    - nih
+    - nsf
+    - aalto
+    - donders
+    - graz
+    - uw
+sizes:  # in rem
+    - &XS 2
+    - &SM 2.5
+    - &MD 3
+    - &LG 4.5
+    - &XL 5
+    - &XXL 6
+sponsors:
+    nih:
+        title: National Institutes of Health
+        img: nih.svg
+        size: *MD
+    nsf:
+        title: US National Science Foundation
+        img: nsf.png
+        size: 3.5
+    erc:
+        title: European Research Council
+        light: erc.svg
+        dark: erc-dark.svg
+        size: 3.5
+    doe:
+        title: US Department of Energy
+        img: doe.svg
+        size: *MD
+    anr:
+        title: Agence Nationale de la Recherche
+        img: anr.svg
+        size: 3.5
+    paris_saclay_cds:
+        title: Paris-Saclay Center for Data Science
+        light: cds.svg
+        dark: cds-dark.svg
+        size: 1.75
+    google:
+        title: Google
+        img: google.svg
+        size: 2.25
+    amazon:
+        title: Amazon
+        img: amazon.svg
+        size: *SM
+    czi:
+        title: Chan Zuckerberg Initiative
+        img: czi.svg
+        size: *SM
+partner_institutions:
+    aalto:
+        title: Aalto-yliopiston perustieteiden korkeakoulu
+        light: Aalto.svg
+        dark: Aalto-dark.svg
+        url: https://sci.aalto.fi/
+        size: *MD
+    donders:
+        title: Donders Institute for Brain, Cognition and Behaviour at Radboud University
+        img: Donders.svg
+        url: https://www.ru.nl/donders/
+        size: *MD
+    graz:
+        title: Karl-Franzens-Universität Graz
+        img: Graz.svg
+        url: https://www.uni-graz.at/
+        size: *MD
+    uw:
+        title: Institute for Learning & Brain Sciences at University of Washington
+        light: Washington.svg
+        dark: Washington-dark.svg
+        url: https://ilabs.uw.edu/
+        size: *MD
+    mgh:
+        title: Massachusetts General Hospital
+        img: MGH.svg
+        url: https://www.massgeneral.org/
+        size: *SM
+    martinos:
+        title: Athinoula A. Martinos Center for Biomedical Imaging
+        img: Martinos.png
+        url: https://martinos.org/
+        size: *MD
+    harvard:
+        title: Harvard Medical School
+        img: Harvard.png
+        url: https://hms.harvard.edu/
+        size: *SM
+    mit:
+        title: Massachusetts Institute of Technology
+        img: MIT.svg
+        url: https://web.mit.edu/
+        size: *MD
+    nyu:
+        title: New York University
+        light: NYU.svg
+        dark: NYU-dark.svg
+        url: https://www.nyu.edu/
+        size: *XS
+    cea:
+        title: Commissariat à l´énergie atomique et aux énergies alternatives
+        img: CEA.png
+        url: http://www.cea.fr/
+        size: *MD
+    tpt:
+        title: Télécom ParisTech
+        img: Telecom_Paris_Tech.svg
+        url: https://www.telecom-paris.fr/
+        size: *MD
+    icm:
+        title: Institut du Cerveau et de la Moelle épinière
+        img: ICM.jpg
+        url: https://icm-institute.org/
+        size: *MD
+    bu:
+        title: Boston University"
+        img: BU.svg"
+        url: https://www.bu.edu/"
+        size: *LG
+    inserm:
+        title: Institut national de la santé et de la recherche médicale
+        light: Inserm.svg
+        dark: Inserm-dark.svg
+        url: https://www.inserm.fr/
+        size: *XL
+    julich:
+        title: Forschungszentrum Jülich
+        light: Julich.svg
+        dark: Julich-dark.svg
+        url: https://www.fz-juelich.de/
+        size: *XL
+    tui:
+        title: Technische Universität Ilmenau
+        light: Ilmenau.svg
+        dark: Ilmenau-dark.svg
+        url: https://www.tu-ilmenau.de/
+        size: *XXL
+    bids:
+        title: Berkeley Institute for Data Science
+        light: BIDS.svg
+        dark: BIDS-dark.svg
+        url: https://bids.berkeley.edu/
+        size: *LG
+    inria:
+        title: Institut national de recherche en informatique et en automatique
+        img: inria.png
+        url: https://www.inria.fr/
+        size: *XL
+    aarhus:
+        title: Aarhus Universitet
+        light: Aarhus.svg
+        dark: Aarhus-dark.svg
+        url: https://www.au.dk/
+        size: *XL
+    swps:
+        title: SWPS Uniwersytet Humanistycznospołeczny
+        light: SWPS.svg
+        dark: SWPS-dark.svg
+        url: https://www.swps.pl/
+        size: *XL
+    mpib:
+        title: Max-Planck-Institut für Bildungsforschung
+        light: MPIB.svg
+        dark: MPIB-dark.svg
+        url: https://www.mpib-berlin.mpg.de/
+        size: *XXL
+    macq:
+        title: Macquarie University
+        light: Macquarie.svg
+        dark: Macquarie-dark.svg
+        url: https://www.mq.edu.au/
+        size: *LG
+    aestudio:
+        title: AE Studio
+        light: AE-Studio-light.svg
+        dark: AE-Studio-dark.svg
+        url: https://ae.studio/
+        size: *XXL
+    chop:
+        title: Children’s Hospital of Philadelphia Research Institute
+        light: CHOP.svg
+        dark: CHOP-dark.svg
+        url: https://www.research.chop.edu/imaging
+        size: *XXL
+    fcbg:
+        title: Fondation Campus Biotech Geneva
+        img: FCBG.svg
+        url: https://fcbg.ch/
+        size: *SM
