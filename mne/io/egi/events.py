@@ -59,7 +59,11 @@ def _read_mff_events(filename, sfreq, start_time):
 
         with reader.directory.filepointer(stem) as fp:
             # Let mffpy 0.11 handle all the heavy lifting!
-            track = XML.from_file(fp)
+            try:
+                track = XML.from_file(fp)
+            except Exception as exc:
+                warn(f"Could not parse the XML file {xml_name}: {exc}", RuntimeWarning)
+                continue
             tracks.append(track)
 
     markers = []
