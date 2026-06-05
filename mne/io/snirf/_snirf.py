@@ -708,23 +708,30 @@ _SI_PREFIXES = {"": 1.0, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15
 _VOLUME_IN_LITERS = {"L": 1.0, "l": 1.0, "dm^3": 1.0, "m^3": 1e3}
 
 
-def _get_dataunit_scaling(hbx_unit):
-    """MNE expects hbo/hbr in mol/L, return required scaling."""
-    if hbx_unit == "":
+def _get_dataunit_scaling(unit):
+    """Return scaling to convert SNIRF dataUnit to MNE base units.
+
+    MNE base units: mol/L for hemoglobin, V for amplitude/voltage.
+    """
+    if unit == "":
         return 1.0
 
     # Legacy shorthand: [prefix]M where M = mol/L
-    if hbx_unit.endswith("M") and hbx_unit[:-1] in _SI_PREFIXES:
-        return _SI_PREFIXES[hbx_unit[:-1]]
+    if unit.endswith("M") and unit[:-1] in _SI_PREFIXES:
+        return _SI_PREFIXES[unit[:-1]]
 
     # CMIXF-12 compound form: [prefix]mol/<volume>
-    if "mol/" in hbx_unit:
-        prefix, denom = hbx_unit.split("mol/", 1)
+    if "mol/" in unit:
+        prefix, denom = unit.split("mol/", 1)
         if prefix in _SI_PREFIXES and denom in _VOLUME_IN_LITERS:
             return _SI_PREFIXES[prefix] / _VOLUME_IN_LITERS[denom]
 
+    # Voltage: [prefix]V
+    if unit.endswith("V") and unit[:-1] in _SI_PREFIXES:
+        return _SI_PREFIXES[unit[:-1]]
+
     raise RuntimeError(
-        f"The Hb unit {repr(hbx_unit)} is not supported "
+        f"The data unit {repr(unit)} is not supported "
         "by MNE. Please report this error as a GitHub "
         "issue to inform the developers."
     )
