@@ -658,9 +658,6 @@ class RawSNIRF(BaseRaw):
                     annot.append(onsets, durations, group_name)
             self.set_annotations(annot, emit_warning=False)
 
-            self._snirf_source_labels = snirf_source_labels
-            self._snirf_detector_labels = snirf_detector_labels
-
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
 

@@ -684,7 +684,6 @@ def test_sample_rate_jitter(tmp_path):
         read_raw_snirf(new_file, verbose=True)
 
 
-@requires_testing_data
 def test_get_dataunit_scaling():
     """Test CMIXF-12 and legacy Hb unit scaling."""
     from mne.io.snirf._snirf import _get_dataunit_scaling
@@ -717,6 +716,7 @@ def test_get_dataunit_scaling():
         _get_dataunit_scaling("bad_unit")
 
 
+@requires_testing_data
 def test_snirf_multiple_wavelengths():
     """Test importing synthetic SNIRF files with >=3 wavelengths."""
     raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)

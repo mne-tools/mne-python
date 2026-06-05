@@ -10,7 +10,7 @@ from functools import partial
 import numpy as np
 from scipy import ndimage
 
-from .._fiff.pick import _picks_to_idx, channel_type, pick_types
+from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .ui_events import ChannelsSelect, publish, subscribe
@@ -1042,28 +1042,7 @@ def _plot_evoked_topo(
         ]
         # one check for all vendors
         is_meg = len([x for x in types_used if x in ["mag", "grad"]]) > 0
-        is_nirs = (
-            len(
-                [
-                    x
-                    for x in types_used
-                    if x
-                    in (
-                        "hbo",
-                        "hbr",
-                        "fnirs_cw_amplitude",
-                        "fnirs_od",
-                        "fnirs_fd_ac_amplitude",
-                        "fnirs_fd_phase",
-                        "fnirs_td_gated_amplitude",
-                        "fnirs_td_moments_intensity",
-                        "fnirs_td_moments_mean",
-                        "fnirs_td_moments_variance",
-                    )
-                ]
-            )
-            > 0
-        )
+        is_nirs = any(x in _FNIRS_CH_TYPES_SPLIT for x in types_used)
         if is_meg:
             picks = [
                 pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
