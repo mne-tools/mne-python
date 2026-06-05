@@ -237,15 +237,15 @@ class RawSNIRF(BaseRaw):
             )
             detectors = {int(d): f"D{int(d)}" for d in all_det_idx}
 
-            snirf_source_labels = None
-            snirf_detector_labels = None
+            _snirf_source_labels = None
+            _snirf_detector_labels = None
             if "sourceLabels" in dat["nirs/probe"]:
-                snirf_source_labels = [
+                _snirf_source_labels = [
                     s.decode("UTF-8") if isinstance(s, bytes) else str(s)
                     for s in np.array(dat.get("nirs/probe/sourceLabels"))
                 ]
             if "detectorLabels" in dat["nirs/probe"]:
-                snirf_detector_labels = [
+                _snirf_detector_labels = [
                     d.decode("UTF-8") if isinstance(d, bytes) else str(d)
                     for d in np.array(dat.get("nirs/probe/detectorLabels"))
                 ]
