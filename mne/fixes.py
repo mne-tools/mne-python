@@ -915,7 +915,7 @@ def read_from_file_or_buffer(
 def _get_mffpy_pns_sensors(pns_obj):
     """Safely extract PNS sensors from mffpy PNSSet object.
 
-    TODO VERSION: Remove once BEL-Public/mffpy#142 is released.
+    TODO VERSION: Remove once BEL-Public/mffpy#144 is released.
     mffpy <= 0.11.0 raises KeyError: 'conversion' when parsing pnsSet.xml files
     that contain a <conversion> tag.
     """
