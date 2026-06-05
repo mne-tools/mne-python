@@ -10,13 +10,13 @@ About MNE-Python
 MNE-Python is software for analysis and visualization of human
 neuroscience data. The core package emphasizes EEG and MEG modalities,
 but extension packages provide enhanced support for
-:doc:`fNIRS <mne-nirs:index>` and :doc:`EMG <mne-python:index>`.
+`fNIRS <https://mne.tools/mne-nirs>`__ and
+`EMG <https://github.com/mne-tools>`__.
 Other extensions provide advanced algorithms for
-:doc:`connectivity analysis <mne-connectivity:index>`,
-:doc:`compatibility with BIDS <mne-bids:index>`,
+`connectivity analysis <https://mne.tools/mne-connectivity>`__,
+`compatibility with BIDS <https://mne.tools/mne-bids>`__,
 `integration with LSL for real-time data streams <https://mne.tools/mne-lsl>`__,
-:doc:`denoising <mne-noise-reduction:index>`,
-and :doc:`many other functionalities <mne-tools:index>`.
+and `many other functionalities <https://github.com/mne-tools>`__.
 All software in the `MNE-tools organization <https://github.com/mne-tools>`__
 is open-source and permissively licensed.
 

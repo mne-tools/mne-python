@@ -1,3 +1,5 @@
+:orphan:
+
 - Add new "About MNE-Python" top-level section to the website, consolidating
-  governance, changelog, bibliography, citation pages, and a new overview
-  page (:gh:`13575`). By :ghuser:`Omesh37`.
+  governance, changelog, bibliography, and citation pages, plus a new
+  overview page (:gh:`13575`). By `Omesh37 <https://github.com/Omesh37>`__.
