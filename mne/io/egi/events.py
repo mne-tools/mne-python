@@ -37,11 +37,7 @@ def _read_events(input_fname, info):
 
 def _read_mff_events(filename, sfreq, start_time):
     """Extract the events with mffpy."""
-    # 1. Trigger MNE's helpful error message if the package is missing
-    _soft_import("mffpy", "reading EGI MFF data")
-
-    # 2. Now it is safe to do the actual imports locally
-    import mffpy
+    mffpy = _soft_import("mffpy", purpose="reading EGI MFF data", min_version="0.11")
     from mffpy.xml_files import XML
 
     reader = mffpy.Reader(filename)
@@ -71,36 +67,21 @@ def _read_mff_events(filename, sfreq, start_time):
 
     for track in tracks:
         for event in track.events:
-            code_str = event.get("code")
-            if code_str is None:
-                continue
-
+            # mffpy >= 0.11 guarantees 'code', tz-aware 'beginTime', and 'duration'
+            code_str = event["code"]
             if code_str not in code:
                 code.append(code_str)
 
-            # mffpy 0.11 properly parses beginTime into a datetime object
-            event_start = event.get("beginTime")
-            if event_start is None:
-                continue
-
-            if event_start.tzinfo is None and start_time.tzinfo is not None:
-                event_start = event_start.replace(tzinfo=start_time.tzinfo)
-
+            event_start = event["beginTime"]
             start_sec = (event_start - start_time).total_seconds()
-
-            duration = event.get("duration")
-            if duration is not None:
-                try:
-                    duration = int(duration) / 1e9
-                except Exception:
-                    duration = None
+            duration = event["duration"] / 1e9
 
             markers.append(
                 {
                     "name": code_str,
                     "start": start_sec,
                     "start_sample": int(np.trunc(start_sec * sfreq)),
-                    "end": start_sec + (duration if duration is not None else 0.0),
+                    "end": start_sec + duration,
                     "chan": None,
                 }
             )
