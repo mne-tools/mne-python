@@ -3696,8 +3696,6 @@ class Report:
                 for p in projs
             ):
                 rate_caption = self._event_estimate(epochs, projs)
-            else:
-                rate_caption = None
 
         if not projs:
             raise ValueError("No SSP projectors found")
