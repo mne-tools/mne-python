@@ -1,1 +1,1 @@
-Fix bugs on :func:`mne.viz.plot_compare_evokeds` when `axes="topo"`. Correct channel order when given in an arbitrary way, and align multiple evoked when channel orders are different, by `Lifeng Qiu Lin`_.
+Fix channel ordering bug in :func:`mne.viz.plot_compare_evokeds` when ``axes="topo"``, by `Lifeng Qiu Lin`_.
