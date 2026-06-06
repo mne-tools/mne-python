@@ -482,8 +482,9 @@ def _assert_drop_log_types(drop_log):
     assert all(isinstance(log, tuple) for log in drop_log), (
         "drop_log[ii] should be tuple"
     )
-    assert all(isinstance(s, str) for log in drop_log for s in log), (
-        "drop_log[ii][jj] should be str"
+    # enforce exact built-in str (reject np.str_ and other str subclasses)
+    assert all(type(s) is str for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be built-in str"
     )
 
 
@@ -775,6 +776,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         epochs = mne.Epochs(
             raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
         )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 0
 
     # Setting `reject_tmin` to prevent rejection of epoch.
@@ -787,6 +789,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
     # Same check but bad segment overlapping from 2.5s to 3s: use `reject_tmax`
@@ -800,6 +803,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
 

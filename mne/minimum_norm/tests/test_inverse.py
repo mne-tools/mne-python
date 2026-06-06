@@ -1738,7 +1738,7 @@ def test_make_inverse_no_meg(tmp_path):
     src = setup_volume_source_space(pos=pos)
     bem = make_sphere_model()
     trans = None
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1020")
     info = create_info(["Cz", "Fz"], 1000.0, "eeg").set_montage(montage)
     data = np.random.default_rng(0).standard_normal((len(info["ch_names"]), 10))
     evoked = EvokedArray(data, info)

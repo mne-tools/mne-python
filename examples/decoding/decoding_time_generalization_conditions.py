@@ -28,8 +28,6 @@ import mne
 from mne.datasets import sample
 from mne.decoding import GeneralizingEstimator
 
-print(__doc__)
-
 # Preprocess data
 data_path = sample.data_path()
 # Load and filter data, set up epochs

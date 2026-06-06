@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from .fixes import _eye_array, _get_img_fdata, _reshape_view
+from .fixes import _get_img_fdata, _reshape_view
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -1231,7 +1231,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e += _eye_array(n_vertices, format="csr")
+    e += sparse.eye_array(n_vertices, format="csr")
     if isinstance(smooth, str):
         _check_option("smooth", smooth, ("nearest",), extra=" when used as a string.")
         mm = _surf_nearest(vertices_from, e).tocsr()
@@ -1380,7 +1380,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
     assert e.shape == (n_tot, n_tot)
     # our output matrix starts out as a smaller matrix, and will gradually
     # increase in size
-    data = _eye_array(len(idx_from), format="csr")
+    data = sparse.eye_array(len(idx_from), format="csr")
     _validate_type(smooth, ("int-like", str, None), "smoothing steps")
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, "smoothing steps")

@@ -98,7 +98,7 @@ for sub in (1, 2):
         mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0], preload=True
     )
     mne.datasets.eegbci.standardize(raw)  # set channel names
-    montage = mne.channels.make_standard_montage("standard_1005")
+    montage = mne.channels.make_standard_montage("spherical_1005")
     raw.set_montage(montage)
     raw.filter(l_freq=1.0, h_freq=None)
 

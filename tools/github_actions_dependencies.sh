@@ -3,7 +3,7 @@
 set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-ONLY_BINARY_ARG="--only-binary=numpy,scipy,matplotlib,numba,llvmlite,antio"
+ONLY_BINARY_ARG="--only-binary=:all:"
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
 if [ ! -z "$CONDA_ENV" ]; then

@@ -1464,6 +1464,8 @@ def _find_vector_rotation(a, b):
     # Rodrigues' rotation formula:
     #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
     #   http://math.stackexchange.com/a/476311
+    assert np.isclose(np.linalg.norm(a), 1.0), np.linalg.norm(a)
+    assert np.isclose(np.linalg.norm(b), 1.0), np.linalg.norm(b)
     R = np.eye(3)
     v = np.cross(a, b)
     if np.allclose(v, 0.0):  # identical
@@ -1472,6 +1474,7 @@ def _find_vector_rotation(a, b):
     c = np.dot(a, b)  # cosine of the angle between them
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
+    # Now we have: np.allclose(R @ a, b)
     return R
 
 

@@ -48,7 +48,7 @@ runs = [6, 10, 14]  # motor imagery: hands vs feet
 raw_fnames = eegbci.load_data(subjects, runs)
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
 eegbci.standardize(raw)  # set channel names
-montage = make_standard_montage("standard_1005")
+montage = make_standard_montage("spherical_1005")
 raw.set_montage(montage)
 raw.annotations.rename(dict(T1="hands", T2="feet"))  # as documented on PhysioNet
 raw.set_eeg_reference(projection=True)

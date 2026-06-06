@@ -57,7 +57,9 @@ def _compare_version(version_a, operator, version_b):
 
 
 ###############################################################################
-# NumPy 2.5 deprecates .shape assignment, but .reshape(copy=False) requires 2.1+
+# NumPy 2.5 removes .shape assignment, but .reshape(copy=False) requires 2.1+
+
+# TODO VERSION remove on NumPy 2.1+
 
 
 def _reshape_view(arr, shape):
@@ -66,10 +68,8 @@ def _reshape_view(arr, shape):
     This function provides compatibility across NumPy versions for reshaping
     arrays as views. On NumPy >= 2.1, it uses ``reshape(copy=False)`` which
     explicitly fails if a view cannot be created. On older versions, it uses
-    direct shape assignment which has the same behavior but is deprecated in
-    NumPy 2.5+.
-
-    Can be removed once NumPy 2.1 is the minimum supported version.
+    direct shape assignment which has the same behavior but is being removed
+    as of NumPy 2.5+.
 
     Parameters
     ----------
@@ -134,19 +134,6 @@ def _safe_svd(A, **kwargs):
 
         warn(f"SVD error ({exp}), attempting to use GESVD instead of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
-
-
-def _csc_array_cast(x):
-    from scipy.sparse import csc_array
-
-    return csc_array(x)
-
-
-# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
-def _eye_array(n, *, format="csr"):  # noqa: A002
-    from scipy import sparse
-
-    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################
@@ -707,7 +694,7 @@ def _close_event(fig):
 
 
 ###############################################################################
-# SciPy 1.14+ minimum_phase half=True option
+# TODO VERSION SciPy 1.14+ minimum_phase half=True option
 
 
 def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
@@ -765,8 +752,7 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
     return h_minimum[:n_out]
 
 
-# SciPy 1.15 deprecates sph_harm for sph_harm_y and using it will trigger a
-# DeprecationWarning. This is a backport of the new function for older SciPy versions.
+# TODO VERSION SciPy 1.15+ (sph_harm -> sph_harm_y)
 def sph_harm_y(n, m, theta, phi, *, diff_n=0):
     """Wrap scipy.special.sph_harm for sph_harm_y."""
     # Can be removed once we no longer support scipy < 1.15.0
@@ -779,8 +765,7 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
 
 
 ###############################################################################
-# TODO VERSION: Can be removed once pymatreader >= 1.2.2 is the minimum
-# supported version.
+# TODO VERSION: Can be removed once pymatreader >= 1.2.2 is the min version
 
 
 def _whosmat(fname):
@@ -899,6 +884,8 @@ def _whosmat_hdf5(fname):
 # workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
 # we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
 # from the file-like object.
+
+
 def read_from_file_or_buffer(
     file: str | bytes | os.PathLike | io.IOBase,
     dtype: numpy.typing.DTypeLike = float,
