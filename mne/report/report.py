@@ -3622,12 +3622,11 @@ class Report:
                 replace=replace,
             )
 
-
     @staticmethod
     def _event_estimate(epochs, projs):
         rate_caption = None
         n_events = len(epochs.drop_log)
-        event_times = [ev[0] / epochs.info['sfreq'] for ev in epochs.events]
+        event_times = [ev[0] / epochs.info["sfreq"] for ev in epochs.events]
         if len(event_times) > 1:
             duration_sec = event_times[-1] - event_times[0]
             duration_min = duration_sec / 60.0
@@ -3636,7 +3635,14 @@ class Report:
             return None
         if duration_min > 0:
             rate = n_events / duration_min
-            unit = "BPM" if any(any(kw in p["desc"].lower() for kw in ("ecg", "heart")) for p in projs) else "events/min"
+            unit = (
+                "BPM"
+                if any(
+                    any(kw in p["desc"].lower() for kw in ("ecg", "heart"))
+                    for p in projs
+                )
+                else "events/min"
+            )
             rate_caption = f"Estimated rate: {rate:.1f} {unit}"
         return rate_caption
 
@@ -3685,7 +3691,10 @@ class Report:
         elif add_rate is True:
             rate_caption = self._event_estimate(epochs, projs)
         elif add_rate == "auto":
-            if any(any(kw in p["desc"].lower() for kw in ("ecg", "eog", "blink")) for p in projs):
+            if any(
+                any(kw in p["desc"].lower() for kw in ("ecg", "eog", "blink"))
+                for p in projs
+            ):
                 rate_caption = self._event_estimate(epochs, projs)
             else:
                 rate_caption = None
