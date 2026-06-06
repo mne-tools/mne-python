@@ -263,6 +263,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._hide_axes()
         self._toggle_antialias()
         self._enable_depth_peeling()
+        self._picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -907,7 +908,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.RenderEvent, on_mouse_move)
         add_obs(vtkCommand.LeftButtonPressEvent, on_button_press)
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
-        self._picker = vtkCellPicker()
         self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self._picker.SetVolumeOpacityIsovalue(0.0)
 
@@ -1071,7 +1071,7 @@ def _compute_normals(mesh):
         )
 
 
-def _add_mesh(plotter, *args, **kwargs):
+def _add_mesh(plotter, **kwargs):
     """Patch PyVista add_mesh."""
     mesh = kwargs.get("mesh")
     if "smooth_shading" in kwargs:
@@ -1084,7 +1084,7 @@ def _add_mesh(plotter, *args, **kwargs):
         kwargs["render"] = False
     if "reset_camera" not in kwargs:
         kwargs["reset_camera"] = False
-    actor = plotter.add_mesh(*args, **kwargs)
+    actor = plotter.add_mesh(**kwargs)
     if smooth_shading and "Normals" in mesh.point_data:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()

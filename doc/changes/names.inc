@@ -213,6 +213,7 @@
 .. _Martin Luessi: https://github.com/mluessi
 .. _Martin Oberg: https://github.com/obergmartin
 .. _Martin Schulz: https://github.com/marsipu
+.. _Mathias Sablé-Meyer: https://s-m.ac/
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
 .. _Mathurin Massias: https://mathurinm.github.io/
 .. _Mats van Es: https://github.com/matsvanes

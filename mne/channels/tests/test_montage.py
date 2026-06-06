@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
 import shutil
 from contextlib import nullcontext
 from functools import partial
@@ -54,6 +55,7 @@ from mne.channels import (
     read_dig_polhemus_isotrak,
     read_polhemus_fastscan,
 )
+from mne.channels._standard_montage_utils import standard_montage_look_up_table
 from mne.channels.montage import (
     _BUILTIN_STANDARD_MONTAGES,
     _check_get_coord_frame,
@@ -1990,15 +1992,39 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_COUNT = 31
+    EXPECTED_COUNT = 34
 
     montages = get_builtin_montages()
-    assert len(montages) == EXPECTED_COUNT
+    assert len(montages) == EXPECTED_COUNT, (
+        f"Expected {EXPECTED_COUNT} montages, got {len(montages)}, adjust "
+        "EXPECTED_COUNT or add new montage to _BUILTIN_STANDARD_MONTAGES in "
+        "mne/channels/montage.py"
+    )
+    assert len(standard_montage_look_up_table) == EXPECTED_COUNT
 
     montages_with_descriptions = get_builtin_montages(descriptions=True)
     assert len(montages_with_descriptions) == EXPECTED_COUNT
-    for montage_with_description in montages_with_descriptions:
-        assert len(montage_with_description) == 2
+    loc_regex = re.compile(r".*\(([0-9]+)(?:\+([0-9]+))? locations\)$")
+    fnirs_regex = re.compile(r".*\(([0-9]+) sources, ([0-9]+) detectors\)$")
+    for name, desc in montages_with_descriptions:
+        mon = make_standard_montage(name)
+        # Verify docstring contains correct info about locations
+        match = loc_regex.match(desc)
+        if match is None:
+            match = fnirs_regex.match(desc)
+            assert match is not None, f"{name}: couldn't match desc to channel count"
+            n_src, n_det = int(match.group(1)), int(match.group(2))
+            assert len(mon.ch_names) == n_src + n_det, (
+                f"{name}: Expected {n_src + n_det} channels, got {len(mon.ch_names)}"
+            )
+        else:
+            n_chs, n_fids = int(match.group(1)), int(match.group(2) or 0)
+            assert len(mon.ch_names) == n_chs, (
+                f"{name}: Expected {n_chs} channels, got {len(mon.ch_names)}"
+            )
+            assert len(mon.dig) == n_chs + n_fids, (
+                f"{name}: Expected {n_chs + n_fids} dig points, got {len(mon.dig)}"
+            )
 
 
 @testing.requires_testing_data
@@ -2171,3 +2197,54 @@ def test_set_montage_meg_eeg_no_digitization():
     # This must not raise IndexError (regression test for GH-12011)
     montage = make_standard_montage("spherical_1005")
     epochs.set_montage(montage, on_missing="ignore")
+
+
+@pytest.mark.parametrize("kind", ("1005", "1010", "1020"))
+def test_1020_equivalence(kind):
+    """Test equivalence (or lack thereof) of 10-20 electrode sets."""
+    # At some point we should maybe make all of these have the same sets of channel
+    # names. But given their different provenances, let's live with them being different
+    # for now, and fix if users run into issues.
+
+    # colin has no 1010 variant
+    colin_kind = "1005" if kind == "1010" else kind
+    colin = make_standard_montage(f"colin27_{colin_kind}")
+    fsaverage = make_standard_montage(f"fsaverage_{kind}")
+    spherical = make_standard_montage(f"spherical_{kind}")
+    for montage in (colin, fsaverage, spherical):
+        kinds = set(d["kind"] for d in montage.dig[:3])
+        assert kinds == {FIFF.FIFFV_POINT_CARDINAL}
+        ids = [d["ident"] for d in montage.dig[:3]]
+        assert ids == [
+            FIFF.FIFFV_POINT_LPA,
+            FIFF.FIFFV_POINT_NASION,
+            FIFF.FIFFV_POINT_RPA,
+        ]
+    colin_names = set(colin.ch_names)
+    fsaverage_names = set(fsaverage.ch_names)
+    spherical_names = set(spherical.ch_names)
+    # normalize down to fsaverage_names, which is the set produced by FieldTrip
+    if kind == "1005":
+        extra_spherical = {
+            "NFp2",
+            "NFp1",
+            "NFp2h",
+            "NFpz",
+            "N2h",
+            "NFp1h",
+            "N2",
+            "N1h",
+            "N1",
+        }
+        assert extra_spherical.issubset(spherical_names)
+        assert fsaverage_names == spherical_names - extra_spherical
+
+        extra_colin = {"A1", "T6", "M2", "T4", "T3", "M1", "A2", "T5"}
+        assert extra_colin.issubset(colin_names)
+        assert fsaverage_names == colin_names - extra_colin
+    else:
+        assert kind in ("1010", "1020")
+        assert fsaverage_names == spherical_names
+        # Our colin27 contains a bunch of extra names, so don't bother with extra list
+        # here, just check subset
+        assert fsaverage_names.issubset(colin_names)

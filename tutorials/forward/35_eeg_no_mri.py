@@ -56,7 +56,7 @@ eegbci.standardize(raw)
 
 # Read and set the EEG electrode locations using an anatomically
 # shaped 10-05 montage:
-montage = mne.channels.make_standard_montage("colin27_1005")
+montage = mne.channels.make_standard_montage("fsaverage_1005")
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
