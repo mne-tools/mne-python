@@ -1865,7 +1865,7 @@ class Report:
 
         Parameters
         ----------
-        info : instance of Info | instance of Evoked | path-like
+        info : instance of Info | instance of Evoked | instance of Epochs | path-like
             An `~mne.Info` structure or the path of a file containing one.
         title : str
             The title corresponding to the :class:`~mne.Projection` object.
@@ -1873,6 +1873,15 @@ class Report:
             The projection vectors to add to the report. Can be the path to a
             file that will be loaded via `mne.read_proj`. If ``None``, the
             projectors are taken from ``info['projs']``.
+        add_rate : bool | "auto"
+            Whether to add an estimated event rate to the figure caption when
+            ``info`` is an instance of :class:`~mne.Epochs`. If ``"auto"``
+            (default), the rate is shown only when the projector descriptions
+            suggest ECG or EOG content (i.e. contain ``"ecg"``, ``"eog"``, or
+            ``"blink"``). If ``True``, always show the rate. If ``False``, never
+            show it.
+
+            .. versionadded:: 1.10
         %(topomap_kwargs)s
         %(tags_report)s
         joint : bool
