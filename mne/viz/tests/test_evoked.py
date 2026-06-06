@@ -478,9 +478,11 @@ def test_plot_compare_evokeds(evoked):
     evoked_subset = evoked.copy().pick(["MEG 0113", "MEG 0112"])
     evoked_reordered = evoked_subset.copy()
     evoked_reordered.reorder_channels(["MEG 0112", "MEG 0113"])
-    figs = plot_compare_evokeds(
-        dict(orig=evoked_subset, reordered=evoked_reordered), axes="topo"
-    )
+    # catch warnings when testing misalignment on purpose
+    with pytest.warns(RuntimeWarning, match="Order of channels differs"):
+        figs = plot_compare_evokeds(
+            dict(orig=evoked_subset, reordered=evoked_reordered), axes="topo"
+        )
     assert_allclose(
         figs[0].axes[0].lines[0].get_ydata(), figs[0].axes[0].lines[1].get_ydata()
     )

@@ -1564,7 +1564,7 @@ def _check_evokeds_ch_names_times(all_evoked, inplace=False):
             if set(ev.ch_names) != set(ch_names):
                 raise ValueError(f"{evoked} and {ev} do not contain the same channels.")
             else:
-                print("Order of channels differs, reordering channels ...")
+                warn("Order of channels differs, reordering channels ...")
                 if not inplace:
                     ev = ev.copy()
                 ev.reorder_channels(ch_names)
