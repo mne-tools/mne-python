@@ -32,7 +32,10 @@ COMMIT = "9ccb09d69daa8332f2e7252638ba397b60ba2502"
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_dups = (3501,)  # in both MEGIN and MNE files
+tag_dups = (  # in both MEGIN and MNE files
+    3501,  # FIFF.FIFF_XPLOTTER_LAYOUT
+    3507,  # FIFF.FIFF_MNE_CH_NAME_LIST
+)
 
 _dir_ignore_names = (
     "clear",
