@@ -150,6 +150,11 @@ jobs:
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
+      - uses: actions/cache@v5
+        with:
+          key: minimal-commands-0
+          path: ~/minimal_cmds
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
       - run: bash ./tools/github_actions_infos.sh
