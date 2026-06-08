@@ -40,8 +40,7 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-# TODO: VTK down on 2026/06/08 at least
-python -m pip install $STD_ARGS --only-binary ":all:" vtk  # --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260517.dev0,!=9.6.20260601"
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260405.dev0"
 python -c "import vtk"
 echo "::endgroup::"
 
