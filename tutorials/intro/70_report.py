@@ -179,6 +179,7 @@ report.save("report_cov.html", overwrite=True)
 # is read from the `~mne.Info`, but projectors potentially included will be
 # ignored; instead, only the explicitly passed projectors will be plotted.
 
+ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
 raw_tmp = mne.io.read_raw(raw_path).crop(0, 60).load_data()
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw_tmp)
