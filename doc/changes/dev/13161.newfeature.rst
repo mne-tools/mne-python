@@ -1,1 +1,1 @@
-:meth:`mne.Report.add_projs` now accepts :class:`~mne.Epochs` as ``info`` and adds an ``add_rate`` parameter to show estimated event rates (e.g. heart rate or blink rate) in the report (:gh:`13161` by `Master-Zero1`_).
+:meth:`mne.Report.add_projs` now accepts :class:`~mne.Epochs` as ``info`` and adds an ``add_rate`` parameter to show estimated event rates (e.g. heart rate or blink rate) in the report (:gh:`13161` by `Prithvi Chauhan`_).

@@ -189,7 +189,7 @@ report.add_projs(
     title="ECG projs with estimated heart rate",
     add_rate="auto",
 )
-del raw_tmp, ecg_epochs, ecg_projs_rate
+del raw_tmp, ecg_epochs, ecg_projs
 
 # Now a joint plot
 events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")

@@ -88,6 +88,7 @@ from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
 from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
+_RATE_PROJ_KEYWORDS = ("ecg", "eog", "blink", "heart")
 
 
 # For raw files, we want to support different suffixes + extensions for all
@@ -3638,7 +3639,7 @@ class Report:
             unit = (
                 "BPM"
                 if any(
-                    any(kw in p["desc"].lower() for kw in ("ecg", "heart"))
+                    any(kw in p["desc"].lower() for kw in _RATE_PROJ_KEYWORDS)
                     for p in projs
                 )
                 else "events/min"
@@ -3686,13 +3687,18 @@ class Report:
 
         rate_caption = None
 
-        if add_rate is False or epochs is None:
+        if add_rate is False:
             pass
+        elif epochs is None:
+            if add_rate is True:
+                raise ValueError(
+                    "add_rate=True requires an Epochs instance to be passed as info"
+                )
         elif add_rate is True:
             rate_caption = self._event_estimate(epochs, projs)
         elif add_rate == "auto":
             if any(
-                any(kw in p["desc"].lower() for kw in ("ecg", "eog", "blink"))
+                any(kw in p["desc"].lower() for kw in _RATE_PROJ_KEYWORDS)
                 for p in projs
             ):
                 rate_caption = self._event_estimate(epochs, projs)
