@@ -33,6 +33,4 @@ experience.
    :hidden:
 
    contributing
-   whats_new
    roadmap
-   governance
