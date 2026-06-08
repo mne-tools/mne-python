@@ -1882,7 +1882,7 @@ class Report:
             ``"blink"``). If ``True``, always show the rate. If ``False``, never
             show it.
 
-            .. versionadded:: 1.10
+            .. versionadded:: 1.13
         %(topomap_kwargs)s
         %(tags_report)s
         joint : bool
