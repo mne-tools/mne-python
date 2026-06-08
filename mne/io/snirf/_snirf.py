@@ -289,7 +289,7 @@ class RawSNIRF(BaseRaw):
 
             # Uniform scale factor assumed here!
             snirf_data_unit = np.array(
-                dat.get("nirs/data1/measurementList1/dataUnit", b"M")
+                dat.get("nirs/data1/measurementList1/dataUnit", b"")
             )
             snirf_data_unit = snirf_data_unit.item().decode("utf-8")
             scale = _get_dataunit_scaling(snirf_data_unit)
@@ -625,37 +625,10 @@ class RawSNIRF(BaseRaw):
                     continue
                 onsets = data[:, 0]
                 durations = data[:, 1]
-                group_name = _correct_shape(np.array(dat.get(f"/nirs/{key}/name")))[
-                    0
-                ].decode("UTF-8")
-                raw_labels = dat.get(f"/nirs/{key}/dataLabels")
-                if raw_labels is not None:
-                    labels = [
-                        lbl.decode("UTF-8") if isinstance(lbl, bytes) else str(lbl)
-                        for lbl in np.array(raw_labels)
-                    ]
-                else:
-                    labels = []
-                # Look for one-hot "Type.X" or "BlockType.X" columns
-                type_cols = {
-                    i: lbl.split(".")[-1]
-                    for i, lbl in enumerate(labels)
-                    if "." in lbl
-                    and any(
-                        prefix in lbl
-                        for prefix in ("BlockType.", "Type.", "TrialType.")
-                    )
-                }
-                if type_cols and data.shape[1] > max(type_cols):
-                    descs = []
-                    for row in data:
-                        matched = [
-                            name for col, name in type_cols.items() if row[col] == 1.0
-                        ]
-                        descs.append(matched[0] if matched else group_name)
-                    annot.append(onsets, durations, descs)
-                else:
-                    annot.append(onsets, durations, group_name)
+                desc = _correct_shape(np.array(dat.get(f"/nirs/{key}/name")))[0].decode(
+                    "UTF-8"
+                )
+                annot.append(onsets, durations, desc)
             self.set_annotations(annot, emit_warning=False)
 
         # Validate that the fNIRS info is correctly formatted

@@ -519,9 +519,7 @@ def test_snirf_kernel_basic(kind, shape, fname):
         assert raw._data.shape == shape
         data = raw.get_data("fnirs_td_gated_amplitude")
         assert data.shape == shape
-        # Photon counts should be positive and in a reasonable range
-        norm = np.nanmedian(np.linalg.norm(data, axis=-1))
-        assert 1e3 < norm < 1e8
+        assert np.max(np.abs(data)) > 1e4
         # Channel names should include wavelength and bin info
         assert all("bin" in ch for ch in raw.ch_names)
         # Check channel metadata
@@ -546,7 +544,7 @@ def test_snirf_kernel_basic(kind, shape, fname):
 @pytest.mark.parametrize(
     "sfreq,context",
     (
-        [3.7, nullcontext()],  # sfreq estimated from file is 3.759351
+        [3.75, nullcontext()],  # sfreq estimated from file is 3.759351
         [22, pytest.warns(RuntimeWarning, match="User-supplied sampling frequency")],
     ),
 )
