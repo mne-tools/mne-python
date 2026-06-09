@@ -36,7 +36,6 @@ from sphinx.util.display import status_iterator
 PYPI_PACKAGES = {
     "cross-domain-saliency-maps",
     "meggie",
-    "mne-rt",
     "niseq",
     "sesameeg",
     "mne-kit-gui",  # moved to its own env in the installers
