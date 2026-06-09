@@ -25,6 +25,7 @@ from scipy.spatial.distance import pdist, squareform
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, _simplify_info
 from .._fiff.pick import (
+    _FNIRS_CH_TYPES_SPLIT,
     _MEG_CH_TYPES_SPLIT,
     _pick_data_channels,
     _picks_by_type,
@@ -77,7 +78,6 @@ from .utils import (
     plt_show,
 )
 
-_fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
 _opm_coils = (
     FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG,
     FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
@@ -127,7 +127,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
     if any(ch["coil_type"] in _opm_coils for ch in info["chs"]):
         modality = "opm"
-    elif ch_type in _fnirs_types:
+    elif ch_type in _FNIRS_CH_TYPES_SPLIT:
         modality = "fnirs"
     else:
         modality = "other"
@@ -2485,7 +2485,7 @@ def _plot_evoked_topomap(
         # check modality
         if any(ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]):
             modality = "opm"
-        elif ch_type in _fnirs_types:
+        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
             modality = "fnirs"
         else:
             modality = "other"
@@ -2494,7 +2494,7 @@ def _plot_evoked_topomap(
             all_data, ch_type, list(ch_names), modality=modality
         )
         data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
-        # if ch_type in _fnirs_types:
+        # if ch_type in _FNIRS_CH_TYPES_SPLIT:
         if modality != "other":
             merge_channels = False
     # apply mask if requested
