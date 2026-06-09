@@ -1280,12 +1280,12 @@ vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
-    "credit": "credit/credit",
-    "funding": "credit/sponsors",
+    "credit": "credits/credit",
+    "funding": "credits/sponsors",
     "install/contributing": "development/contributing",
     "overview/cite": "documentation/cite",
     "overview/get_help": "help/index",
-    "overview/people": "credit/leaders",
+    "overview/people": "credits/leaders",
     "overview/roadmap": "development/roadmap",
     "whats_new": "development/whats_new",
     f"{tu}/evoked/plot_eeg_erp": f"{tu}/evoked/30_eeg_erp",

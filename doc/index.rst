@@ -39,4 +39,4 @@ MNE-Python Homepage
    API Reference <api/python_reference>
    Get Help <help/index>
    Development <development/index>
-   Credits <credit/index>
+   Credits <credits/index>
