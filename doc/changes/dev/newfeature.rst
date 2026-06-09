@@ -1,0 +1,1 @@
+Speed up :func:`mne.time_frequency.psd_array_welch` and related Welch PSD methods by ~25x for epoched data by batching spectrogram calls instead of per-channel dispatch, by :newcontrib:`Sharif Haason`.
