@@ -3017,6 +3017,7 @@ def plot_compare_evokeds(
     if not do_topo:
         # add vacuous "index" (needed for topo) so same code works for both
         axes = [(ax, 0) for ax in axes]
+        assert len(axes) == 1
         if np.array(picks).ndim < 2:
             picks = [picks]  # enables zipping w/ axes
     else:
