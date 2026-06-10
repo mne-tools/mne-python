@@ -116,9 +116,9 @@ partner_institutions:
         url: https://icm-institute.org/
         size: *MD
     bu:
-        title: Boston University"
-        img: BU.svg"
-        url: https://www.bu.edu/"
+        title: Boston University
+        img: BU.svg
+        url: https://www.bu.edu/
         size: *LG
     inserm:
         title: Institut national de la santé et de la recherche médicale

@@ -886,43 +886,44 @@ html_show_sphinx = False
 with open("_static/sponsors.yml") as fid:
     sponsors_partners = safe_load(fid)
 sizes = sponsors_partners.pop("sizes")
+current = sponsors_partners.pop("current")
 # sponsors
 current_sponsors = list()
+former_sponsors = list()
 for key, val in sponsors_partners["sponsors"].items():
-    if key not in sponsors_partners["current"]:
-        continue
     val["size"] = str(val["size"])
     if "img" in val:
-        current_sponsors.append(val)
+        (current_sponsors if key in current else former_sponsors).append(val)
     else:
         assert "light" in val and "dark" in val
         for mode in ("light", "dark"):
-            current_sponsors.append(
+            (current_sponsors if key in current else former_sponsors).append(
                 dict(
                     title=val["title"],
                     img=val[mode],
                     size=val["size"],
-                    url=val["url"],
                     klass=f"only-{mode}",
                 )
             )
 # institutions
 current_institutions = list()
+former_institutions = list()
 for key, val in sponsors_partners["partner_institutions"].items():
-    if key not in sponsors_partners["current"]:
-        continue
     val["size"] = str(val["size"])
     if "img" in val:
-        current_institutions.append(val)
+        val["name"] = key
+        (current_institutions if key in current else former_institutions).append(val)
     else:
         assert "light" in val and "dark" in val
         for mode in ("light", "dark"):
-            current_institutions.append(
+            (current_institutions if key in current else former_institutions).append(
                 dict(
+                    name=f"{key}{'_dk' if mode == 'dark' else ''}",
                     title=val["title"],
                     img=val[mode],
                     size=val["size"],
                     klass=f"only-{mode}",
+                    url=val["url"],
                 )
             )
 # variables to pass to HTML templating engine
@@ -935,6 +936,8 @@ html_context = {
     "doc_path": "doc",
     "sponsors": current_sponsors,
     "institutions": current_institutions,
+    "former_sponsors": former_sponsors,
+    "former_institutions": former_institutions,
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
     "carousel": [
@@ -1480,6 +1483,17 @@ def make_version(app, exception):
     sphinx_logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
 
 
+def rstjinja(app, docname, source):
+    """Use Jinja to process the sponsors page."""
+    # Make sure we're outputting HTML
+    if app.builder.format != "html":
+        return
+    if docname == "credits/sponsors":
+        src = source[0]
+        rendered = app.builder.templates.render_string(src, app.config.html_context)
+        source[0] = rendered
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
@@ -1494,3 +1508,4 @@ def setup(app):
     app.connect("build-finished", make_api_redirects)
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
+    app.connect("source-read", rstjinja)

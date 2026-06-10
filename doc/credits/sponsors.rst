@@ -59,10 +59,10 @@ Some institutions support their employees’ contributions to MNE-Python as part
 
 .. rst-class:: list-unstyled funders
 
-- |aalto| |aaltodk| `Aalto-yliopiston perustieteiden korkeakoulu <https://sci.aalto.fi/>`_ (Marijn van Vliet)
+- |aalto| |aalto_dk| `Aalto-yliopiston perustieteiden korkeakoulu <https://sci.aalto.fi/>`_ (Marijn van Vliet)
 - |donders| `Donders Institute for Brain, Cognition and Behaviour at Radboud University <https://www.ru.nl/donders/>`_ (Britta Westner)
 - |graz| `Karl-Franzens-Universität Graz <https://www.uni-graz.at/>`_ (Clemens Brunner)
-- |uw| |uwdk| `Institute for Learning & Brain Sciences at University of Washington <https://ilabs.uw.edu/>`_ (Daniel McCloy, Eric Larson)
+- |uw| |uw_dk| `Institute for Learning & Brain Sciences at University of Washington <https://ilabs.uw.edu/>`_ (Daniel McCloy, Eric Larson)
 
 
 Past supporting institutions
@@ -70,7 +70,11 @@ Past supporting institutions
 
 .. rst-class:: centerlast
 
-|aar| |aardk| |aes| |aesdk| |mart| |bids| |bidsdk| |bu| |chop| |chopdk| |cea| |fcbg| |fj| |fjdk| |har| |icm| |inserm| |insermdk| |inria| |mgh| |mit| |mpib| |mpibdk| |macq| |macqdk| |nyu| |nyudk| |swps| |swpsdk| |tui| |tuidk| |tpt|
+{% for inst in former_institutions %}|{{ inst.name }}| {% endfor %}
+
+.. ↑↑↑ We need to do this roundabout approach of using substitutions here
+..     (and defining them below in another loop) so that the resulting images end up
+..     wrapped in a <p> tag, which can then get the `centerlast` class.
 
 
 .. FUNDERS
@@ -97,151 +101,33 @@ Past supporting institutions
     :alt: Aalto-yliopiston perustieteiden korkeakoulu
     :target: https://sci.aalto.fi/
     :class: instlogo only-light
-.. |aaltodk| image:: ../_static/institution_logos/Aalto-dark.svg
+.. |aalto_dk| image:: ../_static/institution_logos/Aalto-dark.svg
     :alt: Aalto-yliopiston perustieteiden korkeakoulu
     :target: https://sci.aalto.fi/
-    :class: instlogo only-dark
-.. |aar| image:: ../_static/institution_logos/Aarhus.svg
-    :alt: Aarhus Universitet
-    :target: https://www.au.dk/
-    :class: instlogo only-light
-.. |aardk| image:: ../_static/institution_logos/Aarhus-dark.svg
-    :alt: Aarhus Universitet
-    :target: https://www.au.dk/
-    :class: instlogo only-dark
-.. |aes| image:: ../_static/institution_logos/AE-Studio-light.svg
-    :alt: AE Studio
-    :target: https://ae.studio/
-    :class: instlogo only-light
-.. |aesdk| image:: ../_static/institution_logos/AE-Studio-dark.svg
-    :alt: AE Studio
-    :target: https://ae.studio/
-    :class: instlogo only-dark
-.. |bids| image:: ../_static/institution_logos/BIDS.svg
-    :alt: Berkeley Institute for Data Science
-    :target: https://bids.berkeley.edu/
-    :class: instlogo only-light
-.. |bidsdk| image:: ../_static/institution_logos/BIDS-dark.svg
-    :alt: Berkeley Institute for Data Science
-    :target: https://bids.berkeley.edu/
-    :class: instlogo only-dark
-.. |bu| image:: ../_static/institution_logos/BU.svg
-    :alt:  Boston University
-    :target: https://www.bu.edu/
-    :class: instlogo
-.. |cea| image:: ../_static/institution_logos/CEA.png
-    :alt: Commissariat à l’énergie atomique et aux énergies alternatives
-    :target: https://www.cea.fr/
-    :class: instlogo
-.. |chop| image:: ../_static/institution_logos/CHOP.svg
-    :alt: Children’s Hospital of Philadelphia Research Institute
-    :target: https://www.research.chop.edu/imaging/
-    :class: instlogo only-light
-.. |chopdk| image:: ../_static/institution_logos/CHOP-dark.svg
-    :alt: Children’s Hospital of Philadelphia Research Institute
-    :target: https://www.research.chop.edu/imaging/
     :class: instlogo only-dark
 .. |donders| image:: ../_static/institution_logos/Donders.svg
     :alt: Donders Institute for Brain, Cognition and Behaviour at Radboud University
     :target: https://www.ru.nl/donders/
     :class: instlogo
-.. |fcbg| image:: ../_static/institution_logos/FCBG.svg
-    :alt: Fondation Campus Biotech Geneva
-    :target: https://fcbg.ch/
-    :class: instlogo
-.. |fj| image:: ../_static/institution_logos/Julich.svg
-    :alt: Forschungszentrum Jülich
-    :target: https://www.fz-juelich.de/
-    :class: instlogo only-light
-.. |fjdk| image:: ../_static/institution_logos/Julich-dark.svg
-    :alt: Forschungszentrum Jülich
-    :target: https://www.fz-juelich.de/
-    :class: instlogo only-dark
 .. |graz| image:: ../_static/institution_logos/Graz.svg
     :alt: Karl-Franzens-Universität Graz
     :target: https://www.uni-graz.at/
-    :class: instlogo
-.. |har| image:: ../_static/institution_logos/Harvard.png
-    :alt: Harvard Medical School
-    :target: https://hms.harvard.edu/
-    :class: instlogo
-.. |icm| image:: ../_static/institution_logos/ICM.jpg
-    :alt: Institut du Cerveau et de la Moelle épinière
-    :target: https://icm-institute.org/
-    :class: instlogo
-.. |inserm| image:: ../_static/institution_logos/Inserm.svg
-    :alt: Institut national de la santé et de la recherche médicale
-    :target: https://www.inserm.fr/
-    :class: instlogo only-light
-.. |insermdk| image:: ../_static/institution_logos/Inserm-dark.svg
-    :alt: Institut national de la santé et de la recherche médicale
-    :target: https://www.inserm.fr/
-    :class: instlogo only-dark
-.. |inria| image:: ../_static/institution_logos/inria.png
-    :alt: Institut national de recherche en informatique et en automatique
-    :target: https://www.inria.fr/
-    :class: instlogo
-.. |mart| image:: ../_static/institution_logos/Martinos.png
-    :alt: Athinoula A. Martinos Center for Biomedical Imaging
-    :target: https://martinos.org/
-    :class: instlogo
-.. |mgh| image:: ../_static/institution_logos/MGH.svg
-    :alt: Massachusetts General Hospital
-    :target: https://www.massgeneral.org/
-    :class: instlogo
-.. |mit| image:: ../_static/institution_logos/MIT.svg
-    :alt: Massachusetts Institute of Technology
-    :target: https://web.mit.edu/
-    :class: instlogo
-.. |mpib| image:: ../_static/institution_logos/MPIB.svg
-    :alt: Max-Planck-Institut für Bildungsforschung
-    :target: https://www.mpib-berlin.mpg.de/
-    :class: instlogo only-light
-.. |mpibdk| image:: ../_static/institution_logos/MPIB-dark.svg
-    :alt: Max-Planck-Institut für Bildungsforschung
-    :target: https://www.mpib-berlin.mpg.de/
-    :class: instlogo only-dark
-.. |macq| image:: ../_static/institution_logos/Macquarie.svg
-    :alt: Macquarie University
-    :target: https://www.mq.edu.au/
-    :class: instlogo only-light
-.. |macqdk| image:: ../_static/institution_logos/Macquarie-dark.svg
-    :alt: Macquarie University
-    :target: https://www.mq.edu.au/
-    :class: instlogo only-dark
-.. |nyu| image:: ../_static/institution_logos/NYU.svg
-    :alt: New York University
-    :target: https://www.nyu.edu/
-    :class: instlogo only-light
-.. |nyudk| image:: ../_static/institution_logos/NYU-dark.svg
-    :alt: New York University
-    :target: https://www.nyu.edu/
-    :class: instlogo only-dark
-.. |swps| image:: ../_static/institution_logos/SWPS.svg
-    :alt: SWPS Uniwersytet Humanistycznospołeczny
-    :target: https://www.swps.pl/
-    :class: instlogo only-light
-.. |swpsdk| image:: ../_static/institution_logos/SWPS-dark.svg
-    :alt: SWPS Uniwersytet Humanistycznospołeczny
-    :target: https://www.swps.pl/
-    :class: instlogo only-dark
-.. |tui| image:: ../_static/institution_logos/Ilmenau.svg
-    :alt: Technische Universität Ilmenau
-    :target: https://www.tu-ilmenau.de/
-    :class: instlogo only-light
-.. |tuidk| image:: ../_static/institution_logos/Ilmenau-dark.svg
-    :alt: Technische Universität Ilmenau
-    :target: https://www.tu-ilmenau.de/
-    :class: instlogo only-dark
-.. |tpt| image:: ../_static/institution_logos/Telecom_Paris_Tech.svg
-    :alt: Télécom ParisTech
-    :target: https://www.telecom-paris.fr/
     :class: instlogo
 .. |uw| image:: ../_static/institution_logos/Washington.svg
     :alt: Institute for Learning & Brain Sciences at University of Washington
     :target: https://ilabs.uw.edu/
     :class: instlogo only-light
-.. |uwdk| image:: ../_static/institution_logos/Washington-dark.svg
+.. |uw_dk| image:: ../_static/institution_logos/Washington-dark.svg
     :alt: Institute for Learning & Brain Sciences at University of Washington
     :target: https://ilabs.uw.edu/
     :class: instlogo only-dark
+
+{% for inst in former_institutions %}
+
+.. |{{ inst.name }}| image:: ../_static/institution_logos/{{ inst.img }}
+    :alt: {{ inst.title }}
+    :target: {{ inst.url }}
+    :width: {{ inst.size }} rem
+    :class: instlogo {% if inst.klass is defined %}{{ inst.klass }}{% endif %}
+
+{% endfor %}
