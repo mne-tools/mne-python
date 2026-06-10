@@ -2,9 +2,11 @@ current:
     - nih
     - nsf
     - aalto
+    - aalto_dk
     - donders
     - graz
     - uw
+    - uw_dk
 sizes:  # in rem
     - &XS 2
     - &SM 2.5

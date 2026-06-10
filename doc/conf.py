@@ -934,10 +934,12 @@ html_context = {
     "github_repo": "mne-python",
     "github_version": "main",
     "doc_path": "doc",
-    "sponsors": current_sponsors,
-    "institutions": current_institutions,
+    "current_sponsors_partners": current,
+    "current_sponsors": current_sponsors,
     "former_sponsors": former_sponsors,
+    "current_institutions": current_institutions,
     "former_institutions": former_institutions,
+    "all_institutions": [*current_institutions, *former_institutions],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
     "carousel": [
