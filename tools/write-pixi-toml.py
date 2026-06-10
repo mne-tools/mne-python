@@ -21,10 +21,12 @@ def pip_to_pixi(dependencies_list):
 
 pypi_dependencies = ["pymef"]  # "nest-asyncio2", "pyobjc-framework-Cocoa"]
 
-pyproject_fpath = Path(__file__).resolve().parent.parent / "pyproject.toml"
+repo_root = Path(__file__).resolve().parent.parent
+pyproject_fpath = repo_root / "pyproject.toml"
 pyproject = tomlkit.loads(pyproject_fpath.read_bytes())
-# in keys: build-system, dependency-groups, project, tool
+outfile = repo_root / "tools" / "ci" / "macos-intel" / "pixi.toml"
 
+# in keys: build-system, dependency-groups, project, tool
 # out keys: workspace, dependencies, pypi-dependencies (may need tasks)
 out = dict()
 workspace = dict(
@@ -54,5 +56,7 @@ out = {
     "dependencies": pip_to_pixi(dependencies),
     "pypi-dependencies": pip_to_pixi(pypi_dependencies),
 }
-with open("pixi-new.toml", "w") as fid:
+# write the file
+outfile.parent.mkdir(parents=True, exist_ok=True)
+with open(outfile, "w") as fid:
     tomlkit.dump(out, fid, sort_keys=False)
