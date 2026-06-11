@@ -379,10 +379,10 @@ div#contributor-avatars div.card img {
 .contributor-avatar {
     clip-path: circle(closest-side);
 }
-p.centerlast {
-    text-align-last: center;
+p.centered {
+    text-align: center;
 }
-p.centerlast a img.instlogo {
+p.centered a img.instlogo {
     background-color: unset !important;
     border: none;
     border-radius: unset !important;

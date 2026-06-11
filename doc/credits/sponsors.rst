@@ -69,7 +69,7 @@ Some institutions support their employees’ contributions to MNE-Python as part
 Past supporting institutions
 ----------------------------
 
-.. rst-class:: centerlast
+.. rst-class:: centered
 
 {% for inst in former_institutions %}|{{ inst.name }}| {% endfor %}
 
