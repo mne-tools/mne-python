@@ -37,7 +37,7 @@ from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
-from mne.utils import check_version
+from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
 from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
@@ -540,7 +540,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
     brain.close()
 
-    # add annotation
+
+def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
+    """Test add_annotation."""
     annots = [
         "aparc",
         subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
@@ -548,6 +550,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, "r"]
+    size = (100, 100)
     brain = Brain(
         subject="fsaverage",
         hemi="both",
@@ -555,13 +558,54 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         surf="inflated",
         subjects_dir=subjects_dir,
     )
-    with pytest.raises(ValueError, match="does not exist"):
+    with pytest.raises(FileNotFoundError, match="does not exist"):
         brain.add_annotation("foo")
-    brain.add_annotation(annots[1])
+    brain.add_annotation(annots[1], hover=True)
+
+    # mock some events
+    class MockIrenAndPicker:
+        def __init__(self):
+            self._cell_id = 0
+
+        def GetEventPosition(self):
+            return 50, 50  # middle of display
+
+        def FindPokedRenderer(self, x, y):
+            return brain.plotter.renderers[0]
+
+        def Pick(self, x, y, z, renderer):
+            pass
+
+        def GetMapper(self):
+            return brain.plotter.mapper
+
+        def GetCellId(self):
+            return self._cell_id
+
+        def GetPickPosition(self):
+            return np.zeros(3)
+
+    mocked = MockIrenAndPicker()
+    brain._renderer._picker = mocked
+
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "Hovering label LOBE.FRONTAL" in log
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "Same label hovered" in log
+    mocked._cell_id = -1
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "No mesh picked, hiding" in log
     brain.close()
+
     brain = Brain(
         subject="fsaverage",
-        hemi=hemi,
+        hemi="lh",
         size=size,
         surf="inflated",
         subjects_dir=subjects_dir,

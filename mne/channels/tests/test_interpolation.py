@@ -502,7 +502,7 @@ def test_method_str():
 
 
 @pytest.mark.parametrize(
-    "montage_name", ["biosemi16", "spherical_1005", "colin27_1020"]
+    "montage_name", ["biosemi16", "spherical_1005", "colin27_1020", "fsaverage_1005"]
 )
 @pytest.mark.parametrize("method", ["spline", "MNE"])
 @pytest.mark.parametrize("data_type", ["raw", "epochs", "evoked"])

@@ -191,6 +191,8 @@ seaborn patsy pyvista dipy nilearn pyqtgraph
         ),
     )
 )
+# Broken as of 2026/06/08 (https://github.com/joblib/joblib/issues/1796)
+intersphinx_mapping["joblib"] = ("https://joblib.readthedocs.io/en/stable", None)
 
 
 # NumPyDoc configuration -----------------------------------------------------
