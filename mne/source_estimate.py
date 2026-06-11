@@ -19,7 +19,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _eye_array, _reshape_view, _safe_svd
+from .fixes import _reshape_view, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -3188,7 +3188,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris)
-    edges = (edges + _eye_array(edges.shape[0])).tocoo()
+    edges = (edges + sparse.eye_array(edges.shape[0], format="csr")).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 
@@ -3219,6 +3219,8 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy import sparse
+
     if src[0]["dist"] is None:
         raise RuntimeError(
             "src must have distances included, consider using "
@@ -3226,11 +3228,12 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         )
     blocks = [s["dist"][s["vertno"], :][:, s["vertno"]] for s in src]
     # Ensure we keep explicit zeros; deal with changes in SciPy
-    for block in blocks:
+    for bi, block in enumerate(blocks):
         if isinstance(block, np.ndarray):
             block[block == 0] = -np.inf
         else:
             block.data[block.data == 0] == -1
+        blocks[bi] = sparse.csr_array(block)  # avoid SciPy dep warning about mat->arr
     edges = sparse.block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
@@ -3669,7 +3672,7 @@ def _gen_extract_label_time_course(
     _check_option("mode", mode, _get_default_label_modes())
 
     if kind in ("surface", "mixed"):
-        if not isinstance(labels, list):
+        if not isinstance(labels, (list, tuple)):
             labels = [labels]
         use_sparse = False
     else:

@@ -1,1 +1,0 @@
-Remove ``from __future__ import annotations`` as it is only needed for Python ≤ 3.9 by `Aniket Singh Yadav`_.

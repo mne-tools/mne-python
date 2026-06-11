@@ -482,8 +482,9 @@ def _assert_drop_log_types(drop_log):
     assert all(isinstance(log, tuple) for log in drop_log), (
         "drop_log[ii] should be tuple"
     )
-    assert all(isinstance(s, str) for log in drop_log for s in log), (
-        "drop_log[ii][jj] should be str"
+    # enforce exact built-in str (reject np.str_ and other str subclasses)
+    assert all(type(s) is str for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be built-in str"
     )
 
 
@@ -775,6 +776,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         epochs = mne.Epochs(
             raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
         )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 0
 
     # Setting `reject_tmin` to prevent rejection of epoch.
@@ -787,6 +789,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
     # Same check but bad segment overlapping from 2.5s to 3s: use `reject_tmax`
@@ -800,6 +803,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
 
@@ -4832,20 +4836,21 @@ def test_apply_function():
     info = mne.create_info(n_channels, 1000.0, "eeg")
     epochs = mne.EpochsArray(data, info, events)
     data_epochs = epochs.get_data()
+    picks = np.arange(3)
+    non_picks = np.arange(3, n_channels)
 
     # apply_function to all channels at once
     def fun(data):
         """Reverse channel order without changing values."""
         return np.eye(data.shape[1])[::-1] @ data
 
-    want = data_epochs[:, ::-1]
-    got = epochs.apply_function(fun, channel_wise=False).get_data()
+    want = np.concatenate(
+        [data_epochs[:, picks][:, ::-1], data_epochs[:, non_picks]], axis=1
+    )  # only reverse channel order of picks
+    got = epochs.apply_function(fun, picks=picks, channel_wise=False).get_data()
     assert_array_equal(want, got)
 
     # apply_function channel-wise (to first 3 channels) by replacing with mean
-    picks = np.arange(3)
-    non_picks = np.arange(3, n_channels)
-
     def fun(data):
         return np.full_like(data, data.mean())
 

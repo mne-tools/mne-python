@@ -1,1 +1,0 @@
-Add example showing how to interoperate with R using ``rpy2``, by `Aman Srivastava`_.

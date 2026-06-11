@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f9e14c72df0c46edb02a88cc5f25941ec05ab0f5",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13806.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 69,
+      "d": 35
+    }
+  }
+}

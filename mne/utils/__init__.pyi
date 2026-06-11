@@ -6,6 +6,7 @@ __all__ = [
     "ClosingStringIO",
     "ExtendedTimeMixin",
     "GetEpochsMixin",
+    "NamedInt",
     "ProgressBar",
     "SizeMixin",
     "TimeMixin",
@@ -56,6 +57,7 @@ __all__ = [
     "_check_stc_units",
     "_check_subject",
     "_check_time_format",
+    "_chmod_rw_R",
     "_clean_names",
     "_click_ch_name",
     "_compute_row_norms",
@@ -133,6 +135,7 @@ __all__ = [
     "compute_corr",
     "copy_doc",
     "copy_function_doc_to_method_doc",
+    "copytree_rw",
     "create_slices",
     "deprecated",
     "deprecated_alias",
@@ -183,7 +186,7 @@ __all__ = [
     "warn",
     "wrapped_stdout",
 ]
-from ._bunch import Bunch, BunchConst, BunchConstNamed
+from ._bunch import Bunch, BunchConst, BunchConstNamed, NamedInt
 from ._logging import (
     ClosingStringIO,
     _get_call_line,
@@ -202,6 +205,7 @@ from ._logging import (
 )
 from ._testing import (
     ArgvSetter,
+    _chmod_rw_R,
     _click_ch_name,
     _raw_annot,
     _TempDir,
@@ -212,6 +216,7 @@ from ._testing import (
     assert_snr,
     assert_stcs_equal,
     buggy_mkl_svd,
+    copytree_rw,
     has_freesurfer,
     has_mne_c,
     requires_freesurfer,

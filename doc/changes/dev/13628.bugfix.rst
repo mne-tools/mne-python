@@ -1,1 +1,0 @@
-Fix :func:`mne.io.read_raw_snirf` raising ``TypeError`` when ``landmarkLabels`` is empty or scalar, by `Bruno Aristimunha`_.
