@@ -885,23 +885,22 @@ html_show_sphinx = False
 # sponsor and partner logos
 with open("_static/sponsors.yml") as fid:
     sponsors_partners = safe_load(fid)
-sizes = sponsors_partners.pop("sizes")
 current = sponsors_partners.pop("current")
 # sponsors
 current_sponsors = list()
 former_sponsors = list()
 for key, val in sponsors_partners["sponsors"].items():
-    val["size"] = str(val["size"])
     if "img" in val:
+        val["name"] = key
         (current_sponsors if key in current else former_sponsors).append(val)
     else:
         assert "light" in val and "dark" in val
         for mode in ("light", "dark"):
             (current_sponsors if key in current else former_sponsors).append(
                 dict(
+                    name=f"{key}{'_dk' if mode == 'dark' else ''}",
                     title=val["title"],
                     img=val[mode],
-                    size=val["size"],
                     klass=f"only-{mode}",
                 )
             )
@@ -909,7 +908,6 @@ for key, val in sponsors_partners["sponsors"].items():
 current_institutions = list()
 former_institutions = list()
 for key, val in sponsors_partners["partner_institutions"].items():
-    val["size"] = str(val["size"])
     if "img" in val:
         val["name"] = key
         (current_institutions if key in current else former_institutions).append(val)
@@ -921,7 +919,6 @@ for key, val in sponsors_partners["partner_institutions"].items():
                     name=f"{key}{'_dk' if mode == 'dark' else ''}",
                     title=val["title"],
                     img=val[mode],
-                    size=val["size"],
                     klass=f"only-{mode}",
                     url=val["url"],
                 )
@@ -937,6 +934,7 @@ html_context = {
     "current_sponsors_partners": current,
     "current_sponsors": current_sponsors,
     "former_sponsors": former_sponsors,
+    "all_sponsors": [*current_sponsors, *former_sponsors],
     "current_institutions": current_institutions,
     "former_institutions": former_institutions,
     "all_institutions": [*current_institutions, *former_institutions],

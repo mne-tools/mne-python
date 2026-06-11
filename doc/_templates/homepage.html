@@ -22,7 +22,7 @@
   <div id="sponsor-logos" class="d-flex flex-wrap flex-row justify-content-center align-items-center">
     <!-- current funders -->
     {% for item in current_sponsors -%}
-      <div class="card my-1 mx-2 {{ item.klass }}" style="{{ 'width: ' + item.size + 'rem;' }}">
+      <div class="card my-1 mx-2 {{ item.klass }}">
         <a href="{{ pathto('credit/funding.html', 1) }}">
             <img class="card-img" src="{{ pathto('_static/funding/' + item.img, 1) }}" title="{{ item.title }}" alt="{{ item.title }}">
         </a>
@@ -30,7 +30,7 @@
     {% endfor %}
     <!-- current partner institutions -->
     {% for inst in current_institutions -%}
-      <div class="card my-1 mx-2 {{ inst.klass }}" style="{{ 'width: ' + inst.size + 'rem;' }}">
+      <div class="card my-1 mx-2 {{ inst.klass }}">
         <a href="{{ pathto('credit/funding.html#supporting-institutions', 1) }}">
           <img class="card-img" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
         </a>
