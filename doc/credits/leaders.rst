@@ -31,7 +31,7 @@ Maintainer Team
 * `Thomas Binns`_
 
 Past Maintainers
-----------------
+^^^^^^^^^^^^^^^^
 
 * `Adam Li`_
 * `Alex Rockhill`_
