@@ -1286,7 +1286,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         modified by various MNE-Python functions or methods (which have
         safeguards to ensure all fields remain in sync).
 
-        Some common methods that safely modify the ``info`` object include:
+    Some common methods that safely modify the ``info`` object include:
+
     * :meth:`mne.io.Raw.add_proj`, :meth:`mne.Epochs.add_proj`,
       :meth:`mne.Evoked.add_proj`
     * :meth:`mne.io.Raw.del_proj`, :meth:`mne.Epochs.del_proj`,
