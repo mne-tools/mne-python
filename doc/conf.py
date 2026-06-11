@@ -487,6 +487,7 @@ sphinx_gallery_conf = {
         "\n"
         "# 2. Patch MNEBrowseFigure to auto-display in Pyodide's inline backend\n"
         "import mne\n"
+        "import mne.viz.utils\n"
         "import matplotlib.pyplot as plt\n"
         "orig_plt_show = mne.viz.utils.plt_show\n"
         "def pyodide_plt_show(fig=None, **kwargs):\n"
