@@ -40,6 +40,7 @@ def plot_ica_sources(
     picks=None,
     start=None,
     stop=None,
+    n_channels=None,
     title=None,
     show=True,
     block=False,
@@ -142,6 +143,7 @@ def plot_ica_sources(
             exclude,
             start=start,
             stop=stop,
+            n_channels=n_channels,
             show=show,
             title=title,
             block=block,
@@ -1292,6 +1294,7 @@ def _plot_sources(
     psd_args,
     theme=None,
     overview_mode=None,
+    n_channels=20,
     splash=True,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
@@ -1348,7 +1351,9 @@ def _plot_sources(
         data = np.append(data, eog_ecg_data, axis=0)
     picks = np.concatenate((picks, ica.n_components_ + np.arange(len(extra_picks))))
     ch_order = np.arange(len(picks))
-    n_channels = min([20, len(picks)])
+    if n_channels is None:
+        n_channels = 20
+    n_channels = min([n_channels, len(picks)])
     ch_names_picked = [ch_names[x] for x in picks]
 
     # create info

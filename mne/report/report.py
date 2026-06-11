@@ -2058,10 +2058,10 @@ class Report:
             )
 
     def _add_ica_sources(
-        self, *, ica, inst, picks, image_format, section, tags, replace
+        self, *, ica, inst, picks, n_channels, image_format, section, tags, replace
     ):
         with use_browser_backend("matplotlib"):
-            fig = ica.plot_sources(inst=inst, picks=picks, show=False)
+            fig = ica.plot_sources(inst=inst, picks=picks, n_channels=n_channels, show=False)
         self._add_figure(
             fig=fig,
             title="Sources",
@@ -2079,6 +2079,7 @@ class Report:
         ica,
         inst,
         picks,
+        n_channels,
         ecg_evoked,
         eog_evoked,
         ecg_scores,
@@ -2234,6 +2235,7 @@ class Report:
                 ica=ica,
                 inst=inst,
                 picks=picks,
+                n_channels=n_channels,
                 image_format=image_format,
                 section=section,
                 tags=tags,
@@ -2248,6 +2250,7 @@ class Report:
         *,
         inst,
         picks=None,
+        n_channels=None,
         ecg_evoked=None,
         eog_evoked=None,
         ecg_scores=None,
@@ -2298,6 +2301,7 @@ class Report:
             ica=ica,
             inst=inst,
             picks=picks,
+            n_channels=n_channels,
             ecg_evoked=ecg_evoked,
             eog_evoked=eog_evoked,
             ecg_scores=ecg_scores,
