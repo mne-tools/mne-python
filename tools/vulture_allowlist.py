@@ -21,6 +21,7 @@ download_is_error
 exitstatus
 startdir
 pg_backend
+mpl_backend
 recwarn
 pytestmark
 nbexec
@@ -48,6 +49,11 @@ _.two_d_array
 _.three_d_array
 _.requires_fit
 _.regressor_tags
+
+# report
+_.grab_frame
+_.finish
+_.setup
 
 deep
 

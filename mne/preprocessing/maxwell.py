@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from collections import Counter
+from copy import deepcopy
 from functools import partial
 from math import factorial
 from os import path as op
@@ -498,6 +499,30 @@ def _prep_maxwell_filter(
     add_channels = (head_pos is not None) and (not st_only)
     head_pos = _check_pos(head_pos, coord_frame, raw, st_fixed)
     mc = _MoveComp(head_pos, coord_frame, raw, mc_interp, reconstruct)
+
+    # cross_talk=None (or True) means "use built-in ones if in info"
+    _validate_type(cross_talk, (None, bool, dict, "path-like"))
+    _validate_type(calibration, (None, bool, dict, "path-like"))
+    if cross_talk is None:
+        cross_talk = raw.info.get("cross_talk")
+    elif cross_talk is True:
+        if "cross_talk" not in raw.info:
+            raise RuntimeError(f"{cross_talk=}, but info['cross_talk'] is None.")
+        cross_talk = raw.info["cross_talk"]
+    elif cross_talk is False:
+        cross_talk = None
+    # otherwise, it's path-like
+
+    if calibration is None:
+        calibration = raw.info.get("fine_calibration")
+    elif calibration is True:
+        if "fine_calibration" not in raw.info:
+            raise RuntimeError(f"{calibration=}, but info['fine_calibration'] is None.")
+        calibration = raw.info["fine_calibration"]
+    elif calibration is False:
+        calibration = None
+    # otherwise, it's path-like
+
     _check_info(
         raw.info,
         sss=not st_only,
@@ -2174,6 +2199,31 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
+def _reformat_fine_cal_dict(fine_cal):
+    # reformat a possible dict  with "cal_chans", "cal_corrs" keys to more standard one
+    # with "ch_names", "locs", "imb_cals" keys
+    if "cal_chans" in fine_cal:
+        # Someday we might need to refactor this for other systems, but we should do
+        # that when we start building in fine cal to them during acq (probably never)
+        _GRAD_TYPES = tuple(
+            getattr(FIFF, f"FIFFV_COIL_VV_PLANAR_{t}")
+            for t in ("T1", "T2", "T3", "T4", "W")
+        )
+        ch_names = [f"MEG{ch_num:04d}" for ch_num in fine_cal["cal_chans"][:, 0]]
+        locs = fine_cal["cal_corrs"][:, -12:].astype(float)
+        coil_types = fine_cal["cal_chans"][:, 1]
+        is_grad = np.isin(coil_types, _GRAD_TYPES)
+        starts = np.where(is_grad, 1, 0)
+        stops = np.where(is_grad, fine_cal["cal_corrs"].shape[1] - 12, 1)
+        imb_cals = list(
+            fine_cal["cal_corrs"][ii, start:stop].astype(float)
+            for ii, (start, stop) in enumerate(zip(starts, stops))
+        )
+        return dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
+    else:
+        return deepcopy(fine_cal)
+
+
 def _prep_fine_cal(info, fine_cal, *, ignore_ref):
     from ._fine_cal import read_fine_calibration
 
@@ -2183,6 +2233,7 @@ def _prep_fine_cal(info, fine_cal, *, ignore_ref):
         fine_cal = read_fine_calibration(fine_cal)
     else:
         extra = "dict"
+        fine_cal = _reformat_fine_cal_dict(fine_cal)
     logger.info(f"    Using fine calibration {extra}")
     ch_names = _clean_names(info["ch_names"], remove_whitespace=True)
     info_to_cal = dict()
@@ -2230,12 +2281,12 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     )
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = list()
     used = np.zeros(len(info["chs"]), bool)
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
-    for oi, ci in info_to_cal.items():
+    ang_shift = np.zeros(len(info_to_cal))
+    for ii, (oi, ci) in enumerate(info_to_cal.items()):
         assert not used[oi]
         used[oi] = True
         info_ch = info["chs"][oi]
@@ -2250,30 +2301,25 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
         ch_coil_rot = _loc_to_coil_trans(info_ch["loc"])[:3, :3]
+        _normalize_vectors(ch_coil_rot.T)  # column-wise
         cal_loc = fine_cal["locs"][ci].copy()
         cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
-        if (
-            np.max(
-                [
-                    np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
-                    for ii in range(2)
-                ]
-            )
-            > 1e-6
-        ):  # X or Y not orthogonal
+        _normalize_vectors(cal_coil_rot.T)
+        # X or Y not orthogonal to Z:
+        if np.max(np.abs(cal_coil_rot[:, 2] @ cal_coil_rot[:, :2])) > 1e-5:
             if not adjust_logged:
                 logger.info("        Adjusting non-orthogonal EX and EY")
                 adjust_logged = True
             # find the rotation matrix that goes from one to the other
-            this_trans = _find_vector_rotation(ch_coil_rot[:, 2], cal_coil_rot[:, 2])
-            cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
+            R = _find_vector_rotation(ch_coil_rot[:, 2], cal_coil_rot[:, 2])
+            cal_coil_rot[:] = R @ ch_coil_rot
+            _normalize_vectors(cal_coil_rot.T)
+            cal_loc[3:9] = cal_coil_rot.T.ravel()[:6]  # set just X and Y in output
 
         # calculate shift angle
-        v1 = _loc_to_coil_trans(cal_loc)[:3, :3]
-        _normalize_vectors(v1)
-        v2 = _loc_to_coil_trans(info_ch["loc"])[:3, :3]
-        _normalize_vectors(v2)
-        ang_shift.append(np.sum(v1 * v2, axis=0))
+        v2 = _loc_to_coil_trans(info_ch["loc"])[:3, 2:]
+        _normalize_vectors(v2.T)
+        ang_shift[ii] = cal_coil_rot[:3, 2] @ v2[:, 0]
         if oi in grad_picks:
             extra = [1.0, fine_cal["imb_cals"][ci][0]]
         else:
@@ -2281,19 +2327,21 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
-        info_ch["loc"][3:] = cal_loc[3:]
+        info_ch["loc"][3:] = cal_coil_rot.T.ravel()
         assert info_ch["coord_frame"] == FIFF.FIFFV_COORD_DEVICE
     meg_picks = pick_types(info, meg=True, exclude=(), ref_meg=not ignore_ref)
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
     # This gets written to the Info struct
-    sss_cal = dict(cal_corrs=np.array(cal_corrs), cal_chans=np.array(cal_chans))
+    sss_cal = dict(
+        cal_corrs=np.array(cal_corrs, float),
+        cal_chans=np.array(cal_chans, int),
+    )
 
     # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
-    ang_shift = np.array(ang_shift)
-    np.clip(ang_shift, -1.0, 1.0, ang_shift)
-    np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
+    np.clip(ang_shift, -1.0, 1.0, out=ang_shift)
+    np.rad2deg(np.arccos(ang_shift), out=ang_shift)  # Convert to degrees
     logger.info(
         "        Adjusted coil orientations by (μ ± σ): "
         f"{np.mean(ang_shift):0.1f}° ± {np.std(ang_shift):0.1f}° "
@@ -2899,9 +2947,14 @@ def find_bad_channels_maxwell(
 def _read_cross_talk(cross_talk, ch_names):
     sss_ctc = dict()
     ctc = None
-    if cross_talk is not None:
-        sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc["proj_items_chs"]
+    if cross_talk:
+        if not isinstance(cross_talk, dict):
+            sss_ctc = _read_ctc(cross_talk)
+        else:
+            sss_ctc = deepcopy(cross_talk)
+            # the way it is on disk
+            sss_ctc["decoupler"] = sss_ctc["decoupler"].T.tocsc()
+        ctc_chs = sss_ctc["ch_names"]
         # checking for extra space ambiguity in channel names
         # between old and new fif files
         if ch_names[0] not in ctc_chs:

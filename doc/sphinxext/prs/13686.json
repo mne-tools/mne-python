@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b513184ec1f425c44fc5be2a0cf655cb63f900a1",
+  "authors": [
+    {
+      "n": "Horizon_Architect_07",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13686.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

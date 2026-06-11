@@ -63,7 +63,9 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     if not blink_annots:
         warn(f"No annotations matching {match} found. Aborting.")
         return raw
-    _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze)
+    _interpolate_blinks(
+        raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze, match=match
+    )
 
     # remove bad from the annotation description
     for desc in match:
@@ -73,10 +75,17 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     return raw
 
 
-def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
+def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze, match):
     """Interpolate eyetracking signals during blinks in-place."""
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
+    # Derive the start/stop time (in seconds) of every matched annotation. Passing
+    # ``match`` (rather than re-querying a hardcoded ``"BAD_blink"``) ensures all
+    # descriptions in ``match`` are interpolated over and that the start/stop times
+    # stay aligned with ``blink_annots`` in the loop below.
+    starts, ends = _annotations_starts_stops(raw, match)
+    starts = starts / raw.info["sfreq"]
+    ends = ends / raw.info["sfreq"]
     # iterate over each eyetrack channel and interpolate the blinks
     interpolated_chs = []
     for ci, ch_info in enumerate(raw.info["chs"]):
@@ -88,9 +97,6 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
                 continue
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
-        starts, ends = _annotations_starts_stops(raw, "BAD_blink")
-        starts = np.divide(starts, raw.info["sfreq"])
-        ends = np.divide(ends, raw.info["sfreq"])
         for annot, start, end in zip(blink_annots, starts, ends):
             if "ch_names" not in annot or not annot["ch_names"]:
                 msg = f"Blink annotation missing values for 'ch_names' key: {annot}"

@@ -2866,3 +2866,34 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 f"No plottable channel types found. Allowed types are: {allowed_types}"
             )
     return ch_type
+
+
+def _normalize_annotation_colors(annotation_colors, annotations):
+    """Normalize annotation_colors and check that keys match annotation descriptions.
+
+    Parameters
+    ----------
+    annotation_colors : dict[str, color]
+        The annotation colors to normalize (``color`` can be any valid Matplotlib color
+        specification).
+    annotations : mne.Annotations
+        The Annotations object to check against.
+    """
+    from matplotlib.colors import to_hex
+
+    _validate_type(annotation_colors, dict, "annotation_colors")
+    normalized = {}
+    for k, v in annotation_colors.items():
+        try:
+            normalized[k] = to_hex(v)
+        except ValueError:
+            raise ValueError(
+                f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
+            ) from None
+    unknown = set(normalized) - set(annotations.description)
+    if unknown:
+        warn(
+            "The following annotation_colors keys do not match any annotation "
+            f"description in the data: {sorted(unknown)}"
+        )
+    return normalized

@@ -7,6 +7,7 @@
 import base64
 import copy
 import dataclasses
+import functools
 import os
 import os.path as op
 import re
@@ -20,7 +21,9 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
 
+import matplotlib
 import numpy as np
+from matplotlib.animation import AbstractMovieWriter
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
@@ -366,6 +369,40 @@ def _check_tags(tags) -> tuple[str]:
 # PLOTTING FUNCTIONS
 
 
+class _NdArrayCapture(AbstractMovieWriter):
+    def __init__(self, frames: list):
+        super().__init__(fps=1, metadata={}, bitrate=0)
+        self.frames = frames
+
+    def grab_frame(self, **savefig_kwargs):
+        img = _fig_to_img(
+            fig=self.fig, image_format="ndarray", pad_inches=0, **savefig_kwargs
+        )
+        self.frames.append(img)
+
+    def save(self, filename, *args, **kwargs):
+        pass
+
+    def finish(self):
+        pass
+
+    def setup(self, fig, outfile, dpi=None):
+        self.fig = fig
+
+
+def _use_agg(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        old_backend = matplotlib.get_backend()
+        matplotlib.use("agg")
+        try:
+            func(*args, **kwargs)
+        finally:
+            matplotlib.use(old_backend)
+
+    return wrapper
+
+
 def _constrain_fig_resolution(fig, *, max_width, max_res):
     """Limit the resolution (DPI) of a figure.
 
@@ -449,29 +486,23 @@ def _fig_to_img(
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with {dpi} dpi"
     )
-
-    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-    pil_kwargs = dict()
-    if image_format == "webp":
-        pil_kwargs.update(lossless=True, method=6)
-    elif image_format == "png":
-        pil_kwargs.update(optimize=True, compress_level=9)
-    if pil_kwargs:
-        # matplotlib modifies the passed dict, which is a bug
-        mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
-
-    mpl_format = image_format
-    if image_format == "ndarray":
-        mpl_format = "png"
+    mpl_format = "svg" if image_format == "svg" else "png"
     fig.savefig(output, format=mpl_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
 
-    # Remove alpha
+    # Remove alpha channel entirely (for space and to avoid rendering issues)
     if image_format not in ("svg", "ndarray"):
         from PIL import Image
 
+        # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+        pil_kwargs = dict()
+        if image_format == "webp":
+            # Here quality means speed/size tradeoff (either way the result is lossless)
+            pil_kwargs.update(lossless=True, quality=50)
+        elif image_format == "png":
+            pil_kwargs.update(optimize=True, compress_level=9)
         output.seek(0)
         orig = Image.open(output)
         if orig.mode == "RGBA":
@@ -1361,6 +1392,11 @@ class Report:
         %(topomap_kwargs)s
         %(n_jobs)s
 
+            .. versionchanged:: 1.13
+               This parameter is currently unused, as parallelization of evoked topomap
+               plotting is no longer needed. This parameter will remain for
+               compatibility in case future options allow parallelization.
+
         Notes
         -----
         .. versionadded:: 0.24.0
@@ -1406,7 +1442,6 @@ class Report:
                 tags=tags,
                 section=title,
                 topomap_kwargs=topomap_kwargs,
-                n_jobs=n_jobs,
                 replace=replace,
             )
 
@@ -1516,6 +1551,10 @@ class Report:
 
             .. versionadded:: 1.9
         %(stc_plot_kwargs_report)s
+            Note that the default ``stc_plot_kwargs["size"] = (450, 450)``.
+            The ``width`` parameter will be constrained to
+            ``min(size[1], self.img_max_width)`` if ``self.img_max_width``
+            is not ``None``.
 
         Notes
         -----
@@ -2018,6 +2057,22 @@ class Report:
                 replace=replace,
             )
 
+    def _add_ica_sources(
+        self, *, ica, inst, picks, image_format, section, tags, replace
+    ):
+        with use_browser_backend("matplotlib"):
+            fig = ica.plot_sources(inst=inst, picks=picks, show=False)
+        self._add_figure(
+            fig=fig,
+            title="Sources",
+            caption=None,
+            image_format=image_format,
+            tags=tags,
+            section=section,
+            replace=replace,
+            own_figure=True,
+        )
+
     def _add_ica(
         self,
         *,
@@ -2034,6 +2089,7 @@ class Report:
         tags,
         n_jobs,
         replace,
+        plot_sources=False,
     ):
         if _path_like(ica):
             ica = read_ica(ica)
@@ -2164,6 +2220,26 @@ class Report:
                 replace=replace,
             )
 
+        # Sources plot
+        if plot_sources:
+            if inst is None:
+                raise ValueError(
+                    "Cannot plot ICA sources because inst=None. "
+                    "Please pass a Raw, Epochs, or Evoked instance to "
+                    "add_ica() to enable source plotting, or pass "
+                    "plot_sources=False."
+                )
+
+            self._add_ica_sources(
+                ica=ica,
+                inst=inst,
+                picks=picks,
+                image_format=image_format,
+                section=section,
+                tags=tags,
+                replace=replace,
+            )
+
     @fill_doc
     def add_ica(
         self,
@@ -2179,6 +2255,7 @@ class Report:
         n_jobs=None,
         tags=("ica",),
         replace=False,
+        plot_sources=False,
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
 
@@ -2205,6 +2282,12 @@ class Report:
         %(n_jobs)s
         %(tags_report)s
         %(replace_report)s
+        plot_sources : bool
+            Whether to add a plot of the ICA source time-courses using
+            :meth:`mne.preprocessing.ICA.plot_sources`. Requires ``inst``
+            to be provided. Defaults to ``False``.
+
+            .. versionadded:: 1.12
 
         Notes
         -----
@@ -2225,6 +2308,7 @@ class Report:
             section=title,
             n_jobs=n_jobs,
             replace=replace,
+            plot_sources=plot_sources,
         )
 
     def remove(self, *, title=None, tags=None, remove_all=False):
@@ -3527,6 +3611,7 @@ class Report:
                 replace=replace,
             )
 
+    @_use_agg
     def _add_projs(
         self,
         *,
@@ -3778,41 +3863,50 @@ class Report:
                 own_figure=True,
             )
 
-    def _plot_one_evoked_topomap_timepoint(
-        self, *, evoked, time, ch_types, vmin, vmax, topomap_kwargs
+    def _plot_evoked_topomap_timepoints(
+        self, *, evoked, ch_types, vmin, vmax, topomap_kwargs, times
     ):
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(
-            1,
-            len(ch_types) * 2,
-            gridspec_kw={"width_ratios": [8, 0.5] * len(ch_types)},
-            figsize=(2.5 * len(ch_types), 2),
-            layout="constrained",
-        )
-        ch_type_ax_map = dict(
-            zip(
-                ch_types,
-                [(ax[i], ax[i + 1]) for i in range(0, 2 * len(ch_types) - 1, 2)],
-            )
-        )
-
+        frames = dict()
+        # In principle we could parallelize this across channel types, but
+        # in practice it doesn't speed things up, and adds issues (e.g., with mpl
+        # backend switching and global state somehow)
         for ch_type in ch_types:
-            evoked.plot_topomap(
-                times=[time],
+            fig, axes = plt.subplots(
+                2,
+                2,
+                gridspec_kw={"width_ratios": [8, 0.5], "height_ratios": [4, 1]},
+                figsize=(2.8, 2.8),
+                layout="constrained",
+            )
+            fig.delaxes(axes[1, 1])
+            axes = axes.ravel()[:3]
+            axes[0].set_title(ch_type)
+            frames[ch_type] = list()
+            this_writer = _NdArrayCapture(frames[ch_type])
+            _, ch_anim = evoked.animate_topomap(
+                times=times,
                 ch_type=ch_type,
                 vlim=(vmin[ch_type], vmax[ch_type]),
-                axes=ch_type_ax_map[ch_type],
+                axes=axes,
                 show=False,
+                time_format="",  # we impose our own in HTML
+                butterfly=True,
                 **topomap_kwargs,
             )
-            ch_type_ax_map[ch_type][0].set_title(ch_type)
-
-        return self._fig_to_img(
-            fig=fig,
-            image_format="ndarray",
-            pad_inches=0,
-        )
+            ch_anim.pause()
+            ch_anim.save("", writer=this_writer)
+            plt.close(fig)
+            del (
+                fig,
+                axes,
+            )
+        imgs = [
+            np.concatenate([frames[ch_type][ti] for ch_type in ch_types], axis=1)
+            for ti in range(len(times))
+        ]
+        return imgs
 
     def _add_evoked_topomap_slider(
         self,
@@ -3824,7 +3918,6 @@ class Report:
         section,
         tags,
         topomap_kwargs,
-        n_jobs,
         replace,
     ):
         if n_time_points is None:
@@ -3871,22 +3964,14 @@ class Report:
             return  # No need to warn here, we did that above
         else:
             topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
-            parallel, p_fun, n_jobs = parallel_func(
-                func=self._plot_one_evoked_topomap_timepoint,
-                n_jobs=n_jobs,
-                max_jobs=len(times),
-            )
             with use_log_level(_verbose_safe_false(level="error")):
-                fig_arrays = parallel(
-                    p_fun(
-                        evoked=evoked,
-                        time=time,
-                        ch_types=ch_types,
-                        vmin=vmin,
-                        vmax=vmax,
-                        topomap_kwargs=topomap_kwargs,
-                    )
-                    for time in times
+                fig_arrays = self._plot_evoked_topomap_timepoints(
+                    evoked=evoked,
+                    times=times,
+                    ch_types=ch_types,
+                    vmin=vmin,
+                    vmax=vmax,
+                    topomap_kwargs=topomap_kwargs,
                 )
 
             captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
@@ -3965,6 +4050,7 @@ class Report:
             own_figure=True,
         )
 
+    @_use_agg
     def _add_evoked(
         self,
         *,
@@ -3976,7 +4062,6 @@ class Report:
         section,
         tags,
         topomap_kwargs,
-        n_jobs,
         replace,
     ):
         # Summary table
@@ -4010,7 +4095,6 @@ class Report:
             section=section,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
-            n_jobs=n_jobs,
             replace=replace,
         )
 
@@ -4050,6 +4134,7 @@ class Report:
 
         logger.debug("Evoked: done")
 
+    @_use_agg
     def _add_events(
         self,
         *,
@@ -4087,6 +4172,7 @@ class Report:
             own_figure=True,
         )
 
+    @_use_agg
     def _add_epochs_psd(self, *, epochs, psd, image_format, tags, section, replace):
         epoch_duration = epochs.tmax - epochs.tmin
 
@@ -4177,6 +4263,7 @@ class Report:
             replace=replace,
         )
 
+    @_use_agg
     def _add_epochs(
         self,
         *,
@@ -4307,6 +4394,7 @@ class Report:
                 replace=replace,
             )
 
+    @_use_agg
     def _add_cov(self, *, cov, info, image_format, section, tags, replace):
         """Render covariance matrix & SVD."""
         if not isinstance(cov, Covariance):
@@ -4451,7 +4539,12 @@ class Report:
 
         stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
-
+        # we need to set the size based on the min (img_max_width can be None)
+        if self.img_max_width is not None:
+            stc_plot_kwargs["size"] = (
+                stc_plot_kwargs["size"][0],
+                min(stc_plot_kwargs["size"][1], self.img_max_width),
+            )
         if get_3d_backend() is not None:
             brain = stc.plot(**stc_plot_kwargs)
             brain._renderer.plotter.subplot(0, 0)
@@ -4470,16 +4563,7 @@ class Report:
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(4.5, 4.5), layout="constrained")
-                    ax.imshow(brain.screenshot(time_viewer=True, mode="rgb"))
-                    ax.axis("off")
-                    _constrain_fig_resolution(
-                        fig,
-                        max_width=stc_plot_kwargs["size"][0],
-                        max_res=self.img_max_res,
-                    )
-                    figs.append(fig)
-                    plt.close(fig)
+                    figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
                 else:
                     fig_lh = plt.figure(layout="constrained")
                     fig_rh = plt.figure(layout="constrained")
@@ -4537,8 +4621,10 @@ class Report:
             own_figure=False,  # prevent rescaling
         )
         for fig in figs:
-            plt.close(fig)
+            if not isinstance(fig, np.ndarray):
+                plt.close(fig)
 
+    @_use_agg
     def _add_bem(
         self,
         *,

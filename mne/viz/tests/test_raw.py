@@ -347,9 +347,6 @@ def test_scale_bar(browser_backend):
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
-    if ismpl and os.getenv("MNE_CI_KIND") == "pip-pre":
-        # TODO VERSION FIX SOON AFTER 2026/01/26!
-        pytest.xfail("Needs mpl gh-31031")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
@@ -794,9 +791,6 @@ def test_plot_misc_auto(browser_backend):
 def test_plot_annotations(raw, browser_backend):
     """Test annotation mode of the plotter."""
     ismpl = browser_backend.name == "matplotlib"
-    if ismpl and os.getenv("MNE_CI_KIND") == "pip-pre":
-        # TODO VERSION FIX SOON AFTER 2026/01/26!
-        pytest.xfail("Needs mpl gh-31031")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0
     _annotation_helper(raw, browser_backend)
@@ -869,6 +863,44 @@ def test_plot_annotations(raw, browser_backend):
         # C has the highest zorder and should be deleted; the bug deleted A instead
         assert "C" not in raw.annotations.description
         assert "A" in raw.annotations.description
+
+
+def test_annotation_colors(raw, browser_backend):
+    """Test that annotation_colors overrides default colors."""
+    from matplotlib.colors import to_hex
+
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+
+    raw.set_annotations(
+        Annotations(
+            onset=[1, 3, 5],
+            duration=[1, 1, 1],
+            description=["BAD_test", "BAD_other", "stimulus"],
+        )
+    )
+
+    # User-provided colors override defaults (including bad* → red rule).
+    # BAD_other has no override and should remain red.
+    fig = raw.plot(
+        annotation_colors={"BAD_test": "orange", "stimulus": "#00ff00"},
+    )
+    colors = fig.mne.annotation_segment_colors
+    assert colors["BAD_test"] == to_hex("orange"), (
+        "User color for BAD_test should override red default"
+    )
+    assert colors["stimulus"] == "#00ff00"
+    assert colors["BAD_other"] == "#ff0000", (
+        "BAD_other has no user override and should remain red"
+    )
+
+    # Unknown label key triggers a warning
+    with pytest.warns(RuntimeWarning, match="do not match"):
+        fig = raw.plot(annotation_colors={"nonexistent_label": "blue"})
+
+    # Invalid color value raises ValueError
+    with pytest.raises(ValueError, match="not a valid matplotlib color"):
+        raw.plot(annotation_colors={"BAD_test": "not_a_color"}, show=False)
 
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
@@ -1332,3 +1364,65 @@ def test_plotting_scalebars(browser_backend, qtbot):
         else:
             yvals = this_bar.get_ydata()
         assert_allclose(yvals, [ci - delta, ci + delta], err_msg=err_msg)
+
+
+@pytest.mark.parametrize("theme", ("light", "dark"))
+def test_raw_plot_theme(theme, mpl_backend):
+    """Test dark/light theme for the matplotlib browser backend."""
+    import matplotlib.colors as mcolors
+
+    from mne.viz._mpl_figure import (
+        _DARK_BAD_COLOR,
+        _DARK_BGCOLOR,
+        _DARK_CHANNEL_OVERRIDES,
+        _DARK_FGCOLOR,
+    )
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+    fig = raw.plot(theme=theme)
+
+    def _hex(c):
+        return mcolors.to_hex(c)
+
+    if theme == "dark":
+        assert _hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+        assert _hex(fig.mne.fgcolor) == _DARK_FGCOLOR
+        assert _hex(fig.mne.ch_color_bad) == _DARK_BAD_COLOR
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _DARK_CHANNEL_OVERRIDES["eeg"]
+        assert _hex(fig.patch.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_hscroll.get_facecolor()) == _DARK_BGCOLOR
+    else:  # light
+        assert _hex(fig.mne.bgcolor) == _hex("w")
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _hex("k")
+        assert _hex(fig.patch.get_facecolor()) == _hex("w")
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _hex("w")
+    plt.close("all")
+
+
+def test_raw_plot_theme_auto(mpl_backend, monkeypatch):
+    """Test theme="auto" resolves via _resolve_mpl_theme for the mpl backend."""
+    import matplotlib.colors as mcolors
+
+    import mne.viz._mpl_figure as mpl_fig
+    from mne.viz._mpl_figure import _DARK_BGCOLOR
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "dark")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+    plt.close("all")
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "light")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == mcolors.to_hex("w")
+    plt.close("all")

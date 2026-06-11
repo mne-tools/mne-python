@@ -50,6 +50,7 @@ name_counts = dict(
     Li=2,
     Peterson=2,
     Wong=2,
+    Yadav=2,
     Zhang=3,
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
@@ -63,8 +64,10 @@ manual_renames = {
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
     "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "alexandra": "Alexandra Corneyllie",  # 7600
+    "Akhilesh": "Akhilesh S. Yadav",  # 13639
     "Aniket": "Aniket Singh Yadav",  # 13672
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
+    "Baris": "Baris Talar",  # 13870
     "Basile": "Basile Pinsard",  # 1791
     "Bru": "Bruno Aristimunha",  # 13489
     "ChristinaZhao": "Christina Zhao",  # 9075
@@ -80,6 +83,7 @@ manual_renames = {
     "Hansuja ": "Hansuja Budhiraja",  # 13765
     "jwelzel": "Julius Welzel",  # 11118
     "Katia": "Katia Al-Amir",  # 13225
+    "Lifeng": "Lifeng Qiu Lin",  # 13797
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -279,6 +283,8 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
         and "50266005+mne-bot" not in email
+        and "copilot@github.com" not in email
+        and "noreply@anthropic.com" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
@@ -313,6 +319,9 @@ def generate_credit_rst(app=None, *, verbose=False):
         logo/LICENSE doc/credit.rst
     """.strip().split():
         globs[key] = "null"
+    # A few remaps
+    globs["mne/io/edf/_open.py"] = "mne.io"
+    globs["mne/_edf/open.py"] = "mne.io"
     # Now onto the actual module organization
     root_path = pathlib.Path(mne.__file__).parent
     mod_file_map = dict()
@@ -390,8 +399,12 @@ def generate_credit_rst(app=None, *, verbose=False):
             other_files.add(fname)
             mod = "other"
         for e, pm in counts.items():
-            if mod == "mne._fiff":
-                raise RuntimeError
+            # Assert no private (_-prefixed) submodules appear without a redirect
+            if mod.startswith("mne.") and mod.split(".")[-1].startswith("_"):
+                raise RuntimeError(
+                    f"Private submodule {mod!r} found in credit page for {fname!r}. "
+                    "Add an override in credit_tools.py to remap it to a public module."
+                )
             # sanity check a bit
             if mod != "null" and (".png" in fname or "/manual/" in fname):
                 raise RuntimeError(f"Unexpected {mod} {fname}")
@@ -399,6 +412,17 @@ def generate_credit_rst(app=None, *, verbose=False):
             mod_stats["mne"][e] += pm
             total_lines += pm
     mod_stats.pop("null")  # stuff we shouldn't give credit for
+    # Assert no private (_-prefixed) submodule names remain after null-removal
+    private_mods = [
+        m
+        for m in mod_stats
+        if m.startswith("mne.") and m.split(".")[-1].startswith("_")
+    ]
+    if private_mods:
+        raise RuntimeError(
+            f"Private submodule(s) {private_mods} found in credit page. "
+            "Update credit_tools.py to remap them to a public module."
+        )
     mod_stats = dict(
         (k, mod_stats[k])
         for k in sorted(

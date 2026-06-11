@@ -27,7 +27,6 @@ from sphinx_gallery.sorting import ExplicitOrder
 
 import mne
 import mne.html_templates._templates
-from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,
     run_subprocess,
@@ -180,19 +179,19 @@ intersphinx_mapping = {
     "picard": ("https://mind-inria.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest", None),
-    # should go back below after https://github.com/dipy/dipy/issues/3870 is fixed
-    "dipy": ("https://docs.dipy.org/1.12.0", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
         packages=set(
             """
 imageio matplotlib numpy pandas python scipy statsmodels sklearn numba joblib nibabel
-seaborn patsy pyvista nilearn pyqtgraph
+seaborn patsy pyvista dipy nilearn pyqtgraph
 """.strip().split()
         ),
     )
 )
+# Broken as of 2026/06/08 (https://github.com/joblib/joblib/issues/1796)
+intersphinx_mapping["joblib"] = ("https://joblib.readthedocs.io/en/stable", None)
 
 
 # NumPyDoc configuration -----------------------------------------------------
@@ -434,42 +433,17 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-numpydoc_validation_checks = {"all"} | set(error_ignores)
-numpydoc_validation_exclude = {  # set of regex
-    # dict subclasses
-    r"\.clear",
-    r"\.get$",
-    r"\.copy$",
-    r"\.fromkeys",
-    r"\.items",
-    r"\.keys",
-    r"\.move_to_end",
-    r"\.pop",
-    r"\.popitem",
-    r"\.setdefault",
-    r"\.update",
-    r"\.values",
-    # list subclasses
-    r"\.append",
-    r"\.count",
-    r"\.extend",
-    r"\.index",
-    r"\.insert",
-    r"\.remove",
-    r"\.sort",
-    # we currently don't document these properly (probably okay)
-    r"\.__getitem__",
-    r"\.__contains__",
-    r"\.__hash__",
-    r"\.__mul__",
-    r"\.__sub__",
-    r"\.__add__",
-    r"\.__iter__",
-    r"\.__div__",
-    r"\.__neg__",
-    # copied from sklearn
-    r"mne\.utils\.deprecated",
-}
+try:
+    import tomllib
+    # TODO VERSION: Can be removed once Python 3.11 is required
+except Exception:
+    pass
+else:
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+    numpydoc_validation_checks = set(pyproject_nv["checks"])
+    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
