@@ -1291,6 +1291,9 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
       :meth:`mne.Evoked.add_proj`
     * :meth:`mne.io.Raw.del_proj`, :meth:`mne.Epochs.del_proj`,
       :meth:`mne.Evoked.del_proj`
+    * :meth:`mne.io.Raw.rename_channels`,
+      :meth:`mne.Epochs.rename_channels`,
+      :meth:`mne.Evoked.rename_channels`
     * :meth:`mne.io.Raw.set_channel_types`,
       :meth:`mne.Epochs.set_channel_types`,
       :meth:`mne.Evoked.set_channel_types`
