@@ -2274,6 +2274,8 @@ class Report:
             ``None``.
         %(picks_ica)s This only affects the behavior of the component
             topography and properties plots.
+        n_channels : int | None
+            The number of ICA components to plot. If None, defaults to 20.
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
             Evoked signal based on ECG and EOG epochs, respectively. If passed,
             will be used to visualize the effects of artifact rejection.
