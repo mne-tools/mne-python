@@ -2061,7 +2061,9 @@ class Report:
         self, *, ica, inst, picks, n_channels, image_format, section, tags, replace
     ):
         with use_browser_backend("matplotlib"):
-            fig = ica.plot_sources(inst=inst, picks=picks, n_channels=n_channels, show=False)
+            fig = ica.plot_sources(
+                inst=inst, picks=picks, n_channels=n_channels, show=False
+            )
         self._add_figure(
             fig=fig,
             title="Sources",

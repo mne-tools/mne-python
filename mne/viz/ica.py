@@ -71,8 +71,7 @@ def plot_ica_sources(
     inst : instance of Raw, Epochs or Evoked
         The object to plot the sources from.
     %(picks_ica)s
-    n_channels : int | None
-        The number of ICA components to plot. If None, defaults to 20.
+     : int | None
     start, stop : float | int | None
        If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
        last time point (in seconds) of the data to plot. If ``inst`` is a
@@ -81,6 +80,8 @@ def plot_ica_sources(
        `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
        signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
        the first and last epoch to show.
+    n_channels : int | None
+        The number of ICA components to plot. If None, defaults to 20.
     title : str | None
         The window title. If None a default is provided.
     show : bool
