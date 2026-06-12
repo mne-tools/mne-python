@@ -58,7 +58,7 @@ def find_blinks(
 
     Returns
     -------
-    annots : mne.Annotations
+    annot : instance of Annotations
         The annotations object containing blink annotations. It is not attached to
         ``inst``; use :meth:`raw.set_annotations <mne.io.Raw.set_annotations>` to do so.
 
