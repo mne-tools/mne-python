@@ -34,6 +34,7 @@
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
+.. _Athish M: https://github.com/athishdresu
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
 .. _Baris Talar: https://github.com/baris-talar
