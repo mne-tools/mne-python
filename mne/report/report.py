@@ -2058,10 +2058,12 @@ class Report:
             )
 
     def _add_ica_sources(
-        self, *, ica, inst, picks, image_format, section, tags, replace
+        self, *, ica, inst, picks, n_channels, image_format, section, tags, replace
     ):
         with use_browser_backend("matplotlib"):
-            fig = ica.plot_sources(inst=inst, picks=picks, show=False)
+            fig = ica.plot_sources(
+                inst=inst, picks=picks, n_channels=n_channels, show=False
+            )
         self._add_figure(
             fig=fig,
             title="Sources",
@@ -2079,6 +2081,7 @@ class Report:
         ica,
         inst,
         picks,
+        n_channels,
         ecg_evoked,
         eog_evoked,
         ecg_scores,
@@ -2234,6 +2237,7 @@ class Report:
                 ica=ica,
                 inst=inst,
                 picks=picks,
+                n_channels=n_channels,
                 image_format=image_format,
                 section=section,
                 tags=tags,
@@ -2248,6 +2252,7 @@ class Report:
         *,
         inst,
         picks=None,
+        n_channels=None,
         ecg_evoked=None,
         eog_evoked=None,
         ecg_scores=None,
@@ -2271,6 +2276,8 @@ class Report:
             ``None``.
         %(picks_ica)s This only affects the behavior of the component
             topography and properties plots.
+        n_channels : int | None
+            The number of ICA components to plot. If None, defaults to 20.
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
             Evoked signal based on ECG and EOG epochs, respectively. If passed,
             will be used to visualize the effects of artifact rejection.
@@ -2298,6 +2305,7 @@ class Report:
             ica=ica,
             inst=inst,
             picks=picks,
+            n_channels=n_channels,
             ecg_evoked=ecg_evoked,
             eog_evoked=eog_evoked,
             ecg_scores=ecg_scores,
