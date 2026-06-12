@@ -142,6 +142,17 @@ raw_avg_ref = raw.copy().set_eeg_reference(ref_channels="average")
 raw_avg_ref.plot()
 
 # %%
+# .. note::
+#   When performing average referencing in sensor-space analyses, the original reference
+#   electrode should be present as a zero-filled channel. If it is not, this must first
+#   be added using :func:`~mne.add_reference_channels`, before calling
+#   :func:`~mne.set_eeg_reference`. This is necessary to avoid biasing the reference
+#   :footcite:`KimEtAl2023`, as the subtracted reference signal would be divided by
+#   `n_channels` instead of the correct `n_channels + 1` (i.e., including the original
+#   reference channel).
+#
+
+# %%
 # .. _section-avg-ref-proj:
 #
 # Creating the average reference as a projector
