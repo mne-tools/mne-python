@@ -113,6 +113,7 @@ extensions = [
     # contrib
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
+    "jupyterlite_sphinx",
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
@@ -473,6 +474,29 @@ if sys.platform.startswith("win"):
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
 sphinx_gallery_conf = {
+    "jupyterlite": {
+        "use_jupyter_lab": True,
+    },
+    "first_notebook_cell": (
+        "# 💡 This cell is automatically added to the start of each notebook.\n"
+        "import micropip\n"
+        "await micropip.install(['mne', 'pyodide-http'])\n"
+        "\n"
+        "# 1. Patch networking so pooch can download datasets\n"
+        "import pyodide_http\n"
+        "pyodide_http.patch_all()\n"
+        "\n"
+        "# 2. Patch MNEBrowseFigure to auto-display in Pyodide's inline backend\n"
+        "import mne\n"
+        "import mne.viz.utils\n"
+        "import matplotlib.pyplot as plt\n"
+        "orig_plt_show = mne.viz.utils.plt_show\n"
+        "def pyodide_plt_show(fig=None, **kwargs):\n"
+        "    orig_plt_show(fig, **kwargs)\n"
+        "    import IPython.display\n"
+        "    IPython.display.display(plt.gcf())\n"
+        "mne.viz.utils.plt_show = pyodide_plt_show\n"
+    ),
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
     "examples_dirs": examples_dirs,
