@@ -12,9 +12,41 @@ from mne.preprocessing.eyetracking import find_blinks
 from mne.utils import _record_warnings
 
 
-def test_find_blinks():
-    """Test creating blink annotations."""
-    find_blinks
+def test_find_blinks(eyetrack_raw):
+    """Test creating blink annotations from pupil dropouts."""
+    raw = eyetrack_raw
+    sfreq = raw.info["sfreq"]
+    pupil_idx = raw.ch_names.index("pupil")
+
+    # carve two dropout (NaN) segments into the single pupil channel
+    raw._data[pupil_idx, 10:15] = np.nan
+    raw._data[pupil_idx, 30:33] = np.nan
+
+    annots = find_blinks(raw)
+    assert isinstance(annots, mne.Annotations)
+    assert len(annots) == 2
+    assert all(desc == "BAD_blink" for desc in annots.description)
+    # default associates annotations with the source pupil channel(s)
+    assert annots.ch_names[0] == ("pupil",)
+    assert_allclose(annots.onset, [10 / sfreq, 30 / sfreq])
+
+    # custom description and "all"-channel association
+    annots = find_blinks(raw, description="blink", chs_dest="all")
+    assert all(desc == "blink" for desc in annots.description)
+    assert annots.ch_names[0] == ()  # empty -> applies to all channels
+
+    # explicit destination channels (e.g., for ocular artifact cleaning)
+    annots = find_blinks(raw, chs_dest=["xpos", "ypos"])
+    assert annots.ch_names[0] == ("xpos", "ypos")
+
+    # a non-NaN dropout value (e.g., EyeLink uses 0)
+    raw._data[pupil_idx] = np.where(np.isnan(raw._data[pupil_idx]), 0.0, 540.0)
+    annots = find_blinks(raw, dropout_value=0)
+    assert len(annots) == 2
+
+    # unsupported method
+    with pytest.raises(ValueError, match="Invalid value for the 'method'"):
+        find_blinks(raw, method="slope")
 
 
 def test_set_channel_types_eyetrack(eyetrack_raw):
