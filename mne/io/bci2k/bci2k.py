@@ -11,16 +11,23 @@ from ..._fiff.meas_info import create_info
 from ...utils import verbose
 from ..base import BaseRaw
 
+_VOLT_SCALE = {"v": 1.0, "mv": 1e-3, "muv": 1e-6, "uv": 1e-6, "nv": 1e-9, "": 1e-6}
+_FREQ_SCALE = {"hz": 1.0, "khz": 1e3, "": 1.0}
 
-def _parse_sampling_rate(val):
-    # Accept e.g. "256", "256Hz", "256.0 Hz"
-    text = str(val).strip()
-    text = re.sub(r"\s*Hz\s*$", "", text, flags=re.IGNORECASE)
-    # Grab the first float-looking token
-    m = re.search(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", text)
-    if m is None:
-        raise ValueError(f"Could not parse SamplingRate from {val!r}")
-    return float(m.group(0))
+
+def _parse_value_with_unit(token, unit_scale):
+    """Split a numeric token with optional unit into value and scale."""
+    text = str(token).strip().replace("µ", "u")
+    m = re.search(r"[a-zA-Z]+$", text)
+    if m:
+        num = float(text[: m.start()])
+        unit = m.group().lower()
+    else:
+        num = float(text)
+        unit = ""
+    if unit not in unit_scale:
+        raise ValueError(f"Unrecognized unit '{unit}' in token '{token}'.")
+    return num, unit_scale[unit]
 
 
 def _parse_bci2k_header(fname):
@@ -73,8 +80,20 @@ def _parse_bci2k_header(fname):
             if "Parameter Definition" in current_section:
                 if "=" in line:
                     left, right = line.split("=", 1)
-                    name = left.strip().split()[-1]
-                    value = right.strip().split()[0]
+                    left_tokens = left.strip().split()
+                    name = left_tokens[-1]
+                    param_type = (
+                        left_tokens[-2].lower() if len(left_tokens) >= 2 else ""
+                    )
+                    rhs = right.split("//", 1)[0].strip()
+                    rhs_tokens = rhs.split()
+                    if not rhs_tokens:
+                        continue
+                    if param_type.endswith("list"):
+                        n_vals = int(rhs_tokens[0])
+                        value = rhs_tokens[1 : n_vals + 1]
+                    else:
+                        value = rhs_tokens[0]
                     params[name] = value
                 continue
 
@@ -101,7 +120,10 @@ def _parse_bci2k_header(fname):
             "Could not find 'SamplingRate' in the BCI2000 Parameter Definition section."
         )
 
-    sfreq = _parse_sampling_rate(params["SamplingRate"])
+    sfreq_val, sfreq_scale = _parse_value_with_unit(
+        params["SamplingRate"], unit_scale=_FREQ_SCALE
+    )
+    sfreq = sfreq_val * sfreq_scale
 
     return {
         "header_len": header_len,
@@ -154,6 +176,23 @@ def _read_bci2k_data(fname, info_dict):
     )
 
     signal = signal.T.astype(np.float64)  # (n_channels, n_samples)
+    params = info_dict["params"]
+    if "SourceChOffset" in params and "SourceChGain" in params:
+        offsets = params["SourceChOffset"]
+        gains = params["SourceChGain"]
+        if len(offsets) != n_channels or len(gains) != n_channels:
+            raise ValueError(
+                "Expected SourceChOffset and SourceChGain lengths to match SourceCh."
+            )
+        offsets_arr = np.array([float(val) for val in offsets])
+        gain_parsed = [
+            _parse_value_with_unit(val, unit_scale=_VOLT_SCALE) for val in gains
+        ]
+        gains_arr = np.array([val for val, _ in gain_parsed])
+        gain_scales = np.array([scale for _, scale in gain_parsed])
+        signal = (signal + offsets_arr[:, np.newaxis]) * (
+            gains_arr[:, np.newaxis] * gain_scales[:, np.newaxis]
+        )
     state_bytes = state_bytes.T  # (state_vec_len, n_samples), dtype=uint8
 
     return signal, state_bytes
