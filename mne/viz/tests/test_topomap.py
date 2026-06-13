@@ -812,7 +812,9 @@ def test_plot_topomap_opm():
     fig_evoked = evoked.plot_topomap(
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
-    assert len(fig_evoked.axes) == 5
+    # Biaxial OPM pairs trigger grouped rendering
+    # (4 radial + 4 tangential + 2 colorbars)
+    assert len(fig_evoked.axes) == 10
 
 
 def test_prepare_topomap_plot_opm_non_quspin_coils():
@@ -867,6 +869,105 @@ def test_split_opm_overlaps(triaxial_evoked):
     radial, tangential = topomap._split_opm_overlaps(merge_channels)
     assert radial == ["OPM001", "OPM004"]
     assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
+
+
+def test_opm_tangential_rms_unsigned(triaxial_evoked):
+    """Test that tangential OPM data is RMS magnitude and unsigned."""
+    picks, pos, merge_channels, names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+    data = triaxial_evoked.data[picks]
+    grouped = topomap._compute_orientation_group_data(
+        data,
+        names,
+        pos,
+        ch_type="mag",
+        modality="opm",
+        merge_channels=merge_channels,
+        use_opm_orientation_groups=True,
+    )
+    tangential = [group for group in grouped if group[0] == "tangential"][0]
+    assert np.all(tangential[1] >= 0)
+    assert tangential[4]
+
+
+def test_should_use_opm_orientation_groups_only_for_triaxial():
+    """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
+    ch_names = [f"OPM{k:03}" for k in range(1, 7)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    with info._unlock():
+        for ch in info["chs"]:
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+
+    picks = np.arange(len(ch_names))
+    pair_overlaps = [
+        np.array(["OPM001", "OPM002"]),
+        np.array(["OPM003", "OPM004"]),
+    ]
+    triax_overlaps = [
+        np.array(["OPM001", "OPM002", "OPM003"]),
+        np.array(["OPM004", "OPM005", "OPM006"]),
+    ]
+
+    # Both biaxial and triaxial overlaps should trigger grouping
+    assert topomap._should_use_opm_orientation_groups(info, picks, pair_overlaps, "mag")
+    assert topomap._should_use_opm_orientation_groups(
+        info, picks, triax_overlaps, "mag"
+    )
+
+
+def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
+    """Test grouped radial/tangential topomap rendering for triaxial OPM."""
+    fig = triaxial_evoked.plot_topomap(
+        times=[0.0],
+        ch_type="mag",
+        contours=0,
+        res=8,
+        sensors=False,
+        show=False,
+    )
+    assert len(fig.axes) == 4
+    titles = [ax.get_title() for ax in fig.axes]
+    assert any("radial" in title for title in titles)
+    assert any("tangential" in title for title in titles)
+
+
+def test_plot_projs_topomap_opm(triaxial_evoked):
+    """Test plot_projs_topomap does not crash on colocated OPM channels (gh-13866)."""
+    from mne import compute_proj_evoked
+
+    projs = compute_proj_evoked(triaxial_evoked, n_mag=2)
+    # Should not raise a shape mismatch between data and pos
+    fig = plot_projs_topomap(projs, triaxial_evoked.info, show=False)
+    assert len(fig.axes) >= 1
+
+
+@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
+def test_animate_topomap_opm(triaxial_evoked):
+    """Test animate_topomap does not crash on colocated OPM channels (gh-13866)."""
+    fig, anim = triaxial_evoked.animate_topomap(ch_type="mag", times=[0.0], show=False)
+    anim._func(0)
+    assert len(fig.axes) >= 1
+
+
+def test_plot_arrowmap_opm():
+    """Test plot_arrowmap does not crash on colocated OPM channels (gh-13866)."""
+    from mne.viz import plot_arrowmap
+
+    # Need at least 3 unique sensor locations for Delaunay triangulation
+    ch_names = [f"OPM{k:03d}" for k in range(1, 10)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [[0.03, 0.0, 0.05]] * 3 + [[-0.03, 0.0, 0.05]] * 3 + [[0.0, 0.03, 0.05]] * 3
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+    rng = np.random.default_rng(0)
+    data_snap = rng.standard_normal(9)
+    fig = plot_arrowmap(data_snap, info, show=False)
+    assert len(fig.axes) == 1
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
