@@ -3672,7 +3672,7 @@ def _gen_extract_label_time_course(
     _check_option("mode", mode, _get_default_label_modes())
 
     if kind in ("surface", "mixed"):
-        if not isinstance(labels, list):
+        if not isinstance(labels, (list, tuple)):
             labels = [labels]
         use_sparse = False
     else:
