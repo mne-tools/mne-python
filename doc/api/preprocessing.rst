@@ -137,6 +137,7 @@ Projections:
    short_channels
    scalp_coupling_index
    temporal_derivative_distribution_repair
+   motion_correct_pca
 
 :py:mod:`mne.preprocessing.ieeg`:
 
