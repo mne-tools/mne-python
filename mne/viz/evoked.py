@@ -452,10 +452,19 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
-        fig.set_size_inches(6.4, 2 + len(axes))
+        if plot_type == "butterfly":
+            from ._mpl_figure import _line_figure
+
+            fig, axes = _line_figure(
+                evoked,
+                picks=picks,
+                figsize=(6.4, 2 + len(ch_types_used)),
+            )
+        else:
+            fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
+            if isinstance(axes, plt.Axes):
+                axes = [axes]
+            fig.set_size_inches(6.4, 2 + len(axes))
 
     if isinstance(axes, plt.Axes):
         axes = [axes]

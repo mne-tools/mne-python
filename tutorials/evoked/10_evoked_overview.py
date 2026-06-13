@@ -71,7 +71,7 @@ print(f"Evoked baseline: {evoked.baseline}")
 #
 # We can visualize the average evoked response for left-auditory stimuli using
 # the :meth:`~mne.Evoked.plot` method, which yields a butterfly plot of each
-# channel type:
+# channel type (interactive butterfly figure):
 
 evoked.plot()
 
