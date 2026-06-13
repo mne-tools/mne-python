@@ -2873,9 +2873,7 @@ def plot_compare_evokeds(
         for evk in evokeds[cond]:
             _validate_type(evk, Evoked, "All evokeds entries ", "Evoked")
     # ensure same channels and times across all evokeds
-    all_evoked = sum(evokeds.values(), [])
-    _check_evokeds_ch_names_times(all_evoked)
-    del all_evoked
+    _check_evokeds_ch_names_times(sum(evokeds.values(), []), inplace=True)
 
     # get some representative info
     conditions = list(evokeds)
@@ -3034,6 +3032,7 @@ def plot_compare_evokeds(
     if not do_topo:
         # add vacuous "index" (needed for topo) so same code works for both
         axes = [(ax, 0) for ax in axes]
+        assert len(axes) == 1
         if np.array(picks).ndim < 2:
             picks = [picks]  # enables zipping w/ axes
     else:
@@ -3145,7 +3144,8 @@ def plot_compare_evokeds(
     c_func = None if do_topo else combine_func
     all_data = list()
     all_cis = list()
-    for _picks, (ax, idx) in zip(picks, axes):
+    # We need to truncate axes because of a possible additional ax for the legend
+    for ax, idx in axes[: len(picks)]:
         data_dict = dict()
         ci_dict = dict()
         for cond in conditions:
@@ -3160,7 +3160,7 @@ def plot_compare_evokeds(
                 combine,
                 c_func,
                 ch_type=ch_type,
-                picks=_picks,
+                picks=picks[idx],
                 scaling=scalings,
                 ci_fun=ci_fun,
             )
