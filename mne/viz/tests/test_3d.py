@@ -50,6 +50,7 @@ from mne.viz import (
     plot_head_positions,
     plot_source_estimates,
     plot_sparse_source_estimates,
+    plot_stat_cluster,
     snapshot_brain_montage,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
@@ -1415,3 +1416,57 @@ def test_link_brains(renderer_interactive):
     with pytest.raises(TypeError, match="type is Brain"):
         link_brains("foo")
     link_brains(brain, time=True, camera=True)
+
+
+@testing.requires_testing_data
+def test_plot_stat_cluster(renderer_interactive):
+    """Test plotting clusters on brain in static and interactive mode."""
+    sample_src = read_source_spaces(src_fname)
+    vertices = [s["vertno"] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+
+    # simulate stc data
+    stc_data = np.zeros(n_verts * n_time)
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+
+    # Simulate a  cluster
+    cluster_time_idx = [1, 1, 2, 3]
+    cluster_vertex_idx = [0, 1, 2, 3]
+    cluster = (cluster_time_idx, cluster_vertex_idx)
+
+    brain = plot_source_estimates(
+        stc,
+        "sample",
+        background=(1, 1, 0),
+        subjects_dir=subjects_dir,
+        colorbar=True,
+        clim="auto",
+    )
+    # Test for incorrect argument in time
+    with pytest.raises(ValueError):
+        plot_stat_cluster(cluster, sample_src, brain, "foo")
+
+    # test for incorrect shape of cluster
+    with pytest.raises(TypeError):
+        plot_stat_cluster(([1]), sample_src, brain)
+
+    # test for incorrect data type of cluster
+    with pytest.raises(TypeError):
+        plot_stat_cluster([[1, 2, 3], [1, 2, 3]], sample_src, brain)
+
+    # All arguments are correct
+    plot_stat_cluster(cluster, sample_src, brain)
+
+    # Check that the proper anatomical label has been constructed.
+    assert len(brain.labels["lh"]) == 1
+    assert len(brain.labels["rh"]) == 0
+    assert brain.labels["lh"][0].name == "cluster-0"
+
+    brain.close()
+    del brain
