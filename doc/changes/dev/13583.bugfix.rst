@@ -1,0 +1,1 @@
+Raise a :class:`NotImplementedError` when reading EDF+D or BDF+D files with acquisition gaps instead of silently loading them as continuous data, by `Arnav Kumar`_ (:gh:`13583`).
