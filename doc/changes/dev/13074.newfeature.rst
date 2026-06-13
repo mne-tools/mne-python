@@ -1,0 +1,1 @@
+Add a GUI for interactive guided dipole fitting (:func:`mne.gui.dipolefit`), by `Marijn van Vliet`_
