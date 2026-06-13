@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 
 from mne import (
     Epochs,
+    compute_proj_epochs,
     create_info,
     pick_channels_cov,
     read_cov,
@@ -28,7 +29,7 @@ from mne.datasets import testing
 from mne.epochs import make_metadata
 from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
-from mne.preprocessing import ICA
+from mne.preprocessing import ICA, create_ecg_epochs
 from mne.report import Report, _ReportScraper, open_report, report
 from mne.report import report as report_mod
 from mne.report.report import (
@@ -1019,6 +1020,24 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.add_projs(
         info=raw_fname, projs=ecg_proj_fname, title="my proj", tags=("ssp", "ecg")
     )
+    raw_tmp = read_raw_fif(raw_fname).crop(0, 60).load_data()
+    ecg_epochs = create_ecg_epochs(raw_tmp)
+    ecg_projs_tmp = compute_proj_epochs(ecg_epochs, n_grad=1, n_mag=1, n_eeg=0)
+    r.add_projs(
+        info=ecg_epochs,
+        projs=ecg_projs_tmp,
+        title="ECG projs from epochs",
+        add_rate="auto",
+    )
+    assert "Estimated rate" not in r.html[-1]  # auto but no ecg in desc
+    r.add_projs(
+        info=ecg_epochs,
+        projs=ecg_projs_tmp,
+        title="ECG projs add_rate=True",
+        add_rate=True,
+    )
+    assert "Estimated rate" in r.html[-1]
+    del raw_tmp, ecg_epochs, ecg_projs_tmp
     r.add_ica(ica=ica, title="my ica", inst=None)
     with pytest.raises(RuntimeError, match="not preloaded"):
         r.add_ica(ica=ica, title="ica", inst=raw_non_preloaded)
