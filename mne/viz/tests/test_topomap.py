@@ -914,6 +914,44 @@ def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
     assert any("tangential" in title for title in titles)
 
 
+def test_plot_projs_topomap_opm(triaxial_evoked):
+    """Test plot_projs_topomap does not crash on colocated OPM channels (gh-13866)."""
+    from mne import compute_proj_evoked
+
+    projs = compute_proj_evoked(triaxial_evoked, n_mag=2)
+    # Should not raise a shape mismatch between data and pos
+    fig = plot_projs_topomap(projs, triaxial_evoked.info, show=False)
+    assert len(fig.axes) >= 1
+
+
+@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
+def test_animate_topomap_opm(triaxial_evoked):
+    """Test animate_topomap does not crash on colocated OPM channels (gh-13866)."""
+    fig, anim = triaxial_evoked.animate_topomap(ch_type="mag", times=[0.0], show=False)
+    anim._func(0)
+    assert len(fig.axes) >= 1
+
+
+def test_plot_arrowmap_opm():
+    """Test plot_arrowmap does not crash on colocated OPM channels (gh-13866)."""
+    from mne.viz import plot_arrowmap
+
+    # Need at least 3 unique sensor locations for Delaunay triangulation
+    ch_names = [f"OPM{k:03d}" for k in range(1, 10)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [[0.03, 0.0, 0.05]] * 3 + [[-0.03, 0.0, 0.05]] * 3 + [[0.0, 0.03, 0.05]] * 3
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+    rng = np.random.default_rng(0)
+    data_snap = rng.standard_normal(9)
+    fig = plot_arrowmap(data_snap, info, show=False)
+    assert len(fig.axes) == 1
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()

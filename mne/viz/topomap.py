@@ -682,7 +682,11 @@ def _plot_projs_topomap(
         ) = _prepare_topomap_plot(use_info, ch_type, sphere=sphere)
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
-        if merge_channels:
+        if isinstance(merge_channels, list):
+            # OPM/NIRS: pos already holds radial-only positions; drop tangential data
+            keep_mask = np.array([not n.endswith("_MERGE-REMOVE") for n in names])
+            data = data[keep_mask]
+        elif merge_channels:
             data, _ = _merge_ch_data(data, "grad", [])
             data = data.ravel()
 
@@ -3542,11 +3546,17 @@ def _topomap_animation(
         raise ValueError("All times must be inside the evoked time series.")
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
-    picks, pos, merge_channels, _, ch_type, sphere, clip_origin = _prepare_topomap_plot(
-        evoked, ch_type, sphere=sphere
+    picks, pos, merge_channels, names, ch_type, sphere, clip_origin = (
+        _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     )
     data = evoked.data[picks, :]
     data *= _handle_default("scalings")[ch_type]
+
+    if isinstance(merge_channels, list):
+        # OPM: pos already holds radial-only positions; drop tangential data rows
+        keep_mask = np.array([not n.endswith("_MERGE-REMOVE") for n in names])
+        data = data[keep_mask]
+        merge_channels = False
 
     norm = np.min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
@@ -3889,9 +3899,14 @@ def plot_arrowmap(
         )
         data = np.dot(mapping, data)
 
-    _, pos, _, _, _, sphere, clip_origin = _prepare_topomap_plot(
+    picks, pos, merge_channels, names, _, sphere, clip_origin = _prepare_topomap_plot(
         info_to, "mag", sphere=sphere
     )
+    data = data[picks]
+    if isinstance(merge_channels, list):
+        # OPM: pos holds radial-only positions; filter data to radial channels
+        keep_mask = np.array([not n.endswith("_MERGE-REMOVE") for n in names])
+        data = data[keep_mask]
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     if axes is None:
         fig, axes = plt.subplots(layout="constrained")

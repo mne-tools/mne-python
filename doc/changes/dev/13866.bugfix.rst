@@ -1,1 +1,1 @@
-Completed triaxial OPM topomap grouping by rendering separate radial and tangential maps in evoked topomap and ICA component plotting paths, by `Pragnya Khandelwal`_.
+Completed triaxial OPM topomap grouping by rendering separate radial and tangential maps in :func:`~mne.viz.plot_evoked_topomap` and :meth:`~mne.preprocessing.ICA.plot_components`, and fixed shape-mismatch crashes in :func:`~mne.viz.plot_projs_topomap` and :meth:`~mne.Evoked.animate_topomap` with colocated OPM channels, by `Pragnya Khandelwal`_.
