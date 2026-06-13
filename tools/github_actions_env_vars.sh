@@ -25,6 +25,16 @@ elif [[ "$MNE_CI_KIND" == "conda" ]]; then
         echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
     fi
     echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
+# NON-DRY but just gonna get it working and then refactor.
+elif [[ "$MNE_CI_KIND" == "pixi" ]]; then
+    echo "Setting env vars for $MNE_CI_KIND"
+    echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
+    echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
+    echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults|Accelerate|Flakey verbose behavior).*" | tee -a $GITHUB_ENV
+    # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
+    if [[ "$RUNNER_OS" == "macOS" ]]; then
+        echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
+    fi
 else
     echo "✕ ERROR: Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
     exit 1

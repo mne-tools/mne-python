@@ -21,6 +21,8 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	WANT="mne-python/mne-python/.venv/bin"
 elif [[ "${MNE_CI_KIND}" == "pip" ]] || [[ "${MNE_CI_KIND}" == "pip-pre" ]] || [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 	WANT="/hostedtoolcache/"
+elif [[ "${MNE_CI_KIND}" == "pixi" ]]; then
+	WANT="mne-python/mne-python/tools/ci/macos-intel/.pixi/"
 else
 	echo "✕ ERROR: Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
 	exit 1

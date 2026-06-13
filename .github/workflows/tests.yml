@@ -81,7 +81,7 @@ jobs:
             kind: pip
           - os: macos-15-intel  # Intel
             python: '3.13'
-            kind: pip
+            kind: pixi
           - os: ubuntu-latest
             python: '3.12'
             kind: minimal
@@ -121,9 +121,26 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
         id: setup-python
+      # Python (if pixi)
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          manifest-path: tools/ci/macos-intel/pixi.toml
+          # https://github.com/prefix-dev/setup-pixi/issues/139
+          activate-environment: true
+          frozen: true
+        if: matrix.kind == 'pixi'
       # Workaround macOS path behavior with login shells (which puts system Python first)
-      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
-        if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
+      - run: |  # zizmor: ignore[template-injection]
+          if [[ $MNE_CI_KIND == "pip" ]]; then
+            prepend_path="$(dirname ${{ steps.setup-python.outputs.python-path }})"
+          elif [[ $MNE_CI_KIND == "pixi" ]]; then
+            prepend_path="${{ github.workspace }}/tools/ci/macos-intel/.pixi/envs/default/bin"
+          else
+            echo "Unsupported CI Kind: $MNE_CI_KIND"
+            exit 1
+          fi
+          echo "export PATH=\"$prepend_path:$PATH\"" | tee -a ~/.bash_profile
+        if: (startswith(matrix.kind, 'pip') || matrix.kind == 'pixi') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
         with:

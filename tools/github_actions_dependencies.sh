@@ -36,6 +36,10 @@ elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
 	python -m pip install --upgrade pip setuptools
+elif [[ "${MNE_CI_KIND}" == "pixi" ]]; then
+	GROUP="test_extra"
+	EXTRAS="[hdf5]"
+	INSTALL_ARGS=""
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	python -m pip install $STD_ARGS pip setuptools
