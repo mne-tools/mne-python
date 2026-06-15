@@ -72,6 +72,8 @@ def find_blinks(
     result in a single blink annotation with onset ``1.5`` and duration ``0.4``.
     Note that this corresponds to the minimum onset and the maximum offset between
     the two annotations.
+
+    .. versionadded:: 1.13
     """
     _validate_type(inst, BaseRaw, "inst")
     _check_option("method", method, ("dropout",))
@@ -264,7 +266,7 @@ def _convert_deg_to_rad(array):
 
 
 @verbose
-def convert_units(inst, calibration, to="radians", verbose=None):
+def convert_units(inst, calibration, to="radians", *, verbose=None):
     """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
 
     .. warning::
