@@ -4402,6 +4402,12 @@ volume_options : float | dict | None
         will use ``0.25 * surface_alpha``.
     - ``'silhouette_linewidth'`` : float
         The line width to use for the silhouette. Default is 2.
+    - ``'interpolation'`` : str
+        The interpolation method to use for resampling the volume source space
+        to the specified resolution (and for sampling in the volume rendering).
+        Can be "linear" (default) or "nearest".
+
+        .. versionadded:: 1.13
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.

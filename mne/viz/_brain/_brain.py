@@ -1242,12 +1242,12 @@ class Brain:
             # camera-to-click array, which fortunately we can get "just"
             # by inspecting the points that are sufficiently close to the
             # ray.
-            grid = mesh = self._data[hemi]["grid"]
+            grid = self._data[hemi]["grid"]
             vertices = self._data[hemi]["vertices"]
             coords = self._data[hemi]["grid_coords"][vertices]
-            scalars = grid.cell_data["values"][vertices]
+            scalars = grid.point_data["values"][vertices]
             spacing = np.array(grid.GetSpacing())
-            max_dist = np.linalg.norm(spacing) / 2.0
+            max_dist = np.max(spacing) / 2.0
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
             ori = pos - origin
             ori /= np.linalg.norm(ori)
@@ -1258,10 +1258,11 @@ class Brain:
             idx = np.where(mask)[0]
             if len(idx) == 0:
                 return  # weird point on edge of volume?
-            # useful for debugging the ray by mapping it into the volume:
+            # useful for debugging the ray by mapping it into the volume, should
+            # create a blob near the click point:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
-            # grid.cell_data['values'][vertices] = dists * mask
+            # grid.point_data['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
@@ -1366,12 +1367,22 @@ class Brain:
         color = next(self.color_cycle)
         line = self.plot_time_course(hemi, vertex_id, color, update=update)
         if hemi == "vol":
-            ijk = np.unravel_index(
-                vertex_id, np.array(mesh.GetDimensions()) - 1, order="F"
-            )
+            ijk = np.unravel_index(vertex_id, mesh.dimensions, order="F")
             voxel = mesh.GetCell(*ijk)
             center = np.empty(3)
             voxel.GetCentroid(center)
+            center -= np.array(mesh.spacing, float) / 2.0
+            # In case we ever need to debug problems with this, the following code
+            # can be uncommented (it should match!)
+            # want = apply_trans(self._data[hemi]["grid_src_mri_t"], ijk)
+            # assert np.allclose(center, want, atol=1e-6), f"{center=} vs {want=}"
+            #
+            # And to make the value at vert 21334 for fsaverage-5 visible:
+            # self._renderer._sphere(
+            #     center=[0, -5, 5],
+            #     color="w",
+            #     radius=3.0,
+            # )
         else:
             center = mesh.GetPoints().GetPoint(vertex_id)
         del mesh
@@ -1994,6 +2005,7 @@ class Brain:
             ["surface_alpha", (None, "numeric")],
             ["silhouette_alpha", (None, "numeric")],
             ["silhouette_linewidth", ("numeric",)],
+            ["interpolation", (str,)],
         )
         for key, types in allowed_types:
             _validate_type(volume_options[key], types, f"volume_options[{repr(key)}]")
@@ -2004,6 +2016,11 @@ class Brain:
             'volume_options["blending"]',
             volume_options["blending"],
             ("composite", "mip"),
+        )
+        interpolation = _check_option(
+            'volume_options["interpolation"]',
+            volume_options["interpolation"],
+            ("nearest", "linear"),
         )
         alpha = volume_options["alpha"]
         if alpha is None:
@@ -2040,7 +2057,7 @@ class Brain:
             # use all three elements here
             assert np.allclose(src_mri_t[:3, :3], np.diag(np.diag(src_mri_t)[:3]))
             spacing = np.diag(src_mri_t)[:3]
-            origin = src_mri_t[:3, 3] - spacing / 2.0
+            origin = src_mri_t[:3, 3]
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
             grid, grid_mesh, volume_pos, volume_neg = self._renderer._volume(
@@ -2052,6 +2069,7 @@ class Brain:
                 resolution,
                 blending,
                 center,
+                interpolation,
             )
             self._data[hemi]["alpha"] = alpha  # incorrectly set earlier
             self._data[hemi]["grid"] = grid
@@ -3551,16 +3569,16 @@ class Brain:
                 # update the volume interpolation
                 grid = hemi_data.get("grid")
                 if grid is not None:
-                    vertices = self._data["vol"]["vertices"]
-                    values = self._current_act_data["vol"]
+                    vertices = hemi_data["vertices"]
+                    values = self._current_act_data[hemi]
                     rng = self._cmap_range
                     fill = 0 if self._data["center"] is not None else rng[0]
-                    grid.cell_data["values"].fill(fill)
-                    # XXX for sided data, we probably actually need two
-                    # volumes as composite/MIP needs to look at two
-                    # extremes... for now just use abs. Eventually we can add
-                    # two volumes if we want.
-                    grid.cell_data["values"][vertices] = values
+                    grid.point_data["values"].fill(fill)
+                    grid.point_data["values"][vertices] = values
+                    # This can be useful for debugging fsaverge-5 source space by making
+                    # the value at (0, -5, 5) high
+                    # if 21334 in vertices:
+                    #     grid.point_data["values"][21334] = values.max()
 
                 # interpolate in space
                 smooth_mat = hemi_data.get("smooth_mat")

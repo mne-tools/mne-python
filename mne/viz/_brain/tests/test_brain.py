@@ -941,6 +941,13 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
         _create_testing_brain(
             hemi="lh", surf="white", src="volume", volume_options={"foo": "bar"}
         )
+    with pytest.raises(ValueError, match="Invalid value for"):
+        _create_testing_brain(
+            hemi="lh",
+            surf="white",
+            src="volume",
+            volume_options={"interpolation": "bar"},
+        )
     brain = _create_testing_brain(
         hemi="both",
         show_traces=False,
@@ -1046,7 +1053,8 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         surf="white",
         src=src,
         show_traces="label",
-        volume_options=None,  # for speed, don't upsample
+        # for speed, don't upsample
+        volume_options=dict(resolution=None, interpolation="nearest"),
         n_time=5,
         initial_time=0,
     )
@@ -1163,7 +1171,7 @@ def test_brain_traces_vertex(
         if current_hemi == "vol":
             current_mesh = brain._data["vol"]["grid"]
             vertices = brain._data["vol"]["vertices"]
-            values = current_mesh.cell_data["values"][vertices]
+            values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain._layered_meshes[current_hemi]._polydata
