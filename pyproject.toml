@@ -20,7 +20,6 @@ doc = [
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
   "pymef",
-  "pytest",
   "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
   "pyxdf",
   "pyzmq != 24.0.0",
@@ -49,7 +48,7 @@ test = [
   "numpydoc >= 1.6",
   "pillow >= 10.2",
   "pre-commit",
-  "pytest >= 8.0",
+  "pytest >= 8.0,!=9.1.0",  # https://github.com/pytest-dev/pytest/issues/14591
   "pytest-cov >= 4.1",
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
