@@ -1084,6 +1084,18 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     _assert_annotations_equal(annot, annot2)
 
 
+def test_read_annotations_txt_single_channel_specific(tmp_path):
+    """Read a .txt with a SINGLE channel-specific annotation (gh-13961)."""
+    # np.loadtxt(..., unpack=True) squeezes a 1-row file to 0-D scalars;
+    # ch_names (unlike onset/duration/description) was not wrapped in
+    # np.atleast_1d, so it was iterated as bytes-ints -> AttributeError.
+    annot = Annotations([1.0], [0.5], ["BAD_x"], ch_names=[["EEG001"]])
+    fname = tmp_path / "annotations.txt"
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    assert list(annot_read.ch_names) == [("EEG001",)]
+
+
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
 def test_write_annotation_warn_heterogeneous(tmp_path, fmt):
     """Test that CSV, and TXT annotation writers warn on heterogeneous dtypes."""
