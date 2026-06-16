@@ -46,13 +46,6 @@ else
 fi
 echo ""
 
-<<<<<<< HEAD
-echo "Installing test dependencies using pip"
-python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
-if [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	python -m pip uninstall -yq pytest-qt
-fi
-=======
 # Make sure we only pass non-empty groups argument
 if [ -z "$GROUP" ]; then
 	GROUP_ARG=""
@@ -68,4 +61,3 @@ fi
 set -x
 python -m pip install $STD_ARGS $ONLY_BINARY_ARG $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 echo "::endgroup::"
->>>>>>> upstream/main
