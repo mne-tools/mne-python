@@ -237,7 +237,7 @@ def pytest_configure(config: pytest.Config):
     # Deal with pytest-qt -- everything should already be skipped for example by not
     # having pyvistaqt installed, so we just need to take care of defining dummy
     # fixture(s)
-    if not config.pluginmanager.hasplugin("qt"):  # just 3.14t for now
+    if not config.pluginmanager.hasplugin("pytest-qt"):  # just 3.14t for now
 
         @pytest.fixture
         def qtbot():
