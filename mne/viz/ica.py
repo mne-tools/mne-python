@@ -40,7 +40,7 @@ def plot_ica_sources(
     picks=None,
     start=None,
     stop=None,
-    n_components=20,
+    n_components=None,
     title=None,
     show=True,
     block=False,
@@ -71,7 +71,6 @@ def plot_ica_sources(
     inst : instance of Raw, Epochs or Evoked
         The object to plot the sources from.
     %(picks_ica)s
-     : int | None
     start, stop : float | int | None
        If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
        last time point (in seconds) of the data to plot. If ``inst`` is a
@@ -1299,7 +1298,7 @@ def _plot_sources(
     psd_args,
     theme=None,
     overview_mode=None,
-    n_channels=20,
+    n_components=20,
     splash=True,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
@@ -1356,9 +1355,9 @@ def _plot_sources(
         data = np.append(data, eog_ecg_data, axis=0)
     picks = np.concatenate((picks, ica.n_components_ + np.arange(len(extra_picks))))
     ch_order = np.arange(len(picks))
-    if n_channels is None:
-        n_channels = 20
-    n_channels = min([n_channels, len(picks)])
+    if n_components is None:
+        n_components = 20
+    n_components = min([n_components, len(picks)])
     ch_names_picked = [ch_names[x] for x in picks]
 
     # create info
@@ -1411,7 +1410,7 @@ def _plot_sources(
         ch_types=np.array(ch_types),
         ch_order=ch_order,
         picks=picks,
-        n_channels=n_channels,
+        n_components=n_components,
         picks_data=list(),
         # time
         t_start=start if is_raw else boundary_times[start],
