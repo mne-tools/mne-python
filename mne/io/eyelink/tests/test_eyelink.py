@@ -391,7 +391,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 button_idx += 1
         fp.write("END\t7453490\tRIGHT\tSAMPLES\tEVENTS\n")
 
-        # simulate a third block with no samples at all
+        # simulate a third block with empty samples
         fp.write("START\t7454490\tRIGHT\tSAMPLES\tEVENTS\n")
         fp.write(f"{new_samples_line}\n")
         for timestamp in np.arange(7454490, 7454990):
