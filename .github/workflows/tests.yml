@@ -67,7 +67,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: '3.13t'  # free-threaded
+            python: '3.14t'  # free-threaded
             kind: pip
             # - os: ubuntu-latest
             #   python: '3.12'
