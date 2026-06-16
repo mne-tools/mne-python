@@ -80,8 +80,10 @@ def plot_ica_sources(
        `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
        signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
        the first and last epoch to show.
-    n_channels : int | None
-        The number of ICA components to plot. If None, defaults to 20.
+    n_components : int
+        Maximum number of ICA components to plot. Defaults to 20.
+
+        .. versionadded:: 1.13
     title : str | None
         The window title. If None a default is provided.
     show : bool
