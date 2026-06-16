@@ -13,7 +13,7 @@ from scipy import ndimage
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
-from .ui_events import ChannelsSelect, publish, subscribe
+from .ui_events import ChannelsSelect, TimeChange, publish, subscribe
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
@@ -413,14 +413,14 @@ def _plot_topo_onpick(event, show_func):
             return
         ch_idx = orig_ax._mne_ch_idx
         face_color = orig_ax._mne_ax_face_color
-        fig, ax = plt.subplots(1)
+        subfig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
         ax.set_facecolor(face_color)
 
         # allow custom function to override parameters
-        show_func(ax, ch_idx)
-        plt_show(fig=fig)
+        show_func(ax, ch_idx, orig_fig=fig)
+        plt_show(fig=subfig)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -568,6 +568,7 @@ def _plot_timeseries(
     hline=None,
     hvline_color="w",
     labels=None,
+    orig_fig=None,
 ):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
@@ -637,6 +638,11 @@ def _plot_timeseries(
             ax._cursorline = None
         ax.figure.canvas.draw()
 
+    def _on_click(event):
+        if event.inaxes == ax:
+            publish(ax.figure, TimeChange(time=event.xdata))
+            publish(orig_fig, TimeChange(time=event.xdata))
+
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
     facecol = _to_rgb(ax.get_facecolor())
@@ -645,6 +651,7 @@ def _plot_timeseries(
 
     plt.connect("motion_notify_event", _cursor_vline)
     plt.connect("axes_leave_event", _rm_cursor)
+    plt.connect("button_press_event", _on_click)
 
     ymin, ymax = ax.get_ylim()
     # don't pass vline or hline here (this fxn doesn't do hvline_color):
@@ -1148,6 +1155,8 @@ def _plot_evoked_topo(
         select=select,
     )
 
+    subscribe(fig, "time_change", partial(on_time_change, fig=fig))
+
     add_background_image(fig, fig_background)
 
     if legend is not False:
@@ -1179,6 +1188,12 @@ def _plot_evoked_topo(
 
     plt_show(show)
     return fig
+
+
+def on_time_change(event, fig):
+    """Respond to a time change UI event. Currently only prints."""
+    print(len(fig.axes), len(fig.axes[0].lines))
+    print("Event triggered:", event)
 
 
 def _plot_update_evoked_topo_proj(params, bools):
