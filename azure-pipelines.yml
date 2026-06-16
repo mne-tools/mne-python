@@ -89,6 +89,10 @@ stages:
               ./tools/setup_xvfb.sh
               sudo apt install -yq tcsh
             displayName: Install Ubuntu dependencies
+          - task: Cache@2
+            inputs:
+              key: minimal-cmds-0
+              path: /home/vsts/minimal_cmds
           - bash: ./tools/get_minimal_commands.sh
             displayName: Get minimal commands
           - bash: |

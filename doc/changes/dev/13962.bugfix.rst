@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.read_annotations` where reading a ``.txt`` file containing a single channel-specific annotation raised an ``AttributeError``, by :newcontrib:`Piotr Durka`.

@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -89,7 +89,7 @@ jobs:
             python: '3.10'
             kind: old
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -136,7 +136,7 @@ jobs:
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: astral-sh/setup-uv@v8.2.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -150,6 +150,11 @@ jobs:
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
+      - uses: actions/cache@v5
+        with:
+          key: minimal-commands-0
+          path: ~/minimal_cmds
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
       - run: bash ./tools/github_actions_infos.sh
@@ -166,7 +171,7 @@ jobs:
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v6.0.1
+      - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()

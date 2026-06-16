@@ -4,7 +4,6 @@
 
 import os
 import shutil
-import time
 from copy import deepcopy
 
 import numpy as np
@@ -766,26 +765,6 @@ def test_eeglab_drop_nan_annotations(tmp_path):
 
     with pytest.warns(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
         raw = read_raw_eeglab(file_path, preload=True)
-
-
-@pytest.mark.flaky
-@testing.requires_testing_data
-@pytest.mark.timeout(10)
-@pytest.mark.slowtest  # has the advantage of not running on macOS where it errs a lot
-def test_io_set_preload_false_is_faster():
-    """Using preload=False should skip the expensive data read branch."""
-    # warm start
-    read_raw_eeglab(raw_fname_mat, preload=False)
-
-    durations = {}
-    for preload in (True, False):
-        start = time.perf_counter()
-        _ = read_raw_eeglab(raw_fname_mat, preload=preload)
-        durations[preload] = time.perf_counter() - start
-
-    # preload=True should not be faster than preload=False (timings may vary
-    # across systems, so avoid strict thresholds)
-    assert durations[True] > durations[False]
 
 
 @testing.requires_testing_data
