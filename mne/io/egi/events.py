@@ -67,7 +67,6 @@ def _read_mff_events(filename, sfreq, start_time):
 
     for track in tracks:
         for event in track.events:
-            # mffpy >= 0.11 guarantees 'code', tz-aware 'beginTime', and 'duration'
             code_str = event["code"]
             if code_str not in code:
                 code.append(code_str)
