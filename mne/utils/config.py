@@ -880,6 +880,15 @@ def sys_info(
         unicode = False
     mne_version_good = True
     import_names = dict(hedtools="hed")
+    # ``import_module`` below imports each optional dependency purely to read its
+    # version. Some packages change global state at import time -- most notably
+    # ``ipympl``, which switches the Matplotlib backend. Snapshot the backend so
+    # that merely calling ``sys_info`` does not mutate the caller's backend.
+    mpl_backend = None
+    with contextlib.suppress(Exception):
+        import matplotlib
+
+        mpl_backend = matplotlib.get_backend()
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -954,6 +963,15 @@ def sys_info(
                     pre = " | "
                 out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
             out("\n")
+
+    # Restore the Matplotlib backend in case importing a dependency above
+    # (e.g. ipympl) changed it as an import-time side effect.
+    if mpl_backend is not None:
+        with contextlib.suppress(Exception):
+            import matplotlib
+
+            if matplotlib.get_backend() != mpl_backend:
+                matplotlib.use(mpl_backend, force=True)
 
     if not mne_version_good:
         out(
