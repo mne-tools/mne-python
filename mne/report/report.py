@@ -2276,7 +2276,7 @@ class Report:
             ``None``.
         %(picks_ica)s This only affects the behavior of the component
             topography and properties plots.
-        n_components : int 
+        n_components : int
             Maximum number of ICA components to plot. Defaults to 20.
 
             .. versionadded:: 1.13
