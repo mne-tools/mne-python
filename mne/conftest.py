@@ -234,6 +234,17 @@ def pytest_configure(config: pytest.Config):
                 "pandas.errors.Pandas4Warning",
             )
 
+    # Deal with pytest-qt -- everything should already be skipped for example by not
+    # having pyvistaqt installed, so we just need to take care of defining dummy
+    # fixture(s)
+    if not config.pluginmanager.hasplugin("qt"):  # just 3.14t for now
+
+        @pytest.fixture
+        def qtbot():
+            pytest.skip("Requires pytest-qt")
+
+        globals()["qtbot"] = qtbot
+
 
 def pytest_collection_modifyitems(items: list[pytest.Item]):
     """Add slowtest marker automatically to anything marked ultraslow."""

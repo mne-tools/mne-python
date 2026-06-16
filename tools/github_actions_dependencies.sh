@@ -61,3 +61,9 @@ fi
 set -x
 python -m pip install $STD_ARGS $ONLY_BINARY_ARG $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 echo "::endgroup::"
+
+if [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
+	echo "::group::Removing pytest-qt for pip-ft environment"
+	python -m pip uninstall -y pytest-qt
+	echo "::endgroup::"
+fi
