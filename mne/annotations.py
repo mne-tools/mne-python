@@ -2105,7 +2105,7 @@ def _read_annotations_txt(fname):
     if ch_names is not None:
         ch_names = [
             _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
-            for ci, ch in enumerate(ch_names)
+            for ci, ch in enumerate(np.atleast_1d(ch_names))
         ]
 
     annotations = Annotations(

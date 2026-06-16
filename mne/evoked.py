@@ -1609,7 +1609,7 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def _check_evokeds_ch_names_times(all_evoked):
+def _check_evokeds_ch_names_times(all_evoked, inplace=False):
     evoked = all_evoked[0]
     ch_names = evoked.ch_names
     for ii, ev in enumerate(all_evoked[1:]):
@@ -1618,7 +1618,8 @@ def _check_evokeds_ch_names_times(all_evoked):
                 raise ValueError(f"{evoked} and {ev} do not contain the same channels.")
             else:
                 warn("Order of channels differs, reordering channels ...")
-                ev = ev.copy()
+                if not inplace:
+                    ev = ev.copy()
                 ev.reorder_channels(ch_names)
                 all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:

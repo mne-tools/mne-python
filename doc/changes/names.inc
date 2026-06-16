@@ -273,6 +273,7 @@
 .. _Pierre Guetschel: https://github.com/PierreGtch
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 .. _Ping-Keng Jao: https://github.com/nafraw
+.. _Piotr Durka: https://github.com/pjdurka
 .. _Pragnya Khandelwal: https://github.com/PragnyaKhandelwal
 .. _Proloy Das: https://github.com/proloyd
 .. _Qian Chu: https://github.com/qian-chu
@@ -335,6 +336,7 @@
 .. _Stefan Appelhoff: https://stefanappelhoff.com
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
 .. _Steinn Hauser Magnusson: https://github.com/steinnhauser
+.. _Stephanie Jones: https://sites.brown.edu/stephanie-r-jones-lab/
 .. _Steven Bethard: https://github.com/bethard
 .. _Steven Bierer: https://github.com/neurolaunch
 .. _Steven Gutstein: https://github.com/smgutstein
