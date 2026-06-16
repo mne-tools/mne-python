@@ -1,0 +1,7 @@
+# deps with onerous requirements
+conpy  # requires future and subprocess32, which don't have wheels
+cross-domain-saliency-maps  # tensorflow
+fsleyes  # wxPython
+mne-kit-gui  # mayavi
+mne-videobrowser  # opencv
+zuna  # requires pytorch

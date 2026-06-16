@@ -21,6 +21,7 @@ download_is_error
 exitstatus
 startdir
 pg_backend
+mpl_backend
 recwarn
 pytestmark
 nbexec
@@ -40,9 +41,20 @@ verbose_debug
 metadata_routing
 
 # Decoding
-_._more_tags
 _.multi_class
 _.preserves_dtype
+_.one_d_labels
+_.two_d_labels
+_.two_d_array
+_.three_d_array
+_.requires_fit
+_.regressor_tags
+
+# report
+_.grab_frame
+_.finish
+_.setup
+
 deep
 
 # Backward compat or rarely used
@@ -76,6 +88,7 @@ _download_all_example_data  # CIs
 _cleanup_agg
 _notebook_vtk_works
 _.drop_inds_
+_.required
 
 # mne/io/ant/tests/test_ant.py
 andy_101

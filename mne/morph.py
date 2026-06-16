@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from .fixes import _eye_array, _get_img_fdata
+from .fixes import _get_img_fdata, _reshape_view
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -292,8 +292,11 @@ def compute_source_morph(
             assert morph_mat.shape[0] == n_verts
 
     vertices_to = vertices_to_surf + vertices_to_vol
+
     if src_to is not None:
         assert len(vertices_to) == len(src_to)
+        # set spacing to None when src_to is provided
+        spacing = None
     morph = SourceMorph(
         subject_from,
         subject_to,
@@ -412,7 +415,7 @@ class SourceMorph:
     pre_affine : instance of dipy.align.AffineMap
         The transformation that is applied before the before ``sdr_morph``.
     sdr_morph : instance of dipy.align.DiffeomorphicMap
-        The class that applies the the symmetric diffeomorphic registration
+        The class that applies the symmetric diffeomorphic registration
         (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
@@ -1228,7 +1231,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e += _eye_array(n_vertices, format="csr")
+    e += sparse.eye_array(n_vertices, format="csr")
     if isinstance(smooth, str):
         _check_option("smooth", smooth, ("nearest",), extra=" when used as a string.")
         mm = _surf_nearest(vertices_from, e).tocsr()
@@ -1377,7 +1380,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
     assert e.shape == (n_tot, n_tot)
     # our output matrix starts out as a smaller matrix, and will gradually
     # increase in size
-    data = _eye_array(len(idx_from), format="csr")
+    data = sparse.eye_array(len(idx_from), format="csr")
     _validate_type(smooth, ("int-like", str, None), "smoothing steps")
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, "smoothing steps")
@@ -1556,7 +1559,7 @@ def _apply_morph_data(morph, stc_from):
         data[to_sl] = morph.morph_mat @ data_from[from_sl]
     assert to_used.all()
     assert from_used.all()
-    data.shape = (data.shape[0],) + stc_from.data.shape[1:]
+    data = _reshape_view(data, (data.shape[0],) + stc_from.data.shape[1:])
     klass = stc_from.__class__
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep, morph.subject_to)
     return stc_to

@@ -30,7 +30,6 @@ from mne import (
     read_evokeds,
     read_forward_solution,
     read_source_spaces,
-    transform_surface_to,
     write_evokeds,
 )
 from mne._fiff.constants import FIFF
@@ -219,8 +218,7 @@ def test_dipole_fitting(tmp_path):
     )
 
     # Compare to original points
-    transform_surface_to(fwd["src"][0], "head", fwd["mri_head_t"])
-    transform_surface_to(fwd["src"][1], "head", fwd["mri_head_t"])
+    fwd["src"]._transform_to("head", fwd["mri_head_t"])
     assert fwd["src"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
     src_rr = np.concatenate([s["rr"][v] for s, v in zip(fwd["src"], vertices)], axis=0)
     src_nn = np.concatenate([s["nn"][v] for s, v in zip(fwd["src"], vertices)], axis=0)
@@ -367,6 +365,8 @@ def test_min_distance_fit_dipole():
 
     with pytest.raises(ValueError, match="min_dist should be positive"):
         fit_dipole(evoked, cov, fname_bem, fname_trans, -1.0)
+    with pytest.raises(ValueError, match="not spherical"):
+        fit_dipole(evoked, cov, bem, trans=None)
 
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
@@ -389,10 +389,19 @@ def test_accuracy():
     )
     evoked.pick("meg")
     evoked.pick([c for c in evoked.ch_names[::4]])
-    for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
+    for rad, perc_90 in zip((0.095, None), (0.002, 0.004)):
         bem = make_sphere_model(
-            "auto", rad, evoked.info, relative_radii=(0.999, 0.998, 0.997, 0.995)
+            (0.0, 0.0, 0.04),
+            rad,
+            evoked.info,
+            relative_radii=(0.999, 0.998, 0.997, 0.995),
         )
+        if rad is not None:
+            # These should end up being sorted, and normed by largest relative radius
+            assert_allclose(bem["layers"][0]["rad"], 0.995 / 0.999 * rad)
+            assert_allclose(bem["layers"][-1]["rad"], rad)
+        else:
+            assert bem["layers"] == []
         src = read_source_spaces(fname_src)
 
         fwd = make_forward_solution(evoked.info, None, src, bem)

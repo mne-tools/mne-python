@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import re
 from functools import partial
 
@@ -10,7 +11,14 @@ import pytest
 from matplotlib.colors import same_color
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations, BaseEpochs, create_info, make_fixed_length_epochs
+from mne import (
+    Annotations,
+    BaseEpochs,
+    create_info,
+    grand_average,
+    make_fixed_length_epochs,
+)
+from mne.channels import equalize_channels
 from mne.io import RawArray
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
@@ -19,7 +27,7 @@ from mne.time_frequency.spectrum import (
     SpectrumArray,
     combine_spectrum,
 )
-from mne.utils import _record_warnings
+from mne.utils import _import_h5io_funcs, _record_warnings
 
 
 def test_compute_psd_errors(raw):
@@ -171,6 +179,7 @@ def _get_inst(inst, request, *, evoked=None, average_tfr=None):
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked=evoked)
     if isinstance(inst, BaseEpochs):
@@ -183,6 +192,25 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     orig.save(fname)
     loaded = read_spectrum(fname)
     assert orig == loaded
+    # Only check following for one type
+    if not isinstance(inst, BaseEpochs):
+        return
+    # Test loading with old-style birthday format
+    fname_subject_info = tmp_path / "subject-info.h5"
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname_subject_info, dict(birthday=(2000, 1, 1)), title="subject_info")
+    with h5py.File(fname, "r+") as f:
+        del f["mnepython/key_info/key_subject_info"]
+        f["mnepython/key_info/key_subject_info"] = h5py.ExternalLink(
+            fname_subject_info, "subject_info"
+        )
+    loaded = read_spectrum(fname)
+    assert isinstance(loaded.info["subject_info"]["birthday"], datetime.date)
+    # Test Spectrum from EpochsSpectrum.average() can be read (gh-13521)
+    origavg = orig.average()
+    origavg.save(fname, overwrite=True)
+    loadedavg = read_spectrum(fname)
+    assert origavg == loadedavg
 
 
 def test_spectrum_copy(raw_spectrum):
@@ -200,8 +228,8 @@ def test_combine_spectrum(raw_spectrum, weights):
     spectrum1 = raw_spectrum.copy()
     spectrum2 = raw_spectrum.copy()
     if weights == "nave":
-        spectrum1._nave = 1
-        spectrum2._nave = 2
+        spectrum1.nave = 1
+        spectrum2.nave = 2
         spectrum2._data *= 2
         new_spectrum = combine_spectrum([spectrum1, spectrum2], weights=weights)
         assert_allclose(new_spectrum.data, spectrum1.data * (5 / 3))
@@ -241,6 +269,25 @@ def test_combine_spectrum_error_catch(raw_spectrum):
     raw_spectrum2._freqs = raw_spectrum2._freqs + 1
     with pytest.raises(AssertionError, match=".* do not contain the same frequencies"):
         combine_spectrum([raw_spectrum, raw_spectrum2], weights="equal")
+
+
+def test_grand_average(raw_spectrum):
+    """Test `grand_average()` works for instances of `BaseSpectrum`."""
+    spectrum1 = raw_spectrum.copy()
+    spectrum2 = raw_spectrum.copy()
+    spectrum2._data *= 2
+    new_spectrum = grand_average([spectrum1, spectrum2])
+    assert_allclose(new_spectrum.data, spectrum1.data * 1.5)
+
+
+def test_equalize_channels(raw_spectrum):
+    """Test equalization of channels for instances of `BaseSpectrum`."""
+    spect1 = raw_spectrum.copy()
+    spect2 = spect1.copy().pick(["MEG 0122", "MEG 0111"])
+    spect1, spect2 = equalize_channels([spect1, spect2])
+
+    assert spect1.ch_names == ["MEG 0111", "MEG 0122"]
+    assert spect2.ch_names == ["MEG 0111", "MEG 0122"]
 
 
 def test_spectrum_reject_by_annot(raw):
@@ -294,6 +341,7 @@ def test_epochs_spectrum_average(epochs_spectrum, method):
     avg_spect = epochs_spectrum.average(method=method)
     assert avg_spect.shape == epochs_spectrum.shape[1:]
     assert avg_spect._dims == ("channel", "freq")  # no 'epoch'
+    assert repr(avg_spect).startswith("<Averaged Power Spectrum (from Epochs")
 
 
 @pytest.mark.parametrize("inst", ("raw_spectrum", "epochs_spectrum", "evoked"))

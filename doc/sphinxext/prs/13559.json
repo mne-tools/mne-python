@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "3d78451d5fe271859642ed25159668ef3962d68c",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

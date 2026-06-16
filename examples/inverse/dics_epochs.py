@@ -5,11 +5,10 @@
 Compute source level time-frequency timecourses using a DICS beamformer
 =======================================================================
 
-In this example, a Dynamic Imaging of Coherent Sources (DICS)
-:footcite:`GrossEtAl2001` beamformer is used to transform sensor-level
-time-frequency objects to the source level. We will look at the event-related
-synchronization (ERS) of beta band activity in the :ref:`somato dataset
-<somato-dataset>`.
+In this example, a Dynamic Imaging of Coherent Sources (DICS) :footcite:`GrossEtAl2001`
+beamformer is used to transform sensor-level time-frequency objects to the source level.
+We will look at the event-related synchronization (ERS) of beta band activity in the
+:ref:`somato dataset <somato-dataset>`.
 """
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>

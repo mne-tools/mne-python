@@ -14,15 +14,19 @@ with open(repo_root / "pyproject.toml", "rb") as fid:
     pyproj = tomllib.load(fid)
 
 # Get our "full" dependences from `pyproject.toml`, but actually ignore the
-# "full" section as it's just "full-noqt" plus PyQt6, and for conda we need PySide
-ignore = ("dev", "doc", "test", "test_extra", "full", "full-pyqt6")
+# "full-pyqt6" section as it's just "full-noqt" plus PyQt6. Also ignore "full-pyside6"
+# as it's just a redirect to "full".
+ignore = ("full-pyqt6", "full-pyside6")
 deps = set(pyproj["project"]["dependencies"])
 for section, section_deps in pyproj["project"]["optional-dependencies"].items():
     if section not in ignore:
         deps |= set(section_deps)
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
-deps |= {"pip", "mamba", "nomkl"}
+deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
+# not on conda-forge
+pip_deps = {"pymef"}
+deps -= pip_deps
 
 
 def remove_spaces(version_spec):
@@ -46,33 +50,35 @@ req_python = remove_spaces(pyproj["project"]["requires-python"])
 
 # split package name from version spec
 translations = dict(neo="python-neo")
-pip_deps = set()
-conda_deps = set()
+conda_dep_lines = set()
+version_spec_overrides = {
+    # Help the solver work faster by specifying these (should be updated periodically):
+    "PySide6": "==6.10.2",
+    "vtk": "==9.6.0",
+}
+for key in version_spec_overrides:
+    assert any(dep.startswith(key) for dep in deps), (
+        f"Need to adjust code below if {key} is not a dependency: {deps}"
+    )
 for dep in deps:
     package_name, version_spec = split_dep(dep)
+    version_spec = version_spec_overrides.get(package_name, version_spec)
     # handle package name differences
     package_name = translations.get(package_name, package_name)
-    # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
-    # `environment.yaml` breaks the solver
-    if package_name == "PySide6":
-        version_spec = "!=6.9.1"
+    # C deps that mean we need to upgrade VTK etc.
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
-        pip_deps.add(f"    {line}")
+        pip_deps.add(line[4:])
     else:
-        conda_deps.add(line)
-
-# TODO: temporary workaround while we wait for a release containing the fix for
-# https://github.com/mamba-org/mamba/issues/3467
-pip_deps.remove("      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'")
+        conda_dep_lines.add(line)
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
 pip_section = f"""\
   - pip:
-{newline.join(sorted(pip_deps, key=str.casefold))}
+{newline.join(sorted((f"      - {dep}" for dep in pip_deps), key=str.casefold))}
 """
 pip_section = pip_section if len(pip_deps) else ""
 # prepare the env file
@@ -83,7 +89,7 @@ channels:
   - conda-forge
 dependencies:
   - python {req_python}
-{newline.join(sorted(conda_deps, key=str.casefold))}
+{newline.join(sorted(conda_dep_lines, key=str.casefold))}
 {pip_section}"""  # noqa: E501
 
 (repo_root / "environment.yml").write_text(env)

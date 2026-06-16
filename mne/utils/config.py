@@ -681,11 +681,9 @@ def _get_gpu_info():
 def _get_total_memory():
     """Return the total memory of the system in bytes."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            [
-                "powershell.exe",
-                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
-            ]
+            [ps, "-c", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"]
         ).decode()
         # Can get for example a "running scripts is disabled on this system"
         # error where "o" will be a long string rather than an int
@@ -708,8 +706,9 @@ def _get_total_memory():
 def _get_cpu_brand():
     """Return the CPU brand string."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            ["powershell.exe", "(Get-CimInstance Win32_Processor).Name"]
+            [ps, "-c", "(Get-CimInstance Win32_Processor).Name"]
         ).decode()
         cpu_brand = o.strip().splitlines()[-1]
     elif platform.system() == "Linux":
@@ -777,15 +776,15 @@ def sys_info(
     out("Executable".ljust(ljust) + sys.executable + "\n")
     try:
         cpu_brand = _get_cpu_brand()
-    except Exception:
-        cpu_brand = "?"
+    except Exception as exc:
+        cpu_brand = f"? (could not determine: {exc})"
     out("CPU".ljust(ljust) + f"{cpu_brand} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
         total_memory = _get_total_memory()
-    except UnknownPlatformError:
-        total_memory = "?"
+    except Exception as exc:
+        total_memory = f"? (could not determine: {exc})"
     else:
         total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
@@ -824,6 +823,7 @@ def sys_info(
         # "trame",  # no version, see https://github.com/Kitware/trame/issues/183
         "trame_client",
         "trame_server",
+        "trame_pyvista",
         "trame_vtk",
         "trame_vuetify",
         "",
@@ -837,21 +837,24 @@ def sys_info(
         "neo",
         "eeglabio",
         "edfio",
+        "curryreader",
         "mffpy",
         "pybv",
+        "pymef",
+        "antio",
+        "defusedxml",
         "",
     )
     if dependencies == "developer":
         use_mod_names += (
             "# Testing",
             "pytest",
+            "hedtools",
             "statsmodels",
             "numpydoc",
-            "flake8",
             "jupyter_client",
             "nbclient",
             "nbformat",
-            "pydocstyle",
             "nitime",
             "imageio",
             "imageio-ffmpeg",
@@ -876,6 +879,16 @@ def sys_info(
     except Exception:  # in case someone overrides sys.stdout in an unsafe way
         unicode = False
     mne_version_good = True
+    import_names = dict(hedtools="hed")
+    # ``import_module`` below imports each optional dependency purely to read its
+    # version. Some packages change global state at import time -- most notably
+    # ``ipympl``, which switches the Matplotlib backend. Snapshot the backend so
+    # that merely calling ``sys_info`` does not mutate the caller's backend.
+    mpl_backend = None
+    with contextlib.suppress(Exception):
+        import matplotlib
+
+        mpl_backend = matplotlib.get_backend()
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -896,7 +909,8 @@ def sys_info(
         if last:
             pre = "└"
         try:
-            mod = import_module(mod_name.replace("-", "_"))
+            import_name = import_names.get(mod_name, mod_name.replace("-", "_"))
+            mod = import_module(import_name)
         except Exception:
             unavailable.append(mod_name)
         else:
@@ -950,6 +964,15 @@ def sys_info(
                 out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
             out("\n")
 
+    # Restore the Matplotlib backend in case importing a dependency above
+    # (e.g. ipympl) changed it as an import-time side effect.
+    if mpl_backend is not None:
+        with contextlib.suppress(Exception):
+            import matplotlib
+
+            if matplotlib.get_backend() != mpl_backend:
+                matplotlib.use(mpl_backend, force=True)
+
     if not mne_version_good:
         out(
             "\nTo update to the latest supported release version to get bugfixes and "
@@ -983,7 +1006,7 @@ def _check_mne_version(timeout):
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:
-        return True, f"devel, latest release is {rel_ver}"
+        return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:
         return True, "latest release"
     else:

@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import pytest
+from matplotlib.font_manager import findfont
 
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
@@ -168,6 +169,14 @@ def test_3d_backend(renderer):
         size=txt_size,
         justification="right",
     )
+    # test font_file passthrough with a real font from matplotlib
+    font_path = findfont("serif")
+    rend.text2d(
+        x_window=txt_x + 0.1,
+        y_window=txt_y + 0.1,
+        text="font test",
+        font_file=font_path,
+    )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(
         azimuth=180.0, elevation=90.0, distance=cam_distance, focalpoint=center
@@ -226,6 +235,7 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     bad = f"{pre}OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setenv("MNE_IS_OSMESA", "false")
     assert _is_osmesa(plotter)
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):

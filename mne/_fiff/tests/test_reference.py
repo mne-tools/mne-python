@@ -257,6 +257,10 @@ def test_set_eeg_reference():
     with pytest.raises(ValueError, match='supported for ref_channels="averag'):
         set_eeg_reference(raw, ["EEG 001"], True, True)
 
+    # Test passing a single channel name as string
+    reref, ref_data = set_eeg_reference(raw, "EEG 001", copy=True)
+    _test_reference(raw, reref, ref_data, ["EEG 001"])
+
 
 @pytest.mark.parametrize(
     "ch_type, msg",
@@ -284,9 +288,17 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     else:
         ref_ch = raw.copy().pick(picks=ch_type).ch_names
 
+    # joint=True forces the union-of-types behavior so we can keep validating
+    # ref_data against the joint mean; per-type default is covered by
+    # test_set_eeg_reference_ch_type_list_per_type below.
+    joint = isinstance(ch_type, list) and len(ch_type) > 1
     with catch_logging() as log:
         reref, ref_data = set_eeg_reference(
-            raw.copy(), ch_type=ch_type, projection=projection, verbose=True
+            raw.copy(),
+            ch_type=ch_type,
+            projection=projection,
+            joint=joint,
+            verbose=True,
         )
 
     if not projection:
@@ -302,6 +314,47 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
         ValueError, match="No EEG, ECoG, sEEG or DBS channels found to rereference."
     ):
         set_eeg_reference(raw2, ch_type="auto", projection=projection)
+
+
+@pytest.mark.parametrize("projection", [False, True])
+def test_set_eeg_reference_ch_type_list_per_type(projection):
+    """Test list ch_type defaults to one reference per channel type (gh-13913)."""
+    # Build seeg at +10 uV and ecog at -10 uV (constant). Union mean is zero,
+    # so a single union average reference would leave each subset's original
+    # offset intact. A per-type CAR zeros both subsets.
+    sfreq = 1000.0
+    n = 500
+    data = np.vstack([np.full((4, n), 10.0), np.full((4, n), -10.0)]) * 1e-6
+    ch_names = [f"S{i}" for i in range(4)] + [f"E{i}" for i in range(4)]
+    info = create_info(ch_names, sfreq, ["seeg"] * 4 + ["ecog"] * 4)
+    raw = RawArray(data, info)
+
+    # Default joint=False: per-type reference. ref_data is None.
+    reref, ref_data = set_eeg_reference(
+        raw.copy(),
+        ref_channels="average",
+        ch_type=["seeg", "ecog"],
+        projection=projection,
+    )
+    if projection:
+        reref.apply_proj()
+    assert ref_data is None
+    assert_allclose(reref.get_data(picks="seeg").mean(), 0.0, atol=1e-15)
+    assert_allclose(reref.get_data(picks="ecog").mean(), 0.0, atol=1e-15)
+
+    # joint=True: legacy union-of-types behavior. Union mean is zero, so
+    # neither subset gets zeroed.
+    reref_joint, _ = set_eeg_reference(
+        raw.copy(),
+        ref_channels="average",
+        ch_type=["seeg", "ecog"],
+        projection=projection,
+        joint=True,
+    )
+    if projection:
+        reref_joint.apply_proj()
+    assert_allclose(reref_joint.get_data(picks="seeg").mean(), 10e-6, atol=1e-15)
+    assert_allclose(reref_joint.get_data(picks="ecog").mean(), -10e-6, atol=1e-15)
 
 
 @testing.requires_testing_data
@@ -743,6 +796,10 @@ def test_add_reference():
     ref_idy = raw.ch_names.index("M2")
     ref_data, _ = raw[[ref_idx, ref_idy]]
     assert_array_equal(ref_data, 0)
+
+    loc1 = raw.info["chs"][ref_idx]["loc"]
+    loc2 = raw.info["chs"][ref_idy]["loc"]
+    assert loc1 is not loc2
 
     # add reference channel to epochs
     raw = read_raw_fif(fif_fname, preload=True)

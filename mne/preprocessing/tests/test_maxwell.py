@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import pathlib
 import re
 from contextlib import contextmanager
 from functools import partial
@@ -35,6 +34,7 @@ from mne.preprocessing import (
     compute_maxwell_basis,
     find_bad_channels_maxwell,
     maxwell_filter_prepare_emptyroom,
+    read_fine_calibration,
 )
 from mne.preprocessing import (
     maxwell_filter as _maxwell_filter_ola,
@@ -562,6 +562,7 @@ def test_multipolar_bases():
         assert_allclose(S_tot, S_tot_fast * flips, atol=1e-16)
 
 
+# This is also slow, but we probably want it running on all OSes
 @testing.requires_testing_data
 def test_basic():
     """Test Maxwell filter basic version."""
@@ -587,7 +588,12 @@ def test_basic():
     assert len(raw.info["projs"]) == 12  # 11 MEG projs + 1 AVG EEG
     with use_coil_def(elekta_def_fname):
         raw_sss = maxwell_filter(
-            raw, origin=mf_head_origin, regularize=None, bad_condition="ignore"
+            raw,
+            origin=mf_head_origin,
+            regularize=None,
+            bad_condition="ignore",
+            calibration=False,  # just for completeness
+            cross_talk=False,
         )
     assert len(raw_sss.info["projs"]) == 1  # avg EEG
     assert raw_sss.info["projs"][0]["desc"] == "Average EEG reference"
@@ -755,6 +761,7 @@ def test_spatiotemporal():
         maxwell_filter(raw, st_duration=10.0, st_correlation=0.0)
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 def test_st_overlap():
@@ -846,28 +853,49 @@ def test_fine_calibration():
     sss_fine_cal = read_crop(sss_fine_cal_fname)
 
     # Test 1D SSS fine calibration
-    with use_coil_def(elekta_def_fname):
-        with catch_logging() as log:
-            raw_sss = maxwell_filter(
-                raw,
-                calibration=fine_cal_fname,
-                origin=mf_head_origin,
-                regularize=None,
-                bad_condition="ignore",
-                verbose=True,
-            )
+    kwargs = dict(
+        origin=mf_head_origin,
+        regularize=None,
+        bad_condition="ignore",
+        verbose=True,
+    )
+    with use_coil_def(elekta_def_fname), catch_logging() as log:
+        raw_sss = maxwell_filter(raw, calibration=fine_cal_fname, **kwargs)
     log = log.getvalue()
     assert "Using fine calibration" in log
+    adj_msg = "Adjusting non-orthogonal EX and EY"
+    assert adj_msg in log
+    assert "(max: 1.4" in log
     assert fine_cal_fname.stem in log
     assert_meg_snr(raw_sss, sss_fine_cal, 1.3, 180)  # similar to MaxFilter
     py_cal = raw_sss.info["proc_history"][0]["max_info"]["sss_cal"]
-    assert py_cal is not None
-    assert len(py_cal) > 0
+    assert isinstance(py_cal, dict) and len(py_cal)
     mf_cal = sss_fine_cal.info["proc_history"][0]["max_info"]["sss_cal"]
+    assert isinstance(mf_cal, dict) and len(mf_cal)
     # we identify these differently
     mf_cal["cal_chans"][mf_cal["cal_chans"][:, 1] == 3022, 1] = 3024
+    fc = read_fine_calibration(fine_cal_fname)
+    assert_allclose(fc["locs"][:, :3], mf_cal["cal_corrs"][:, -12:-9])  # pos
+    assert_allclose(fc["locs"][:, :3], py_cal["cal_corrs"][:, -12:-9])
+    assert_allclose(mf_cal["cal_corrs"][:, -3:], fc["locs"][:, -3:])  # ez
+    assert_allclose(py_cal["cal_corrs"][:, -3:], fc["locs"][:, -3:])
+    assert_allclose(  # ex, ey get updated by rotation, which doesn't exactly match
+        py_cal["cal_corrs"][:, -9:-3],
+        mf_cal["cal_corrs"][:, -9:-3],
+        atol=1e-3,
+    )
     assert_allclose(py_cal["cal_chans"], mf_cal["cal_chans"])
-    assert_allclose(py_cal["cal_corrs"], mf_cal["cal_corrs"], rtol=1e-3, atol=1e-3)
+    with pytest.raises(RuntimeError, match=r"info\['fine_calibration'\] is None"):
+        maxwell_filter(raw, calibration=True, **kwargs)
+    with raw.info._unlock():
+        raw.info["fine_calibration"] = py_cal
+    with use_coil_def(elekta_def_fname), catch_logging() as log:
+        raw_sss_builtin = maxwell_filter(raw, **kwargs)
+    log = log.getvalue()
+    assert adj_msg not in log
+    assert_allclose(raw_sss_builtin[:][0], raw_sss[:][0])
+    with raw.info._unlock():
+        del raw.info["fine_calibration"]
     # with missing channels
     raw_missing = raw.copy().load_data()
     raw_missing.info["bads"] = ["MEG0111", "MEG0943"]  # 1 mag, 1 grad
@@ -949,23 +977,35 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
     )
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_cross_talk(tmp_path):
     """Test Maxwell filter cross-talk cancellation."""
     raw = read_crop(raw_fname, (0.0, 1.0))
     raw.info["bads"] = bads
     sss_ctc = read_crop(sss_ctc_fname)
+    kwargs = dict(
+        origin=mf_head_origin,
+        regularize=None,
+        bad_condition="ignore",
+    )
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(
-            raw,
-            cross_talk=pathlib.Path(ctc_fname),
-            origin=mf_head_origin,
-            regularize=None,
-            bad_condition="ignore",
-        )
+        raw_sss = maxwell_filter(raw, cross_talk=ctc_fname, **kwargs)
     assert_meg_snr(raw_sss, sss_ctc, 275.0)
     py_ctc = raw_sss.info["proc_history"][0]["max_info"]["sss_ctc"]
     assert len(py_ctc) > 0
+
+    # using built-in cross-talk
+    with pytest.raises(RuntimeError, match=r"info\['cross_talk'\] is None"):
+        maxwell_filter(raw, cross_talk=True, **kwargs)
+    with raw.info._unlock():
+        raw.info["cross_talk"] = py_ctc
+    with use_coil_def(elekta_def_fname):
+        raw_sss_builtin = maxwell_filter(raw, **kwargs)
+    assert len(raw_sss_builtin.info["proc_history"][0]["max_info"]["sss_ctc"]) > 0
+    assert_allclose(raw_sss[:][0], raw_sss_builtin[:][0])
+    del raw_sss_builtin, raw_sss
+
     with pytest.raises(TypeError, match="path-like"):
         maxwell_filter(raw, cross_talk=raw)
     with pytest.raises(ValueError, match="Invalid cross-talk FIF"):
@@ -1077,6 +1117,7 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     )
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 @pytest.mark.parametrize("regularize", ("in", None))
@@ -1232,7 +1273,7 @@ def test_shielding_factor(tmp_path):
         coord_frame="meg",
         regularize=None,
         origin=mf_meg_origin,
-        calibration=pathlib.Path(fine_cal_fname),
+        calibration=fine_cal_fname,
     )
     _assert_shielding(raw_sss, erm_power, 12, 13)  # 2.0)
 
@@ -1475,7 +1516,7 @@ def test_all():
     coord_frames = ("head", "head", "meg", "head")
     ctcs = (ctc_fname, ctc_fname, ctc_fname, ctc_mgh_fname)
     mins = (3.5, 3.5, 1.2, 0.9)
-    meds = (10.8, 10.2, 3.2, 5.9)
+    meds = (10.7, 10.1, 3.2, 5.9)
     st_durs = (1.0, 1.0, 1.0, None)
     destinations = (None, sample_fname, None, None)
     origins = (mf_head_origin, mf_head_origin, mf_meg_origin, mf_head_origin)
@@ -1492,7 +1533,7 @@ def test_all():
                 origin=origins[ii],
             )
         sss_mf = read_crop(sss_fnames[ii])
-        assert_meg_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=rf)
+        assert_meg_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=f"{ii=} {rf=!s}")
 
 
 @pytest.mark.slowtest
@@ -1560,6 +1601,7 @@ def test_MGH_cross_talk():
     assert len(py_ctc) > 0
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mf_skips():
     """Test processing of data with skips."""
@@ -1607,6 +1649,7 @@ def test_mf_skips():
     assert_allclose(data_sc, data_cs, atol=1e-20)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     (
@@ -1622,10 +1665,21 @@ def test_mf_skips():
     ),
     [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ["MEG 2443"], False, None, "raw"),
+        pytest.param(
+            sample_fname,
+            [],
+            False,
+            False,
+            False,
+            ["MEG 2443"],
+            False,
+            None,
+            "raw",
+            id="Neuromag no bads",
+        ),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
-        (
+        pytest.param(
             sample_fname,
             ["MEG 0111"],
             True,
@@ -1635,11 +1689,12 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="Neuromag with bads and annot",
         ),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
-        (
+        pytest.param(
             ctf_fname_continuous,
             [],
             False,
@@ -1649,9 +1704,10 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="CTF no bads",
         ),
         # faked
-        (
+        pytest.param(
             ctf_fname_continuous,
             [],
             False,
@@ -1661,10 +1717,33 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="CTF ignore ref",
         ),
         # For `return_scores=True`
-        (sample_fname, ["MEG 0111"], True, True, False, ["MEG 2443"], True, 50, "raw"),
-        (sample_fname, ["MEG 0111"], True, True, False, ["MEG 2443"], True, 50, None),
+        pytest.param(
+            sample_fname,
+            ["MEG 0111"],
+            True,
+            True,
+            False,
+            ["MEG 2443"],
+            True,
+            50,
+            "raw",
+            id="Neuromag return scores",
+        ),
+        pytest.param(
+            sample_fname,
+            ["MEG 0111"],
+            True,
+            True,
+            False,
+            ["MEG 2443"],
+            True,
+            50,
+            None,
+            id="Neuromag return scores no meas date",
+        ),
     ],
 )
 def test_find_bad_channels_maxwell(
@@ -1790,6 +1869,7 @@ def test_find_bad_channels_maxwell(
         assert bads == set(want_bads)
 
 
+@pytest.mark.slowtest
 def test_find_bads_maxwell_flat():
     """Test find_bads_maxwell when there are flat channels."""
     # See gh-9479

@@ -11,7 +11,8 @@ except ImportError:  # scipy < 1.8
     from scipy.io.matlab.mio5_params import MatlabOpaque
 from scipy.io import loadmat
 
-from ...utils import _import_pymatreader_funcs
+from ...fixes import _whosmat
+from ...utils import _import_pymatreader_funcs, warn
 
 
 def _todict_from_np_struct(data):  # taken from pymatreader.utils
@@ -71,13 +72,94 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
     return data
 
 
-def _readmat(fname, uint16_codec=None):
+def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
+    """Load with scipy and then run the check function."""
+    mat_data = loadmat(
+        file_name,
+        squeeze_me=True,
+        mat_dtype=False,
+        variable_names=variable_names,
+        uint16_codec=uint16_codec,
+    )
+    return _check_for_scipy_mat_struct(mat_data)
+
+
+def _readmat(fname, uint16_codec=None, *, preload=False):
     try:
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
-        eeg = loadmat(
-            fname, squeeze_me=True, mat_dtype=False, uint16_codec=uint16_codec
+        read_mat = _scipy_reader
+
+    # First handle the preload=False case
+    if not preload:
+        # when preload is `False`, we need to be selective about what we load
+        # and handle the 'data' field specially
+
+        # the files in eeglab are always the same field names
+        # the fields were taken from the eeglab sample reference
+        # available at the eeglab github:
+        # https://github.com/sccn/eeglab/blob/develop/sample_data/eeglab_data.set
+        # The sample reference is the big reference for the field names
+        # in eeglab files, and what is used in the eeglab tests.
+        info_fields = """
+            setname filename filepath subject group condition session comments
+            nbchan trials pnts srate xmin xmax times icaact icawinv icasphere
+            icaweights icachansind chanlocs urchanlocs chaninfo ref event
+            urevent eventdescription epoch epochdescription reject stats
+            specdata specicaact splinefile icasplinefile dipfit history saved
+            etc
+        """.split()
+
+        # We first load only the info fields that are not data
+        # Then we check if 'data' is present and load it separately if needed
+        mat_data = read_mat(
+            fname,
+            variable_names=info_fields,
+            uint16_codec=uint16_codec,
         )
-        return _check_for_scipy_mat_struct(eeg)
-    else:
+
+        # checking the variables in the .set file
+        # to decide how to handle 'data' variable
+        try:
+            variables = _whosmat(str(fname))
+        except Exception:
+            warn("Could not inspect .set file variables. Setting preload=True.")
+            preload = True
+            return read_mat(fname, uint16_codec=uint16_codec)
+
+        is_possible_not_loaded = False
+
+        numeric_types = """
+            int8 int16 int32
+            int64 uint8 uint16
+            uint32 uint64 single double
+        """.split()
+
+        for var in variables:
+            # looking for 'data' variable
+            if var[0] != "data":
+                continue
+
+            # checking if 'data' variable is numeric
+            is_numeric = var[2] in numeric_types
+
+            # if any 'data' variable is numeric, mark as possibly not loaded
+            if is_numeric:
+                # set the 'data' field to the filename
+                mat_data["data"] = str(fname)
+
+            is_possible_not_loaded = is_possible_not_loaded or is_numeric
+
+        if is_possible_not_loaded:
+            return mat_data
+        else:
+            # "The 'data' variable in the .set file appears to be numeric. "
+            # "In preload=False mode, the data is not loaded into memory. "
+            # "Instead, the filename is provided in mat_data['data']. "
+            # "To load the actual data, set preload=True."
+            # this is case of single file .set with data inside
+            preload = True
+
+    # here is intended to be if and not else if
+    if preload:
         return read_mat(fname, uint16_codec=uint16_codec)

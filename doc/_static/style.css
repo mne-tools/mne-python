@@ -9,8 +9,10 @@
     --mne-color-discord: #5865F2;
     /* font weight */
     --mne-font-weight-semibold: 600;
+    /* sponsor/instutition logo sizes */
+    --mne-sponsor-logo-lg: 6rem;
+    --mne-sponsor-logo-sm: 3rem;
 }
-
 
 html[data-theme="light"] {
     /* pydata-sphinx-theme overrides */
@@ -31,6 +33,8 @@ html[data-theme="light"] {
     --mne-color-github: #000;
     --mne-color-discourse: #d0232b;
     --mne-color-mastodon: #2F0C7A;
+    --mne-color-sponsor: #BF3989;  /* from GH sponsor heart, via browser devtools */
+    --mne-color-opencollective: #1F87FF;  /* scraped from logo SVG */
     /* code block copy button */
     --copybtn-opacity: 0.75;
     /* card header bg color */
@@ -63,6 +67,8 @@ html[data-theme="dark"] {
     --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
     --mne-color-mastodon: #858AFA;  /* www.joinmastodon.org/en/branding */
+    --mne-color-sponsor: #DB61A2;  /* from GH sponsor heart, via browser devtools */
+    --mne-color-opencollective: #99CFFF;  /* scraped from logo SVG */
     /* code block copy button */
     --copybtn-opacity: 0.25;
     /* card header bg color */
@@ -76,7 +82,10 @@ html[data-theme="dark"] {
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
 }
-
+html[data-theme="dark"] img:not(.only-dark, .dark-light) {
+    /* remove img filters from pydata-sphinx theme */
+    filter: unset !important;
+}
 /* ************************************************************ Sphinx fixes */
 
 /* API docs parameter lists */
@@ -142,6 +151,12 @@ p.sphx-glr-signature {
     margin: 0;
     padding: 0;
 }
+/* this fixes the "Examples using <some-method>" quirk */
+p.rubric {
+  flex-direction: row;
+  gap: 4px;
+}
+
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
     border-radius: 0.5rem;
@@ -253,7 +268,7 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-.navbar-icon-links svg.fa-square-github {
+.navbar-icon-links svg.fa-github {
     color: var(--mne-color-github);
 }
 .navbar-icon-links svg.fa-discourse {
@@ -264,6 +279,12 @@ aside.footnote:last-child {
 }
 .navbar-icon-links svg.fa-mastodon {
     color: var(--mne-color-mastodon);
+}
+.navbar-icon-links svg.fa-heart {
+    color: var(--mne-color-sponsor);
+}
+.navbar-icon-links svg.fa-opencollective {
+    color: var(--mne-color-opencollective);
 }
 
 /* ************************************************************ nav elements */
@@ -348,35 +369,61 @@ div.card {
     background-color: var(--mne-color-card-header);
 }
 
-/* *************************************** homepage funder/institution logos */
-div#funder-logos div.card,
-div#funder-logos div.card img,
-div#institution-logos div.card,
-div#institution-logos div.card img,
+/* ************************************************ funder/institution logos */
+div#sponsor-logos div.card,
+div#sponsor-logos div.card img,
 div#contributor-avatars div.card,
 div#contributor-avatars div.card img {
     background-color: unset;
     border: none;
     border-radius: unset;
 }
+div#sponsor-logos div.card img,
 div#contributor-avatars div.card img {
-    width: 2.5em;
+    box-sizing: content-box;
+    max-height: 3rem;
+    width: 3rem;
+    margin: 0 0.2rem;
 }
 .contributor-avatar {
     clip-path: circle(closest-side);
 }
+p.centered {
+    text-align: center;
+}
+p.centered a img.instlogo {
+    background-color: unset !important;
+    border: none;
+    border-radius: unset !important;
+    margin: 0.25rem;
+    max-height: 2rem;
+    max-width: 6rem;
+}
 
 /* ************************************************************ funders page */
-ul.funders li {
-    margin-left: 36px;
-    text-indent: -36px;
-    padding-bottom: 9px;
+ul.current li {
+    margin-left: calc(var(--mne-sponsor-logo-lg) + 0.5rem);
+    text-indent: calc(-1 * var(--mne-sponsor-logo-lg) - 0.5rem);
+    padding-bottom: 0.75rem;
 }
-ul.funders li img {
-    width: 30px;
-    max-height: 24px;
-    object-fit: contain;
+ul.former li {
+    margin-left: calc(var(--mne-sponsor-logo-sm) + 1rem);
+    text-indent: calc(-1 * var(--mne-sponsor-logo-sm) - 1rem);
+    padding-bottom: 0.5rem;
+}
+ul.current li img,
+ul.former li img {
     background-color: unset !important;
+    box-sizing: content-box;
+    object-fit: contain;
+}
+ul.current li img {
+    max-height: calc(0.4 * var(--mne-sponsor-logo-lg));
+    width: var(--mne-sponsor-logo-lg);
+}
+ul.former li img {
+    max-height: calc(0.5 * var(--mne-sponsor-logo-sm));
+    width: var(--mne-sponsor-logo-sm);
 }
 
 /* *********************************************************** contrib guide */

@@ -13,6 +13,7 @@ from surrounding non-oscillatory noise based on the covariance in the
 frequency band of interest and the noise covariance based on surrounding
 frequencies.
 """
+
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 # License: BSD-3-Clause
@@ -25,7 +26,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path
-from mne.decoding import SSD
+from mne.decoding import SSD, get_spatial_filter_from_estimator
 
 # %%
 # Define parameters
@@ -69,8 +70,8 @@ ssd.fit(X=raw.get_data())
 # (W^{-1}) or by multiplying the noise cov with the filters Eq. (22) (C_n W)^t.
 # We rely on the inversion approach here.
 
-pattern = mne.EvokedArray(data=ssd.patterns_[:4].T, info=ssd.info)
-pattern.plot_topomap(units=dict(mag="A.U."), time_format="")
+spf = get_spatial_filter_from_estimator(ssd, info=ssd.info)
+spf.plot_patterns(components=list(range(4)))
 
 # The topographies suggest that we picked up a parietal alpha generator.
 
@@ -82,8 +83,8 @@ psd, freqs = mne.time_frequency.psd_array_welch(
     ssd_sources, sfreq=raw.info["sfreq"], n_fft=4096
 )
 
-# Get spec_ratio information (already sorted).
-# Note that this is not necessary if sort_by_spectral_ratio=True (default).
+# Get spec_ratio information (already sorted)
+# Note that this is not necessary if sort_by_spectral_ratio=True (default)
 spec_ratio, sorter = ssd.get_spectral_ratio(ssd_sources)
 
 # Plot spectral ratio (see Eq. 24 in Nikulin et al., 2011).
@@ -149,8 +150,8 @@ ssd_epochs = SSD(
 ssd_epochs.fit(X=epochs.get_data(copy=False))
 
 # Plot topographies.
-pattern_epochs = mne.EvokedArray(data=ssd_epochs.patterns_[:4].T, info=ssd_epochs.info)
-pattern_epochs.plot_topomap(units=dict(mag="A.U."), time_format="")
+spf = get_spatial_filter_from_estimator(ssd_epochs, info=ssd_epochs.info)
+spf.plot_patterns(components=list(range(4)))
 # %%
 # References
 # ----------

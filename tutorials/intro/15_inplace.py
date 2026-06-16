@@ -5,16 +5,15 @@
 Modifying data in-place
 =======================
 
-Many of MNE-Python's data objects (`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`,
-etc) have methods that modify the data in-place (either optionally or
-obligatorily). This can be advantageous when working with large datasets
-because it reduces the amount of computer memory needed to perform the
-computations. However, it can lead to unexpected results if you're not aware
-that it's happening. This tutorial provides a few examples of in-place
-processing, and how and when to avoid it.
+Many of MNE-Python's data objects (`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`, etc)
+have methods that modify the data in-place (either optionally or obligatorily). This can
+be advantageous when working with large datasets because it reduces the amount of
+computer memory needed to perform the computations. However, it can lead to unexpected
+results if you're not aware that it's happening. This tutorial provides a few examples
+of in-place processing, and how and when to avoid it.
 
-As usual we'll start by importing the modules we need and loading some
-:ref:`example data <sample-dataset>`:
+As usual we'll start by importing the modules we need and loading some :ref:`example
+data <sample-dataset>`:
 """
 
 # Authors: The MNE-Python contributors.
@@ -84,7 +83,7 @@ print(f"after picking, it has {original_raw.info['nchan']} channels.")
 # we specified ``copy=True``:
 
 # sphinx_gallery_thumbnail_number=2
-rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, ["EEG 003"], copy=True)
+rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, "EEG 003", copy=True)
 fig_orig = original_raw.plot()
 fig_reref = rereferenced_raw.plot()
 

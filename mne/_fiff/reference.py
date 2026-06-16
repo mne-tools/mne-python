@@ -228,7 +228,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with added EEG reference channels.
 
     Notes
@@ -316,7 +316,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
             "unit_mul": FIFF.FIFF_UNITM_NONE,
             "unit": FIFF.FIFF_UNIT_V,
             "coord_frame": FIFF.FIFFV_COORD_HEAD,
-            "loc": ref_dig_array,
+            "loc": ref_dig_array.copy(),
         }
         inst.info["chs"].append(chan_info)
         inst.info._update_redundant()
@@ -396,14 +396,16 @@ def set_eeg_reference(
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with EEG channels re-referenced. If ``ref_channels="average"`` and
         ``projection=True`` a projection will be added instead of directly
         re-referencing the data.
     ref_data : array
         Array of reference data subtracted from EEG channels. This will be
-        ``None`` if ``projection=True``, or if ``ref_channels`` is ``"REST"`` or a
-        :class:`dict`.
+        ``None`` if ``projection=True``, if ``ref_channels`` is ``"REST"`` or a
+        :class:`dict`, or if a per-channel-type average reference was applied
+        (``ref_channels="average"`` with a multi-type ``ch_type`` and
+        ``joint=False``).
     %(set_eeg_reference_see_also_notes)s
     """
     from ..forward import Forward
@@ -413,6 +415,10 @@ def set_eeg_reference(
     if isinstance(ref_channels, dict):
         logger.info("Applying a custom dict-based reference.")
         return _apply_dict_reference(inst, ref_channels)
+
+    # We need 'ref_channels' to be a list, even for a single channel name.
+    if isinstance(ref_channels, str) and ref_channels not in ("average", "REST"):
+        ref_channels = [ref_channels]
 
     ch_type = _get_ch_type(inst, ch_type)
 
@@ -465,13 +471,31 @@ def set_eeg_reference(
     del projection  # not used anymore
 
     inst = inst.copy() if copy else inst
-    ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
-    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels == "REST":
         _validate_type(forward, Forward, 'forward when ref_channels="REST"')
     else:
         forward = None  # signal to _apply_reference not to do REST
+
+    # When ch_type is a list of >1 types and ref_channels="average", default to
+    # computing one reference per channel type so each subset is referenced
+    # independently. Mirrors the projection=True path. Pass joint=True to keep
+    # the legacy union-of-types behavior.
+    if ref_channels == "average" and len(ch_type) > 1 and not joint:
+        for this_ch_type in ch_type:
+            ch_dict = {this_ch_type: True}
+            ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
+            logger.info(
+                f"Applying average reference for "
+                f"{DEFAULTS['titles'][this_ch_type]} channels."
+            )
+            inst, _ = _apply_reference(
+                inst, ch_sel, ch_sel, forward, ch_type=[this_ch_type]
+            )
+        return inst, None
+
+    ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
+    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels in ("average", "REST"):
         logger.info(f"Applying {ref_channels} reference.")
@@ -575,7 +599,7 @@ def set_bipolar_reference(
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with the specified channels re-referenced.
 
     See Also

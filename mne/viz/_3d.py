@@ -4,8 +4,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import os
 import os.path as op
 import warnings
@@ -51,13 +49,13 @@ from ..surface import (
 from ..transforms import (
     Transform,
     _angle_between_quats,
-    _angle_dist_between_rigid,
     _ensure_trans,
     _find_trans,
     _frame_to_str,
     _get_trans,
     _get_transforms_to_coord_frame,
     _print_coord_trans,
+    angle_distance_between_rigid,
     apply_trans,
     combine_transforms,
     read_ras_mni_t,
@@ -328,7 +326,7 @@ def plot_head_positions(
             for ax, val in zip(axes[:3].ravel(), vals):
                 ax.axhline(val, color="r", ls=":", zorder=2, lw=1.0)
             if totals:
-                dest_ang, dest_dist = _angle_dist_between_rigid(
+                dest_ang, dest_dist = angle_distance_between_rigid(
                     destination,
                     angle_units="deg",
                     distance_units="mm",
@@ -554,6 +552,7 @@ def plot_alignment(
     sensor_colors=None,
     *,
     sensor_scales=None,
+    show_channel_names=False,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -648,6 +647,11 @@ def plot_alignment(
     %(sensor_scales)s
 
         .. versionadded:: 1.9
+    show_channel_names : bool
+        If True, overlay channel names at sensor locations.
+        Default is False.
+
+        .. versionadded:: 1.12
     %(verbose)s
 
     Returns
@@ -941,6 +945,23 @@ def plot_alignment(
             sensor_colors=sensor_colors,
             sensor_scales=sensor_scales,
         )
+
+    if show_channel_names and picks.size > 0:
+        chs = [info["chs"][pi] for pi in picks]
+
+        # channel positions are in head coordinates
+        pos = np.array([ch["loc"][:3] for ch in chs])
+
+        # transform to current coord frame
+        pos = apply_trans(to_cf_t["head"], pos)
+
+        for ch, xyz in zip(chs, pos):
+            renderer.text3d(
+                *xyz,
+                ch["ch_name"],
+                scale=0.005,
+                color=(1.0, 1.0, 1.0),
+            )
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()

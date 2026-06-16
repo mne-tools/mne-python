@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.3
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - uses: pre-commit/action@v3.0.1
       - run: pip install mypy numpy scipy vulture
       - run: mypy
@@ -50,7 +50,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 80
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -59,6 +59,7 @@ jobs:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -68,30 +69,9 @@ jobs:
         include:
           - os: ubuntu-latest
             python: '3.14t'  # free-threaded
-            kind: pip
-            # - os: ubuntu-latest
-            #   python: '3.12'
-            #   kind: pip-pre
-            # - os: ubuntu-latest
-            #   python: '3.12'
-            #   kind: conda
-            # - os: macos-latest  # arm64 (Apple Silicon)
-            #   python: '3.12'
-            #   kind: mamba
-            # - os: macos-13  # latest Intel release
-            #   python: '3.12'
-            #   kind: mamba
-            # - os: windows-latest
-            #   python: '3.10'
-            #   kind: mamba
-            # - os: ubuntu-latest
-            #   python: '3.10'
-            #   kind: minimal
-            # - os: ubuntu-22.04
-            #   python: '3.10'
-            #   kind: old
+            kind: pip-ft
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -106,7 +86,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: Warpbuilds/action-debugger@v1.3
         timeout-minutes: 80
         with:
           detached: true
@@ -118,31 +98,47 @@ jobs:
           pyvista: false
           wm: false
       # Python (if pip)
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-        if: startswith(matrix.kind, 'pip')
+        if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
+        id: setup-python
+      # Workaround macOS path behavior with login shells (which puts system Python first)
+      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
+        if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
-      - name: Fixes for conda
-        run: |
-          # For some reason on Linux we get crashes
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sed -i "/numba/d" environment.yml
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i "" "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
-          fi
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
+          log-level: 'info'
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
-        if: ${{ !startswith(matrix.kind, 'pip') }}
+            -v
+        if: matrix.kind == 'conda'
+        timeout-minutes: 20
+      # Python (if old)
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: ${{ matrix.python }}
+        if: matrix.kind == 'old'
+      - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
+        timeout-minutes: 10
+      - run: python ./tools/github_actions_check_old_env.py
+        if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
+      - uses: actions/cache@v5
+        with:
+          key: minimal-commands-0
+          path: ~/minimal_cmds
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/get_minimal_commands.sh
-        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
       # Check Qt
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
@@ -151,13 +147,13 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()

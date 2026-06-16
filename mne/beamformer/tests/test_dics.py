@@ -25,6 +25,7 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
@@ -269,7 +270,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         exp=None,
         noise_cov=noise_cov,
     )
-    G.shape = (n_channels, n_verts, n_orient)
+    G = _reshape_view(G, (n_channels, n_verts, n_orient))
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
     _assert_weight_norm(filters, G)
 
@@ -705,6 +706,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
         apply_dics_epochs(epochs, filters_vol)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("return_generator", (True, False))
 def test_apply_dics_tfr(return_generator):
@@ -849,6 +851,7 @@ def test_localization_bias_free(
     assert lower <= perc <= upper
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "weight_norm, lower, upper, lower_ori, upper_ori, real_filter",
     [

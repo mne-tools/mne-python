@@ -25,6 +25,7 @@ from .utils import (
     _ensure_int,
     _import_nibabel,
     _path_like,
+    _record_warnings,
     _require_version,
     _validate_type,
     check_fname,
@@ -1353,24 +1354,50 @@ def rot_to_quat(rot):
 
 
 def _quat_to_affine(quat):
-    assert quat.shape == (6,)
+    assert quat.shape == (6,), quat.shape
     affine = np.eye(4)
     affine[:3, :3] = quat_to_rot(quat[:3])
     affine[:3, 3] = quat[3:]
     return affine
 
 
-def _affine_to_quat(affine):
-    assert affine.shape[-2:] == (4, 4)
+def _affine_to_quat(affine, *, name="affine"):
+    _validate_type(affine, np.ndarray, name)
+    if affine.shape[-2:] != (4, 4):
+        raise ValueError(f"{name} must be of shape (..., 4, 4), got {affine.shape}")
     return np.concatenate(
         [rot_to_quat(affine[..., :3, :3]), affine[..., :3, 3]],
         axis=-1,
     )
 
 
-def _angle_dist_between_rigid(a, b=None, *, angle_units="rad", distance_units="m"):
-    a = _affine_to_quat(a)
-    b = np.zeros(6) if b is None else _affine_to_quat(b)
+def angle_distance_between_rigid(a, b=None, *, angle_units="rad", distance_units="m"):
+    """Compute the angle and distance between two rigid transforms.
+
+    Parameters
+    ----------
+    a : array, shape (..., 4, 4)
+        First rigid transform.
+    b : array, shape (..., 4, 4) | None
+        Second rigid transform. If None, the identity transform is used.
+    angle_units : str
+        Units for the angle output, either "rad" or "deg".
+    distance_units : str
+        Units for the distance output, either "m" or "mm".
+
+    Returns
+    -------
+    angles : array, shape (...)
+        The angles between the two transforms.
+    distances : array, shape (...)
+        The distances between the two transforms.
+
+    Notes
+    -----
+    .. versionadded:: 1.11
+    """
+    a = _affine_to_quat(a, name="a")
+    b = np.zeros(6) if b is None else _affine_to_quat(b, name="b")
     ang = _angle_between_quats(a[..., :3], b[..., :3])
     dist = np.linalg.norm(a[..., 3:] - b[..., 3:], axis=-1)
     assert isinstance(angle_units, str) and angle_units in ("rad", "deg")
@@ -1437,6 +1464,8 @@ def _find_vector_rotation(a, b):
     # Rodrigues' rotation formula:
     #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
     #   http://math.stackexchange.com/a/476311
+    assert np.isclose(np.linalg.norm(a), 1.0), np.linalg.norm(a)
+    assert np.isclose(np.linalg.norm(b), 1.0), np.linalg.norm(b)
     R = np.eye(3)
     v = np.cross(a, b)
     if np.allclose(v, 0.0):  # identical
@@ -1445,6 +1474,7 @@ def _find_vector_rotation(a, b):
     c = np.dot(a, b)  # cosine of the angle between them
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
+    # Now we have: np.allclose(R @ a, b)
     return R
 
 
@@ -1786,7 +1816,7 @@ def _compute_volume_registration(
 ):
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
-    with np.testing.suppress_warnings():
+    with _record_warnings():
         from dipy.align import (
             affine,
             affine_registration,
@@ -1876,7 +1906,9 @@ def _compute_volume_registration(
 
             # report some useful information
             if step in ("translation", "rigid"):
-                angle, dist = _angle_dist_between_rigid(reg_affine, angle_units="deg")
+                angle, dist = angle_distance_between_rigid(
+                    reg_affine, angle_units="deg"
+                )
                 logger.info(f"    Translation: {dist:6.1f} mm")
                 if step == "rigid":
                     logger.info(f"    Rotation:    {angle:6.1f}°")

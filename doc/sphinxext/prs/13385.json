@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "87b98dcdaae3e84d5d208fba091aca0086c259bc",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/codeql-analysis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/credit.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/release.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

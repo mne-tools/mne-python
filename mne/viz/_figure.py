@@ -6,6 +6,7 @@
 
 import importlib
 import inspect
+import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -106,6 +107,7 @@ class BrowserBase(ABC):
             grad=10007,
             scalebar=10008,
             vline=10009,
+            ann_text=10010,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
@@ -165,16 +167,24 @@ class BrowserBase(ABC):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
+        from matplotlib.colors import to_hex
+
         segment_colors = getattr(self.mne, "annotation_segment_colors", dict())
         labels = self._get_annotation_labels()
+        user_colors = {
+            k: to_hex(v)
+            for k, v in (getattr(self.mne, "annotation_colors", None) or {}).items()
+        }
         red = "#ff0000"
         colors = _get_color_list(remove=("#fa8174", "#d62728", "#ff0000"))
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != red and key in labels:
+            if color != red and key in labels and key not in user_colors:
                 next(color_cycle)
         for idx, key in enumerate(labels):
-            if key.lower().startswith("bad") or key.lower().startswith("edge"):
+            if key in user_colors:
+                segment_colors[key] = user_colors[key]
+            elif key.lower().startswith("bad") or key.lower().startswith("edge"):
                 segment_colors[key] = red
             elif key in segment_colors:
                 continue
@@ -182,7 +192,10 @@ class BrowserBase(ABC):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        self.mne.visible_annotations = {label: True for label in labels}
+        annot_regex = re.compile(self.mne.annotation_regex)
+        self.mne.visible_annotations = {
+            label: True if annot_regex.findall(label) else False for label in labels
+        }
         self.mne.show_hide_annotation_checkboxes = None
 
     def _update_annotation_segments(self):
@@ -869,7 +882,7 @@ def get_browser_backend():
 
 
 @contextmanager
-def use_browser_backend(backend_name):
+def use_browser_backend(backend_name):  # numpydoc ignore=YD01
     """Create a 2D browser visualization context using the designated backend.
 
     See :func:`mne.viz.set_browser_backend` for more details on the available

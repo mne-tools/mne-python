@@ -210,8 +210,11 @@ def test_io_evoked(tmp_path):
     ave_double.comment = ave.comment + " doubled nave"
     ave_double.nave = ave.nave * 2
 
-    write_evokeds(tmp_path / "evoked-ave.fif", [ave, ave_double])
-    ave2, ave_double = read_evokeds(tmp_path / "evoked-ave.fif")
+    out_path = tmp_path / "evoked-ave.fif"
+    with pytest.raises(ValueError, match="No evoked data to write"):
+        write_evokeds(out_path, [])
+    write_evokeds(out_path, [ave, ave_double])
+    ave2, ave_double = read_evokeds(out_path)
     assert ave2.nave * 2 == ave_double.nave
 
     # This not being assert_array_equal due to windows rounding

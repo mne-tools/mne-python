@@ -13,6 +13,7 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from mne import (
     Annotations,
     Epochs,
+    create_info,
     make_fixed_length_events,
     pick_types,
     read_cov,
@@ -143,7 +144,7 @@ def test_plot_ica_components():
 
 
 @pytest.mark.slowtest
-def test_plot_ica_properties():
+def test_plot_ica_properties_basic():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
@@ -265,6 +266,64 @@ def test_plot_ica_properties():
     # don't drop
     ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
 
+    # test fallback when ALL 2-second epoch windows are contaminated by annotations: one
+    # bad segment per window so every epoch is dropped, but the inter-annotation gaps
+    # stitch together to >= 2 s of clean data.
+    annot_all_bad = Annotations(
+        onset=[0.5, 2.5, 4.5, 6.5],
+        duration=[1.0, 1.0, 1.0, 1.0],
+        description=["BAD"] * 4,
+    )
+    raw_all_bad = _get_raw(preload=True).set_annotations(annot_all_bad).crop(0, 8)
+    raw_all_bad.pick(np.arange(10))
+    raw_all_bad.del_proj()
+    fig = ica.plot_properties(raw_all_bad, picks=[0], **topoargs)
+    assert_equal(len(fig), 1)
+
+
+@pytest.mark.parametrize("kind", ["first", "last"])
+def test_plot_ica_properties_reject(kind):
+    """Check for gh-13879."""
+    sfreq, n_epochs = 100.0, 5
+    n_samples = int(sfreq * n_epochs * 2.0)  # 2s per segment
+    rng = np.random.default_rng(0)
+    n_channels = 3
+    data = rng.uniform(-3e-6, 3e-6, size=(n_channels, n_samples))
+    assert kind in ("first", "last")
+    idx = 0 if kind == "first" else -1
+    data[0, idx] = 1000e-6
+    info = create_info(["Fz", "Cz", "C2"], sfreq, "eeg")
+    raw = RawArray(data, info)
+    raw.set_montage("spherical_1005")
+    ica = ICA(
+        n_components=2,
+        random_state=0,
+        max_iter=1,
+    )
+    with (
+        pytest.warns(RuntimeWarning, match="filtered"),
+        pytest.warns(Warning, match="converge"),
+        catch_logging(True) as log,
+    ):
+        ica.fit(raw, reject=dict(eeg=500e-6))
+    log = log.getvalue()
+    assert log.count("Artifact detected") == 1  # dropped one epoch
+    figs = ica.plot_properties(raw, picks=[0], show=False)
+    assert len(figs) == 1
+    fig = figs[0]
+    img_ax = fig.axes[1]
+    img_ylim = img_ax.get_ylim()
+    assert img_ylim[0] == -0.5
+    assert img_ylim[1] == n_epochs + 0.5
+    hist_ax = fig.axes[-1]
+    var_ax = fig.axes[-2]
+    min_hist = np.min(hist_ax.lines[0].get_ydata())
+    assert min_hist > 0
+    scatter_x, _ = var_ax.collections[0].get_offsets().data.T
+    assert_array_equal(scatter_x, np.arange(n_epochs))
+    with pytest.raises(RuntimeError, match="No clean"):
+        ica.plot_properties(raw, reject=dict(eeg=1e-6))
+
 
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     """Test plotting of ICA panel."""
@@ -375,6 +434,22 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     leg = ax.get_legend()
     assert len(leg.get_texts()) == len(ica.exclude) == 1
 
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([0.1, 0.3], [0.1, 0.1], ["test", "test2"])
+    raw.set_annotations(annot)
+
+    fig = ica.plot_sources(raw)
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = ica.plot_sources(raw, annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
+
     # test passing psd_args argument
     ica.plot_sources(epochs, psd_args=dict(fmax=50))
 
@@ -420,7 +495,6 @@ def test_plot_ica_overlay():
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
-    plt.close("all")
 
     # smoke test for CTF
     raw = read_raw_fif(raw_ctf_fname)
@@ -543,3 +617,15 @@ def test_plot_components_opm():
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
     assert len(fig.axes) == 10
+
+
+@pytest.mark.slowtest
+@pytest.mark.filterwarnings(
+    "ignore:FastICA did not converge.*:sklearn.exceptions.ConvergenceWarning"
+)
+def test_plot_components_opm_triaxial(triaxial_raw):
+    """Test OPM component topomaps with colocated triaxial channels."""
+    ica = ICA(max_iter=1, random_state=0, n_components=3)
+    ica.fit(triaxial_raw, picks="mag", verbose="error")
+    fig = ica.plot_components()
+    assert len(fig.axes) == 3

@@ -137,7 +137,8 @@ def test_add_noise():
         if inst is raw:
             cov_new = compute_raw_covariance(inst, picks=picks)
         else:
-            cov_new = compute_covariance(inst)
+            with pytest.warns(RuntimeWarning, match=".*Too few samples.*"):
+                cov_new = compute_covariance(inst)
         assert cov["names"] == cov_new["names"]
         r = np.corrcoef(cov["data"].ravel(), cov_new["data"].ravel())[0, 1]
         assert r > 0.99

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "09fd56d5c9735617dfdc7489add87e1ae9aac2cf",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/v1.12.rst": {
+      "a": 3,
+      "d": 6
+    },
+    "doc/install/installers.rst": {
+      "a": 16,
+      "d": 8
+    },
+    "doc/sphinxext/related_software.txt": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

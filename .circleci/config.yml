@@ -36,7 +36,8 @@ jobs:
       - restore_cache:
           keys:
             - source-cache
-      - checkout
+      - checkout:
+          method: full
       - run:
           name: Complete checkout
           command: |
@@ -61,6 +62,9 @@ jobs:
             if [[ $(cat merge.txt) != "" ]]; then
               echo "Merging $(cat merge.txt)";
               git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+            elif [[ "$CIRCLE_PROJECT_USERNAME" != "mne-tools" ]]; then
+              echo "On CIRCLE_PROJECT_USERNAME=\"$CIRCLE_PROJECT_USERNAME\" repo rather than mne-tools, merging upstream/main."
+              git merge upstream/main --no-edit || exit 1
             else
               if [[ "$CIRCLE_BRANCH" == "main" ]]; then
                 KIND=dev
@@ -92,11 +96,6 @@ jobs:
       - run:
           name: Set BASH_ENV
           command: ./tools/circleci_bash_env.sh
-
-      - run:
-          name: check neuromag2ft
-          command: |
-            neuromag2ft --version
 
       - run:
           name: Install fonts needed for diagrams
@@ -135,7 +134,8 @@ jobs:
       - run:
           name: Check Qt
           command: |
-            ./tools/check_qt_import.sh PyQt6
+            set -x
+            ./tools/check_qt_import.sh ${MNE_QT_BACKEND}
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:
@@ -222,7 +222,7 @@ jobs:
           keys:
             - data-cache-ds004388
       - run:
-          name: Get data
+          name: Get data and triage examples to run
           # This limit could be increased, but this is helpful for finding slow ones
           # (even ~2GB datasets should be downloadable in this time from good
           # providers)
@@ -466,7 +466,11 @@ jobs:
           at: /tmp/build
       - restore_cache:
           keys:
-            - website-cache
+            - website-cache-1
+      - add_ssh_keys:
+          fingerprints:
+            # SHA256:N4qvp6MSbXcTz/27xz96VPsNuTDRT92zoRP8EW0I/8I
+            - "19:fe:1d:c3:c7:af:7e:16:94:4c:e1:e7:0a:56:13:bd"
       - run:
           name: Set BASH_ENV
           command: |
@@ -494,6 +498,7 @@ jobs:
           command: |
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
+            ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
             cd ~/mne-tools.github.io;
             git checkout main
             git remote -v
@@ -515,9 +520,9 @@ jobs:
             fi;
             git push origin main;
       - save_cache:
-          key: website-cache
+          key: website-cache-1
           paths:
-            - ~/mne_data/MNE-visual_92_categories-data
+            - ~/mne-tools.github.io
 
 workflows:
   default:

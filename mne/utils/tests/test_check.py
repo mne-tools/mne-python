@@ -10,15 +10,17 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_equal
 
 import mne
-from mne import pick_channels_cov, read_vectorview_selection
+from mne import create_info, pick_channels_cov, read_vectorview_selection
 from mne._fiff.pick import _picks_to_idx
 from mne.datasets import testing
 from mne.utils import (
     Bunch,
     _check_ch_locs,
     _check_fname,
+    _check_if_nan,
     _check_info_inv,
     _check_option,
     _check_range,
@@ -205,6 +207,24 @@ def test_check_option():
         assert _check_option("option", "bad", ["valid"])
 
 
+def test_check_if_nan():
+    """Test NaN handling and option validation."""
+    msg = (
+        "Invalid value for the 'on_nan' parameter. "
+        "Allowed values are 'error' and 'warn', but got 'er' instead."
+    )
+    nan_error_msg = r"Some of the values\s+to be plotted are NaN\."
+    nan_warn_msg = r"Some of the values\s+to be plotted are NaN"
+    with pytest.raises(ValueError, match=msg):
+        _check_if_nan([0.0], on_nan="er")
+
+    with pytest.raises(ValueError, match=nan_error_msg):
+        _check_if_nan([0.0, np.nan], on_nan="error")
+
+    with pytest.warns(RuntimeWarning, match=nan_warn_msg):
+        _check_if_nan([0.0, np.nan], on_nan="warn")
+
+
 def test_path_like():
     """Test _path_like()."""
     str_path = str(base_dir)
@@ -364,18 +384,69 @@ def test_strip_dev(version, want, have_unstripped, monkeypatch):
 
 
 @testing.requires_testing_data
-def test_check_sphere_verbose():
-    """Test that verbose is handled properly in _check_sphere."""
+def test_check_sphere():
+    """Test the _check_sphere function."""
     info = mne.io.read_info(fname_raw)
-    with info._unlock():
-        info["dig"] = info["dig"][:20]
+    info_eeglab = create_info(
+        ch_names=["Fpz", "Oz", "T7", "T8"], sfreq=100, ch_types="eeg"
+    )
+    info_eeglab.set_montage("biosemi64")
+
+    # Test passing None.
+    assert_equal(_check_sphere(None), [0, 0, 0, 0.095])  # default head pos
+    assert not np.any(_check_sphere(None, info) == 0)  # fit to dig points
+
+    # Test passing a 4-element array-like as sphere parameter.
+    assert_equal(_check_sphere([1, 2, 3, 4], info), [1, 2, 3, 4])
+    assert_equal(_check_sphere([1, 2, 3, 4], info=None), [1, 2, 3, 4])
+    with pytest.raises(ValueError, match=r"1D array of shape \(4,\)"):
+        _check_sphere([1, 2, 3], info)
+
+    # Test passing various string values for `sphere`.
+    sphere_auto = _check_sphere("auto", info)
+    sphere_eeglab = _check_sphere("eeglab", info_eeglab)
+    sphere_extra = _check_sphere("extra", info)
+    sphere_eeg = _check_sphere("eeg", info)
     with _record_warnings(), pytest.warns(RuntimeWarning, match="may be inaccurate"):
-        _check_sphere("auto", info)
+        sphere_hpi = _check_sphere("hpi", info)
+    sphere_all = _check_sphere(["extra", "eeg", "cardinal", "hpi"], info)
+
+    assert_allclose(sphere_auto, sphere_extra)
+    assert not np.allclose(sphere_auto, sphere_eeglab, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(sphere_auto, sphere_eeg, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(sphere_auto, sphere_hpi, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(sphere_auto, sphere_all, rtol=1e-4, atol=1e-4)
+
+    with pytest.raises(TypeError, match="Item must be an instance of Info"):
+        _check_sphere("auto", info=None)
+
+    # Test that verbose is handled properly in _check_sphere.
+    info_trunc = info.copy()
+    with info_trunc._unlock():
+        info_trunc["dig"] = info_trunc["dig"][:20]
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="may be inaccurate"):
+        _check_sphere("auto", info_trunc)
     with mne.use_log_level("error"):
-        _check_sphere("auto", info)
+        _check_sphere("auto", info_trunc)
 
 
 def test_soft_import():
     """Test _soft_import."""
     with pytest.raises(RuntimeError, match=r".* the module mne>=999 \(found version.*"):
         _soft_import("mne", "testing", min_version="999")
+
+
+def test_soft_import_missing_version(monkeypatch):
+    """Test _soft_import handles packages without __version__."""
+    import types
+
+    fake_mod = types.ModuleType("fake_no_version")
+    monkeypatch.setitem(sys.modules, "fake_no_version", fake_mod)
+
+    # No min_version: should succeed even without __version__
+    mod = _soft_import("fake_no_version", "testing", strict=True)
+    assert mod is fake_mod
+
+    # With min_version: should fail because __version__ is absent
+    with pytest.raises(RuntimeError, match="module fake_no_version"):
+        _soft_import("fake_no_version", "testing", strict=True, min_version="1.0")

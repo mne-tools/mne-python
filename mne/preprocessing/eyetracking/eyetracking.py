@@ -6,12 +6,124 @@
 import numpy as np
 
 from ..._fiff.constants import FIFF
+from ..._fiff.pick import _picks_to_idx
+from ...annotations import Annotations, _adjust_onset_meas_date
 from ...epochs import BaseEpochs
 from ...evoked import Evoked
 from ...io import BaseRaw
-from ...utils import _check_option, _validate_type, logger, warn
+from ...utils import _check_option, _validate_type, logger, verbose, warn
+from ..artifact_detection import _annotations_from_mask
 from .calibration import Calibration
 from .utils import _check_calibration
+
+
+@verbose
+def find_blinks(
+    inst,
+    *,
+    chs_src=None,
+    method="dropout",
+    dropout_value=None,
+    description="BAD_blink",
+    chs_dest=None,
+    verbose=None,
+):
+    """Find blinks in eye-tracking data and create corresponding annotations.
+
+    Parameters
+    ----------
+    inst : instance of Raw
+        The data instance to use for finding blinks. Must contain pupil channels.
+    chs_src : list | None
+        A list of channel names that will be used to find blinks. None (default) will
+        result in selecting all channels of type ``pupil``. See Notes for more
+        information.
+    method : str
+        Which method to use to find blinks in ``inst``. Currently the only supported
+        method is ``'dropout'`` (default), which uses the value specified via
+        ``dropout_value`` to identify blinks.
+    dropout_value : float | None
+        Which value in the data denotes a dropout. In Eyelink data, this is ``0``,
+        whereas for other eye-tracking data this may be ``np.nan``, or something else.
+        Defaults to None, which sets the ``dropout_value`` to ``np.nan``.
+    description : str
+        Which description to use for the blink annotations. Defaults to ``'BAD_blink'``.
+    chs_dest : list | str | None
+        Which channels to associate the blink annotations with. None (default)
+        associates each blink annotation with the source channels (``chs_src``) it was
+        detected from. Passing ``'all'`` associates the annotations with all channels in
+        ``inst``. Alternatively, a list of channel names can be passed (e.g., EEG
+        channels, for subsequent ocular artifact cleaning).
+    %(verbose)s
+
+    Returns
+    -------
+    annot : instance of Annotations
+        The annotations object containing blink annotations. It is not attached to
+        ``inst``; use :meth:`raw.set_annotations <mne.io.Raw.set_annotations>` to do so.
+
+    Notes
+    -----
+    If multiple channels are used to find blinks in ``inst``, resulting overlapping
+    blink annotations are always merged over all channels. That is, if a left and a
+    right pupil channel would be used for blink detection, and each on their own would
+    produce overlapping blink annotations with onsets ``[1.5, 1.6]`` and durations
+    ``[0.2, 0.3]``, respectively, then passing both channels into this function will
+    result in a single blink annotation with onset ``1.5`` and duration ``0.4``.
+    Note that this corresponds to the minimum onset and the maximum offset between
+    the two annotations.
+
+    .. versionadded:: 1.13
+    """
+    _validate_type(inst, BaseRaw, "inst")
+    _check_option("method", method, ("dropout",))
+
+    if chs_src is None:
+        picks = [
+            idx
+            for idx, ch_type in enumerate(inst.get_channel_types())
+            if ch_type == "pupil"
+        ]
+        if not picks:
+            raise ValueError(
+                "No pupil channels found in inst; pass chs_src to specify the "
+                "channels to find blinks in."
+            )
+    else:
+        picks = _picks_to_idx(inst.info, chs_src)
+    src_names = [inst.ch_names[pick] for pick in picks]
+
+    data, times = inst.get_data(picks=picks, return_times=True)
+    if dropout_value is None:
+        dropout_value = np.nan
+    if np.isnan(dropout_value):
+        mask = np.isnan(data)
+    else:
+        mask = data == dropout_value
+    # union over source channels: merges blinks that overlap across channels
+    mask = mask.any(axis=0)
+
+    annot = _annotations_from_mask(
+        times, mask, description, orig_time=inst.info["meas_date"]
+    )
+
+    if chs_dest is None:
+        dest = src_names
+    elif isinstance(chs_dest, str) and chs_dest == "all":
+        dest = []  # an empty per-annotation entry associates with all channels
+    else:
+        dest = [inst.ch_names[pick] for pick in _picks_to_idx(inst.info, chs_dest)]
+
+    annot = Annotations(
+        annot.onset,
+        annot.duration,
+        description,
+        ch_names=[dest] * len(annot),
+        orig_time=inst.info["meas_date"],
+    )
+    _adjust_onset_meas_date(annot, inst)
+    logger.info("Found %d blink(s).", len(annot))
+    return annot
 
 
 # specific function to set eyetrack channels
@@ -40,7 +152,7 @@ def set_channel_types_eyetrack(inst, mapping):
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         The instance, modified in place.
 
     Notes
@@ -113,22 +225,7 @@ def set_channel_types_eyetrack(inst, mapping):
         inst.info["chs"][c_ind]["unit"] = unit_new
 
         # set eye (and x/y-component)
-        loc = np.array(
-            [
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-            ]
-        )
+        loc = np.full(12, np.nan)
 
         ch_eye = ch_desc[2].lower()
         if ch_eye not in valid_eye["all"]:
@@ -168,7 +265,8 @@ def _convert_deg_to_rad(array):
     return array * np.pi / 180.0
 
 
-def convert_units(inst, calibration, to="radians"):
+@verbose
+def convert_units(inst, calibration, to="radians", *, verbose=None):
     """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
 
     .. warning::
@@ -191,10 +289,11 @@ def convert_units(inst, calibration, to="radians"):
         (in pixels).
     to : str
         Must be either ``"radians"`` or ``"pixels"``, indicating the desired unit.
+    %(verbose)s
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         The Raw, Epochs, or Evoked instance, modified in place.
 
     Notes

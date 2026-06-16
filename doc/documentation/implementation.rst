@@ -124,6 +124,14 @@ Morphing and averaging source estimates
    :start-after: morph-begin-content
 
 
+.. _ged:
+
+Generalized eigendecomposition in decoding
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/ged.rst
+   :start-after: ged-begin-content
+
 References
 ^^^^^^^^^^
 .. footbibliography::

@@ -41,11 +41,12 @@ from ..source_space._source_space import (
     setup_volume_source_space,
 )
 from ..surface import _CheckInside
-from ..transforms import _get_trans, transform_surface_to
+from ..transforms import Transform, _get_trans, transform_surface_to
 from ..utils import (
     _check_preload,
     _pl,
     _validate_type,
+    _verbose_safe_false,
     check_random_state,
     logger,
     verbose,
@@ -130,15 +131,16 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
                 f"s), found {bad.sum()}/{len(bad)} bad values (is this a split "
                 "file?)"
             )
+    dev_head_t = info["dev_head_t"] or Transform("meg", "head")  # deal with None
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info["sfreq"]):
         ts[0] = 0.0
     # If it doesn't start at zero, insert one at t=0
     elif len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.0], ts]
-        dev_head_ts.insert(0, info["dev_head_t"]["trans"])
+        dev_head_ts.insert(0, dev_head_t["trans"])
     dev_head_ts = [
-        {"trans": d, "to": info["dev_head_t"]["to"], "from": info["dev_head_t"]["from"]}
+        {"trans": d, "to": dev_head_t["to"], "from": dev_head_t["from"]}
         for d in dev_head_ts
     ]
     offsets = np.round(ts * info["sfreq"]).astype(int)
@@ -289,7 +291,8 @@ def simulate_raw(
                 "If forward is not None then trans, src, bem, "
                 "and head_pos must all be None"
             )
-        if not np.allclose(
+        ch_types = info.get_channel_types(unique=True)
+        if ("mag" in ch_types or "grad" in ch_types) and not np.allclose(
             forward["info"]["dev_head_t"]["trans"],
             info["dev_head_t"]["trans"],
             atol=1e-6,
@@ -502,9 +505,10 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=())
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=())
     R, r0 = fit_sphere_to_headshape(info, units="m", verbose=False)[:2]
+    head_radius = R if kind == "blink" else None
     bem = make_sphere_model(
         r0,
-        head_radius=R,
+        head_radius=head_radius,
         relative_radii=(0.97, 0.98, 0.99, 1.0),
         sigmas=(0.33, 1.0, 0.004, 0.33),
         verbose=False,
@@ -792,7 +796,14 @@ def _iter_forward_solutions(
         info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     mri_head_t, trans = _get_trans(trans)
     sensors, rr, info, update_kwargs, bem = _prepare_for_forward(
-        src, mri_head_t, info, bem, mindist, n_jobs, allow_bem_none=True, verbose=False
+        src,
+        mri_head_t,
+        info,
+        bem,
+        mindist,
+        n_jobs,
+        allow_bem_none=True,
+        verbose=_verbose_safe_false(),
     )
     del (src, mindist)
 
@@ -849,7 +860,7 @@ def _iter_forward_solutions(
         # Compute forward
         if forward is None:
             if not bem["is_sphere"]:
-                outside = ~_CheckInside(bem_surf)(coil_rr, n_jobs, verbose=False)
+                outside = ~_CheckInside(bem_surf)(coil_rr, n_jobs=n_jobs, verbose=False)
             elif bem.radius is not None:
                 d = coil_rr - bem["r0"]
                 outside = np.sqrt(np.sum(d * d, axis=1)) > bem.radius

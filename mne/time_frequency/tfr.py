@@ -59,7 +59,7 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..utils.spectrum import _get_instance_type_string
+from ..utils.spectrum import _convert_old_birthday_format, _get_instance_type_string
 from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
 from ..viz.topomap import (
     _add_colorbar,
@@ -1433,7 +1433,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._dims = defaults["dims"]
         self._raw_times = np.asarray(defaults["times"], dtype=np.float64)
         self._baseline = defaults["baseline"]
-        self.info = Info(**defaults["info"])
+        self.info = Info(**_convert_old_birthday_format(defaults["info"]))
         self._data_type = defaults["data_type"]
         self._decim = defaults["decim"]
         self.preload = True
@@ -1939,7 +1939,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one; has (useful) option title="auto"
+        title=None,  # keep: has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -2481,7 +2481,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         vmax=None,
         layout=None,
         cmap="RdBu_r",
-        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
+        title=None,  # keep: topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -2753,7 +2753,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         # prepare extra columns / multiindex
         mindex = list()
         default_index = list()
-        times = _convert_times(times, time_format, self.info["meas_date"])
+        times = _convert_times(times, time_format, meas_date=self.info["meas_date"])
         times = np.tile(times, n_epochs * n_freqs * n_tapers)
         freqs = np.tile(np.repeat(freqs, n_times), n_epochs * n_tapers)
         mindex.append(("time", times))
@@ -3313,7 +3313,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         state["freqs"] = freqs
         state["times"] = times
         if dim == "epochs":
-            state["inst_type_str"] = "Evoked"
             state["nave"] = n_epochs
             state["comment"] = f"{method} of {n_epochs} EpochsTFR{_pl(n_epochs)}"
             out = AverageTFR(inst=state)
@@ -3388,6 +3387,11 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         ----------
         copy : bool
             Whether to yield copies of the data and measurement info, or views/pointers.
+
+        Yields
+        ------
+        epoch : instance of AverageTFR
+            The time-frequency data for a single epoch, wrapped in an AverageTFR object.
         """
         self.__iter__()
         state = self.__getstate__()
@@ -3428,7 +3432,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one; has (useful) option title="auto"
+        title=None,  # keep: has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -3480,7 +3484,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         vmax=None,
         layout=None,
         cmap=None,
-        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
+        title=None,  # keep: topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -4142,7 +4146,7 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
             if key != condition:
                 continue
         tfr = dict(tfr)
-        tfr["info"] = Info(tfr["info"])
+        tfr["info"] = Info(_convert_old_birthday_format(tfr["info"]))
         tfr["info"]._check_consistency()
         if "metadata" in tfr:
             tfr["metadata"] = _prepare_read_metadata(tfr["metadata"])

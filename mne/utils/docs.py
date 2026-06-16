@@ -249,8 +249,9 @@ Specifically for each of the following we use:
 - meas_date, file_id, meas_id
         A default value, or as specified by ``daysback``.
 - subject_info
-        Default values, except for 'birthday' which is adjusted
-        to maintain the subject age.
+        Default values, except for 'birthday', which is adjusted to maintain the subject
+        age. If ``keep_his`` is not ``False``, then the fields 'his_id', 'sex', and
+        'hand' are not anonymized, depending on the value of ``keep_his``.
 - experimenter, proj_name, description
         Default strings.
 - utc_offset
@@ -574,6 +575,45 @@ update : bool
     Force an update of the plot. Defaults to True.
 """
 
+docdict["brainvision_overrides"] = """
+overrides : dict | None
+    Optional overrides for values parsed from the ``.vhdr`` header. Used to
+    read non-spec-compliant files where the header contradicts the actual
+    layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+    ``"data_fname"`` (path-like)
+        Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+        the directory of ``vhdr_fname``.
+    ``"marker_fname"`` (path-like or ``False``)
+        Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+        reading.
+    ``"n_channels"`` (int)
+        Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+        this is the user-facing count.
+    ``"sfreq"`` (float)
+        Overrides the sampling frequency.
+    ``"ch_names"`` (list[str])
+        Replaces names from ``[Channel Infos]``. Length must equal
+        ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+        accepted; the synthetic AHDR name is appended automatically).
+    ``"units_fallback"`` (str, e.g. ``"µV"``)
+        Recovers an incomplete ``[Channel Infos]`` section by filling missing
+        entries with ``resolution=1.0`` and this unit; missing names become
+        ``"Ch<N>"``.
+    ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+        Replaces ``[Common Infos] DataOrientation=``.
+    ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+        Replaces ``[Common Infos] DataFormat=``.
+    ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+        Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+        effective ``DataFormat`` is ``"BINARY"``.
+
+    Each applied override is logged at INFO level. Unknown keys raise
+    ``ValueError``.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["browser"] = """
 fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
     Browser instance.
@@ -604,10 +644,16 @@ by_event_type : bool
 # C
 
 docdict["calibration_maxwell_cal"] = """
-calibration : str | None
-    Path to the ``'.dat'`` file with fine calibration coefficients.
-    File can have 1D or 3D gradiometer imbalance correction.
-    This file is machine/site-specific.
+calibration : path-like | bool | None
+    Path to the .dat file with fine calibration information.
+    If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
+    If ``False``, no calibration will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control calibration using
+       ``info["fine_calibration"]``, and ``None`` now uses ``info["fine_calibration"]``
+       if available.
 """
 
 docdict["cbar_fmt_topomap"] = """\
@@ -677,6 +723,10 @@ ch_type : list of str | str
     .. versionadded:: 0.19
     .. versionchanged:: 1.2
        ``list-of-str`` is now supported with ``projection=True``.
+    .. versionchanged:: 1.13
+       ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+       now applies a per-channel-type reference by default (set ``joint=True``
+       for the previous union-of-types behavior).
 """
 
 _ch_type_topomap_base = """\
@@ -834,10 +884,10 @@ colorbar : bool
 """
 
 docdict["colormap"] = """
-colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-    Name of colormap to use or a custom look up table. If array, must
-    be (n x 3) or (n x 4) array for with RGB or RGBA values between
-    0 and 255.
+colormap : str | matplotlib.colors.Colormap
+    Name of colormap to use or a custom Matplotlib colormap instance. If passing
+    a custom colormap, it must be an instance of :class:`matplotlib.colors.Colormap`
+    (e.g., :class:`matplotlib.colors.ListedColormap`).
 """
 
 _combine_template = """
@@ -1004,8 +1054,16 @@ docdict["create_eog_epochs"] = """This function will:
 """
 
 docdict["cross_talk_maxwell"] = """
-cross_talk : str | None
+cross_talk : path-like | bool | None
     Path to the FIF file with cross-talk correction information.
+    If ``None``, will use the ``info["cross_talk"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
+    If ``False``, no cross-talk correction will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control cross-talk correction using
+       ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+       if available.
 """
 
 # %%
@@ -1232,7 +1290,7 @@ eeg : bool | str | list | dict
 
 docdict["elevation"] = """
 elevation : float
-    The The zenith angle of the camera rendering the view in degrees.
+    The zenith angle of the camera rendering the view in degrees.
 """
 
 docdict["eltc_mode_notes"] = """
@@ -1283,6 +1341,11 @@ docdict["encoding_edf"] = """
 encoding : str
     Encoding of annotations channel(s). Default is "utf8" (the only correct
     encoding according to the EDF+ standard).
+"""
+
+docdict["encoding_nihon"] = """
+encoding : str
+    Text encoding of Nihon Kohden annotations. See :ref:`standard-encodings`.
 """
 
 docdict["encoding_nirx"] = """
@@ -1554,7 +1617,14 @@ ext_order : int
 docdict["extended_proj_maxwell"] = """
 extended_proj : list
     The empty-room projection vectors used to extend the external
-    SSS basis (i.e., use eSSS).
+    SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+    pure *external* noise that you expect to be present in your signal.
+    Typically, this should be the case during an empty room recording. Get the
+    projections e.g. by calling::
+
+        proj = mne.compute_proj_raw(
+            raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+        )
 
     .. versionadded:: 0.21
 """
@@ -1867,6 +1937,11 @@ fun : callable
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
+docdict["fun_applyfun_epochs"] = applyfun_fun_base.format(
+    " if ``channel_wise=True`` (because it will apply to 1-D"
+    " slices along the times axis) and"
+    " ``(n_epochs, len(picks), n_times)`` otherwise"
+)
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
 )
@@ -2034,7 +2109,7 @@ Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
 or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 
->>> mon = mne.channels.make_standard_montage('standard_1020')
+>>> mon = mne.channels.make_standard_montage('spherical_1005')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
 >>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
@@ -2253,23 +2328,32 @@ item : int | slice | array-like | str
 
 docdict["joint_set_eeg_reference"] = """
 joint : bool
-    How to handle list-of-str ``ch_type``. If False (default), one projector
-    is created per channel type. If True, one projector is created across
-    all channel types. This is only used when ``projection=True``.
+    How to handle list-of-str ``ch_type``. If False (default), the reference is
+    computed per channel type (one projector per type when ``projection=True``;
+    one average reference subtracted per type when ``projection=False`` and
+    ``ref_channels="average"``). If True, a single reference is computed across
+    all listed channel types.
 
     .. versionadded:: 1.2
+    .. versionchanged:: 1.13
+       Now also applies when ``projection=False``. Previously, the
+       ``projection=False`` path silently behaved as if ``joint=True``.
 """
 
 # %%
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool
-    If ``True``, ``his_id`` of ``subject_info`` will **not** be overwritten.
-    Defaults to ``False``.
+keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+    If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
+    overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
+    ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
+    fields will **not** be anonymized. Defaults to ``False``.
 
-    .. warning:: This could mean that ``info`` is not fully
-                 anonymized. Use with caution.
+    .. warning:: Setting ``keep_his`` to anything other than ``False`` may result in
+                 ``info`` not being fully anonymized. Use with caution.
+    .. versionchanged:: 1.12
+       Added support for sequence of ``str``.
 """
 
 docdict["kit_badcoils"] = """
@@ -2565,7 +2649,7 @@ max_step : int
 docdict["maxwell_mc_interp"] = """
 mc_interp : str
     Interpolation to use between adjacent time points in movement
-    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    compensation. Can be "zero" (used by MaxFilter),
     "linear", or "hann" (default in 1.11).
 
     .. versionadded:: 1.10
@@ -2706,7 +2790,7 @@ mode : str
 """
 
 docdict["mode_pctf"] = """
-mode : None | 'mean' | 'max' | 'svd'
+mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     Compute summary of PSFs/CTFs across all indices specified in 'idx'.
     Can be:
 
@@ -2717,6 +2801,9 @@ mode : None | 'mean' | 'max' | 'svd'
       n_comp largest PSFs/CTFs.
     * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
       n_comp first SVD components.
+    * 'maxval' : PSFs/CTFs with maximum absolute value across vertices.
+      Returns the n_comp largest PSFs/CTFs.
+    * 'sum' : Sum of PSFs/CTFs across vertices.
 """
 
 docdict["mode_tfr_plot"] = """
@@ -2879,6 +2966,11 @@ The raw unmodified measured values are stored in another file
 called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
 mathematical functions the default behaviour is to return the
 saturated data.
+
+.. note::
+    This function expects ``fname`` to be a path to a directory containing the
+    NIRX data files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.). If you have a
+    ``.snirf`` file, use :func:`mne.io.read_raw_snirf` instead.
 """
 
 docdict["niter"] = """
@@ -3028,6 +3120,13 @@ offset : int
     current sampling rate.
 
     .. versionadded:: 0.12
+"""
+
+docdict["on_bad_hpi_match"] = """
+on_bad_hpi_match : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when there is poor matching of HPI coordinates
+    (>10mm difference) for device - head transform.
 """
 
 docdict["on_baseline_ica"] = """
@@ -3442,7 +3541,9 @@ picks_base = f"""{_picks_header}
     {_picks_desc} {_picks_int} {_picks_str}"""
 picks_base_notypes = f"""picks : list of int | list of str | slice | None
     {_picks_desc} {_picks_int} {_picks_str_notypes}"""
-docdict["picks_all"] = _reflow_param_docstring(f"{picks_base} all channels. {reminder}")
+docdict["picks_all"] = _reflow_param_docstring(
+    f"{picks_base} all channels. Bad channels are included by default. {reminder}"
+)
 docdict["picks_all_data"] = _reflow_param_docstring(
     f"{picks_base} all data channels. {reminder}"
 )
@@ -3697,6 +3798,7 @@ rank : None | 'info' | 'full' | dict
 """
 
 docdict["rank"] = _rank_base
+docdict["rank_full"] = _rank_base + "\n    The default is ``'full'``."
 docdict["rank_info"] = _rank_base + "\n    The default is ``'info'``."
 docdict["rank_none"] = _rank_base + "\n    The default is ``None``."
 
@@ -3957,7 +4059,8 @@ docdict["scalings_df"] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
     ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
-    magnetometers to fT, and gradiometers to fT/cm.
+    magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+    and :term:`non-data channels` for full list of default scalings.
 """
 
 docdict["scalings_topomap"] = """
@@ -3978,7 +4081,7 @@ scoring : callable | str | None
 
 docdict["sdr_morph"] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
-    The class that applies the the symmetric diffeomorphic registration
+    The class that applies the symmetric diffeomorphic registration
     (SDR) morph.
 """
 
@@ -4216,21 +4319,40 @@ spatial_colors : bool
 """
 
 docdict["sphere_topomap_auto"] = f"""\
-sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeglab'
-    The sphere parameters to use for the head outline. Can be array-like of
-    shape (4,) to give the X/Y/Z origin and radius in meters, or a single float
-    to give just the radius (origin assumed 0, 0, 0). Can also be an instance
-    of a spherical :class:`~mne.bem.ConductorModel` to use the origin and
-    radius from that object. If ``'auto'`` the sphere is fit to digitization
-    points. If ``'eeglab'`` the head circle is defined by EEG electrodes
-    ``'Fpz'``, ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present,
-    it will be approximated from the coordinates of ``'Oz'``). ``None`` (the
-    default) is equivalent to ``'auto'`` when enough extra digitization points
-    are available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise.
+sphere : float | array-like of float | instance of ConductorModel | str | list of str | None
+    The sphere parameters to use for the head outline.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in meters, or a
+    single float to give just the radius (origin assumed 0, 0, 0).
+    Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to use the
+    origin and radius from that object.
+    Can also be a ``str``, in which case:
+
+    - ``'auto'``: the sphere is fit to external digitization points first, and to
+      external + EEG digitization points if the former fails.
+
+    - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``, ``'Oz'``,
+      ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be approximated from
+      the coordinates of ``'Oz'``).
+
+      - ``'extra'``: the sphere is fit to external digitization points.
+
+      - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+      - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+      - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+    Can also be a list of ``str``, in which case the sphere is fit to the specified
+    digitization points, which can be any combination of ``'extra'``, ``'eeg'``,
+    ``'cardinal'``, and ``'hpi'``, as specified above.
+    ``None`` (the default) is equivalent to ``'auto'`` when enough extra digitization
+    points are available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise.
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
-"""
+    .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``, ``'hpi'`` and
+       list of ``str`` options.
+"""  # noqa E501
 
 docdict["splash"] = """
 splash : bool
@@ -4521,7 +4643,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    Only supported by the ``'qt'`` backend.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
+    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
+    stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
@@ -5176,6 +5300,7 @@ def copy_doc(source):
     >>> print(B.m1.__doc__)
     Docstring for m1
     this gets appended
+    <BLANKLINE>
     """
 
     def wrapper(func):
@@ -5183,7 +5308,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += f"\n{inspect.cleandoc(func.__doc__)}"
+            doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
         func.__doc__ = doc
         return func
 
@@ -5261,6 +5386,7 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     .. versionadded:: 0.13.0
+    <BLANKLINE>
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
@@ -5333,6 +5459,8 @@ def copy_function_doc_to_method_doc(source):
             + "\n".join(doc[first_parameter_end:])
         )
         func.__doc__ = f"{doc}{func_doc}"
+        if not func.__doc__.endswith("\n\n"):
+            func.__doc__ = func.__doc__ + "\n"
         return func
 
     return wrapper

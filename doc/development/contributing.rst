@@ -304,11 +304,11 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -e ".[test]"
+    $ pip install --group=test
 
 And for building our documentation::
 
-    $ pip install -e ".[doc]"
+    $ pip install --group=doc
     $ conda install graphviz
 
 .. note::
@@ -587,17 +587,19 @@ deprecation period when the stated release is being prepared:
   parameter, and (if found) update them to use the new function / parameter.
 
 
+.. _`changelog-guide`:
+
 Describe your changes in the changelog
 --------------------------------------
 
-Include in your changeset a brief description of the change in the
-:ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
-properly-named ``.rst`` files to create a changelog. This can be
+Include in your changeset a brief description of the changes, which will appear in the
+:ref:`changelog <whats_new>`, using towncrier_ format. This aggregates small,
+properly named ``.rst`` files to create a changelog. This can be
 skipped for very minor changes like correcting typos in the documentation.
 
 There are six separate sections for changes, based on change type.
 To add a changelog entry to a given section, name it as
-:file:`doc/changes/devel/<PR-number>.<type>.rst`. The types are:
+:file:`doc/changes/dev/<PR-number>.<type>.rst`. The types are:
 
 notable
     For overarching changes, e.g., adding type hints package-wide. These are rare.
@@ -607,15 +609,18 @@ dependency
 bugfix
     For bug fixes. Can change code behavior with no deprecation period.
 apichange
-    Code behavior changes that require a deprecation period.
+    Changes to existing code behavior that require a deprecation period. Can include the
+    addition of new features only if existing code behavior is changed alongside this.
 newfeature
-    For new features.
+    For new features that do not change existing code behavior. If existing code
+    behavior is changed alongside the addition of these features, the changes should
+    instead be labelled as ``apichange``.
 other
     For changes that don't fit into any of the above categories, e.g.,
     internal refactorings.
 
-For example, for an enhancement PR with number 12345, the changelog entry should be
-added as a new file :file:`doc/changes/devel/12345.enhancement.rst`. The file should
+For example, for a new feature PR with number 12345, the changelog entry should be
+added as a new file :file:`doc/changes/dev/12345.newfeature.rst`. The file should
 contain:
 
 1. A brief description of the change, typically in a single line of one or two
@@ -658,17 +663,95 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 
     Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
-Test locally before opening pull requests (PRs)
------------------------------------------------
 
-MNE-Python uses `continuous integration`_ (CI) to ensure code quality and
-test across multiple installation targets. However, the CIs are often slower
-than testing locally, especially when other contributors also have open PRs
-(which is basically always the case). Therefore, do not rely on the CIs to
-catch bugs and style errors for you; :ref:`run the tests locally <run-tests>`
+.. _taking-over-a-stale-pr:
+
+Taking over a stale pull request
+--------------------------------
+
+If a pull request has been abandoned, someone else can take it over. A PR is generally
+considered abandoned when there have been no commits for several weeks, and the original
+author has not already indicated that they plan to continue at a later time. In this
+case, first ping the author in a comment on the PR, asking if they intend to continue
+working on it. If the original author replies that they do not intend to continue the
+work, or there is no reply after at least 2 weeks, you can take over the PR.
+
+To build on top of the original author's existing work, you can add a copy of the branch
+they were working on to your fork:
+
+.. code-block:: bash
+
+    git remote add original-author https://github.com/original-author/mne-python.git
+    git fetch original-author
+    git checkout -b some-new-feature original-author/some-new-feature
+
+You can then push any further commits to, and open a PR from, this new branch on your
+fork.
+
+Reference the original PR number in the description of the new PR (e.g., "Closes
+#12345 (supersedes)"), and keep any links to the corresponding issue (e.g., "Fixes #12340").
+
+Before the PR is merged, make sure the original author is credited for their existing
+work. To credit them in the documentation, add their name to ``doc/changes/names.inc``,
+if not already included, and add them as an author in the changelog entry, e.g.:
+
+.. code-block:: rst
+
+    Short description of the changes, by `Your Name`_ and `Original Author Name`_.
+
+To credit the original author in the code, add their name and email as a co-author to
+the end of at least one commit message (e.g., the commit that adds the changelog
+entry):
+
+.. code-block:: rst
+
+    Your commit message
+    
+    Co-authored-by: Original Author Name <original-author-email@example.com>
+
+Continuous integration (CI) and local testing before opening a PR
+-----------------------------------------------------------------
+
+Continuous integration (CI) uses automated systems to run tests and checks on your code
+whenever you open or update a pull request.
+MNE-Python uses `continuous integration`_ (CI) to ensure code quality,
+test across multiple platforms, and automatically validate pull requests.
+However, CI runs are slower than testing locally and some of them cost money to run.
+Therefore, *do not rely on the CIs to catch bugs and style errors for you*; 
+:ref:`run the tests locally <run-tests>`
 instead before opening a new PR and before each time you push additional
 changes to an already-open PR.
 
+MNE-Python uses the following CI services:
+
+- `GitHub Actions`_ and `Azure`_ for testing code across platforms
+- `CodeCov`_ checks how much of the code is tested
+- `CircleCI`_ for building the documentation
+
+If you are contributing for the first time, you may notice that `Github Actions`_
+jobs do not start automatically, or appear as "pending".
+This is expected behavior. Github Actions requires **manual approval from a
+maintainer** before running jobs submitted by new contributors. This is a
+security measure to prevent misuse of CI resources.
+
+As a result:
+
+- Github Actions jobs may remain in a *pending* or *not running* state
+- This does **not** indicate a problem with your code
+
+Once you have at least one PR merged into the MNE-Python repository, future
+contributions will not require manual approval.
+
+`CircleCI`_ will not build the documentation unless the GitHub account of the PR's most recent commit
+is associated with a CircleCI account. Creating one is easy and free, 
+choose "login with GitHub" on `CircleCI`_ to get started.
+If you do not do this, it will show up as a failing CI job.
+
+Before opening or updating a PR, check locally:
+
+- that all tests pass (see :ref:`run-tests`)
+- the documentation is built without errors if your changes affect it (see :ref:`build-docs`)
+- style checks pass (see :ref:`code-style`)
 
 Make tests fast and thorough
 ----------------------------
@@ -989,8 +1072,9 @@ down the road. Here are the guidelines:
   you are specifically asked by a maintainer to PR into another branch (e.g.,
   for backports or maintenance bugfixes to the current stable version).
 
-- Don't forget to include in your PR a brief description of the change in the
-  :ref:`changelog <whats_new>` (:file:`doc/whats_new.rst`).
+- Don't forget to include in your PR a brief description of the change in a
+  changelog entry (see :ref:`the changelog section <changelog-guide>` above
+  for instructions).
 
 - Our community uses the following commit tags and conventions:
 
@@ -1105,15 +1189,16 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
-.. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
+.. _continuous integration: https://about.gitlab.com/topics/ci-cd/
 .. _matplotlib: https://matplotlib.org/
 .. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _CircleCI: https://circleci.com/gh/mne-tools/mne-python
+.. _CodeCov: https://about.codecov.io/
 
 .. optipng
 
-.. _optipng: http://optipng.sourceforge.net/
+.. _optipng: https://optipng.sourceforge.net/
 .. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.8-win64.zip?download
 
 .. include:: ../links.inc

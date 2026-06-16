@@ -11,7 +11,13 @@ import numpy as np
 from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
 from ..defaults import _handle_default
 from ..filter import create_filter
-from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
+from ..utils import (
+    _check_option,
+    _get_stim_channel,
+    _validate_type,
+    legacy,
+    verbose,
+)
 from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
     _check_cov,
@@ -20,10 +26,11 @@ from .utils import (
     _handle_decim,
     _handle_precompute,
     _make_event_color_dict,
+    _normalize_annotation_colors,
     _shorten_path_from_middle,
 )
 
-_RAW_CLIP_DEF = 1.5
+_RAW_CLIP_DEF = 3
 
 
 @verbose
@@ -37,6 +44,9 @@ def plot_raw(
     color=None,
     bad_color="lightgray",
     event_color="cyan",
+    *,
+    annotation_colors=None,
+    annotation_regex=".*",
     scalings=None,
     remove_dc=True,
     order=None,
@@ -61,7 +71,6 @@ def plot_raw(
     precompute=None,
     use_opengl=None,
     picks=None,
-    *,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -95,10 +104,27 @@ def plot_raw(
                  emg='k', ref_meg='steelblue', misc='k', stim='k',
                  resp='k', chpi='k')
 
+        If a dict, keys can be channel *types* (e.g., ``'eeg'``) and/or
+        channel *names* (e.g., ``'SFG, Left'``); name-based entries
+        take precedence over type-based ones.
+
     bad_color : color object
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
+    annotation_colors : dict | None
+        A dictionary mapping annotation description strings to colors. Use this to
+        override the default color assigned to specific annotation types (e.g.,
+        ``dict(bad_segment='orange')``). Colors can be any valid Matplotlib color
+        specification. Keys that do not match any annotation description in the data
+        will trigger a warning. If ``None`` (default), automatic colors are used.
+
+        .. versionadded:: 1.12.1
+    annotation_regex : str
+        A regex pattern applied to each annotation's label.
+        Matching labels remain visible, non-matching labels are hidden.
+
+        .. versionadded:: 1.11
     %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.
@@ -325,6 +351,12 @@ def plot_raw(
     if order.size == 0:
         raise RuntimeError("No channels found to plot")
 
+    # handle annotation_colors
+    if annotation_colors is not None:
+        annotation_colors = _normalize_annotation_colors(
+            annotation_colors, raw.annotations
+        )
+
     # handle event colors
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
@@ -373,6 +405,7 @@ def plot_raw(
         event_times=event_times,
         event_nums=event_nums,
         event_id_rev=event_id_rev,
+        annotation_regex=annotation_regex,
         # preprocessing
         projs=projs,
         projs_on=projs_on,
@@ -388,6 +421,7 @@ def plot_raw(
         # colors
         ch_color_bad=bad_color,
         ch_color_dict=color,
+        annotation_colors=annotation_colors,
         # display
         butterfly=butterfly,
         clipping=clipping,

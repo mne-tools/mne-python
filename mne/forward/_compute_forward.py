@@ -17,7 +17,7 @@ import numpy as np
 
 from .._fiff.constants import FIFF
 from ..bem import _import_openmeeg, _make_openmeeg_geometry
-from ..fixes import bincount, jit
+from ..fixes import _reshape_view, bincount, jit
 from ..parallel import parallel_func
 from ..surface import _jit_cross, _project_onto_surface
 from ..transforms import apply_trans, invert_transform
@@ -457,7 +457,7 @@ def _do_prim_curr(rr, coils):
     for start, stop in _rr_bounds(rr, chunk=1):
         pp = _bem_inf_fields(rr[start:stop], rmags, cosmags)
         pp *= ws
-        pp.shape = (3 * (stop - start), -1)
+        pp = _reshape_view(pp, (3 * (stop - start), -1))
         pc[3 * start : 3 * stop] = [
             bincount(bins, this_pp, bins[-1] + 1) for this_pp in pp
         ]
@@ -709,7 +709,7 @@ def _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close):
 
 
 @verbose
-def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
+def _prep_field_computation(*, sensors, bem, n_jobs, verbose=None):
     """Precompute and store some things that are used for both MEG and EEG.
 
     Calculation includes multiplication factors, coordinate transforms,
@@ -840,7 +840,7 @@ def _compute_forwards(rr, *, bem, sensors, n_jobs, verbose=None):
         # This modifies "sensors" in place, so let's copy it in case the calling
         # function needs to reuse it (e.g., in simulate_raw.py)
         sensors = deepcopy(sensors)
-        fwd_data = _prep_field_computation(rr, sensors=sensors, bem=bem, n_jobs=n_jobs)
+        fwd_data = _prep_field_computation(sensors=sensors, bem=bem, n_jobs=n_jobs)
         Bs = _compute_forwards_meeg(
             rr, sensors=sensors, fwd_data=fwd_data, n_jobs=n_jobs
         )

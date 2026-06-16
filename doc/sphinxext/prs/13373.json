@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "be5fcefc67a66d35c87c2e33f6ac2a7951f0ee35",
+  "authors": [
+    {
+      "n": "Shristi Baral",
+      "e": null
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13373.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/development/contributing.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

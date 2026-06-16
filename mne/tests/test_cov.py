@@ -94,6 +94,14 @@ def test_compute_whitener(proj, pca):
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
 
+    # with and without rank
+    W_info, _ = compute_whitener(cov, raw.info, pca=pca, rank="info", verbose="error")
+    assert_allclose(W_info, W)
+    rank = compute_rank(raw, rank="info", proj=proj)
+    assert W.shape == (n_reduced, n_channels)
+    W_rank, _ = compute_whitener(cov, raw.info, pca=pca, rank=rank, verbose="error")
+    assert_allclose(W_rank, W)
+
     raw.info["bads"] = [raw.ch_names[0]]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
     with pytest.warns(RuntimeWarning, match="Too few samples"):

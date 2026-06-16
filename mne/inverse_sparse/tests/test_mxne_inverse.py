@@ -306,7 +306,7 @@ def test_mxne_vol_sphere():
     evoked_l21.crop(tmin=0.081, tmax=0.1)
 
     info = evoked.info
-    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
+    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.09)
     src = mne.setup_volume_source_space(
         subject=None,
         pos=15.0,

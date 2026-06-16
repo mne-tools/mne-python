@@ -183,7 +183,7 @@ If you encounter other errors installing MNE-C, please post a message to the
 
 .. _MNE-C download page: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php
 .. _MATLAB runtime: https://www.mathworks.com/products/compiler/matlab-runtime.html
-.. _netpbm: http://netpbm.sourceforge.net/
+.. _netpbm: https://netpbm.sourceforge.net/
 .. _MacPorts: https://www.macports.org/
 .. _Homebrew: https://brew.sh/
 .. _XCode developer tools: https://developer.apple.com/xcode/

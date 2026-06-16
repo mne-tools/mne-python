@@ -24,10 +24,10 @@ from numpydoc import docscrape
 from sphinx.config import is_serializable
 from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import ExplicitOrder
+from yaml import safe_load
 
 import mne
 import mne.html_templates._templates
-from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,
     run_subprocess,
@@ -62,12 +62,24 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (  # noqa: A001
-    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
-    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
+project_copyright = (
+    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>.\n'  # noqa: E501
+    """<script type="text/javascript">
+function formatTimestamp() {
+    document.querySelectorAll("time.localized").forEach(el => {
+        const d = new Date(el.getAttribute("datetime"));
+        el.textContent = d.toLocaleString("sv-SE", { "timeZoneName": "short" });
+    });
+}
+if (document.readyState !== "loading") {
+    formatTimestamp();
+} else {
+    document.addEventListener("DOMContentLoaded", formatTimestamp);
+}
+</script>"""
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
+    project_copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -116,6 +128,7 @@ extensions = [
     "newcontrib_substitutions",
     "unit_role",
     "related_software",
+    "directive_formatting",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -126,7 +139,7 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/devel"]
+exclude_patterns = ["_includes", "changes/dev"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -178,6 +191,8 @@ seaborn patsy pyvista dipy nilearn pyqtgraph
         ),
     )
 )
+# Broken as of 2026/06/08 (https://github.com/joblib/joblib/issues/1796)
+intersphinx_mapping["joblib"] = ("https://joblib.readthedocs.io/en/stable", None)
 
 
 # NumPyDoc configuration -----------------------------------------------------
@@ -276,6 +291,7 @@ numpydoc_xref_aliases = {
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
     "RawANT": "mne.io.Raw",
+    "RawBCI2k": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -293,6 +309,7 @@ numpydoc_xref_aliases = {
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
@@ -304,13 +321,18 @@ numpydoc_xref_aliases = {
 numpydoc_xref_ignore = {
     # words
     "and",
+    "as",
     "between",
+    "data",
     "instance",
     "instances",
+    "input",
     "of",
     "default",
+    "same",
     "shape",
     "or",
+    "the",
     "with",
     "length",
     "pair",
@@ -412,42 +434,17 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-numpydoc_validation_checks = {"all"} | set(error_ignores)
-numpydoc_validation_exclude = {  # set of regex
-    # dict subclasses
-    r"\.clear",
-    r"\.get$",
-    r"\.copy$",
-    r"\.fromkeys",
-    r"\.items",
-    r"\.keys",
-    r"\.move_to_end",
-    r"\.pop",
-    r"\.popitem",
-    r"\.setdefault",
-    r"\.update",
-    r"\.values",
-    # list subclasses
-    r"\.append",
-    r"\.count",
-    r"\.extend",
-    r"\.index",
-    r"\.insert",
-    r"\.remove",
-    r"\.sort",
-    # we currently don't document these properly (probably okay)
-    r"\.__getitem__",
-    r"\.__contains__",
-    r"\.__hash__",
-    r"\.__mul__",
-    r"\.__sub__",
-    r"\.__add__",
-    r"\.__iter__",
-    r"\.__div__",
-    r"\.__neg__",
-    # copied from sklearn
-    r"mne\.utils\.deprecated",
-}
+try:
+    import tomllib
+    # TODO VERSION: Can be removed once Python 3.11 is required
+except Exception:
+    pass
+else:
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+    numpydoc_validation_checks = set(pyproject_nv["checks"])
+    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
@@ -644,16 +641,18 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1017/",  # cambridge.org
     "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
     "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
     "https://doi.org/10.1073/",  # pnas.org
     "https://doi.org/10.1080/",  # www.tandfonline.com
     "https://doi.org/10.1088/",  # www.tandfonline.com
+    "https://doi.org/10.1090/",  # ams.org
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
-    "https://doi.org/10.1103",  # journals.aps.org/rmp
+    "https://doi.org/10.1103/",  # journals.aps.org/rmp
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
@@ -663,9 +662,14 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
+    "https://doi.org/10.1523/",  # jneurosci.org
     "https://doi.org/10.3109/",  # www.tandfonline.com
+    "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://blender.org",
+    "https://home.alexk101.dev",
+    "https://www.mq.edu.au/",
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
@@ -675,10 +679,11 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",
     "https://sourceforge.net/projects/ezwinports/files/",
+    r"https://.*\.sourceforge\.net/",
+    "https://www.cogsci.nl/smathot",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
-    # TODO https://github.com/mne-tools/curry-python-reader/issues/5
-    "https://github.com/mne-tools/curry-python-reader/README.md",
+    "http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -688,6 +693,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
     "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize",
     "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
@@ -704,6 +710,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
+    "https://www.crnl.fr",
     # Not rendered by linkcheck builder
     r"ides\.html",
 ]
@@ -728,13 +735,10 @@ nitpicky = True
 show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
-    ("py:class", "a set-like object providing a view on D's items"),
-    ("py:class", "a set-like object providing a view on D's keys"),
     (
         "py:class",
         "v, remove specified key and return the corresponding value.",
     ),  # noqa: E501
-    ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
@@ -743,6 +747,8 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
+    ("py:class", "a set-like object providing a view on D's (items|keys)"),
+    ("py:class", r"None\.  Update D from (dict|mapping)/iterable E and F\."),
     # Classes whose methods we purposefully do not document
     ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
     ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
@@ -776,11 +782,11 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-switcher_version_match = "dev" if ".dev" in version else version
+switcher_version_match = "dev" if ".dev" in release else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="Discord",
+            name="Discord (office hours)",
             url="https://discord.gg/rKfvxTuATa",
             icon="fa-brands fa-discord fa-fw",
         ),
@@ -791,14 +797,24 @@ html_theme_options = {
             attributes=dict(rel="me"),
         ),
         dict(
-            name="Forum",
+            name="Q&A Forum",
             url="https://mne.discourse.group/",
             icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="GitHub",
+            name="Code Repository",
             url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github fa-fw",
+            icon="fa-brands fa-github fa-fw",
+        ),
+        dict(
+            name="Sponsor us on GitHub",
+            url="https://github.com/sponsors/mne-tools",
+            icon="fa-regular fa-heart fa-fw",
+        ),
+        dict(
+            name="Donate via OpenCollective",
+            url="https://opencollective.com/mne-python",
+            icon="fa-custom fa-opencollective fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
@@ -840,6 +856,9 @@ html_static_path = ["_static"]
 html_css_files = [
     "style.css",
 ]
+html_js_files = [
+    ("js/custom-icons.js", {"defer": "defer"}),
+]
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -863,13 +882,47 @@ html_copy_source = False
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
 
-# accommodate different logo shapes (width values in rem)
-xs = "2"
-sm = "2.5"
-md = "3"
-lg = "4.5"
-xl = "5"
-xxl = "6"
+# sponsor and partner logos
+with open("_static/sponsors.yml") as fid:
+    sponsors_partners = safe_load(fid)
+current = sponsors_partners.pop("current")
+# sponsors
+current_sponsors = list()
+former_sponsors = list()
+for key, val in sponsors_partners["sponsors"].items():
+    if "img" in val:
+        val["name"] = key
+        (current_sponsors if key in current else former_sponsors).append(val)
+    else:
+        assert "light" in val and "dark" in val
+        for mode in ("light", "dark"):
+            (current_sponsors if key in current else former_sponsors).append(
+                dict(
+                    name=f"{key}{'_dk' if mode == 'dark' else ''}",
+                    title=val["title"],
+                    img=val[mode],
+                    klass=f"only-{mode}",
+                )
+            )
+# institutions
+current_institutions = list()
+former_institutions = list()
+for key, val in sponsors_partners["partner_institutions"].items():
+    if "img" in val:
+        val["name"] = key
+        (current_institutions if key in current else former_institutions).append(val)
+    else:
+        assert "light" in val and "dark" in val
+        for mode in ("light", "dark"):
+            (current_institutions if key in current else former_institutions).append(
+                dict(
+                    name=f"{key}{'_dk' if mode == 'dark' else ''}",
+                    title=val["title"],
+                    img=val[mode],
+                    klass=f"only-{mode}",
+                    url=val["url"],
+                )
+            )
 # variables to pass to HTML templating engine
 html_context = {
     "default_mode": "auto",
@@ -878,292 +931,13 @@ html_context = {
     "github_repo": "mne-python",
     "github_version": "main",
     "doc_path": "doc",
-    "funders": [
-        dict(img="nih.svg", size="3", title="National Institutes of Health"),
-        dict(img="nsf.png", size="3.5", title="US National Science Foundation"),
-        dict(
-            img="erc.svg",
-            size="3.5",
-            title="European Research Council",
-            klass="only-light",
-        ),
-        dict(
-            img="erc-dark.svg",
-            size="3.5",
-            title="European Research Council",
-            klass="only-dark",
-        ),
-        dict(img="doe.svg", size="3", title="US Department of Energy"),
-        dict(img="anr.svg", size="3.5", title="Agence Nationale de la Recherche"),
-        dict(
-            img="cds.svg",
-            size="1.75",
-            title="Paris-Saclay Center for Data Science",
-            klass="only-light",
-        ),
-        dict(
-            img="cds-dark.svg",
-            size="1.75",
-            title="Paris-Saclay Center for Data Science",
-            klass="only-dark",
-        ),
-        dict(img="google.svg", size="2.25", title="Google"),
-        dict(img="amazon.svg", size="2.5", title="Amazon"),
-        dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),
-    ],
-    "institutions": [
-        dict(
-            name="Massachusetts General Hospital",
-            img="MGH.svg",
-            url="https://www.massgeneral.org/",
-            size=sm,
-        ),
-        dict(
-            name="Athinoula A. Martinos Center for Biomedical Imaging",
-            img="Martinos.png",
-            url="https://martinos.org/",
-            size=md,
-        ),
-        dict(
-            name="Harvard Medical School",
-            img="Harvard.png",
-            url="https://hms.harvard.edu/",
-            size=sm,
-        ),
-        dict(
-            name="Massachusetts Institute of Technology",
-            img="MIT.svg",
-            url="https://web.mit.edu/",
-            size=md,
-        ),
-        dict(
-            name="New York University",
-            img="NYU.svg",
-            url="https://www.nyu.edu/",
-            size=xs,
-            klass="only-light",
-        ),
-        dict(
-            name="New York University",
-            img="NYU-dark.svg",
-            url="https://www.nyu.edu/",
-            size=xs,
-            klass="only-dark",
-        ),
-        dict(
-            name="Commissariat à l´énergie atomique et aux énergies alternatives",  # noqa E501
-            img="CEA.png",
-            url="http://www.cea.fr/",
-            size=md,
-        ),
-        dict(
-            name="Aalto-yliopiston perustieteiden korkeakoulu",
-            img="Aalto.svg",
-            url="https://sci.aalto.fi/",
-            size=md,
-            klass="only-light",
-        ),
-        dict(
-            name="Aalto-yliopiston perustieteiden korkeakoulu",
-            img="Aalto-dark.svg",
-            url="https://sci.aalto.fi/",
-            size=md,
-            klass="only-dark",
-        ),
-        dict(
-            name="Télécom ParisTech",
-            img="Telecom_Paris_Tech.svg",
-            url="https://www.telecom-paris.fr/",
-            size=md,
-        ),
-        dict(
-            name="University of Washington",
-            img="Washington.svg",
-            url="https://www.washington.edu/",
-            size=md,
-            klass="only-light",
-        ),
-        dict(
-            name="University of Washington",
-            img="Washington-dark.svg",
-            url="https://www.washington.edu/",
-            size=md,
-            klass="only-dark",
-        ),
-        dict(
-            name="Institut du Cerveau et de la Moelle épinière",
-            img="ICM.jpg",
-            url="https://icm-institute.org/",
-            size=md,
-        ),
-        dict(
-            name="Boston University", img="BU.svg", url="https://www.bu.edu/", size=lg
-        ),
-        dict(
-            name="Institut national de la santé et de la recherche médicale",
-            img="Inserm.svg",
-            url="https://www.inserm.fr/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Institut national de la santé et de la recherche médicale",
-            img="Inserm-dark.svg",
-            url="https://www.inserm.fr/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Forschungszentrum Jülich",
-            img="Julich.svg",
-            url="https://www.fz-juelich.de/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Forschungszentrum Jülich",
-            img="Julich-dark.svg",
-            url="https://www.fz-juelich.de/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Technische Universität Ilmenau",
-            img="Ilmenau.svg",
-            url="https://www.tu-ilmenau.de/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Technische Universität Ilmenau",
-            img="Ilmenau-dark.svg",
-            url="https://www.tu-ilmenau.de/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Berkeley Institute for Data Science",
-            img="BIDS.svg",
-            url="https://bids.berkeley.edu/",
-            size=lg,
-            klass="only-light",
-        ),
-        dict(
-            name="Berkeley Institute for Data Science",
-            img="BIDS-dark.svg",
-            url="https://bids.berkeley.edu/",
-            size=lg,
-            klass="only-dark",
-        ),
-        dict(
-            name="Institut national de recherche en informatique et en automatique",  # noqa E501
-            img="inria.png",
-            url="https://www.inria.fr/",
-            size=xl,
-        ),
-        dict(
-            name="Aarhus Universitet",
-            img="Aarhus.svg",
-            url="https://www.au.dk/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Aarhus Universitet",
-            img="Aarhus-dark.svg",
-            url="https://www.au.dk/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Karl-Franzens-Universität Graz",
-            img="Graz.svg",
-            url="https://www.uni-graz.at/",
-            size=md,
-        ),
-        dict(
-            name="SWPS Uniwersytet Humanistycznospołeczny",
-            img="SWPS.svg",
-            url="https://www.swps.pl/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="SWPS Uniwersytet Humanistycznospołeczny",
-            img="SWPS-dark.svg",
-            url="https://www.swps.pl/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Max-Planck-Institut für Bildungsforschung",
-            img="MPIB.svg",
-            url="https://www.mpib-berlin.mpg.de/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Max-Planck-Institut für Bildungsforschung",
-            img="MPIB-dark.svg",
-            url="https://www.mpib-berlin.mpg.de/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Macquarie University",
-            img="Macquarie.svg",
-            url="https://www.mq.edu.au/",
-            size=lg,
-            klass="only-light",
-        ),
-        dict(
-            name="Macquarie University",
-            img="Macquarie-dark.svg",
-            url="https://www.mq.edu.au/",
-            size=lg,
-            klass="only-dark",
-        ),
-        dict(
-            name="AE Studio",
-            img="AE-Studio-light.svg",
-            url="https://ae.studio/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="AE Studio",
-            img="AE-Studio-dark.svg",
-            url="https://ae.studio/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Children’s Hospital of Philadelphia Research Institute",
-            img="CHOP.svg",
-            url="https://www.research.chop.edu/imaging",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Children’s Hospital of Philadelphia Research Institute",
-            img="CHOP-dark.svg",
-            url="https://www.research.chop.edu/imaging",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Donders Institute for Brain, Cognition and Behaviour at Radboud University",  # noqa E501
-            img="Donders.png",
-            url="https://www.ru.nl/donders/",
-            size=xl,
-        ),
-        dict(
-            name="Fondation Campus Biotech Geneva",
-            img="FCBG.svg",
-            url="https://fcbg.ch/",
-            size=sm,
-        ),
-    ],
+    "current_sponsors_partners": current,
+    "current_sponsors": current_sponsors,
+    "former_sponsors": former_sponsors,
+    "all_sponsors": [*current_sponsors, *former_sponsors],
+    "current_institutions": current_institutions,
+    "former_institutions": former_institutions,
+    "all_institutions": [*current_institutions, *former_institutions],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
     "carousel": [
@@ -1176,7 +950,7 @@ html_context = {
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
@@ -1190,14 +964,14 @@ html_context = {
         ),
         dict(
             title="Statistics",
-            text="Parametric and non-parametric, permutation tests and clustering.",  # noqa E501
+            text="Parametric and non-parametric, permutation tests and clustering.",
             url="auto_tutorials/stats-source-space/index.html",
             img="sphx_glr_20_cluster_1samp_spatiotemporal_001.png",
             alt="Clusters",
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1509,9 +1283,12 @@ vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
+    "credit": "credits/credit",
+    "funding": "credits/sponsors",
     "install/contributing": "development/contributing",
     "overview/cite": "documentation/cite",
     "overview/get_help": "help/index",
+    "overview/people": "credits/leaders",
     "overview/roadmap": "development/roadmap",
     "whats_new": "development/whats_new",
     f"{tu}/evoked/plot_eeg_erp": f"{tu}/evoked/30_eeg_erp",
@@ -1666,7 +1443,9 @@ def make_custom_redirects(app, exception):
         else:
             to_path = Path(app.outdir) / to
             assert to_path.is_file(), to_path
-        # recreate folders that no longer exist
+        # recreate overview folder (only for redirects now)
+        os.makedirs(Path(app.outdir) / "overview", exist_ok=True)
+        # recreate gallery folders that no longer exist
         defunct_gallery_folders = (
             "misc",
             "discussions",
@@ -1704,6 +1483,17 @@ def make_version(app, exception):
     sphinx_logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
 
 
+def rstjinja(app, docname, source):
+    """Use Jinja to process the sponsors page."""
+    # Make sure we're outputting HTML
+    if app.builder.format != "html":
+        return
+    if docname == "credits/sponsors":
+        src = source[0]
+        rendered = app.builder.templates.render_string(src, app.config.html_context)
+        source[0] = rendered
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
@@ -1718,3 +1508,4 @@ def setup(app):
     app.connect("build-finished", make_api_redirects)
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
+    app.connect("source-read", rstjinja)

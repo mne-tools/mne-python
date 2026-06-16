@@ -40,6 +40,7 @@ from .utils import (
     _check_fname,
     _check_option,
     _check_subject,
+    _import_nibabel,
     _validate_type,
     check_random_state,
     fill_doc,
@@ -949,7 +950,7 @@ class Label:
 
         Notes
         -----
-        ..versionadded:: 0.24
+        .. versionadded:: 0.24
         """
         _, _, surf = self._load_surface(
             subject, subjects_dir, surface, return_dict=True
@@ -2123,87 +2124,6 @@ def _read_annot_cands(dir_name, raise_error=True):
     return cands
 
 
-def _read_annot(fname):
-    """Read a Freesurfer annotation from a .annot file.
-
-    Note : Copied from PySurfer
-
-    Parameters
-    ----------
-    fname : str
-        Path to annotation file
-
-    Returns
-    -------
-    annot : numpy array, shape=(n_verts)
-        Annotation id at each vertex
-    ctab : numpy array, shape=(n_entries, 5)
-        RGBA + label id colortable array
-    names : list of str
-        List of region names as stored in the annot file
-
-    """
-    if not op.isfile(fname):
-        dir_name = op.split(fname)[0]
-        cands = _read_annot_cands(dir_name)
-        if len(cands) == 0:
-            raise OSError(
-                f"No such file {fname}, no candidate parcellations found in directory"
-            )
-        else:
-            raise OSError(
-                f"No such file {fname}, candidate parcellations in "
-                "that directory:\n" + "\n".join(cands)
-            )
-    with open(fname, "rb") as fid:
-        n_verts = np.fromfile(fid, ">i4", 1)[0]
-        data = np.fromfile(fid, ">i4", n_verts * 2).reshape(n_verts, 2)
-        annot = data[data[:, 0], 1]
-        ctab_exists = np.fromfile(fid, ">i4", 1)[0]
-        if not ctab_exists:
-            raise Exception("Color table not found in annotation file")
-        n_entries = np.fromfile(fid, ">i4", 1)[0]
-        if n_entries > 0:
-            length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, ">c", length)  # discard orig_tab
-
-            names = list()
-            ctab = np.zeros((n_entries, 5), np.int64)
-            for i in range(n_entries):
-                name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
-                names.append(name)
-                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
-                ctab[i, 4] = (
-                    ctab[i, 0]
-                    + ctab[i, 1] * (2**8)
-                    + ctab[i, 2] * (2**16)
-                    + ctab[i, 3] * (2**24)
-                )
-        else:
-            ctab_version = -n_entries
-            if ctab_version != 2:
-                raise Exception("Color table version not supported")
-            n_entries = np.fromfile(fid, ">i4", 1)[0]
-            ctab = np.zeros((n_entries, 5), np.int64)
-            length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, f"|S{length}", 1)  # Orig table path
-            entries_to_read = np.fromfile(fid, ">i4", 1)[0]
-            names = list()
-            for i in range(entries_to_read):
-                np.fromfile(fid, ">i4", 1)  # Structure
-                name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
-                names.append(name)
-                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
-                ctab[i, 4] = ctab[i, 0] + ctab[i, 1] * (2**8) + ctab[i, 2] * (2**16)
-
-        # convert to more common alpha value
-        ctab[:, 3] = 255 - ctab[:, 3]
-
-    return annot, ctab, names
-
-
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
     """Get the .annot filenames and hemispheres."""
     if annot_fname is not None:
@@ -2251,6 +2171,7 @@ def read_labels_from_annot(
     parc="aparc",
     hemi="both",
     surf_name="white",
+    *,
     annot_fname=None,
     regexp=None,
     subjects_dir=None,
@@ -2295,6 +2216,8 @@ def read_labels_from_annot(
     write_labels_to_annot
     morph_labels
     """
+    nib = _import_nibabel("Reading labels from parcellations")
+
     logger.info("Reading labels from parcellation...")
 
     subjects_dir = get_subjects_dir(subjects_dir)
@@ -2318,7 +2241,9 @@ def read_labels_from_annot(
     orig_names = set()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
-        annot, ctab, label_names = _read_annot(fname)
+        _check_fname(fname, overwrite="read", must_exist=True, name="annotation file")
+        annot, ctab, label_names = nib.freesurfer.io.read_annot(fname, orig_ids=True)
+        ctab[:, 3] = 255 - ctab[:, 3]
         label_rgbas = ctab[:, :4] / 255.0
         label_ids = ctab[:, -1]
 
@@ -2362,7 +2287,7 @@ def read_labels_from_annot(
         labels = sorted(labels, key=lambda label: label.name)
 
     if len(labels) == 0:
-        msg = "No labels found."
+        msg = f"No labels found in {annot_fname[0]}."
         if regexp is not None:
             orig_names = "\n".join(sorted(orig_names))
             msg += (

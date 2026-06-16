@@ -19,31 +19,36 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from pytest import StashKey
+from packaging.version import Version
+from pytest import StashKey, register_assert_rewrite
 
+# Any `assert` statements in our testing functions should be verbose versions
+register_assert_rewrite("mne.utils._testing")
+
+# ruff: noqa: E402
 import mne
-from mne import Epochs, pick_types, read_events
+from mne import Epochs, create_info, make_fixed_length_epochs, pick_types, read_events
+from mne._fiff.constants import FIFF
 from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
-from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
+from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
     _assert_no_instances,
     _check_qt_version,
+    _chmod_rw_R,
     _pl,
     _record_warnings,
     _TempDir,
     check_version,
     numerics,
 )
+from mne.viz._figure import use_browser_backend
 
 # data from sample dataset
-from mne.viz._figure import use_browser_backend
-from mne.viz.backends._utils import _init_mne_qtapp
-
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, "MEG", "sample")
 fname_evoked = op.join(s_path, "sample_audvis_trunc-ave.fif")
@@ -78,7 +83,7 @@ fname_evoked_io = op.join(base_dir, "test-ave.fif")
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout("Vectorview-all")
 
-collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
+collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf_bdf.py"]
 
 
 def pytest_configure(config: pytest.Config):
@@ -89,8 +94,8 @@ def pytest_configure(config: pytest.Config):
         "slowtest: mark a test as slow",
         "ultraslowtest: mark a test as ultraslow or to be run rarely",
         "pgtest: mark a test as relevant for mne-qt-browser",
-        "pvtest: mark a test as relevant for pyvistaqt",
-        "allow_unclosed: allow unclosed pyvistaqt instances",
+        # used by PyVista's MNE integration tests (but also useful in some testing):
+        "pvtest: mark a test as relevant for pyvista",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -180,7 +185,7 @@ def pytest_configure(config: pytest.Config):
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
-    ignore:Call to deprecated method GetInputAsDataSet.*:DeprecationWarning
+    ignore:Call to deprecated method Get.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
@@ -197,11 +202,37 @@ def pytest_configure(config: pytest.Config):
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
+    ignore:Passing a non-Collection iterable to parametrize[.\n]*:
+    # matplotlib<->nilearn
+    ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
+    # matplotlib<->pyparsing
+    ignore:^'.*' argument is deprecated, use '.*'$:DeprecationWarning
+    ignore:^'.*' deprecated - use '.*'$:DeprecationWarning
+    # dipy
+    ignore:'where' used without 'out', expect .*:UserWarning
+    # VTK <-> NumPy 2.5 (https://gitlab.kitware.com/vtk/vtk/-/merge_requests/12796)
+    # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
+    ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
+    ignore:Implicitly cleaning up.*:ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
+    try:
+        import pandas
+    except Exception:
+        pass
+    else:
+        if Version(pandas.__version__) >= Version("3.1.0.dev0"):
+            # TODO VERSION once statsmodels dev has updated for pip-pre
+            # (failing as of 2026/02/04)
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:"
+                ".+ is deprecated and will be removed in a future version.*:"
+                "pandas.errors.Pandas4Warning",
+            )
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]):
@@ -519,6 +550,47 @@ def _bias_params(evoked, noise_cov, fwd):
 
 
 @pytest.fixture
+def triaxial_raw():
+    """Create a small triaxial OPM raw for regression tests."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+            [-0.5145, 0.0000, 0.8575],
+            [0.0000, 1.0000, 0.0000],
+            [0.0000, 0.0000, 1.0000],
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 2000))
+    return RawArray(data, info, verbose="error")
+
+
+@pytest.fixture
+def triaxial_evoked(triaxial_raw):
+    """Create a small triaxial OPM evoked for regression tests."""
+    return make_fixed_length_epochs(triaxial_raw).average()
+
+
+@pytest.fixture
 def garbage_collect():
     """Garbage collect on exit."""
     yield
@@ -670,6 +742,7 @@ def _check_skip_backend(name):
         assert name == "notebook", name
         pytest.importorskip("jupyter")
         pytest.importorskip("ipympl")
+        pytest.importorskip("ipyevents")
         pytest.importorskip("trame")
         pytest.importorskip("trame_vtk")
         pytest.importorskip("trame_vuetify")
@@ -678,7 +751,7 @@ def _check_skip_backend(name):
 
 
 @pytest.fixture(scope="session")
-def pixel_ratio():
+def pixel_ratio(qapp):
     """Get the pixel ratio."""
     # _check_qt_version will init an app for us, so no need for us to do it
     if not check_version("pyvista", "0.32") or not _check_qt_version():
@@ -686,8 +759,7 @@ def pixel_ratio():
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow
 
-    app = _init_mne_qtapp()
-    app.processEvents()
+    qapp.processEvents()
     window = QMainWindow()
     window.setAttribute(Qt.WA_DeleteOnClose, True)
     ratio = float(window.devicePixelRatio())
@@ -700,6 +772,7 @@ def subjects_dir_tmp(tmp_path):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
     for key in ("sample", "fsaverage"):
         shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    _chmod_rw_R(tmp_path)
     return str(tmp_path)
 
 
@@ -717,6 +790,7 @@ def subjects_dir_tmp_few(tmp_path):
         shutil.copytree(
             test_path / "subjects" / "sample" / dirname, sample_path / dirname
         )
+    _chmod_rw_R(subjects_path)
     return subjects_path
 
 
@@ -729,14 +803,16 @@ def _evoked_cov_sphere(_evoked):
     evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model(
+        (0.0, 0.0, 0.04), 0.1, relative_radii=(0.995, 0.997, 0.998, 1.0)
+    )
     return evoked, cov, sphere
 
 
 @pytest.fixture(scope="session")
 def _fwd_surf(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     src_surf = mne.read_source_spaces(fname_src)
     return mne.make_forward_solution(
         evoked.info, fname_trans, src_surf, sphere, mindist=5.0
@@ -747,7 +823,7 @@ def _fwd_surf(_evoked_cov_sphere):
 def _fwd_subvolume(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
     pytest.importorskip("nibabel")
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     volume_labels = ["Left-Cerebellum-Cortex", "right-Cerebellum-Cortex"]
     with pytest.raises(ValueError, match=r"Did you mean one of \['Right-Cere"):
         mne.setup_volume_source_space(
@@ -761,9 +837,12 @@ def _fwd_subvolume(_evoked_cov_sphere):
         subjects_dir=subjects_dir,
         add_interpolator=False,
     )
-    return mne.make_forward_solution(
-        evoked.info, fname_trans, src_vol, sphere, mindist=5.0
+    fwd = mne.make_forward_solution(
+        evoked.info, fname_trans, src_vol, sphere, mindist=1.0
     )
+    nsrc = sum(s["nuse"] for s in src_vol)
+    assert fwd["nsource"] == nsrc
+    return fwd
 
 
 @pytest.fixture
@@ -964,6 +1043,7 @@ def brain_gc(request):
     from mne.viz import Brain
 
     ignore = set(id(o) for o in gc.get_objects())
+    vtk_ignores = ("vtkBuffer_IhE",)
     yield
     close_func()
     if not _test_passed(request):
@@ -978,7 +1058,11 @@ def brain_gc(request):
         except Exception:  # old Python, probably
             pass
         else:
-            if name.startswith("vtk") and id(o) not in ignore:
+            if (
+                name.startswith("vtk")
+                and name not in vtk_ignores
+                and id(o) not in ignore
+            ):
                 bad.append(name)
         del o
     del objs, ignore, Brain
@@ -1060,7 +1144,9 @@ def numba_conditional(monkeypatch, request):
 @pytest.fixture(scope="session")
 def _nbclient():
     try:
+        import jupyter  # noqa
         import nbformat
+        import nest_asyncio2  # noqa
         import trame  # noqa
         from ipywidgets import Button  # noqa
         from jupyter_client import AsyncKernelManager
@@ -1173,24 +1259,20 @@ def nirx_snirf(request):
 
 
 @pytest.fixture
-def qt_windows_closed(request):
+def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    app = _init_mne_qtapp()
-
-    app.processEvents()
+    qapp.processEvents()
     gc.collect()
-    n_before = len(app.topLevelWidgets())
-    marks = set(mark.name for mark in request.node.iter_markers())
+    n_before = len(qapp.topLevelWidgets())
     yield
-    app.processEvents()
+    for _ in range(2):
+        qapp.processEvents()
     gc.collect()
-    if "allow_unclosed" in marks:
-        return
     # Don't check when the test fails
     if not _test_passed(request):
         return
-    widgets = app.topLevelWidgets()
+    widgets = qapp.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
 

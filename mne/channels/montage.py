@@ -7,6 +7,7 @@ import re
 from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -28,6 +29,7 @@ from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..fixes import _reshape_view
 from ..transforms import (
     Transform,
     _ensure_trans,
@@ -49,12 +51,17 @@ from ..utils import (
     check_fname,
     copy_function_doc_to_method_doc,
     fill_doc,
+    legacy,
     verbose,
     warn,
 )
 from ..utils.docs import docdict
 from ..viz import plot_montage
-from ._dig_montage_utils import _parse_brainvision_dig_montage, _read_dig_montage_egi
+from ._dig_montage_utils import (
+    _parse_brainvision_dig_montage,
+    _read_dig_montage_curry,
+    _read_dig_montage_egi,
+)
 
 
 @dataclass
@@ -65,37 +72,52 @@ class _BuiltinStandardMontage:
 
 _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
-        name="standard_1005",
-        description="Electrodes are named and positioned according to the "
-        "international 10-05 system (343+3 locations)",
+        name="fsaverage_1005",
+        description="Electrodes are named according to the international 10-05 system "
+        "and positioned on the fsaverage head model (335+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_1020",
-        description="Electrodes are named and positioned according to the "
-        "international 10-20 system (94+3 locations)",
+        name="fsaverage_1010",
+        description="Electrodes are named according to the international 10-10 system "
+        "and positioned on the fsaverage head model (70+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_alphabetic",
-        description="Electrodes are named with LETTER-NUMBER combinations "
-        "(A1, B2, F4, …) (65+3 locations)",
+        name="fsaverage_1020",
+        description="Electrodes are named according to the international 10-20 system "
+        "and positioned on the fsaverage head model (21+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_postfixed",
-        description="Electrodes are named according to the international "
-        "10-20 system using postfixes for intermediate positions "
-        "(100+3 locations)",
+        name="colin27_1005",
+        description="Electrodes are named according to the international 10-05 system "
+        "and positioned on the Colin27 head model (343+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_prefixed",
-        description="Electrodes are named according to the international "
-        "10-20 system using prefixes for intermediate positions "
-        "(74+3 locations)",
+        name="colin27_1020",
+        description="Electrodes are named according to the international extended 10-20"
+        " system and positioned on the Colin27 head model (94+3 locations)",
     ),
     _BuiltinStandardMontage(
-        name="standard_primed",
-        description="Electrodes are named according to the international "
-        "10-20 system using prime marks (' and '') for "
-        "intermediate positions (100+3 locations)",
+        name="colin27_alphabetic",
+        description="Electrodes are named with LETTER-NUMBER combinations (A1, B2, F4, "
+        "…) and positioned on the Colin27 head model (65+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="colin27_postfixed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using postfixes for intermediate positions and positioned on the "
+        "Colin27 head model (100+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="colin27_prefixed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using prefixes for intermediate positions and positioned on the "
+        "Colin27 head model (74+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="colin27_primed",
+        description="Electrodes are named according to the international extended 10-20"
+        " system using prime marks (' and '') for intermediate positions and positioned"
+        " on the Colin27 head model (100+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="biosemi16",
@@ -123,19 +145,19 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="easycap-M1",
-        description="EasyCap with 10-05 electrode names (74 locations)",
+        description="EasyCap with 10-05 electrode names (74+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="easycap-M10",
-        description="EasyCap with numbered electrodes (61 locations)",
+        description="EasyCap with numbered electrodes (61+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="easycap-M43",
-        description="EasyCap with numbered electrodes (64 locations)",
+        description="EasyCap with numbered electrodes (64+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="EGI_256",
-        description="Geodesic Sensor Net (256 locations)",
+        description="Geodesic Sensor Net (256+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="GSN-HydroCel-32",
@@ -184,9 +206,43 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="brainproducts-RNP-BA-128",
-        description="Brain Products with 10-10 electrode names (128 channels)",
+        description="Brain Products with 10-10 electrode names (130+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1005",
+        description="10–05 electrode names and locations using a spherical head model"
+        " (344+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1010",
+        description="10–10 electrode names and locations using a spherical head model"
+        " (70+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="spherical_1020",
+        description="10–20 electrode names and locations using a spherical head model"
+        " (21+3 locations)",
     ),
 ]
+
+
+# Deprecated montage names: removed in MNE 1.13, to be errored in MNE 1.14.
+_DEPRECATED_STANDARD_MONTAGES = {
+    "standard_1005": "colin27_1005",
+    "standard_1020": "colin27_1020",
+    "standard_alphabetic": "colin27_alphabetic",
+    "standard_postfixed": "colin27_postfixed",
+    "standard_prefixed": "colin27_prefixed",
+    "standard_primed": "colin27_primed",
+}
+
+# We could eventually add mne/data/helmets/Kernel_Flux_ch_pos.txt if we added
+# the normals and deduplicate... but can wait until someone has a use case!
+_MEG_CANONICAL_FILES = {
+    "neuromag": "neuromag306.csv",
+    "ctf151": "ctf151.csv",
+    "ctf275": "ctf275.csv",
+}
 
 
 def _check_get_coord_frame(dig):
@@ -322,7 +378,6 @@ class DigMontage:
     See Also
     --------
     read_dig_captrak
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -379,13 +434,19 @@ class DigMontage:
             axes=axes,
         )
 
-    @fill_doc
-    def rename_channels(self, mapping, allow_duplicates=False):
+    @verbose
+    def rename_channels(
+        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+    ):
         """Rename the channels.
 
         Parameters
         ----------
         %(mapping_rename_channels_duplicates)s
+        %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
+        %(verbose)s
 
         Returns
         -------
@@ -395,7 +456,7 @@ class DigMontage:
         from .channels import rename_channels
 
         temp_info = create_info(list(self._get_ch_pos()), 1000.0, "eeg")
-        rename_channels(temp_info, mapping, allow_duplicates)
+        rename_channels(temp_info, mapping, allow_duplicates, on_missing=on_missing)
         self.ch_names = temp_info["ch_names"]
         return self
 
@@ -751,6 +812,7 @@ def transform_to_head(montage):
     return montage
 
 
+@legacy(alt="read_dig_curry()")
 def read_dig_dat(fname):
     r"""Read electrode positions from a ``*.dat`` file.
 
@@ -773,7 +835,7 @@ def read_dig_dat(fname):
     See Also
     --------
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -839,9 +901,9 @@ def read_dig_fif(fname, *, verbose=None):
     See Also
     --------
     DigMontage
-    read_dig_dat
     read_dig_egi
     read_dig_captrak
+    read_dig_curry
     read_dig_polhemus_isotrak
     read_dig_hpts
     read_dig_localite
@@ -892,7 +954,7 @@ def read_dig_hpts(fname, unit="mm"):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_localite
@@ -962,9 +1024,9 @@ def read_dig_hpts(fname, unit="mm"):
         label[ii]: this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "eeg"
     }
     hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "hpi"])
-    hpi.shape = (-1, 3)  # in case it's empty
+    hpi = _reshape_view(hpi, (-1, 3))  # in case it's empty
     hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "extra"])
-    hsp.shape = (-1, 3)  # in case it's empty
+    hsp = _reshape_view(hsp, (-1, 3))  # in case it's empty
     return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
 
 
@@ -985,7 +1047,7 @@ def read_dig_egi(fname):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_fif
     read_dig_hpts
     read_dig_localite
@@ -1017,7 +1079,7 @@ def read_dig_captrak(fname):
     See Also
     --------
     DigMontage
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1029,6 +1091,51 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
+
+
+def read_dig_curry(fname):
+    """Read electrode locations from Neuroscan Curry files.
+
+    Parameters
+    ----------
+    fname : path-like
+        A valid Curry file.
+
+    Returns
+    -------
+    montage : instance of DigMontage | None
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrak
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_localite
+    read_dig_polhemus_isotrak
+    make_dig_montage
+
+    Notes
+    -----
+    .. versionadded:: 1.11
+    """
+    from ..io.curry.curry import (
+        _check_curry_filename,
+        _extract_curry_info,
+    )
+
+    # TODO - REVIEW NEEDED
+    fname = _check_curry_filename(fname)
+    (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _, _) = (
+        _extract_curry_info(fname)
+    )
+    data = _read_dig_montage_curry(
+        ch_names, ch_types, ch_pos, landmarks, landmarkslabels
+    )
+    mont = make_dig_montage(**data) if data else None
+    return mont
 
 
 def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
@@ -1054,7 +1161,7 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1155,6 +1262,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             ch["loc"] = np.full(12, np.nan)
         return
     if isinstance(montage, str):  # load builtin montage
+        if montage in _DEPRECATED_STANDARD_MONTAGES:
+            new_name = _DEPRECATED_STANDARD_MONTAGES[montage]
+            warn(
+                f"Montage name '{montage}' is deprecated and will be removed in MNE "
+                f"1.14. Use '{new_name}' instead.",
+                FutureWarning,
+            )
+            montage = new_name
         _check_option(
             parameter="montage",
             value=montage,
@@ -1189,7 +1304,12 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     # keep reference location from EEG-like channels if they
     # already exist and are all the same.
     # Note: ref position is an empty list for fieldtrip data
-    if len(ref_pos) and ref_pos[0].any() and (ref_pos[0] == ref_pos).all():
+    if (
+        len(ref_pos)
+        and ref_pos[0].any()
+        and (ref_pos[0] == ref_pos).all()
+        and not np.array_equal(ref_pos[0], [1.0, 0.0, 0.0])
+    ):
         eeg_ref_pos = ref_pos[0]
         # since we have an EEG reference position, we have
         # to add it into the info['dig'] as EEG000
@@ -1455,7 +1575,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
     make_dig_montage
     read_polhemus_fastscan
     read_dig_captrak
-    read_dig_dat
+    read_dig_curry
     read_dig_egi
     read_dig_fif
     read_dig_localite
@@ -1681,6 +1801,115 @@ def read_custom_montage(
     return montage
 
 
+@verbose
+def read_meg_canonical_info(system, *, verbose=None):
+    """Load canonical MEG sensor definitions from CSV files.
+
+    Parameters
+    ----------
+    system : str
+        The MEG system name. Currently supported: 'neuromag', 'ctf151' or
+        'ctf275'.
+    %(verbose)s
+
+    Returns
+    -------
+    info : Info
+        An Info object containing the canonical sensor definitions.
+
+    Notes
+    -----
+    This function loads pre-defined canonical sensor positions and
+    orientations from CSV files stored in mne/channels/data/montages/.
+
+    .. versionadded:: 1.12
+    """
+    # Validate system input
+    _check_option("system", system, list(_MEG_CANONICAL_FILES))
+
+    # Load the CSV file
+    montage_dir = Path(__file__).parent / "data" / "canonical_meg"
+    csv_file = montage_dir / _MEG_CANONICAL_FILES[system]
+    assert csv_file.is_file()  # should be guaranteed by packaging
+
+    # Read sensor definitions manually
+    ch_names = []
+    rows = []
+    lines = csv_file.read_text("utf-8").splitlines()
+    # Read header to get column names
+    header = lines[0].strip().split(",")
+    # Create a mapping from column name to index
+    col_idx = {name: i for i, name in enumerate(header)}
+
+    # Read data rows
+    for line in lines[1:]:
+        values = line.strip().split(",")
+        if not values[0]:  # skip empty lines
+            continue
+        rows.append(values)
+        ch_names.append(values[col_idx["name"]])
+
+    # Create base info structure
+    # Use a dummy sample rate; it won't matter for field interpolation
+    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types="mag")
+
+    # Update each channel with full coil information
+    for idx, row in enumerate(rows):
+        ch = info["chs"][idx]
+
+        # Set coil type
+        ch["coil_type"] = int(row[col_idx["coil_type"]])
+
+        # Set position and orientation in loc field
+        # loc[0:3] = position
+        ch["loc"][:3] = [
+            float(row[col_idx["x"]]),
+            float(row[col_idx["y"]]),
+            float(row[col_idx["z"]]),
+        ]
+
+        # loc[3:6] = ex (first orientation vector)
+        ch["loc"][3:6] = [
+            float(row[col_idx["ex_x"]]),
+            float(row[col_idx["ex_y"]]),
+            float(row[col_idx["ex_z"]]),
+        ]
+
+        # loc[6:9] = ey (second orientation vector)
+        ch["loc"][6:9] = [
+            float(row[col_idx["ey_x"]]),
+            float(row[col_idx["ey_y"]]),
+            float(row[col_idx["ey_z"]]),
+        ]
+
+        # loc[9:12] = ez (third orientation vector / normal)
+        ch["loc"][9:12] = [
+            float(row[col_idx["ez_x"]]),
+            float(row[col_idx["ez_y"]]),
+            float(row[col_idx["ez_z"]]),
+        ]
+
+        # Set coordinate frame to device coordinates
+        ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
+
+        # Set channel kind to MEG
+        ch["kind"] = FIFF.FIFFV_MEG_CH
+
+        # Set unit based on coil type
+        # Neuromag gradiometers (3012) use T/m, magnetometers (3024) use T
+        # CTF gradiometers (5001) use T
+        if ch["coil_type"] == 3012:  # Neuromag planar gradiometer
+            ch["unit"] = FIFF.FIFF_UNIT_T_M
+        else:  # Magnetometers and CTF gradiometers
+            ch["unit"] = FIFF.FIFF_UNIT_T
+
+    # Set device to head transform to identity (canonical positions)
+    # This will be updated based on the actual data being interpolated
+    info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+
+    return info
+
+
 def compute_dev_head_t(montage):
     """Compute device to head transform from a DigMontage.
 
@@ -1797,9 +2026,9 @@ def make_standard_montage(kind, head_size="auto"):
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
         Can be None to not scale the read sizes. ``'auto'`` (default) will
-        use 95mm for all montages except the ``'standard*'``, ``'mgh*'``, and
-        ``'artinis*'``, which are already in fsaverage's MRI coordinates
-        (same as MNI).
+        use 95mm for all montages except the ``'fsaverage*'``,
+        ``'colin27*'``, ``'mgh*'``, and ``'artinis*'``, which are already in
+        fsaverage's MRI coordinates (same as MNI).
 
     Returns
     -------
@@ -1815,8 +2044,8 @@ def make_standard_montage(kind, head_size="auto"):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
-    :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
+    :func:`read_dig_captrak`, :func:`read_dig_curry`,
+    :func:`read_dig_egi`, :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts`, or manually made with :func:`make_dig_montage`.
 
     .. versionadded:: 0.19.0
@@ -1824,6 +2053,14 @@ def make_standard_montage(kind, head_size="auto"):
     from ._standard_montage_utils import standard_montage_look_up_table
 
     _validate_type(kind, str, "kind")
+    if kind in _DEPRECATED_STANDARD_MONTAGES:
+        new_kind = _DEPRECATED_STANDARD_MONTAGES[kind]
+        warn(
+            f"Montage name '{kind}' is deprecated and will be removed in MNE 1.14. Use "
+            f"'{new_kind}' instead.",
+            FutureWarning,
+        )
+        kind = new_kind
     _check_option(
         parameter="kind",
         value=kind,
@@ -1832,7 +2069,7 @@ def make_standard_montage(kind, head_size="auto"):
     _validate_type(head_size, ("numeric", str, None), "head_size")
     if isinstance(head_size, str):
         _check_option("head_size", head_size, ("auto",), extra="when str")
-        if kind.startswith(("standard", "mgh", "artinis")):
+        if kind.startswith(("fsaverage", "colin27", "mgh", "artinis")):
             head_size = None
         else:
             head_size = HEAD_SIZE_DEFAULT

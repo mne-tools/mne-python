@@ -192,7 +192,7 @@ def test_xhemi_morph():
     n_src_verts = len(vertices_use[1])
     assert vertices_use[0].shape == (n_grade_verts,)
     assert vertices_use[1].shape == (n_src_verts,)
-    # ensure it's sufficiently diffirent to manifest round-trip errors
+    # ensure it's sufficiently different to manifest round-trip errors
     assert np.isin(vertices_use[1], stc.vertices[1]).mean() < 0.3
     morph = compute_source_morph(
         stc,
@@ -308,6 +308,17 @@ def test_surface_vector_source_morph(tmp_path):
     source_morph_surf = compute_source_morph(
         inverse_operator_surf["src"], subjects_dir=subjects_dir, smooth=1, warn=False
     )  # smooth 1 for speed
+    src_to_fs = mne.read_source_spaces(
+        subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+    )
+    morph_with_src_to = compute_source_morph(
+        inverse_operator_surf["src"],
+        subjects_dir=subjects_dir,
+        src_to=src_to_fs,
+        smooth=1,
+        warn=False,
+    )
+    assert morph_with_src_to.spacing is None
     assert source_morph_surf.subject_from == "sample"
     assert source_morph_surf.subject_to == "fsaverage"
     assert source_morph_surf.kind == "surface"
@@ -920,8 +931,9 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     assert len(src) == n_use
     assert src.kind == "volume"
     n_src = sum(s["nuse"] for s in src)
-    sphere = make_sphere_model("auto", "auto", evoked.info)
+    sphere = make_sphere_model((0.0, 0.0, 0.04), 0.1)
     fwd = make_forward_solution(evoked.info, fname_trans, src, sphere)
+    assert fwd["nsource"] == n_src
     assert fwd["sol"]["data"].shape == (n_ch, n_src * 3)
     inv = make_inverse_operator(
         evoked.info, fwd, make_ad_hoc_cov(evoked.info), loose=1.0

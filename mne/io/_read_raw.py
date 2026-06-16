@@ -26,6 +26,7 @@ def _get_supported():
     from . import (
         read_raw_ant,
         read_raw_artemis123,
+        read_raw_bci2k,
         read_raw_bdf,
         read_raw_boxy,
         read_raw_brainvision,
@@ -42,6 +43,7 @@ def _get_supported():
         read_raw_fil,
         read_raw_gdf,
         read_raw_kit,
+        read_raw_mef,
         read_raw_nedf,
         read_raw_nicolet,
         read_raw_nihon,
@@ -58,6 +60,7 @@ def _get_supported():
         ".gdf": dict(GDF=read_raw_gdf),
         ".vhdr": dict(brainvision=read_raw_brainvision),
         ".ahdr": dict(brainvision=read_raw_brainvision),
+        ".mefd": dict(MEF=read_raw_mef),
         ".fif": dict(FIF=read_raw_fif),
         ".fif.gz": dict(FIF=read_raw_fif),
         ".set": dict(EEGLAB=read_raw_eeglab),
@@ -77,7 +80,10 @@ def _get_supported():
         ".ds": dict(CTF=read_raw_ctf),
         ".txt": dict(BOXY=read_raw_boxy),
         # Curry
-        ".dat": dict(CURRY=read_raw_curry),
+        ".dat": dict(
+            CURRY=read_raw_curry,
+            BCI2K=read_raw_bci2k,
+        ),
         ".dap": dict(CURRY=read_raw_curry),
         ".rs3": dict(CURRY=read_raw_curry),
         ".cdt": dict(CURRY=read_raw_curry),
@@ -128,6 +134,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
 
     * `~mne.io.read_raw_ant`
     * `~mne.io.read_raw_artemis123`
+    * `~mne.io.read_raw_bci2k`
     * `~mne.io.read_raw_bdf`
     * `~mne.io.read_raw_boxy`
     * `~mne.io.read_raw_brainvision`
@@ -144,6 +151,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     * `~mne.io.read_raw_fil`
     * `~mne.io.read_raw_gdf`
     * `~mne.io.read_raw_kit`
+    * `~mne.io.read_raw_mef`
     * `~mne.io.read_raw_nedf`
     * `~mne.io.read_raw_nicolet`
     * `~mne.io.read_raw_nihon`

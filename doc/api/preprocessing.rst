@@ -42,12 +42,14 @@ Projections:
    read_dig_polhemus_isotrak
    read_dig_captrak
    read_dig_dat
+   read_dig_curry
    read_dig_egi
    read_dig_fif
    read_dig_hpts
    read_dig_localite
    make_standard_montage
    read_custom_montage
+   read_meg_canonical_info
    transform_to_head
    compute_dev_head_t
    read_layout
@@ -166,6 +168,7 @@ Projections:
    read_eyelink_calibration
    set_channel_types_eyetrack
    convert_units
+   find_blinks
    get_screen_visual_angle
    interpolate_blinks
 
@@ -220,6 +223,7 @@ EEG referencing:
    get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos
+   refit_hpi
    write_head_pos
 
 :py:mod:`mne.transforms`
@@ -234,6 +238,7 @@ EEG referencing:
    :toctree: ../generated/
 
    Transform
+   angle_distance_between_rigid
    quat_to_rot
    rot_to_quat
    read_ras_mni_t

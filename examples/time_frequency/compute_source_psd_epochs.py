@@ -72,7 +72,7 @@ bandwidth = 4.0  # bandwidth of the windows in Hz
 # Compute source space PSD in label
 # ---------------------------------
 #
-# ..note:: By using "return_generator=True" stcs will be a generator object
+# .. note:: By using "return_generator=True" stcs will be a generator object
 #          instead of a list. This allows us so to iterate without having to
 #          keep everything in memory.
 

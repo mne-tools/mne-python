@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "08ef1c7a8d5ef8086a7e3ffda94d60e5a1263055",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

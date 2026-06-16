@@ -108,6 +108,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     os.remove(fid_path)
     create_default_subject(update=True, subjects_dir=tmp_path, fs_home=fake_home)
     assert fid_path.exists(), "Updating fsaverage"
+    mri_fiducials = read_fiducials(fid_path)[0]
 
     # copy MRI file from sample data (shouldn't matter that it's incorrect,
     # so here choose a small one)
@@ -146,6 +147,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
         True,
         subjects_dir=tmp_path,
         verbose="debug",
+        mri_fiducials=mri_fiducials,
     )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
     spath = tmp_path / "flachkopf" / "bem"

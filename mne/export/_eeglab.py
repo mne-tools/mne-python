@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from inspect import getfullargspec
+
 import numpy as np
 
 from ..annotations import _sync_onset
@@ -64,6 +66,11 @@ def _export_epochs(fname, epochs):
     else:
         annot = None
 
+    # https://github.com/jackz314/eeglabio/pull/18
+    kwargs = dict()
+    if "epoch_indices" in getfullargspec(eeglabio.epochs.export_set).kwonlyargs:
+        kwargs["epoch_indices"] = epochs.selection
+
     eeglabio.epochs.export_set(
         fname,
         data=epochs.get_data(picks=ch_names),
@@ -75,6 +82,7 @@ def _export_epochs(fname, epochs):
         event_id=epochs.event_id,
         ch_locs=cart_coords,
         annotations=annot,
+        **kwargs,
     )
 
 

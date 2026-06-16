@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import json
 import pickle
 import string
 from datetime import date, datetime, timedelta, timezone
@@ -61,7 +62,7 @@ from mne.channels import (
 )
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_fif
+from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_edf, read_raw_fif
 from mne.minimum_norm import (
     apply_inverse,
     make_inverse_operator,
@@ -90,7 +91,9 @@ elp_fname = kit_data_dir / "test_elp.txt"
 
 data_path = testing.data_path(download=False)
 sss_path = data_path / "SSS"
+triux_path = data_path / "SSS" / "TRIUX"
 sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
+tri_sss_ctc_cal_fname = triux_path / "triux_bmlhus_erm_ctc_cal_raw_sss.fif"
 ctf_fname = data_path / "CTF" / "testdata_ctf.ds"
 raw_invalid_bday_fname = data_path / "misc" / "sample_invalid_birthday_raw.fif"
 
@@ -302,7 +305,7 @@ def test_read_write_info(tmp_path):
 
     with info._unlock():
         if info["gantry_angle"] is None:  # future testing data may include it
-            info["gantry_angle"] = 0.0  # Elekta supine position
+            info["gantry_angle"] = 0  # Elekta supine position
     gantry_angle = info["gantry_angle"]
 
     meas_id = info["meas_id"]
@@ -351,6 +354,136 @@ def test_read_write_info(tmp_path):
     fname = tmp_path / "test.fif"
     with pytest.raises(RuntimeError, match="must be between "):
         write_info(fname, info, overwrite=True)
+
+
+@testing.requires_testing_data
+def test_info_serialization_roundtrip(tmp_path):
+    """Test Info JSON serialization with real MEG data."""
+    # Test with real MEG/FIF file
+    raw = read_raw_fif(raw_fname, preload=False, verbose=False)
+    _complete_info(raw.info)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
+
+
+def test_info_serialization_edf(tmp_path):
+    """Test Info JSON serialization with EDF data."""
+    edf_path = root_dir / "io" / "edf" / "tests" / "data" / "test.edf"
+    raw = read_raw_edf(edf_path, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Save to JSON
+    json_path = tmp_path / "info_edf.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify everything is exactly the same
+    assert_object_equal(info, info_restored)
+
+
+def test_info_serialization_special_types():
+    """Test that special types (NamedInt, dates, etc.) are preserved correctly."""
+    from mne.utils._bunch import NamedInt
+
+    # Create info with various special types
+    info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
+
+    # Test meas_date (datetime)
+    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=timezone.utc)
+    with info._unlock():
+        info["meas_date"] = meas_date
+
+    # Test subject_info with birthday (date)
+    info["subject_info"] = {
+        "id": 1,
+        "his_id": "SUBJ001",
+        "birthday": date(1990, 1, 15),
+        "sex": 1,
+    }
+
+    # Roundtrip through JSON
+    info_dict = info.to_json_dict()
+    json_str = json.dumps(info_dict)
+    info_restored = Info.from_json_dict(json.loads(json_str))
+
+    # Verify special types are preserved
+    assert isinstance(info_restored["meas_date"], datetime)
+    assert info_restored["meas_date"] == meas_date
+    assert isinstance(info_restored["subject_info"]["birthday"], date)
+    assert info_restored["subject_info"]["birthday"] == date(1990, 1, 15)
+    assert isinstance(info_restored["custom_ref_applied"], NamedInt)
+    assert repr(info["custom_ref_applied"]) == repr(info_restored["custom_ref_applied"])
+
+
+@testing.requires_testing_data
+def test_info_serialization_numpy_arrays(tmp_path):
+    """Test that numpy arrays (e.g., compensation matrices) serialize correctly."""
+    # Use CTF data which has compensation matrices
+    raw = read_raw_ctf(ctf_fname, preload=False, verbose=False)
+    info = raw.info.copy()
+
+    # Verify we have compensation data with matrices
+    assert len(info["comps"]) > 0, "CTF data should have compensation matrices"
+
+    # Check the structure of compensation matrices before serialization
+    for comp in info["comps"]:
+        assert "data" in comp
+        assert "data" in comp["data"]
+        comp_matrix = comp["data"]["data"]
+        assert isinstance(comp_matrix, np.ndarray), (
+            "Compensation matrix should be numpy array"
+        )
+        assert comp_matrix.ndim == 2, "Compensation matrix should be 2D"
+        assert comp_matrix.shape[0] > 0 and comp_matrix.shape[1] > 0
+
+    # Save to JSON
+    json_path = tmp_path / "info_with_comps.json"
+    with open(json_path, "w") as f:
+        json.dump(info.to_json_dict(), f)
+
+    # Read back from JSON
+    with open(json_path) as f:
+        info_dict = json.load(f)
+    info_restored = Info.from_json_dict(info_dict)
+
+    # Verify compensation matrices are preserved correctly
+    assert len(info_restored["comps"]) == len(info["comps"])
+
+    for orig_comp, rest_comp in zip(info["comps"], info_restored["comps"]):
+        orig_matrix = orig_comp["data"]["data"]
+        rest_matrix = rest_comp["data"]["data"]
+
+        # Verify it's a numpy array with correct shape
+        assert isinstance(rest_matrix, np.ndarray)
+        assert rest_matrix.shape == orig_matrix.shape
+        assert rest_matrix.ndim == 2
+
+        # Verify the actual values are preserved
+        assert_allclose(rest_matrix, orig_matrix, rtol=1e-10)
+
+        # Verify row and column names are preserved
+        assert orig_comp["data"]["row_names"] == rest_comp["data"]["row_names"]
+        assert orig_comp["data"]["col_names"] == rest_comp["data"]["col_names"]
+
+    # Use assert_object_equal for comprehensive check
+    assert_object_equal(info, info_restored)
 
 
 @testing.requires_testing_data
@@ -612,7 +745,7 @@ def _test_anonymize_info(base_info, tmp_path):
         base_info["subject_info"].update(
             birthday=date(1987, 4, 8),
             his_id="foobar",
-            sex=0,
+            sex=1,
         )
 
     # generate expected info...
@@ -681,7 +814,7 @@ def _test_anonymize_info(base_info, tmp_path):
     exp_info_2 = exp_info.copy()
     with exp_info_2._unlock():
         exp_info_2["subject_info"]["his_id"] = "foobar"
-        exp_info_2["subject_info"]["sex"] = 0
+        exp_info_2["subject_info"]["sex"] = 1
         exp_info_2["subject_info"]["hand"] = 1
 
     # exp 3 tests is a supplied daysback
@@ -711,12 +844,54 @@ def _test_anonymize_info(base_info, tmp_path):
     new_info = anonymize_info(base_info.copy(), keep_his=True)
     _check_equiv(new_info, exp_info_2, err_msg="anon keep_his mismatch")
 
+    # keep only his_id
+    new_info = anonymize_info(base_info.copy(), keep_his="his_id")
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only sex
+    new_info = anonymize_info(base_info.copy(), keep_his="sex")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his="hand")
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and sex
+    new_info = anonymize_info(base_info.copy(), keep_his=["his_id", "sex"])
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 1
+    assert "hand" not in new_info["subject_info"]
+
+    # keep only hand
+    new_info = anonymize_info(base_info.copy(), keep_his=["hand"])
+    assert new_info["subject_info"]["his_id"] == "0"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # keep his_id and hand
+    new_info = anonymize_info(base_info.copy(), keep_his=("his_id", "hand"))
+    assert new_info["subject_info"]["his_id"] == "foobar"
+    assert new_info["subject_info"]["sex"] == 0
+    assert new_info["subject_info"]["hand"] == 1
+
+    # invalid keep_his values
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his="invalid_field")
+
+    with pytest.raises(ValueError, match="Invalid value"):
+        anonymize_info(base_info.copy(), keep_his=["his_id", "invalid"])
+
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     _check_equiv(new_info, exp_info_3, err_msg="anon daysback mismatch")
 
     with pytest.raises(RuntimeError, match="anonymize_info generated"):
         anonymize_info(base_info.copy(), daysback=delta_t_3.days)
-    # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
     with base_info._unlock():
@@ -935,8 +1110,11 @@ def test_csr_csc(tmp_path):
     # CSC
     assert isinstance(ct, sparse.csc_array)
     fname = tmp_path / "test.fif"
-    write_info(fname, info)
-    info_read = read_info(fname)
+    write_info(fname, info, verbose="debug")
+    info_read = read_info(fname, verbose="debug")
+    assert "max_info" in info_read["proc_history"][0]
+    assert "sss_ctc" in info_read["proc_history"][0]["max_info"]
+    assert "decoupler" in info_read["proc_history"][0]["max_info"]["sss_ctc"]
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
     assert isinstance(ct_read, sparse.csc_array)
     assert_array_equal(ct_read.toarray(), ct.toarray())
@@ -953,6 +1131,7 @@ def test_csr_csc(tmp_path):
     assert_array_equal(ct_read.toarray(), ct.toarray())
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_check_compensation_consistency():
     """Test check picks compensation."""
@@ -1067,6 +1246,14 @@ def test_invalid_subject_birthday():
     assert "birthday" not in raw.info["subject_info"]
 
 
+def test_invalid_set_meas_date():
+    """Test set_meas_date catches invalid str input."""
+    info = create_info(1, 1000, "eeg")
+    with pytest.raises(TypeError, match=r"meas_date must be an instance of"):
+        info.set_meas_date("2025-01-01 00:00:00.000000")
+
+
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "fname",
     [
@@ -1286,11 +1473,11 @@ def test_info_bad():
 
 def test_get_montage():
     """Test ContainsMixin.get_montage()."""
-    ch_names = make_standard_montage("standard_1020").ch_names
+    ch_names = make_standard_montage("spherical_1005").ch_names
     sfreq = 512
     data = np.zeros((len(ch_names), sfreq * 2))
     raw = RawArray(data, create_info(ch_names, sfreq, "eeg"))
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
 
     assert len(raw.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
@@ -1298,7 +1485,7 @@ def test_get_montage():
 
     # test info
     raw = RawArray(data, create_info(ch_names, sfreq, "eeg"))
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
 
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
@@ -1324,3 +1511,32 @@ def test_proj_id_entries():
         info["proj_id"] = "bad"
     with pytest.raises(TypeError, match="must be an instance"):
         info["proj_id"] = np.array([123])
+
+
+@testing.requires_testing_data
+def test_ct_fc_infd(tmp_path):
+    """Test that cross-talk and fine calibration info are read correctly."""
+    raw = read_raw_fif(raw_fname)
+    raw_sss = read_raw_fif(tri_sss_ctc_cal_fname)
+    with raw.info._unlock():
+        for key_to, key_from in (
+            ("cross_talk", "sss_ctc"),
+            ("fine_calibration", "sss_cal"),
+        ):
+            raw.info[key_to] = raw_sss.info["proc_history"][0]["max_info"][key_from]
+        raw.info["cross_talk"]["parent_block_id"] = dict(
+            version=4,
+            machid=np.ones(2, int),
+            secs=1,
+            usecs=2,
+        )
+    del raw_sss
+    raw.info._check_consistency()
+    # all entries present
+    assert len(raw.info["cross_talk"]) == 6
+    assert len(raw.info["fine_calibration"]) == 2
+    fname = tmp_path / "test-raw.fif"
+    raw.save(fname)
+    raw_read = read_raw_fif(fname)
+    assert_object_equal(raw.info["cross_talk"], raw_read.info["cross_talk"])
+    assert_object_equal(raw.info["fine_calibration"], raw_read.info["fine_calibration"])

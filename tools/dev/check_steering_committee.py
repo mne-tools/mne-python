@@ -28,7 +28,7 @@ print(f"Authenticated as {g.get_user().login}")
 org = g.get_organization("mne-tools")
 teams = org.get_teams()
 team_names = [team.name for team in teams]
-team = teams[team_names.index("MNE-Python Steering Committee")]
+team = teams[team_names.index("MNE-Python Maintainers")]
 members = list(team.get_members())
 when = (datetime.now().astimezone(timezone.utc) - timedelta(days=daysback)).replace(
     tzinfo=None

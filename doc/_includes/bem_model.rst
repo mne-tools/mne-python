@@ -17,7 +17,7 @@ Using the watershed algorithm
 
 The watershed algorithm [Segonne *et al.*,
 2004] is part of the FreeSurfer software.
-The name of the program is ``mri_watershed``.
+The name of the program is mri_watershed_.
 Its use in the MNE environment is facilitated by the script
 :ref:`mne watershed_bem`.
 

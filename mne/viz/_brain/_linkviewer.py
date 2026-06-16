@@ -49,7 +49,7 @@ class _LinkViewer:
             for hemi in ("lh", "rh"):
                 initial_points[hemi] = set()
                 for brain in self.brains:
-                    initial_points[hemi] |= set(brain.picked_points[hemi])
+                    initial_points[hemi] |= set(brain.get_picked_points()[hemi])
 
             # link the viewers
             for brain in self.brains:

@@ -1192,7 +1192,7 @@ def _merge_opm_data(data, merged_names):
     """Merge data from multiple opm channel by just using the radial component.
 
     Channel names that end in "MERGE_REMOVE" (ie non-radial channels) will be
-    removed. Only the the radial channel is kept.
+    removed. Only the radial channel is kept.
 
     Parameters
     ----------

@@ -243,7 +243,7 @@ class ProjMixin:
 
         Returns
         -------
-        self : instance of Raw | Epochs | Evoked
+        self : same type as the input data
             The data container.
         """
         if isinstance(projs, Projection):
@@ -283,7 +283,7 @@ class ProjMixin:
 
         Returns
         -------
-        self : instance of Raw | Epochs | Evoked
+        self : same type as the input data
             The instance.
 
         Notes
@@ -362,7 +362,7 @@ class ProjMixin:
 
         Returns
         -------
-        self : instance of Raw | Epochs | Evoked
+        self : same type as the input data
             The instance.
         """
         if isinstance(idx, str) and idx == "all":
@@ -697,12 +697,10 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
 
     for proj in projs:
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
-        write_int(fid, FIFF.FIFF_NCHAN, len(proj["data"]["col_names"]))
         names = _rename_list(proj["data"]["col_names"], ch_names_mapping)
-        write_name_list_sanitized(
-            fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names, "col_names"
-        )
+        write_name_list_sanitized(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names)
         write_string(fid, FIFF.FIFF_NAME, proj["desc"])
+        write_int(fid, FIFF.FIFF_NCHAN, len(proj["data"]["col_names"]))
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj["kind"])
         if proj["kind"] == FIFF.FIFFV_PROJ_ITEM_FIELD:
             write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)

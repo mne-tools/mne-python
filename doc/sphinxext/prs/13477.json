@@ -1,0 +1,163 @@
+{
+  "merge_commit_sha": "54fe09332dda67a4fcf8b617d10bb83dfde266ee",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/credit.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/spec_zero.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/sphinxext/prs/13096.json": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13251.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13347.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13421.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13431.json": {
+      "a": 59,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13432.json": {
+      "a": 91,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13434.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13435.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13436.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13437.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13439.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13440.json": {
+      "a": 63,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13442.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13443.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13445.json": {
+      "a": 55,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13446.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13448.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13451.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13452.json": {
+      "a": 67,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13453.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13456.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13458.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13459.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13460.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13462.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13463.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13464.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13465.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13466.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13469.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13470.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13475.json": {
+      "a": 15,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 0,
+      "d": 4
+    }
+  }
+}

@@ -37,6 +37,7 @@ from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io import RawArray, base, concatenate_raws, match_channel_orders, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
+from mne.transforms import Transform
 from mne.utils import (
     _dt_to_stamp,
     _record_warnings,
@@ -485,6 +486,24 @@ def test_concatenate_raws_order():
     raw_concat = concatenate_raws(raws)
     ch0 = raw_concat.get_data(picks=["0"])
     assert np.all(ch0 == 0)
+
+
+def test_concatenate_raws_different_subtypes(tmp_path):
+    """Test concatenating raws with different subtypes."""
+    sfreq = 100.0
+    ch_names = ["EEG 001", "EEG 002"]
+    ch_types = ["eeg"] * 2
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    data = np.random.randn(len(ch_names), 1000)
+
+    raw_array = RawArray(data, info)
+    raw_array.save(tmp_path / "temp_raw.fif", overwrite=True)
+    raw_fiff = read_raw_fif(tmp_path / "temp_raw.fif", preload=True)
+
+    result = concatenate_raws([raw_fiff, raw_array])
+    assert isinstance(result, RawArray)
+    assert result.preload
+    assert result.n_times == 2 * data.shape[1]
 
 
 @testing.requires_testing_data
@@ -1642,7 +1661,8 @@ def test_add_channels():
 
     # Testing force updates
     raw_arr_info = create_info(["1", "2"], raw_meg.info["sfreq"], "eeg")
-    orig_head_t = raw_arr_info["dev_head_t"]
+    assert raw_arr_info["dev_head_t"] is None
+    orig_head_t = Transform("meg", "head")
     raw_arr = rng.randn(2, raw_eeg.n_times)
     raw_arr = RawArray(raw_arr, raw_arr_info)
     # This should error because of conflicts in Info
