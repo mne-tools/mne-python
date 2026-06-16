@@ -577,8 +577,8 @@ def _drop_status_col(samples_df):
                 status_cols.append(col)
             else:
                 warn(
-                    f"Unexpected non-numeric value {repr(first_value)} in status column."
-                    " Please contact mne-python developers"
+                    f"Unexpected non-numeric value {repr(first_value)} in "
+                    "status column. Please contact mne-python developers"
                 )
     return samples_df.drop(columns=status_cols)
 
