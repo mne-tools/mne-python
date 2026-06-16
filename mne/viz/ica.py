@@ -148,7 +148,7 @@ def plot_ica_sources(
             exclude,
             start=start,
             stop=stop,
-            n_channels=n_channels,
+            n_components=n_components,
             show=show,
             title=title,
             block=block,
