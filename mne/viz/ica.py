@@ -40,7 +40,7 @@ def plot_ica_sources(
     picks=None,
     start=None,
     stop=None,
-    n_channels=None,
+    n_components=20,
     title=None,
     show=True,
     block=False,
