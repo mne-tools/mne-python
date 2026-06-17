@@ -60,7 +60,8 @@ test = [
 # Move non-free-threaded dependencies into the "test_extra" superset
 # Exclusions determined 2026/06/16
 test_extra = [
-  "jupyter_client",  # tornado no ft version
+  "jupyter_client",  # requires tornado, which has no ft version
+  "nbclient",  # requires jupyter_client
   "nitime >= 0.7",
   "pymef",
   "statsmodels",
@@ -75,7 +76,6 @@ test_extra_ft = [
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
   "mne-bids",
-  "nbclient >= 0.8.0",
   "nbformat",
   "neo",
   "pybv",
