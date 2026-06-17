@@ -75,7 +75,7 @@ test_extra_ft = [
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
   "mne-bids",
-  "nbclient",
+  "nbclient >= 0.8.0",
   "nbformat",
   "neo",
   "pybv",
