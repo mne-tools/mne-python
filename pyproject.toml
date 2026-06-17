@@ -60,6 +60,7 @@ test = [
 # Move non-free-threaded dependencies into the "test_extra" superset
 test_extra = [
   "nitime >= 0.7",
+  "pymef",
   {include-group = "test_extra_ft"},
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
@@ -76,7 +77,6 @@ test_extra_ft = [
   "nbformat",
   "neo",
   "pybv",
-  "pymef",
   "snirf",
   "sphinx-gallery",
   "statsmodels",
