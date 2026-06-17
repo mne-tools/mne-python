@@ -21,6 +21,7 @@ echo "Checking Python found at:"
 echo "  \$(which python)     == ${GOT_PYTHON}"
 echo "  \$(python --version) == ${GOT_PYTHON_VERSION}"
 echo "  Free-threaded       == ${GOT_FREETHREADED}"
+echo "for"
 echo "  \$MNE_CI_KIND        == ${MNE_CI_KIND}"
 if [[ "${MNE_CI_KIND}" == "conda" ]]; then
 	WANT="micromamba/envs/mne"
