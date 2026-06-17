@@ -58,9 +58,11 @@ test = [
   "vulture",
 ]
 # Move non-free-threaded dependencies into the "test_extra" superset
+# Exclusions determined 2026/06/16
 test_extra = [
   "nitime >= 0.7",
   "pymef",
+  "statsmodels",
   {include-group = "test_extra_ft"},
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
@@ -79,7 +81,6 @@ test_extra_ft = [
   "pybv",
   "snirf",
   "sphinx-gallery",
-  "statsmodels",
   {include-group = "test"},
 ]
 
