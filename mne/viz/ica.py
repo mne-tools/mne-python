@@ -1410,7 +1410,7 @@ def _plot_sources(
         ch_types=np.array(ch_types),
         ch_order=ch_order,
         picks=picks,
-        n_components=n_components,
+        n_channels=n_components,
         picks_data=list(),
         # time
         t_start=start if is_raw else boundary_times[start],
