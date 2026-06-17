@@ -33,7 +33,7 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
 	# This one is free-threaded so can't have PySide6/PyQt6 as of 2026/06/16
-	EXTRAS="[hdf5] numba"
+	EXTRAS="[hdf5] numba jupyter-client==8.9.1"
 	GROUP="test_extra_ft"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	EXTRAS="[full-pyside6]"
