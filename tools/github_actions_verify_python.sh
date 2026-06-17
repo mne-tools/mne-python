@@ -3,17 +3,24 @@
 set -eo pipefail
 
 WANT_PYTHON_VERSION="$1"
+if [[ "$WANT_PYTHON_VERSION" == *'t' ]]; then
+	WANT_FREETHREADED=true
+else
+	WANT_FREETHREADED=false
+fi
+WANT_PYTHON_VERSION=$(echo "$WANT_PYTHON_VERSION" | sed 's/t$//g')
 if [[ -z "$WANT_PYTHON_VERSION" ]]; then
-	echo "✕ ERROR: Missing required argument: want Python version (e.g., 3.10)"
+	echo "✕ ERROR: Missing required argument: want Python version \(e.g., 3.10\)"
 	exit 1
 fi
 
 GOT_PYTHON=$(which python)
 GOT_PYTHON_VERSION=$(python --version)
+GOT_FREETHREADED=$(python -c "import sysconfig; print(str(sysconfig.get_config_var('Py_GIL_DISABLED') == 1).lower())")
 echo "Checking Python found at:"
 echo "  \$(which python)     == ${GOT_PYTHON}"
 echo "  \$(python --version) == ${GOT_PYTHON_VERSION}"
-echo "for"
+echo "  Free-threaded       == ${GOT_FREETHREADED}"
 echo "  \$MNE_CI_KIND        == ${MNE_CI_KIND}"
 if [[ "${MNE_CI_KIND}" == "conda" ]]; then
 	WANT="micromamba/envs/mne"
@@ -37,4 +44,10 @@ if [[ "${GOT_PYTHON_VERSION}" != *"${WANT_PYTHON_VERSION}"* ]]; then
 	exit 1
 else
 	echo "☑ Found expected Python version \"${WANT_PYTHON_VERSION}\""
+fi
+if [[ "${GOT_FREETHREADED}" != "${WANT_FREETHREADED}" ]]; then
+	echo "✕ ERROR: Expected free-threaded=${WANT_FREETHREADED} but got ${GOT_FREETHREADED}"
+	exit 1
+else
+	echo "☑ Found expected free-threaded=${WANT_FREETHREADED}"
 fi

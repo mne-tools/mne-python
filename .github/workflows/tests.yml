@@ -56,7 +56,6 @@ jobs:
       run:
         shell: bash -el {0}
     env:
-      PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -113,7 +112,7 @@ jobs:
           environment-name: mne
           log-level: 'info'
           create-args: >-
-            python=${{ env.PYTHON_VERSION }}
+            python=${{ matrix.python }}
             -v
         if: matrix.kind == 'conda'
         timeout-minutes: 20
