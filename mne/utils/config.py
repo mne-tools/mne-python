@@ -7,21 +7,23 @@
 import atexit
 import contextlib
 import importlib.metadata
+import importlib.util
 import json
 import multiprocessing
 import os
 import os.path as op
 import platform
 import shutil
+import site
 import subprocess
 import sys
 import tempfile
 from functools import lru_cache, partial
-from importlib import import_module
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
 
+import matplotlib
 from packaging.version import parse
 
 from ._logging import logger, warn
@@ -789,7 +791,17 @@ def sys_info(
     else:
         total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
-    out("\n")
+    site_packages_path = (site.getsitepackages() or [None])[0]
+    if show_paths and site_packages_path is not None:
+        out("Site-packages".ljust(ljust) + f"{site_packages_path}\n")
+        site_packages_path = Path(site_packages_path)
+        out(
+            "".ljust(ljust)
+            + ("└►" if unicode else "^-")
+            + " Any paths not listed below are in site-packages\n"
+        )
+    else:
+        out("\n")
     ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
     unavailable = []
@@ -801,7 +813,7 @@ def sys_info(
         "matplotlib",
         "",
         "# Numerical (optional)",
-        "sklearn",
+        "scikit-learn",
         "numba",
         "nibabel",
         "nilearn",
@@ -893,24 +905,14 @@ def sys_info(
     except Exception:  # in case someone overrides sys.stdout in an unsafe way
         unicode = False
     mne_version_good = True
-    import_names = dict(hedtools="hed", pillow="PIL")
-    # ``import_module`` below imports each optional dependency purely to read its
-    # version. Some packages change global state at import time -- most notably
-    # ``ipympl``, which switches the Matplotlib backend. Snapshot the backend so
-    # that merely calling ``sys_info`` does not mutate the caller's backend.
-    mpl_backend = None
-    with contextlib.suppress(Exception):
-        import matplotlib
-
-        mpl_backend = matplotlib.get_backend()
-    NO_DUNDER_VERSION = (
-        "mypy",
-        "pre-commit",
-        "pytest-rerunfailures",
-        "pytest-timeout",
-        "ruff",
-        "vtk",
-    )
+    import_names = {
+        "codespell": "codespell_lib",
+        "hedtools": "hed",
+        "ipython": "IPython",
+        "pillow": "PIL",
+        "pytest-qt": "pytestqt",
+        "scikit-learn": "sklearn",
+    }
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -928,14 +930,19 @@ def sys_info(
             continue
         pre = "├"
         last = use_mod_names[mi + 1] == "" and not unavailable
+        import_name = import_names.get(mod_name, mod_name).replace("-", "_")
         if last:
             pre = "└"
         try:
-            import_name = import_names.get(mod_name, mod_name.replace("-", "_"))
-            mod = import_module(import_name)
+            ver = importlib.metadata.version(mod_name)
+            mod_loc = Path(importlib.util.find_spec(import_name).origin)
         except Exception:
             unavailable.append(mod_name)
         else:
+            if mod_loc.stem == "__init__":
+                mod_loc = mod_loc.parent
+            if site_packages_path and mod_loc.is_relative_to(site_packages_path):
+                mod_loc = None
             mark = "☑" if unicode else "+"
             mne_extra = ""
             if mod_name == "mne" and check_version:
@@ -947,17 +954,14 @@ def sys_info(
                     mark = "☒" if unicode else "X"
             out(f"{pre}{mark} " if unicode else f" {mark} ")
             out(f"{mod_name}".ljust(ljust))
-            if mod_name in NO_DUNDER_VERSION:
-                out(importlib.metadata.version(mod_name))
-            else:
-                out(mod.__version__.lstrip("v"))
+            out(ver)
             if mod_name == "numpy":
                 out(f" ({libs})")
             elif mod_name == "qtpy":
                 version, api = _check_qt_version(return_api=True)
                 out(f" ({api}={version})")
             elif mod_name == "matplotlib":
-                out(f" (backend={mod.get_backend()})")
+                out(f" (backend={matplotlib.get_backend()})")
             elif mod_name == "pyvista":
                 version, renderer = _get_gpu_info()
                 if version is None:
@@ -967,24 +971,15 @@ def sys_info(
             elif mod_name == "mne":
                 out(f" ({mne_extra})")
             # Now comes stuff after the version
-            if show_paths:
+            if show_paths and mod_loc is not None:
                 if last:
                     pre = "   "
                 elif unicode:
                     pre = "│  "
                 else:
                     pre = " | "
-                out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
+                out(f"\n{pre}{' ' * ljust}{mod_loc}")
             out("\n")
-
-    # Restore the Matplotlib backend in case importing a dependency above
-    # (e.g. ipympl) changed it as an import-time side effect.
-    if mpl_backend is not None:
-        with contextlib.suppress(Exception):
-            import matplotlib
-
-            if matplotlib.get_backend() != mpl_backend:
-                matplotlib.use(mpl_backend, force=True)
 
     if not mne_version_good:
         out(
@@ -1017,7 +1012,7 @@ def _check_mne_version(timeout):
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
     rel_ver = parse(rel_ver)
-    this_ver = parse(import_module("mne").__version__)
+    this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:
         return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:
