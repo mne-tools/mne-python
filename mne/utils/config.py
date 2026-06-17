@@ -834,7 +834,7 @@ def sys_info(
         "pyqtgraph",
         "mne-qt-browser",
         "ipywidgets",
-        # "trame",  # no version, see https://github.com/Kitware/trame/issues/183
+        "trame",
         "trame_client",
         "trame_server",
         "trame_pyvista",
