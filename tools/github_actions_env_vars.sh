@@ -10,7 +10,9 @@ if [[ "$MNE_CI_KIND" == "pip"* ]] || [[ "$MNE_CI_KIND" == "minimal" ]]; then
         # Make sure nothing unexpected is skipped
         echo "MNE_TEST_ALLOW_SKIP=.*(CUDA not|Numba not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
     fi
-    echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
+    if [[ "$MNE_CI_KIND" != "pip-ft" ]]; then
+        echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
+    fi
 elif [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" | tee -a $GITHUB_ENV
     echo "MNE_SKIP_NETWORK_TESTS=1" | tee -a $GITHUB_ENV

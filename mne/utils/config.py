@@ -893,7 +893,7 @@ def sys_info(
     except Exception:  # in case someone overrides sys.stdout in an unsafe way
         unicode = False
     mne_version_good = True
-    import_names = dict(hedtools="hed")
+    import_names = dict(hedtools="hed", pillow="PIL")
     # ``import_module`` below imports each optional dependency purely to read its
     # version. Some packages change global state at import time -- most notably
     # ``ipympl``, which switches the Matplotlib backend. Snapshot the backend so
