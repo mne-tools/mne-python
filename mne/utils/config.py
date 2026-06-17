@@ -768,12 +768,11 @@ def sys_info(
     _check_option("unicode", unicode, ("auto", True, False))
     if unicode == "auto":
         if platform.system() in ("Darwin", "Linux"):
-            unicode = True
+            try:
+                unicode = sys.stdout.encoding.lower().startswith("utf")
+            except Exception:  # in case someone overrides sys.stdout in an unsafe way
+                unicode = False
         else:  # Windows
-            unicode = False
-        try:
-            unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
-        except Exception:  # in case someone overrides sys.stdout in an unsafe way
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
