@@ -3575,8 +3575,8 @@ class Brain:
                     fill = 0 if self._data["center"] is not None else rng[0]
                     grid.point_data["values"].fill(fill)
                     grid.point_data["values"][vertices] = values
-                    # This can be useful for debugging fsaverage-5 source space by making
-                    # the value at (0, -5, 5) high
+                    # This can be useful for debugging fsaverage-5 source space by
+                    # making the value at (0, -5, 5) high
                     # if 21334 in vertices:
                     #     grid.point_data["values"][21334] = values.max()
 
