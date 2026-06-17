@@ -23,7 +23,6 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
 
-import matplotlib
 from packaging.version import parse
 
 from ._logging import logger, warn
@@ -760,6 +759,8 @@ def sys_info(
 
         .. versionadded:: 1.6
     """
+    import matplotlib
+
     _validate_type(dependencies, str)
     _check_option("dependencies", dependencies, ("user", "developer"))
     _validate_type(check_version, (bool, "numeric"), "check_version")

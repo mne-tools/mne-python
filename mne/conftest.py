@@ -239,7 +239,7 @@ def pytest_configure(config: pytest.Config):
     # fixture(s)
     if not config.pluginmanager.hasplugin("pytest-qt"):  # just 3.14t for now
 
-        @pytest.fixture
+        @pytest.fixture(scope="session")
         def qtbot():
             pytest.skip("Requires pytest-qt")
 
