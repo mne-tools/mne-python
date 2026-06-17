@@ -32,9 +32,9 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	uv pip install pip tomlkit ${MNE_QT_BACKEND}
 	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
-	# This one is free-threaded so can't have numba or PySide6/PyQt6 as of 2025/07/15
-	EXTRAS="[hdf5]"
-	INSTALL_KIND="test"
+	# This one is free-threaded so can't have PySide6/PyQt6 as of 2026/06/16
+	EXTRAS="[hdf5] numba"
+	GROUP="test_extra_ft"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	EXTRAS="[full-pyside6]"
 	python -m pip install --upgrade pip setuptools

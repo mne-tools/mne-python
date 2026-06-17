@@ -133,12 +133,21 @@ def test_sys_info_complete():
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
     deps = [
         dep
-        for dep in pyproject["dependency-groups"]["test_extra"]
+        for dep in (
+            pyproject["dependency-groups"]["test"]
+            + pyproject["dependency-groups"]["test_extra"]
+            + pyproject["dependency-groups"]["test_extra_ft"]
+        )
         if not isinstance(dep, dict)
     ]
+    missing = []
     for dep in deps:
         dep = dep.split("[")[0].split(">")[0].strip()
-        assert f" {dep}" in out, f"Missing in dev config: {dep}"
+        if f" {dep}" not in out:
+            missing.append(dep)
+    if missing:
+        missing_str = "\n".join(missing)
+        raise AssertionError(f"Missing in dev config:\n{missing_str}")
 
 
 def test_sys_info_qt_browser():

@@ -6,6 +6,7 @@
 
 import atexit
 import contextlib
+import importlib.metadata
 import json
 import multiprocessing
 import os
@@ -849,6 +850,18 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
+            "pytest-cov",
+            "pytest-qt",
+            "pytest-rerunfailures",
+            "pytest-timeout",
+            "codespell",
+            "ipython",
+            "mypy",
+            "pillow",
+            "pre-commit",
+            "ruff",
+            "vulture",
+            "",
             "hedtools",
             "statsmodels",
             "numpydoc",
@@ -859,6 +872,7 @@ def sys_info(
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "twine",
             "",
             "# Documentation",
             "sphinx",
@@ -889,6 +903,14 @@ def sys_info(
         import matplotlib
 
         mpl_backend = matplotlib.get_backend()
+    NO_DUNDER_VERSION = (
+        "mypy",
+        "pre-commit",
+        "pytest-rerunfailures",
+        "pytest-timeout",
+        "ruff",
+        "vtk",
+    )
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -925,17 +947,8 @@ def sys_info(
                     mark = "☒" if unicode else "X"
             out(f"{pre}{mark} " if unicode else f" {mark} ")
             out(f"{mod_name}".ljust(ljust))
-            if mod_name == "vtk":
-                vtk_version = mod.vtkVersion()
-                # 9.0 dev has VersionFull but 9.0 doesn't
-                for attr in ("GetVTKVersionFull", "GetVTKVersion"):
-                    if hasattr(vtk_version, attr):
-                        version = getattr(vtk_version, attr)()
-                        if version != "":
-                            out(version)
-                            break
-                else:
-                    out("unknown")
+            if mod_name in NO_DUNDER_VERSION:
+                out(importlib.metadata.version(mod_name))
             else:
                 out(mod.__version__.lstrip("v"))
             if mod_name == "numpy":

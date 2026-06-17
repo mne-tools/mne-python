@@ -55,11 +55,15 @@ test = [
   "pytest-timeout >= 2.2",
   "ruff >= 0.1",
   "vulture",
-  "wheel >= 0.21",
+]
+# Move non-free-threaded dependencies into the "test_extra" superset
+test_extra = [
+  "nitime >= 0.7",
+  {include-group = "test_extra_ft"},
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
-test_extra = [
+test_extra_ft = [
   "edfio >= 0.4.10",
   "eeglabio",
   "hedtools",
@@ -70,7 +74,6 @@ test_extra = [
   "nbclient",
   "nbformat",
   "neo",
-  "nitime >= 0.7",
   "pybv",
   "pymef",
   "snirf",
