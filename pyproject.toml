@@ -54,6 +54,7 @@ test = [
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
   "ruff >= 0.1",
+  "twine",
   "vulture",
 ]
 # Move non-free-threaded dependencies into the "test_extra" superset
@@ -79,7 +80,6 @@ test_extra_ft = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
-  "twine",
   {include-group = "test"},
 ]
 
