@@ -237,7 +237,7 @@ stages:
             displayName: Install dependencies
           - script: pip install --only-binary=":all:" -e .
             displayName: Install mne
-          - bash: mne sys_info -pd
+          - script: mne sys_info -pd
             displayName: Print config
           - script: python -c "import numpy; numpy.show_config()"
             displayName: Print NumPy config

@@ -766,7 +766,6 @@ def sys_info(
     _validate_type(check_version, (bool, "numeric"), "check_version")
     _validate_type(unicode, (bool, str), "unicode")
     _check_option("unicode", unicode, ("auto", True, False))
-    print(unicode)
     if unicode == "auto":
         if platform.system() in ("Darwin", "Linux"):
             try:
@@ -778,7 +777,6 @@ def sys_info(
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
 
-    print(unicode)
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")
     out("Python".ljust(ljust) + str(sys.version).replace("\n", " ") + "\n")
