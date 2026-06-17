@@ -771,10 +771,10 @@ def sys_info(
             unicode = True
         else:  # Windows
             unicode = False
-    try:
-        unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
-    except Exception:  # in case someone overrides sys.stdout in an unsafe way
-        unicode = False
+        try:
+            unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
+        except Exception:  # in case someone overrides sys.stdout in an unsafe way
+            unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
 
