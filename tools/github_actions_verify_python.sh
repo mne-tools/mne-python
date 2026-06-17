@@ -10,7 +10,7 @@ else
 fi
 WANT_PYTHON_VERSION=$(echo "$WANT_PYTHON_VERSION" | sed 's/t$//g')
 if [[ -z "$WANT_PYTHON_VERSION" ]]; then
-	echo "✕ ERROR: Missing required argument: want Python version \(e.g., 3.10\)"
+	echo "✕ ERROR: Missing required argument: want Python version (e.g., 3.10)"
 	exit 1
 fi
 
