@@ -771,6 +771,10 @@ def sys_info(
             unicode = True
         else:  # Windows
             unicode = False
+    try:
+        unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
+    except Exception:  # in case someone overrides sys.stdout in an unsafe way
+        unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
 
@@ -796,13 +800,10 @@ def sys_info(
     if show_paths and site_packages_path is not None:
         out("Site-packages".ljust(ljust) + f"{site_packages_path}\n")
         site_packages_path = Path(site_packages_path)
-        out(
-            "".ljust(ljust)
-            + ("└►" if unicode else "^-")
-            + " Any paths not listed below are in site-packages\n"
-        )
-    else:
-        out("\n")
+        out("".ljust(ljust))
+        out("└►" if unicode else "^-")
+        out(" Any paths not listed below are in site-packages")
+    out("\n")
     ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
     unavailable = []
@@ -901,10 +902,6 @@ def sys_info(
             "tqdm",
             "",
         )
-    try:
-        unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
-    except Exception:  # in case someone overrides sys.stdout in an unsafe way
-        unicode = False
     mne_version_good = True
     import_names = {
         "codespell": "codespell_lib",
