@@ -901,7 +901,16 @@ def sys_info(
             "tqdm",
             "",
         )
-    mne_version_good = True
+    if check_version:
+        timeout = 2.0 if check_version is True else float(check_version)
+        mne_version_good, mne_extra = _check_mne_version(timeout)
+        if mne_version_good is None:
+            mne_version_good = True
+        del timeout
+    else:
+        mne_version_good = True
+        mne_extra = ""
+    del check_version
     import_names = {
         "codespell": "codespell_lib",
         "hedtools": "hed",
@@ -941,14 +950,8 @@ def sys_info(
             if site_packages_path and mod_loc.is_relative_to(site_packages_path):
                 mod_loc = None
             mark = "☑" if unicode else "+"
-            mne_extra = ""
-            if mod_name == "mne" and check_version:
-                timeout = 2.0 if check_version is True else float(check_version)
-                mne_version_good, mne_extra = _check_mne_version(timeout)
-                if mne_version_good is None:
-                    mne_version_good = True
-                elif not mne_version_good:
-                    mark = "☒" if unicode else "X"
+            if mod_name == "mne" and not mne_version_good:
+                mark = "☒" if unicode else "X"
             out(f"{pre}{mark} " if unicode else f" {mark} ")
             out(f"{mod_name}".ljust(ljust))
             out(ver)
@@ -966,7 +969,8 @@ def sys_info(
                 else:
                     out(f" (OpenGL {version} via {renderer})")
             elif mod_name == "mne":
-                out(f" ({mne_extra})")
+                if mne_extra:
+                    out(f" ({mne_extra})")
             # Now comes stuff after the version
             if show_paths and mod_loc is not None:
                 if last:
