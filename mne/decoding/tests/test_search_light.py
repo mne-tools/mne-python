@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import platform
 from functools import wraps
 from inspect import signature
 
@@ -44,10 +43,6 @@ def make_data():
 
 def test_search_light_basic():
     """Test SlidingEstimator."""
-    # https://github.com/scikit-learn/scikit-learn/issues/27711
-    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
-        pytest.skip("sklearn int_t / long long mismatch")
-
     logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
     X, y = make_data()
