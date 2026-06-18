@@ -10,6 +10,7 @@ import platform
 import re
 import shutil
 import sys
+import sysconfig
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
@@ -279,6 +280,30 @@ def close_all():
 
     yield
     plt.close("all")
+
+
+_is_free_threaded = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+_GIL_FAILED = False
+
+
+@pytest.fixture(autouse=True)
+def gil_disabled(request):
+    """Check to see if the GIL is enabled when it shouldn't be."""
+    # only fail once, as soon as possible
+    yield
+
+    global _GIL_FAILED
+
+    if not _is_free_threaded or _GIL_FAILED:
+        return
+
+    if sys._is_gil_enabled():
+        _GIL_FAILED = True
+        pytest.fail(
+            f"{request.module.__name__}.{request.function.__name__}: "
+            "The GIL has been re-enabled during. A C extension that does not declare "
+            "Py_MOD_GIL_NOT_USED was loaded during the test session."
+        )
 
 
 @pytest.fixture(autouse=True)
