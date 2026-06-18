@@ -1328,7 +1328,10 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
 
 
-def pytest_report_teststatus(report, config):
+def pytest_report_teststatus(
+    report: pytest.TestReport | pytest.CollectReport,
+    config: pytest.Config,
+):
     """Turn unexpected skips into errors."""
     if report.outcome == "skipped":
         return _modify_report_skips(report)
@@ -1343,7 +1346,7 @@ _valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP)
 # To turn unexpected skips into errors, we need to look both at the collection phase
 # (for decorated tests) and the call phase (for things like `importorskip`
 # within the test body). code adapted from pytest-error-for-skips
-def _modify_report_skips(report: pytest.TestReport):
+def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
     if not report.skipped and report.outcome != "skipped":
         return
     if isinstance(report.longrepr, tuple):
@@ -1352,7 +1355,7 @@ def _modify_report_skips(report: pytest.TestReport):
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _valid_skips_re.match(reason):
         return
-    assert isinstance(report, pytest.TestReport), type(report)
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
     # xfail tests aren't true "skips" but show up as skipped in reports
@@ -1366,8 +1369,8 @@ def _modify_report_skips(report: pytest.TestReport):
         reason = reason[9:]
     report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason!r}"
     # Make it show up as an error in the report
-    report.outcome = "error"
-    return "error", "E", "UNEXPECTED SKIP"
+    report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
+    return report.outcome, report.outcome[0].upper(), "UNEXPECTED SKIP"
 
 
 @pytest.fixture(scope="function")
