@@ -1109,7 +1109,7 @@ def brain_gc(request):
 _files = list()
 
 
-def pytest_sessionfinish(session, exitstatus):
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Handle the end of the session."""
     n = session.config.option.durations
     if n is None:
@@ -1117,6 +1117,7 @@ def pytest_sessionfinish(session, exitstatus):
     print("\n")
     # get the number to print
     files = defaultdict(lambda: 0.0)
+    bad_skip = False
     for item in session.items:
         if _phase_report_key not in item.stash:
             continue
@@ -1132,9 +1133,19 @@ def pytest_sessionfinish(session, exitstatus):
             parts = parts + ("",)
         file_key = "/".join(parts)
         files[file_key] += dur
+        # detect if there were any bad skips
+        for _phase, result in report.items():
+            if (
+                result.outcome in ("error", "failed")
+                and "UNEXPECTED SKIP" in result.longreprtext
+            ):
+                bad_skip = True
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
+    # Now handle exit status modification
+    if exitstatus == pytest.ExitCode.OK and bad_skip:
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
