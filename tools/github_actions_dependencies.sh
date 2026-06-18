@@ -33,8 +33,7 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
 	# This one is free-threaded so can't have PySide6/PyQt6 as of 2026/06/16
-	# mffpy requires lxml which reenables GIL as of 2026/06/16
-	EXTRAS="[hdf5] numba scikit-learn nibabel antio curryreader pillow patsy python-picard xlrd"
+	EXTRAS="[hdf5] numba scikit-learn nibabel antio curryreader pillow patsy python-picard xlrd mffpy defusedxml"
 	GROUP="test_extra_ft"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	EXTRAS="[full-pyside6]"
@@ -64,7 +63,8 @@ python -m pip install $STD_ARGS $ONLY_BINARY_ARG $INSTALL_ARGS .$EXTRAS $GROUP_A
 echo "::endgroup::"
 
 if [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
-	echo "::group::Removing pytest-qt for pip-ft environment"
+	echo "::group::Removing pytest-qt and adding prerelease lxml for pip-ft environment"
 	python -m pip uninstall -y pytest-qt
+	python -m pip install --pre --upgrade "lxml>=7.0.0a3"
 	echo "::endgroup::"
 fi
