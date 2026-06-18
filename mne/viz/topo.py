@@ -13,7 +13,13 @@ from scipy import ndimage
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
-from .ui_events import ChannelsSelect, TimeChange, publish, subscribe
+from .ui_events import (
+    ChannelsSelect,
+    TimeChange,
+    link,
+    publish,
+    subscribe,
+)
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
@@ -628,7 +634,7 @@ def _plot_timeseries(
             return
         if ax._cursorline is not None:
             ax._cursorline.remove()
-        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor)
+        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor, alpha=0.2)
         ax.figure.canvas.draw()
 
     def _rm_cursor(event):
@@ -641,7 +647,16 @@ def _plot_timeseries(
     def _on_click(event):
         if event.inaxes == ax:
             publish(ax.figure, TimeChange(time=event.xdata))
-            publish(orig_fig, TimeChange(time=event.xdata))
+            _update_selectline(event.xdata)
+
+    def _on_time_change_sub(event):
+        _update_selectline(event.time)
+
+    def _update_selectline(time):
+        if ax._selectline is not None:
+            ax._selectline.remove()
+        ax._selectline = ax.axvline(time, color=ax._selectcolor, alpha=1)
+        ax.figure.canvas.draw()
 
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
@@ -649,9 +664,17 @@ def _plot_timeseries(
     face_brightness = np.dot(facecol, [299, 587, 114])
     ax._cursorcolor = "white" if face_brightness < 150 else "black"
 
+    # setattr(orig_fig, "_current_time", None)
+    ax._selectline = None
+    ax._selectcolor = "white" if face_brightness < 150 else "black"
+
     plt.connect("motion_notify_event", _cursor_vline)
     plt.connect("axes_leave_event", _rm_cursor)
     plt.connect("button_press_event", _on_click)
+
+    subscribe(ax.figure, "time_change", _on_time_change_sub)
+
+    link(orig_fig, ax.figure, merge=True)
 
     ymin, ymax = ax.get_ylim()
     # don't pass vline or hline here (this fxn doesn't do hvline_color):
@@ -1155,6 +1178,8 @@ def _plot_evoked_topo(
         select=select,
     )
 
+    setattr(fig, "_current_time", None)
+
     subscribe(fig, "time_change", partial(on_time_change, fig=fig))
 
     add_background_image(fig, fig_background)
@@ -1191,9 +1216,8 @@ def _plot_evoked_topo(
 
 
 def on_time_change(event, fig):
-    """Respond to a time change UI event. Currently only prints."""
-    print(len(fig.axes), len(fig.axes[0].lines))
-    print("Event triggered:", event)
+    """Respond to a time change UI event."""
+    fig._current_time = event.time
 
 
 def _plot_update_evoked_topo_proj(params, bools):
