@@ -282,8 +282,8 @@ def close_all():
     plt.close("all")
 
 
-_is_free_threaded = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
-_GIL_FAILED = False
+# Only need to check GIL status if it's on a freethreaded build
+_NEED_CHECK_GIL = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 @pytest.fixture(autouse=True)
@@ -292,13 +292,13 @@ def gil_disabled(request):
     # only fail once, as soon as possible
     yield
 
-    global _GIL_FAILED
+    global _NEED_CHECK_GIL
 
-    if not _is_free_threaded or _GIL_FAILED:
+    if not _NEED_CHECK_GIL:
         return
 
     if sys._is_gil_enabled():
-        _GIL_FAILED = True
+        _NEED_CHECK_GIL = False  # only fail once, as soon as possible
         pytest.fail(
             f"{request.module.__name__}.{request.function.__name__}: "
             "The GIL has been re-enabled during. A C extension that does not declare "
@@ -1321,10 +1321,11 @@ def qt_windows_closed(request, qapp):
 _phase_report_key = StashKey()
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     """Stash the status of each item."""
-    rep: pytest.TestReport = (yield).get_result()
+    outcome = yield
+    rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
 
 
