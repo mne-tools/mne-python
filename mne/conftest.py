@@ -1127,9 +1127,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             writer.line(f"{timing.ljust(15)}{name}")
 
 
-def pytest_report_header(config, startdir=None):
+def pytest_report_header(config, startdir=None) -> list[str]:
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
+    out = [f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"]
+    if MNE_TEST_ALLOW_SKIP != ".*":
+        out += [f"    Allowed skips: {MNE_TEST_ALLOW_SKIP!r}"]
+    return out
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
@@ -1293,36 +1296,30 @@ def qt_windows_closed(request, qapp):
 _phase_report_key = StashKey()
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    """Stash the status of each item and turn unexpected skips into errors."""
-    outcome = yield
-    rep: pytest.TestReport = outcome.get_result()
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
+    """Stash the status of each item."""
+    rep: pytest.TestReport = (yield).get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
-    if rep.outcome == "passed":  # only check for skips etc. if otherwise green
-        _modify_report_skips(rep)
-    return rep
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_make_collect_report(collector: pytest.Collector):
-    """Turn unexpected skips during collection (e.g., module-level) into errors."""
-    outcome = yield
-    rep: pytest.CollectReport = outcome.get_result()
-    _modify_report_skips(rep)
-    return rep
+def pytest_report_teststatus(report, config):
+    """Turn unexpected skips into errors."""
+    if report.outcome == "skipped":
+        return _modify_report_skips(report)
 
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
-_valid_skips_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", ".*")
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP)
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
 # (for decorated tests) and the call phase (for things like `importorskip`
 # within the test body). code adapted from pytest-error-for-skips
-def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
-    if not report.skipped:
+def _modify_report_skips(report: pytest.TestReport):
+    if not report.skipped and report.outcome != "skipped":
         return
     if isinstance(report.longrepr, tuple):
         file, lineno, reason = report.longrepr
@@ -1330,7 +1327,7 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _valid_skips_re.match(reason):
         return
-    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
+    assert isinstance(report, pytest.TestReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
     # xfail tests aren't true "skips" but show up as skipped in reports
@@ -1342,9 +1339,10 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         return
     if reason.startswith("Skipped: "):
         reason = reason[9:]
-    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
+    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason!r}"
     # Make it show up as an error in the report
-    report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
+    report.outcome = "error"
+    return "error", "E", "UNEXPECTED SKIP"
 
 
 @pytest.fixture(scope="function")
