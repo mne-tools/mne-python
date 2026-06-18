@@ -9,7 +9,6 @@ if [[ "$MNE_CI_KIND" == "pip"* ]] || [[ "$MNE_CI_KIND" == "minimal" ]]; then
         echo "EAGER_IMPORT=true" | tee -a $GITHUB_ENV
         # Make sure nothing unexpected is skipped
         echo "MNE_TEST_ALLOW_SKIP=.*(CUDA not|Numba not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
-    fi
     elif [[ "$MNE_CI_KIND" != "pip-ft" ]]; then
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
         echo "MNE_TEST_ALLOW_SKIP=.*(pyvista|dipy|pytest-qt|pyqtgraph|nest_asyncio2|pymef|CUDA|Freesurfer|MNE-C|OpenMEEG|dataset).*" | tee -a $GITHUB_ENV
