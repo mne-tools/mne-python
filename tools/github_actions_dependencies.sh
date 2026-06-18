@@ -65,6 +65,6 @@ echo "::endgroup::"
 if [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
 	echo "::group::Removing pytest-qt and adding prerelease lxml for pip-ft environment"
 	python -m pip uninstall -y pytest-qt
-	python -m pip install --pre --upgrade "lxml>=7.0.0a3"
+	python -m pip install --pre --upgrade --only-binary=:all: "lxml>=7.0.0a3"
 	echo "::endgroup::"
 fi
