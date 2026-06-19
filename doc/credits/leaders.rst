@@ -2,8 +2,14 @@
 
 .. _governance-people:
 
-Current Project Leadership and Institutional Partners
-=====================================================
+Project Leadership
+==================
+
+Many people play different roles in leading the MNE-Python project and community.
+The `Maintainer Team`_ handles code review, release management, and contributor onboarding.
+The `Steering Council`_ handles day-to-day project management, funding applications, and community engagement.
+The `Advisory Board`_ comprises senior scientists who provide high-level guidance on funding and roadmap.
+Currently there are no active working groups, but if you are passionate about helping out with social media, supporting our users on the forum, improving our documentation, or running workshops (or something else we haven't yet thought of!), please reach out to the Steering Council to discuss how to get involved.
 
 .. _maintainer-team-people:
 
@@ -25,7 +31,7 @@ Maintainer Team
 * `Thomas Binns`_
 
 Past Maintainers
-----------------
+^^^^^^^^^^^^^^^^
 
 * `Adam Li`_
 * `Alex Rockhill`_
@@ -65,6 +71,7 @@ Advisory Board
 * `Liberty Hamilton`_
 * `Matti Hämäläinen`_
 * `Ole Jensen`_
+* `Stephanie Jones`_
 
 
 .. _governance-cpgrl:
@@ -77,13 +84,6 @@ for explanation. Current Response Leads are:
 
 * `Daniel McCloy`_
 * `Eric Larson`_
-
-
-Institutional Partners
-----------------------
-
-.. include:: ../_includes/institutional-partners.rst
-   :start-after: institutional-partners-begin-content
 
 
 Document history

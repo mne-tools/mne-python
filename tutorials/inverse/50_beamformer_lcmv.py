@@ -328,13 +328,22 @@ morph = mne.compute_source_morph(
 stc_fs = morph.apply(stc)
 del stc
 
-stc_fs.plot(
+kwargs = dict(
     src=src_fs,
-    mode="stat_map",
-    initial_time=0.085,
     subjects_dir=subjects_dir,
+    initial_time=0.085,
     clim=dict(kind="value", pos_lims=lims),
     verbose=True,
+)
+stc_fs.plot(mode="stat_map", **kwargs)
+
+# %%
+# We can also plot this in interactive 3D mode:
+
+stc_fs.plot_3d(
+    brain_kwargs=dict(silhouette=True),
+    volume_options=dict(alpha=0.5, interpolation="nearest"),
+    **kwargs,
 )
 
 # %%

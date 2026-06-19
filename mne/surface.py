@@ -2100,7 +2100,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     return out
 
 
-def _vtk_smooth(pd, smooth):
+@verbose
+def _vtk_smooth(pd, smooth, *, verbose=None):
     _validate_type(smooth, "numeric", smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:

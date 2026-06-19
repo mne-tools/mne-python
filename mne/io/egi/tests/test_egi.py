@@ -593,7 +593,7 @@ def test_egi_mff_bad_xml(tmp_path):
     """Test that corrupt XML files are gracefully handled."""
     pytest.importorskip("defusedxml")
     mff_fname = copytree_rw(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
-    bad_xml = mff_fname / "bad.xml"
+    bad_xml = mff_fname / "Events_bad.xml"
     bad_xml.write_text("<foo>", encoding="utf-8")
     # Missing coordinate file
     (mff_fname / "coordinates.xml").unlink()
