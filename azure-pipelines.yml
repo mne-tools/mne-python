@@ -120,7 +120,6 @@ stages:
             displayName: Download testing data
           - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: slow and mne-qt-browser tests
-          # Codecov with token:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
             condition: succeededOrFailed()
