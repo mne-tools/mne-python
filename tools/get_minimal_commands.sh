@@ -26,6 +26,9 @@ if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 	echo "Getting files for Linux..."
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
 		curl -L https://osf.io/download/g7dzs?version=7 | tar xz
+		if [[ ! $(which tcsh) ]]; then
+			sudo apt install -yq tcsh
+		fi
 	else
 		echo "Minimal commands already downloaded"
 	fi;

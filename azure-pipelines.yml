@@ -84,11 +84,8 @@ stages:
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing
           MNE_BROWSER_PRECOMPUTE: 'false'
         steps:
-          - bash: |
-              set -xeo pipefail
-              ./tools/setup_xvfb.sh
-              sudo apt install -yq tcsh
-            displayName: Install Ubuntu dependencies
+          - bash: ./tools/setup_xvfb.sh
+            displayName: Setup up Xvfb
           - task: Cache@2
             inputs:
               key: minimal-cmds-1
