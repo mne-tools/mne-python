@@ -221,7 +221,7 @@ stages:
             3.13 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.13'
-              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires Freesurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API|Numba not).*$"
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires Freesurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
         steps:
           - task: UsePythonVersion@0
             inputs:
