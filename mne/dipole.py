@@ -351,7 +351,7 @@ class Dipole(TimeMixin):
         Returns
         -------
         pos_mri : array, shape (n_pos, 3)
-            The Freesurfer surface RAS coordinates (in mm) of pos.
+            The FreeSurfer surface RAS coordinates (in mm) of pos.
         """
         mri_head_t, trans = _get_trans(trans)
         return head_to_mri(

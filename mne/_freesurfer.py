@@ -1,4 +1,4 @@
-"""Freesurfer handling functions."""
+"""FreeSurfer handling functions."""
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
@@ -33,12 +33,12 @@ from .utils import (
 
 
 def _check_subject_dir(subject, subjects_dir):
-    """Check that the Freesurfer subject directory is as expected."""
+    """Check that the FreeSurfer subject directory is as expected."""
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
     for img_name in ("T1", "brain", "aseg"):
         if not (subjects_dir / subject / "mri" / f"{img_name}.mgz").is_file():
             raise ValueError(
-                "Freesurfer recon-all subject folder "
+                "FreeSurfer recon-all subject folder "
                 "is incorrect or improperly formatted, "
                 f"got {subjects_dir / subject}"
             )
@@ -219,7 +219,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
         If True returns also the labels colors.
     atlas_ids : dict | None
         A lookup table providing a mapping from region names (str) to ID values
-        (int). Can be None to use the standard Freesurfer LUT.
+        (int). Can be None to use the standard FreeSurfer LUT.
 
         .. versionadded:: 0.21.0
 
@@ -481,7 +481,7 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     """Estimate the head->mri transform from fsaverage fiducials.
 
-    A subject's fiducials can be estimated given a Freesurfer ``recon-all``
+    A subject's fiducials can be estimated given a FreeSurfer ``recon-all``
     by transforming ``fsaverage`` fiducials using the inverse Talairach
     transform, see :func:`mne.coreg.get_mni_fiducials`.
 
@@ -526,7 +526,7 @@ def _get_affine_from_lta_info(lines):
 
 @verbose
 def read_lta(fname, verbose=None):
-    """Read a Freesurfer linear transform array file.
+    """Read a FreeSurfer linear transform array file.
 
     Parameters
     ----------
@@ -583,7 +583,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     ras_mni_t = read_ras_mni_t(subject, subjects_dir)
     ras_mni_t["trans"][:3, 3] /= 1000.0  # mm->m
 
-    # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
+    # We want to get from FreeSurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
     # Se we need to get the ras->mri transform from the MRI headers.
 
@@ -600,7 +600,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
 
 def _check_mri(mri, subject, subjects_dir) -> str:
-    """Check whether an mri exists in the Freesurfer subject directory."""
+    """Check whether an mri exists in the FreeSurfer subject directory."""
     _validate_type(mri, "path-like", mri)
     mri = Path(mri)
     if mri.is_file() and mri.name != mri:
@@ -668,12 +668,12 @@ def _read_mri_info(path, units="m", return_img=False, use_nibabel=False):
 
 
 def read_freesurfer_lut(fname=None):
-    """Read a Freesurfer-formatted LUT.
+    """Read a FreeSurfer-formatted LUT.
 
     Parameters
     ----------
     fname : path-like | None
-        The filename. Can be None to read the standard Freesurfer LUT.
+        The filename. Can be None to read the standard FreeSurfer LUT.
 
     Returns
     -------
@@ -722,7 +722,7 @@ def _get_lut(fname=None):
 
 @verbose
 def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
-    """Get a head surface from the Freesurfer subject directory.
+    """Get a head surface from the FreeSurfer subject directory.
 
     Parameters
     ----------
@@ -796,7 +796,7 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
 
 @verbose
 def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
-    """Get a skull surface from the Freesurfer subject directory.
+    """Get a skull surface from the FreeSurfer subject directory.
 
     Parameters
     ----------

@@ -10,6 +10,7 @@ import platform
 import re
 import shutil
 import sys
+import sysconfig
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
@@ -234,6 +235,18 @@ def pytest_configure(config: pytest.Config):
                 "pandas.errors.Pandas4Warning",
             )
 
+    # Deal with pytest-qt -- everything should already be skipped for example by not
+    # having pyvistaqt installed, so we just need to take care of defining dummy
+    # fixture(s)
+    if not config.pluginmanager.hasplugin("pytest-qt"):  # just 3.14t for now
+
+        @pytest.fixture(scope="session")
+        def qtbot():
+            pytest.skip("Requires pytest-qt")
+
+        globals()["qtbot"] = qtbot
+        globals()["qapp"] = qtbot
+
 
 def pytest_collection_modifyitems(items: list[pytest.Item]):
     """Add slowtest marker automatically to anything marked ultraslow."""
@@ -267,6 +280,30 @@ def close_all():
 
     yield
     plt.close("all")
+
+
+# Only need to check GIL status if it's on a freethreaded build
+_NEED_CHECK_GIL = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+
+
+@pytest.fixture(autouse=True)
+def gil_disabled(request):
+    """Check to see if the GIL is enabled when it shouldn't be."""
+    # only fail once, as soon as possible
+    yield
+
+    global _NEED_CHECK_GIL
+
+    if not _NEED_CHECK_GIL:
+        return
+
+    if sys._is_gil_enabled():
+        _NEED_CHECK_GIL = False  # only fail once, as soon as possible
+        pytest.fail(
+            f"{request.module.__name__}.{request.function.__name__}: "
+            "The GIL has been re-enabled during. A C extension that does not declare "
+            "Py_MOD_GIL_NOT_USED was loaded during the test session."
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -1072,7 +1109,7 @@ def brain_gc(request):
 _files = list()
 
 
-def pytest_sessionfinish(session, exitstatus):
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Handle the end of the session."""
     n = session.config.option.durations
     if n is None:
@@ -1080,6 +1117,7 @@ def pytest_sessionfinish(session, exitstatus):
     print("\n")
     # get the number to print
     files = defaultdict(lambda: 0.0)
+    bad_skip = False
     for item in session.items:
         if _phase_report_key not in item.stash:
             continue
@@ -1095,9 +1133,19 @@ def pytest_sessionfinish(session, exitstatus):
             parts = parts + ("",)
         file_key = "/".join(parts)
         files[file_key] += dur
+        # detect if there were any bad skips
+        for _phase, result in report.items():
+            if (
+                result.outcome in ("error", "failed")
+                and "UNEXPECTED SKIP" in result.longreprtext
+            ):
+                bad_skip = True
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
+    # Now handle exit status modification
+    if exitstatus == pytest.ExitCode.OK and bad_skip:
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -1115,9 +1163,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             writer.line(f"{timing.ljust(15)}{name}")
 
 
-def pytest_report_header(config, startdir=None):
+def pytest_report_header(config, startdir=None) -> list[str]:
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
+    out = [f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"]
+    if MNE_TEST_ALLOW_SKIP is not None:
+        out += [f"    Allowed skips: {MNE_TEST_ALLOW_SKIP!r}"]
+    return out
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
@@ -1282,43 +1333,43 @@ _phase_report_key = StashKey()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    """Stash the status of each item and turn unexpected skips into errors."""
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
+    """Stash the status of each item."""
     outcome = yield
     rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
-    if rep.outcome == "passed":  # only check for skips etc. if otherwise green
-        _modify_report_skips(rep)
-    return rep
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_make_collect_report(collector: pytest.Collector):
-    """Turn unexpected skips during collection (e.g., module-level) into errors."""
-    outcome = yield
-    rep: pytest.CollectReport = outcome.get_result()
-    _modify_report_skips(rep)
-    return rep
+def pytest_report_teststatus(
+    report: pytest.TestReport | pytest.CollectReport,
+    config: pytest.Config,
+):
+    """Turn unexpected skips into errors."""
+    if report.outcome == "skipped":
+        return _modify_report_skips(report)
 
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
-_valid_skips_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", None)
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL)
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
 # (for decorated tests) and the call phase (for things like `importorskip`
 # within the test body). code adapted from pytest-error-for-skips
 def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
-    if not report.skipped:
+    if not report.skipped and report.outcome != "skipped":
         return
+    if MNE_TEST_ALLOW_SKIP is None:
+        return
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if isinstance(report.longrepr, tuple):
         file, lineno, reason = report.longrepr
     else:
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _valid_skips_re.match(reason):
         return
-    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
     # xfail tests aren't true "skips" but show up as skipped in reports
@@ -1330,9 +1381,10 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         return
     if reason.startswith("Skipped: "):
         reason = reason[9:]
-    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
+    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason!r}"
     # Make it show up as an error in the report
     report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
+    return report.outcome, report.outcome[0].upper(), "UNEXPECTED SKIP"
 
 
 @pytest.fixture(scope="function")

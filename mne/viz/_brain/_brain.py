@@ -98,7 +98,7 @@ class Brain:
     Parameters
     ----------
     subject : str
-        Subject name in Freesurfer subjects dir.
+        Subject name in FreeSurfer subjects dir.
 
         .. versionchanged:: 1.2
            This parameter was renamed from ``subject_id`` to ``subject``.
