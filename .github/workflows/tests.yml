@@ -154,7 +154,7 @@ jobs:
       # Minimal commands on Linux (macOS stalls)
       - uses: actions/cache@v5
         with:
-          key: minimal-commands-0
+          key: minimal-commands-1
           path: ~/minimal_cmds
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/get_minimal_commands.sh

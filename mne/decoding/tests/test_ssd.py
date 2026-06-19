@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -507,8 +506,6 @@ def test_non_full_rank_data():
     assert np.linalg.matrix_rank(X) == rank
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)
-    if sys.platform == "darwin":
-        pytest.xfail("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)
 
 
