@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # old and minimal use conda
-echo "Setting pip env vars for $MNE_CI_KIND"
+echo "::group::Setting pip env vars for $MNE_CI_KIND"
 if [[ "$MNE_CI_KIND" == "pip"* ]]; then
     if [[ "$MNE_CI_KIND" == "pip-pre" ]]; then
         # We should test an eager import somewhere, might as well be here
@@ -46,4 +46,4 @@ fi
 if [[ "$CI_OS_NAME" == "windows"* ]]; then
     echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
 fi
-echo "Done"
+echo "::endgroup::"
