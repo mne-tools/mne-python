@@ -1166,7 +1166,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 def pytest_report_header(config, startdir=None) -> list[str]:
     """Add information to the pytest run header."""
     out = [f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"]
-    if MNE_TEST_ALLOW_SKIP != ".*":
+    if MNE_TEST_ALLOW_SKIP is not None:
         out += [f"    Allowed skips: {MNE_TEST_ALLOW_SKIP!r}"]
     return out
 
@@ -1351,8 +1351,8 @@ def pytest_report_teststatus(
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
-MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", ".*")
-_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP)
+MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", None)
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*")
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
@@ -1361,13 +1361,15 @@ _valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP)
 def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
     if not report.skipped and report.outcome != "skipped":
         return
+    if MNE_TEST_ALLOW_SKIP is None:
+        return
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if isinstance(report.longrepr, tuple):
         file, lineno, reason = report.longrepr
     else:
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _valid_skips_re.match(reason):
         return
-    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
     # xfail tests aren't true "skips" but show up as skipped in reports
