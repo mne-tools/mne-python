@@ -80,5 +80,7 @@ which mne_surf2bem
 mne_surf2bem --version
 which mri_average
 mri_average --version
-which mkheadsurf
-mkheadsurf --version
+if [[ "${CI_OS_NAME}" != "macos"* ]]; then
+	which mkheadsurf || exit 1
+	mkheadsurf --version || exit 1
+fi
