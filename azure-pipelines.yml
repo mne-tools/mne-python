@@ -90,6 +90,7 @@ stages:
             inputs:
               key: minimal-cmds-1
               path: /home/vsts/minimal_cmds
+            displayName: Cache minimal commands
           - bash: ./tools/get_minimal_commands.sh
             displayName: Get minimal commands
           - task: UsePythonVersion@0
@@ -115,6 +116,7 @@ stages:
             inputs:
               key: $(testing_version)
               path: /home/vsts/mne_data
+            displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
           - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
@@ -122,6 +124,8 @@ stages:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
             condition: succeededOrFailed()
+            env:
+              CODECOV_TOKEN: $(CODECOV_TOKEN)
 
       - job: Linux_Qt_Bindings
         pool:
@@ -157,6 +161,7 @@ stages:
             inputs:
               key: $(testing_version)
               path: /home/vsts/mne_data
+            displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
           - bash: ./tools/check_qt_import.sh PySide6
@@ -189,6 +194,8 @@ stages:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
             condition: succeededOrFailed()
+            env:
+              CODECOV_TOKEN: $(CODECOV_TOKEN)
 
       - job: Windows
         pool:
@@ -249,3 +256,5 @@ stages:
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
             condition: succeededOrFailed()
+            env:
+              CODECOV_TOKEN: $(CODECOV_TOKEN)
