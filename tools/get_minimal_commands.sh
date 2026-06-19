@@ -26,12 +26,13 @@ if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 	echo "Getting files for Linux..."
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
 		curl -L https://osf.io/download/g7dzs?version=7 | tar xz
-		if [[ ! $(which tcsh) ]]; then
-			sudo apt install -yq tcsh
-		fi
 	else
 		echo "Minimal commands already downloaded"
 	fi;
+	if [[ ! $(which tcsh) ]]; then
+		echo "tcsh not found, installing..."
+		sudo apt install -yq tcsh
+	fi
 	export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH
 	export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin"
 	export FREESURFER_HOME="${MNE_ROOT}"

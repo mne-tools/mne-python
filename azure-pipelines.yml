@@ -83,7 +83,6 @@ stages:
           OMP_NUM_THREADS: '1'
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing
           MNE_BROWSER_PRECOMPUTE: 'false'
-          CODECOV_TOKEN: $(CODECOV_TOKEN)
         steps:
           - bash: ./tools/setup_xvfb.sh
             displayName: Setup up Xvfb
@@ -132,7 +131,6 @@ stages:
           OPENBLAS_NUM_THREADS: '1'
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/gui mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/report"
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
-          CODECOV_TOKEN: $(CODECOV_TOKEN)
         steps:
           - bash: ./tools/setup_xvfb.sh
             displayName: Setup up Xvfb
@@ -204,7 +202,6 @@ stages:
           AZURE_CI_WINDOWS: 'true'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
-          CODECOV_TOKEN: $(CODECOV_TOKEN)
         timeoutInMinutes: 95
         strategy:
           maxParallel: 4
