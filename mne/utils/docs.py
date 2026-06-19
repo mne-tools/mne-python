@@ -320,7 +320,7 @@ docdict["aseg"] = """
 aseg : str
     The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
     if available and ``wmparc`` if not. This may be any anatomical
-    segmentation file in the mri subdirectory of the Freesurfer subject
+    segmentation file in the mri subdirectory of the FreeSurfer subject
     directory.
 
     .. versionchanged:: 1.8

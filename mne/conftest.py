@@ -1352,7 +1352,7 @@ def pytest_report_teststatus(
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
 MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", None)
-_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*")
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL)
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase

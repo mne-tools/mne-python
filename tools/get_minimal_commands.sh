@@ -72,6 +72,7 @@ else
 	fi;
 fi
 popd > /dev/null
+echo "If one of the following fails, you should update your cache + download of minimal commands:"
 set -x
 which mne_process_raw
 mne_process_raw --version
@@ -79,3 +80,5 @@ which mne_surf2bem
 mne_surf2bem --version
 which mri_average
 mri_average --version
+which mkheadsurf
+mkheadsurf --version
