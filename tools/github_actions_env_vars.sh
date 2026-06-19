@@ -11,7 +11,7 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
         echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|EAGER_IMPORT|Freesurfer|CUDA not|Numba not|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     elif [[ "$MNE_CI_KIND" == "pip" ]]; then
-        if [[ "${{RUNNER_OS}}" == "macOS" ]]; then
+        if [[ "${RUNNER_OS}" == "macOS" ]]; then
             echo "MNE_TEST_ALLOW_SKIP=.*(SCIPY_ARRAY_API|Accelerate|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         else
             echo "MNE_TEST_ALLOW_SKIP=.*(SCIPY_ARRAY_API|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
