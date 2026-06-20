@@ -16,9 +16,6 @@ jobs:
       contents: write
     name: Sync dependencies
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
     defaults:
       run:
         shell: bash -el {0}
