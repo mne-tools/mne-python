@@ -13,8 +13,8 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.3
         with:
           ref: ${{ github.head_ref }}
           persist-credentials: false
