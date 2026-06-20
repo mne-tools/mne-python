@@ -61,7 +61,7 @@ from .._3d import (
     _plot_sensors_3d,
     _process_clim,
 )
-from .._3d_overlay import _LayeredMesh
+from .._3d_overlay import LayeredMesh
 from ..ui_events import (
     ColormapRange,
     PlaybackSpeed,
@@ -421,7 +421,7 @@ class Brain:
             self.geo[h] = geo
             for _, _, v in self._iter_views(h):
                 if self._layered_meshes.get(h) is None:
-                    mesh = _LayeredMesh(
+                    mesh = LayeredMesh(
                         renderer=self._renderer,
                         vertices=self.geo[h].coords,
                         triangles=self.geo[h].faces,
@@ -1685,6 +1685,7 @@ class Brain:
         src=None,
         volume_options=0.4,
         colorbar_kwargs=None,
+        key="data",
         verbose=None,
     ):
         """Display data from a numpy array on the surface or volume.
@@ -1761,6 +1762,11 @@ class Brain:
         colorbar_kwargs : dict | None
             Options to pass to ``pyvista.Plotter.add_scalar_bar``
             (e.g., ``dict(title_font_size=10)``).
+        key : str
+            Key used to identify this data overlay in
+            :attr:`~mne.viz.Brain.layered_meshes`. Defaults to ``"data"``.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Notes
@@ -1875,6 +1881,7 @@ class Brain:
         self._data[hemi]["glyph_actor"] = None
         self._data[hemi]["array"] = array
         self._data[hemi]["vertices"] = vertices
+        self._data[hemi]["key"] = key
         self._data["alpha"] = alpha
         self._data["colormap"] = colormap
         self._data["center"] = center
@@ -3430,7 +3437,7 @@ class Brain:
                 if hemi in self._layered_meshes:
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(
-                        name="data",
+                        name=hemi_data.get("key", "data"),
                         colormap=self._data["ctable"],
                         opacity=alpha,
                         rng=rng,
@@ -3492,8 +3499,15 @@ class Brain:
                         warn=False,
                     )
                 self._data[hemi]["smooth_mat"] = smooth_mat
+                if hemi in self._layered_meshes:
+                    self._layered_meshes[hemi].smooth_mat = smooth_mat
         self._update_current_time_idx(self._data["time_idx"])
         self._data["smoothing_steps"] = n_steps
+
+    @property
+    def layered_meshes(self):
+        """Dict of :class:`~mne.viz.LayeredMesh` objects keyed by hemisphere."""
+        return self._layered_meshes
 
     @property
     def _n_times(self):
@@ -3580,23 +3594,19 @@ class Brain:
                     # if 21334 in vertices:
                     #     grid.point_data["values"][21334] = values.max()
 
-                # interpolate in space
-                smooth_mat = hemi_data.get("smooth_mat")
-                if smooth_mat is not None:
-                    act_data = smooth_mat.dot(act_data)
-
-                # update the mesh scalar values
+                # update the mesh scalar values (LayeredMesh applies smooth_mat)
                 if hemi in self._layered_meshes:
                     mesh = self._layered_meshes[hemi]
-                    if "data" in mesh._overlays:
-                        mesh.update_overlay(name="data", scalars=act_data)
+                    key = hemi_data.get("key", "data")
+                    if key in mesh._overlays:
+                        mesh.update_overlay(name=key, scalars=act_data)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
                             colormap=self._data["ctable"],
                             rng=self._cmap_range,
                             opacity=None,
-                            name="data",
+                            name=key,
                         )
 
                 # update the glyphs

@@ -74,7 +74,40 @@ class _Overlay:
         return (self._scalars - rng[0]) / factor
 
 
-class _LayeredMesh:
+class LayeredMesh:
+    """A mesh with support for layered RGBA overlays and optional smoothing.
+
+    This class manages a single brain-surface mesh and composites multiple
+    named overlays (e.g., curvature, data, labels) on top of each other using
+    alpha blending.  It is the object stored in
+    :attr:`~mne.viz.Brain.layered_meshes`.
+
+    Parameters
+    ----------
+    renderer : instance of _Renderer
+        The renderer used to create the underlying mesh polydata.
+    vertices : array, shape (n_vertices, 3)
+        Vertex coordinates in metres.
+    triangles : array, shape (n_triangles, 3)
+        Triangle indices into ``vertices``.
+    normals : array, shape (n_vertices, 3)
+        Vertex normals.
+
+    Attributes
+    ----------
+    smooth_mat : sparse matrix or None
+        Optional spatial smoother / upsampler applied to scalar data before
+        rendering.  When set (e.g., by
+        :meth:`~mne.viz.Brain.set_data_smoothing`), every call to
+        :meth:`update_overlay` will multiply the incoming scalars by this
+        matrix before storing them.  Shape must be
+        ``(n_surface_vertices, n_source_vertices)``.
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+
     def __init__(self, renderer, vertices, triangles, normals):
         self._renderer = renderer
         self._vertices = vertices
@@ -91,6 +124,7 @@ class _LayeredMesh:
 
         self._default_scalars = np.ones(vertices.shape)
         self._default_scalars_name = "Data"
+        self.smooth_mat = None
 
     def map(self):
         kwargs = {
@@ -136,6 +170,8 @@ class _LayeredMesh:
         return B, cache
 
     def add_overlay(self, scalars, colormap, rng, opacity, name):
+        if self.smooth_mat is not None:
+            scalars = self.smooth_mat.dot(scalars)
         overlay = _Overlay(
             scalars=scalars,
             colormap=colormap,
@@ -191,6 +227,8 @@ class _LayeredMesh:
         if overlay is None:
             return
         if scalars is not None:
+            if self.smooth_mat is not None:
+                scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
         if colormap is not None:
             overlay._colormap = colormap
@@ -203,3 +241,6 @@ class _LayeredMesh:
             self.update(colors=overlay.to_colors())
         else:  # full update
             self.update()
+
+
+_LayeredMesh = LayeredMesh  # backward-compat alias (for example see evoked_field.py)

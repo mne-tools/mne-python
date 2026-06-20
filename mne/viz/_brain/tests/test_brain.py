@@ -39,7 +39,7 @@ from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
-from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
+from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
 
@@ -120,7 +120,7 @@ class TstVTKPicker:
 
 def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
-    mesh = _LayeredMesh(
+    mesh = LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
