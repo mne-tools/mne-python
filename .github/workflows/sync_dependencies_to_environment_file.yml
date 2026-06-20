@@ -2,13 +2,6 @@ name: Sync dependencies to environment file
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
-  workflow_dispatch:
-    inputs:
-      ssh:
-        description: 'Enable ssh debugging'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   sync_deps:
@@ -20,22 +13,11 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
         with:
-          persist-credentials: true
-      - name: Triage SSH
-        run: |
-          if [[ "${{ inputs.ssh }}" == "true" ]] || [[ "$COMMIT_MESSAGE" == *"[actions ssh]"* ]]; then
-            echo "ENABLE_SSH=true" | tee -a $GITHUB_ENV
-          else
-            echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
-          fi
-      - name: Setup Remote SSH Connection
-        if: env.ENABLE_SSH == 'true'
-        uses: Warpbuilds/action-debugger@v1.3
-        timeout-minutes: 10
-        with:
-          detached: true
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
       - name: Run MNE-Tools action
         uses: tsbinns/mne-tools/actions/sync_dependencies_to_environment_file@add_tools
         with:
