@@ -1017,6 +1017,7 @@ def plot_topomap(
     names=None,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -1049,6 +1050,9 @@ def plot_topomap(
     %(names_topomap)s
     %(mask_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -1117,6 +1121,7 @@ def plot_topomap(
         names=names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         outlines=outlines,
         contours=contours,
         image_interp=image_interp,
@@ -1274,6 +1279,7 @@ def _plot_topomap(
     names=None,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -1386,6 +1392,8 @@ def _plot_topomap(
     if "zorder" not in mask_params:
         mask_params["zorder"] = _TOPOMAP_ZORDER["sensors"]
 
+    mask_label_params = _handle_default("mask_label_params", mask_label_params)
+
     # find mask limits and setup interpolation
     extent, Xi, Yi, interp = _setup_interp(
         pos, res, image_interp, extrapolate, outlines, border
@@ -1467,15 +1475,36 @@ def _plot_topomap(
         _draw_outlines(axes, outlines)
 
     if names is not None and sensors:
-        for _pos, _name in zip(pos, names):
-            axes.text(
-                _pos[0],
-                _pos[1],
-                _name,
-                horizontalalignment="center",
-                verticalalignment="center",
-                size="x-small",
-            )
+        if mask is None:
+            for _pos, _name in zip(pos, names):
+                axes.text(
+                    _pos[0],
+                    _pos[1],
+                    _name,
+                    horizontalalignment="center",
+                    verticalalignment="center",
+                    size="x-small",
+                )
+        else:
+            for i, (_pos, _name) in enumerate(zip(pos, names)):
+                if mask[i]:
+                    axes.text(
+                        _pos[0],
+                        _pos[1],
+                        _name,
+                        horizontalalignment="center",
+                        verticalalignment="center",
+                        **mask_label_params,
+                    )
+                else:
+                    axes.text(
+                        _pos[0],
+                        _pos[1],
+                        _name,
+                        horizontalalignment="center",
+                        verticalalignment="center",
+                        size="x-small",
+                    )
 
     if onselect is not None:
         lim = axes.dataLim
@@ -2125,6 +2154,7 @@ def plot_evoked_topomap(
     show_names=False,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -2168,6 +2198,8 @@ def plot_evoked_topomap(
     %(show_names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
+    mask_label_params : dict
+        put docstrings
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -2257,6 +2289,7 @@ def plot_evoked_topomap(
         show_names=show_names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         contours=contours,
         outlines=outlines,
         sphere=sphere,
@@ -2297,6 +2330,7 @@ def _plot_evoked_topomap(
     show_names,
     mask,
     mask_params,
+    mask_label_params,
     contours,
     outlines,
     sphere,
@@ -2339,6 +2373,7 @@ def _plot_evoked_topomap(
     del time_unit
     # mask_params defaults
     mask_params = _handle_default("mask_params", mask_params)
+    mask_label_params = _handle_default("mask_label_params", mask_label_params)
     mask_params["markersize"] *= size / 2.0
     mask_params["markeredgewidth"] *= size / 2.0
     # setup various parameters, and prepare outlines
@@ -2529,6 +2564,7 @@ def _plot_evoked_topomap(
         cmap=cmap[0],
         cnorm=cnorm,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         outlines=outlines,
         contours=contours,
         image_interp=image_interp,

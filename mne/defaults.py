@@ -252,6 +252,10 @@ DEFAULTS = dict(
         markeredgewidth=1,
         markersize=4,
     ),
+    mask_label_params=dict(
+        fontsize="medium",  # respects theme
+        fontweight="bold",
+    ),
     coreg=dict(
         mri_fid_opacity=1.0,
         dig_fid_opacity=1.0,

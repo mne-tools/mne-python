@@ -2580,6 +2580,13 @@ mask_params : dict | None
         dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                 linewidth=0, markersize=4)
 """
+docdict["mask_label_params_topomap"] = """
+mask_label_params : dict | None
+    Additional plotting parameters for significant sensor labels.
+    Default (None) equals::
+
+        dict(fontsize='medium', fontweight='bold')
+"""
 docdict["mask_patterns_topomap"] = _mask_base.format(
     shape="(n_channels, n_patterns)", shape_appendix="-pattern combinations", example=""
 )
