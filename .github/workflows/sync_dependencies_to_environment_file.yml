@@ -13,10 +13,8 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v6.0.3
         with:
-          ref: ${{ github.head_ref }}
           persist-credentials: false
       - name: Run MNE-Tools action
         uses: tsbinns/mne-tools/actions/sync_dependencies_to_environment_file@add_tools
