@@ -265,6 +265,7 @@
 .. _Paul Anders: https://github.com/Mettphysik
 .. _Paul Pasler: https://github.com/ppasler
 .. _Paul Roujansky: https://github.com/paulroujansky
+.. _Payam Sadeghi-Shabestari: https://github.com/payamsash
 .. _Pavel Navratil: https://github.com/navrpa13
 .. _Pavel Popov: https://github.com/paavalipopov
 .. _Peter Molfese: https://github.com/pmolfese
