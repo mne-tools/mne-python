@@ -3597,7 +3597,7 @@ class Brain:
                     mesh = self.layered_meshes[hemi]
                     key = hemi_data.get("key", "data")
                     if key in mesh._overlays:
-                        mesh.update_overlay(name=key, scalars=act_data)
+                        mesh.update_overlay(name=key, scalars=act_data, smooth=True)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
@@ -3605,6 +3605,7 @@ class Brain:
                             rng=self._cmap_range,
                             opacity=None,
                             name=key,
+                            smooth=True,
                         )
 
                 # update the glyphs

@@ -169,8 +169,29 @@ class LayeredMesh:
                 B = self._compute_over(cache, A)
         return B, cache
 
-    def add_overlay(self, scalars, colormap, rng, opacity, name):
-        if self.smooth_mat is not None:
+    def add_overlay(self, scalars, colormap, rng, opacity, name, smooth=False):
+        """Add a named overlay to the mesh.
+
+        Parameters
+        ----------
+        scalars : array, shape (n_vertices,)
+            Scalar values to display. If ``smooth=True`` and
+            :attr:`smooth_mat` is set, shape must be ``(n_src_vertices,)``.
+        colormap : array, shape (n_colors, 4)
+            RGBA colormap table (values in ``[0, 255]``).
+        rng : array-like, shape (2,)
+            ``[min, max]`` range for colormap mapping.
+        opacity : float | None
+            Overlay opacity in ``[0, 1]``. ``None`` keeps the existing value.
+        name : str
+            Unique key identifying this overlay.
+        smooth : bool
+            If ``True`` and :attr:`smooth_mat` is set, multiply ``scalars``
+            by ``smooth_mat`` before rendering. Use ``True`` only for
+            source-space data; surface-space overlays (curvature, labels,
+            annotations) should use the default ``False``.
+        """
+        if smooth and self.smooth_mat is not None:
             scalars = self.smooth_mat.dot(scalars)
         overlay = _Overlay(
             scalars=scalars,
@@ -192,6 +213,13 @@ class LayeredMesh:
         self._apply()
 
     def remove_overlay(self, names):
+        """Remove one or more overlays by name.
+
+        Parameters
+        ----------
+        names : str | list of str
+            Name(s) of the overlay(s) to remove.
+        """
         to_update = False
         if not isinstance(names, list):
             names = [names]
@@ -222,12 +250,31 @@ class LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None):
+    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None, smooth=False):
+        """Update an existing overlay in-place.
+
+        Parameters
+        ----------
+        name : str
+            Key of the overlay to update (must already exist).
+        scalars : array, shape (n_vertices,) | None
+            New scalar values. If ``None``, scalars are unchanged.
+        colormap : array, shape (n_colors, 4) | None
+            New RGBA colormap table. If ``None``, colormap is unchanged.
+        opacity : float | None
+            New opacity in ``[0, 1]``. If ``None``, opacity is unchanged.
+        rng : array-like, shape (2,) | None
+            New ``[min, max]`` colormap range. If ``None``, range is unchanged.
+        smooth : bool
+            If ``True`` and :attr:`smooth_mat` is set, multiply ``scalars``
+            by ``smooth_mat`` before rendering. Use ``True`` only for
+            source-space data.
+        """
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
         if scalars is not None:
-            if self.smooth_mat is not None:
+            if smooth and self.smooth_mat is not None:
                 scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
         if colormap is not None:
