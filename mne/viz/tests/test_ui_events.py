@@ -240,7 +240,8 @@ def test_link(event_channels, event_channel_links):
     ui_events.link(fig2, fig3, merge=True)  # fig1 and fig2 are already linked
     callback_calls.clear()
     ui_events.publish(fig3, ui_events.TimeChange(time=10.2))
-    assert len(callback_calls) == 3  # Called for all three figures
+    ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
+    assert len(callback_calls) == 6  # Called for all three figures twice
 
     # Test cleanup
     fig1.canvas.callbacks.process("close_event", None)
