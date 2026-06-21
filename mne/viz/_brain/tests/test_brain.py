@@ -404,7 +404,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.0, color="green")
     assert isinstance(brain.labels[label.hemi], list)
-    overlays = brain._layered_meshes[label.hemi]._overlays
+    overlays = brain.layered_meshes[label.hemi]._overlays
     assert "unnamed0" in overlays
     assert np.allclose(
         overlays["unnamed0"]._colormap[0], [0, 0, 0, 0]
@@ -922,12 +922,12 @@ def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
 def _assert_brain_range(brain, rng):
     __tracebackhide__ = True
     assert brain._cmap_range == rng, "brain._cmap_range == rng"
-    for hemi, layerer in brain._layered_meshes.items():
+    for hemi, layerer in brain.layered_meshes.items():
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
             assert mesh._rng == rng, (
-                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+                f"layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
             )
 
 
@@ -1070,7 +1070,7 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         for idx, current_hemi in enumerate(hemi_str):
             if current_hemi == "vol":
                 continue
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
             assert len(brain._picked_patches[current_hemi]) == 0
@@ -1174,7 +1174,7 @@ def test_brain_traces_vertex(
             values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None
