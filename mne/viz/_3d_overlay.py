@@ -80,7 +80,7 @@ class LayeredMesh:
     This class manages a single brain-surface mesh and composites multiple
     named overlays (e.g., curvature, data, labels) on top of each other using
     alpha blending.  It is the object stored in
-    :attr:`~mne.viz.Brain.layered_meshes`.
+    ``Brain.layered_meshes``.
 
     Parameters
     ----------

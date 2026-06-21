@@ -1767,7 +1767,7 @@ class Brain:
             (e.g., ``dict(title_font_size=10)``).
         key : str
             Key used to identify this data overlay in
-            :attr:`~mne.viz.Brain.layered_meshes`. Defaults to ``"data"``.
+            ``Brain.layered_meshes``. Defaults to ``"data"``.
 
             .. versionadded:: 1.12
         %(verbose)s
