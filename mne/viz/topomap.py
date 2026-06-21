@@ -2198,8 +2198,7 @@ def plot_evoked_topomap(
     %(show_names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
-    mask_label_params : dict
-        put docstrings
+    %(mask_label_params_topomap)s
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
