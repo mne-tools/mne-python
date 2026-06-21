@@ -250,7 +250,9 @@ class LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None, smooth=False):
+    def update_overlay(
+        self, name, scalars=None, colormap=None, opacity=None, rng=None, smooth=False
+    ):
         """Update an existing overlay in-place.
 
         Parameters
