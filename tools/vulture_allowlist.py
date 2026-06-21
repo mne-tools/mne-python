@@ -118,7 +118,6 @@ _.noise_variance_
 _.n_features_
 
 # Brain, Coreg, PyVista
-_.layered_meshes
 _._Iren
 _.active_scalars_name
 _.active_vectors_name
