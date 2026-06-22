@@ -1,0 +1,1 @@
+Replace the internal binary-block EEG sample reader in :class:`~mne.io.RawEGIMFF` with :func:`mffpy.Reader.get_physical_samples_from_epoch`, removing manual ``fid.seek`` / ``np.fromfile`` block parsing, by `Pragnya Khandelwal`_.
