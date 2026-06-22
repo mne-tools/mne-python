@@ -3349,7 +3349,7 @@ def plot_vector_source_estimates(
            Added "auto" option and default.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
     figure : instance of Figure3D | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate

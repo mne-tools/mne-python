@@ -1384,7 +1384,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
 
     # find the label's normal
     if freesurfer:
-        # find the Freesurfer vertex closest to the center
+        # find the FreeSurfer vertex closest to the center
         distance = np.sqrt(np.sum(centered_points**2, axis=1))
         i_closest = np.argmin(distance)
         closest_vertex = label.vertices[i_closest]
@@ -2358,9 +2358,9 @@ def morph_labels(
 
     Notes
     -----
-    This does not use the same algorithm as Freesurfer, so the results
+    This does not use the same algorithm as FreeSurfer, so the results
     morphing (e.g., from ``'fsaverage'`` to your subject) might not match
-    what Freesurfer produces during ``recon-all``.
+    what FreeSurfer produces during ``recon-all``.
 
     .. versionadded:: 0.18
     """
@@ -2506,7 +2506,7 @@ _DEFAULT_TABLE_NAME = "MNE-Python Colortable"
 
 
 def _write_annot(fname, annot, ctab, names, table_name=_DEFAULT_TABLE_NAME):
-    """Write a Freesurfer annotation to a .annot file."""
+    """Write a FreeSurfer annotation to a .annot file."""
     assert len(names) == len(ctab)
     with open(fname, "wb") as fid:
         n_verts = len(annot)

@@ -428,7 +428,7 @@ def test_average_quats():
 @testing.requires_testing_data
 @pytest.mark.parametrize("subject", ("fsaverage", "sample"))
 def test_fs_xfm(subject, tmp_path):
-    """Test reading and writing of Freesurfer transforms."""
+    """Test reading and writing of FreeSurfer transforms."""
     fname = data_path / "subjects" / subject / "mri" / "transforms" / "talairach.xfm"
     xfm, kind = _read_fs_xfm(str(fname))
     if subject == "fsaverage":
