@@ -28,7 +28,7 @@ def freeview_bem_surfaces(subject, subjects_dir, method=None):
     subject : str
         Subject name
     subjects_dir : path-like
-        Directory containing subjects data (Freesurfer SUBJECTS_DIR)
+        Directory containing subjects data (FreeSurfer SUBJECTS_DIR)
     method : str | None
         Can be ``'flash'`` or ``'watershed'``, or None to use the ``bem/`` directory
         files.

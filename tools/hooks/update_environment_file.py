@@ -14,8 +14,9 @@ with open(repo_root / "pyproject.toml", "rb") as fid:
     pyproj = tomllib.load(fid)
 
 # Get our "full" dependences from `pyproject.toml`, but actually ignore the
-# "full" section as it's just "full-noqt" plus PyQt6, and for conda we need PySide
-ignore = ("full", "full-pyqt6")
+# "full-pyqt6" section as it's just "full-noqt" plus PyQt6. Also ignore "full-pyside6"
+# as it's just a redirect to "full".
+ignore = ("full-pyqt6", "full-pyside6")
 deps = set(pyproj["project"]["dependencies"])
 for section, section_deps in pyproj["project"]["optional-dependencies"].items():
     if section not in ignore:

@@ -227,7 +227,7 @@ imshow_mri(data, t1, vox, dict(MRI=xyz_mri), "MRI slice")
 
 fiducials = mne.coreg.get_mni_fiducials(subject, subjects_dir=subjects_dir)
 nasion_mri = [d for d in fiducials if d["ident"] == FIFF.FIFFV_POINT_NASION][0]
-print(nasion_mri)  # note it's in Freesurfer MRI coords
+print(nasion_mri)  # note it's in FreeSurfer MRI coords
 
 # %%
 # When we print the nasion, it displays as a ``DigPoint`` and shows its

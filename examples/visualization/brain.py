@@ -70,14 +70,14 @@ brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 #
 # It can be useful to highlight a region of the brain for analyses.
 # To highlight a region on the brain you can use the ``add_label`` method.
-# Labels are stored in the Freesurfer label directory from the ``recon-all``
+# Labels are stored in the FreeSurfer label directory from the ``recon-all``
 # for that subject. Labels can also be made following the
-# `Freesurfer instructions
+# `FreeSurfer instructions
 # <https://surfer.nmr.mgh.harvard.edu/fswiki/mri_vol2label>`_
 # Here we will show Brodmann Area 44.
 #
 # .. note:: The MNE sample dataset contains only a subselection of the
-#           Freesurfer labels created during the ``recon-all``.
+#           FreeSurfer labels created during the ``recon-all``.
 
 brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, **brain_kwargs)
 brain.add_label("BA44", hemi="lh", color="green", borders=True)
