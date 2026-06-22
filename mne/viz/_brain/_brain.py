@@ -3597,7 +3597,7 @@ class Brain:
                 # update the mesh scalar values (LayeredMesh applies smooth_mat)
                 if hemi in self.layered_meshes:
                     mesh = self.layered_meshes[hemi]
-                    key = hemi_data.get("key", "data")
+                    key = hemi_data["key"]
                     if key in mesh._overlays:
                         mesh.update_overlay(name=key, scalars=act_data, smooth=True)
                     else:
