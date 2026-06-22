@@ -100,7 +100,7 @@ class LayeredMesh:
 
     Attributes
     ----------
-    smooth_mat : sparse matrix or None
+    smooth_mat : scipy.sparse.csr_array or None
         Optional spatial smoother / upsampler applied to scalar data before
         rendering.  When set (e.g., by
         :meth:`~mne.viz.Brain.set_data_smoothing`), every call to
