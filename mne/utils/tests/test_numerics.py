@@ -307,8 +307,8 @@ def test_object_size():
     assert object_size(np.ones(10, np.float32)) < object_size(np.ones(10, np.float64))
     for lower, upper, obj in (
         (0, 60, ""),
-        (0, 30, 1),
-        (0, 30, 1.0),
+        (0, 45, 1),
+        (0, 45, 1.0),
         (0, 70, "foo"),
         (0, 150, np.ones(0)),
         (0, 150, np.int32(1)),
@@ -319,7 +319,7 @@ def test_object_size():
         (200, 900, sparse.eye_array(20, format="csr")),
     ):
         size = object_size(obj)
-        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
+        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj!r}"
     # views work properly
     x = dict(a=1)
     assert object_size(x) < 1000

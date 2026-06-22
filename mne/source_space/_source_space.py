@@ -1722,7 +1722,7 @@ def setup_volume_source_space(
         Region(s) of interest to use. None (default) will create a single
         whole-brain source space. Otherwise, a separate source space will be
         created for each entry in the list or dict (str will be turned into
-        a single-element list). If list of str, standard Freesurfer labels
+        a single-element list). If list of str, standard FreeSurfer labels
         are assumed. If dict, should be a mapping of region names to atlas
         id numbers, allowing the use of other atlases.
 
@@ -2838,7 +2838,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         The source space containing the volume regions.
     %(subject)s
     subjects_dir : str
-        Freesurfer folder of the subjects.
+        FreeSurfer folder of the subjects.
 
     Returns
     -------

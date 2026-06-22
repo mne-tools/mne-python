@@ -551,7 +551,7 @@ contributions by submodule as well below.
 {indent}{stat_lines}
 
 """
-    (doc_root / "code_credit.inc").write_text(content, encoding="utf-8")
+    (doc_root / "credits" / "code_credit.inc").write_text(content, encoding="utf-8")
 
 
 if __name__ == "__main__":

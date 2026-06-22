@@ -450,6 +450,7 @@ _unit2human = {
     FIFF.FIFF_UNIT_NONE: "NA",
     FIFF.FIFF_UNIT_CEL: "C",
     FIFF.FIFF_UNIT_S: "S",
+    FIFF.FIFF_UNIT_SEC: "s",
     FIFF.FIFF_UNIT_PX: "px",
 }
 
@@ -1296,6 +1297,22 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         All other entries should be considered read-only, though they can be
         modified by various MNE-Python functions or methods (which have
         safeguards to ensure all fields remain in sync).
+
+    Some common methods that safely modify the ``info`` object include:
+
+    * :meth:`mne.io.Raw.add_proj`, :meth:`mne.Epochs.add_proj`,
+      :meth:`mne.Evoked.add_proj`
+    * :meth:`mne.io.Raw.del_proj`, :meth:`mne.Epochs.del_proj`,
+      :meth:`mne.Evoked.del_proj`
+    * :meth:`mne.io.Raw.rename_channels`,
+      :meth:`mne.Epochs.rename_channels`,
+      :meth:`mne.Evoked.rename_channels`
+    * :meth:`mne.io.Raw.set_channel_types`,
+      :meth:`mne.Epochs.set_channel_types`,
+      :meth:`mne.Evoked.set_channel_types`
+    * :meth:`mne.io.Raw.set_meas_date`,
+      :meth:`mne.Epochs.set_meas_date`,
+      :meth:`mne.Evoked.set_meas_date`
 
     Parameters
     ----------
