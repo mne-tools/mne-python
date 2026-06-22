@@ -181,6 +181,8 @@ class Brain:
         A dictionary of :class:`~mne.viz.LayeredMesh` objects, one per
         hemisphere, used for compositing overlays during real-time streaming.
 
+        .. versionadded:: 1.13
+
     Notes
     -----
     The figure will publish and subscribe to the following UI events:
