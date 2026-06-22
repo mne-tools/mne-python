@@ -177,9 +177,8 @@ def reset_modules(gallery_conf, fname, when):
     # Agg does not call close_event so let's clean up on our own :(
     # https://github.com/matplotlib/matplotlib/issues/18609
     mne.viz.ui_events._cleanup_agg()
-    assert len(mne.viz.ui_events._event_channels) == 0, list(
-        mne.viz.ui_events._event_channels
-    )
+    bad_msg = f"{when=} for {fname=} got non-empty {mne.viz.ui_events._event_channels=}"
+    assert len(mne.viz.ui_events._event_channels) == 0, bad_msg
 
     orig_when = when
     when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
