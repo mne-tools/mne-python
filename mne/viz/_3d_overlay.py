@@ -81,6 +81,11 @@ class LayeredMesh:
     named overlays (e.g., curvature, data, labels) on top of each other using
     alpha blending.  It is the object stored in
     ``Brain.layered_meshes``.
+    
+    .. warning::
+        This class is not meant to be instantiated directly, and the
+        initialization API could change at any time! Use
+        :meth:`mne.viz.Brain.add_data` to create instances.
 
     Parameters
     ----------
