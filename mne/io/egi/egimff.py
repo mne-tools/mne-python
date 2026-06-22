@@ -56,9 +56,6 @@ def _read_mff_header(filepath):
     rt_elem = info_obj.find("recordTime")
     record_time = str(rt_elem.text) if rt_elem is not None else ""
 
-    if " " in record_time and "T" not in record_time:
-        record_time = record_time.replace(" ", "T")
-
     fname = op.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
     epochs = _get_ep_info(filepath)
@@ -166,9 +163,6 @@ def _read_mff_header(filepath):
         for sensor in sensors:
             name = sensor.get("name", "")
             unit = sensor.get("unit", "")
-
-            if name == "None":
-                name = ""
 
             if name == "ECG":
                 ch_type = "ecg"
@@ -303,7 +297,7 @@ def _read_locs(filepath, egi_info, channel_naming):
         num_str = str(sensor.get("number", ""))
 
         if not name:
-            name = channel_naming % int(num_str) if num_str else "Unknown"
+            name = channel_naming % int(num_str)
 
         nr = num_str.encode()
         coords = [float(sensor.get(coord, 0.0)) for coord in "xyz"]
