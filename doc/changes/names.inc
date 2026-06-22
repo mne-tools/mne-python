@@ -353,6 +353,7 @@
 .. _Thomas Caswell: https://tacaswell.github.io
 .. _Thomas Hartmann: https://github.com/thht
 .. _Thomas Radman: https://github.com/tradman
+.. _Théo Castillo: https://github.com/theosorus
 .. _Théodore Papadopoulo: https://github.com/papadop
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
 .. _Timur Sokhin: https://github.com/Qwinpin
