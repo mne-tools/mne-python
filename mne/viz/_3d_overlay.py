@@ -110,7 +110,7 @@ class LayeredMesh:
 
     Notes
     -----
-    .. versionadded:: 1.12
+    .. versionadded:: 1.13
     """
 
     def __init__(self, renderer, vertices, triangles, normals):
