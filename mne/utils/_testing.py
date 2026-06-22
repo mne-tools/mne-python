@@ -79,10 +79,10 @@ def requires_openmeeg_mark():
 
 
 def requires_freesurfer(arg):
-    """Require Freesurfer."""
+    """Require FreeSurfer."""
     import pytest
 
-    reason = "Requires Freesurfer"
+    reason = "Requires FreeSurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
@@ -97,7 +97,7 @@ def requires_freesurfer(arg):
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires FreeSurfer")(
             arg
         )
 
@@ -147,7 +147,7 @@ def has_mne_c():
 
 
 def has_freesurfer():
-    """Check for Freesurfer."""
+    """Check for FreeSurfer."""
     return "FREESURFER_HOME" in os.environ
 
 

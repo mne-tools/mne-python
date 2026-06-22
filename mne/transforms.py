@@ -1609,7 +1609,7 @@ def read_ras_mni_t(subject, subjects_dir=None):
 
 
 def _read_fs_xfm(fname):
-    """Read a Freesurfer transform from a .xfm file."""
+    """Read a FreeSurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
     with open(fname) as fid:
         logger.debug(f"Reading FreeSurfer talairach.xfm file:\n{fname}")
@@ -1644,7 +1644,7 @@ def _read_fs_xfm(fname):
 
 
 def _write_fs_xfm(fname, xfm, kind):
-    """Write a Freesurfer transform to a .xfm file."""
+    """Write a FreeSurfer transform to a .xfm file."""
     with open(fname, "wb") as fid:
         fid.write((kind + "\n\nTtransform_Type = Linear;\n").encode("ascii"))
         fid.write("Linear_Transform =\n".encode("ascii"))
