@@ -50,7 +50,7 @@
 .. _btkcodedev: https://github.com/btkcodedev
 .. _buildqa: https://github.com/buildqa
 .. _Carina Forster: https://github.com/CarinaFo
-.. _Carlos de la Torre-Ortiz: https://ctorre.me
+.. _Carlos de la Torre-Ortiz: https://github.com/c-torre
 .. _Cathy Nangini: https://github.com/KatiRG
 .. _Chetan Gohil: https://github.com/cgohil8
 .. _Chris Bailey: https://github.com/cjayb
@@ -239,7 +239,7 @@
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 .. _Mojackhak: https://github.com/Mojackhak
 .. _Moritz Gerster: https://github.com/moritz-gerster
-.. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
+.. _Motofumi Fushimi: https://github.com/motofumi-fushimi
 .. _Nabil Alibou: https://github.com/nabilalibou
 .. _Natalie Klein: https://github.com/natalieklein
 .. _Nathalie Gayraud: https://github.com/ngayraud
