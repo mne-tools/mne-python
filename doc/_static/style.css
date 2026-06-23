@@ -412,7 +412,7 @@ ul.formersponsor li {
     padding-bottom: 0.5rem;
 }
 ul.currentsponsor li img,
-ul.former li img {
+ul.formersponsor li img {
     background-color: unset !important;
     box-sizing: content-box;
     object-fit: contain;
