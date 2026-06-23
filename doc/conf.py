@@ -657,6 +657,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
     "https://doi.org/10.1145/",  # dl.acm.org
+    "https://doi.org/10.5281/",  # zenodo.org
     "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
@@ -667,6 +668,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://zenodo.org",  # doc/help/faq
     "https://blender.org",
     "https://home.alexk101.dev",
     "https://www.mq.edu.au/",
