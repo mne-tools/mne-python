@@ -1,2 +1,2 @@
-Add `TimeChange` behaviour for :func:`mne.viz.plot_evoked_topo`, where time is marked with solid vertical after clicking on subfigure axis. 
-Add `merge` parameter to :func:`mne.viz.ui_events.link` that enables linking of groups which figs belong to, by `Lifeng Qiu Lin`_.
+Add ``TimeChange`` behaviour for :func:`mne.viz.plot_evoked_topo`, where time is marked with solid vertical line after clicking on subfigure axis. 
+Add ``merge`` parameter to :func:`mne.viz.ui_events.link` that enables linking of groups which figs belong to, by `Lifeng Qiu Lin`_.

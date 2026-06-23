@@ -262,9 +262,9 @@ mne.viz.plot_compare_evokeds(
 mne.viz.plot_evoked_topo(evokeds_list)
 
 # %%
-# Topo and topomap figures have dynamic interactivity when plot for single
+# Topo and topomap figures have dynamic interactivity when plotting for single
 # :class:`~mne.Evoked` instance and allow time selection, which could be
-# synchronized through link.
+# synchronized through linking.
 
 single_evoked = evokeds_list[0]
 fig_topomap = single_evoked.plot_topomap("interactive")

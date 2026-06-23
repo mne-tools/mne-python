@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 from functools import partial
+from inspect import signature
 
 import numpy as np
 from scipy import ndimage
@@ -425,8 +426,12 @@ def _plot_topo_onpick(event, show_func):
         ax.set_facecolor(face_color)
 
         # allow custom function to override parameters
-        show_func(ax, ch_idx, orig_fig=fig)
-        plt_show(fig=subfig)
+        if "orig_fig" in signature(show_func).parameters:
+            show_func(ax, ch_idx, orig_fig=fig)
+            plt_show(fig=subfig)
+        else:
+            show_func(ax, ch_idx)
+            plt_show(fig=fig)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -647,7 +652,6 @@ def _plot_timeseries(
     def _on_click(event):
         if event.inaxes == ax:
             publish(ax.figure, TimeChange(time=event.xdata))
-            _update_selectline(event.xdata)
 
     def _on_time_change_sub(event):
         _update_selectline(event.time)
@@ -664,7 +668,6 @@ def _plot_timeseries(
     face_brightness = np.dot(facecol, [299, 587, 114])
     ax._cursorcolor = "white" if face_brightness < 150 else "black"
 
-    # setattr(orig_fig, "_current_time", None)
     ax._selectline = None
     ax._selectcolor = "white" if face_brightness < 150 else "black"
 
