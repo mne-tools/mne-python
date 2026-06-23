@@ -485,14 +485,12 @@ def disable_ui_events(fig):  # numpydoc ignore=YD01
 
 def _cleanup_agg():
     """Call close_event for Agg canvases to help our doc build."""
-    import matplotlib.backends.backend_agg
     import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
         if isinstance(key, matplotlib.figure.Figure):
-            canvas = key.canvas
-            if isinstance(canvas, matplotlib.backends.backend_agg.FigureCanvasAgg):
-                for cb in key.canvas.callbacks.callbacks["close_event"].values():
-                    cb = cb()  # get the true ref
-                    if cb is not None:
-                        cb()
+            for cb in key.canvas.callbacks.callbacks["close_event"].values():
+                cb = cb()  # get the true ref
+                # Our __name__ is "_get_event_channel.<locals>.delete_event_channel"
+                if cb is not None and cb.__name__.endswith("delete_event_channel"):
+                    cb()

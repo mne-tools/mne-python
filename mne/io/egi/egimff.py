@@ -570,7 +570,7 @@ class RawMff(BaseRaw):
         first_samps = [0]
         last_samps = [egi_info["last_samps"][-1] - 1]
 
-        annot = dict(onset=list(), duration=list(), description=list())
+        annot = dict(onset=list(), duration=list(), description=list(), extras=list())
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
@@ -610,16 +610,22 @@ class RawMff(BaseRaw):
                 annot["onset"].append((prev_last - 0.5) / egi_info["sfreq"])
                 annot["duration"].append(gap / egi_info["sfreq"])
                 annot["description"].append("BAD_ACQ_SKIP")
+                annot["extras"].append({})
 
         # create events from annotations
         if events_as_annotations:
-            for code, samples in mff_events.items():
+            for code, dicts in mff_events.items():
                 if code not in include:
                     continue
+                samples = [d["start_sample"] for d in dicts]
+                extras = [d["extras"] for d in dicts]
                 annot["onset"].extend(np.array(samples) / egi_info["sfreq"])
                 annot["duration"].extend([0.0] * len(samples))
                 annot["description"].extend([code] * len(samples))
+                annot["extras"].extend(extras)
 
+        if annot["extras"] == []:
+            annot["extras"] = None
         if len(annot["onset"]):
             self.set_annotations(Annotations(**annot))
 
