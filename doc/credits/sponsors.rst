@@ -7,7 +7,7 @@ Sponsors
 
 Maintenance and development of MNE-Python is currently supported by the following funding agencies and partners:
 
-.. rst-class:: list-unstyled current
+.. rst-class:: list-unstyled currentsponsor
 
 - |nih| **National Institutes of Health:**
   `R01-NS104585 <https://reporter.nih.gov/project-details/10175064>`_
@@ -18,7 +18,7 @@ Maintenance and development of MNE-Python is currently supported by the followin
 Past sponsors
 -------------
 
-.. rst-class:: list-unstyled former
+.. rst-class:: list-unstyled formersponsor
 
 - |nih| National Institutes of Health:
   `R01-EB009048 <https://reporter.nih.gov/project-details/9053482>`_,
@@ -56,7 +56,7 @@ Supporting institutions
 
 Some institutions support their employees’ contributions to MNE-Python as part of normal work duties. Current supporting institutions include:
 
-.. rst-class:: list-unstyled current
+.. rst-class:: list-unstyled currentsponsor
 
 {% for inst in current_institutions %}
 {% if not inst.name.endswith("_dk") %}
