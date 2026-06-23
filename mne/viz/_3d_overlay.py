@@ -264,7 +264,7 @@ class LayeredMesh:
         self._renderer = None
 
     def update_overlay(
-        self, name, scalars=None, colormap=None, opacity=None, rng=None, smooth=False
+        self, name, scalars=None, colormap=None, opacity=None, rng=None
     ):
         """Update an existing overlay in-place.
 
@@ -274,22 +274,21 @@ class LayeredMesh:
             Key of the overlay to update (must already exist).
         scalars : array, shape (n_vertices,) | None
             New scalar values. If ``None``, scalars are unchanged.
+            If :attr:`smooth_mat` is set, smoothing is applied automatically
+            (matching the behaviour of the original :meth:`~mne.viz.Brain.add_data`
+            call that created the overlay).
         colormap : array, shape (n_colors, 4) | None
             New RGBA colormap table. If ``None``, colormap is unchanged.
         opacity : float | None
             New opacity in ``[0, 1]``. If ``None``, opacity is unchanged.
         rng : array-like, shape (2,) | None
             New ``[min, max]`` colormap range. If ``None``, range is unchanged.
-        smooth : bool
-            If ``True`` and ``smooth_mat`` is set, multiply ``scalars``
-            by ``smooth_mat`` before rendering. Use ``True`` only for
-            source-space data.
         """
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
         if scalars is not None:
-            if smooth and self.smooth_mat is not None:
+            if self.smooth_mat is not None:
                 scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
         if colormap is not None:

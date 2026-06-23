@@ -3599,7 +3599,7 @@ class Brain:
                     mesh = self.layered_meshes[hemi]
                     key = hemi_data["key"]
                     if key in mesh._overlays:
-                        mesh.update_overlay(name=key, scalars=act_data, smooth=True)
+                        mesh.update_overlay(name=key, scalars=act_data)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
