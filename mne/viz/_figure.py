@@ -113,6 +113,12 @@ class BrowserBase(ABC):
         self.mne.epoch_traces = list()
         self.mne.bad_epochs = list()
         if inst is not None:
+            if inst.times.size < 2:
+                raise ValueError(
+                    "Cannot plot Raw data with fewer than 2 time points "
+                    f"(got {inst.times.size}). Please provide data with "
+                    "a longer duration."
+                )
             self.mne.sampling_period = np.diff(inst.times[:2])[0] / inst.info["sfreq"]
         # annotations
         self.mne.annotations = list()
