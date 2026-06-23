@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v6.0.3
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@v6
       - name: Install dependencies
         run: |
