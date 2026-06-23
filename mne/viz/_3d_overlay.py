@@ -131,7 +131,7 @@ class LayeredMesh:
         self._default_scalars_name = "Data"
         self.smooth_mat = None
 
-    def map(self):
+    def _map(self):
         kwargs = {
             "color": None,
             "pickable": True,
@@ -181,7 +181,7 @@ class LayeredMesh:
         ----------
         scalars : array, shape (n_vertices,)
             Scalar values to display. If ``smooth=True`` and
-            :attr:`smooth_mat` is set, shape must be ``(n_src_vertices,)``.
+            ``smooth_mat`` is set, shape must be ``(n_src_vertices,)``.
         colormap : array, shape (n_colors, 4)
             RGBA colormap table (values in ``[0, 255]``).
         rng : array-like, shape (2,)
@@ -191,7 +191,7 @@ class LayeredMesh:
         name : str
             Unique key identifying this overlay.
         smooth : bool
-            If ``True`` and :attr:`smooth_mat` is set, multiply ``scalars``
+            If ``True`` and ``smooth_mat`` is set, multiply ``scalars``
             by ``smooth_mat`` before rendering. Use ``True`` only for
             source-space data; surface-space overlays (curvature, labels,
             annotations) should use the default ``False``.
@@ -241,6 +241,7 @@ class LayeredMesh:
         self._polydata[self._default_scalars_name] = self._current_colors
 
     def update(self, colors=None):
+        """Recompose all overlays and refresh the mesh texture."""
         if colors is not None and self._cached_colors is not None:
             self._current_colors = self._compute_over(self._cached_colors, colors)
         else:
@@ -273,7 +274,7 @@ class LayeredMesh:
         rng : array-like, shape (2,) | None
             New ``[min, max]`` colormap range. If ``None``, range is unchanged.
         smooth : bool
-            If ``True`` and :attr:`smooth_mat` is set, multiply ``scalars``
+            If ``True`` and ``smooth_mat`` is set, multiply ``scalars``
             by ``smooth_mat`` before rendering. Use ``True`` only for
             source-space data.
         """
@@ -297,4 +298,3 @@ class LayeredMesh:
             self.update()
 
 
-_LayeredMesh = LayeredMesh  # backward-compat alias (for example see evoked_field.py)

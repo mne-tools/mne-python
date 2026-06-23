@@ -127,7 +127,7 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
         normals=np.array([[0, 0, 1]] * 4),
     )
     assert not mesh._is_mapped
-    mesh.map()
+    mesh._map()
     assert mesh._is_mapped
     assert mesh._current_colors is None
     assert mesh._cached_colors is None
@@ -391,6 +391,12 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                 vertices=hemi_vertices,
             )
     assert len(brain._actors["data"]) == 4
+    # exercise the public LayeredMesh API via Brain.layered_meshes
+    assert "lh" in brain.layered_meshes
+    lm = brain.layered_meshes["lh"]
+    assert isinstance(lm, LayeredMesh)
+    lm.update_overlay(name="data", rng=[fmin, fmax])
+    lm.update()
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)

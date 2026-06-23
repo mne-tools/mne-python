@@ -432,7 +432,7 @@ class Brain:
                         triangles=self.geo[h].faces,
                         normals=self.geo[h].nn,
                     )
-                    mesh.map()  # send to GPU
+                    mesh._map()
                     if self.geo[h].bin_curv is None:
                         scalars = mesh._default_scalars[:, 0]
                     else:
