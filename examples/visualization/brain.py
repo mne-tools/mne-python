@@ -154,7 +154,9 @@ brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, hemi="lh", **brain_kw
 coords = brain.geo["lh"].coords
 data_t0 = coords[:, 2]
 data_t0 = (data_t0 - data_t0.min()) / (data_t0.max() - data_t0.min())
-brain.add_data(data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5)
+brain.add_data(
+    data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5
+)
 brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 
 # %%
@@ -166,7 +168,9 @@ brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, hemi="lh", **brain_kw
 coords = brain.geo["lh"].coords
 data_t0 = coords[:, 2]
 data_t0 = (data_t0 - data_t0.min()) / (data_t0.max() - data_t0.min())
-brain.add_data(data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5)
+brain.add_data(
+    data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5
+)
 
 data_t1 = coords[:, 1]
 data_t1 = (data_t1 - data_t1.min()) / (data_t1.max() - data_t1.min())

@@ -296,5 +296,3 @@ class LayeredMesh:
             self.update(colors=overlay.to_colors())
         else:  # full update
             self.update()
-
-
