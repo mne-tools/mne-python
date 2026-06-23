@@ -28,7 +28,7 @@ jobs:
         type: string
         default: "false"
     machine:
-      image: ubuntu-2604:current
+      image: ubuntu-2604:2026.05.1
     # large 4 vCPUs 15GB mem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
     resource_class: large
