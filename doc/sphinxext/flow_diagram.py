@@ -2,8 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import contextlib
 import os
 from os import path as op
+
+from sphinx.errors import ExtensionError
 
 title = "mne-python flow diagram"
 
@@ -92,6 +95,15 @@ def setup_module():
     pass
 
 
+@contextlib.contextmanager
+def _safe_generate(func):
+    try:
+        yield
+    except Exception as exc:
+        raise ExtensionError(f"Failed to generate flow diagram: {exc}")
+
+
+@_safe_generate
 def generate_flow_diagram(app):
     out_dir = op.join(app.builder.outdir, "_static")
     if not op.isdir(out_dir):
