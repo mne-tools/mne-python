@@ -9,7 +9,7 @@ for apt_file in `grep -lr microsoft /etc/apt/sources.list.d/`; do
     sudo rm $apt_file
 done
 
-# This also includes the libraries necessary for PyQt5/PyQt6
+# This also includes the libraries necessary for Qt6
 sudo apt update
 # Need two different libxml2 variants for 24.04 and 26.04
 if [[ $(lsb_release -rs) == "26.04" ]]; then
