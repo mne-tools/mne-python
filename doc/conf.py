@@ -714,8 +714,12 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
     "https://www.crnl.fr",
+    # Spurious failure
+    "https://megcore.nih.gov/index.php/Staff",
     # Not rendered by linkcheck builder
     r"ides\.html",
+    # Sponsors not rendered properly by linkcheck builder
+    "{{inst.url}}",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
