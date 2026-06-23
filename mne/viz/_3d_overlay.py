@@ -241,7 +241,14 @@ class LayeredMesh:
         self._polydata[self._default_scalars_name] = self._current_colors
 
     def update(self, colors=None):
-        """Recompose all overlays and refresh the mesh texture."""
+        """Recompose all overlays and refresh the mesh texture.
+
+        Parameters
+        ----------
+        colors : array-like of shape (n_triangles, 4) | None
+            Pre-composited RGBA colors to blend over the cached layer stack.
+            If ``None``, all overlays are recomposed from scratch.
+        """
         if colors is not None and self._cached_colors is not None:
             self._current_colors = self._compute_over(self._cached_colors, colors)
         else:
