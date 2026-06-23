@@ -85,7 +85,7 @@ plot_gaze(epochs["natural"], calibration=calibration, cmap=cmap, sigma=50)
 cmap = cmap.with_extremes(
     under=(0.0, 0.0, 0.0, 0.0)
 )  # make the lowest values transparent
-ax = plt.subplot(layout="constrained")
+_, ax = plt.subplots(figsize=(6, 3.5), layout="constrained")
 ax.imshow(plt.imread(stim_fpath))
 plot_gaze(
     epochs["natural"],

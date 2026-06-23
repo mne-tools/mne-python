@@ -668,6 +668,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://mitpress.mit.edu/9780262525855",  # works but linkcheck fails to resolve
     "https://zenodo.org",  # doc/help/faq
     "https://blender.org",
     "https://home.alexk101.dev",
