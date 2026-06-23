@@ -495,6 +495,5 @@ def _cleanup_agg():
         if isinstance(key, matplotlib.figure.Figure):
             for cb in key.canvas.callbacks.callbacks["close_event"].values():
                 cb = cb()  # get the true ref
-                # if isinstance(cb, partial) and cb.func is _delete_event_channel:
-                if cb is not None and cb.__name__.endswith("delete_event_channel"):
+                if isinstance(cb, partial) and cb.func is _delete_event_channel:
                     cb()
