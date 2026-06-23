@@ -55,7 +55,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/pyqtgraph/pyqtgraph \
 	"mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
 	"mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
-	git+https://github.com/nipy/nibabel \
+	"nibabel @ https://github.com/nipy/nibabel/archive/refs/heads/master.zip" \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
