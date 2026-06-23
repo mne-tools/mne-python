@@ -167,7 +167,7 @@ def generate_flow_diagram(app):
     leg.graph_attr["rank"] = "same"
 
     g.layout("dot")
-    g.draw(out_fname, format="svg")
+    g.draw(out_fname, format="svg", prog="dot")
     return g
 
 
