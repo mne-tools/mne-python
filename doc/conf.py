@@ -634,7 +634,6 @@ graphviz_dot_args = [
     "-Nshape=box",
     "-Nfontsize=20",
     "-Nfontname=Open Sans,Arial",
-    "-Edot",
 ]
 graphviz_output_format = "svg"  # for API usage diagrams
 user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Mobile Safari/537.36"  # noqa: E501

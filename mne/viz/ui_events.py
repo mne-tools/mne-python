@@ -290,7 +290,7 @@ def _get_event_channel(fig):
             fig.canvas.mpl_connect("close_event", this_delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
-            fig._renderer._window_close_connect(_delete_event_channel, after=False)
+            fig._renderer._window_close_connect(this_delete_event_channel, after=False)
 
     # Now the event channel exists for sure.
     return _event_channels[fig]
