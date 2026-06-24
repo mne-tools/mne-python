@@ -1,0 +1,1 @@
+Allow subclasses of `MNEBrowseFigure` to be passed to plot_raw/plot_epochs, as well as the corresponding `plot(...)` methods of the raw and epochs classes, by :newcontrib:`Frankie Robertson`
