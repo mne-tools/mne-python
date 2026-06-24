@@ -273,7 +273,7 @@ Time-frequency visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We implemented a viewer for interactive visualization of volumetric
 source-time-frequency (5-D) maps on MRI slices (orthogonal 2D viewer).
-`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/master/contrib/nutmegtrip>`__
+`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/20260408/contrib/nutmegtrip>`__
 (written by Sarang Dalal) provides similar functionality in MATLAB in
 conjunction with FieldTrip. Example of NutmegTrip's source-time-frequency mode
 in action (click for link to YouTube):

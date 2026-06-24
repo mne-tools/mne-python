@@ -21,8 +21,6 @@ jobs:
         with:
           persist-credentials: true
       - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
       - run: pip install pygithub -e .
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json

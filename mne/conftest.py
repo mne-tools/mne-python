@@ -669,10 +669,6 @@ def _check_pyqtgraph(request):
             pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
-    else:
-        ver = mne_qt_browser.__version__
-        if api != "PyQt5" and _compare_version(ver, "<=", "0.2.6"):
-            pytest.skip(f"mne_qt_browser {ver} requires PyQt5, API is {api}")
 
 
 @pytest.fixture
