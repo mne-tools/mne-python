@@ -1572,7 +1572,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if self.mne.visible_annotations[descr]:
                 if not skip_hscroll:
                     # draw all segments on ax_hscroll
-                    annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
+                    annot = self.mne.ax_hscroll.fill_betweenx(
+                        (0, 1), start, end, **kwargs
+                    )
                     self.mne.hscroll_annotations.append(annot)
                 # draw only visible segments on ax_main
                 visible_segment = np.clip([start, end], times[0], times[-1])
