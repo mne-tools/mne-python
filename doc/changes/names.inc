@@ -110,6 +110,7 @@
 .. _Felix Raimundo: https://github.com/gamazeps
 .. _Florian Hofer: https://github.com/hofaflo
 .. _Florin Pop: https://github.com/florin-pop
+.. _Frankie Robertson: https://github.com/frankier
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
 .. _Fu-Te Wong: https://github.com/zuxfoucault
 .. _Gennadiy Belonosov: https://github.com/Genuster

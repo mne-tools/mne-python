@@ -75,6 +75,7 @@ def plot_raw(
     overview_mode=None,
     splash=True,
     verbose=None,
+    figure_class=None,
 ):
     """Plot raw data.
 
@@ -227,6 +228,9 @@ def plot_raw(
 
         .. versionadded:: 1.6
     %(verbose)s
+    %(figure_class)s
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -435,6 +439,7 @@ def plot_raw(
         theme=theme,
         overview_mode=overview_mode,
         splash=splash,
+        figure_class=figure_class,
     )
 
     fig = _get_browser(show=show, block=block, **params)

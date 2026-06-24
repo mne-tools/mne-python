@@ -2618,7 +2618,11 @@ def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
 
-    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, layout=None, **kwargs)
+    figure_class = kwargs.pop("figure_class", None)
+    if figure_class is None:
+        figure_class = MNEBrowseFigure
+
+    fig = _figure(toolbar=False, FigureClass=figure_class, layout=None, **kwargs)
 
     # splash is ignored (maybe we could do it for mpl if we get_backend() and
     # check if it's Qt... but seems overkill)
