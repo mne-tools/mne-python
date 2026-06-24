@@ -1,0 +1,1 @@
+Include label and description fields when reading EGI mff files, by `Martin Oberg`_.

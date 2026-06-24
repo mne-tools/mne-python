@@ -192,7 +192,11 @@ def test_io_egi_mff(events_as_annotations):
         assert "STI 014" not in raw.ch_names
         assert raw.event_id is None
         event_id = {"DIN1": 1, "DIN2": 2, "DIN3": 3, "DIN4": 4, "DIN5": 5, "DIN7": 7}
+        id_event = {v: k for k, v in event_id.items()}
         events, _ = events_from_annotations(raw, event_id=event_id)
+        labels_annot = [a["extras"]["label"] for a in raw.annotations]
+        labels_events = [id_event[int(x)] for x in events[:, 2]]
+        assert labels_annot == labels_events
     else:
         assert "STI 014" in raw.ch_names
         events = find_events(raw, stim_channel="STI 014")

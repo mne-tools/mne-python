@@ -104,14 +104,14 @@ instructions for installing from a ``git clone`` in the :ref:`contributing`.
 Choosing the Qt framework
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``conda-forge`` version of MNE-Python ships with PyQt5. If you would like to
+The ``conda-forge`` version of MNE-Python ships with PySide6. If you would like to
 use a different binding, you can instead install MNE-Python via ``pip``:
 
 .. code-block:: console
 
-    $ pip install "mne[full]"          # uses PyQt6
-    $ pip install "mne[full-pyqt6]"    # same as above
-    $ pip install "mne[full-pyside6]"  # use PySide6
+    $ pip install "mne[full]"          # uses PySide6
+    $ pip install "mne[full-pyside6]"  # same as above
+    $ pip install "mne[full-pyqt6]"    # uses PyQt6
     $ pip install "mne[full-no-qt]"    # don't install any Qt binding
 
 .. _CUDA:

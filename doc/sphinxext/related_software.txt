@@ -21,6 +21,7 @@ mne-lsl
 mne-microstates
 mne-nirs
 mne-rsa
+mne-rt
 mnelab
 neurodsp
 neurokit2

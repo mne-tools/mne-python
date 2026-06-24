@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import functools
 import gc
 import os
 import time
@@ -17,9 +18,7 @@ from sphinx.errors import ExtensionError
 
 import mne
 from mne.utils import (
-    _assert_no_instances as _assert_no_instances_mne,
-)
-from mne.utils import (
+    _assert_no_instances,
     _get_extra_data_path,
     sizeof_fmt,
 )
@@ -123,14 +122,20 @@ def reset_warnings(gallery_conf, fname):
 t0 = time.time()
 
 
-def _assert_no_instances(cls, when):
+def _reraise_extension_error(func):
     """Wrap our internal one but make the traceback nicer when it fails."""
-    try:
-        _assert_no_instances_mne(cls, when)
-    except Exception as exc:
-        raise ExtensionError(str(exc)) from None
+
+    @functools.wraps(func)
+    def _wrapper(gallery_conf, fname, when):
+        try:
+            return func(gallery_conf, fname, when)
+        except Exception:
+            raise ExtensionError(f"{func.__name__} failed: {when=}, {fname=}")
+
+    return _wrapper
 
 
+@_reraise_extension_error
 def reset_modules(gallery_conf, fname, when):
     """Do the reset."""
     import matplotlib.pyplot as plt
@@ -177,9 +182,8 @@ def reset_modules(gallery_conf, fname, when):
     # Agg does not call close_event so let's clean up on our own :(
     # https://github.com/matplotlib/matplotlib/issues/18609
     mne.viz.ui_events._cleanup_agg()
-    assert len(mne.viz.ui_events._event_channels) == 0, list(
-        mne.viz.ui_events._event_channels
-    )
+    bad_msg = f"{when=} for {fname=} got non-empty {mne.viz.ui_events._event_channels=}"
+    assert len(mne.viz.ui_events._event_channels) == 0, bad_msg
 
     orig_when = when
     when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
