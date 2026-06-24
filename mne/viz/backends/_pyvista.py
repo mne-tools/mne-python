@@ -968,8 +968,11 @@ class _PyVistaRenderer(_AbstractRenderer):
         resolution,
         blending,
         center,
-        interpolation,
+        interpolation="linear",
     ):
+        # Note: this method is used by mne-gui-addons, so we should be mindful of
+        # backwards compatibility when changing it.
+
         # Now we can actually construct the visualization
         grid = pyvista.ImageData(
             dimensions=dimensions,
