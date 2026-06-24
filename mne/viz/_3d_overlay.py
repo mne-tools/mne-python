@@ -272,7 +272,7 @@ class LayeredMesh:
             Key of the overlay to update (must already exist).
         scalars : array, shape (n_vertices,) | None
             New scalar values. If ``None``, scalars are unchanged.
-            If :attr:`smooth_mat` is set, smoothing is applied automatically
+            If ``smooth_mat`` is set, smoothing is applied automatically
             (matching the behaviour of the original :meth:`~mne.viz.Brain.add_data`
             call that created the overlay).
         colormap : array, shape (n_colors, 4) | None
