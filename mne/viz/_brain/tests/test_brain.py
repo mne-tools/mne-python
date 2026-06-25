@@ -37,7 +37,7 @@ from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
-from mne.utils import check_version
+from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
 from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
@@ -118,9 +118,6 @@ class TstVTKPicker:
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-# TODO: allow_unclosed for macOS here as the conda and M1 builds show some
-# windows stay open afterward
-@pytest.mark.allow_unclosed
 def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
@@ -543,7 +540,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
     brain.close()
 
-    # add annotation
+
+def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
+    """Test add_annotation."""
     annots = [
         "aparc",
         subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
@@ -551,6 +550,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, "r"]
+    size = (100, 100)
     brain = Brain(
         subject="fsaverage",
         hemi="both",
@@ -558,13 +558,54 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         surf="inflated",
         subjects_dir=subjects_dir,
     )
-    with pytest.raises(ValueError, match="does not exist"):
+    with pytest.raises(FileNotFoundError, match="does not exist"):
         brain.add_annotation("foo")
-    brain.add_annotation(annots[1])
+    brain.add_annotation(annots[1], hover=True)
+
+    # mock some events
+    class MockIrenAndPicker:
+        def __init__(self):
+            self._cell_id = 0
+
+        def GetEventPosition(self):
+            return 50, 50  # middle of display
+
+        def FindPokedRenderer(self, x, y):
+            return brain.plotter.renderers[0]
+
+        def Pick(self, x, y, z, renderer):
+            pass
+
+        def GetMapper(self):
+            return brain.plotter.mapper
+
+        def GetCellId(self):
+            return self._cell_id
+
+        def GetPickPosition(self):
+            return np.zeros(3)
+
+    mocked = MockIrenAndPicker()
+    brain._renderer._picker = mocked
+
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "Hovering label LOBE.FRONTAL" in log
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "Same label hovered" in log
+    mocked._cell_id = -1
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "No mesh picked, hiding" in log
     brain.close()
+
     brain = Brain(
         subject="fsaverage",
-        hemi=hemi,
+        hemi="lh",
         size=size,
         surf="inflated",
         subjects_dir=subjects_dir,
@@ -574,12 +615,46 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
 
-# TODO: Figure out why brain_gc is problematic here on PyQt5
-@pytest.mark.allow_unclosed
 @testing.requires_testing_data
-@pytest.mark.parametrize(
-    "sensor_colors, sensor_scales, expectation",
-    [
+def test_add_sensors_scales(renderer_interactive_pyvistaqt):
+    """Test sensor_scales parameter."""
+    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
+    hemi = "lh"
+    surf = "white"
+    cortex = "low_contrast"
+    title = "test"
+    size = (300, 300)
+
+    brain = Brain(
+        hemi=hemi,
+        surf=surf,
+        size=size,
+        title=title,
+        cortex=cortex,
+        units="m",
+        silhouette=dict(decimate=0.95),
+        **kwargs,
+    )
+
+    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
+    pos = (
+        np.array(
+            [
+                [25.85, 9.04, -5.38],
+                [33.56, 9.04, -5.63],
+                [40.44, 9.04, -5.06],
+                [46.75, 9.04, -6.78],
+                [-30.08, 9.04, 28.23],
+                [-32.95, 9.04, 37.99],
+            ]
+        )
+        / 1000
+    )
+    proj_info.set_montage(
+        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
+    )
+
+    for sensor_colors, sensor_scales, expectation in [
         (
             {"seeg": ["k"] * 5},
             {"seeg": [2] * 6},
@@ -630,57 +705,14 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             {"seeg": [2] * 6},
             nullcontext(),
         ),
-    ],
-)
-def test_add_sensors_scales(
-    renderer_interactive_pyvistaqt,
-    sensor_colors,
-    sensor_scales,
-    expectation,
-):
-    """Test sensor_scales parameter."""
-    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
-    hemi = "lh"
-    surf = "white"
-    cortex = "low_contrast"
-    title = "test"
-    size = (300, 300)
-
-    brain = Brain(
-        hemi=hemi,
-        surf=surf,
-        size=size,
-        title=title,
-        cortex=cortex,
-        units="m",
-        silhouette=dict(decimate=0.95),
-        **kwargs,
-    )
-
-    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
-    pos = (
-        np.array(
-            [
-                [25.85, 9.04, -5.38],
-                [33.56, 9.04, -5.63],
-                [40.44, 9.04, -5.06],
-                [46.75, 9.04, -6.78],
-                [-30.08, 9.04, 28.23],
-                [-32.95, 9.04, 37.99],
-            ]
-        )
-        / 1000
-    )
-    proj_info.set_montage(
-        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
-    )
-    with expectation:
-        brain.add_sensors(
-            proj_info,
-            trans=fname_trans,
-            sensor_colors=sensor_colors,
-            sensor_scales=sensor_scales,
-        )
+    ]:
+        with expectation:
+            brain.add_sensors(
+                proj_info,
+                trans=fname_trans,
+                sensor_colors=sensor_colors,
+                sensor_scales=sensor_scales,
+            )
     brain.close()
 
 
@@ -909,6 +941,13 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
         _create_testing_brain(
             hemi="lh", surf="white", src="volume", volume_options={"foo": "bar"}
         )
+    with pytest.raises(ValueError, match="Invalid value for"):
+        _create_testing_brain(
+            hemi="lh",
+            surf="white",
+            src="volume",
+            volume_options={"interpolation": "bar"},
+        )
     brain = _create_testing_brain(
         hemi="both",
         show_traces=False,
@@ -989,25 +1028,18 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "hemi",
+    "hemi, src",
     [
-        "lh",
-        pytest.param("rh", marks=pytest.mark.slowtest),
-        pytest.param("split", marks=pytest.mark.slowtest),
-        pytest.param("both", marks=pytest.mark.slowtest),
+        ("lh", "surface"),
+        pytest.param("rh", "surface", marks=pytest.mark.slowtest),
+        pytest.param("split", "surface", marks=pytest.mark.slowtest),
+        pytest.param("both", "surface", marks=pytest.mark.slowtest),
+        pytest.param("lh", "vector", marks=pytest.mark.slowtest),
+        pytest.param("rh", "volume", marks=pytest.mark.slowtest),
+        pytest.param("both", "mixed", marks=pytest.mark.slowtest),
     ],
 )
-@pytest.mark.parametrize(
-    "src",
-    [
-        "surface",
-        pytest.param("vector", marks=pytest.mark.slowtest),
-        pytest.param("volume", marks=pytest.mark.slowtest),
-        pytest.param("mixed", marks=pytest.mark.slowtest),
-    ],
-)
-@pytest.mark.slowtest
-def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain_gc):
+def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc):
     """Test brain traces."""
     hemi_str = list()
     if src in ("surface", "vector", "mixed"):
@@ -1021,7 +1053,8 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         surf="white",
         src=src,
         show_traces="label",
-        volume_options=None,  # for speed, don't upsample
+        # for speed, don't upsample
+        volume_options=dict(resolution=None, interpolation="nearest"),
         n_time=5,
         initial_time=0,
     )
@@ -1061,26 +1094,29 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         assert "extract_mode" not in brain.widgets
     brain.close()
 
-    # test colormap
-    if src != "vector":
-        brain = _create_testing_brain(
-            hemi=hemi,
-            surf="white",
-            src=src,
-            show_traces=0.5,
-            initial_time=0,
-            volume_options=None,  # for speed, don't upsample
-            n_time=1 if src == "mixed" else 5,
-            diverging=True,
-            add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
-        )
-        # mne_analyze should be chosen
-        ctab = brain._data["ctable"]
-        assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
-        assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
-        assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
-        brain.close()
 
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "hemi, src",
+    [
+        ("lh", "surface"),
+        pytest.param("rh", "surface", marks=pytest.mark.slowtest),
+        pytest.param("split", "surface", marks=pytest.mark.slowtest),
+        pytest.param("both", "surface", marks=pytest.mark.slowtest),
+        pytest.param("lh", "vector", marks=pytest.mark.slowtest),
+        pytest.param("rh", "volume", marks=pytest.mark.slowtest),
+        pytest.param("both", "mixed", marks=pytest.mark.slowtest),
+    ],
+)
+def test_brain_traces_vertex(
+    renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain_gc
+):
+    """Test brain traces vertex mode."""
+    hemi_str = list()
+    if src in ("surface", "vector", "mixed"):
+        hemi_str.extend([hemi] if hemi in ("lh", "rh") else ["lh", "rh"])
+    if src in ("mixed", "volume"):
+        hemi_str.extend(["vol"])
     # vertex traces
     brain = _create_testing_brain(
         hemi=hemi,
@@ -1135,7 +1171,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         if current_hemi == "vol":
             current_mesh = brain._data["vol"]["grid"]
             vertices = brain._data["vol"]["vertices"]
-            values = current_mesh.cell_data["values"][vertices]
+            values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain._layered_meshes[current_hemi]._polydata
@@ -1225,6 +1261,26 @@ something
         assert img.shape[0] > screenshot.shape[0]  # larger height
         assert_allclose(img.shape[1], screenshot_all.shape[1], atol=1)
         assert_allclose(img.shape[0], screenshot_all.shape[0], atol=1)
+
+
+def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc):
+    """Test colormap selection."""
+    brain = _create_testing_brain(
+        hemi="lh",
+        surf="white",
+        src="surface",
+        show_traces=0.5,
+        initial_time=0,
+        n_time=5,
+        diverging=True,
+        add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
+    )
+    # mne_analyze should be chosen
+    ctab = brain._data["ctable"]
+    assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
+    assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
+    assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
+    brain.close()
 
 
 # TODO: don't skip on Windows, see
@@ -1511,14 +1567,12 @@ def _create_testing_brain(
         colormap="auto",
         clim=clim,
         src=sample_src,
+        smoothing_steps=0,
         **kwargs,
     )
     return brain_data
 
 
-# TODO: allow_unclosed for macOS here as the conda build shows some
-# windows stay open afterward
-@pytest.mark.allow_unclosed
 def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     """Test mapping foci to the surface."""
     tiny_brain, _ = tiny(tmp_path)

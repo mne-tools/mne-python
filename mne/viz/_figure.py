@@ -77,6 +77,11 @@ class BrowserBase(ABC):
                 f"Expected an instance of Raw, Epochs, or ICA, got {type(inst)}."
             )
 
+        if len(inst.times) < 2:
+            raise ValueError(
+                "Data from at least two time points are required to open the browser."
+            )
+
         logger.debug(f"Opening {self.mne.instance_type} browser...")
 
         self.mne.ica_type = None

@@ -19,7 +19,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _eye_array, _reshape_view, _safe_svd
+from .fixes import _reshape_view, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -565,9 +565,9 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         s = f"{sum(len(v) for v in self.vertices)} vertices"
         if self.subject is not None:
             s += f", subject : {self.subject}"
-        s += ", tmin : %s (ms)" % (1e3 * self.tmin)
-        s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
-        s += ", tstep : %s (ms)" % (1e3 * self.tstep)
+        s += f", tmin : {1e3 * self.tmin} (ms)"
+        s += f", tmax : {1e3 * self.times[-1]} (ms)"
+        s += f", tstep : {1e3 * self.tstep} (ms)"
         s += f", data shape : {self.shape}"
         sz = sum(object_size(x) for x in (self.vertices + [self.data]))
         s += f", ~{sizeof_fmt(sz)}"
@@ -3188,7 +3188,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris)
-    edges = (edges + _eye_array(edges.shape[0])).tocoo()
+    edges = (edges + sparse.eye_array(edges.shape[0], format="csr")).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 
@@ -3672,7 +3672,7 @@ def _gen_extract_label_time_course(
     _check_option("mode", mode, _get_default_label_modes())
 
     if kind in ("surface", "mixed"):
-        if not isinstance(labels, list):
+        if not isinstance(labels, (list, tuple)):
             labels = [labels]
         use_sparse = False
     else:

@@ -40,27 +40,26 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260405.dev0"
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260517.dev0,!=9.6.20260601,!=9.6.20260618"
 python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
-	"git+https://github.com/pyvista/pyvista" \
-	"git+https://github.com/pyvista/pyvistaqt" \
+	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
+	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
 	"git+https://github.com/the-siesta-group/edfio" \
-	https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip \
-	git+https://github.com/mne-tools/mne-qt-browser \
+	"https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip" \
 	git+https://github.com/pyqtgraph/pyqtgraph \
-	git+https://github.com/mne-tools/mne-bids \
-	git+https://github.com/nipy/nibabel \
+	"mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
+	"mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
+	"nibabel @ https://github.com/nipy/nibabel/archive/refs/heads/master.zip" \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
-	git+https://github.com/python-quantities/python-quantities \
 	trame trame-vtk trame-vuetify trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader
 echo "::endgroup::"

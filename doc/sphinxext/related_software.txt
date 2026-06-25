@@ -3,12 +3,12 @@
 alphaCSC
 autoreject
 bycycle
-conpy
 curryreader
 dcm2niix
 eeg_positions
 emd
 fooof
+hedtools
 meegkit
 meggie
 mne-ari
@@ -21,6 +21,7 @@ mne-lsl
 mne-microstates
 mne-nirs
 mne-rsa
+mne-rt
 mnelab
 neurodsp
 neurokit2

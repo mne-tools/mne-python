@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
+    rev: v0.15.18
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -47,7 +47,8 @@ repos:
           - tomli
         files: ^doc/.*\.(rst|inc)$
         # Credit is problematic because we generate an include on the fly
-        exclude: ^doc/credit.rst$
+        # Sponsors is problematic because we preprocess that file's rST with Jinja2
+        exclude: ^doc/credits/(credit|sponsors).rst$
 
   # sorting
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -74,7 +75,7 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.24.1
+    rev: v1.26.1
     hooks:
       - id: zizmor
         args: [--fix]

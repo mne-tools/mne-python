@@ -35,7 +35,7 @@ rng = np.random.RandomState(0)
 
 @testing.requires_testing_data
 def test_check_subject_dir():
-    """Test checking for a Freesurfer recon-all subject directory."""
+    """Test checking for a FreeSurfer recon-all subject directory."""
     _check_subject_dir("sample", subjects_dir)
     with pytest.raises(ValueError, match="subject folder is incorrect"):
         _check_subject_dir("foo", data_path)
@@ -128,7 +128,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
 
 
 def test_read_lta(tmp_path):
-    """Test reading a Freesurfer linear transform array file."""
+    """Test reading a FreeSurfer linear transform array file."""
     with open(tmp_path / "test.lta", "w") as fid:
         fid.write(
             """type      = 0 # LINEAR_VOX_TO_VOX

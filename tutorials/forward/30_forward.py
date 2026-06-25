@@ -26,7 +26,7 @@ data_path = sample.data_path()
 sample_dir = data_path / "MEG" / "sample"
 raw_fname = sample_dir / "sample_audvis_raw.fif"
 
-# The paths to Freesurfer reconstructions
+# The paths to FreeSurfer reconstructions
 subjects_dir = data_path / "subjects"
 subject = "sample"
 

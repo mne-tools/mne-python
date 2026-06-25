@@ -469,7 +469,7 @@ def make_field_map(
         variable SUBJECT. If None, map for EEG data will not be available.
     subjects_dir : path-like
         The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
     ch_type : None | ``'eeg'`` | ``'meg'``
         If None, a map for each available channel type will be returned.
         Else only the specified type will be used.
