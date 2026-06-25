@@ -165,7 +165,9 @@ brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 # the scalars in-place — no new mesh, no new actor, no pipeline rebuild.
 
 # we create a new brain here for comparison purposes
-brain_update = mne.viz.Brain("sample", subjects_dir=subjects_dir, hemi="lh", **brain_kwargs)
+brain_update = mne.viz.Brain(
+    "sample", subjects_dir=subjects_dir, hemi="lh", **brain_kwargs
+)
 brain_update.add_data(
     data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5
 )
