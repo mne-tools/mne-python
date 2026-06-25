@@ -429,6 +429,7 @@ numpydoc_xref_ignore = {
     "_Renderer",
     "n_triangles",
     "CoregistrationUI",
+    "DipoleFitUI",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
