@@ -23,7 +23,7 @@ from ..utils import (
     _validate_type,
     fill_doc,
 )
-from ._3d_overlay import _LayeredMesh
+from ._3d_overlay import LayeredMesh
 from .ui_events import (
     ColormapRange,
     Contours,
@@ -286,13 +286,13 @@ class EvokedField:
         map_vmax = self._vmax.get(surf_map["kind"])
         if map_vmax is None:
             map_vmax = float(np.max(current_data))
-        mesh = _LayeredMesh(
+        mesh = LayeredMesh(
             renderer=self._renderer,
             vertices=surf["rr"],
             triangles=surf["tris"],
             normals=surf["nn"],
         )
-        mesh.map()
+        mesh._map()
         color = _to_rgb(color, alpha=True)
         cmap = np.array([(0, 0, 0, 0), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
