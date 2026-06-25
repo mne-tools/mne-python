@@ -145,10 +145,10 @@
 .. _Jacob Woessner: https://github.com/withmywoessner
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 .. _Jan Ebert: https://www.jan-ebert.com/
+.. _Jan Mathijs Schoffelen: https://github.com/schoffelen
 .. _Jan Sedivy: https://github.com/honzaseda
 .. _Jan Sosulski: https://jan-sosulski.de
 .. _Jan Zerfowski: https://github.com/jzerfowski
-.. _Jan-Mathijs Schoeffelen: https://github.com/schoffelen
 .. _Jasper van den Bosch: https://github.com/ilogue
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
 .. _Jean-Rémi King: https://github.com/kingjr

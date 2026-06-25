@@ -67,7 +67,7 @@ Advisory Board
 
 * `Alex Gramfort`_
 * `Bradley Voytek`_
-* `Jan-Mathijs Schoeffelen`_
+* `Jan Mathijs Schoffelen`_
 * `Liberty Hamilton`_
 * `Matti Hämäläinen`_
 * `Ole Jensen`_
