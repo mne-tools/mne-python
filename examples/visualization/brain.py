@@ -164,9 +164,15 @@ brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 # :meth:`~mne.viz.LayeredMesh.update_overlay` on the **same** brain to replace
 # the scalars in-place — no new mesh, no new actor, no pipeline rebuild.
 
+# we create a new brain here for comparison purposes
+brain_update = mne.viz.Brain("sample", subjects_dir=subjects_dir, hemi="lh", **brain_kwargs)
+brain_update.add_data(
+    data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5
+)
+brain_update.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 data_t1 = coords[:, 1]
 data_t1 = (data_t1 - data_t1.min()) / (data_t1.max() - data_t1.min())
-mesh = brain.layered_meshes["lh"]
+mesh = brain_update.layered_meshes["lh"]
 mesh.update_overlay(name="data", scalars=data_t1)
 mesh.update()
 
