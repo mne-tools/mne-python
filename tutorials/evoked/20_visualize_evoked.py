@@ -5,8 +5,7 @@
 Visualizing Evoked data
 =======================
 
-This tutorial shows the different visualization methods for
-:class:`~mne.Evoked` objects.
+This tutorial shows different visualization methods for :class:`~mne.Evoked` objects.
 
 As usual we'll start by importing the modules we need:
 """

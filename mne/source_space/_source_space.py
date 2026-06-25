@@ -2086,7 +2086,7 @@ def _make_volume_source_space(
     logger.info(
         f"Surface CM = ({1000 * cm[0]:6.1f} {1000 * cm[1]:6.1f} {1000 * cm[2]:6.1f}) mm"
     )
-    logger.info("Surface fits inside a sphere with radius %6.1f mm" % (1000 * maxdist))
+    logger.info(f"Surface fits inside a sphere with radius {1000 * maxdist:6.1f} mm")
     logger.info("Surface extent:")
     for c, mi, ma in zip("xyz", mins, maxs):
         logger.info(f"    {c} = {1000 * mi:6.1f} ... {1000 * ma:6.1f} mm")
