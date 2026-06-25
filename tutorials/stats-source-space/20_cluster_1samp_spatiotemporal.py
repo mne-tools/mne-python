@@ -29,6 +29,7 @@ from mne.datasets import sample
 from mne.epochs import equalize_epoch_counts
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.stats import spatio_temporal_cluster_1samp_test, summarize_clusters_stc
+from mne.viz import plot_stat_cluster
 
 # %%
 # Set parameters
@@ -142,19 +143,18 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 # Read the source space we are morphing to
 src = mne.read_source_spaces(src_fname)
 fsave_vertices = [s["vertno"] for s in src]
-morph_mat = mne.compute_source_morph(
+morph = mne.compute_source_morph(
     src=inverse_operator["src"],
     subject_to="fsaverage",
     spacing=fsave_vertices,
     subjects_dir=subjects_dir,
-).morph_mat
-
-n_vertices_fsave = morph_mat.shape[0]
+)
+n_vertices_fsave = morph.morph_mat.shape[0]
 
 # We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 2)
 print("Morphing data.")
-X = morph_mat.dot(X)  # morph_mat is a sparse matrix
+X = morph.morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 
 # %%
@@ -264,3 +264,27 @@ brain = stc_all_cluster_vis.plot(
 
 # We could save this via the following:
 # brain.save_image('clusters.png')
+
+# %%
+# Alternatively, you may wish to observe the spatial and temporal extent of
+# single clusters. The code below demonstrates how to plot the cluster
+# boundary on top of an existing source estimate.
+
+difference = morph.apply(condition1 - condition2)
+difference_plot = difference.plot(
+    hemi="both",
+    views="lateral",
+    subjects_dir=subjects_dir,
+    size=(800, 800),
+    initial_time=0.1,
+)
+
+# Plot one cluster at the time of maximal spatial extent of that cluster
+plot_stat_cluster(
+    good_clusters[2], src, difference_plot, time="max-extent", color="magenta", width=1
+)
+
+# Plotting the cluster in interactive mode allows scrolling through time
+plot_stat_cluster(
+    good_clusters[2], src, difference_plot, time="interactive", color="magenta", width=1
+)
