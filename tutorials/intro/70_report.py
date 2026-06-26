@@ -25,6 +25,7 @@ we will start by importing the modules and data we need:
 
 # %%
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -37,6 +38,13 @@ import mne
 data_path = Path(mne.datasets.sample.data_path(verbose=False))
 sample_dir = data_path / "MEG" / "sample"
 subjects_dir = data_path / "subjects"
+
+# In JupyterLite, file writing is not supported — skip report.save() calls.
+# The report content still renders inline in Jupyter via add_* methods.
+if sys.platform == "emscripten":
+    def _noop_save(self, fname=None, open_browser=False, overwrite=False, verbose=None):
+        pass
+    mne.Report.save = _noop_save
 
 # %%
 # The basic process for creating an HTML report is to instantiate the
@@ -81,12 +89,14 @@ report.save("report_raw.html", overwrite=True)
 # supply the sampling frequency used during the recording; this information is
 # used to generate a meaningful time axis.
 
-events_path = sample_dir / "sample_audvis_filt-0-40_raw-eve.fif"
 events = mne.find_events(raw=raw)
 sfreq = raw.info["sfreq"]
 
 report = mne.Report(title="Events example")
-report.add_events(events=events_path, title="Events from Path", sfreq=sfreq)
+# sample_audvis_filt-0-40_raw-eve.fif is not bundled in JupyterLite
+if sys.platform != "emscripten":
+    events_path = sample_dir / "sample_audvis_filt-0-40_raw-eve.fif"
+    report.add_events(events=events_path, title="Events from Path", sfreq=sfreq)
 report.add_events(events=events, title='Events from "events"', sfreq=sfreq)
 report.save("report_events.html", overwrite=True)
 
@@ -108,9 +118,13 @@ event_id = {
     "buttonpress": 32,
 }
 
-metadata, _, _ = mne.epochs.make_metadata(
-    events=events, event_id=event_id, tmin=-0.2, tmax=0.5, sfreq=raw.info["sfreq"]
-)
+# make_metadata requires pandas; skip metadata in JupyterLite
+if sys.platform != "emscripten":
+    metadata, _, _ = mne.epochs.make_metadata(
+        events=events, event_id=event_id, tmin=-0.2, tmax=0.5, sfreq=raw.info["sfreq"]
+    )
+else:
+    metadata = None
 epochs = mne.Epochs(raw=raw, events=events, event_id=event_id, metadata=metadata)
 
 report = mne.Report(title="Epochs example")
@@ -179,29 +193,30 @@ report.save("report_cov.html", overwrite=True)
 # is read from the `~mne.Info`, but projectors potentially included will be
 # ignored; instead, only the explicitly passed projectors will be plotted.
 
-ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
 
-# Now a joint plot
-events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
-raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
-ecg_evoked = mne.Epochs(
-    raw=raw_full,
-    events=events,
-    tmin=-0.5,
-    tmax=0.5,
-    baseline=(None, None),
-).average()
-report.img_max_width = None  # do not constrain image width
-report.add_projs(
-    info=ecg_evoked,
-    projs=ecg_proj_path,
-    title="ECG projs from path",
-    joint=True,  # use joint version of the plot
-)
+# The ECG projectors and events files are not bundled in JupyterLite
+if sys.platform != "emscripten":
+    ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
+    events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
+    raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+    ecg_evoked = mne.Epochs(
+        raw=raw_full,
+        events=events,
+        tmin=-0.5,
+        tmax=0.5,
+        baseline=(None, None),
+    ).average()
+    report.img_max_width = None  # do not constrain image width
+    report.add_projs(
+        info=ecg_evoked,
+        projs=ecg_proj_path,
+        title="ECG projs from path",
+        joint=True,  # use joint version of the plot
+    )
+    del raw_full, events, ecg_evoked
 report.save("report_projs.html", overwrite=True)
-del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`
@@ -282,15 +297,16 @@ report.save("report_ica.html", overwrite=True)
 # every n-th volume slice, and ``width`` to specify the width of the resulting
 # figures in pixels.
 
-report = mne.Report(title="BEM example")
-report.add_bem(
-    subject="sample",
-    subjects_dir=subjects_dir,
-    title="MRI & BEM",
-    decim=40,
-    width=256,
-)
-report.save("report_mri_and_bem.html", overwrite=True)
+if sys.platform != "emscripten":
+    report = mne.Report(title="BEM example")
+    report.add_bem(
+        subject="sample",
+        subjects_dir=subjects_dir,
+        title="MRI & BEM",
+        decim=40,
+        width=256,
+    )
+    report.save("report_mri_and_bem.html", overwrite=True)
 
 # %%
 # Adding coregistration
@@ -303,18 +319,19 @@ report.save("report_mri_and_bem.html", overwrite=True)
 # subjects directory, and a title. The ``alpha`` parameter can be used to
 # control the transparency of the head, where a value of 1 means fully opaque.
 
-trans_path = sample_dir / "sample_audvis_raw-trans.fif"
+if sys.platform != "emscripten":
+    trans_path = sample_dir / "sample_audvis_raw-trans.fif"
 
-report = mne.Report(title="Coregistration example")
-report.add_trans(
-    trans=trans_path,
-    info=raw_path,
-    subject="sample",
-    subjects_dir=subjects_dir,
-    alpha=1.0,
-    title="Coregistration",
-)
-report.save("report_coregistration.html", overwrite=True)
+    report = mne.Report(title="Coregistration example")
+    report.add_trans(
+        trans=trans_path,
+        info=raw_path,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        alpha=1.0,
+        title="Coregistration",
+    )
+    report.save("report_coregistration.html", overwrite=True)
 
 # %%
 # Adding a `~mne.Forward` solution
@@ -324,13 +341,14 @@ report.save("report_coregistration.html", overwrite=True)
 # object or the path to a forward solution stored on disk to
 # :meth:`mne.Report.add_forward`.
 
-fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
+if sys.platform != "emscripten":
+    fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
 
-report = mne.Report(title="Forward solution example")
-report.add_forward(
-    forward=fwd_path, title="Forward solution", plot=True, subjects_dir=subjects_dir
-)
-report.save("report_forward_sol.html", overwrite=True)
+    report = mne.Report(title="Forward solution example")
+    report.add_forward(
+        forward=fwd_path, title="Forward solution", plot=True, subjects_dir=subjects_dir
+    )
+    report.save("report_forward_sol.html", overwrite=True)
 
 # %%
 # Adding an `~mne.minimum_norm.InverseOperator`
@@ -340,16 +358,17 @@ report.save("report_forward_sol.html", overwrite=True)
 # The method expects an `~mne.minimum_norm.InverseOperator` object or a path to
 # one stored on disk, and a title.
 
-inverse_op_path = sample_dir / "sample_audvis-meg-oct-6-meg-inv.fif"
+if sys.platform != "emscripten":
+    inverse_op_path = sample_dir / "sample_audvis-meg-oct-6-meg-inv.fif"
 
-report = mne.Report(title="Inverse operator example")
-report.add_inverse_operator(
-    inverse_operator=inverse_op_path,
-    title="Inverse operator",
-    plot=True,
-    subjects_dir=subjects_dir,
-)
-report.save("report_inverse_op.html", overwrite=True)
+    report = mne.Report(title="Inverse operator example")
+    report.add_inverse_operator(
+        inverse_operator=inverse_op_path,
+        title="Inverse operator",
+        plot=True,
+        subjects_dir=subjects_dir,
+    )
+    report.save("report_inverse_op.html", overwrite=True)
 
 # %%
 # Adding a `~mne.SourceEstimate`
@@ -362,17 +381,18 @@ report.save("report_inverse_op.html", overwrite=True)
 # snapshots at 51 equally-spaced time points (or fewer, if the data contains
 # fewer time points). We can adjust this via the ``n_time_points`` parameter.
 
-stc_path = sample_dir / "sample_audvis-meg"
+if sys.platform != "emscripten":
+    stc_path = sample_dir / "sample_audvis-meg"
 
-report = mne.Report(title="Source estimate example")
-report.add_stc(
-    stc=stc_path,
-    subject="sample",
-    subjects_dir=subjects_dir,
-    title="Source estimate",
-    n_time_points=2,  # few for speed
-)
-report.save("report_inverse_sol.html", overwrite=True)
+    report = mne.Report(title="Source estimate example")
+    report.add_stc(
+        stc=stc_path,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        title="Source estimate",
+        n_time_points=2,  # few for speed
+    )
+    report.save("report_inverse_sol.html", overwrite=True)
 
 # %%
 # Adding source code (e.g., a Python script)
@@ -532,26 +552,29 @@ report.save("report_tags.html", overwrite=True)
 # to edit a report once it's no longer in-memory in an active Python session,
 # save it as an HDF5 file instead of HTML:
 
-report = mne.Report(title="Saved report example", verbose=True)
-report.add_image(image=mne_logo_path, title="MNE 1")
-report.save("report_partial.hdf5", overwrite=True)
+if sys.platform != "emscripten":
+    report = mne.Report(title="Saved report example", verbose=True)
+    report.add_image(image=mne_logo_path, title="MNE 1")
+    report.save("report_partial.hdf5", overwrite=True)
 
 # %%
 # The saved report can be read back and modified or amended. This allows the
 # possibility to e.g. run multiple scripts in a processing pipeline, where each
 # script adds new content to an existing report.
 
-report_from_disk = mne.open_report("report_partial.hdf5")
-report_from_disk.add_image(image=mne_logo_path, title="MNE 2")
-report_from_disk.save("report_partial.hdf5", overwrite=True)
+if sys.platform != "emscripten":
+    report_from_disk = mne.open_report("report_partial.hdf5")
+    report_from_disk.add_image(image=mne_logo_path, title="MNE 2")
+    report_from_disk.save("report_partial.hdf5", overwrite=True)
 
 # %%
 # To make this even easier, :class:`mne.Report` can be used as a
 # context manager (note the ``with`` statement)`):
 
-with mne.open_report("report_partial.hdf5") as report:
-    report.add_image(image=mne_logo_path, title="MNE 3")
-    report.save("report_final.html", overwrite=True)
+if sys.platform != "emscripten":
+    with mne.open_report("report_partial.hdf5") as report:
+        report.add_image(image=mne_logo_path, title="MNE 3")
+        report.save("report_final.html", overwrite=True)
 
 # %%
 # With the context manager, the updated report is also automatically saved
@@ -637,11 +660,12 @@ report.save("report_parse_folder_raw_psd_projs.html", overwrite=True)
 # expensive, we'll also pass the ``mri_decim`` parameter for the benefit of our
 # documentation servers, and skip processing the :file:`.fif` files.
 
-report = mne.Report(
-    title="parse_folder example 3", subject="sample", subjects_dir=subjects_dir
-)
-report.parse_folder(data_path=data_path, pattern="", mri_decim=40)
-report.save("report_parse_folder_mri_bem.html", overwrite=True)
+if sys.platform != "emscripten":
+    report = mne.Report(
+        title="parse_folder example 3", subject="sample", subjects_dir=subjects_dir
+    )
+    report.parse_folder(data_path=data_path, pattern="", mri_decim=40)
+    report.save("report_parse_folder_mri_bem.html", overwrite=True)
 
 # %%
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked`
