@@ -42,8 +42,10 @@ subjects_dir = data_path / "subjects"
 # In JupyterLite, file writing is not supported — skip report.save() calls.
 # The report content still renders inline in Jupyter via add_* methods.
 if sys.platform == "emscripten":
+
     def _noop_save(self, fname=None, open_browser=False, overwrite=False, verbose=None):
         pass
+
     mne.Report.save = _noop_save
 
 # %%
@@ -200,7 +202,9 @@ report.add_projs(info=raw_path, title="Projs from info")
 if sys.platform != "emscripten":
     ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
     events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
-    raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+    raw_full = (
+        mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+    )
     ecg_evoked = mne.Epochs(
         raw=raw_full,
         events=events,
