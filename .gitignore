@@ -74,6 +74,7 @@ tags
 /doc/fil-result
 /doc/optipng.exe
 /doc/sphinxext/.joblib
+/doc/code_credit.inc
 sg_execution_times.rst
 sg_api_usage.rst
 sg_api_unused.dot
@@ -102,3 +103,5 @@ venv/
 .hypothesis/
 .ruff_cache/
 .ipynb_checkpoints/
+jupyterlite_contents/auto_tutorials
+jupyterlite_contents/mne_data
