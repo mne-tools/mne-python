@@ -2952,8 +2952,8 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
-    if mode == 'glass_brain':
-            plot_kwargs['plot_abs']=False
+    if mode == "glass_brain":
+        plot_kwargs["plot_abs"] = False
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
@@ -2990,7 +2990,6 @@ def plot_volume_source_estimates(
     initial_time=None,
     initial_pos=None,
     verbose=None,
-
 ):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
