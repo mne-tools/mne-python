@@ -74,6 +74,7 @@
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
+.. _Deep Kaur: https://github.com/Dpereaptkhamur-13
 .. _Demetres Kostas: https://github.com/kostasde
 .. _Denis Engemann: https://denis-engemann.de
 .. _Dev Parikh: https://github.com/devparikh0506
@@ -103,6 +104,7 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 .. _Famous077: https://github.com/Famous077
+.. _Farzah11: https://github.com/Farzah11
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
