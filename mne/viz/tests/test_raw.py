@@ -589,6 +589,30 @@ def test_plot_raw_keypresses(raw, browser_backend):
         fig._fake_keypress(key)
 
 
+def test_plot_raw_scroll(raw, browser_backend):
+    """Test scroll wheel channel navigation in raw.plot()."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    # use n_channels < total so there is room to scroll
+    fig = raw.plot(n_channels=3)
+    assert len(fig.mne.ch_order) > fig.mne.n_channels  # sanity check
+    # scroll down moves ch_start forward by 1
+    ch_start_before = fig.mne.ch_start
+    fig._fake_scroll(0.5, 0.5, -1)
+    assert fig.mne.ch_start == ch_start_before + 1
+    # scroll up moves ch_start back by 1
+    fig._fake_scroll(0.5, 0.5, 1)
+    assert fig.mne.ch_start == ch_start_before
+    # scroll up at the top is a no-op (already at 0)
+    assert fig.mne.ch_start == 0
+    fig._fake_scroll(0.5, 0.5, 1)
+    assert fig.mne.ch_start == 0
+    # scroll is a no-op in butterfly mode
+    fig._fake_keypress("b")
+    fig._fake_scroll(0.5, 0.5, -1)
+    assert fig.mne.ch_start == 0
+
+
 def test_plot_raw_traces(raw, events, browser_backend):
     """Test plotting of raw data."""
     ismpl = browser_backend.name == "matplotlib"

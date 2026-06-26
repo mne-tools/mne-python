@@ -220,6 +220,10 @@ class MNEFigure(Figure):
         """Handle buttonpress events."""
         pass
 
+    def _scroll(self, event):
+        """Handle scroll wheel events."""
+        pass
+
     def _pick(self, event):
         """Handle matplotlib pick events."""
         pass
@@ -241,6 +245,7 @@ class MNEFigure(Figure):
             resize_event=self._resize,
             key_press_event=self._keypress,
             button_press_event=self._buttonpress,
+            scroll_event=self._scroll,
             close_event=self._close,
             pick_event=self._pick,
         )
@@ -958,6 +963,17 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
+    def _scroll(self, event):
+        """Handle scroll wheel events for channel navigation."""
+        if self.mne.butterfly or self.mne.fig_selection is not None:
+            return
+        direction = -1 if event.button == "up" else 1
+        ceiling = len(self.mne.ch_order) - self.mne.n_channels
+        self.mne.ch_start = np.clip(self.mne.ch_start + direction, 0, ceiling)
+        self._update_picks()
+        self._update_vscroll()
+        self._redraw()
+
     def _pick(self, event):
         """Handle matplotlib pick events."""
         from matplotlib.text import Text
@@ -1111,6 +1127,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ("?", "Open this help window"),
                 ("esc", "Close focused figure or dialog window"),
                 ("_MOUSE INTERACTION", " "),
+                ("Scroll wheel", "Scroll channels up/down"),
                 (f"Left-click {ch_cmp} name", lclick_name),
                 (f"Left-click {ch_cmp} data", lclick_data),
                 ("Left-click-and-drag on plot", ldrag),
