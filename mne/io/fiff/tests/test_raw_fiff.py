@@ -2140,7 +2140,7 @@ def test_bad_acq(fname):
 
 @testing.requires_testing_data
 @pytest.mark.skipif(
-    platform.system() not in ("Linux", "Darwin"), reason="Needs proper symlinking"
+    platform.system() not in ("Linux", "Darwin"), reason="Bad symlinking on Windows"
 )
 def test_split_symlink(tmp_path):
     """Test split files with symlinks."""

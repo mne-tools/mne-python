@@ -21,6 +21,7 @@ from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
 from pyvistaqt import BackgroundPlotter
 
 from ...fixes import _compare_version
+from ...surface import _vtk_smooth
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
 from ...utils import (
     _check_option,
@@ -45,7 +46,7 @@ from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
-from vtkmodules.vtkFiltersCore import vtkCellDataToPointData, vtkGlyph3D
+from vtkmodules.vtkFiltersCore import vtkGlyph3D
 from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
@@ -263,6 +264,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._hide_axes()
         self._toggle_antialias()
         self._enable_depth_peeling()
+        self._picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -907,7 +909,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.RenderEvent, on_mouse_move)
         add_obs(vtkCommand.LeftButtonPressEvent, on_button_press)
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
-        self._picker = vtkCellPicker()
         self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self._picker.SetVolumeOpacityIsovalue(0.0)
 
@@ -938,8 +939,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         prop = volume.GetProperty()
         prop.SetColor(color_tf)
         prop.SetScalarOpacity(opacity_tf)
-        prop.ShadeOn()
-        prop.SetInterpolationTypeToLinear()
         if scalar_bar is not None:
             lut = vtkLookupTable()
             lut.SetRange(*rng)
@@ -969,68 +968,82 @@ class _PyVistaRenderer(_AbstractRenderer):
         resolution,
         blending,
         center,
+        interpolation="linear",
     ):
+        # Note: this method is used by mne-gui-addons, so we should be mindful of
+        # backwards compatibility when changing it.
+
         # Now we can actually construct the visualization
-        try:
-            grid = pyvista.ImageData()
-        except AttributeError:  # PV < 0.40
-            grid = pyvista.UniformGrid()
-        grid.dimensions = dimensions + 1  # inject data on the cells
-        grid.origin = origin
-        grid.spacing = spacing
-        grid.cell_data["values"] = scalars
+        grid = pyvista.ImageData(
+            dimensions=dimensions,
+            spacing=spacing,
+            origin=origin,
+        )
+        del origin, spacing, dimensions
+        grid.point_data["values"] = scalars
+        assert interpolation in ("nearest", "linear"), interpolation
 
         # Add contour of enclosed volume (use GetOutput instead of
         # GetOutputPort below to avoid updating)
-        if surface_alpha > 0 or resolution is not None:
-            grid_alg = vtkCellDataToPointData()
-            grid_alg.SetInputDataObject(grid)
-            grid_alg.SetPassCellData(False)
-            grid_alg.Update()
-        else:
-            grid_alg = None
 
         if surface_alpha > 0:
             grid_surface = vtkMarchingContourFilter()
             grid_surface.ComputeNormalsOn()
             grid_surface.ComputeScalarsOff()
-            grid_surface.SetInputData(grid_alg.GetOutput())
+            grid_surface.SetInputData(grid)
             grid_surface.SetValue(0, 0.1)
             grid_surface.Update()
+            grid_smooth = _vtk_smooth(grid_surface.GetOutput(), 0.75, verbose=False)
             grid_mesh = vtkPolyDataMapper()
-            grid_mesh.SetInputData(grid_surface.GetOutput())
+            grid_mesh.SetInputData(grid_smooth)
         else:
             grid_mesh = None
 
         mapper = vtkSmartVolumeMapper()
+        interp_map_meth = "SetInterpolationModeTo"
+        interp_map_meth += dict(nearest="NearestNeighbor", linear="Linear")[
+            interpolation
+        ]
+        interp_prop_meth = "SetInterpolationTypeTo"
+        interp_prop_meth += dict(nearest="Nearest", linear="Linear")[interpolation]
+        del interpolation
         if resolution is None:  # native
-            mapper.SetScalarModeToUseCellData()
+            mapper.SetScalarModeToUsePointData()
             mapper.SetInputDataObject(grid)
         else:
             upsampler = vtkImageReslice()
-            upsampler.SetInterpolationModeToLinear()  # default anyway
+            getattr(upsampler, interp_map_meth)()
+            upsampler.SetOutputOrigin(grid.origin)
             upsampler.SetOutputSpacing(*([resolution] * 3))
-            upsampler.SetInputConnection(grid_alg.GetOutputPort())
+            upsampler.SetInputDataObject(grid)
             mapper.SetInputConnection(upsampler.GetOutputPort())
+        getattr(mapper, interp_map_meth)()
         # Additive, AverageIntensity, and Composite might also be reasonable
-        remap = dict(composite="Composite", mip="MaximumIntensity")
-        getattr(mapper, f"SetBlendModeTo{remap[blending]}")()
+        blend_meth = "SetBlendModeTo"
+        blend_meth += dict(composite="Composite", mip="MaximumIntensity")[blending]
+        getattr(mapper, blend_meth)()
         volume_pos = vtkVolume()
         volume_pos.SetMapper(mapper)
-        dist = grid.length / (np.mean(grid.dimensions) - 1)
-        volume_pos.GetProperty().SetScalarOpacityUnitDistance(dist)
+        dist = grid.length / np.mean(grid.dimensions)
+        volume_pos_prop = volume_pos.GetProperty()
+        volume_pos_prop.SetScalarOpacityUnitDistance(dist)
+        volume_pos_prop.ShadeOn()
+        getattr(volume_pos_prop, interp_prop_meth)()
         if center is not None and blending == "mip":
             # We need to create a minimum intensity projection for the neg half
             mapper_neg = vtkSmartVolumeMapper()
             if resolution is None:  # native
-                mapper_neg.SetScalarModeToUseCellData()
+                mapper_neg.SetScalarModeToUsePointData()
                 mapper_neg.SetInputDataObject(grid)
             else:
                 mapper_neg.SetInputConnection(upsampler.GetOutputPort())
             mapper_neg.SetBlendModeToMinimumIntensity()
             volume_neg = vtkVolume()
             volume_neg.SetMapper(mapper_neg)
-            volume_neg.GetProperty().SetScalarOpacityUnitDistance(dist)
+            volume_neg_prop = volume_neg.GetProperty()
+            volume_neg_prop.SetScalarOpacityUnitDistance(dist)
+            volume_neg_prop.ShadeOn()
+            getattr(volume_neg_prop, interp_prop_meth)()
         else:
             volume_neg = None
         return grid, grid_mesh, volume_pos, volume_neg
@@ -1071,7 +1084,7 @@ def _compute_normals(mesh):
         )
 
 
-def _add_mesh(plotter, *args, **kwargs):
+def _add_mesh(plotter, **kwargs):
     """Patch PyVista add_mesh."""
     mesh = kwargs.get("mesh")
     if "smooth_shading" in kwargs:
@@ -1084,7 +1097,7 @@ def _add_mesh(plotter, *args, **kwargs):
         kwargs["render"] = False
     if "reset_camera" not in kwargs:
         kwargs["reset_camera"] = False
-    actor = plotter.add_mesh(*args, **kwargs)
+    actor = plotter.add_mesh(**kwargs)
     if smooth_shading and "Normals" in mesh.point_data:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()

@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -56,7 +56,6 @@ jobs:
       run:
         shell: bash -el {0}
     env:
-      PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -88,8 +87,11 @@ jobs:
           - os: ubuntu-22.04
             python: '3.10'
             kind: old
+          - os: ubuntu-latest
+            python: '3.14t'  # free-threaded
+            kind: pip-ft
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -131,12 +133,12 @@ jobs:
           environment-name: mne
           log-level: 'info'
           create-args: >-
-            python=${{ env.PYTHON_VERSION }}
+            python=${{ matrix.python }}
             -v
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v8.1.0
+      - uses: astral-sh/setup-uv@v8.2.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -150,8 +152,13 @@ jobs:
       - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
+      - uses: actions/cache@v5
+        with:
+          key: minimal-commands-1
+          path: ~/minimal_cmds
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/get_minimal_commands.sh
-        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
       # Check Qt
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
@@ -166,7 +173,7 @@ jobs:
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v6.0.1
+      - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()

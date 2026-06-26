@@ -37,9 +37,9 @@ from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
-from mne.utils import check_version
+from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
-from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
+from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
 
@@ -120,14 +120,14 @@ class TstVTKPicker:
 
 def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
-    mesh = _LayeredMesh(
+    mesh = LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
     )
     assert not mesh._is_mapped
-    mesh.map()
+    mesh._map()
     assert mesh._is_mapped
     assert mesh._current_colors is None
     assert mesh._cached_colors is None
@@ -391,6 +391,12 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                 vertices=hemi_vertices,
             )
     assert len(brain._actors["data"]) == 4
+    # exercise the public LayeredMesh API via Brain.layered_meshes
+    assert "lh" in brain.layered_meshes
+    lm = brain.layered_meshes["lh"]
+    assert isinstance(lm, LayeredMesh)
+    lm.update_overlay(name="data", rng=[fmin, fmax])
+    lm.update()
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
@@ -404,7 +410,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.0, color="green")
     assert isinstance(brain.labels[label.hemi], list)
-    overlays = brain._layered_meshes[label.hemi]._overlays
+    overlays = brain.layered_meshes[label.hemi]._overlays
     assert "unnamed0" in overlays
     assert np.allclose(
         overlays["unnamed0"]._colormap[0], [0, 0, 0, 0]
@@ -540,7 +546,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
     brain.close()
 
-    # add annotation
+
+def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
+    """Test add_annotation."""
     annots = [
         "aparc",
         subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
@@ -548,6 +556,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, "r"]
+    size = (100, 100)
     brain = Brain(
         subject="fsaverage",
         hemi="both",
@@ -555,13 +564,54 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         surf="inflated",
         subjects_dir=subjects_dir,
     )
-    with pytest.raises(ValueError, match="does not exist"):
+    with pytest.raises(FileNotFoundError, match="does not exist"):
         brain.add_annotation("foo")
-    brain.add_annotation(annots[1])
+    brain.add_annotation(annots[1], hover=True)
+
+    # mock some events
+    class MockIrenAndPicker:
+        def __init__(self):
+            self._cell_id = 0
+
+        def GetEventPosition(self):
+            return 50, 50  # middle of display
+
+        def FindPokedRenderer(self, x, y):
+            return brain.plotter.renderers[0]
+
+        def Pick(self, x, y, z, renderer):
+            pass
+
+        def GetMapper(self):
+            return brain.plotter.mapper
+
+        def GetCellId(self):
+            return self._cell_id
+
+        def GetPickPosition(self):
+            return np.zeros(3)
+
+    mocked = MockIrenAndPicker()
+    brain._renderer._picker = mocked
+
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "Hovering label LOBE.FRONTAL" in log
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "Same label hovered" in log
+    mocked._cell_id = -1
+    with catch_logging(verbose="debug") as log:
+        brain._on_annotation_hover(mocked, "MouseMoveEvent")
+    log = log.getvalue()
+    assert "No mesh picked, hiding" in log
     brain.close()
+
     brain = Brain(
         subject="fsaverage",
-        hemi=hemi,
+        hemi="lh",
         size=size,
         surf="inflated",
         subjects_dir=subjects_dir,
@@ -878,12 +928,12 @@ def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
 def _assert_brain_range(brain, rng):
     __tracebackhide__ = True
     assert brain._cmap_range == rng, "brain._cmap_range == rng"
-    for hemi, layerer in brain._layered_meshes.items():
+    for hemi, layerer in brain.layered_meshes.items():
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
             assert mesh._rng == rng, (
-                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+                f"layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
             )
 
 
@@ -896,6 +946,13 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     with pytest.raises(ValueError, match="got unknown keys"):
         _create_testing_brain(
             hemi="lh", surf="white", src="volume", volume_options={"foo": "bar"}
+        )
+    with pytest.raises(ValueError, match="Invalid value for"):
+        _create_testing_brain(
+            hemi="lh",
+            surf="white",
+            src="volume",
+            volume_options={"interpolation": "bar"},
         )
     brain = _create_testing_brain(
         hemi="both",
@@ -1002,7 +1059,8 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         surf="white",
         src=src,
         show_traces="label",
-        volume_options=None,  # for speed, don't upsample
+        # for speed, don't upsample
+        volume_options=dict(resolution=None, interpolation="nearest"),
         n_time=5,
         initial_time=0,
     )
@@ -1018,7 +1076,7 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         for idx, current_hemi in enumerate(hemi_str):
             if current_hemi == "vol":
                 continue
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
             assert len(brain._picked_patches[current_hemi]) == 0
@@ -1119,10 +1177,10 @@ def test_brain_traces_vertex(
         if current_hemi == "vol":
             current_mesh = brain._data["vol"]["grid"]
             vertices = brain._data["vol"]["vertices"]
-            values = current_mesh.cell_data["values"][vertices]
+            values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None

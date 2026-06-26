@@ -70,14 +70,14 @@ brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 #
 # It can be useful to highlight a region of the brain for analyses.
 # To highlight a region on the brain you can use the ``add_label`` method.
-# Labels are stored in the Freesurfer label directory from the ``recon-all``
+# Labels are stored in the FreeSurfer label directory from the ``recon-all``
 # for that subject. Labels can also be made following the
-# `Freesurfer instructions
+# `FreeSurfer instructions
 # <https://surfer.nmr.mgh.harvard.edu/fswiki/mri_vol2label>`_
 # Here we will show Brodmann Area 44.
 #
 # .. note:: The MNE sample dataset contains only a subselection of the
-#           Freesurfer labels created during the ``recon-all``.
+#           FreeSurfer labels created during the ``recon-all``.
 
 brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, **brain_kwargs)
 brain.add_label("BA44", hemi="lh", color="green", borders=True)
@@ -135,6 +135,48 @@ norm = Normalize(vmin=0, vmax=dip.gof.max())
 fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax)
 fig.suptitle("Dipole Fits Scaled by Amplitude and Colored by GOF")
 
+
+# %%
+# Update overlays via ``Brain.layered_meshes``
+# --------------------------------------------
+#
+# After :meth:`~mne.viz.Brain.add_data` is called, each hemisphere's surface
+# is backed by a :class:`~mne.viz.LayeredMesh` stored in
+# ``brain.layered_meshes``.  Calling
+# :meth:`~mne.viz.LayeredMesh.update_overlay` pushes new scalar data without
+# rebuilding the full rendering pipeline — the key operation for packages that
+# stream source-space data onto the brain in real time, such as
+# `MNE-RT <https://payamsash.github.io/mne-rt/>`_.
+#
+# Here we add an initial bottom-to-top gradient as the first data frame.
+
+brain = mne.viz.Brain("sample", subjects_dir=subjects_dir, hemi="lh", **brain_kwargs)
+coords = brain.geo["lh"].coords
+data_t0 = coords[:, 2]
+data_t0 = (data_t0 - data_t0.min()) / (data_t0.max() - data_t0.min())
+brain.add_data(
+    data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5
+)
+brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
+
+# %%
+# Simulate a new data frame arriving: call
+# :meth:`~mne.viz.LayeredMesh.update_overlay` on the **same** brain to replace
+# the scalars in-place — no new mesh, no new actor, no pipeline rebuild.
+
+# we create a new brain here for comparison purposes
+brain_update = mne.viz.Brain(
+    "sample", subjects_dir=subjects_dir, hemi="lh", **brain_kwargs
+)
+brain_update.add_data(
+    data_t0, hemi="lh", fmin=0, fmax=1, colormap="viridis", smoothing_steps=5
+)
+brain_update.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
+data_t1 = coords[:, 1]
+data_t1 = (data_t1 - data_t1.min()) / (data_t1.max() - data_t1.min())
+mesh = brain_update.layered_meshes["lh"]
+mesh.update_overlay(name="data", scalars=data_t1)
+mesh.update()
 
 # %%
 # Use per-vertex opacity for distributed data

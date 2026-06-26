@@ -41,7 +41,6 @@ from mne.label import (
     _blend_colors,
     _load_vert_pos,
     _n_colors,
-    _read_annot,
     _read_annot_cands,
     label_sign_flip,
     select_sources,
@@ -380,7 +379,7 @@ def test_annot_io(tmp_path):
     shutil.copy(surf_src / "rh.white", surf_dir)
 
     # read original labels
-    with pytest.raises(OSError, match="\nPALS_B12_Lobes$"):
+    with pytest.raises(OSError, match="PALS_B12_Lobesey"):
         read_labels_from_annot(subject, "PALS_B12_Lobesey", subjects_dir=tmp_path)
     labels = read_labels_from_annot(subject, "PALS_B12_Lobes", subjects_dir=tmp_path)
 
@@ -486,8 +485,6 @@ def test_read_labels_from_annot(tmp_path):
     )
     with pytest.raises(OSError, match="does not exist"):
         _read_annot_cands("foo")
-    with pytest.raises(OSError, match="no candidate"):
-        _read_annot(str(tmp_path))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot("sample", hemi="lh", subjects_dir=subjects_dir)

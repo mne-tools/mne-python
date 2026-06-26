@@ -5,7 +5,7 @@ export MNE_TQDM=off
 echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
 echo "export MNE_DOC_BUILD_N_JOBS=1" >> $BASH_ENV
 
-if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]] || [[ "$CIRCLE_BRANCH" == "maint/"* ]]; then
+if { [[ "$CIRCLE_BRANCH" == "main" ]] || [[ $(cat gitlog.txt) == *"[circle full]"* ]] || [[ "$CIRCLE_BRANCH" == "maint/"* ]] ; } && [[ "$CIRCLE_PROJECT_USERNAME" == "mne-tools" ]]; then
     echo "Doing a full build";
     echo html-memory > build.txt;
     echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV

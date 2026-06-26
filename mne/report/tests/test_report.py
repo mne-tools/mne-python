@@ -1354,11 +1354,10 @@ def test_image_format(image_format):
 
 def test_gif(tmp_path):
     """Test that GIFs can be embedded using add_image."""
-    pytest.importorskip("PIL")
-    from PIL import Image
+    PIL = pytest.importorskip("PIL")
 
     sequence = [
-        Image.fromarray(frame.astype(np.uint8)) for frame in _get_example_figures()
+        PIL.Image.fromarray(frame.astype(np.uint8)) for frame in _get_example_figures()
     ]
     fname = tmp_path / "test.gif"
     sequence[0].save(str(fname), save_all=True, append_images=sequence[1:])
