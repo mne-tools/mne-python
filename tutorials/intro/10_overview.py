@@ -18,7 +18,7 @@ We begin by importing the necessary Python modules:
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# %%
+import sys
 
 import numpy as np
 
@@ -81,8 +81,10 @@ print(raw.info)
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
+
 raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
-raw.plot(duration=5, n_channels=30)
+if sys.platform != "emscripten":
+    raw.plot(duration=5, n_channels=30)
 
 # %%
 # Preprocessing
@@ -140,8 +142,9 @@ chs = [
     "EEG 008",
 ]
 chan_idxs = [raw.ch_names.index(ch) for ch in chs]
-orig_raw.plot(order=chan_idxs, start=12, duration=4)
-raw.plot(order=chan_idxs, start=12, duration=4)
+if sys.platform != "emscripten":
+    orig_raw.plot(order=chan_idxs, start=12, duration=4)
+    raw.plot(order=chan_idxs, start=12, duration=4)
 
 # %%
 # .. _overview-tut-events-section:
@@ -400,9 +403,10 @@ stc = mne.minimum_norm.apply_inverse(
 # path to subjects' MRI files
 subjects_dir = sample_data_folder / "subjects"
 # plot the STC
-stc.plot(
-    initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
-)
+if sys.platform != "emscripten":
+    stc.plot(
+        initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
+    )
 
 ##############################################################################
 # The remaining tutorials have *much more detail* on each of these topics (as

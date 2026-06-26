@@ -85,7 +85,16 @@ at about 8-seconds).
 """
 
 # %%
+import sys
+
 import mne
+
+if sys.platform == "emscripten":
+    raise RuntimeError(
+        "This tutorial requires the MNE misc dataset with eyetracking data, "
+        "which is not available in the browser. Please run this tutorial "
+        "locally. Visit https://mne.tools for instructions."
+    )
 
 # %%
 fpath = mne.datasets.misc.data_path() / "eyetracking" / "eyelink"

@@ -26,6 +26,8 @@ Experiment:
 
 # %%
 
+import sys
+
 import numpy as np
 import pandas as pd
 
@@ -34,6 +36,13 @@ from mne import combine_evoked
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.minimum_norm import apply_inverse
+
+if sys.platform == "emscripten":
+    raise RuntimeError(
+        "This tutorial requires the Brainstorm auditory dataset (~2.9 GB) "
+        "which is not available in the browser. Please run this tutorial "
+        "locally. Visit https://mne.tools for instructions."
+    )
 
 # %%
 # To reduce memory consumption and running time, some of the steps are

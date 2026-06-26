@@ -22,6 +22,8 @@ data <sample-dataset>`:
 
 # %%
 
+import sys
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -83,9 +85,11 @@ print(f"after picking, it has {original_raw.info['nchan']} channels.")
 # we specified ``copy=True``:
 
 # sphinx_gallery_thumbnail_number=2
-rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, ["EEG 003"], copy=True)
-fig_orig = original_raw.plot()
-fig_reref = rereferenced_raw.plot()
+rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, "EEG 003", copy=True)
+
+if sys.platform != "emscripten":
+    fig_orig = original_raw.plot()
+    fig_reref = rereferenced_raw.plot()
 
 # %%
 # Another example is the picking function `mne.pick_info`, which operates on

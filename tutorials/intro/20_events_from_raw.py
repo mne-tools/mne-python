@@ -32,6 +32,8 @@ to just 60 seconds before loading it into RAM:
 
 # %%
 
+import sys
+
 import numpy as np
 
 import mne
@@ -94,7 +96,8 @@ raw.crop(tmax=60).load_data()
 # on newer systems it is more commonly ``STI101``. You can see the STIM
 # channels in the raw data file here:
 
-raw.copy().pick(picks="stim").plot(start=3, duration=6)
+if sys.platform != "emscripten":
+    raw.copy().pick(picks="stim").plot(start=3, duration=6)
 
 # %%
 # You can see that ``STI 014`` (the summation channel) contains pulses of
@@ -265,7 +268,8 @@ raw.set_annotations(annot_from_events)
 # Now, the annotations will appear automatically when plotting the raw data,
 # and will be color-coded by their label value:
 
-raw.plot(start=5, duration=5)
+if sys.platform != "emscripten":
+    raw.plot(start=5, duration=5)
 
 # %%
 # .. _`chunk-duration`:

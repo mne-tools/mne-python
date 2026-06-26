@@ -15,6 +15,7 @@ need:
 
 # %%
 
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -218,15 +219,16 @@ ax3d.view_init(azim=70, elev=15)
 # It is also possible to render an image of an MEG sensor helmet using 3D surface
 # rendering instead of matplotlib. This works by calling :func:`mne.viz.plot_alignment`:
 
-fig = mne.viz.plot_alignment(
-    sample_raw.info,
-    dig=False,
-    eeg=False,
-    surfaces=[],
-    meg=["helmet", "sensors"],
-    coord_frame="meg",
-)
-mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
+if sys.platform != "emscripten":
+    fig = mne.viz.plot_alignment(
+        sample_raw.info,
+        dig=False,
+        eeg=False,
+        surfaces=[],
+        meg=["helmet", "sensors"],
+        coord_frame="meg",
+    )
+    mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 # %%
 # Note that :func:`~mne.viz.plot_alignment` requires an `~mne.Info` object, and can also

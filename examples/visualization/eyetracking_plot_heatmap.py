@@ -26,10 +26,19 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 # :ref:`example data <eyelink-dataset>`: eye-tracking data recorded from SR research's
 # ``'.asc'`` file format.
 
+import sys
+
 import matplotlib.pyplot as plt
 
 import mne
 from mne.viz.eyetracking import plot_gaze
+
+if sys.platform == "emscripten":
+    raise RuntimeError(
+        "This example requires the MNE EyeLink dataset, "
+        "which is not available in the browser. Please run this example "
+        "locally. Visit https://mne.tools for instructions."
+    )
 
 task_fpath = mne.datasets.eyelink.data_path() / "freeviewing"
 et_fpath = task_fpath / "sub-01_task-freeview_eyetrack.asc"
@@ -82,8 +91,10 @@ plot_gaze(epochs["natural"], calibration=calibration, cmap=cmap, sigma=50)
 # start at a value greater than the darkest value in our previous heatmap, which will
 # make the darkest colors of the heatmap transparent.
 
-cmap.set_under("k", alpha=0)  # make the lowest values transparent
-ax = plt.subplot()
+cmap = cmap.with_extremes(
+    under=(0.0, 0.0, 0.0, 0.0)
+)  # make the lowest values transparent
+_, ax = plt.subplots(figsize=(6, 3.5), layout="constrained")
 ax.imshow(plt.imread(stim_fpath))
 plot_gaze(
     epochs["natural"],
