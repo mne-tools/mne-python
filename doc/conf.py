@@ -604,7 +604,7 @@ sphinx_gallery_conf = {
         "import os\n"
         "import io\n"
         "\n"
-        "# lzma: try the real stdlib module first (Pyodide ships it); only mock if absent\n"
+        "# lzma: try real stdlib first (Pyodide ships it); only mock if absent\n"
         "try:\n"
         "    import lzma\n"
         "except ImportError:\n"
