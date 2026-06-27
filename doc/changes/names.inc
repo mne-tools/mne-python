@@ -188,8 +188,8 @@
 .. _Keith Doelling: https://github.com/kdoelling1919
 .. _Konstantinos Tsilimparis: https://contsili.github.io/
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
-.. _Kristijan Armeni: https://github.com/kristijanarmeni
 .. _Krishnaveni Parvataneni: https://github.com/kveni12
+.. _Kristijan Armeni: https://github.com/kristijanarmeni
 .. _Kyle Mathewson: https://github.com/kylemath
 .. _Larry Eisenman:  https://github.com/lneisenman
 .. _Lau Møller Andersen: https://github.com/ualsbombe
