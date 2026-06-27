@@ -43,6 +43,7 @@ def annotate_muscle_zscore(
     min_length_good=0.1,
     filter_freq=(110, 140),
     n_jobs=None,
+    n_jobs_hilbert=None,
     verbose=None,
 ):
     """Create annotations for segments that likely contain muscle artifacts.
@@ -75,7 +76,11 @@ def annotate_muscle_zscore(
     filter_freq : array-like, shape (2,)
         The lower and upper frequencies of the band-pass filter.
         Default is ``(110, 140)``.
-    %(n_jobs)s
+    %(n_jobs_fir)s
+    n_jobs_hilbert : int | None
+        Number of jobs for the Hilbert transform. Cannot be ``'cuda'``.
+        Defaults to ``1`` when ``None``. Use when ``n_jobs='cuda'`` to keep
+        filtering on GPU while Hilbert runs on CPU.
     %(verbose)s
 
     Returns
@@ -116,7 +121,9 @@ def annotate_muscle_zscore(
         pad="reflect_limited",
         n_jobs=n_jobs,
     )
-    raw_copy.apply_hilbert(envelope=True, n_jobs=n_jobs)
+    raw_copy.apply_hilbert(
+        envelope=True, n_jobs=n_jobs_hilbert if n_jobs_hilbert is not None else 1
+    )
 
     data = raw_copy.get_data(reject_by_annotation="NaN")
     nan_mask = ~np.isnan(data[0])
