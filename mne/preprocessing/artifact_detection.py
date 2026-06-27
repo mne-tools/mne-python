@@ -76,7 +76,7 @@ def annotate_muscle_zscore(
     filter_freq : array-like, shape (2,)
         The lower and upper frequencies of the band-pass filter.
         Default is ``(110, 140)``.
-    %(n_jobs_fir)s
+    %(n_jobs)s
     n_jobs_hilbert : int | None
         Number of jobs for the Hilbert transform. Cannot be ``'cuda'``.
         Defaults to ``1`` when ``None``. Use when ``n_jobs='cuda'`` to keep
