@@ -7,7 +7,7 @@ jobs:
   sync_deps:
     permissions:
       contents: write
-    name: Sync dependencies
+    name: Sync dependencies to environment file
     runs-on: ubuntu-latest
     defaults:
       run:

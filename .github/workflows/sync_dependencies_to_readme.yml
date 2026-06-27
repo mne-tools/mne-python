@@ -7,7 +7,7 @@ jobs:
   sync_deps:
     permissions:
       contents: write
-    name: Sync dependencies
+    name: Sync dependencies to README
     runs-on: ubuntu-latest
     defaults:
       run:
