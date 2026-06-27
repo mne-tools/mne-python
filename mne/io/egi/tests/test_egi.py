@@ -615,7 +615,9 @@ def test_recover_epochs_raises_by_default(tmp_path):
 
     bad_content = _re.sub(r"<endTime>(\d+)</endTime>", _corrupt_end, content)
     epochs_xml.write_text(bad_content, encoding="utf-8")
-    with pytest.raises(RuntimeError, match="EGI epoch first/last samps could not be parsed"):
+    with pytest.raises(
+        RuntimeError, match="EGI epoch first/last samps could not be parsed"
+    ):
         read_raw_egi(mff_fname, recover_epochs=False)
 
 
