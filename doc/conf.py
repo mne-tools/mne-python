@@ -492,6 +492,8 @@ dst_sample_data = (
     / "MNE-sample-data"
 )
 dst_sample_data.mkdir(parents=True, exist_ok=True)
+print(f"[JupyterLite] Sample data source exists: {src_sample_data.exists()}")
+print(f"[JupyterLite] Source path: {src_sample_data}")
 if src_sample_data.exists():
     required_files = [
         "version.txt",
@@ -514,6 +516,9 @@ if src_sample_data.exists():
         if s.exists():
             d.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied: {req}")
+        else:
+            print(f"[JupyterLite]   MISSING: {req}")
 
 
 # Also inject SSVEP and EEGLAB testing datasets for JupyterLite
@@ -527,13 +532,17 @@ lite_data_base.mkdir(parents=True, exist_ok=True)
 
 src_ssvep = mne_data_base / "ssvep-example-data"
 dst_ssvep = lite_data_base / "ssvep-example-data"
+print(f"[JupyterLite] SSVEP data source exists: {src_ssvep.exists()}")
 if src_ssvep.exists() and not dst_ssvep.exists():
     shutil.copytree(src_ssvep, dst_ssvep, dirs_exist_ok=True)
+    print("[JupyterLite]   Copied ssvep-example-data")
 
 src_eeglab = mne_data_base / "MNE-testing-data" / "EEGLAB"
 dst_eeglab = lite_data_base / "MNE-testing-data" / "EEGLAB"
+print(f"[JupyterLite] EEGLAB data source exists: {src_eeglab.exists()}")
 if src_eeglab.exists() and not dst_eeglab.exists():
     shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
+    print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
 
 
 # Build the local MNE wheel so JupyterLite can use the current development version
