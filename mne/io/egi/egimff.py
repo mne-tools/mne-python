@@ -35,7 +35,7 @@ from .general import (
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
 
 
-def _read_mff_header(filepath):
+def _read_mff_header(filepath, recover_epochs=False):
     """Read mff header."""
     _soft_import("mffpy", "reading EGI MFF data")
     from mffpy.xml_files import XML
@@ -96,10 +96,29 @@ def _read_mff_header(filepath):
         or not (epochs["first_samps"][1:] >= epochs["last_samps"][:-1]).all()
     )
     if bad:
-        raise RuntimeError(
-            "EGI epoch first/last samps could not be parsed:\n"
-            f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
+        if not recover_epochs:
+            raise RuntimeError(
+                "EGI epoch first/last samps could not be parsed:\n"
+                f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
+            )
+        warn(
+            "EGI epoch metadata mismatch; recovering epoch structure from binary data",
+            RuntimeWarning,
+            stacklevel=2,
         )
+        # Rebuild epoch boundaries from the actual binary block sizes
+        block_sizes = signal_blocks["samples_block"]
+        total_samps = int(block_sizes.sum())
+        n_epochs = len(epochs["first_samps"])
+        samps_per_epoch = total_samps // n_epochs
+        epochs["first_samps"] = np.array(
+            [i * samps_per_epoch for i in range(n_epochs)], dtype=np.int64
+        )
+        epochs["last_samps"] = np.array(
+            [min((i + 1) * samps_per_epoch, total_samps) for i in range(n_epochs)],
+            dtype=np.int64,
+        )
+        n_samps_epochs = (epochs["last_samps"] - epochs["first_samps"]).sum()
     summaryinfo.update(epochs)
 
     disk_samps = np.full(epochs["last_samps"][-1], -1)
@@ -193,13 +212,15 @@ def _read_mff_header(filepath):
     return summaryinfo
 
 
-def _read_header(input_fname):
+def _read_header(input_fname, recover_epochs=False):
     """Obtain the headers from the file package mff.
 
     Parameters
     ----------
     input_fname : path-like
         Path for the file
+    recover_epochs : bool
+        If True, recover epoch structure from binary data when metadata is inconsistent.
 
     Returns
     -------
@@ -207,7 +228,7 @@ def _read_header(input_fname):
         Main headers set.
     """
     input_fname = str(input_fname)  # cast to str any Paths
-    mff_hdr = _read_mff_header(input_fname)
+    mff_hdr = _read_mff_header(input_fname, recover_epochs=recover_epochs)
     with open(input_fname + "/signal1.bin", "rb") as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
     """
@@ -346,6 +367,7 @@ def _read_raw_egi_mff(
     preload=False,
     channel_naming="E%d",
     *,
+    recover_epochs=False,
     events_as_annotations=True,
     verbose=None,
 ):
@@ -358,6 +380,7 @@ def _read_raw_egi_mff(
         exclude,
         preload,
         channel_naming,
+        recover_epochs=recover_epochs,
         events_as_annotations=events_as_annotations,
         verbose=verbose,
     )
@@ -379,6 +402,7 @@ class RawMff(BaseRaw):
         preload=False,
         channel_naming="E%d",
         *,
+        recover_epochs=False,
         events_as_annotations=True,
         verbose=None,
     ):
@@ -393,7 +417,7 @@ class RawMff(BaseRaw):
             )
         )
         logger.info(f"Reading EGI MFF Header from {input_fname}...")
-        egi_info = _read_header(input_fname)
+        egi_info = _read_header(input_fname, recover_epochs=recover_epochs)
         if eog is None:
             eog = []
         if misc is None:
