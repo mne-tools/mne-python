@@ -492,6 +492,12 @@ dst_sample_data = (
     / "MNE-sample-data"
 )
 dst_sample_data.mkdir(parents=True, exist_ok=True)
+if not src_sample_data.exists():
+    try:
+        import mne as _mne
+        _mne.datasets.sample.data_path(verbose=False)
+    except Exception:
+        pass
 if src_sample_data.exists():
     required_files = [
         "version.txt",
