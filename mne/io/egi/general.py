@@ -11,42 +11,23 @@ import numpy as np
 from ...utils import _pl, _soft_import
 
 
-def _extract(tags, filepath=None, obj=None):
-    """Extract info from XML."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
-
-    if obj is not None:
-        fileobj = obj
-    elif filepath is not None:
-        fileobj = parse(filepath)
-    else:
-        raise ValueError("There is not object or file to extract data")
-    infoxml = dict()
-    for tag in tags:
-        value = fileobj.getElementsByTagName(tag)
-        infoxml[tag] = []
-        for i in range(len(value)):
-            infoxml[tag].append(value[i].firstChild.data)
-    return infoxml
-
-
 def _get_gains(filepath):
     """Parse gains."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
+    from mffpy.xml_files import XML
 
-    file_obj = parse(filepath)
-    objects = file_obj.getElementsByTagName("calibration")
-    gains = dict()
-    for ob in objects:
-        value = ob.getElementsByTagName("type")
-        if value[0].firstChild.data == "GCAL":
-            data_g = _extract(["ch"], obj=ob)["ch"]
-            gains.update(gcal=np.asarray(data_g, dtype=np.float64))
-        elif value[0].firstChild.data == "ICAL":
-            data_g = _extract(["ch"], obj=ob)["ch"]
-            gains.update(ical=np.asarray(data_g, dtype=np.float64))
+    obj = XML.from_file(filepath)
+    cals = obj.get_content().get("calibrations", {})
+    gains = {}
+    if "GCAL" in cals:
+        ch_dict = cals["GCAL"]["channels"]
+        gains["gcal"] = np.asarray(
+            [ch_dict[k] for k in sorted(ch_dict)], dtype=np.float64
+        )
+    if "ICAL" in cals:
+        ch_dict = cals["ICAL"]["channels"]
+        gains["ical"] = np.asarray(
+            [ch_dict[k] for k in sorted(ch_dict)], dtype=np.float64
+        )
     return gains
 
 
