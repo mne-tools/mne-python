@@ -1,4 +1,4 @@
-name: Sync dependencies to environment file
+name: Sync dependencies to README
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
@@ -17,10 +17,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run MNE-Tools action
-        uses: tsbinns/mne-tools/actions/sync-dependencies-to-environment-file@add_tools
+        uses: tsbinns/mne-tools/actions/sync-dependencies-to-readme@add_tools
         with:
           project-root: ${{ github.workspace }}
-          extras: full,full-no-qt,hdf5
-          additional-dependencies: pip,mamba,conda,nomkl,noqt5
-          pip-dependencies: pymef
-          requirements-overrides: PySide6==6.10.2,vtk==9.6.0
+          ignore-upper-pins: numpy
