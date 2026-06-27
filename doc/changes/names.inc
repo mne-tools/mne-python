@@ -189,6 +189,7 @@
 .. _Konstantinos Tsilimparis: https://contsili.github.io/
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 .. _Kristijan Armeni: https://github.com/kristijanarmeni
+.. _Krishnaveni Parvataneni: https://github.com/kveni12
 .. _Kyle Mathewson: https://github.com/kylemath
 .. _Larry Eisenman:  https://github.com/lneisenman
 .. _Lau Møller Andersen: https://github.com/ualsbombe
