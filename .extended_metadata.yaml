@@ -1,26 +1,26 @@
 package_name: MNE-Python
-date_created: 2010-12-26
-date_published: 2014-08-04
+date_created: '2010-12-26'
+date_published: '2014-08-04'
 application_category: Neuroscience
 code_doi: 10.5281/zenodo.592483
 compound_surnames:
-  - "García Alanis"
-  - "van Vliet"
-  - "De Santis"
-  - "Dupré la Tour"
-  - "de la Torre"
-  - "de Jong"
-  - "de Montalivet"
-  - "van den Bosch"
-  - "Van den Bossche"
-  - "Van Der Donckt"
-  - "van der Meer"
-  - "van Harmelen"
-  - "Visconti di Oleggio Castello"
-  - "van Es"
+  - García Alanis
+  - van Vliet
+  - De Santis
+  - Dupré la Tour
+  - de la Torre
+  - de Jong
+  - de Montalivet
+  - van den Bosch
+  - Van den Bossche
+  - Van Der Donckt
+  - van der Meer
+  - van Harmelen
+  - Visconti di Oleggio Castello
+  - van Es
 preferred_citation:
-  title: "MEG and EEG Data Analysis with MNE-Python"
-  journal: "Frontiers in Neuroscience"
+  title: MEG and EEG Data Analysis with MNE-Python
+  journal: Frontiers in Neuroscience
   type: article
   year: 2013
   volume: 7
