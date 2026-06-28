@@ -685,6 +685,7 @@ sphinx_gallery_conf = {
         "_sample_dir = mne_data_path + '/MNE-sample-data'\n"
         "_sample_files = [\n"
         "    'version.txt',\n"
+        "    'MEG/sample/sample_audvis_raw.fif',\n"
         "    'MEG/sample/sample_audvis_raw-eve.fif',\n"
         "    'MEG/sample/sample_audvis-cov.fif',\n"
         "    'MEG/sample/sample_audvis-ave.fif',\n"
