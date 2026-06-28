@@ -3442,7 +3442,7 @@ class Brain:
                 if hemi in self.layered_meshes:
                     mesh = self.layered_meshes[hemi]
                     mesh.update_overlay(
-                        name=hemi_data.get("key", "data"),
+                        name=hemi_data["key"],
                         colormap=self._data["ctable"],
                         opacity=alpha,
                         rng=rng,
