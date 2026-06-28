@@ -282,7 +282,10 @@ mne.viz.ui_events.link(fig_topomap, fig_topo)
 #
 #     In interactive sessions, both approaches to topographical plotting allow
 #     you to click one of the sensor subplots to open a larger version of the
-#     evoked plot at that sensor.
+#     evoked plot at that sensor. In this view, you can select a time by clicking
+#     somewhere in the timecourse. The selected time is marked with a vertical line on
+#     all channels, also in the original figure and any other single-channel figures
+#     that are open.
 #
 #
 # 3D Field Maps
