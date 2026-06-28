@@ -397,6 +397,8 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert isinstance(lm, LayeredMesh)
     lm.update_overlay(name="data", rng=[fmin, fmax])
     lm.update()
+    with pytest.raises(ValueError, match="must have shape"):
+        lm.update_overlay(name="data", scalars=np.ones(1))
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
