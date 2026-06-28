@@ -262,18 +262,6 @@ mne.viz.plot_compare_evokeds(
 mne.viz.plot_evoked_topo(evokeds_list)
 
 # %%
-# Topo and topomap figures have dynamic interactivity when plotting for single
-# :class:`~mne.Evoked` instance and allow time selection, which could be
-# synchronized through linking.
-
-single_evoked = evokeds_list[0]
-fig_topomap = single_evoked.plot_topomap("interactive")
-fig_topo = mne.viz.plot_evoked_topo(single_evoked)
-
-mne.viz.ui_events.link(fig_topomap, fig_topo)
-
-
-# %%
 # By default, :func:`~mne.viz.plot_evoked_topo` will plot all MEG sensors (if
 # present), so to get EEG sensors you would need to modify the evoked objects
 # first (e.g., using `mne.pick_types`).

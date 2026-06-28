@@ -1183,6 +1183,10 @@ def _plot_evoked_topo(
 
     setattr(fig, "_current_time", None)
 
+    def on_time_change(event, fig):
+        """Respond to a time change UI event."""
+        fig._current_time = event.time
+
     subscribe(fig, "time_change", partial(on_time_change, fig=fig))
 
     add_background_image(fig, fig_background)
@@ -1216,11 +1220,6 @@ def _plot_evoked_topo(
 
     plt_show(show)
     return fig
-
-
-def on_time_change(event, fig):
-    """Respond to a time change UI event."""
-    fig._current_time = event.time
 
 
 def _plot_update_evoked_topo_proj(params, bools):
