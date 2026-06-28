@@ -1170,13 +1170,10 @@ docdict["depth"] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use None is equivalent to 0, meaning no depth weighting is performed.
+    to use. None is equivalent to 0, meaning no depth weighting is performed.
     It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
-    defaults). This is effectively ignored when ``method='eLORETA'``.
-
-    .. versionchanged:: 0.20
-       Depth bias ignored for ``method='eLORETA'``.
+    defaults).
 """
 
 docdict["destination_maxwell_dest"] = """
