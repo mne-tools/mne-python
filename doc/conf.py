@@ -495,9 +495,7 @@ jupyterlite_bind_ipynb_suffix = False
 # artifact servers (e.g. CircleCI) do not send, so it is unusable there.
 src_sample_data = Path(os.path.expanduser("~/mne_data/MNE-sample-data"))
 lite_extra_base = (
-    Path(os.path.abspath(os.path.dirname(__file__)))
-    / "lite_extra"
-    / "mne_data"
+    Path(os.path.abspath(os.path.dirname(__file__))) / "lite_extra" / "mne_data"
 )
 dst_sample_data = lite_extra_base / "MNE-sample-data"
 dst_sample_data.mkdir(parents=True, exist_ok=True)
