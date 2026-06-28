@@ -143,7 +143,13 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/dev", "jupyterlite_contents", "corrupt_*"]
+exclude_patterns = [
+    "_includes",
+    "changes/dev",
+    "jupyterlite_contents",
+    "lite_extra",
+    "corrupt_*",
+]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -481,16 +487,19 @@ sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
 jupyterlite_contents = ["jupyterlite_contents"]
 jupyterlite_bind_ipynb_suffix = False
 
-# Automatically inject the required subset of MNE-sample-data into JupyterLite.
-# The destination directory is always created so /drive/mne_data is present in
-# the Pyodide kernel's virtual filesystem even when no files have been copied.
+# Inject the required subset of MNE-sample-data for JupyterLite. The data is
+# placed under doc/lite_extra/mne_data and served at the docs root via
+# html_extra_path (added below). The JupyterLite setup cell fetches these
+# files over HTTP into the Pyodide kernel — the /drive virtual-filesystem
+# bridge needs cross-origin-isolation (COOP/COEP) headers that static
+# artifact servers (e.g. CircleCI) do not send, so it is unusable there.
 src_sample_data = Path(os.path.expanduser("~/mne_data/MNE-sample-data"))
-dst_sample_data = (
+lite_extra_base = (
     Path(os.path.abspath(os.path.dirname(__file__)))
-    / "jupyterlite_contents"
+    / "lite_extra"
     / "mne_data"
-    / "MNE-sample-data"
 )
+dst_sample_data = lite_extra_base / "MNE-sample-data"
 dst_sample_data.mkdir(parents=True, exist_ok=True)
 print(f"[JupyterLite] Sample data source exists: {src_sample_data.exists()}")
 print(f"[JupyterLite] Source path: {src_sample_data}")
@@ -523,11 +532,7 @@ if src_sample_data.exists():
 
 # Also inject SSVEP and EEGLAB testing datasets for JupyterLite
 mne_data_base = Path(os.path.expanduser("~/mne_data"))
-lite_data_base = (
-    Path(os.path.abspath(os.path.dirname(__file__)))
-    / "jupyterlite_contents"
-    / "mne_data"
-)
+lite_data_base = lite_extra_base
 lite_data_base.mkdir(parents=True, exist_ok=True)
 
 src_ssvep = mne_data_base / "ssvep-example-data"
@@ -665,18 +670,19 @@ sphinx_gallery_conf = {
         "\n"
         "# /drive/ in Pyodide requires Cross-Origin-Isolation headers\n"
         "# (COOP/COEP) which many static servers (e.g. CircleCI artifacts)\n"
-        "# do not send. Fetch data files directly from the JupyterLite\n"
-        "# files/ path into /tmp/mne_data instead — same-origin, no CORS.\n"
+        "# do not send. Fetch the data over HTTP into /tmp/mne_data instead\n"
+        "# — same-origin, no CORS. The data is served at the docs root\n"
+        "# (/mne_data/...) via Sphinx html_extra_path.\n"
         "# Pyodide may run in a web worker (no `window`); `location` exists\n"
-        "# in both the main thread and workers, so use it to find the app\n"
-        "# base URL by splitting on '/lite/'.\n"
+        "# in both the main thread and workers, so use it to find the docs\n"
+        "# root by splitting on '/lite/'.\n"
         "import pyodide.http as _phttp\n"
         "import js as _js\n"
         "try:\n"
         "    _page = str(_js.location.href)\n"
         "except Exception:\n"
         "    _page = str(_js.window.location.href)\n"
-        "_base = _page.split('/lite/')[0] + '/lite/files/mne_data/'\n"
+        "_base = _page.split('/lite/')[0] + '/mne_data/'\n"
         "print(f'[DBG] page url: {_page}')\n"
         "print(f'[DBG] data base: {_base}')\n"
         "mne_data_path = '/tmp/mne_data'\n"
@@ -1177,6 +1183,9 @@ html_extra_path = [
     "documentation.html",
     "getting_started.html",
     "install_mne_python.html",
+    # Serve the pre-bundled JupyterLite sample data at the docs root
+    # (e.g. /mne_data/...). The lite setup cell fetches it over HTTP.
+    "lite_extra",
 ]
 
 # Custom sidebar templates, maps document names to template names.
