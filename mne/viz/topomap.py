@@ -2911,6 +2911,7 @@ def plot_epochs_psd_topomap(
     %(names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
 
         .. versionadded:: 1.13
     %(contours_topomap)s
