@@ -508,6 +508,8 @@ if src_sample_data.exists():
         "MEG/sample/sample_audvis_raw.fif",
         "MEG/sample/sample_audvis_filt-0-40_raw.fif",
         "MEG/sample/sample_audvis_raw-eve.fif",
+        "MEG/sample/sample_audvis_filt-0-40_raw-eve.fif",
+        "MEG/sample/sample_audvis_ecg-proj.fif",
         "MEG/sample/sample_audvis-ave.fif",
         "MEG/sample/sample_audvis-cov.fif",
         "MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif",
@@ -712,6 +714,8 @@ sphinx_gallery_conf = {
         "    'version.txt',\n"
         "    'MEG/sample/sample_audvis_raw.fif',\n"
         "    'MEG/sample/sample_audvis_raw-eve.fif',\n"
+        "    'MEG/sample/sample_audvis_filt-0-40_raw-eve.fif',\n"
+        "    'MEG/sample/sample_audvis_ecg-proj.fif',\n"
         "    'MEG/sample/sample_audvis-cov.fif',\n"
         "    'MEG/sample/sample_audvis-ave.fif',\n"
         "    'MEG/sample/sample_audvis_filt-0-40_raw.fif',\n"
