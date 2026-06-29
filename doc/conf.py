@@ -550,6 +550,28 @@ if src_eeglab.exists() and not dst_eeglab.exists():
     shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
     print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
 
+# Inject the kiloword and erp_core datasets needed by the Epochs tutorials
+# (30_epochs_metadata and 40_autogenerate_metadata). Each tutorial uses a
+# single file; their sizes (28.7 MB, 123.6 MB) are within what we already
+# serve (sample_audvis_raw.fif is 128.5 MB). The CI "Ensure ... data" step
+# downloads them so the sources exist here.
+for _folder, _ds_files in (
+    ("MNE-kiloword-data", ["kword_metadata-epo.fif"]),
+    ("MNE-ERP-CORE-data", ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"]),
+):
+    _src_ds = mne_data_base / _folder
+    _dst_ds = lite_data_base / _folder
+    print(f"[JupyterLite] {_folder} source exists: {_src_ds.exists()}")
+    for _ds_file in _ds_files:
+        s = _src_ds / _ds_file
+        d = _dst_ds / _ds_file
+        if s.exists():
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied: {_folder}/{_ds_file}")
+        else:
+            print(f"[JupyterLite]   MISSING: {_folder}/{_ds_file}")
+
 
 # Build the local MNE wheel so JupyterLite installs the current development
 # version instead of the older release from PyPI. The wheel is written to
@@ -636,7 +658,9 @@ sphinx_gallery_conf = {
         "# keep_going=True lets it install even if Pyodide's bundled\n"
         "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"
         "await piplite.install(\n"
-        "    ['mne', 'scikit-learn', 'joblib', 'pandas'], keep_going=True\n"
+        "    ['mne', 'scikit-learn', 'joblib', 'pandas', 'seaborn', "
+        "'mne-connectivity'],\n"
+        "    keep_going=True,\n"
         ")\n"
         "\n"
         "import sys\n"
@@ -791,6 +815,38 @@ sphinx_gallery_conf = {
         "def _lite_sample_data_path(*_a, **_kw):\n"
         "    return _sample_path\n"
         "mne.datasets.sample.data_path = _lite_sample_data_path\n"
+        "# kiloword + erp_core (Epochs tutorials 30 & 40) are large and used by\n"
+        "# only those two notebooks, so fetch them LAZILY — only when data_path()\n"
+        "# is actually called — to avoid taxing every other notebook's setup.\n"
+        "# Pyodide runs in a web worker here, where a synchronous XHR may set\n"
+        "# responseType='arraybuffer', letting a sync data_path() read binary.\n"
+        "def _lite_lazy_fetch(_folder, _fname):\n"
+        "    _dst = mne_data_path + '/' + _folder + '/' + _fname\n"
+        "    if not os.path.exists(_dst):\n"
+        "        from js import XMLHttpRequest\n"
+        "        _xhr = XMLHttpRequest.new()\n"
+        "        _xhr.open('GET', _base + _folder + '/' + _fname, False)\n"
+        "        _xhr.responseType = 'arraybuffer'\n"
+        "        _xhr.send()\n"
+        "        if _xhr.status != 200:\n"
+        "            raise FileNotFoundError(\n"
+        "                f'Could not fetch {_folder}/{_fname} "
+        "(HTTP {_xhr.status})'\n"
+        "            )\n"
+        "        os.makedirs(os.path.dirname(_dst), exist_ok=True)\n"
+        "        with open(_dst, 'wb') as _fh:\n"
+        "            _fh.write(bytes(_xhr.response.to_py()))\n"
+        "    return _Path(mne_data_path + '/' + _folder)\n"
+        "def _lite_kiloword_data_path(*_a, **_kw):\n"
+        "    return _lite_lazy_fetch("
+        "'MNE-kiloword-data', 'kword_metadata-epo.fif')\n"
+        "mne.datasets.kiloword.data_path = _lite_kiloword_data_path\n"
+        "def _lite_erp_core_data_path(*_a, **_kw):\n"
+        "    return _lite_lazy_fetch(\n"
+        "        'MNE-ERP-CORE-data', "
+        "'ERP-CORE_Subject-001_Task-Flankers_eeg.fif'\n"
+        "    )\n"
+        "mne.datasets.erp_core.data_path = _lite_erp_core_data_path\n"
         "\n"
         "# Switch matplotlib to inline so figures render in the notebook.\n"
         "import IPython\n"

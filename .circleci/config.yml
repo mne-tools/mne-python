@@ -249,16 +249,18 @@ jobs:
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
-      # Ensure the MNE sample dataset is on disk so conf.py can copy the
-      # required subset into jupyterlite_contents/ for the JupyterLite build.
-      # circleci_download.sh only fetches sample data when the changed files
-      # reference it, so a cache miss on a PR that touches only doc/conf.py
-      # would leave ~/mne_data/MNE-sample-data absent and the notebooks would
-      # fail at runtime with FileNotFoundError on /drive/mne_data.
+      # Ensure the datasets the JupyterLite notebooks need are on disk so
+      # conf.py can copy the required subset for the build. circleci_download.sh
+      # only fetches them when the changed files reference them, so a cache miss
+      # on a PR that touches only doc/conf.py would leave them absent and the
+      # notebooks would fail at runtime with FileNotFoundError. kiloword and
+      # erp_core back the Epochs metadata tutorials (30 & 40).
       - run:
-          name: Ensure MNE sample data for JupyterLite
+          name: Ensure MNE data for JupyterLite
           command: |
             python -c "import mne; mne.datasets.sample.data_path(update_path=True)"
+            python -c "import mne; mne.datasets.kiloword.data_path(update_path=True)"
+            python -c "import mne; mne.datasets.erp_core.data_path(update_path=True)"
       # Build docs
       - run:
           name: make html
