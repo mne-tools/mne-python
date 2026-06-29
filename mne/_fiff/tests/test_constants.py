@@ -122,8 +122,8 @@ _aliases = dict(
 )
 
 
-@pytest.mark.flaky
 @requires_good_network
+@pytest.mark.flaky(reruns=3, reruns_delay=5)
 @pytest.mark.ultraslowtest  # not that slow, just doesn't need to run very often
 def test_constants(tmp_path):
     """Test compensation."""

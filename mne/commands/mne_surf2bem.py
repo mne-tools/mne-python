@@ -26,7 +26,7 @@ def run():
     parser = get_optparser(__file__)
 
     parser.add_option(
-        "-s", "--surf", dest="surf", help="Surface in Freesurfer format", metavar="FILE"
+        "-s", "--surf", dest="surf", help="Surface in FreeSurfer format", metavar="FILE"
     )
     parser.add_option(
         "-f", "--fif", dest="fif", help="FIF file produced", metavar="FILE"

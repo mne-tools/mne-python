@@ -316,6 +316,7 @@ DEFAULTS = dict(
         blending="mip",
         silhouette_alpha=None,
         silhouette_linewidth=2.0,
+        interpolation="linear",
     ),
     prefixes={
         "k": 1e-3,

@@ -320,7 +320,7 @@ docdict["aseg"] = """
 aseg : str
     The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
     if available and ``wmparc`` if not. This may be any anatomical
-    segmentation file in the mri subdirectory of the Freesurfer subject
+    segmentation file in the mri subdirectory of the FreeSurfer subject
     directory.
 
     .. versionchanged:: 1.8
@@ -1170,13 +1170,10 @@ docdict["depth"] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use None is equivalent to 0, meaning no depth weighting is performed.
+    to use. None is equivalent to 0, meaning no depth weighting is performed.
     It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
-    defaults). This is effectively ignored when ``method='eLORETA'``.
-
-    .. versionchanged:: 0.20
-       Depth bias ignored for ``method='eLORETA'``.
+    defaults).
 """
 
 docdict["destination_maxwell_dest"] = """
@@ -4173,6 +4170,13 @@ Some common referencing schemes and the corresponding value for the
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
     automatically excluded if they are properly set in ``info['bads']``.
 
+.. note::
+    When performing average referencing in sensor-space analyses, the original reference
+    electrode should be present as a zero-filled channel. If it is not, this must first
+    be added using :func:`~mne.add_reference_channels`, before calling
+    :func:`~mne.set_eeg_reference`. This is necessary to avoid biasing the reference
+    :footcite:`KimEtAl2023`.
+
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
     will act as the new reference, for example ``ref_channels=['Cz']``.
@@ -4402,6 +4406,12 @@ volume_options : float | dict | None
         will use ``0.25 * surface_alpha``.
     - ``'silhouette_linewidth'`` : float
         The line width to use for the silhouette. Default is 2.
+    - ``'interpolation'`` : str
+        The interpolation method to use for resampling the volume source space
+        to the specified resolution (and for sampling in the volume rendering).
+        Can be "linear" (default) or "nearest".
+
+        .. versionadded:: 1.13
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
