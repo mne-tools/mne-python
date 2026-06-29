@@ -54,9 +54,9 @@ if sys.platform == "emscripten":
         from IPython.display import HTML, display
 
         try:
-            tmp = tempfile.mktemp(suffix=".html")
-            _orig_report_save(self, tmp, open_browser=False, overwrite=True)
-            doc = Path(tmp).read_text(encoding="utf-8")
+            tmp = Path(tempfile.mkdtemp()) / "report.html"
+            _orig_report_save(self, str(tmp), open_browser=False, overwrite=True)
+            doc = tmp.read_text(encoding="utf-8")
             display(
                 HTML(
                     f'<iframe srcdoc="{_htmllib.escape(doc)}" width="100%" '
