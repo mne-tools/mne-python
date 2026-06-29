@@ -1243,7 +1243,6 @@ def plot_evoked_topo(
     -------
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
-
     """
     if type(evoked) not in (tuple, list):
         evoked = [evoked]
