@@ -39,7 +39,7 @@ dependencies:
   - numpy >=1.26,<3
   - openmeeg >=2.5.7
   - packaging
-  - pandas >=2.2
+  - pandas >=2.2,!=3.0.4
   - pillow
   - pip
   - pooch >=1.5

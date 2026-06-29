@@ -426,6 +426,8 @@ numpydoc_xref_ignore = {
     "polars",
     "default",
     # unlinkable
+    "_Renderer",
+    "n_triangles",
     "CoregistrationUI",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links

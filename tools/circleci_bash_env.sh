@@ -4,7 +4,13 @@ set -e
 set -o pipefail
 
 ./tools/setup_xvfb.sh
-sudo apt install -qq graphviz optipng python3-venv libxft2 ffmpeg r-base libtirpc-dev libgvplugin-neato-layout8
+# Need different installs for 24.04 and 26.04
+if [[ $(lsb_release -rs) == "26.04" ]]; then
+    EXTRA_DEPS="libgvplugin-neato-layout8"
+else
+    EXTRA_DEPS=""
+fi
+sudo apt install -qq graphviz optipng python3-venv libxft2 ffmpeg r-base libtirpc-dev $EXTRA_DEPS
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo apt install ./google-chrome-stable_current_amd64.deb
 python -m venv ~/python_env
