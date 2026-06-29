@@ -598,3 +598,45 @@ def test_egi_mff_bad_xml(tmp_path):
             raw = read_raw_egi(mff_fname)
     # little check that the bad XML doesn't affect the parsing of other xml files
     assert "DIN1" in raw.annotations.description
+
+
+@requires_testing_data
+def test_recover_epochs_raises_by_default(tmp_path):
+    """Test that mismatched epoch metadata raises RuntimeError by default."""
+    import re as _re
+
+    mff_fname = copytree_rw(egi_mff_fname, tmp_path / "test_egi_bad_epochs.mff")
+    epochs_xml = mff_fname / "epochs.xml"
+    content = epochs_xml.read_text(encoding="utf-8")
+
+    def _corrupt_end(m):
+        val = int(m.group(1))
+        return f"<endTime>{val * 100}</endTime>"
+
+    bad_content = _re.sub(r"<endTime>(\d+)</endTime>", _corrupt_end, content)
+    epochs_xml.write_text(bad_content, encoding="utf-8")
+    with pytest.raises(
+        RuntimeError, match="EGI epoch first/last samps could not be parsed"
+    ):
+        read_raw_egi(mff_fname, recover_epochs=False)
+
+
+@requires_testing_data
+def test_recover_epochs_succeeds_with_flag(tmp_path):
+    """Test that recover_epochs=True loads a file with mismatched epoch metadata."""
+    import re as _re
+
+    mff_fname = copytree_rw(egi_mff_fname, tmp_path / "test_egi_recover_epochs.mff")
+    epochs_xml = mff_fname / "epochs.xml"
+    content = epochs_xml.read_text(encoding="utf-8")
+
+    def _corrupt_end(m):
+        val = int(m.group(1))
+        return f"<endTime>{val * 100}</endTime>"
+
+    bad_content = _re.sub(r"<endTime>(\d+)</endTime>", _corrupt_end, content)
+    epochs_xml.write_text(bad_content, encoding="utf-8")
+    with pytest.warns(RuntimeWarning, match="EGI epoch metadata mismatch"):
+        raw = read_raw_egi(mff_fname, recover_epochs=True)
+    assert raw is not None
+    assert raw.n_times > 0
