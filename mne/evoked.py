@@ -618,6 +618,10 @@ class Evoked(
 
         Notes
         -----
+        The figure will publish and subscribe to the following UI events:
+
+        * :class:`~mne.viz.ui_events.TimeChange`
+
         .. versionadded:: 0.10.0
         """
         return plot_evoked_topo(

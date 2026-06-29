@@ -1244,12 +1244,6 @@ def plot_evoked_topo(
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
 
-    Notes
-    -----
-    The figure will publish and subscribe to the following UI events:
-
-    * :class:`~mne.viz.ui_events.TimeChange`
-
     """
     if type(evoked) not in (tuple, list):
         evoked = [evoked]
