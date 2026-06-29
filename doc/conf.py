@@ -562,7 +562,7 @@ with open(pyproject_path, encoding="utf-8") as f:
     orig_pyproject = f.read()
 
 # Relax constraints for Pyodide which often lags behind PyPI.
-# The wheel built here is served to the browser kernel; micropip's
+# The wheel built here is served to the browser kernel; piplite's
 # keep_going=True means these bounds won't block install, but we also
 # relax them here so the wheel metadata is accurate for inspection.
 patched = re.sub(r'"scipy\s*>=\s*1\.1[0-9]"', '"scipy >= 1.7"', orig_pyproject)
@@ -606,11 +606,13 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 💡 This cell is automatically added to the start of each notebook.\n"
         "# It installs MNE and patches the browser environment for Pyodide.\n"
-        "import micropip\n"
-        "# keep_going=True lets micropip install even if Pyodide's bundled\n"
+        "import piplite\n"
+        "# Use piplite (not micropip) so the locally-built development MNE wheel\n"
+        "# served via piplite-wheels is preferred over the older PyPI release;\n"
+        "# piplite checks the local index first and falls back to PyPI for deps.\n"
+        "# keep_going=True lets it install even if Pyodide's bundled\n"
         "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"
-        "# MNE's runtime code only checks matplotlib >= 3.7/3.8, so 3.8.4 works.\n"
-        "await micropip.install(['mne', 'scikit-learn', 'joblib'], keep_going=True)\n"
+        "await piplite.install(['mne', 'scikit-learn', 'joblib'], keep_going=True)\n"
         "\n"
         "import sys\n"
         "import os\n"

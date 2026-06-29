@@ -39,14 +39,34 @@ data_path = Path(mne.datasets.sample.data_path(verbose=False))
 sample_dir = data_path / "MEG" / "sample"
 subjects_dir = data_path / "subjects"
 
-# In JupyterLite, file writing is not supported — skip report.save() calls.
-# The report content still renders inline in Jupyter via add_* methods.
+# In JupyterLite, render each report inline instead of writing to disk and
+# opening a browser tab (open_browser/webbrowser don't work in Pyodide).
+# Writes to /tmp DO work in Pyodide's in-memory filesystem, so we save there,
+# read the HTML back, and embed it in an isolated <iframe> so the report's
+# bundled CSS/JS can't clash with the notebook page.
 if sys.platform == "emscripten":
+    _orig_report_save = mne.Report.save
 
-    def _noop_save(self, fname=None, open_browser=False, overwrite=False, verbose=None):
-        pass
+    def _inline_report_save(self, fname=None, *args, **kwargs):
+        import html as _htmllib
+        import tempfile
 
-    mne.Report.save = _noop_save
+        from IPython.display import HTML, display
+
+        try:
+            tmp = tempfile.mktemp(suffix=".html")
+            _orig_report_save(self, tmp, open_browser=False, overwrite=True)
+            doc = Path(tmp).read_text(encoding="utf-8")
+            display(
+                HTML(
+                    f'<iframe srcdoc="{_htmllib.escape(doc)}" width="100%" '
+                    'height="500" style="border:1px solid #ccc;"></iframe>'
+                )
+            )
+        except Exception as exc:
+            print(f"(report preview unavailable in JupyterLite: {exc})")
+
+    mne.Report.save = _inline_report_save
 
 # %%
 # The basic process for creating an HTML report is to instantiate the
