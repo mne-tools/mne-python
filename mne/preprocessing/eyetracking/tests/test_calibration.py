@@ -299,7 +299,7 @@ def test_calibration_non_ascii(fname, tmp_path):
     # Insert a MSG line with non-ASCII content, including the zero-width no-break
     # space (U+FEFF, encoded as the 0xEF byte that triggered the original crash).
     msg_idx = next(i for i, line in enumerate(lines) if line.startswith("MSG"))
-    non_ascii_msg = "MSG\t5000000\tunicode message \ufeff caf\xe9 \u2615"
+    non_ascii_msg = "MSG\t5000000\tunicode message \ufeff \u00e9\u00e8\u00ea \u2615"
     new_lines = lines[:msg_idx] + [non_ascii_msg] + lines[msg_idx:]
 
     out_fname = tmp_path / "non_ascii_calibration.asc"
