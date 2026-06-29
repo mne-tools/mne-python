@@ -148,6 +148,7 @@ exclude_patterns = [
     "changes/dev",
     "jupyterlite_contents",
     "lite_extra",
+    "pypi",
     "corrupt_*",
 ]
 
@@ -548,14 +549,20 @@ if src_eeglab.exists() and not dst_eeglab.exists():
     print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
 
 
-# Build the local MNE wheel so JupyterLite can use the current development version
-dist_lite_dir = os.path.join(
-    os.path.abspath(os.path.dirname(__file__)), "_build", "dist_lite"
-)
+# Build the local MNE wheel so JupyterLite installs the current development
+# version instead of the older release from PyPI. The wheel is written to
+# ``<lite_dir>/pypi`` (i.e. ``doc/pypi``): the jupyterlite-pyodide-kernel
+# PipliteAddon automatically discovers, copies and indexes every wheel found
+# there and adds it to ``pipliteUrls`` in ``jupyter-lite.json``. This is the
+# approach documented at
+# https://jupyterlite.readthedocs.io/en/latest/howto/pyodide/wheels.html and,
+# unlike the ``--piplite-wheels`` build option, does not depend on the option
+# being threaded through jupyterlite-sphinx to the build command.
+pypi_wheels_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "pypi")
 # Clean the directory first so stale wheels from previous runs do not
 # accumulate and pollute the piplite all.json index.
-shutil.rmtree(dist_lite_dir, ignore_errors=True)
-os.makedirs(dist_lite_dir, exist_ok=True)
+shutil.rmtree(pypi_wheels_dir, ignore_errors=True)
+os.makedirs(pypi_wheels_dir, exist_ok=True)
 
 pyproject_path = os.path.join(os.path.dirname(__file__), "..", "pyproject.toml")
 with open(pyproject_path, encoding="utf-8") as f:
@@ -588,7 +595,7 @@ try:
             "..",
             "--no-deps",
             "-w",
-            dist_lite_dir,
+            pypi_wheels_dir,
         ],
         check=True,
     )
@@ -596,7 +603,20 @@ finally:
     with open(pyproject_path, "w", encoding="utf-8") as f:
         f.write(orig_pyproject)
 
-jupyterlite_build_command_options = {"piplite-wheels": dist_lite_dir}
+# Fail loudly if the wheel was not produced rather than silently letting the
+# browser kernel fall back to the older released MNE from PyPI.
+_built_wheels = [
+    f
+    for f in os.listdir(pypi_wheels_dir)
+    if f.startswith("mne-") and f.endswith(".whl")
+]
+if not _built_wheels:
+    raise RuntimeError(
+        f"JupyterLite: no MNE wheel was built into {pypi_wheels_dir!r}; the "
+        "browser kernel would fall back to the released PyPI version. Check the "
+        "'pip wheel' output above."
+    )
+print(f"[JupyterLite] Built MNE wheel(s) for the browser kernel: {_built_wheels}")
 
 sphinx_gallery_conf = {
     "jupyterlite": {
@@ -608,7 +628,8 @@ sphinx_gallery_conf = {
         "# It installs MNE and patches the browser environment for Pyodide.\n"
         "import piplite\n"
         "# Use piplite (not micropip) so the locally-built development MNE wheel\n"
-        "# served via piplite-wheels is preferred over the older PyPI release;\n"
+        "# bundled into the JupyterLite build is preferred over the older PyPI\n"
+        "# release;\n"
         "# piplite checks the local index first and falls back to PyPI for deps.\n"
         "# keep_going=True lets it install even if Pyodide's bundled\n"
         "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"

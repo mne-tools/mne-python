@@ -57,10 +57,13 @@ if sys.platform == "emscripten":
             tmp = Path(tempfile.mkdtemp()) / "report.html"
             _orig_report_save(self, str(tmp), open_browser=False, overwrite=True)
             doc = tmp.read_text(encoding="utf-8")
+            # Wrap in a <div> so the payload does not start with "<iframe",
+            # which would trigger IPython's "Consider using
+            # IPython.display.IFrame instead" UserWarning on every report.
             display(
                 HTML(
-                    f'<iframe srcdoc="{_htmllib.escape(doc)}" width="100%" '
-                    'height="500" style="border:1px solid #ccc;"></iframe>'
+                    f'<div><iframe srcdoc="{_htmllib.escape(doc)}" width="100%" '
+                    'height="500" style="border:1px solid #ccc;"></iframe></div>'
                 )
             )
         except Exception as exc:
