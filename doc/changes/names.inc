@@ -52,6 +52,7 @@
 .. _Carina Forster: https://github.com/CarinaFo
 .. _Carlos de la Torre-Ortiz: https://github.com/c-torre
 .. _Cathy Nangini: https://github.com/KatiRG
+.. _Cedric Conday: https://github.com/CedricConday
 .. _Chetan Gohil: https://github.com/cgohil8
 .. _Chris Bailey: https://github.com/cjayb
 .. _Chris Holdgraf: https://chrisholdgraf.com
