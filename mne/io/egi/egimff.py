@@ -52,11 +52,8 @@ def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
     """Map a contiguous range of on-disk EEG samples to mffpy epoch windows.
 
     EGI MFF signal blocks are stored back-to-back on disk with no gaps
-    between recording epochs (gaps only exist in the *logical* sample
-    timeline exposed to users, via ``disk_samps``). This generator yields,
-    for each recording epoch overlapping ``[disk_start, disk_stop)``, the
-    epoch index plus the relative ``(t0, dt)`` window (in seconds, as
-    expected by ``mffpy.Reader.get_physical_samples_from_epoch``) and the
+    between recording epochs. This generator yields, for each recording epoch,
+    the epoch index plus the relative ``(t0, dt)`` window (in seconds) and the
     corresponding ``[out_start, out_stop)`` slice into the caller's output
     array.
     """
