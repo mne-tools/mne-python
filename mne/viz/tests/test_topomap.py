@@ -899,7 +899,6 @@ def test_should_use_opm_orientation_groups_only_for_triaxial():
         for ch in info["chs"]:
             ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
 
-    picks = np.arange(len(ch_names))
     pair_overlaps = [
         np.array(["OPM001", "OPM002"]),
         np.array(["OPM003", "OPM004"]),
