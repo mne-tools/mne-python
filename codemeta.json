@@ -27,8 +27,8 @@
         "Python"
     ],
     "operatingSystem": [
-        "Windows",
         "POSIX",
+        "Windows",
         "Unix",
         "MacOS"
     ],
@@ -227,15 +227,15 @@
         },
         {
             "@type": "Person",
-            "email": "britta.wstnr@gmail.com",
-            "givenName": "Britta",
-            "familyName": "Westner"
-        },
-        {
-            "@type": "Person",
             "email": "t.s.binns@outlook.com",
             "givenName": "Thomas S",
             "familyName": "Binns"
+        },
+        {
+            "@type": "Person",
+            "email": "britta.wstnr@gmail.com",
+            "givenName": "Britta",
+            "familyName": "Westner"
         },
         {
             "@type": "Person",

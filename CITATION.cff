@@ -3,7 +3,7 @@ title: MNE-Python
 message: If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field.
 version: 1.13.0
 date-released: '2026-06-30'
-commit: bb12987c40433fe03667b1164546420654d36de9
+commit: 528785e91c4797fd9cb04a12e029a51821061f3c
 doi: 10.5281/zenodo.592483
 keywords:
 - brain
@@ -74,10 +74,10 @@ authors:
   given-names: Asish
 - family-names: Magnuski
   given-names: Mikołaj
-- family-names: Westner
-  given-names: Britta
 - family-names: Binns
   given-names: Thomas S
+- family-names: Westner
+  given-names: Britta
 - family-names: Wakeman
   given-names: Dan G
 - family-names: Strohmeier
