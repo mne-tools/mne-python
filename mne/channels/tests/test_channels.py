@@ -696,3 +696,17 @@ def test_combine_channels_metadata():
     good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
     combined_epochs = combine_channels(epochs, good)
     pd.testing.assert_frame_equal(epochs.metadata, combined_epochs.metadata)
+
+
+def test_pick_channels_orig_units_none():
+    """Picking channels must not crash when _orig_units is None (gh-11314)."""
+    import numpy as np
+
+    import mne
+
+    info = mne.create_info(["Fp1", "Fp2", "F3", "F4"], 100.0, "eeg")
+    raw = mne.io.RawArray(np.zeros((4, 100)), info)
+    raw._orig_units = None  # the state reported by some readers / RawArray flows
+    raw.pick(["Fp1", "Fp2"])  # previously raised AttributeError on None.items()
+    assert raw.ch_names == ["Fp1", "Fp2"]
+    assert raw._orig_units is None
