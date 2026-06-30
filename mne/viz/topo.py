@@ -64,7 +64,7 @@ def iter_topography(
     on_pick : callable | None
         The callback function to be invoked on clicking one
         of the axes. Is supposed to instantiate the following
-        API: ``function(axis, channel_index)``.
+        API: ``function(axis, channel_index, orig_fig)``.
     fig : matplotlib.figure.Figure | None
         The figure object to be considered. If None, a new
         figure will be created.
@@ -677,7 +677,7 @@ def _plot_timeseries(
 
     subscribe(ax.figure, "time_change", _on_time_change_sub)
 
-    link(orig_fig, ax.figure, merge=True)
+    link(orig_fig, ax.figure, recursive=True)
 
     ymin, ymax = ax.get_ylim()
     # don't pass vline or hline here (this fxn doesn't do hvline_color):

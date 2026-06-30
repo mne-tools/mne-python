@@ -407,7 +407,9 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
 
 
 @verbose
-def link(*figs, include_events=None, exclude_events=None, merge=False, verbose=None):
+def link(
+    *figs, include_events=None, exclude_events=None, recursive=False, verbose=None
+):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
@@ -426,7 +428,7 @@ def link(*figs, include_events=None, exclude_events=None, merge=False, verbose=N
     exclude_events : list of str | None
         Select which events not to publish across figures. By default (``None``),
         no events are excluded.
-    merge : bool
+    recursive : bool
         If ``True``, also link the existing link-groups that figs already belong
         to, so all members are mutually linked.
     %(verbose)s
@@ -442,8 +444,8 @@ def link(*figs, include_events=None, exclude_events=None, merge=False, verbose=N
         if fig not in _event_channel_links:
             _event_channel_links[fig] = weakref.WeakKeyDictionary()
 
-    # Merge link groups that the figures already belong
-    if merge:
+    # Recursive link groups that the figures already belong
+    if recursive:
         figs_set = weakref.WeakSet()
         for fig in figs:
             figs_set.add(fig)

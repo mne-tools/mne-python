@@ -1,0 +1,1 @@
+Now ``on_pick`` callable parameter accepts ``orig_fig`` in :func:`mne.viz.iter_topography`, to preserve backward compatibility it is made optional, by `Lifeng Qiu Lin`_.
