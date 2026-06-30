@@ -58,6 +58,23 @@ def test_bad_annot_handling():
     np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
 
 
+def test_psd_welch_short_span_with_overlap():
+    """Good spans shorter than n_overlap must not crash (gh-13039)."""
+    n_fft = 256
+    n_overlap = n_fft // 2  # 128
+    n_chan = 2
+    rng = np.random.default_rng(0)
+    # A good span (100 samples) shorter than n_overlap, then a bad-annotation
+    # (aligned NaN), then a long span. Previously raised from SciPy:
+    # "noverlap must be less than nperseg".
+    short = rng.standard_normal((n_chan, 100))
+    long = rng.standard_normal((n_chan, 5 * n_fft))
+    x = np.concatenate((short, np.full((n_chan, 1), np.nan), long), axis=-1)
+    psds, freqs = psd_array_welch(x, sfreq=100, n_fft=n_fft, n_overlap=n_overlap)
+    assert psds.shape == (n_chan, len(freqs))
+    assert np.all(np.isfinite(psds))
+
+
 def _make_psd_data():
     """Make noise data with sinusoids in 2 out of 7 channels."""
     rng = np.random.default_rng(0)
