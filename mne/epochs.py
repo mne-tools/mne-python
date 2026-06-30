@@ -3651,6 +3651,27 @@ class Epochs(BaseEpochs):
             annotations=annotations,
         )
 
+        # Warn about events whose epoch falls (partly) outside the raw data: those
+        # epochs are silently dropped, which is surprising e.g. when ``events`` was
+        # created at a different sampling frequency or contains samples before
+        # ``first_samp``. See gh-12989.
+        if self._raw is not None and len(self.events) > 0:
+            sfreq = self._raw.info["sfreq"]
+            starts = (
+                np.round(self.events[:, 0] + self._raw_times[0] * sfreq).astype(int)
+                - self._raw.first_samp
+            )
+            stops = starts + len(self._raw_times)
+            n_oob = int(np.sum((starts < 0) | (stops > self._raw.n_times)))
+            if n_oob > 0:
+                warn(
+                    f"{n_oob} event{_pl(n_oob)} {'is' if n_oob == 1 else 'are'} "
+                    "outside the data range; the corresponding "
+                    f"epoch{_pl(n_oob)} will be dropped. This can happen e.g. if "
+                    "the events were created at a different sampling frequency, or "
+                    "contain sample numbers before first_samp."
+                )
+
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
         """Load one epoch from disk.
