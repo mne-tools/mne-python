@@ -28,9 +28,9 @@
     ],
     "operatingSystem": [
         "Windows",
-        "POSIX",
         "Unix",
-        "MacOS"
+        "MacOS",
+        "POSIX"
     ],
     "softwareRequirements": [
         "python >= 3.10",
