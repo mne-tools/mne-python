@@ -1,6 +1,7 @@
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import pickle
 import warnings
 from copy import deepcopy
