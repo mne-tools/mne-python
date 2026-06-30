@@ -1148,6 +1148,4 @@ def test_filter_too_short_error_reports_correct_transition():
     # filter_length far too short for a 1 Hz transition band; the error must
     # report 1.00 Hz (the requested l_trans_bandwidth), not half that.
     with pytest.raises(ValueError, match="1.00 Hz transition band"):
-        raw.filter(
-            l_freq=10, h_freq=None, l_trans_bandwidth=1.0, filter_length="11ms"
-        )
+        raw.filter(l_freq=10, h_freq=None, l_trans_bandwidth=1.0, filter_length="11ms")
