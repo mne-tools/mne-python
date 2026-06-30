@@ -1963,7 +1963,7 @@ def plot_evoked_joint(
             evoked, ch_type, sphere=topomap_args.get("sphere")
         )
         use_opm_orientation_groups = _should_use_opm_orientation_groups(
-            evoked.info, picks_topo, merge_channels, ch_type
+            merge_channels, ch_type
         )
     n_group_axes = 2 if use_opm_orientation_groups else 1
 
