@@ -173,7 +173,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug(f"    ~   {self.name} Right ZOH %s" % n_use)
+                logger.debug(f"    ~   {self.name} Right ZOH {n_use}")
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True

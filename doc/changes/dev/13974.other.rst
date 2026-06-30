@@ -1,0 +1,1 @@
+Converted the remaining percent-style string formatting to f-strings in internal code, by :newcontrib:`Théo Castillo`.

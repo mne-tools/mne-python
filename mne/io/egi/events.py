@@ -28,7 +28,8 @@ def _read_events(input_fname, info):
     info["event_codes"] = event_codes
     events = np.zeros([info["n_events"], info["n_segments"] * n_samples])
     for n, event in enumerate(event_codes):
-        for i in mff_events[event]:
+        for dct in mff_events[event]:
+            i = dct["start_sample"]
             if (i < 0) or (i >= events.shape[1]):
                 continue
             events[n][i] = n + 1
@@ -74,6 +75,14 @@ def _read_mff_events(filename, sfreq, start_time):
             event_start = event["beginTime"]
             start_sec = (event_start - start_time).total_seconds()
             duration = event["duration"] / 1e9
+            if "label" in event or "description" in event:
+                extras = dict(
+                    label=event["label"],
+                    # description is reserved by mne/annotations.py
+                    desc=event["description"],
+                )
+            else:
+                extras = {}
 
             markers.append(
                 {
@@ -82,11 +91,16 @@ def _read_mff_events(filename, sfreq, start_time):
                     "start_sample": int(np.trunc(start_sec * sfreq)),
                     "end": start_sec + duration,
                     "chan": None,
+                    "extras": extras,
                 }
             )
 
     events_tims = {
-        ev: [marker["start_sample"] for marker in markers if marker["name"] == ev]
+        ev: [
+            dict(start_sample=marker["start_sample"], extras=marker["extras"])
+            for marker in markers
+            if marker["name"] == ev
+        ]
         for ev in code
     }
     return events_tims, code

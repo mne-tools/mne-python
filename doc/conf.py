@@ -426,6 +426,8 @@ numpydoc_xref_ignore = {
     "polars",
     "default",
     # unlinkable
+    "_Renderer",
+    "n_triangles",
     "CoregistrationUI",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
@@ -657,6 +659,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
     "https://doi.org/10.1145/",  # dl.acm.org
+    "https://doi.org/10.5281/",  # zenodo.org
     "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
@@ -667,6 +670,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://mitpress.mit.edu/9780262525855",  # works but linkcheck fails to resolve
+    "https://zenodo.org",  # doc/help/faq
     "https://blender.org",
     "https://home.alexk101.dev",
     "https://www.mq.edu.au/",
@@ -711,8 +716,12 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
     "https://www.crnl.fr",
+    # Spurious failure
+    "https://megcore.nih.gov/index.php/Staff",
     # Not rendered by linkcheck builder
     r"ides\.html",
+    # Sponsors not rendered properly by linkcheck builder
+    "{{inst.url}}",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
