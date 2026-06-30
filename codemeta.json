@@ -27,10 +27,10 @@
         "Python"
     ],
     "operatingSystem": [
-        "POSIX",
-        "Windows",
         "Unix",
-        "MacOS"
+        "Windows",
+        "MacOS",
+        "POSIX"
     ],
     "softwareRequirements": [
         "python >= 3.10",
