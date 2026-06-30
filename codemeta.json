@@ -27,9 +27,9 @@
         "Python"
     ],
     "operatingSystem": [
+        "POSIX",
         "MacOS",
         "Windows",
-        "POSIX",
         "Unix"
     ],
     "softwareRequirements": [
