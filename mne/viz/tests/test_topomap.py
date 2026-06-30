@@ -910,10 +910,8 @@ def test_should_use_opm_orientation_groups_only_for_triaxial():
     ]
 
     # Both biaxial and triaxial overlaps should trigger grouping
-    assert topomap._should_use_opm_orientation_groups(info, picks, pair_overlaps, "mag")
-    assert topomap._should_use_opm_orientation_groups(
-        info, picks, triax_overlaps, "mag"
-    )
+    assert topomap._should_use_opm_orientation_groups(pair_overlaps, "mag")
+    assert topomap._should_use_opm_orientation_groups(triax_overlaps, "mag")
 
 
 def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):

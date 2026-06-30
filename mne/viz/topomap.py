@@ -343,46 +343,46 @@ def _compute_orientation_group_data(
     """Compute grouped topomap data for OPM/Neuromag-like orientations."""
     from ..channels.layout import _merge_ch_data
 
-    if merge_channels:
-        if modality == "opm" and use_opm_orientation_groups:
-            radial_data, radial_names = _merge_ch_data(
-                data.copy(), "mag", copy.copy(ch_names), modality="opm"
-            )
-            radial_pos = pos
+    if not merge_channels:
+        return [(None, data, pos, ch_names, False)]
 
-            name_lookup = [name.removesuffix("_MERGE-REMOVE") for name in ch_names]
-            tangential_data = []
-            tangential_names = []
-            tangential_pos = []
-            for overlap_set in merge_channels:
-                idx = [name_lookup.index(ch_name) for ch_name in overlap_set[1:]]
-                # Collapse multiple tangential channels at one location using RMS.
-                tangential_data.append(_rms(data[idx], axis=0))
-                tangential_names.append(f"{overlap_set[0]}t")
-                tangential_pos.append(radial_pos[radial_names.index(overlap_set[0])])
+    if modality == "opm" and use_opm_orientation_groups:
+        radial_data, radial_names = _merge_ch_data(
+            data.copy(), "mag", copy.copy(ch_names), modality="opm"
+        )
+        radial_pos = pos
 
-            tangential_data = np.array(tangential_data)
-            tangential_pos = np.array(tangential_pos)
+        name_lookup = [name.removesuffix("_MERGE-REMOVE") for name in ch_names]
+        tangential_data = []
+        tangential_names = []
+        tangential_pos = []
+        for overlap_set in merge_channels:
+            idx = [name_lookup.index(ch_name) for ch_name in overlap_set[1:]]
+            # Collapse multiple tangential channels at one location using RMS.
+            tangential_data.append(_rms(data[idx], axis=0))
+            tangential_names.append(f"{overlap_set[0]}t")
+            tangential_pos.append(radial_pos[radial_names.index(overlap_set[0])])
 
-            return [
-                ("radial", radial_data, radial_pos, radial_names, False),
-                (
-                    "tangential",
-                    tangential_data,
-                    tangential_pos,
-                    tangential_names,
-                    True,
-                ),
-            ]
+        tangential_data = np.array(tangential_data)
+        tangential_pos = np.array(tangential_pos)
 
-        data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
-        group_norm = ch_type == "grad"
-        return [(None, data, pos, ch_names, group_norm)]
+        return [
+            ("radial", radial_data, radial_pos, radial_names, False),
+            (
+                "tangential",
+                tangential_data,
+                tangential_pos,
+                tangential_names,
+                True,
+            ),
+        ]
 
-    return [(None, data, pos, ch_names, False)]
+    data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
+    group_norm = ch_type == "grad"
+    return [(None, data, pos, ch_names, group_norm)]
 
 
-def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
+def _should_use_opm_orientation_groups(merge_channels, ch_type):
     """Return whether OPM orientation grouping should be enabled.
 
     Grouping is used for OPM magnetometer channels with overlap sets that
@@ -390,15 +390,7 @@ def _should_use_opm_orientation_groups(info, picks, merge_channels, ch_type):
     """
     if ch_type != "mag" or not merge_channels:
         return False
-
-    pick_chs = [info["chs"][pick] for pick in picks]
-    if not pick_chs or not all(ch["coil_type"] in _opm_coils for ch in pick_chs):
-        return False
-
-    # merge_channels should be a list of overlap sets, not a boolean
-    if not isinstance(merge_channels, (list, tuple)):
-        return False
-
+    assert isinstance(merge_channels, (list, tuple))
     return any(len(overlap_set) >= 2 for overlap_set in merge_channels)
 
 
@@ -1839,7 +1831,7 @@ def plot_ica_components(
         data = data[:, data_picks]
 
         use_opm_orientation_groups = _should_use_opm_orientation_groups(
-            ica.info, data_picks, merge_channels, ch_type
+            merge_channels, ch_type
         )
         n_group_axes = 2 if use_opm_orientation_groups else 1
 
@@ -2466,7 +2458,7 @@ def _plot_evoked_topomap(
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     # single_time_point (used for animation) shows only the radial component
     use_opm_orientation_groups = (
-        _should_use_opm_orientation_groups(evoked.info, picks, merge_channels, ch_type)
+        _should_use_opm_orientation_groups(merge_channels, ch_type)
         and not single_time_point
     )
     # check interactive
