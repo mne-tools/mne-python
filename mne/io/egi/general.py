@@ -8,67 +8,41 @@ import re
 
 import numpy as np
 
-from ...utils import _pl, _soft_import
-
-
-def _extract(tags, filepath=None, obj=None):
-    """Extract info from XML."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
-
-    if obj is not None:
-        fileobj = obj
-    elif filepath is not None:
-        fileobj = parse(filepath)
-    else:
-        raise ValueError("There is not object or file to extract data")
-    infoxml = dict()
-    for tag in tags:
-        value = fileobj.getElementsByTagName(tag)
-        infoxml[tag] = []
-        for i in range(len(value)):
-            infoxml[tag].append(value[i].firstChild.data)
-    return infoxml
+from ...utils import _pl
 
 
 def _get_gains(filepath):
     """Parse gains."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
+    from mffpy.xml_files import XML
 
-    file_obj = parse(filepath)
-    objects = file_obj.getElementsByTagName("calibration")
-    gains = dict()
-    for ob in objects:
-        value = ob.getElementsByTagName("type")
-        if value[0].firstChild.data == "GCAL":
-            data_g = _extract(["ch"], obj=ob)["ch"]
-            gains.update(gcal=np.asarray(data_g, dtype=np.float64))
-        elif value[0].firstChild.data == "ICAL":
-            data_g = _extract(["ch"], obj=ob)["ch"]
-            gains.update(ical=np.asarray(data_g, dtype=np.float64))
+    obj = XML.from_file(filepath)
+    cals = obj.get_content().get("calibrations", {})
+    gains = {}
+    if "GCAL" in cals:
+        ch_dict = cals["GCAL"]["channels"]
+        gains["gcal"] = np.asarray(
+            [ch_dict[k] for k in sorted(ch_dict)], dtype=np.float64
+        )
+    if "ICAL" in cals:
+        ch_dict = cals["ICAL"]["channels"]
+        gains["ical"] = np.asarray(
+            [ch_dict[k] for k in sorted(ch_dict)], dtype=np.float64
+        )
     return gains
 
 
 def _get_ep_info(filepath):
     """Get epoch info."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
+    from mffpy.xml_files import XML
 
-    epochfile = filepath + "/epochs.xml"
-    epochlist = parse(epochfile)
-    epochs = epochlist.getElementsByTagName("epoch")
+    ep_obj = XML.from_file(os.path.join(filepath, "epochs.xml"))
     keys = ("first_samps", "last_samps", "first_blocks", "last_blocks")
     epoch_info = {key: list() for key in keys}
-    for epoch in epochs:
-        ep_begin = int(epoch.getElementsByTagName("beginTime")[0].firstChild.data)
-        ep_end = int(epoch.getElementsByTagName("endTime")[0].firstChild.data)
-        first_block = int(epoch.getElementsByTagName("firstBlock")[0].firstChild.data)
-        last_block = int(epoch.getElementsByTagName("lastBlock")[0].firstChild.data)
-        epoch_info["first_samps"].append(ep_begin)
-        epoch_info["last_samps"].append(ep_end)
-        epoch_info["first_blocks"].append(first_block)
-        epoch_info["last_blocks"].append(last_block)
+    for ep in ep_obj.epochs:
+        epoch_info["first_samps"].append(ep.beginTime)
+        epoch_info["last_samps"].append(ep.endTime)
+        epoch_info["first_blocks"].append(ep.firstBlock)
+        epoch_info["last_blocks"].append(ep.lastBlock)
     # Don't turn into ndarray here, keep native int because it can deal with
     # huge numbers (could use np.uint64 but it's more work)
     return epoch_info
@@ -132,8 +106,7 @@ def _get_blocks(filepath):
 
 def _get_signalfname(filepath):
     """Get filenames."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
+    from mffpy.xml_files import XML
 
     listfiles = os.listdir(filepath)
     binfiles = list(
@@ -145,16 +118,14 @@ def _get_signalfname(filepath):
         bin_num_str = re.search(r"\d+", binfile).group()
         infofile = "info" + bin_num_str + ".xml"
         infofiles.append(infofile)
-        infobjfile = os.path.join(filepath, infofile)
-        infobj = parse(infobjfile)
-        if len(infobj.getElementsByTagName("EEG")):
-            signal_type = "EEG"
-        elif len(infobj.getElementsByTagName("PNSData")):
-            signal_type = "PNS"
-        all_files[signal_type] = {
-            "signal": f"signal{bin_num_str}.bin",
-            "info": infofile,
-        }
+        info_obj = XML.from_file(os.path.join(filepath, infofile))
+        channel_type = (
+            info_obj.get_content().get("generalInformation", {}).get("channel_type", "")
+        )
+        if channel_type == "EEG":
+            all_files["EEG"] = {"signal": f"signal{bin_num_str}.bin", "info": infofile}
+        elif channel_type == "PNSData":
+            all_files["PNS"] = {"signal": f"signal{bin_num_str}.bin", "info": infofile}
     if "EEG" not in all_files:
         infofiles_str = "\n".join(infofiles)
         raise FileNotFoundError(

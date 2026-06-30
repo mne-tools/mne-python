@@ -30,6 +30,7 @@
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
+.. _Apoorva Verma: https://github.com/apoorva-01
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
@@ -50,8 +51,9 @@
 .. _btkcodedev: https://github.com/btkcodedev
 .. _buildqa: https://github.com/buildqa
 .. _Carina Forster: https://github.com/CarinaFo
-.. _Carlos de la Torre-Ortiz: https://ctorre.me
+.. _Carlos de la Torre-Ortiz: https://github.com/c-torre
 .. _Cathy Nangini: https://github.com/KatiRG
+.. _Cedric Conday: https://github.com/CedricConday
 .. _Chetan Gohil: https://github.com/cgohil8
 .. _Chris Bailey: https://github.com/cjayb
 .. _Chris Holdgraf: https://chrisholdgraf.com
@@ -74,6 +76,7 @@
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
+.. _Deep Kaur: https://github.com/Dpereaptkhamur-13
 .. _Demetres Kostas: https://github.com/kostasde
 .. _Denis Engemann: https://denis-engemann.de
 .. _Dev Parikh: https://github.com/devparikh0506
@@ -103,6 +106,7 @@
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 .. _Famous077: https://github.com/Famous077
+.. _Farzah11: https://github.com/Farzah11
 .. _Farzin Negahbani: https://github.com/Farzin-Negahbani
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
@@ -145,10 +149,10 @@
 .. _Jacob Woessner: https://github.com/withmywoessner
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 .. _Jan Ebert: https://www.jan-ebert.com/
+.. _Jan Mathijs Schoffelen: https://github.com/schoffelen
 .. _Jan Sedivy: https://github.com/honzaseda
 .. _Jan Sosulski: https://jan-sosulski.de
 .. _Jan Zerfowski: https://github.com/jzerfowski
-.. _Jan-Mathijs Schoeffelen: https://github.com/schoffelen
 .. _Jasper van den Bosch: https://github.com/ilogue
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
 .. _Jean-Rémi King: https://github.com/kingjr
@@ -239,7 +243,7 @@
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 .. _Mojackhak: https://github.com/Mojackhak
 .. _Moritz Gerster: https://github.com/moritz-gerster
-.. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
+.. _Motofumi Fushimi: https://github.com/motofumi-fushimi
 .. _Nabil Alibou: https://github.com/nabilalibou
 .. _Natalie Klein: https://github.com/natalieklein
 .. _Nathalie Gayraud: https://github.com/ngayraud
@@ -267,6 +271,7 @@
 .. _Paul Roujansky: https://github.com/paulroujansky
 .. _Pavel Navratil: https://github.com/navrpa13
 .. _Pavel Popov: https://github.com/paavalipopov
+.. _Payam Sadeghi-Shabestari: https://github.com/payamsash
 .. _Peter Molfese: https://github.com/pmolfese
 .. _Phillip Alday: https://palday.bitbucket.io
 .. _Pierre Ablin: https://pierreablin.com
@@ -353,6 +358,7 @@
 .. _Thomas Caswell: https://tacaswell.github.io
 .. _Thomas Hartmann: https://github.com/thht
 .. _Thomas Radman: https://github.com/tradman
+.. _Théo Castillo: https://github.com/theosorus
 .. _Théodore Papadopoulo: https://github.com/papadop
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
 .. _Timur Sokhin: https://github.com/Qwinpin

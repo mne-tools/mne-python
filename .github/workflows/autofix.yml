@@ -12,12 +12,10 @@ jobs:
     name: Autoupdate changelog entry and headers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
+      - uses: actions/setup-python@v6.2.0
       - run: pip install --upgrade towncrier pygithub gitpython numpy
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - run: python ./tools/dev/ensure_headers.py
