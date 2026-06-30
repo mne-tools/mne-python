@@ -514,6 +514,8 @@ if src_sample_data.exists():
         "MEG/sample/sample_audvis-cov.fif",
         "MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif",
         "MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-fwd.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif",
         "subjects/sample/mri/T1.mgz",
         "subjects/sample/bem/sample-oct-6-src.fif",
         "subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif",
@@ -879,6 +881,32 @@ sphinx_gallery_conf = {
         "            _out.append(_Path(_lite_fetch_rel(_rel)))\n"
         "    return _out\n"
         "mne.datasets.eegbci.load_data = _lite_eegbci_load_data\n"
+        "\n"
+        "# Some MNE-sample-data files (e.g. the fixed-orientation forward/\n"
+        "# inverse used by the point-spread tutorial) aren't in the eager\n"
+        "# _sample_files list above because only one or two notebooks need\n"
+        "# them. Rather than hand-listing every such file, lazily fetch any\n"
+        "# sample-data path the first time read_forward_solution/\n"
+        "# read_inverse_operator is asked to open it.\n"
+        "def _lite_fetch_if_under_mne_data(fname):\n"
+        "    _p = str(fname)\n"
+        "    if _p.startswith(mne_data_path + '/'):\n"
+        "        _lite_fetch_rel(_p[len(mne_data_path) + 1:])\n"
+        "    return fname\n"
+        "_orig_read_forward_solution = mne.read_forward_solution\n"
+        "def _lite_read_forward_solution(fname, *_a, **_kw):\n"
+        "    return _orig_read_forward_solution(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_forward_solution = _lite_read_forward_solution\n"
+        "import mne.minimum_norm as _mne_minv\n"
+        "_orig_read_inverse_operator = _mne_minv.read_inverse_operator\n"
+        "def _lite_read_inverse_operator(fname, *_a, **_kw):\n"
+        "    return _orig_read_inverse_operator(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "_mne_minv.read_inverse_operator = _lite_read_inverse_operator\n"
+        "mne.minimum_norm.read_inverse_operator = _lite_read_inverse_operator\n"
         "\n"
         "# Pyodide/WASM has no OS threads, so MNE's ProgressBar background\n"
         "# updater thread (used by the ProgressBar context manager, e.g. in\n"
