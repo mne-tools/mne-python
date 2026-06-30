@@ -1,1 +1,1 @@
-When creating :class:`mne.Epochs`, a warning is now emitted if any ``events`` fall outside the range of the raw data, since the corresponding epochs are otherwise silently dropped, by `Cedric Conday`_.
+When creating :class:`mne.Epochs`, a warning is now emitted if any ``events`` have sample numbers outside the recorded data, since the corresponding epochs are otherwise silently dropped, by `Cedric Conday`_.

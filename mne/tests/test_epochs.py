@@ -1,4 +1,5 @@
 # Authors: The MNE-Python contributors.
+import warnings
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -5281,12 +5282,14 @@ def test_empty_error(method, epochs_empty):
 
 
 def test_epochs_warn_out_of_bounds_events():
-    """Warn when events fall outside the raw data range (gh-12989)."""
+    """Warn when event sample numbers fall outside the recorded data (gh-12989)."""
     sfreq = 100.0
     info = create_info(3, sfreq, "eeg")
     raw = RawArray(np.random.default_rng(0).standard_normal((3, 1000)), info)
-    # second event (sample 2000) is past the 1000-sample data, so its epoch is
-    # out of bounds and silently dropped; we should warn about it.
-    events = np.array([[100, 0, 1], [2000, 0, 1]])
-    with pytest.warns(RuntimeWarning, match="outside the data range"):
-        mne.Epochs(raw, events, tmin=0, tmax=0.5, baseline=None)
+    # event sample 2000 is past the 1000-sample recording -> warn
+    with pytest.warns(RuntimeWarning, match="outside the recorded data"):
+        mne.Epochs(raw, np.array([[2000, 0, 1]]), tmin=-0.2, tmax=0.5, baseline=None)
+    # an in-range event whose epoch window merely clips the edge must NOT warn
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        mne.Epochs(raw, np.array([[990, 0, 1]]), tmin=0, tmax=0.5, baseline=None)
