@@ -58,21 +58,32 @@ def test_bad_annot_handling():
     np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
 
 
-def test_psd_welch_short_span_with_overlap():
-    """Good spans shorter than n_overlap must not crash (gh-13039)."""
+def test_psd_welch_short_span_dropped():
+    """Good spans shorter than n_per_seg are dropped with a warning (gh-13039)."""
     n_fft = 256
     n_overlap = n_fft // 2  # 128
     n_chan = 2
     rng = np.random.default_rng(0)
-    # A good span (100 samples) shorter than n_overlap, then a bad-annotation
-    # (aligned NaN), then a long span. Previously raised from SciPy:
-    # "noverlap must be less than nperseg".
+    # A short good span (100 samples < n_per_seg), then a bad-annotation
+    # (aligned NaN), then a long span. The short span cannot hold a single
+    # Welch window; it is now dropped with a warning rather than raising from
+    # SciPy ("noverlap must be less than nperseg").
     short = rng.standard_normal((n_chan, 100))
     long = rng.standard_normal((n_chan, 5 * n_fft))
     x = np.concatenate((short, np.full((n_chan, 1), np.nan), long), axis=-1)
-    psds, freqs = psd_array_welch(x, sfreq=100, n_fft=n_fft, n_overlap=n_overlap)
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        psds, freqs = psd_array_welch(x, sfreq=100, n_fft=n_fft, n_overlap=n_overlap)
     assert psds.shape == (n_chan, len(freqs))
     assert np.all(np.isfinite(psds))
+
+    # If *every* good span is too short, there is nothing left to analyze. Use
+    # three short spans so the total length still exceeds n_fft (otherwise the
+    # earlier n_fft > n_times guard fires first).
+    nan_col = np.full((n_chan, 1), np.nan)
+    x_all_short = np.concatenate((short, nan_col, short, nan_col, short), axis=-1)
+    with pytest.raises(ValueError, match="All good data spans are shorter"):
+        with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+            psd_array_welch(x_all_short, sfreq=100, n_fft=n_fft, n_overlap=n_overlap)
 
 
 def _make_psd_data():
