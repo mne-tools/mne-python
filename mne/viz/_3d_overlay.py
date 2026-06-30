@@ -286,6 +286,15 @@ class LayeredMesh:
         if overlay is None:
             return
         if scalars is not None:
+            scalars = np.asarray(scalars)
+            if self.smooth_mat is not None:
+                expected = self.smooth_mat.shape[1]
+            else:
+                expected = len(overlay._scalars)
+            if scalars.shape != (expected,):
+                raise ValueError(
+                    f"scalars must have shape ({expected},), got {scalars.shape}"
+                )
             if self.smooth_mat is not None:
                 scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
