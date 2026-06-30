@@ -1,5 +1,4 @@
 # Authors: The MNE-Python contributors.
-import warnings
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
