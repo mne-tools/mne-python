@@ -254,13 +254,16 @@ jobs:
       # only fetches them when the changed files reference them, so a cache miss
       # on a PR that touches only doc/conf.py would leave them absent and the
       # notebooks would fail at runtime with FileNotFoundError. kiloword and
-      # erp_core back the Epochs metadata tutorials (30 & 40).
+      # erp_core back the Epochs metadata tutorials (30 & 40); mtrf and eegbci
+      # back the decoding examples (receptive_field_mtrf, decoding_csp_*).
       - run:
           name: Ensure MNE data for JupyterLite
           command: |
             python -c "import mne; mne.datasets.sample.data_path(update_path=True)"
             python -c "import mne; mne.datasets.kiloword.data_path(update_path=True)"
             python -c "import mne; mne.datasets.erp_core.data_path(update_path=True)"
+            python -c "import mne; mne.datasets.mtrf.data_path(update_path=True)"
+            python -c "import mne; mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True)"
       # Build docs
       - run:
           name: make html

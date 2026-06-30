@@ -550,14 +550,23 @@ if src_eeglab.exists() and not dst_eeglab.exists():
     shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
     print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
 
-# Inject the kiloword and erp_core datasets needed by the Epochs tutorials
-# (30_epochs_metadata and 40_autogenerate_metadata). Each tutorial uses a
-# single file; their sizes (28.7 MB, 123.6 MB) are within what we already
-# serve (sample_audvis_raw.fif is 128.5 MB). The CI "Ensure ... data" step
+# Inject the single needed file(s) from extra datasets used by the Epochs and
+# decoding examples. Sizes are all within what we already serve
+# (sample_audvis_raw.fif is 128.5 MB): kiloword 28.7 MB, erp_core 123.6 MB,
+# mtrf speech_data.mat 17.2 MB, eegbci 3x2.6 MB. The CI "Ensure ... data" step
 # downloads them so the sources exist here.
 for _folder, _ds_files in (
     ("MNE-kiloword-data", ["kword_metadata-epo.fif"]),
     ("MNE-ERP-CORE-data", ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"]),
+    ("mTRF_1.5", ["speech_data.mat"]),
+    (
+        "MNE-eegbci-data",
+        [
+            "files/eegmmidb/1.0.0/S001/S001R06.edf",
+            "files/eegmmidb/1.0.0/S001/S001R10.edf",
+            "files/eegmmidb/1.0.0/S001/S001R14.edf",
+        ],
+    ),
 ):
     _src_ds = mne_data_base / _folder
     _dst_ds = lite_data_base / _folder
@@ -815,27 +824,31 @@ sphinx_gallery_conf = {
         "def _lite_sample_data_path(*_a, **_kw):\n"
         "    return _sample_path\n"
         "mne.datasets.sample.data_path = _lite_sample_data_path\n"
-        "# kiloword + erp_core (Epochs tutorials 30 & 40) are large and used by\n"
-        "# only those two notebooks, so fetch them LAZILY — only when data_path()\n"
-        "# is actually called — to avoid taxing every other notebook's setup.\n"
-        "# Pyodide runs in a web worker here, where a synchronous XHR may set\n"
-        "# responseType='arraybuffer', letting a sync data_path() read binary.\n"
-        "def _lite_lazy_fetch(_folder, _fname):\n"
-        "    _dst = mne_data_path + '/' + _folder + '/' + _fname\n"
+        "# Several non-sample datasets are each used by only a couple of\n"
+        "# notebooks (kiloword/erp_core for Epochs 30 & 40; mtrf/eegbci for the\n"
+        "# decoding examples), so fetch them LAZILY — only when their\n"
+        "# data_path()/load_data() is called — to avoid taxing every other\n"
+        "# notebook's setup. Pyodide runs in a web worker here, where a\n"
+        "# synchronous XHR may set responseType='arraybuffer', letting a sync\n"
+        "# data_path() read binary.\n"
+        "def _lite_fetch_rel(_rel):\n"
+        "    _dst = mne_data_path + '/' + _rel\n"
         "    if not os.path.exists(_dst):\n"
         "        from js import XMLHttpRequest\n"
         "        _xhr = XMLHttpRequest.new()\n"
-        "        _xhr.open('GET', _base + _folder + '/' + _fname, False)\n"
+        "        _xhr.open('GET', _base + _rel, False)\n"
         "        _xhr.responseType = 'arraybuffer'\n"
         "        _xhr.send()\n"
         "        if _xhr.status != 200:\n"
         "            raise FileNotFoundError(\n"
-        "                f'Could not fetch {_folder}/{_fname} "
-        "(HTTP {_xhr.status})'\n"
+        "                f'Could not fetch {_rel} (HTTP {_xhr.status})'\n"
         "            )\n"
         "        os.makedirs(os.path.dirname(_dst), exist_ok=True)\n"
         "        with open(_dst, 'wb') as _fh:\n"
         "            _fh.write(bytes(_xhr.response.to_py()))\n"
+        "    return _dst\n"
+        "def _lite_lazy_fetch(_folder, _fname):\n"
+        "    _lite_fetch_rel(_folder + '/' + _fname)\n"
         "    return _Path(mne_data_path + '/' + _folder)\n"
         "def _lite_kiloword_data_path(*_a, **_kw):\n"
         "    return _lite_lazy_fetch("
@@ -847,6 +860,25 @@ sphinx_gallery_conf = {
         "'ERP-CORE_Subject-001_Task-Flankers_eeg.fif'\n"
         "    )\n"
         "mne.datasets.erp_core.data_path = _lite_erp_core_data_path\n"
+        "def _lite_mtrf_data_path(*_a, **_kw):\n"
+        "    return _lite_lazy_fetch('mTRF_1.5', 'speech_data.mat')\n"
+        "mne.datasets.mtrf.data_path = _lite_mtrf_data_path\n"
+        "def _lite_eegbci_load_data(subject, runs, *_a, **_kw):\n"
+        "    _runs = [runs] if isinstance(runs, (int, float)) else list(runs)\n"
+        "    _subjects = (\n"
+        "        list(subject) if isinstance(subject, (list, tuple))\n"
+        "        else [subject]\n"
+        "    )\n"
+        "    _out = []\n"
+        "    for _s in _subjects:\n"
+        "        for _r in _runs:\n"
+        "            _rel = (\n"
+        "                'MNE-eegbci-data/files/eegmmidb/1.0.0/'\n"
+        "                f'S{int(_s):03d}/S{int(_s):03d}R{int(_r):02d}.edf'\n"
+        "            )\n"
+        "            _out.append(_Path(_lite_fetch_rel(_rel)))\n"
+        "    return _out\n"
+        "mne.datasets.eegbci.load_data = _lite_eegbci_load_data\n"
         "\n"
         "# Pyodide/WASM has no OS threads, so MNE's ProgressBar background\n"
         "# updater thread (used by the ProgressBar context manager, e.g. in\n"
