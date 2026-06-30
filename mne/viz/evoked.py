@@ -1959,7 +1959,7 @@ def plot_evoked_joint(
     if ch_type == "mag":
         from .topomap import _should_use_opm_orientation_groups
 
-        picks_topo, _, merge_channels, *_ = _prepare_topomap_plot(
+        _, _, merge_channels, *_ = _prepare_topomap_plot(
             evoked, ch_type, sphere=topomap_args.get("sphere")
         )
         use_opm_orientation_groups = _should_use_opm_orientation_groups(
