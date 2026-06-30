@@ -30,6 +30,7 @@
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
+.. _Apoorva Verma: https://github.com/apoorva-01
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
