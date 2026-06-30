@@ -35,6 +35,46 @@ from .general import (
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
 
 
+def _get_mff_reader(input_fname):
+    """Open an mffpy.Reader for the MFF directory, with raw (uncalibrated) EEG.
+
+    mffpy applies its own GCAL scaling by default, but MNE's ``cals`` already
+    incorporate that gain (see ``_get_eeg_calibration_info``), so it is
+    disabled here to avoid applying it twice.
+    """
+    mffpy = _import_mffpy("read EGI MFF data")
+    mff_reader = mffpy.Reader(input_fname)
+    mff_reader.set_calibration("EEG", None)
+    return mff_reader
+
+
+def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
+    """Map a contiguous range of on-disk EEG samples to mffpy epoch windows.
+
+    EGI MFF signal blocks are stored back-to-back on disk with no gaps
+    between recording epochs. This generator yields, for each recording epoch,
+    the epoch index plus the relative ``(t0, dt)`` window (in seconds) and the
+    corresponding ``[out_start, out_stop)`` slice into the caller's output
+    array.
+    """
+    first_samps = np.asarray(egi_info["first_samps"])
+    last_samps = np.asarray(egi_info["last_samps"])
+    sfreq = egi_info["sfreq"]
+    epoch_lengths = last_samps - first_samps
+    epoch_disk_offsets = np.concatenate([[0], np.cumsum(epoch_lengths)])
+
+    for ei in range(len(epoch_lengths)):
+        ep_disk_start = epoch_disk_offsets[ei]
+        ep_disk_stop = epoch_disk_offsets[ei + 1]
+        ov_start = max(disk_start, ep_disk_start)
+        ov_stop = min(disk_stop, ep_disk_stop)
+        if ov_start >= ov_stop:
+            continue
+        t0 = (ov_start - ep_disk_start) / sfreq
+        dt = (ov_stop - ov_start) / sfreq
+        yield ei, t0, dt, ov_start - disk_start, ov_stop - disk_start
+
+
 def _read_mff_header(filepath):
     """Read mff header."""
     _soft_import("mffpy", "reading EGI MFF data")
@@ -489,6 +529,7 @@ class RawMff(BaseRaw):
 
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events
+        egi_info["mff_path"] = input_fname
 
         # Check how many channels to read are from EEG
         keys = ("eeg", "sti", "pns")
@@ -584,10 +625,6 @@ class RawMff(BaseRaw):
         egi_info = self._raw_extras[fi]
         one = np.zeros((egi_info["kind_bounds"][-1], stop - start))
 
-        # info about the binary file structure
-        n_channels = egi_info["n_channels"]
-        samples_block = egi_info["samples_block"]
-
         # Check how many channels to read are from each type
         bounds = egi_info["kind_bounds"]
         if isinstance(idx, slice):
@@ -620,61 +657,18 @@ class RawMff(BaseRaw):
         stop = disk_samps[disk_use_idx[-1]] + 1
         assert len(disk_use_idx) == stop - start
 
-        # Get starting/stopping block/samples
-        block_samples_offset = np.cumsum(samples_block)
-        offset_blocks = np.sum(block_samples_offset <= start)
-        offset_samples = start - (
-            block_samples_offset[offset_blocks - 1] if offset_blocks > 0 else 0
-        )
-
-        # TODO: Refactor this reading with the PNS reading in a single function
-        # (DRY)
-        samples_to_read = stop - start
-        with open(self.filenames[fi], "rb", buffering=0) as fid:
-            # Go to starting block
-            current_block = 0
-            current_block_info = None
-            current_data_sample = 0
-            while current_block < offset_blocks:
-                this_block_info = _block_r(fid)
-                if this_block_info is not None:
-                    current_block_info = this_block_info
-                fid.seek(current_block_info["block_size"], 1)
-                current_block += 1
-
-            # Start reading samples
-            while samples_to_read > 0:
-                logger.debug(f"    Reading from block {current_block}")
-                this_block_info = _block_r(fid)
-                current_block += 1
-                if this_block_info is not None:
-                    current_block_info = this_block_info
-
-                to_read = current_block_info["nsamples"] * current_block_info["nc"]
-                block_data = np.fromfile(fid, dtype, to_read)
-                block_data = block_data.reshape(n_channels, -1, order="C")
-
-                # Compute indexes
-                samples_read = block_data.shape[1]
-                logger.debug(f"        Read   {samples_read} samples")
-                logger.debug(f"        Offset {offset_samples} samples")
-                if offset_samples > 0:
-                    # First block read, skip to the offset:
-                    block_data = block_data[:, offset_samples:]
-                    samples_read = samples_read - offset_samples
-                    offset_samples = 0
-                if samples_to_read < samples_read:
-                    # Last block to read, skip the last samples
-                    block_data = block_data[:, :samples_to_read]
-                    samples_read = samples_to_read
-                logger.debug(f"        Keep   {samples_read} samples")
-
-                s_start = current_data_sample
-                s_end = s_start + samples_read
-
-                one[eeg_one, disk_use_idx[s_start:s_end]] = block_data[eeg_in]
-                samples_to_read = samples_to_read - samples_read
-                current_data_sample = current_data_sample + samples_read
+        if len(eeg_one):
+            mff_reader = _get_mff_reader(egi_info["mff_path"])
+            mff_epochs = mff_reader.epochs
+            for ei, t0, dt, out_start, out_stop in _disk_range_to_epochs(
+                egi_info, start, stop
+            ):
+                logger.debug(f"    Reading from epoch {ei} t0={t0} dt={dt}")
+                eeg_chunk, _ = mff_reader.get_physical_samples_from_epoch(
+                    mff_epochs[ei], t0=t0, dt=dt, channels=["EEG"]
+                )["EEG"]
+                cols = disk_use_idx[out_start:out_stop]
+                one[eeg_one, cols] = eeg_chunk[eeg_in]
 
         if len(pns_one) > 0:
             # PNS Data is present and should be read:

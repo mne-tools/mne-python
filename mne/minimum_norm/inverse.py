@@ -1893,7 +1893,10 @@ def make_inverse_operator(
         :func:`~mne.compute_covariance` to compute the noise covariance matrix on
         :class:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
     %(loose)s
-    %(depth)s
+    %(depth)s This is effectively ignored when ``method='eLORETA'``.
+
+        .. versionchanged:: 0.20
+            Depth bias ignored for ``method='eLORETA'``.
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be ``"auto"`` or ``0``. If ``'auto'``, the loose value
