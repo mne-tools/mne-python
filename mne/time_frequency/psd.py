@@ -281,6 +281,20 @@ def psd_array_welch(
             )
 
         def func(*args, **kwargs):
+            # A good data span shorter than n_per_seg makes SciPy reduce nperseg to
+            # the span length; reduce noverlap to match so it stays < nperseg.
+            # Otherwise, a span shorter than n_overlap raises "noverlap must be less
+            # than nperseg". nfft is left unchanged so every span yields the same
+            # frequency bins (the spans are then combined by weighted average).
+            # See #13039.
+            epoch = args[0]
+            if epoch.shape[-1] < n_per_seg:
+                span_len = epoch.shape[-1]
+                kwargs = {
+                    **kwargs,
+                    "nperseg": span_len,
+                    "noverlap": min(n_overlap, max(span_len - 1, 0)),
+                }
             # swallow SciPy warnings caused by short good data spans
             with warnings.catch_warnings():
                 warnings.filterwarnings(
