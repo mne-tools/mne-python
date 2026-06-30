@@ -3487,6 +3487,13 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    on_outside : 'raise' | 'warn' | 'ignore'
+        What to do if an event's sample number falls outside the recorded data
+        range. Such events yield no epoch and are dropped. Can be ``'raise'``
+        to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to do nothing.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Attributes
@@ -3587,6 +3594,7 @@ class Epochs(BaseEpochs):
         reject_by_annotation=True,
         metadata=None,
         event_repeated="error",
+        on_outside="warn",
         verbose=None,
     ):
         from .io import BaseRaw
@@ -3663,12 +3671,14 @@ class Epochs(BaseEpochs):
             hi = lo + self._raw.n_times
             n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
             if n_oob:
-                warn(
+                _on_missing(
+                    on_outside,
                     f"{n_oob} event{_pl(n_oob)} {'has' if n_oob == 1 else 'have'} a "
                     "sample number outside the recorded data; the corresponding "
                     f"epoch{_pl(n_oob)} will be dropped. This can happen if the "
                     "events were created at a different sampling frequency, or "
-                    "contain sample numbers before first_samp."
+                    "contain sample numbers before first_samp.",
+                    name="on_outside",
                 )
 
     @verbose
