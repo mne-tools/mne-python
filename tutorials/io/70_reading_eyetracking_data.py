@@ -89,6 +89,7 @@ import sys
 
 import mne
 
+# JupyterLite (Pyodide) browser build only.
 if sys.platform == "emscripten":
     raise RuntimeError(
         "This tutorial requires the MNE misc dataset with eyetracking data, "

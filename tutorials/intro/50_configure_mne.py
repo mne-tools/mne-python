@@ -197,6 +197,7 @@ print(mne.get_config("MNE_LOGGING_LEVEL"))
 # set. First, with log level ``warning``:
 
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     kit_data_path = os.path.join(
         os.path.abspath(os.path.dirname(mne.__file__)),
@@ -213,6 +214,7 @@ if sys.platform != "emscripten":
 # "warning" or worse. Next, we'll load the same file with log level ``info``
 # (the default level):
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     raw = mne.io.read_raw_kit(kit_data_path, verbose="info")
 
@@ -224,6 +226,7 @@ if sys.platform != "emscripten":
 # manager, which is another way to accomplish the same thing as passing
 # ``verbose='debug'``:
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     with mne.use_log_level("debug"):
         raw = mne.io.read_raw_kit(kit_data_path)

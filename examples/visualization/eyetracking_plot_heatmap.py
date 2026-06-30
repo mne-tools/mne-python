@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.viz.eyetracking import plot_gaze
 
+# JupyterLite (Pyodide) browser build only.
 if sys.platform == "emscripten":
     raise RuntimeError(
         "This example requires the MNE EyeLink dataset, "

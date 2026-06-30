@@ -54,6 +54,7 @@ noise_cov = mne.compute_covariance(
 )
 
 # butterfly mode shows the differences most clearly
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     raw.plot(events=events, butterfly=True)
     raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
@@ -61,6 +62,7 @@ if sys.platform != "emscripten":
 # %%
 # Epochs with whitening
 # ---------------------
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     epochs.plot(events=True)
     epochs.plot(noise_cov=noise_cov, events=True)

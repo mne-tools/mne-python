@@ -92,6 +92,7 @@ fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial
 # It is also possible to skip the manual montage loading step by passing the montage
 # name directly to the :meth:`~mne.io.Raw.set_montage` method.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     ssvep_folder = mne.datasets.ssvep.data_path()
     ssvep_data_raw_path = (
@@ -135,6 +136,7 @@ if sys.platform != "emscripten":
 # If you prefer to draw the head circle using 10–20 conventions (which are also used by
 # EEGLAB), you can pass ``sphere='eeglab'``:
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     fig = ssvep_raw.plot_sensors(show_names=True, sphere="eeglab")
 
@@ -221,6 +223,7 @@ ax3d.view_init(azim=70, elev=15)
 # It is also possible to render an image of an MEG sensor helmet using 3D surface
 # rendering instead of matplotlib. This works by calling :func:`mne.viz.plot_alignment`:
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     fig = mne.viz.plot_alignment(
         sample_raw.info,

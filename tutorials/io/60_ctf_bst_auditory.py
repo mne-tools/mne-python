@@ -37,6 +37,7 @@ from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.minimum_norm import apply_inverse
 
+# JupyterLite (Pyodide) browser build only.
 if sys.platform == "emscripten":
     raise RuntimeError(
         "This tutorial requires the Brainstorm auditory dataset (~2.9 GB) "

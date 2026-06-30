@@ -44,6 +44,7 @@ subjects_dir = data_path / "subjects"
 # Writes to /tmp DO work in Pyodide's in-memory filesystem, so we save there,
 # read the HTML back, and embed it in an isolated <iframe> so the report's
 # bundled CSS/JS can't clash with the notebook page.
+# JupyterLite (Pyodide) browser build only.
 if sys.platform == "emscripten":
     _orig_report_save = mne.Report.save
 
@@ -324,6 +325,7 @@ report.save("report_ica.html", overwrite=True)
 # every n-th volume slice, and ``width`` to specify the width of the resulting
 # figures in pixels.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     report = mne.Report(title="BEM example")
     report.add_bem(
@@ -346,6 +348,7 @@ if sys.platform != "emscripten":
 # subjects directory, and a title. The ``alpha`` parameter can be used to
 # control the transparency of the head, where a value of 1 means fully opaque.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     trans_path = sample_dir / "sample_audvis_raw-trans.fif"
 
@@ -368,6 +371,7 @@ if sys.platform != "emscripten":
 # object or the path to a forward solution stored on disk to
 # :meth:`mne.Report.add_forward`.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
 
@@ -385,6 +389,7 @@ if sys.platform != "emscripten":
 # The method expects an `~mne.minimum_norm.InverseOperator` object or a path to
 # one stored on disk, and a title.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     inverse_op_path = sample_dir / "sample_audvis-meg-oct-6-meg-inv.fif"
 
@@ -408,6 +413,7 @@ if sys.platform != "emscripten":
 # snapshots at 51 equally-spaced time points (or fewer, if the data contains
 # fewer time points). We can adjust this via the ``n_time_points`` parameter.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     stc_path = sample_dir / "sample_audvis-meg"
 
@@ -579,6 +585,7 @@ report.save("report_tags.html", overwrite=True)
 # to edit a report once it's no longer in-memory in an active Python session,
 # save it as an HDF5 file instead of HTML:
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     report = mne.Report(title="Saved report example", verbose=True)
     report.add_image(image=mne_logo_path, title="MNE 1")
@@ -589,6 +596,7 @@ if sys.platform != "emscripten":
 # possibility to e.g. run multiple scripts in a processing pipeline, where each
 # script adds new content to an existing report.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     report_from_disk = mne.open_report("report_partial.hdf5")
     report_from_disk.add_image(image=mne_logo_path, title="MNE 2")
@@ -598,6 +606,7 @@ if sys.platform != "emscripten":
 # To make this even easier, :class:`mne.Report` can be used as a
 # context manager (note the ``with`` statement)`):
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     with mne.open_report("report_partial.hdf5") as report:
         report.add_image(image=mne_logo_path, title="MNE 3")
@@ -687,6 +696,7 @@ report.save("report_parse_folder_raw_psd_projs.html", overwrite=True)
 # expensive, we'll also pass the ``mri_decim`` parameter for the benefit of our
 # documentation servers, and skip processing the :file:`.fif` files.
 
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     report = mne.Report(
         title="parse_folder example 3", subject="sample", subjects_dir=subjects_dir

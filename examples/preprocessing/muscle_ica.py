@@ -46,6 +46,7 @@ ica.fit(raw)
 
 # %%
 # Remove components with postural muscle artifact using ICA
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     ica.plot_sources(raw)
 
@@ -74,6 +75,7 @@ if sys.platform != "emscripten":
 # slope in log-log units; this is a very typical pattern for muscle artifact.
 
 muscle_idx = [6, 7, 8, 9, 10, 11, 12, 13, 14]
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     ica.plot_properties(raw, picks=muscle_idx, log_scale=True)
 
@@ -81,6 +83,7 @@ if sys.platform != "emscripten":
 blink_idx = [0]
 heartbeat_idx = [5]
 ica.apply(raw, exclude=blink_idx + heartbeat_idx)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     ica.plot_overlay(raw, exclude=muscle_idx)
 
@@ -88,6 +91,7 @@ if sys.platform != "emscripten":
 # Finally, let's try an automated algorithm to find muscle components
 # and ensure that it gets the same components we did manually.
 muscle_idx_auto, scores = ica.find_bads_muscle(raw)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
 if sys.platform != "emscripten":
     ica.plot_scores(scores, exclude=muscle_idx_auto)
 print(
@@ -113,9 +117,11 @@ for sub in (1, 2):
         n_components=15, method="picard", max_iter="auto", random_state=97
     )
     ica.fit(raw)
+    # Skipped in JupyterLite (browser): no interactive/3D rendering.
     if sys.platform != "emscripten":
         ica.plot_sources(raw)
     muscle_idx_auto, scores = ica.find_bads_muscle(raw)
+    # Skipped in JupyterLite (browser): no interactive/3D rendering.
     if sys.platform != "emscripten":
         ica.plot_properties(raw, picks=muscle_idx_auto, log_scale=True)
         ica.plot_scores(scores, exclude=muscle_idx_auto)
