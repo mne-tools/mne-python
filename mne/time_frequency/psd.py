@@ -10,7 +10,7 @@ from scipy.signal import spectrogram
 
 from ..fixes import _reshape_view
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, logger, verbose, warn
+from ..utils import _check_option, _ensure_int, _pl, logger, verbose, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
@@ -258,15 +258,29 @@ def psd_array_welch(
         # Aligned NaNs across channels → treat as bad annotations.
         good_mask = ~nan_mask_full
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
-        x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
-        # weights reflect the number of samples used from each span. For spans longer
-        # than `n_per_seg`, trailing samples may be discarded. For spans shorter than
-        # `n_per_seg`, the wrapped function (`scipy.signal.spectrogram`) automatically
-        # reduces `n_per_seg` to match the span length (with a warning).
+        all_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
+        # Drop good data spans shorter than n_per_seg: a single Welch window does not
+        # fit them. (Shrinking the window per-span would mix incompatible estimates,
+        # and passing them to SciPy as-is raises "noverlap must be less than
+        # nperseg".) Warn so the user can lower n_per_seg to keep them. See #13039.
+        x_splits = [span for span in all_splits if span.shape[-1] >= n_per_seg]
+        n_dropped = len(all_splits) - len(x_splits)
+        if n_dropped:
+            warn(
+                f"{n_dropped} good data span{_pl(n_dropped)} shorter than n_per_seg "
+                f"({n_per_seg}) {'was' if n_dropped == 1 else 'were'} excluded from "
+                "the PSD estimate; reduce n_per_seg (or n_fft) to include them."
+            )
+        if not x_splits:
+            raise ValueError(
+                f"All good data spans are shorter than n_per_seg ({n_per_seg}); no "
+                "data is left to compute the PSD. Reduce n_per_seg (or n_fft)."
+            )
+        # weights reflect the number of samples used from each (kept) span; trailing
+        # samples beyond the last full window are discarded.
         step = n_per_seg - n_overlap
-        span_lengths = [span.shape[-1] for span in x_splits]
         weights = [
-            w if w < n_per_seg else w - ((w - n_overlap) % step) for w in span_lengths
+            w - ((w - n_overlap) % step) for w in (s.shape[-1] for s in x_splits)
         ]
         agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
@@ -274,36 +288,7 @@ def psd_array_welch(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
                 '"bad_*" annotations. Parallelization may be sub-optimal.'
             )
-        if (np.array(span_lengths) < n_per_seg).any():
-            logger.info(
-                "At least one good data span is shorter than n_per_seg, and will be "
-                "analyzed with a shorter window than the rest of the file."
-            )
-
-        def func(*args, **kwargs):
-            # A good data span shorter than n_per_seg makes SciPy reduce nperseg to
-            # the span length; reduce noverlap to match so it stays < nperseg.
-            # Otherwise, a span shorter than n_overlap raises "noverlap must be less
-            # than nperseg". nfft is left unchanged so every span yields the same
-            # frequency bins (the spans are then combined by weighted average).
-            # See #13039.
-            epoch = args[0]
-            if epoch.shape[-1] < n_per_seg:
-                span_len = epoch.shape[-1]
-                kwargs = {
-                    **kwargs,
-                    "nperseg": span_len,
-                    "noverlap": min(n_overlap, max(span_len - 1, 0)),
-                }
-            # swallow SciPy warnings caused by short good data spans
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action="ignore",
-                    module="scipy",
-                    category=UserWarning,
-                    message=r"nperseg = \d+ is greater than input length",
-                )
-                return _func(*args, **kwargs)
+        func = _func
 
     else:
         # Either no NaNs, or NaNs are not aligned across channels.
