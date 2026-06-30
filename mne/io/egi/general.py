@@ -11,25 +11,6 @@ import numpy as np
 from ...utils import _pl
 
 
-def _get_gains(filepath):
-    """Parse gains."""
-    from mffpy.xml_files import XML
-
-    obj = XML.from_file(filepath)
-    cals = obj.get_content().get("calibrations", {})
-    gains = {}
-    if "GCAL" in cals:
-        ch_dict = cals["GCAL"]["channels"]
-        gains["gcal"] = np.asarray(
-            [ch_dict[k] for k in sorted(ch_dict)], dtype=np.float64
-        )
-    if "ICAL" in cals:
-        ch_dict = cals["ICAL"]["channels"]
-        gains["ical"] = np.asarray(
-            [ch_dict[k] for k in sorted(ch_dict)], dtype=np.float64
-        )
-    return gains
-
 
 def _get_ep_info(filepath):
     """Get epoch info."""
