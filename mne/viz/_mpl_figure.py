@@ -969,7 +969,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             return
         direction = -1 if event.button == "up" else 1
         ceiling = len(self.mne.ch_order) - self.mne.n_channels
+        old_start = self.mne.ch_start
         self.mne.ch_start = np.clip(self.mne.ch_start + direction, 0, ceiling)
+        if self.mne.ch_start == old_start:
+            return
         self._update_picks()
         self._update_vscroll()
         self._redraw()
