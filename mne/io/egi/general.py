@@ -8,7 +8,7 @@ import re
 
 import numpy as np
 
-from ...utils import _pl, _soft_import
+from ...utils import _pl
 
 
 def _get_gains(filepath):
