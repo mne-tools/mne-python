@@ -2001,6 +2001,7 @@ class BaseRaw(
         overview_mode=None,
         splash=True,
         verbose=None,
+        figure_class=None,
     ):
         return plot_raw(
             self,
@@ -2042,6 +2043,7 @@ class BaseRaw(
             overview_mode=overview_mode,
             splash=splash,
             verbose=verbose,
+            figure_class=figure_class,
         )
 
     @property
