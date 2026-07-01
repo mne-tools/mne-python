@@ -1604,4 +1604,6 @@ def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo["lh"].coords[:2] + 0.01
     tiny_brain.add_foci(foci_coords, map_surface="white")
-    assert_array_equal(tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
+    assert_array_equal(
+        tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2]
+    )
