@@ -14,6 +14,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.io import savemat
 
+import mne
 from mne import (
     Epochs,
     EpochsArray,
@@ -700,10 +701,6 @@ def test_combine_channels_metadata():
 
 def test_pick_channels_orig_units_none():
     """Picking channels must not crash when _orig_units is None (gh-11314)."""
-    import numpy as np
-
-    import mne
-
     info = mne.create_info(["Fp1", "Fp2", "F3", "F4"], 100.0, "eeg")
     raw = mne.io.RawArray(np.zeros((4, 100)), info)
     raw._orig_units = None  # the state reported by some readers / RawArray flows
