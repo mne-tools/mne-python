@@ -1249,7 +1249,8 @@ def plot_evoked_topo(
     The figure will publish and subscribe to the following UI events:
 
     * :class:`~mne.viz.ui_events.TimeChange`
-        .. versionadded:: 1.13.0
+
+    .. versionadded:: 1.13.0
     """
     if type(evoked) not in (tuple, list):
         evoked = [evoked]
