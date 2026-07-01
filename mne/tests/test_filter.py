@@ -15,6 +15,7 @@ from numpy.testing import (
 from scipy.signal import butter, freqz, sosfreqz
 from scipy.signal import resample as sp_resample
 
+import mne
 from mne import Epochs, create_info
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (
@@ -1134,3 +1135,16 @@ def test_smart_pad(dc, sfreq):
     x_want = np.r_[np.zeros_like(x), x_want, np.zeros_like(x)]
     x_pad = _smart_pad(x, (len(x) * 2,) * 2, "reflect_limited")
     assert_allclose(x_pad, x_want, atol=0.1, err_msg="reflect_limited with zeros")
+
+
+def test_filter_too_short_error_reports_correct_transition():
+    """The 'too short' filter error must report the true transition band (gh-11406)."""
+    sfreq = 1000.0
+    raw = mne.io.RawArray(
+        np.random.default_rng(0).standard_normal((1, 4000)),
+        mne.create_info(1, sfreq, "eeg"),
+    )
+    # filter_length far too short for a 1 Hz transition band; the error must
+    # report 1.00 Hz (the requested l_trans_bandwidth), not half that.
+    with pytest.raises(ValueError, match="1.00 Hz transition band"):
+        raw.filter(l_freq=10, h_freq=None, l_trans_bandwidth=1.0, filter_length="11ms")
