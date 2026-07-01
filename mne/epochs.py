@@ -3768,6 +3768,13 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
+    on_outside : 'raise' | 'warn' | 'ignore'
+        What to do if an event's sample number falls outside the recorded data
+        range. Such events yield no epoch and are dropped. Can be ``'raise'``
+        to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to do nothing.
+
+        .. versionadded:: 1.13
     %(drop_log)s
 
         .. versionadded:: 1.3
