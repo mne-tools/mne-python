@@ -11,7 +11,6 @@ import numpy as np
 from ...utils import _pl
 
 
-
 def _get_ep_info(filepath):
     """Get epoch info."""
     from mffpy.xml_files import XML

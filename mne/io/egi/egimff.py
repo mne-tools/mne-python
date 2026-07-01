@@ -279,7 +279,6 @@ def _read_header(input_fname):
     return info
 
 
-
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
     _soft_import("mffpy", "reading EGI MFF data")
