@@ -789,7 +789,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.mne.ch_start = np.clip(ch_start, 0, ceiling)
                 self._update_picks()
                 self._update_vscroll()
-                self._redraw()
+                self._redraw(skip_hscroll=True)
         # scroll left/right
         elif key in ("right", "left", "shift+right", "shift+left"):
             old_t_start = self.mne.t_start
@@ -803,12 +803,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
             if self.mne.t_start != old_t_start:
                 self._update_hscroll()
-                self._redraw(annotations=True)
+                self._redraw(annotations=True, skip_hscroll=True)
         # scale traces
         elif key in ("=", "+", "-"):
             scaler = 1 / 1.1 if key == "-" else 1.1
             self.mne.scale_factor *= scaler
-            self._redraw(update_data=False)
+            self._redraw(update_data=False, skip_hscroll=True)
         # change number of visible channels
         elif (
             key in ("pageup", "pagedown")
@@ -826,7 +826,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if self.mne.n_channels != n_channels:
                 self._update_picks()
                 self._update_trace_offsets()
-                self._redraw(annotations=True)
+                self._redraw(annotations=True, skip_hscroll=True)
         # change duration
         elif key in ("home", "end"):
             old_dur = self.mne.duration
@@ -850,7 +850,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 if self.mne.t_start + self.mne.duration > last_time:
                     self.mne.t_start = last_time - self.mne.duration
                 self._update_hscroll()
-                self._redraw(annotations=True)
+                self._redraw(annotations=True, skip_hscroll=True)
         elif key == "?":  # help window
             self._toggle_help_fig(event)
         elif key == "a":  # annotation mode
@@ -859,7 +859,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._toggle_butterfly()
         elif key == "d":  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
-            self._redraw()
+            self._redraw(skip_hscroll=True)
         elif key == "h":  # histogram
             self._toggle_epoch_histogram()
         elif key == "j" and len(self.mne.projs):  # SSP window
@@ -917,11 +917,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 if self.mne.fig_selection is not None:
                     self._change_selection_vscroll(event)
                 elif self._check_update_vscroll_clicked(event):
-                    self._redraw()
+                    self._redraw(skip_hscroll=True)
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw(annotations=True)
+                    self._redraw(annotations=True, skip_hscroll=True)
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -1542,21 +1542,22 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._remove_annotation_hover_line()
         self.canvas.draw_idle()
 
-    def _clear_annotations(self):
+    def _clear_annotations(self, *, skip_hscroll=False):
         """Clear all annotations from the figure."""
         for annot in list(self.mne.annotations):
             annot.remove()
             self.mne.annotations.remove(annot)
-        for annot in list(self.mne.hscroll_annotations):
-            annot.remove()
-            self.mne.hscroll_annotations.remove(annot)
+        if not skip_hscroll:
+            for annot in list(self.mne.hscroll_annotations):
+                annot.remove()
+                self.mne.hscroll_annotations.remove(annot)
         for text in list(self.mne.annotation_texts):
             text.remove()
             self.mne.annotation_texts.remove(text)
 
-    def _draw_annotations(self):
+    def _draw_annotations(self, *, skip_hscroll=False):
         """Draw (or redraw) the annotation spans."""
-        self._clear_annotations()
+        self._clear_annotations(skip_hscroll=skip_hscroll)
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         onscreen_annotations = np.zeros(len(segments), dtype=bool)
@@ -1569,9 +1570,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             zorder = self.mne.zorder["ann"] + idx
             kwargs = dict(color=segment_color, alpha=0.3, zorder=zorder)
             if self.mne.visible_annotations[descr]:
-                # draw all segments on ax_hscroll
-                annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
-                self.mne.hscroll_annotations.append(annot)
+                if not skip_hscroll:
+                    # draw all segments on ax_hscroll
+                    annot = self.mne.ax_hscroll.fill_betweenx(
+                        (0, 1), start, end, **kwargs
+                    )
+                    self.mne.hscroll_annotations.append(annot)
                 # draw only visible segments on ax_main
                 visible_segment = np.clip([start, end], times[0], times[-1])
                 if np.diff(visible_segment) > 0:
@@ -2313,9 +2317,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.event_times is not None:
             self._draw_event_lines()
 
-    def _redraw(self, update_data=True, annotations=False):
+    def _redraw(self, update_data=True, annotations=False, *, skip_hscroll=False):
         """Redraw (convenience method for frequently grouped actions)."""
-        super()._redraw(update_data, annotations)
+        super()._redraw(update_data, annotations, skip_hscroll=skip_hscroll)
         if self.mne.vline_visible and self.mne.is_epochs:
             # prevent flickering
             _ = self._recompute_epochs_vlines(None)

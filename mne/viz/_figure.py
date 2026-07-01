@@ -470,7 +470,7 @@ class BrowserBase(ABC):
         epoch_nums = self.mne.inst.selection
         return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
 
-    def _redraw(self, update_data=True, annotations=False):
+    def _redraw(self, update_data=True, annotations=False, *, skip_hscroll=False):
         """Redraws backend if necessary."""
         if update_data:
             self._update_data()
@@ -478,7 +478,7 @@ class BrowserBase(ABC):
         self._draw_traces()
 
         if annotations and not self.mne.is_epochs:
-            self._draw_annotations()
+            self._draw_annotations(skip_hscroll=skip_hscroll)
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
