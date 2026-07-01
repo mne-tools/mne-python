@@ -1058,7 +1058,9 @@ class Brain:
             # initialize the default point
             if self._active_data["initial_time"] is not None:
                 # pick at that time
-                use_data = act_data[:, [np.round(self._active_data["time_idx"]).astype(int)]]
+                use_data = act_data[
+                    :, [np.round(self._active_data["time_idx"]).astype(int)]
+                ]
             else:
                 use_data = act_data
             ind = np.unravel_index(
@@ -1308,7 +1310,9 @@ class Brain:
             return
         lims = {key: getattr(event, key) for key in ("fmin", "fmid", "fmax", "alpha")}
         # Check if limits have changed at all.
-        if all(val is None or val == self._active_data[key] for key, val in lims.items()):
+        if all(
+            val is None or val == self._active_data[key] for key, val in lims.items()
+        ):
             return
         # Update the GUI elements.
         with disable_ui_events(self):
@@ -1318,7 +1322,9 @@ class Brain:
                         self.widgets[key].set_value(val * self._active_data["fscale"])
                     entry_key = "entry_" + key
                     if entry_key in self.widgets:
-                        self.widgets[entry_key].set_value(val * self._active_data["fscale"])
+                        self.widgets[entry_key].set_value(
+                            val * self._active_data["fscale"]
+                        )
         # Update the render.
         self._update_colormap_range(**lims)
 
@@ -1487,7 +1493,9 @@ class Brain:
             xfm = read_talxfm(self._subject, self._subjects_dir)
             if self._units == "mm":
                 xfm["trans"][:3, 3] *= 1000.0
-            ijk = np.unravel_index(vertex_id, self._active_data[hemi]["grid_shape"], order="F")
+            ijk = np.unravel_index(
+                vertex_id, self._active_data[hemi]["grid_shape"], order="F"
+            )
             src_mri_t = self._active_data[hemi]["grid_src_mri_t"]
             mni = apply_trans(xfm["trans"] @ src_mri_t, ijk)
         else:
@@ -3622,7 +3630,8 @@ class Brain:
                 if hemi in self.layered_meshes:
                     mesh = self.layered_meshes[hemi]
                     key_rng = [
-                        -key_data["fmax"] if key_data["center"] is not None
+                        -key_data["fmax"]
+                        if key_data["center"] is not None
                         else key_data["fmin"],
                         key_data["fmax"],
                     ]

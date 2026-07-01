@@ -20,8 +20,8 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 # being presented auditory and visual stimuli to display the functionality
 # of :class:`mne.viz.Brain` for plotting data on a brain.
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
@@ -237,6 +237,7 @@ def gaussian_patch(coords, center, sigma=15.0):
     """Gaussian blob of activity centred on a surface coordinate (mm)."""
     d = np.linalg.norm(coords - center, axis=1)
     return np.exp(-(d**2) / (2 * sigma**2))
+
 
 temporal = gaussian_patch(coords, center=np.array([-52.0, -18.0, -8.0]))
 brain.add_data(
