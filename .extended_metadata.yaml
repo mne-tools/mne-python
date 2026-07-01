@@ -1,0 +1,53 @@
+package_name: MNE-Python
+date_created: '2010-12-26'
+date_published: '2014-08-04'
+application_category: Neuroscience
+code_doi: 10.5281/zenodo.592483
+compound_surnames:
+  - García Alanis
+  - van Vliet
+  - De Santis
+  - Dupré la Tour
+  - de la Torre
+  - de Jong
+  - de Montalivet
+  - van den Bosch
+  - Van den Bossche
+  - Van Der Donckt
+  - van der Meer
+  - van Harmelen
+  - Visconti di Oleggio Castello
+  - van Es
+preferred_citation:
+  title: MEG and EEG Data Analysis with MNE-Python
+  journal: Frontiers in Neuroscience
+  type: article
+  year: 2013
+  volume: 7
+  issue: 267
+  start: 1
+  end: 13
+  doi: 10.3389/fnins.2013.00267
+  authors:
+    - family-names: Gramfort
+      given-names: Alexandre
+    - family-names: Luessi
+      given-names: Martin
+    - family-names: Larson
+      given-names: Eric
+    - family-names: Engemann
+      given-names: Denis A.
+    - family-names: Strohmeier
+      given-names: Daniel
+    - family-names: Brodbeck
+      given-names: Christian
+    - family-names: Goj
+      given-names: Roman
+    - family-names: Jas
+      given-names: Mainak
+    - family-names: Brooks
+      given-names: Teon
+    - family-names: Parkkonen
+      given-names: Lauri
+    - family-names: Hämäläinen
+      given-names: Matti S.

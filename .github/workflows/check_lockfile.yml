@@ -1,0 +1,24 @@
+name: Check 'old' lockfile
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+
+jobs:
+  check-lockfile:
+    permissions:
+      contents: write
+    name: Check 'old' lockfile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          persist-credentials: false
+      - name: Run MNE-Tools action
+        uses: tsbinns/mne-tools/actions/check-lockfile@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          lockfile-path: tools/pylock.ci-old.toml
+          groups: lockfile_extras

@@ -149,7 +149,11 @@ jobs:
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
-      - run: python ./tools/github_actions_check_old_env.py
+      - name: Run MNE-Tools action
+        uses: tsbinns/mne-tools/actions/check-environment@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          groups: lockfile_extras
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - uses: actions/cache@v5.0.5

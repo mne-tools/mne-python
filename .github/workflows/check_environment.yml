@@ -1,0 +1,33 @@
+name: Check 'old' environment
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+
+jobs:
+  check-environment:
+    permissions:
+      contents: write
+    name: Check 'old' environment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      MNE_CI_KIND: 'old'
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: '3.10'
+      - run: bash ./tools/github_actions_dependencies.sh
+      - name: Run MNE-Tools action
+        uses: tsbinns/mne-tools/actions/check-environment@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          groups: lockfile_extras

@@ -19,4 +19,27 @@ jobs:
       - run: pip install --upgrade towncrier pygithub gitpython numpy
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - run: python ./tools/dev/ensure_headers.py
+      - name: Sync dependencies to README
+        uses: tsbinns/mne-tools/actions/sync-dependencies-to-readme@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          ignore-upper-pins: numpy
+      - name: Sync dependencies to environment file
+        uses: tsbinns/mne-tools/actions/sync-dependencies-to-environment-file@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          extras: full,full-no-qt,hdf5
+          additional-dependencies: pip,mamba,conda,nomkl,noqt5
+          pip-dependencies: pymef
+          requirements-overrides: PySide6==6.10.2,vtk==9.6.0
+      # - name: Generate citation
+      #  uses: tsbinns/mne-tools/actions/generate-citation@add_tools
+      #  with:
+      #    project-root: ${{ github.workspace }}
+      #    release-version: "1.13.0"
+      - name: Generate codemeta
+        uses: tsbinns/mne-tools/actions/generate-codemeta@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          release-version: "1.13.0"
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
