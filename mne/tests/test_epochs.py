@@ -5288,7 +5288,8 @@ def test_epochs_warn_out_of_bounds_events():
     raw = RawArray(np.random.default_rng(0).standard_normal((3, 1000)), info)
     oob = np.array([[2000, 0, 1]])
     # event sample 2000 is past the 1000-sample recording -> warn (default)
-    with pytest.warns(RuntimeWarning, match="outside the recorded data"):
+    # Under mne's warnings-as-errors test policy the RuntimeWarning is raised.
+    with pytest.raises(RuntimeWarning, match="outside the recorded data"):
         mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None)
     # on_outside="raise" turns it into an error
     with pytest.raises(ValueError, match="outside the recorded data"):
