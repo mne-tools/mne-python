@@ -15,6 +15,7 @@ from numpy.testing import (
 from scipy.signal import butter, freqz, sosfreqz
 from scipy.signal import resample as sp_resample
 
+import mne
 from mne import Epochs, create_info
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (
@@ -1138,8 +1139,6 @@ def test_smart_pad(dc, sfreq):
 
 def test_filter_too_short_error_reports_correct_transition():
     """The 'too short' filter error must report the true transition band (gh-11406)."""
-    import mne
-
     sfreq = 1000.0
     raw = mne.io.RawArray(
         np.random.default_rng(0).standard_normal((1, 4000)),
