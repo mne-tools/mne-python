@@ -1,0 +1,1 @@
+Enable the Sphinx-Gallery example recommender so each gallery page links to the most similar examples, by :newcontrib:`Kidus Abebe`.
