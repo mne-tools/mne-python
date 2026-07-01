@@ -85,9 +85,15 @@ print(mne.get_config(key=""))
 # so you can get an overview of all the configuration keys MNE-Python
 # recognizes and what they're used for:
 
-pd.DataFrame.from_dict(
-    mne.get_config(key=""), orient="index", columns=["Description"]
-).sort_index()
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_colwidth", None)
+(
+    pd.DataFrame(
+        sorted(mne.get_config(key="").items()), columns=["Key", "Description"]
+    )
+    .style.hide(axis="index")
+    .set_table_attributes('class="dataframe" style="width: 100%;"')
+)
 
 # %%
 # It is possible to add config variables that are not part of the recognized
