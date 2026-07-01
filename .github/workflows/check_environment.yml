@@ -12,6 +12,8 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
+    env:
+      MNE_CI_KIND: 'old'
     steps:
       - uses: actions/checkout@v6.0.3
         with:
