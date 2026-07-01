@@ -378,7 +378,6 @@ class Brain:
         # for now only one time label can be added
         # since it is the same for all figures
         self._time_label_added = False
-        # array of data used by TimeViewer; keyed by overlay name
         self._data = {}
         self._active_data_key = None
         self._foci_data = {}
@@ -1812,14 +1811,13 @@ class Brain:
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
 
-        # Remove the previously active overlay when not keeping existing ones.
+        # remove the previously active overlay when not keeping existing ones.
         old_key = self._active_data_key
         if remove_existing is not False and old_key is not None and old_key != key:
             for _hemi in list(self.layered_meshes):
                 self.layered_meshes[_hemi].remove_overlay(old_key)
             del self._data[old_key]
 
-        # Index all per-dataset state by key so multiple overlays can coexist.
         self._active_data_key = key
         self._data.setdefault(key, {})
         self._data[key]["vector_alpha"] = vector_alpha
@@ -1967,13 +1965,7 @@ class Brain:
 
     def remove_data(self):
         """Remove rendered data from the mesh."""
-        for key in list(self._data):
-            for hemi in list(self.layered_meshes):
-                self.layered_meshes[hemi].remove_overlay(key)
-            self._remove(key, render=False)
-            del self._data[key]
-        self._active_data_key = None
-        self._renderer._update()
+        self._remove("data", render=True)
 
         # Stop listening to events
         if "time_change" in _get_event_channel(self):
@@ -3804,9 +3796,7 @@ class Brain:
 
     @property
     def _active_data(self):
-        if self._active_data_key is None:
-            return None
-        return self._data.get(self._active_data_key)
+        return self._data[self._active_data_key]
 
     @property
     def labels(self):
@@ -4243,7 +4233,7 @@ def _get_range(brain):
     multiplied by the scaling factor and when getting a value, this value
     should be divided by the scaling factor.
     """
-    fmax = abs(brain._data["fmax"])
+    fmax = abs(brain._active_data["fmax"])
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
