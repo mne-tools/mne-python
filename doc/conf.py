@@ -521,6 +521,10 @@ if src_sample_data.exists():
         "subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif",
         "subjects/sample/surf/rh.pial",
         "subjects/sample/surf/lh.pial",
+        "subjects/sample/surf/rh.white",
+        "subjects/sample/surf/lh.white",
+        "subjects/sample/label/lh.aparc.annot",
+        "subjects/sample/label/rh.aparc.annot",
     ]
     for req in required_files:
         s = src_sample_data / req
@@ -670,7 +674,7 @@ sphinx_gallery_conf = {
         "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"
         "await piplite.install(\n"
         "    ['mne', 'scikit-learn', 'joblib', 'pandas', 'seaborn', "
-        "'mne-connectivity'],\n"
+        "'mne-connectivity', 'nibabel'],\n"
         "    keep_going=True,\n"
         ")\n"
         "\n"
@@ -761,6 +765,10 @@ sphinx_gallery_conf = {
         "    'subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif',\n"
         "    'subjects/sample/surf/rh.pial',\n"
         "    'subjects/sample/surf/lh.pial',\n"
+        "    'subjects/sample/surf/rh.white',\n"
+        "    'subjects/sample/surf/lh.white',\n"
+        "    'subjects/sample/label/lh.aparc.annot',\n"
+        "    'subjects/sample/label/rh.aparc.annot',\n"
         "]\n"
         "print('Fetching MNE sample data (once per session)...')\n"
         "for _f in _sample_files:\n"
