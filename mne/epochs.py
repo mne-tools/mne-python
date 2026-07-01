@@ -462,6 +462,7 @@ class BaseEpochs(
         filename=None,
         metadata=None,
         event_repeated="error",
+        on_outside="warn",
         *,
         raw_sfreq=None,
         annotations=None,
@@ -575,6 +576,7 @@ class BaseEpochs(
         self.detrend = detrend
 
         self._raw = raw
+        self._oob_check(on_outside)
         info._check_consistency()
         self.picks = _picks_to_idx(
             info, picks, none="all", exclude=(), allow_empty=False
@@ -690,6 +692,23 @@ class BaseEpochs(
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
+
+    def _oob_check(self, on_outside):
+        """Warn when event sample numbers fall outside recorded data (gh-12989)."""
+        if self._raw is not None and len(self.events) > 0:
+            lo = self._raw.first_samp
+            hi = lo + self._raw.n_times
+            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
+            if n_oob:
+                _on_missing(
+                    on_outside,
+                    f"{n_oob} event{_pl(n_oob)} {'has' if n_oob == 1 else 'have'} a "
+                    "sample number outside the recorded data; the corresponding "
+                    f"epoch{_pl(n_oob)} will be dropped. This can happen if the "
+                    "events were created at a different sampling frequency, or "
+                    "contain sample numbers before first_samp.",
+                    name="on_outside",
+                )
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
@@ -3594,6 +3613,7 @@ class Epochs(BaseEpochs):
         reject_by_annotation=True,
         metadata=None,
         event_repeated="error",
+        *,
         on_outside="warn",
         verbose=None,
     ):
@@ -3654,32 +3674,11 @@ class Epochs(BaseEpochs):
             on_missing=on_missing,
             preload_at_end=preload,
             event_repeated=event_repeated,
+            on_outside=on_outside,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
             annotations=annotations,
         )
-
-        # Warn when an event's *sample number* falls outside the recorded data
-        # (before ``first_samp`` or at/after the last sample). Such an event yields
-        # no epoch and is silently dropped, which is surprising and usually means
-        # the events were created at a different sampling frequency or precede
-        # ``first_samp``. This checks the event positions, not the epoch window —
-        # an in-range event whose window merely clips the edge is normal and quiet.
-        # See gh-12989.
-        if self._raw is not None and len(self.events) > 0:
-            lo = self._raw.first_samp
-            hi = lo + self._raw.n_times
-            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
-            if n_oob:
-                _on_missing(
-                    on_outside,
-                    f"{n_oob} event{_pl(n_oob)} {'has' if n_oob == 1 else 'have'} a "
-                    "sample number outside the recorded data; the corresponding "
-                    f"epoch{_pl(n_oob)} will be dropped. This can happen if the "
-                    "events were created at a different sampling frequency, or "
-                    "contain sample numbers before first_samp.",
-                    name="on_outside",
-                )
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -3807,6 +3806,7 @@ class EpochsArray(BaseEpochs):
         metadata=None,
         selection=None,
         *,
+        on_outside="warn",
         drop_log=None,
         raw_sfreq=None,
         verbose=None,
@@ -3843,6 +3843,7 @@ class EpochsArray(BaseEpochs):
             selection=selection,
             proj=proj,
             on_missing=on_missing,
+            on_outside=on_outside,
             drop_log=drop_log,
             raw_sfreq=raw_sfreq,
             verbose=verbose,
