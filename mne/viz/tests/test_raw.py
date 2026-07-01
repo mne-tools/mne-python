@@ -596,20 +596,22 @@ def test_plot_raw_scroll(raw, browser_backend):
     # use n_channels < total so there is room to scroll
     fig = raw.plot(n_channels=3)
     assert len(fig.mne.ch_order) > fig.mne.n_channels  # sanity check
+    # the sign of "step" that means "scroll down" differs between backends
+    down, up = (-1, 1) if browser_backend.name == "matplotlib" else (1, -1)
     # scroll down moves ch_start forward by 1
     ch_start_before = fig.mne.ch_start
-    fig._fake_scroll(0.5, 0.5, -1)
+    fig._fake_scroll(0.5, 0.5, down)
     assert fig.mne.ch_start == ch_start_before + 1
     # scroll up moves ch_start back by 1
-    fig._fake_scroll(0.5, 0.5, 1)
+    fig._fake_scroll(0.5, 0.5, up)
     assert fig.mne.ch_start == ch_start_before
     # scroll up at the top is a no-op (already at 0)
     assert fig.mne.ch_start == 0
-    fig._fake_scroll(0.5, 0.5, 1)
+    fig._fake_scroll(0.5, 0.5, up)
     assert fig.mne.ch_start == 0
     # scroll is a no-op in butterfly mode
     fig._fake_keypress("b")
-    fig._fake_scroll(0.5, 0.5, -1)
+    fig._fake_scroll(0.5, 0.5, down)
     assert fig.mne.ch_start == 0
 
 
