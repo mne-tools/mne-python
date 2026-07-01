@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0aecdf3a2fef34b80967b16427e037e474c24d78",
+  "authors": [
+    {
+      "n": "Piotr Durka",
+      "e": "durka@fuw.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13962.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}
