@@ -88,9 +88,7 @@ print(mne.get_config(key=""))
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_colwidth", None)
 (
-    pd.DataFrame(
-        sorted(mne.get_config(key="").items()), columns=["Key", "Description"]
-    )
+    pd.DataFrame(sorted(mne.get_config(key="").items()), columns=["Key", "Description"])
     .style.hide(axis="index")
     .set_table_attributes('class="dataframe" style="width: 100%;"')
 )
