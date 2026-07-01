@@ -3,7 +3,7 @@ title: MNE-Python
 message: If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field.
 version: 1.13.0
 date-released: '2026-07-01'
-commit: af19a848f5d326e1f4bddd387630f7af6b406d8e
+commit: 5f66c6e9f9102f0d7ec0bb051ef98bd71ed5a69f
 doi: 10.5281/zenodo.592483
 keywords:
 - brain
