@@ -444,16 +444,17 @@ def link(
         if fig not in _event_channel_links:
             _event_channel_links[fig] = weakref.WeakKeyDictionary()
 
-    # Recursive link groups that the figures already belong
     if recursive:
+        # Also link to anything that is linked to any of the figures in `figs`.
         figs_set = weakref.WeakSet()
         for fig in figs:
             figs_set.add(fig)
             for linked_fig in _event_channel_links[fig].keys():
                 figs_set.add(linked_fig)
-        # Deliberately let current include and exclude events dominate over past ones
+        # Deliberately let current include and exclude events dominate over past ones.
         figs = figs_set
-    # Link the event channels plainly
+
+    # Do the actual linking.
     for fig1 in figs:
         for fig2 in figs:
             if fig1 is not fig2:

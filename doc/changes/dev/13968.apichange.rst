@@ -1,1 +1,1 @@
-Now ``on_pick`` callable parameter accepts ``orig_fig`` in :func:`mne.viz.iter_topography`, to preserve backward compatibility it is made optional, by `Lifeng Qiu Lin`_.
+In :func:`mne.viz.iter_topography`, the ``on_pick`` callable for sub-figures now has a new parameter ``orig_fig`` that refers to the main figure. To preserve backward compatibility, it is made optional. By `Lifeng Qiu Lin`_.
