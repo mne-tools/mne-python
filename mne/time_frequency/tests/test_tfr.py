@@ -1932,3 +1932,57 @@ def test_combine_tfr_error_catch(average_tfr):
         match="Aggregating multitaper tapers across TFR datasets is not supported.",
     ):
         combine_tfr([average_tfr_taper, average_tfr_taper])
+
+
+def test_epochs_tfr_from_raw_tfr():
+    """Test EpochsTFR.from_raw_tfr()."""
+    sfreq = 256.0
+    info = create_info(ch_names=["EEG1", "EEG2", "EEG3"], sfreq=sfreq, ch_types="eeg")
+    raw_data = np.random.randn(3, 2560)
+    from mne.io import RawArray
+
+    raw = RawArray(raw_data, info)
+    freqs = np.arange(8, 12)
+    raw_tfr = raw.compute_tfr("morlet", freqs=freqs)
+
+    events = np.array([[256, 0, 1], [512, 0, 1], [768, 0, 2], [1024, 0, 2]])
+    event_id = {"cond_a": 1, "cond_b": 2}
+
+    out = EpochsTFR.from_raw_tfr(
+        raw_tfr, events, event_id=event_id, tmin=-0.1, tmax=0.1
+    )
+
+    # check type and shape
+    assert isinstance(out, EpochsTFR)
+    assert out.shape[0] == 4  # 4 epochs
+    assert out.shape[1] == 3  # 3 channels
+    assert out.shape[2] == len(freqs)  # 4 freqs
+    assert_array_equal(out.freqs, freqs)
+
+    # check events and event_id
+    assert len(out.events) == 4
+    assert out.event_id == event_id
+
+    # check tmin/tmax respected
+    assert out.times[0] >= -0.1 - 1 / sfreq
+    assert out.times[-1] <= 0.1 + 1 / sfreq
+
+    # epochs out of bounds should be dropped
+    events_oob = np.array([[1, 0, 1], [512, 0, 1]])  # first one too close to start
+    out_oob = EpochsTFR.from_raw_tfr(raw_tfr, events_oob, tmin=-0.5, tmax=0.5)
+    assert out_oob.shape[0] < 2
+
+    # wrong type should raise
+    with pytest.raises(TypeError, match="raw_tfr"):
+        EpochsTFR.from_raw_tfr("not_a_raw_tfr", events, tmin=-0.1, tmax=0.1)
+
+    # on_missing should raise for missing event_id keys
+    with pytest.raises(ValueError, match="No matching events found"):
+        EpochsTFR.from_raw_tfr(
+            raw_tfr,
+            events,
+            event_id={"missing": 99},
+            tmin=-0.1,
+            tmax=0.1,
+            on_missing="raise",
+        )

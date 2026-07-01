@@ -1,0 +1,1 @@
+Add new classmethod :meth:`mne.time_frequency.EpochsTFR.from_raw_tfr` to create an :class:`~mne.time_frequency.EpochsTFR` from a :class:`~mne.time_frequency.RawTFR` by slicing the already-computed TFR data at event times (similar to how :class:`~mne.Epochs` works with :class:`~mne.io.Raw`), by `Aman Srivastava`_. (:gh:`13750`)
