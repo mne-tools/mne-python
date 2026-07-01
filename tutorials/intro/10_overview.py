@@ -407,11 +407,14 @@ stc = mne.minimum_norm.apply_inverse(
 # path to subjects' MRI files
 subjects_dir = sample_data_folder / "subjects"
 # plot the STC
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
+# In JupyterLite (browser) this renders via pyvista-js (vtk.js), wired up in the
+# setup cell; otherwise it uses MNE's normal 3D backend.
 if sys.platform != "emscripten":
     stc.plot(
         initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
     )
+else:
+    stc.plot(initial_time=0.1, hemi="both", subjects_dir=subjects_dir)
 
 ##############################################################################
 # The remaining tutorials have *much more detail* on each of these topics (as
