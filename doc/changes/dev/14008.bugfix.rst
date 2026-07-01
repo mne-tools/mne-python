@@ -1,0 +1,1 @@
+Fixed several error messages that displayed literal ``{...}`` placeholder text instead of the intended values, due to a missing ``f`` string prefix (in :class:`mne.SourceEstimate`, :func:`mne.io.read_raw_hitachi`, :func:`mne.preprocessing.compute_current_source_density`, and :func:`mne.preprocessing.maxwell_filter`), by `Cedric Conday`_.

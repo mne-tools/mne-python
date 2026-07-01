@@ -1527,7 +1527,7 @@ def _check_usable(inst, ignore_ref):
         raise RuntimeError(
             "Maxwell filter cannot be done on compensated "
             "channels (data have been compensated with "
-            "grade {current_comp}) when ignore_ref=True"
+            f"grade {current_comp}) when ignore_ref=True"
         )
 
 
