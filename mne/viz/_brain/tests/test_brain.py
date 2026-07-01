@@ -399,6 +399,24 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     lm.update()
     with pytest.raises(ValueError, match="must have shape"):
         lm.update_overlay(name="data", scalars=np.ones(1))
+    # remove_existing=False keeps the old overlay and adds a new one alongside
+    assert list(brain._data.keys()) == ["data"]
+    assert "data" in lm._overlays
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert "data" in brain._data and "overlay2" in brain._data
+    assert "data" in lm._overlays and "overlay2" in lm._overlays
+    assert brain._active_data_key == "overlay2"
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
