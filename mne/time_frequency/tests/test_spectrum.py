@@ -14,13 +14,14 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (
     Annotations,
     BaseEpochs,
+    EpochsArray,
     create_info,
     grand_average,
     make_fixed_length_epochs,
 )
 from mne.channels import equalize_channels
 from mne.io import RawArray
-from mne.time_frequency import read_spectrum
+from mne.time_frequency import EpochsSpectrum, read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.spectrum import (
     EpochsSpectrumArray,
@@ -760,3 +761,57 @@ def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
         want = (20 if amplitude else 10) * np.log10(want)
 
     assert want == got, f"expected {want}, got {got}"
+
+
+def test_concatenate_epochs_spectrum():
+    """Test concatenate_epochs() works for EpochsSpectrum instances."""
+    from mne.epochs import concatenate_epochs
+
+    info = create_info(ch_names=["EEG1", "EEG2", "EEG3"], sfreq=256.0, ch_types="eeg")
+    data = np.random.randn(20, 3, 512)
+    events = np.column_stack([np.arange(20) * 512, np.zeros(20, int), np.ones(20, int)])
+    epochs = EpochsArray(data, info, events=events, tmin=0)
+    sp1 = epochs[:10].compute_psd()
+    sp2 = epochs[10:20].compute_psd()
+
+    # basic concatenation
+    out = concatenate_epochs([sp1, sp2])
+    assert isinstance(out, EpochsSpectrum)
+    assert out.shape[0] == 20
+    assert out.shape[1] == 3
+    assert_array_equal(out.freqs, sp1.freqs)
+    assert len(out.events) == 20
+
+    # event offset: second block's events should be shifted forward
+    assert np.all(out.events[10:, 0] > out.events[:10, 0])
+
+    # add_offset=False: event times should be preserved as-is
+    out_no_offset = concatenate_epochs([sp1, sp2], add_offset=False)
+    assert_array_equal(out_no_offset.events[:10, 0], sp1.events[:, 0])
+    assert_array_equal(out_no_offset.events[10:, 0], sp2.events[:, 0])
+
+    # data integrity
+    assert_array_equal(out.data[:10], sp1.data)
+    assert_array_equal(out.data[10:], sp2.data)
+
+    # mismatched freqs should raise
+    sp_bad_freqs = epochs[:10].compute_psd(fmax=50)
+    with pytest.raises(ValueError, match="freqs do not match"):
+        concatenate_epochs([sp1, sp_bad_freqs])
+
+    # passing a non-EpochsSpectrum should raise
+    with pytest.raises(TypeError, match="must be an instance of EpochsSpectrum"):
+        concatenate_epochs([sp1, epochs[:10]])
+
+    # mismatched method should raise
+    sp_welch = epochs[:10].compute_psd(method="welch")
+    with pytest.raises(ValueError, match="method"):
+        concatenate_epochs([sp1, sp_welch])
+
+    # mismatched multitaper weights should raise
+    sp_mt1 = epochs[:10].compute_psd(method="multitaper", bandwidth=2, output="complex")
+    sp_mt2 = epochs[10:20].compute_psd(
+        method="multitaper", bandwidth=20, output="complex"
+    )
+    with pytest.raises(ValueError, match="weights"):
+        concatenate_epochs([sp_mt1, sp_mt2])
