@@ -75,7 +75,8 @@ def test_get_data():
     # channels in Evoked.get_data(), matching Epochs.get_data().
     evoked_bads = evoked.copy()
     eeg_ch_names = [
-        ch for ch, kind in zip(evoked_bads.ch_names, evoked_bads.get_channel_types())
+        ch
+        for ch, kind in zip(evoked_bads.ch_names, evoked_bads.get_channel_types())
         if kind == "eeg"
     ]
     evoked_bads.info["bads"] = [eeg_ch_names[0]]
