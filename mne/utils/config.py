@@ -128,9 +128,7 @@ _known_config_types = {
         "bool, whether to add an opaque inner scalp head surface to help occlude points"
         " behind the head in coreg"
     ),
-    "MNE_COREG_INTERACTION": (
-        "str, interaction style in coreg (trackball or terrain)"
-    ),
+    "MNE_COREG_INTERACTION": ("str, interaction style in coreg (trackball or terrain)"),
     "MNE_COREG_MARK_INSIDE": (
         "bool, whether to mark points inside the head surface in coreg"
     ),
