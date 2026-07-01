@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "13e5e15662a3513805a877b701fb78bf40ce7f3b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/_includes/institutional-partners.rst": {
+      "a": 0,
+      "d": 44
+    },
+    "doc/_static/funding/NSF.svg": {
+      "a": 1236,
+      "d": 0
+    },
+    "doc/_static/funding/nsf.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Donders.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Donders.svg": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/_static/institution_logos/ICM.jpg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/ICM.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/MIT.svg": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/_static/sponsors.yml": {
+      "a": 153,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 48,
+      "d": 17
+    },
+    "doc/_templates/homepage.html": {
+      "a": 16,
+      "d": 18
+    },
+    "doc/_templates/sidebar-quicklinks.html": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 67,
+      "d": 294
+    },
+    "doc/credits/credit.rst": {
+      "a": 1,
+      "d": 3
+    },
+    "doc/credits/index.rst": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/credits/leaders.rst": {
+      "a": 10,
+      "d": 10
+    },
+    "doc/credits/sponsors.rst": {
+      "a": 94,
+      "d": 0
+    },
+    "doc/funding.rst": {
+      "a": 0,
+      "d": 70
+    },
+    "doc/index.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

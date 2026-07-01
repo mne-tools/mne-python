@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "7c0b74a4b7843f5be4113932fb0cba362f463257",
+  "authors": [
+    {
+      "n": "Famous Raj Bhat",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13680.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 175,
+      "d": 53
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 35,
+      "d": 0
+    }
+  }
+}

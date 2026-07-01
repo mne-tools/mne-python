@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9f9feb716ab0edfdbcdb0839c1da98b595cb2522",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}
