@@ -39,7 +39,7 @@ print(mne.get_config("MNE_USE_CUDA"))
 
 # %%
 # ``None`` is returned above if the requested key hasn't been set on your
-# system:. In fact, :func:`~mne.get_config` never invents a default value for a
+# system. In fact, :func:`~mne.get_config` never invents a default value for a
 # recognized key, it only reports what's actually stored in the JSON file or
 # the environment. Also note that the string values that are read from the
 # JSON file are not parsed in any way, so :func:`~mne.get_config` returns a
