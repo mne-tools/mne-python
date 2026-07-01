@@ -252,7 +252,14 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        # When no picks are given, keep prior behavior of including bads.
+        # When explicit picks are given (e.g. picks="eeg"), exclude bads by
+        # default, matching the behavior of Epochs.get_data().
+        orig_picks = picks
+        if orig_picks is None:
+            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        else:
+            picks = _picks_to_idx(self.info, picks)
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 

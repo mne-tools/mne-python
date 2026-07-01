@@ -1,0 +1,1 @@
+Fix :meth:`mne.Evoked.get_data` so that explicit ``picks`` (e.g. ``picks="eeg"``) exclude channels marked as bad by default, matching the existing behavior of :meth:`mne.Epochs.get_data`, by :newcontrib:`Eva Safi`.
