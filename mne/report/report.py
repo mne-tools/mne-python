@@ -88,6 +88,7 @@ from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
 from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
+_RATE_PROJ_KEYWORDS = ("ecg", "eog", "blink", "heart")
 
 
 # For raw files, we want to support different suffixes + extensions for all
@@ -1854,6 +1855,7 @@ class Report:
         title,
         projs=None,
         topomap_kwargs=None,
+        add_rate="auto",
         tags=("ssp",),
         joint=False,
         picks_trace=None,
@@ -1864,7 +1866,7 @@ class Report:
 
         Parameters
         ----------
-        info : instance of Info | instance of Evoked | path-like
+        info : instance of Info | instance of Evoked | instance of Epochs | path-like
             An `~mne.Info` structure or the path of a file containing one.
         title : str
             The title corresponding to the :class:`~mne.Projection` object.
@@ -1872,6 +1874,15 @@ class Report:
             The projection vectors to add to the report. Can be the path to a
             file that will be loaded via `mne.read_proj`. If ``None``, the
             projectors are taken from ``info['projs']``.
+        add_rate : bool | "auto"
+            Whether to add an estimated event rate to the figure caption when
+            ``info`` is an instance of :class:`~mne.Epochs`. If ``"auto"``
+            (default), the rate is shown only when the projector descriptions
+            suggest ECG or EOG content (i.e. contain ``"ecg"``, ``"eog"``, or
+            ``"blink"``). If ``True``, always show the rate. If ``False``, never
+            show it.
+
+            .. versionadded:: 1.13
         %(topomap_kwargs)s
         %(tags_report)s
         joint : bool
@@ -1903,6 +1914,7 @@ class Report:
             section=section,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
+            add_rate=add_rate,
             replace=replace,
             joint=joint,
         )
@@ -3621,6 +3633,30 @@ class Report:
                 replace=replace,
             )
 
+    @staticmethod
+    def _event_estimate(epochs, projs):
+        rate_caption = None
+        n_events = len(epochs.drop_log)
+        event_times = [ev[0] / epochs.info["sfreq"] for ev in epochs.events]
+        if len(event_times) > 1:
+            duration_sec = event_times[-1] - event_times[0]
+            duration_min = duration_sec / 60.0
+        else:
+            duration_min = 0.0
+            return None
+        if duration_min > 0:
+            rate = n_events / duration_min
+            unit = (
+                "BPM"
+                if any(
+                    any(kw in p["desc"].lower() for kw in _RATE_PROJ_KEYWORDS)
+                    for p in projs
+                )
+                else "events/min"
+            )
+            rate_caption = f"Estimated rate: {rate:.1f} {unit}"
+        return rate_caption
+
     @_use_agg
     def _add_projs(
         self,
@@ -3632,16 +3668,20 @@ class Report:
         tags,
         section,
         topomap_kwargs,
+        add_rate,
         replace,
         picks_trace=None,
         joint=False,
     ):
         evoked = None
+        epochs = None
         if isinstance(info, Info):  # no-op
             pass
         elif isinstance(getattr(info, "info", None), Info):  # try to get the file name
             if isinstance(info, Evoked):
                 evoked = info
+            if isinstance(info, BaseEpochs):
+                epochs = info
             info = info.info
         else:  # read from a file
             info = read_info(info, verbose=False)
@@ -3654,6 +3694,24 @@ class Report:
             projs = info["projs"]
         elif not isinstance(projs, list):
             projs = read_proj(projs)
+
+        rate_caption = None
+
+        if add_rate is False:
+            pass
+        elif epochs is None:
+            if add_rate is True:
+                raise ValueError(
+                    "add_rate=True requires an Epochs instance to be passed as info"
+                )
+        elif add_rate is True:
+            rate_caption = self._event_estimate(epochs, projs)
+        elif add_rate == "auto":
+            if any(
+                any(kw in p["desc"].lower() for kw in _RATE_PROJ_KEYWORDS)
+                for p in projs
+            ):
+                rate_caption = self._event_estimate(epochs, projs)
 
         if not projs:
             raise ValueError("No SSP projectors found")
@@ -3692,7 +3750,7 @@ class Report:
         self._add_figure(
             fig=fig,
             title=title,
-            caption=None,
+            caption=rate_caption,
             image_format=image_format,
             tags=tags,
             section=section,
