@@ -71,6 +71,21 @@ def test_get_data():
     d2 = evoked.get_data(picks="eeg", units="V")
     assert_array_equal(d1, d2)
 
+    # Regression test for gh-12577: explicit picks should exclude bad
+    # channels in Evoked.get_data(), matching Epochs.get_data().
+    evoked_bads = evoked.copy()
+    eeg_ch_names = [
+        ch for ch, kind in zip(evoked_bads.ch_names, evoked_bads.get_channel_types())
+        if kind == "eeg"
+    ]
+    evoked_bads.info["bads"] = [eeg_ch_names[0]]
+    n_eeg_with_bads = len(pick_types(evoked_bads.info, eeg=True, exclude=()))
+    n_eeg_without_bads = len(pick_types(evoked_bads.info, eeg=True, exclude="bads"))
+    assert n_eeg_without_bads < n_eeg_with_bads  # sanity check the fixture
+    assert evoked_bads.get_data(picks="eeg").shape[0] == n_eeg_without_bads
+    # picks=None should still keep prior behavior (bads included)
+    assert evoked_bads.get_data().shape[0] == len(evoked_bads.ch_names)
+
     # Convert to µV
     d3 = evoked.get_data(picks="eeg", units="µV")
     assert_array_equal(d1 * 1e6, d3)
