@@ -418,6 +418,13 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    on_outside : 'raise' | 'warn' | 'ignore'
+        What to do if an event's sample number falls outside the recorded data
+        range. Such events yield no epoch and are dropped. Can be ``'raise'``
+        to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to do nothing.
+
+        .. versionadded:: 1.13
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -695,7 +702,11 @@ class BaseEpochs(
 
     def _oob_check(self, on_outside):
         """Warn when event sample numbers fall outside recorded data (gh-12989)."""
-        if self._raw is not None and len(self.events) > 0:
+        if (
+            self._raw is not None
+            and len(self.events) > 0
+            and hasattr(self._raw, "first_samp")
+        ):
             lo = self._raw.first_samp
             hi = lo + self._raw.n_times
             n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
