@@ -93,7 +93,7 @@ class TstVTKPicker:
         """Return the picked position."""
         if self.hemi == "vol":
             self.point_id = self.cell_id
-            return self.brain._data["vol"]["grid_coords"][self.cell_id]
+            return self.brain._active_data["vol"]["grid_coords"][self.cell_id]
         else:
             vtk_cell = self.mesh.GetCell(self.cell_id)
             cell = [
@@ -994,7 +994,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
 
     with use_log_level("debug"):
         brain.update_lut(fmin=12.0)
-    assert brain._data["fmin"] == 12.0
+    assert brain._active_data["fmin"] == 12.0
     brain.update_lut(fmax=4.0)
     _assert_brain_range(brain, [4.0, 4.0])
     brain.update_lut(fmid=6.0)
@@ -1162,7 +1162,7 @@ def test_brain_traces_vertex(
     # add foci should work for 'lh', 'rh' and 'vol'
     for current_hemi in hemi_str:
         brain.add_foci([[0, 0, 0]], hemi=current_hemi)
-        assert_array_equal(brain._data[current_hemi]["foci"], [[0, 0, 0]])
+        assert_array_equal(brain._foci_data[current_hemi]["foci"], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1195,8 +1195,8 @@ def test_brain_traces_vertex(
     for idx, current_hemi in enumerate(hemi_str):
         assert len(spheres) == 0
         if current_hemi == "vol":
-            current_mesh = brain._data["vol"]["grid"]
-            vertices = brain._data["vol"]["vertices"]
+            current_mesh = brain._active_data["vol"]["grid"]
+            vertices = brain._active_data["vol"]["vertices"]
             values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
@@ -1302,7 +1302,7 @@ def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc):
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
     )
     # mne_analyze should be chosen
-    ctab = brain._data["ctable"]
+    ctab = brain._active_data["ctable"]
     assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
     assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
     assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
@@ -1509,7 +1509,7 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
             kind="distributed_source_power", fmin=1, fmid=2, fmax=3, alpha=True
         ),
     )
-    assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+    assert_array_equal(brain._active_data["ctable"][:3, 3], [0, 2, 4])
 
     # This event should be ignored.
     ui_events.publish(
@@ -1519,7 +1519,7 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
         ),
     )
     # Should remain unchanged.
-    assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+    assert_array_equal(brain._active_data["ctable"][:3, 3], [0, 2, 4])
 
     brain.close()
 
@@ -1604,4 +1604,4 @@ def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo["lh"].coords[:2] + 0.01
     tiny_brain.add_foci(foci_coords, map_surface="white")
-    assert_array_equal(tiny_brain._data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
+    assert_array_equal(tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
