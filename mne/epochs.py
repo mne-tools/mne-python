@@ -418,6 +418,13 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    on_outside : 'raise' | 'warn' | 'ignore'
+        What to do if an event's sample number falls outside the recorded data
+        range. Such events yield no epoch and are dropped. Can be ``'raise'``
+        to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to do nothing.
+
+        .. versionadded:: 1.13
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -462,6 +469,7 @@ class BaseEpochs(
         filename=None,
         metadata=None,
         event_repeated="error",
+        on_outside="warn",
         *,
         raw_sfreq=None,
         annotations=None,
@@ -575,6 +583,7 @@ class BaseEpochs(
         self.detrend = detrend
 
         self._raw = raw
+        self._oob_check(on_outside)
         info._check_consistency()
         self.picks = _picks_to_idx(
             info, picks, none="all", exclude=(), allow_empty=False
@@ -690,6 +699,27 @@ class BaseEpochs(
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
+
+    def _oob_check(self, on_outside):
+        """Warn when event sample numbers fall outside recorded data (gh-12989)."""
+        if (
+            self._raw is not None
+            and len(self.events) > 0
+            and hasattr(self._raw, "first_samp")
+        ):
+            lo = self._raw.first_samp
+            hi = lo + self._raw.n_times
+            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
+            if n_oob:
+                _on_missing(
+                    on_outside,
+                    f"{n_oob} event{_pl(n_oob)} {'has' if n_oob == 1 else 'have'} a "
+                    "sample number outside the recorded data; the corresponding "
+                    f"epoch{_pl(n_oob)} will be dropped. This can happen if the "
+                    "events were created at a different sampling frequency, or "
+                    "contain sample numbers before first_samp.",
+                    name="on_outside",
+                )
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
@@ -3487,6 +3517,13 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    on_outside : 'raise' | 'warn' | 'ignore'
+        What to do if an event's sample number falls outside the recorded data
+        range. Such events yield no epoch and are dropped. Can be ``'raise'``
+        to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to do nothing.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Attributes
@@ -3587,6 +3624,8 @@ class Epochs(BaseEpochs):
         reject_by_annotation=True,
         metadata=None,
         event_repeated="error",
+        *,
+        on_outside="warn",
         verbose=None,
     ):
         from .io import BaseRaw
@@ -3646,6 +3685,7 @@ class Epochs(BaseEpochs):
             on_missing=on_missing,
             preload_at_end=preload,
             event_repeated=event_repeated,
+            on_outside=on_outside,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
             annotations=annotations,
@@ -3728,6 +3768,13 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
+    on_outside : 'raise' | 'warn' | 'ignore'
+        What to do if an event's sample number falls outside the recorded data
+        range. Such events yield no epoch and are dropped. Can be ``'raise'``
+        to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to do nothing.
+
+        .. versionadded:: 1.13
     %(drop_log)s
 
         .. versionadded:: 1.3
@@ -3777,6 +3824,7 @@ class EpochsArray(BaseEpochs):
         metadata=None,
         selection=None,
         *,
+        on_outside="warn",
         drop_log=None,
         raw_sfreq=None,
         verbose=None,
@@ -3813,6 +3861,7 @@ class EpochsArray(BaseEpochs):
             selection=selection,
             proj=proj,
             on_missing=on_missing,
+            on_outside=on_outside,
             drop_log=drop_log,
             raw_sfreq=raw_sfreq,
             verbose=verbose,
