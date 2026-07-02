@@ -221,15 +221,15 @@
         },
         {
             "@type": "Person",
-            "email": "mmagnuski@swps.edu.pl",
-            "givenName": "Miko\u0142aj",
-            "familyName": "Magnuski"
-        },
-        {
-            "@type": "Person",
             "email": "t.s.binns@outlook.com",
             "givenName": "Thomas S",
             "familyName": "Binns"
+        },
+        {
+            "@type": "Person",
+            "email": "mmagnuski@swps.edu.pl",
+            "givenName": "Miko\u0142aj",
+            "familyName": "Magnuski"
         },
         {
             "@type": "Person",
