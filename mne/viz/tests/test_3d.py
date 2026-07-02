@@ -485,13 +485,9 @@ def test_plot_alignment_meg(renderer, system):
         sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
-    # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
-    use_info = pick_info(
-        this_info,
-        pick_types(this_info, meg=True, eeg=False, ref_meg="ref" in meg, exclude=()),
-    )
-    n_actors = use_info["nchan"] + 2
-    _assert_n_actors(fig, renderer, n_actors)
+    # 1 actor per distinct coil color (merged for speed) + helmet + head
+    n_colors = 2 if system == "KIT" else 1  # KIT also has a separate ref_meg color
+    _assert_n_actors(fig, renderer, n_colors + 2)
 
 
 @testing.requires_testing_data

@@ -29,6 +29,7 @@ from ..._freesurfer import (
 )
 from ...defaults import DEFAULTS, _handle_default
 from ...fixes import _reshape_view
+from ...source_space._source_space import _decimate_surface_ico_oct
 from ...surface import _marching_cubes, _mesh_borders, mesh_edges
 from ...transforms import (
     Transform,
@@ -164,9 +165,15 @@ class Brain:
     %(view_layout)s
     silhouette : dict | bool
        As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
-       and ``decimate`` (level of decimation between 0 and 1 or None) of the
-       brain's silhouette to display. If True, the default values are used
-       and if False, no silhouette will be displayed. Defaults to False.
+       and ``decimate`` of the brain's silhouette to display. ``decimate`` can be
+       a level of decimation between 0 and 1, None for no decimation, or a spacing
+       string (e.g. ``"ico4"``, ``"oct6"``) to instead pick vertices the same way
+       :func:`mne.setup_source_space` does, which is faster and better preserves
+       the shape than plain decimation. If True, the default values are used and
+       if False, no silhouette will be displayed. Defaults to False.
+
+       .. versionchanged:: 1.13
+          The default ``decimate`` value changed from ``0.9`` to ``"ico5"``.
     %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
@@ -366,7 +373,7 @@ class Brain:
             "color": self._bg_color,
             "line_width": 2,
             "alpha": alpha,
-            "decimate": 0.9,
+            "decimate": "ico5",
         }
         _validate_type(silhouette, (dict, bool), "silhouette")
         if isinstance(silhouette, dict):
@@ -450,12 +457,30 @@ class Brain:
                     self._renderer.plotter.add_actor(actor, render=False)
                 if self.silhouette:
                     mesh = self.layered_meshes[h]
+                    decimate = self._silhouette["decimate"]
+                    if isinstance(decimate, str):
+                        import pyvista as pv
+
+                        vertno, tris = _decimate_surface_ico_oct(
+                            self._subject,
+                            self._subjects_dir,
+                            h,
+                            self.geo[h].surf,
+                            decimate,
+                        )
+                        sil_mesh = pv.PolyData(
+                            self.geo[h].coords[vertno],
+                            np.c_[np.full(len(tris), 3), tris],
+                        )
+                        decimate = None  # already decimated
+                    else:
+                        sil_mesh = mesh._polydata
                     self._renderer._silhouette(
-                        mesh=mesh._polydata,
+                        mesh=sil_mesh,
                         color=self._silhouette["color"],
                         line_width=self._silhouette["line_width"],
                         alpha=self._silhouette["alpha"],
-                        decimate=self._silhouette["decimate"],
+                        decimate=decimate,
                     )
                 self._set_camera(**views_dicts[h][v])
 

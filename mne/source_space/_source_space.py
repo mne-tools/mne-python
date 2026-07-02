@@ -9,6 +9,7 @@ import os
 import os.path as op
 from copy import deepcopy
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 from scipy.sparse import csr_array, triu
@@ -1488,6 +1489,18 @@ def _check_spacing(spacing, verbose=None):
             logger.info(f"Approximate spacing {sval} mm")
             ico_surf = sval
     return stype, sval, ico_surf, src_type_str
+
+
+def _decimate_surface_ico_oct(subject, subjects_dir, hemi, surf, spacing):
+    stype, _, ico_surf, _ = _check_spacing(spacing, verbose=False)
+    subjects_dir = Path(subjects_dir)
+    surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surf}"
+    dec = _create_surf_spacing(surf_fname, hemi, subject, stype, ico_surf, subjects_dir)
+    vertno, use_tris = dec["vertno"], dec["use_tris"]
+    lut = np.zeros(dec["np"], int)
+    lut[vertno] = np.arange(len(vertno))
+    tris = lut[use_tris]
+    return vertno, tris
 
 
 @verbose

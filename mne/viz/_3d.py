@@ -1648,9 +1648,16 @@ def _plot_sensors_3d(
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
                 colors = [colors[0]] * len(sens_loc)
+            # Merge same-color coils into one mesh/actor instead of one per
+            # coil (can number in the hundreds), since per-call overhead
+            # dominates. Could also use a GPU-instanced vtkGlyph3DMapper
+            # (quaternion mode), but that's a larger refactor for little gain.
+            groups = defaultdict(list)
             for surface, color in zip(sens_loc, colors):
+                groups[tuple(color)].append(surface)
+            for color, surfaces in groups.items():
                 actor, _ = renderer.surface(
-                    surface=surface,
+                    surface=_merge_surfaces(surfaces),
                     color=color[:3],
                     opacity=this_alpha * color[3],
                     backface_culling=False,  # visible from all sides
@@ -1759,6 +1766,18 @@ def _plot_sensors_3d(
     actors = dict(actors)  # get rid of defaultdict
 
     return actors
+
+
+def _merge_surfaces(surfaces):
+    """Merge a list of surface dicts (rr, tris) into a single surface dict."""
+    rrs = list()
+    tris = list()
+    offset = 0
+    for surface in surfaces:
+        rrs.append(surface["rr"])
+        tris.append(surface["tris"] + offset)
+        offset += len(surface["rr"])
+    return dict(rr=np.concatenate(rrs), tris=np.concatenate(tris))
 
 
 def _make_tris_fan(n_vert):

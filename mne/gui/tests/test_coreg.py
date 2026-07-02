@@ -263,7 +263,8 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._redraw(verbose="debug")
     assert "Drawing meg sensors" in log.getvalue()
     assert coreg._actors["helmet"] is not None
-    assert len(coreg._actors["sensors"]) == 306
+    # coil surfaces sharing a color are merged into a single mesh/actor
+    assert len(coreg._actors["sensors"]) == 1
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
