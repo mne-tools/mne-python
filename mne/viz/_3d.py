@@ -1227,7 +1227,6 @@ def _plot_axes(renderer, info, to_cf_t, head_mri_t):
             scale=2e-2,
             color=ax[1],
             scale_mode="scalar",
-            resolution=20,
             scalars=[0.33, 0.66, 1.0],
         )
         actors.append(actor)
@@ -1424,7 +1423,6 @@ def _plot_glyphs(
             mode=mode,
             glyph_height=defaults["eegp_height"],
             glyph_center=(0.0, -defaults["eegp_height"], 0),
-            resolution=16,
             glyph_resolution=16,
             glyph_radius=None,
             opacity=opacity,

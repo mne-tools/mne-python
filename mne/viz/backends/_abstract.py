@@ -97,7 +97,7 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
+    def legend(self, labels, size=0.1, face="triangle", loc="upper left"):
         """Add a legend to the scene.
 
         Parameters
@@ -106,9 +106,6 @@ class _AbstractRenderer(ABC):
             Each entry must contain two strings, (label, color),
             where ``label`` is the name of the item to add, and
             ``color`` is the color of the label to add.
-        border : bool
-            Controls if there will be a border around the legend.
-            The default is False.
         size : float
             The size of the entire figure window.
         loc : str
@@ -144,7 +141,6 @@ class _AbstractRenderer(ABC):
         representation="surface",
         line_width=1.0,
         normals=None,
-        polygon_offset=None,
         name=None,
         **kwargs,
     ):
@@ -190,8 +186,6 @@ class _AbstractRenderer(ABC):
             The width of the lines when representation='wireframe'.
         normals : array, shape (n_vertices, 3)
             The array containing the normal of each vertex.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             The name of the mesh.
         kwargs : args
@@ -266,7 +260,6 @@ class _AbstractRenderer(ABC):
         normalized_colormap=False,
         scalars=None,
         backface_culling=False,
-        polygon_offset=None,
         *,
         name=None,
     ):
@@ -294,8 +287,6 @@ class _AbstractRenderer(ABC):
             The scalar valued associated to the vertices.
         backface_culling : bool
             If True, enable backface culling on the surface.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             Name of the surface.
         """
@@ -407,7 +398,6 @@ class _AbstractRenderer(ABC):
         color,
         scale,
         mode,
-        resolution=8,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -447,10 +437,6 @@ class _AbstractRenderer(ABC):
             The given value specifies the maximum glyph size in drawing units.
         mode : 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
-        resolution : int
-            The resolution of the glyph created. Depending on the type of
-            glyph, it represents the number of divisions in its geometric
-            representation.
         glyph_height : float
             The height of the glyph used with the quiver.
         glyph_center : tuple

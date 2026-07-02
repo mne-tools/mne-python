@@ -17,8 +17,33 @@ from inspect import signature
 
 import numpy as np
 import pyvista
-from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
+from pyvista import Line, Plotter, PolyData, close_all
+from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
+from vtkmodules.util.numpy_support import numpy_to_vtk
+from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
+from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
+from vtkmodules.vtkCommonTransforms import vtkTransform
+from vtkmodules.vtkFiltersCore import vtkGlyph3D
+from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
+from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
+from vtkmodules.vtkFiltersSources import (
+    vtkArrowSource,
+    vtkCylinderSource,
+    vtkGlyphSource2D,
+)
+from vtkmodules.vtkImagingCore import vtkImageReslice
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkCellPicker,
+    vtkColorTransferFunction,
+    vtkCoordinate,
+    vtkDataSetMapper,
+    vtkMapper,
+    vtkPolyDataMapper,
+    vtkVolume,
+)
+from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
 
 from ...fixes import _compare_version
 from ...surface import _vtk_smooth
@@ -36,39 +61,6 @@ from ._utils import (
     _get_colormap_from_array,
     _init_mne_qtapp,
 )
-
-try:
-    from pyvista.plotting.plotter import _ALL_PLOTTERS
-except Exception:  # PV < 0.40
-    from pyvista.plotting.plotting import _ALL_PLOTTERS
-
-from vtkmodules.util.numpy_support import numpy_to_vtk
-from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
-from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
-from vtkmodules.vtkCommonTransforms import vtkTransform
-from vtkmodules.vtkFiltersCore import vtkGlyph3D
-from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
-from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
-from vtkmodules.vtkFiltersSources import (
-    vtkArrowSource,
-    vtkConeSource,
-    vtkCylinderSource,
-    vtkGlyphSource2D,
-    vtkPlatonicSolidSource,
-    vtkSphereSource,
-)
-from vtkmodules.vtkImagingCore import vtkImageReslice
-from vtkmodules.vtkRenderingCore import (
-    vtkActor,
-    vtkCellPicker,
-    vtkColorTransferFunction,
-    vtkCoordinate,
-    vtkDataSetMapper,
-    vtkMapper,
-    vtkPolyDataMapper,
-    vtkVolume,
-)
-from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
 
 try:
     from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
@@ -314,22 +306,18 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
+        # below and centered, left and above, right and above
+        az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
         for renderer in self._all_renderers:
-            lights = list(renderer.GetLights())
-            headlight = lights.pop(0)
-            headlight.SetSwitch(False)
-            # below and centered, left and above, right and above
-            az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
-            for li, light in enumerate(lights):
-                if li < len(az_el_in):
-                    light.SetSwitch(True)
-                    light.SetPosition(_to_pos(*az_el_in[li][:2]))
-                    light.SetIntensity(az_el_in[li][2])
-                else:
-                    light.SetSwitch(False)
-                    light.SetPosition(_to_pos(0.0, 0.0))
-                    light.SetIntensity(0.0)
-                light.SetColor(1.0, 1.0, 1.0)
+            renderer.remove_all_lights()
+            for azimuth, elevation, intensity in az_el_in:
+                light = pyvista.Light(
+                    position=_to_pos(azimuth, elevation),
+                    color="white",
+                    light_type="camera light",
+                    intensity=intensity,
+                )
+                renderer.add_light(light)
 
     def set_interaction(self, interaction):
         if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
@@ -346,7 +334,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 kwargs["mouse_wheel_zooms"] = True
             getattr(self.plotter, f"enable_{interaction}_style")(**kwargs)
 
-    def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
+    def legend(self, labels, size=0.1, face="triangle", loc="upper left"):
         return self.plotter.add_legend(labels, size=(size, size), face=face, loc=loc)
 
     def polydata(
@@ -363,7 +351,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         interpolate_before_map=True,
         representation="surface",
         line_width=1.0,
-        polygon_offset=None,
         *,
         name=None,
         **kwargs,
@@ -413,13 +400,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             **kwargs,
         )
 
-        if polygon_offset is not None:
-            mapper = actor.GetMapper()
-            mapper.SetResolveCoincidentTopologyToPolygonOffset()
-            mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
-                polygon_offset, polygon_offset
-            )
-
         return actor, mesh
 
     def mesh(
@@ -440,7 +420,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         representation="surface",
         line_width=1.0,
         normals=None,
-        polygon_offset=None,
         name=None,
         **kwargs,
     ):
@@ -460,7 +439,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             interpolate_before_map=interpolate_before_map,
             representation=representation,
             line_width=line_width,
-            polygon_offset=polygon_offset,
             name=name,
             **kwargs,
         )
@@ -516,7 +494,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         normalized_colormap=False,
         scalars=None,
         backface_culling=False,
-        polygon_offset=None,
         *,
         name=None,
     ):
@@ -538,7 +515,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             colormap=colormap,
             vmin=vmin,
             vmax=vmax,
-            polygon_offset=polygon_offset,
             name=name,
         )
 
@@ -552,21 +528,17 @@ class _PyVistaRenderer(_AbstractRenderer):
         backface_culling=False,
         radius=None,
     ):
-        from vtkmodules.vtkFiltersSources import vtkSphereSource
-
         factor = 1.0 if radius is not None else scale
         center = np.array(center, dtype=float)
         if len(center) == 0:
             return None, None
         _check_option("center.ndim", center.ndim, (1, 2))
         _check_option("center.shape[-1]", center.shape[-1], (3,))
-        sphere = vtkSphereSource()
-        sphere.SetThetaResolution(resolution)
-        sphere.SetPhiResolution(resolution)
-        if radius is not None:
-            sphere.SetRadius(radius)
-        sphere.Update()
-        geom = sphere.GetOutput()
+        geom = pyvista.Sphere(
+            radius=0.5 if radius is None else radius,
+            theta_resolution=resolution,
+            phi_resolution=resolution,
+        )
         mesh = PolyData(center)
         glyph = mesh.glyph(orient=False, scale=False, factor=factor, geom=geom)
         actor = _add_mesh(
@@ -628,7 +600,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         color,
         scale,
         mode,
-        resolution=8,
         *,
         glyph_height=None,
         glyph_center=None,
@@ -648,12 +619,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         _check_option("scale_mode", scale_mode, list(scale_map))
         factor = scale
         vectors = np.c_[u, v, w]
-        points = np.vstack(np.c_[x, y, z])
+        points = np.vstack(np.c_[x, y, z]).astype(float)
         n_points = len(points)
-        cell_type = np.full(n_points, VTK_VERTEX)
-        cells = np.c_[np.full(n_points, 1), range(n_points)]
-        args = (cells, cell_type, points)
-        grid = UnstructuredGrid(*args)
+        grid = PolyData(points)
         if scalars is None:
             scalars = np.ones((n_points,))
             mesh_scalars = None
@@ -667,45 +635,39 @@ class _PyVistaRenderer(_AbstractRenderer):
             alg = _glyph(grid, orient="vec", scalars="scalars", factor=factor)
             mesh = pyvista.wrap(alg.GetOutput())
         else:
-            tr = None
             if mode == "cone":
-                glyph = vtkConeSource()
-                glyph.SetCenter(0.5, 0, 0)
-                if glyph_radius is not None:
-                    glyph.SetRadius(glyph_radius)
+                geom = pyvista.Cone(center=(0.5, 0, 0), radius=glyph_radius)
             elif mode == "cylinder":
-                glyph = vtkCylinderSource()
+                # vtkCylinderSource's axis is along y, so rotate 90 degrees
+                # about z to match the arrow/cone convention of pointing
+                # along x
+                source = vtkCylinderSource()
                 if glyph_radius is not None:
-                    glyph.SetRadius(glyph_radius)
-            elif mode == "oct":
-                glyph = vtkPlatonicSolidSource()
-                glyph.SetSolidTypeToOctahedron()
-            else:
-                assert mode == "sphere", mode  # guaranteed above
-                glyph = vtkSphereSource()
-            if mode == "cylinder":
+                    source.SetRadius(glyph_radius)
                 if glyph_height is not None:
-                    glyph.SetHeight(glyph_height)
+                    source.SetHeight(glyph_height)
                 if glyph_center is not None:
-                    glyph.SetCenter(glyph_center)
+                    source.SetCenter(glyph_center)
                 if glyph_resolution is not None:
-                    glyph.SetResolution(glyph_resolution)
+                    source.SetResolution(glyph_resolution)
+                source.Update()
                 tr = vtkTransform()
                 tr.RotateWXYZ(90, 0, 0, 1)
+                trp = vtkTransformFilter()
+                trp.SetInputData(source.GetOutput())
+                trp.SetTransform(tr)
+                trp.Update()
+                geom = trp.GetOutput()
             elif mode == "oct":
+                geom = pyvista.PlatonicSolid(kind="octahedron")
                 if solid_transform is not None:
                     assert solid_transform.shape == (4, 4)
-                    tr = vtkTransform()
-                    tr.SetMatrix(solid_transform.astype(np.float64).ravel())
-            if tr is not None:
-                # fix orientation
-                glyph.Update()
-                trp = vtkTransformFilter()
-                trp.SetInputData(glyph.GetOutput())
-                trp.SetTransform(tr)
-                glyph = trp
-            glyph.Update()
-            geom = glyph.GetOutput()
+                    geom = geom.transform(
+                        solid_transform.astype(np.float64), inplace=True
+                    )
+            else:
+                assert mode == "sphere", mode  # guaranteed above
+                geom = pyvista.Sphere(theta_resolution=8, phi_resolution=8)
             mesh = grid.glyph(
                 orient="vec",
                 scale=scale_map[scale_mode],
@@ -761,7 +723,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
     def text3d(self, x, y, z, text, scale, color="white"):
-        kwargs = dict(
+        actor = self.plotter.add_point_labels(
             points=np.array([x, y, z]).astype(float),
             labels=[text],
             point_size=scale,
@@ -769,10 +731,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             font_family=self.font_family,
             name=text,
             shape_opacity=0,
+            always_visible=True,
         )
-        if "always_visible" in signature(self.plotter.add_point_labels).parameters:
-            kwargs["always_visible"] = True
-        actor = self.plotter.add_point_labels(**kwargs)
         _hide_testing_actor(actor)
         return actor
 
@@ -946,15 +906,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             scalar_bar.SetLookupTable(lut)
 
     def _sphere(self, center, color, radius):
-        from vtkmodules.vtkFiltersSources import vtkSphereSource
-
-        sphere = vtkSphereSource()
-        sphere.SetThetaResolution(8)
-        sphere.SetPhiResolution(8)
-        sphere.SetRadius(radius)
-        sphere.SetCenter(center)
-        sphere.Update()
-        mesh = pyvista.wrap(sphere.GetOutput())
+        mesh = pyvista.Sphere(
+            radius=radius, center=center, theta_resolution=8, phi_resolution=8
+        )
         actor = _add_mesh(self.plotter, mesh=mesh, color=color)
         return actor, mesh
 
@@ -1339,14 +1293,7 @@ def _glyph(
 
 @contextmanager
 def _disabled_depth_peeling():
-    try:
-        from pyvista import global_theme
-    except Exception:  # workaround for older PyVista
-        from pyvista import rcParams
-
-        depth_peeling = rcParams["depth_peeling"]
-    else:
-        depth_peeling = global_theme.depth_peeling
+    depth_peeling = pyvista.global_theme.depth_peeling
     depth_peeling_enabled = depth_peeling["enabled"]
     depth_peeling["enabled"] = False
     try:
