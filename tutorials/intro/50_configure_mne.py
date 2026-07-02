@@ -18,6 +18,7 @@ We begin by importing the necessary Python modules:
 # %%
 
 import os
+import sys
 
 import mne
 
@@ -196,22 +197,26 @@ print(mne.get_config("MNE_LOGGING_LEVEL"))
 # set. First, with log level ``warning``:
 
 
-kit_data_path = os.path.join(
-    os.path.abspath(os.path.dirname(mne.__file__)),
-    "io",
-    "kit",
-    "tests",
-    "data",
-    "test.sqd",
-)
-raw = mne.io.read_raw_kit(kit_data_path, verbose="warning")
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    kit_data_path = os.path.join(
+        os.path.abspath(os.path.dirname(mne.__file__)),
+        "io",
+        "kit",
+        "tests",
+        "data",
+        "test.sqd",
+    )
+    raw = mne.io.read_raw_kit(kit_data_path, verbose="warning")
 
 # %%
 # No messages were generated, because none of the messages were of severity
 # "warning" or worse. Next, we'll load the same file with log level ``info``
 # (the default level):
 
-raw = mne.io.read_raw_kit(kit_data_path, verbose="info")
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    raw = mne.io.read_raw_kit(kit_data_path, verbose="info")
 
 # %%
 # This time, we got a few messages about extracting information from the file,
@@ -221,8 +226,10 @@ raw = mne.io.read_raw_kit(kit_data_path, verbose="info")
 # manager, which is another way to accomplish the same thing as passing
 # ``verbose='debug'``:
 
-with mne.use_log_level("debug"):
-    raw = mne.io.read_raw_kit(kit_data_path)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    with mne.use_log_level("debug"):
+        raw = mne.io.read_raw_kit(kit_data_path)
 
 # %%
 # We've been passing string values to the ``verbose`` parameter, but we can see

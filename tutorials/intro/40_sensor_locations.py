@@ -15,6 +15,7 @@ need:
 
 # %%
 
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -91,19 +92,21 @@ fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial
 # It is also possible to skip the manual montage loading step by passing the montage
 # name directly to the :meth:`~mne.io.Raw.set_montage` method.
 
-ssvep_folder = mne.datasets.ssvep.data_path()
-ssvep_data_raw_path = (
-    ssvep_folder / "sub-02" / "ses-01" / "eeg" / "sub-02_ses-01_task-ssvep_eeg.vhdr"
-)
-ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    ssvep_folder = mne.datasets.ssvep.data_path()
+    ssvep_data_raw_path = (
+        ssvep_folder / "sub-02" / "ses-01" / "eeg" / "sub-02_ses-01_task-ssvep_eeg.vhdr"
+    )
+    ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
 
-# Use the preloaded montage
-ssvep_raw.set_montage(easycap_montage)
-fig = ssvep_raw.plot_sensors(show_names=True)
+    # Use the preloaded montage
+    ssvep_raw.set_montage(easycap_montage)
+    fig = ssvep_raw.plot_sensors(show_names=True)
 
-# Apply a template montage directly, without preloading
-ssvep_raw.set_montage("easycap-M1")
-fig = ssvep_raw.plot_sensors(show_names=True)
+    # Apply a template montage directly, without preloading
+    ssvep_raw.set_montage("easycap-M1")
+    fig = ssvep_raw.plot_sensors(show_names=True)
 
 # %%
 # .. note::
@@ -133,7 +136,9 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # If you prefer to draw the head circle using 10–20 conventions (which are also used by
 # EEGLAB), you can pass ``sphere='eeglab'``:
 
-fig = ssvep_raw.plot_sensors(show_names=True, sphere="eeglab")
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    fig = ssvep_raw.plot_sensors(show_names=True, sphere="eeglab")
 
 # %%
 # Because the data we're using here doesn't contain an Fpz channel, its putative
@@ -218,15 +223,17 @@ ax3d.view_init(azim=70, elev=15)
 # It is also possible to render an image of an MEG sensor helmet using 3D surface
 # rendering instead of matplotlib. This works by calling :func:`mne.viz.plot_alignment`:
 
-fig = mne.viz.plot_alignment(
-    sample_raw.info,
-    dig=False,
-    eeg=False,
-    surfaces=[],
-    meg=["helmet", "sensors"],
-    coord_frame="meg",
-)
-mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    fig = mne.viz.plot_alignment(
+        sample_raw.info,
+        dig=False,
+        eeg=False,
+        surfaces=[],
+        meg=["helmet", "sensors"],
+        coord_frame="meg",
+    )
+    mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 # %%
 # Note that :func:`~mne.viz.plot_alignment` requires an `~mne.Info` object, and can also

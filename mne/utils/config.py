@@ -274,8 +274,8 @@ def _load_config(config_path, raise_error=False):
     with _open_lock(config_path, "r+") as fid:
         try:
             config = json.load(fid)
-        except ValueError:
-            # No JSON object could be decoded --> corrupt file?
+        except Exception:
+            # Catch ANY exception (including SyntaxError from Pyodide json parser)
             msg = (
                 f"The MNE-Python config file ({config_path}) is not a valid JSON "
                 "file and might be corrupted"

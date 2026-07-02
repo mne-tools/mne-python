@@ -16,6 +16,8 @@ signal with point-spread by applying a forward and inverse solution.
 
 # %%
 
+import sys
+
 import numpy as np
 
 import mne
@@ -151,7 +153,9 @@ kwargs = dict(
     views=["lat", "med"],
 )
 clim = dict(kind="value", pos_lims=[1e-9, 1e-8, 1e-7])
-brain_gen = stc_gen.plot(clim=clim, **kwargs)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    brain_gen = stc_gen.plot(clim=clim, **kwargs)
 
 # %%
 # Simulate sensor-space signals
@@ -176,7 +180,9 @@ stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 # This spread is due to the minimum norm solution so that the signal leaks to
 # nearby vertices with similar orientations so that signal ends up crossing the
 # sulci and gyri.
-brain_inv = stc_inv.plot(**kwargs)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    brain_inv = stc_inv.plot(**kwargs)
 
 # %%
 # Exercises

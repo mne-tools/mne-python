@@ -32,6 +32,8 @@ to just 60 seconds before loading it into RAM:
 
 # %%
 
+import sys
+
 import numpy as np
 
 import mne
@@ -163,10 +165,12 @@ print(events[:5])  # show the first 5
 # stored events into an `~mne.Annotations` object and store it as the
 # :attr:`~mne.io.Raw.annotations` attribute of the `~mne.io.Raw` object:
 
-testing_data_folder = mne.datasets.testing.data_path()
-eeglab_raw_file = testing_data_folder / "EEGLAB" / "test_raw.set"
-eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
-print(eeglab_raw.annotations)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    testing_data_folder = mne.datasets.testing.data_path()
+    eeglab_raw_file = testing_data_folder / "EEGLAB" / "test_raw.set"
+    eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
+    print(eeglab_raw.annotations)
 
 # %%
 # The core data within an `~mne.Annotations` object is accessible
@@ -176,10 +180,12 @@ print(eeglab_raw.annotations)
 # different types of events, and the first event occurred about 1 second after
 # the recording began:
 
-print(len(eeglab_raw.annotations))
-print(set(eeglab_raw.annotations.duration))
-print(set(eeglab_raw.annotations.description))
-print(eeglab_raw.annotations.onset[0])
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    print(len(eeglab_raw.annotations))
+    print(set(eeglab_raw.annotations.duration))
+    print(set(eeglab_raw.annotations.description))
+    print(eeglab_raw.annotations.onset[0])
 
 # %%
 # More information on working with `~mne.Annotations` objects, including
@@ -210,9 +216,11 @@ print(eeglab_raw.annotations.onset[0])
 # :ref:`fixed-length-events` for direct creation of an Events array of
 # equally-spaced events).
 
-events_from_annot, event_dict = mne.events_from_annotations(eeglab_raw)
-print(event_dict)
-print(events_from_annot[:5])
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    events_from_annot, event_dict = mne.events_from_annotations(eeglab_raw)
+    print(event_dict)
+    print(events_from_annot[:5])
 
 # %%
 # If you want to control which integers are mapped to each unique description
@@ -224,12 +232,14 @@ print(events_from_annot[:5])
 # `~mne.io.Raw` objects, as demonstrated in the tutorial
 # :ref:`tut-epochs-class`.
 
-custom_mapping = {"rt": 77, "square": 42}
-(events_from_annot, event_dict) = mne.events_from_annotations(
-    eeglab_raw, event_id=custom_mapping
-)
-print(event_dict)
-print(events_from_annot[:5])
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    custom_mapping = {"rt": 77, "square": 42}
+    (events_from_annot, event_dict) = mne.events_from_annotations(
+        eeglab_raw, event_id=custom_mapping
+    )
+    print(event_dict)
+    print(events_from_annot[:5])
 
 # %%
 # To make the opposite conversion (from an Events array to an

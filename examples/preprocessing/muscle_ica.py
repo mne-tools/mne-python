@@ -19,6 +19,8 @@ artifacts of this kind are much more pronounced in EEG than they are in MEG.
 
 # %%
 
+import sys
+
 import mne
 
 data_path = mne.datasets.sample.data_path()
@@ -44,7 +46,9 @@ ica.fit(raw)
 
 # %%
 # Remove components with postural muscle artifact using ICA
-ica.plot_sources(raw)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    ica.plot_sources(raw)
 
 # %%
 # By inspection, let's select out the muscle-artifact components based on
@@ -71,19 +75,25 @@ ica.plot_sources(raw)
 # slope in log-log units; this is a very typical pattern for muscle artifact.
 
 muscle_idx = [6, 7, 8, 9, 10, 11, 12, 13, 14]
-ica.plot_properties(raw, picks=muscle_idx, log_scale=True)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    ica.plot_properties(raw, picks=muscle_idx, log_scale=True)
 
 # first, remove blinks and heartbeat to compare
 blink_idx = [0]
 heartbeat_idx = [5]
 ica.apply(raw, exclude=blink_idx + heartbeat_idx)
-ica.plot_overlay(raw, exclude=muscle_idx)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    ica.plot_overlay(raw, exclude=muscle_idx)
 
 # %%
 # Finally, let's try an automated algorithm to find muscle components
 # and ensure that it gets the same components we did manually.
 muscle_idx_auto, scores = ica.find_bads_muscle(raw)
-ica.plot_scores(scores, exclude=muscle_idx_auto)
+# Skipped in JupyterLite (browser): no interactive/3D rendering.
+if sys.platform != "emscripten":
+    ica.plot_scores(scores, exclude=muscle_idx_auto)
 print(
     f"Manually found muscle artifact ICA components:      {muscle_idx}\n"
     f"Automatically found muscle artifact ICA components: {muscle_idx_auto}"
@@ -107,10 +117,14 @@ for sub in (1, 2):
         n_components=15, method="picard", max_iter="auto", random_state=97
     )
     ica.fit(raw)
-    ica.plot_sources(raw)
+    # Skipped in JupyterLite (browser): no interactive/3D rendering.
+    if sys.platform != "emscripten":
+        ica.plot_sources(raw)
     muscle_idx_auto, scores = ica.find_bads_muscle(raw)
-    ica.plot_properties(raw, picks=muscle_idx_auto, log_scale=True)
-    ica.plot_scores(scores, exclude=muscle_idx_auto)
+    # Skipped in JupyterLite (browser): no interactive/3D rendering.
+    if sys.platform != "emscripten":
+        ica.plot_properties(raw, picks=muscle_idx_auto, log_scale=True)
+        ica.plot_scores(scores, exclude=muscle_idx_auto)
 
     print(
         f"Manually found muscle artifact ICA components:      {muscle_idx}\n"
