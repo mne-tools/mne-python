@@ -94,6 +94,12 @@ pd.set_option("display.max_colwidth", None)
 )
 
 # %%
+# Restore the pandas defaults we changed above:
+
+pd.reset_option("display.max_rows")
+pd.reset_option("display.max_colwidth")
+
+# %%
 # It is possible to add config variables that are not part of the recognized
 # list, by passing any arbitrary key to :func:`~mne.set_config`. This will
 # yield a warning, however, which is a nice check in cases where you meant to
