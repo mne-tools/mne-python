@@ -57,7 +57,8 @@ make test-doc          # runs doctests across doc/ (requires sample + testing da
 
 Build the docs (Sphinx + sphinx-gallery, in `doc/`):
 ```bash
-cd doc && make html        # or `make html-noplot` for a faster build without executing examples
+PATTERN=some_regex_pattern make -C doc html-pattern  # can choose some_regex_pattern to subselect relevant examples and tutorials to run
+make -C doc html        # full build, takes about an hour, generally only needed if changing docs extensively
 ```
 
 Other:
