@@ -64,7 +64,6 @@ make -C doc html        # full build, takes about an hour, generally only needed
 Other:
 ```bash
 make nesting        # import-nesting checks (mne/tests/test_import_nesting.py)
-make codespell       # manual spellcheck pass
 make clean           # remove build artifacts, __pycache__, *.pyc/*.so
 ```
 
