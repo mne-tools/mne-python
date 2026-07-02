@@ -52,7 +52,7 @@ python -c "import mne; mne.datasets.sample.data_path(verbose=True)
 Docstring / doctest checks:
 ```bash
 pytest mne/tests/test_docstring_parameters.py
-make test-doc          # runs doctests across doc/ (requires sample + testing datasets)
+make test-doc          # runs doctests across doc/ (requires sample + testing datasets, generally only needed when changing example code in doc/ itself)
 ```
 
 Build the docs (Sphinx + sphinx-gallery, in `doc/`):
