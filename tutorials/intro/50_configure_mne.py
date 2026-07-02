@@ -20,6 +20,8 @@ We begin by importing the necessary Python modules:
 import os
 import sys
 
+import pandas as pd
+
 import mne
 
 # %%
@@ -35,12 +37,15 @@ import mne
 # if you want):
 
 print(mne.get_config("MNE_USE_CUDA"))
-print(type(mne.get_config("MNE_USE_CUDA")))
 
 # %%
-# Note that the string values read from the JSON file are not parsed in any
-# way, so :func:`~mne.get_config` returns a string even for true/false config
-# values, rather than a Python :ref:`boolean <python:typebool>`.
+# ``None`` is returned above if the requested key hasn't been set on your
+# system. In fact, :func:`~mne.get_config` never invents a default value for a
+# recognized key, it only reports what's actually stored in the JSON file or
+# the environment. Also note that the string values that are read from the
+# JSON file are not parsed in any way, so :func:`~mne.get_config` returns a
+# string even for true/false config values, rather than a Python
+# :ref:`boolean <python:typebool>`.
 # Similarly, :func:`~mne.set_config` will only set string values (or ``None``
 # values, to unset a variable):
 
@@ -65,11 +70,35 @@ print(mne.get_config("missing_config_key", default="fallback value"))
 print(mne.get_config())  # same as mne.get_config(key=None)
 
 # %%
-# The second convenience mode will return a :class:`tuple` of all the keys that
-# MNE-Python recognizes and uses, regardless of whether they've been set on
-# your system. This is done by passing an empty string ``''`` as the ``key``:
+# The second convenience mode will return a :class:`dict` containing all the
+# keys that MNE-Python recognizes and uses, mapped to a short description of
+# each one, regardless of whether they've been set on your system. This is
+# done by passing an empty string as the ``key``:
 
 print(mne.get_config(key=""))
+
+# %%
+# Overview of all configuration keys
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Since the dictionary above can be hard to read, here it is again, sorted
+# alphabetically and displayed as a table (using a :class:`pandas.DataFrame`)
+# so you can get an overview of all the configuration keys MNE-Python
+# recognizes and what they're used for:
+
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_colwidth", None)
+(
+    pd.DataFrame(sorted(mne.get_config(key="").items()), columns=["Key", "Description"])
+    .style.hide(axis="index")
+    .set_table_attributes('class="dataframe" style="width: 100%;"')
+)
+
+# %%
+# Restore the pandas defaults we changed above:
+
+pd.reset_option("display.max_rows")
+pd.reset_option("display.max_colwidth")
 
 # %%
 # It is possible to add config variables that are not part of the recognized
@@ -100,7 +129,7 @@ assert "MNEE_USE_CUUDAA" not in mne.get_config("")
 print(mne.get_config_path())
 
 # %%
-# However it is not a good idea to directly edit files in the :file:`.mne`
+# However, it is not a good idea to directly edit files in the :file:`.mne`
 # directory; use the getting and setting functions described in :ref:`the
 # previous section <config-get-set>`.
 #
@@ -131,7 +160,7 @@ print(mne.get_config("PATH"))
 # %%
 # Also by default, :func:`~mne.set_config` will set values in both the JSON
 # file and in :data:`os.environ`; to set a config variable *only* in the JSON
-# file use ``set_env=False``. Here we'll use :func:`print` statement to confirm
+# file use ``set_env=False``. Here we'll use a :func:`print` statement to confirm
 # that an environment variable is being created and deleted (we could have used
 # the Python :ref:`assert statement <assert>` instead, but it doesn't print any
 # output when it succeeds so it's a little less obvious):
@@ -151,13 +180,11 @@ print("foo" in os.environ.keys())
 #
 # One important configuration variable is ``MNE_LOGGING_LEVEL``. Throughout the
 # module, messages are generated describing the actions MNE-Python is taking
-# behind-the-scenes. How you set ``MNE_LOGGING_LEVEL`` determines how many of
+# behind the scenes. How you set ``MNE_LOGGING_LEVEL`` determines how many of
 # those messages you see. The default logging level on a fresh install of
-# MNE-Python is ``info``:
-
-print(mne.get_config("MNE_LOGGING_LEVEL"))
-
-# %%
+# MNE-Python is ``info``.
+#
+#
 # The logging levels that can be set as config variables are ``debug``,
 # ``info``, ``warning``, ``error``, and ``critical``. Around 90% of the log
 # messages in MNE-Python are ``info`` messages, so for most users the choice is
@@ -170,7 +197,7 @@ print(mne.get_config("MNE_LOGGING_LEVEL"))
 # :func:`mne.set_config` is used to change the logging level for the current
 # Python session and all future sessions. To change the logging level only for
 # the current Python session, you can use :func:`mne.set_log_level` instead.
-# The :func:`~mne.set_log_level` function takes the same five string options
+# This function takes the same five string options
 # that are used for the ``MNE_LOGGING_LEVEL`` config variable; additionally, it
 # can accept :class:`int` or :class:`bool` values that are equivalent to those
 # strings. The equivalencies are given in this table:
@@ -192,7 +219,7 @@ print(mne.get_config("MNE_LOGGING_LEVEL"))
 # +----------+---------+---------+
 #
 # With many MNE-Python functions it is possible to change the logging level
-# temporarily for just that function call, by using the ``verbose`` parameter.
+# temporarily for just that function call by using the ``verbose`` parameter.
 # To illustrate this, we'll load some sample data with different logging levels
 # set. First, with log level ``warning``:
 

@@ -63,19 +63,6 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/freesurfer/surfa",
         "Summary": "Utilities for medical image and surface processing.",
     },
-    # This package does not provide wheels, so don't force CircleCI to build it.
-    # If it eventually provides binary wheels we could add it to
-    # `tools/circleci_dependencies.sh` and remove from here.
-    # https://github.com/Eelbrain/Eelbrain/issues/130
-    "eelbrain": {
-        "Home-page": "https://eelbrain.readthedocs.io/en/stable/",
-        "Summary": "Open-source Python toolkit for MEG and EEG data analysis.",
-    },
-    # TODO: these do not set a valid homepage or documentation page on PyPI
-    "mffpy": {
-        "Home-page": "https://github.com/BEL-Public/mffpy",
-        "Summary": "Reader and Writer for Philips' MFF file format.",
-    },
     # not on PyPI
     "conpy": {
         "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
