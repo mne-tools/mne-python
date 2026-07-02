@@ -5,7 +5,7 @@
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "2026-07-01",
+    "dateModified": "2026-07-02",
     "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.13.0.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
@@ -401,6 +401,12 @@
         },
         {
             "@type": "Person",
+            "email": "prag1704@gmail.com",
+            "givenName": "Pragnya",
+            "familyName": "Khandelwal"
+        },
+        {
+            "@type": "Person",
             "email": "deep@introspection.eu",
             "givenName": "Guillaume",
             "familyName": "Dumas"
@@ -410,12 +416,6 @@
             "email": "martin.billinger@tugraz.at",
             "givenName": "",
             "familyName": "Martin"
-        },
-        {
-            "@type": "Person",
-            "email": "prag1704@gmail.com",
-            "givenName": "Pragnya",
-            "familyName": "Khandelwal"
         },
         {
             "@type": "Person",
@@ -1068,8 +1068,8 @@
         {
             "@type": "Person",
             "email": "payam.sadeghi74@gmail.com",
-            "givenName": "",
-            "familyName": "Payam"
+            "givenName": "Payam",
+            "familyName": "Sadeghi-Shabestari"
         },
         {
             "@type": "Person",
@@ -1145,12 +1145,6 @@
         },
         {
             "@type": "Person",
-            "email": "athishdresu@gmail.com",
-            "givenName": "ATHISH",
-            "familyName": "M"
-        },
-        {
-            "@type": "Person",
             "email": "alessandro.tonin@wysscenter.ch",
             "givenName": "Alessandro",
             "familyName": "Tonin"
@@ -1175,9 +1169,21 @@
         },
         {
             "@type": "Person",
+            "email": "athishdresu@gmail.com",
+            "givenName": "Athish",
+            "familyName": "M"
+        },
+        {
+            "@type": "Person",
             "email": "",
             "givenName": "Carlos",
             "familyName": "de la Torre"
+        },
+        {
+            "@type": "Person",
+            "email": "neumann.alpha@gmail.com",
+            "givenName": "Cedric",
+            "familyName": "Conday"
         },
         {
             "@type": "Person",
@@ -1652,12 +1658,6 @@
             "email": "ctorre@mailbox.org",
             "givenName": "Carlos",
             "familyName": "de la Torre"
-        },
-        {
-            "@type": "Person",
-            "email": "neumann.alpha@gmail.com",
-            "givenName": "Cedric",
-            "familyName": "Conday"
         },
         {
             "@type": "Person",
