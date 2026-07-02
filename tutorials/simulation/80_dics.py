@@ -23,8 +23,6 @@ simulated sources.
 # -----
 # We first import the required packages to run this tutorial and define a list
 # of filenames for various things we'll be using.
-import sys
-
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.signal import coherence, unit_impulse, welch
@@ -241,24 +239,24 @@ s = apply_inverse(epochs["signal"].average(), inv)
 # Take the root-mean square along the time dimension and plot the result.
 s_rms = np.sqrt((s**2).mean())
 title = "MNE-dSPM inverse (RMS)"
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
-if sys.platform != "emscripten":
-    brain = s_rms.plot(
-        "sample",
-        subjects_dir=subjects_dir,
-        hemi="both",
-        figure=1,
-        size=600,
-        time_label=title,
-        title=title,
-    )
+# In JupyterLite (browser) this renders via pyvista-js (see the setup cell);
+# otherwise it uses MNE's normal 3D backend.
+brain = s_rms.plot(
+    "sample",
+    subjects_dir=subjects_dir,
+    hemi="both",
+    figure=1,
+    size=600,
+    time_label=title,
+    title=title,
+)
 
-    # Indicate the true locations of the source activity on the plot.
-    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi="lh")
-    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi="rh")
+# Indicate the true locations of the source activity on the plot.
+brain.add_foci(vertices[0][0], coords_as_verts=True, hemi="lh")
+brain.add_foci(vertices[1][0], coords_as_verts=True, hemi="rh")
 
-    # Rotate the view and add a title.
-    brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
+# Rotate the view and add a title.
+brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
 
 # %%
 # We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
@@ -322,9 +320,8 @@ power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 def plot_approach(power, n):
     """Plot the results on a brain."""
-    # Skipped in JupyterLite (browser): no interactive/3D rendering.
-    if sys.platform == "emscripten":
-        return None
+    # In JupyterLite (browser) this renders via pyvista-js (see the setup
+    # cell); otherwise it uses MNE's normal 3D backend.
     title = f"DICS power map, approach {n}"
     brain = power_approach1.plot(
         "sample",
