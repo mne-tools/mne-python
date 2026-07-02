@@ -32,6 +32,7 @@ from .general import (
 )
 
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
+_cal_scales = {"uV": 1e-6, "V": 1}
 
 
 def _get_mff_reader(input_fname):
@@ -279,7 +280,6 @@ def _read_header(input_fname):
     return info
 
 
-
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
     _soft_import("mffpy", "reading EGI MFF data")
@@ -419,7 +419,6 @@ class RawMff(BaseRaw):
 
         logger.info("    Reading events ...")
         egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
-        _cal_scales = {"uV": 1e-6, "V": 1}
         cals = np.array([_cal_scales[t] for t in egi_info["chan_unit"]])
         logger.info("    Assembling measurement info ...")
         event_codes = egi_info["event_codes"]
@@ -863,7 +862,6 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
         info["nchan"] = sum(mff.num_channels.values())
 
     # Add individual channel info
-    _cal_scales = {"uV": 1e-6, "V": 1}
     cals = np.array([_cal_scales[t] for t in egi_info["chan_unit"]])
     cals = np.concatenate([cals, np.repeat(1, len(egi_info["pns_names"]))])
     ch_coil = FIFF.FIFFV_COIL_EEG
