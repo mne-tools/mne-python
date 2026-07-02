@@ -215,15 +215,15 @@
         },
         {
             "@type": "Person",
-            "email": "asishrocks95@gmail.com",
-            "givenName": "Asish",
-            "familyName": "Panda"
-        },
-        {
-            "@type": "Person",
             "email": "t.s.binns@outlook.com",
             "givenName": "Thomas S",
             "familyName": "Binns"
+        },
+        {
+            "@type": "Person",
+            "email": "asishrocks95@gmail.com",
+            "givenName": "Asish",
+            "familyName": "Panda"
         },
         {
             "@type": "Person",
