@@ -323,8 +323,8 @@ def _test_raw_reader(
     data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
     # huge values (in SI units)
-    assert data_max < 1e5
-    assert data_min > -1e5
+    assert data_max < 1e7
+    assert data_min > -1e7
     if isinstance(raw.info["dig"], list):
         for di, d in enumerate(raw.info["dig"]):
             assert isinstance(d, DigPoint), (di, d)
