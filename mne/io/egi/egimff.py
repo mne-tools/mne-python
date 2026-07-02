@@ -32,7 +32,7 @@ from .general import (
 )
 
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
-_cal_scales = {"uV": 1e-6, "V": 1}
+CAL_SCALES = {"uV": 1e-6, "V": 1}
 
 
 def _get_mff_reader(input_fname):
@@ -419,7 +419,7 @@ class RawMff(BaseRaw):
 
         logger.info("    Reading events ...")
         egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
-        cals = np.array([_cal_scales[t] for t in egi_info["chan_unit"]])
+        cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
         logger.info("    Assembling measurement info ...")
         event_codes = egi_info["event_codes"]
         include = _triage_include_exclude(include, exclude, egi_events, egi_info)
@@ -862,7 +862,7 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
         info["nchan"] = sum(mff.num_channels.values())
 
     # Add individual channel info
-    cals = np.array([_cal_scales[t] for t in egi_info["chan_unit"]])
+    cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
     cals = np.concatenate([cals, np.repeat(1, len(egi_info["pns_names"]))])
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
