@@ -11,13 +11,10 @@ visualization.
 
 ## AI-assistance policy (read first)
 
-This project has an explicit policy on AI-generated contributions (`CONTRIBUTING.md`):
-- Fully-automated PRs/issues are not accepted; a human must review, understand, and be able to
-  explain every change before it's submitted under their name.
-- Any PR that used AI assistance must disclose that in the PR description (tool + scope of use).
-- Do not paste AI-generated text into issue/PR descriptions or comments.
-- Be careful that generated code for specialized algorithms doesn't reproduce copyrighted
-  passages from papers/other codebases (license risk).
+This project has an explicit policy on AI-generated contributions:
+
+@CONTRIBUTING.md
+
 
 ## Common commands
 
