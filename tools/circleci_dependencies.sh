@@ -3,8 +3,9 @@
 set -x
 python -m pip install --upgrade "pip>=25.1" build
 # rpy2 3.6.7 (or its deps) cause problems with our installed R version, so pin them
+# also install colormath because it doesn't have a binary wheel
 python -m pip install --upgrade --only-binary=numpy,scipy \
-    "rpy2==3.6.6" "rpy2-rinterface==3.6.5" "rpy2-robjects==3.6.4" mne-ari
+    "rpy2==3.6.6" "rpy2-rinterface==3.6.5" "rpy2-robjects==3.6.4" mne-ari colormath
 python -m pip install --upgrade --only-binary=:all: \
     -ve .[full-pyside6] \
     --group=test \
