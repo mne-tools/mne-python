@@ -139,3 +139,5 @@ changelog entry instead of a plain name link.
   `mne.utils.warn(..., FutureWarning)` (parameters); add a test asserting the warning fires, and
   grep for internal call sites to update immediately rather than at end-of-cycle.
 - Prefer the `testing` dataset over `sample`/other large datasets in tests (smaller, faster).
+- Prefer to keep unit tests compact and add to existing tests when possible. The full test suite takes about an hour on CIs, so minimizing test time (for CIs) and test verbosity (for reviewers) is important.
+- When new functionality is added, it is good in general to add it somewhere in an example (`examples/`) or a tutorial (`tutorials/`) to help with discoverability and documentation.
