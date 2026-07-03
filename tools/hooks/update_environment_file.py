@@ -25,7 +25,10 @@ recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
 # not on conda-forge
-pip_deps = {"pymef"}
+pip_deps = {
+    "pymef",  # not on conda-forge
+    "imageio-ffmpeg",  # as of 2026-07-03, ffmpeg-8.1.2 has an unknown bug
+}
 deps -= pip_deps
 
 

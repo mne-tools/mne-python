@@ -68,5 +68,6 @@ dependencies:
   - vtk ==9.6.0
   - xlrd
   - pip:
+      - imageio-ffmpeg
       - pymef
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'
