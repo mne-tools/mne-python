@@ -396,6 +396,90 @@ def _gc_collect_once(request=None):
     gc.collect()
 
 
+def _safe_repr(obj, *, maxlen=100):
+    """Get a repr that cannot raise (e.g., on a deleted VTK/Qt C++ object)."""
+    try:
+        rep = repr(obj)
+    except Exception as exc:
+        return f"<repr failed: {type(exc).__name__}: {exc}>"
+    return rep[:maxlen].replace("\n", " ")
+
+
+def _dict_owner(d):
+    """Find the object whose __dict__ (or similar) *is* d, if any."""
+    for o in gc.get_referrers(d):
+        if getattr(o, "__dict__", None) is d:
+            return o
+    return None
+
+
+def _describe_referrer(r, referent):
+    """Build a short, safe description of r, something that refers to referent.
+
+    Returns
+    -------
+    desc : str
+        Human-readable, safe description of r.
+    opaque : bool
+        Whether r is an unattributed container worth recursing into further
+        to find what is actually anchoring the reference (as opposed to
+        already being a well-identified owner, e.g. a specific instance's
+        ``__dict__`` or a bound method, where recursing further just adds
+        uninformative noise about how Python happens to store that owner).
+    """
+    if inspect.ismethod(r):
+        desc = f"bound method {r.__func__.__qualname__} of {_safe_repr(r.__self__)}"
+        return desc, False
+    name = _fullname(r, referent=referent)
+    if isinstance(r, dict):
+        owner = _dict_owner(r)
+        if owner is not None:
+            return f"{_fullname(owner)}.__dict__ ({name})", False
+        return f"{name} (len={len(r)})", True
+    if isinstance(r, list | tuple):
+        return f"{name} (len={len(r)})", True
+    rep = _safe_repr(r)
+    if rep.startswith("<cell at "):  # a closure variable
+        try:
+            rep += f" ({_safe_repr(r.cell_contents)})"
+        except Exception:
+            pass
+    return f"{name} | {rep}", False
+
+
+def _append_referrers(o, depth, *, max_depth, seen, lines):
+    """Recursively describe referrers of o into lines, indented by depth."""
+    any_shown = False
+    for r in gc.get_referrers(o):
+        if inspect.isframe(r) or id(r) in seen:
+            continue
+        seen.add(id(r))
+        any_shown = True
+        desc, opaque = _describe_referrer(r, o)
+        lines.append("  " * depth + "- " + desc)
+        if opaque and depth + 1 < max_depth:
+            _append_referrers(r, depth + 1, max_depth=max_depth, seen=seen, lines=lines)
+        del r
+    return any_shown
+
+
+def _referrer_chain(obj, *, max_depth=3, exclude_ids=()):
+    """Describe, recursively, what holds references to obj.
+
+    Referrers are walked (and indented) up to ``max_depth`` hops so that a
+    leaked object's actual anchor (e.g. some instance's ``__dict__`` several
+    containers away) is visible directly in the failure message, instead of
+    just the immediate (often uninformative, e.g. a bare ``list``) referrer.
+    """
+    lines = list()
+    seen = set(exclude_ids)
+    seen.add(id(obj))
+    has_referrers = _append_referrers(
+        obj, 0, max_depth=max_depth, seen=seen, lines=lines
+    )
+    return lines, has_referrers
+
+
 def _assert_no_instances(cls, when="", *, request=None, objs=None):
     __tracebackhide__ = True
     n = 0
@@ -409,41 +493,17 @@ def _assert_no_instances(cls, when="", *, request=None, objs=None):
         except Exception:  # such as a weakref
             check = False
         if check:
+            extra = list()
             if cls.__name__ == "Brain":
-                ref.append(f"Brain._cleaned = {getattr(obj, '_cleaned', None)}")
-            rr = gc.get_referrers(obj)
-            count = 0
-            for r in rr:  # e.g., list, dict, etc. that holds the reference to obj
-                if (
-                    r is not objs
-                    and r is not globals()
-                    and r is not locals()
-                    and not inspect.isframe(r)
-                ):
-                    name = _fullname(r, referent=obj)
-                    if isinstance(r, list | dict | tuple):
-                        rep = f"len={len(r)}"
-                        r_ = gc.get_referrers(r)
-                        types = list()
-                        for x in r_:
-                            types.append(_fullname(x, referent=r))
-                        types = " / ".join(sorted(types))
-                        rep += f" | {len(r_)} referrers: {types}"
-                        del r_
-                    else:
-                        rep = "repr="
-                        rep += repr(r)[:100].replace("\n", " ")
-                        # If it's a __closure__, get more information
-                        if rep.startswith("<cell at "):
-                            try:
-                                rep += f" ({repr(r.cell_contents)[:100]})"
-                            except Exception:
-                                pass
-                    ref.append(f"{name} with {rep}")
-                    count += 1
-                del r
-            del rr
-            n += count > 0
+                extra.append(f"Brain._cleaned = {getattr(obj, '_cleaned', None)}")
+            lines, has_referrers = _referrer_chain(
+                obj, exclude_ids={id(objs), id(ref), id(globals())}
+            )
+            if has_referrers:
+                ref.extend(extra)
+                ref.append(f"{_fullname(obj)}:")
+                ref.extend(lines)
+                n += 1
         del obj
     del objs
     assert n == 0, f"\n{n} {cls.__name__} @ {when}:\n" + "\n".join(ref)
