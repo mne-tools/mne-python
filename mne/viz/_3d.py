@@ -1806,23 +1806,7 @@ def _make_tris_fan(n_vert):
 
 
 def _sensor_shape(coil):
-    """Get the sensor shape vertices.
-
-    Returns
-    -------
-    rrs : ndarray, shape (n_vert, 3)
-        Vertex coordinates in the local coil frame. A pure function of coil
-        type/size/base only (never per-channel), so that channels sharing a
-        coil type can share one template mesh.
-    tris : ndarray, shape (n_tri, 3)
-        Triangle indices.
-    extra_z : float
-        Extra translation (in local +Z) for this specific channel on top of
-        the shared template -- used only to keep paired Neuromag planar
-        gradiometer channels (e.g. MEG0112/MEG0113) from z-fighting on
-        screen. Kept separate from ``rrs`` so it can be folded into a
-        per-channel transform instead of the (otherwise shared) template.
-    """
+    """Get the sensor shape vertices."""
     try:
         from scipy.spatial import QhullError
     except ImportError:  # scipy < 1.8
