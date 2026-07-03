@@ -27,7 +27,7 @@ def _convert_time(date_str, time_str):
             break
     else:
         raise RuntimeError(
-           f"Illegal date: {date_str}.\nIf the language of the date does not "
+            f"Illegal date: {date_str}.\nIf the language of the date does not "
             "correspond to your local machine's language try to set the "
             "locale to the language of the date string:\n"
             'locale.setlocale(locale.LC_ALL, "en_US")'
