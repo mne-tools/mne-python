@@ -38,7 +38,6 @@ PYPI_PACKAGES = {
     "meggie",
     "niseq",
     "sesameeg",
-    "mne-kit-gui",  # moved to its own env in the installers
     "zuna",
 }
 
