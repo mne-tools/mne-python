@@ -90,6 +90,7 @@ class RawITAB(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
+
         Only needs to be implemented for readers that support
         ``preload=False``.
 
@@ -116,7 +117,7 @@ class RawITAB(BaseRaw):
             stop = self._raw_extras[fi]["n_samp"]
 
         if start >= stop:
-            raise ValueError("No data in this range")
+            raise ValueError("No data in this range.")
 
         data_offset = self._raw_extras[fi]["start_data"]
         data_size = 4  # sizeof(int)
@@ -151,7 +152,7 @@ class RawITAB(BaseRaw):
 
 @fill_doc
 def read_raw_itab(fname, preload=False, verbose=None) -> RawITAB:
-    """Raw object from ITAB directory
+    """Raw object from ITAB directory.
 
     Parameters
     ----------

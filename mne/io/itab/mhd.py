@@ -1,4 +1,4 @@
-"""Read .mhd file"""
+"""Read .mhd file."""
 
 # Author: Vittorio Pizzella <vittorio.pizzella@unich.it>
 #
@@ -11,46 +11,46 @@ from .constants import ITAB
 
 
 def _read_double(fid, n=1):
-    """Read a double"""
+    """Read a double."""
     return np.fromfile(fid, "<f8", n)
 
 
 def _read_string(fid, n_bytes, decode=True):
-    """Read string"""
+    """Read string."""
     s0 = fid.read(n_bytes)
     s = s0.split(b"\x00")[0]
     return s.decode("utf-8") if decode else s
 
 
 def _read_char(fid, n=1):
-    """Read character"""
+    """Read character."""
     return np.fromfile(fid, ">B", n)
 
 
 # TODO: Is it similar to _read_char
 def _read_ustring(fid, n_bytes):
-    """Read unsigned character string"""
+    """Read unsigned character string."""
     return np.fromfile(fid, ">B", n_bytes)
 
 
 def _read_int2(fid):
-    """Read int from short"""
+    """Read int from short."""
     return np.fromfile(fid, "<i2", 1)[0]
 
 
 # TODO: Maybe we could use only one of _read_int*
 def _read_int(fid):
-    """Read int"""
+    """Read int."""
     return np.fromfile(fid, "<i4", 1)[0]
 
 
 def _read_float(fid):
-    """Read float"""
+    """Read float."""
     return np.fromfile(fid, "<f4", 1)[0]
 
 
 def _read_position(fid):
-    """Read position and orientation"""
+    """Read position and orientation."""
     pos = dict()
     pos["posx"] = _read_float(fid)
     pos["posy"] = _read_float(fid)
@@ -62,7 +62,7 @@ def _read_position(fid):
 
 
 def _read_sample(fid):
-    """Read sample info"""
+    """Read sample info."""
     smpl = dict()
     smpl["start"] = _read_int(fid)
     smpl["ntptot"] = _read_int(fid)
@@ -73,7 +73,7 @@ def _read_sample(fid):
 
 
 def _read_ch_info(fid):
-    """Read channel information"""
+    """Read channel information."""
     ch = dict()
     ch["type"] = _read_int(fid)
     ch["number"] = _read_int(fid)
@@ -99,8 +99,7 @@ def _read_ch_info(fid):
 
 
 def _read_mhd(name):
-    """Read the mhd file"""
-    # name = _make_itab_name(dsdir, 'mhd')
+    """Read the mhd file."""
     mhd = dict()
     with open(name, "rb") as fid:
         # Read the different fields
@@ -211,6 +210,6 @@ def _read_mhd(name):
         for k in range(mhd["num_markers"]):
             mhd["marker"].append(_read_position(fid))
 
-    logger.info("Header (*.mhd) correctly read.")
+    logger.info(f"Header {name} correctly read.")
 
     return mhd

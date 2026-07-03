@@ -1,4 +1,4 @@
-"""Build measurement info"""
+"""Build measurement info."""
 
 # Author: Vittorio Pizzella <vittorio.pizzella@unich.it>
 #
@@ -17,7 +17,7 @@ from .constants import ITAB
 
 
 def _convert_time(date_str, time_str):
-    """Convert date and time strings to float time"""
+    """Convert date and time strings to float time."""
     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
         try:
             date = datetime.strptime(date_str, fmt)
@@ -27,10 +27,10 @@ def _convert_time(date_str, time_str):
             break
     else:
         raise RuntimeError(
-            "Illegal date: %s.\nIf the language of the date does not "
+           f"Illegal date: {date_str}.\nIf the language of the date does not "
             "correspond to your local machine's language try to set the "
             "locale to the language of the date string:\n"
-            'locale.setlocale(locale.LC_ALL, "en_US")' % date_str
+            'locale.setlocale(locale.LC_ALL, "en_US")'
         )
 
     for fmt in ("%H:%M:%S", "%H:%M"):
@@ -41,7 +41,7 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("Illegal time: %s" % time_str)
+        raise RuntimeError(f"Illegal time: {time_str}.")
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
     # acquisiton was in GMT. This will be wrong for most sites, but at least
@@ -61,7 +61,7 @@ def _convert_time(date_str, time_str):
 
 
 def _mhdch_2_chs(mhd_ch):
-    """Build chs list item from mhd ch list item"""
+    """Build chs list item from mhd ch list item."""
     ch = dict()
 
     unit = 1.0  # Default unit multiplier
@@ -150,7 +150,7 @@ def _mhdch_2_chs(mhd_ch):
 
 
 def _mhd2info(mhd):
-    """Create meas info from ITAB mhd data"""
+    """Create meas info from ITAB mhd data."""
     info = _empty_info(mhd["smpfq"])
 
     info["meas_date"] = _convert_time(mhd["date"], mhd["time"])
