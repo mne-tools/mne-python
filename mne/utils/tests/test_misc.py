@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import gc
 import os
 import subprocess
 import sys
@@ -10,7 +11,13 @@ from contextlib import nullcontext
 import pytest
 
 import mne
-from mne.utils import _clean_names, catch_logging, run_subprocess, sizeof_fmt
+from mne.utils import (
+    _assert_no_instances,
+    _clean_names,
+    catch_logging,
+    run_subprocess,
+    sizeof_fmt,
+)
 
 
 def test_sizeof_fmt():
@@ -159,3 +166,36 @@ def test_clean_names():
     ch_names_clean = _clean_names(ch_names, before_dash=True)
     assert ch_names == ch_names_clean
     assert len(set(ch_names_clean)) == len(ch_names_clean)
+
+
+class _Leaky:
+    """Something to track instances of."""
+
+
+class _Holder:
+    """Something that can hold a reference to a _Leaky."""
+
+    def __init__(self, obj):
+        self.thing = obj
+
+
+# Must be module-level (not local to the test) so it can be found by name,
+# like a real long-lived registry (e.g. pyvista's `_ALL_PLOTTERS`) would be.
+_registry = {}
+
+
+def test_assert_no_instances_message():
+    """Test that _assert_no_instances explains what's holding a reference."""
+
+    def make_leak():
+        _registry["key"] = _Holder(_Leaky())
+
+    make_leak()
+    gc.collect()
+    with pytest.raises(AssertionError, match="1 _Leaky") as excinfo:
+        _assert_no_instances(_Leaky, "test")
+    msg = str(excinfo.value)
+    # the referrer chain should explain *what* holds the reference:
+    assert "_Holder: " in msg  # ... something holding onto our _Leaky...
+    assert "_registry['key']: dict = <len=1>" in msg  # ... which lives here
+    del _registry["key"]

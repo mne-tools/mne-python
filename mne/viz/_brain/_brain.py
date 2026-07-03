@@ -3068,7 +3068,12 @@ class Brain:
                 )
 
         if hover:
-            obs = self.plotter.AddObserver("MouseMoveEvent", self._on_annotation_hover)
+
+            @_auto_weakref
+            def on_annotation_hover(iren, event):
+                self._on_annotation_hover(iren, event)
+
+            obs = self.plotter.AddObserver("MouseMoveEvent", on_annotation_hover)
             for hemi in hemis:
                 caption = self._create_caption()
                 self._annots[hemi][-1].update(caption=caption, obs=obs)

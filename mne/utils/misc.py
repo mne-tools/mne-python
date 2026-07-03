@@ -353,32 +353,32 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ("read", "seek"))
 
 
-def _fullname(obj, *, referent=None):
+def _fullname(obj):
     if inspect.ismodule(obj):
         # Otherwise every module shows up identically as just "module",
         # which is exactly the info we need to tell which one is which.
-        name = getattr(obj, "__name__", "<unknown module>")
-    else:
-        klass = obj.__class__
-        module = klass.__module__
-        name = klass.__qualname__
-        if module != "builtins":
-            name = f"{module}.{name}"
-    if referent is not None:
-        if isinstance(obj, list | tuple):
-            for ii, item in enumerate(obj):
-                if item is referent:
-                    name += f"[{ii}]"
-                    break
-        elif isinstance(obj, dict):
-            for key, value in obj.items():
-                if key is referent:
-                    name += "-key"
-                    break
-                if value is referent:
-                    name += f"[{key!r}]"
-                    break
+        return getattr(obj, "__name__", "<unknown module>")
+    klass = obj.__class__
+    module = klass.__module__
+    name = klass.__qualname__
+    if module != "builtins":
+        name = f"{module}.{name}"
     return name
+
+
+def _key_suffix(obj, referent):
+    """Return the ``[...]``-like Python-syntax suffix to reach referent from obj."""
+    if isinstance(obj, list | tuple):
+        for ii, item in enumerate(obj):
+            if item is referent:
+                return f"[{ii}]"
+    elif isinstance(obj, dict):
+        for key, value in obj.items():
+            if key is referent:
+                return "-key"
+            if value is referent:
+                return f"[{key!r}]"
+    return ""
 
 
 def _gc_collect_once(request=None):
@@ -441,7 +441,13 @@ def _module_global_name(obj):
 
 
 def _describe_referrer(r, referent):
-    """Build a short, safe description of r, something that refers to referent.
+    """Build a "name: type = repr"-style description of r, which refers to referent.
+
+    Mirroring a Python variable declaration keeps every referrer kind
+    parseable the same way: a name (the best Python-syntax expression for
+    reaching ``r``, falling back to its type when nothing better is known),
+    its type, and a repr -- for containers (dict/list/tuple) this is always
+    at least a length summary rather than their (possibly huge) contents.
 
     Returns
     -------
@@ -455,43 +461,57 @@ def _describe_referrer(r, referent):
         module-level global it's ``None`` (a named global is already a
         fully-explained anchor; nothing more useful to say).
     """
-    global_name = _module_global_name(r)
     if inspect.ismethod(r):
-        desc = f"bound method {r.__func__.__qualname__} of {_safe_repr(r.__self__)}"
-        return desc, r
-    name = _fullname(r, referent=referent)
+        name = r.__func__.__qualname__
+        return f"{name}: method = {_safe_repr(r.__self__)}", r
+    if inspect.isfunction(r):
+        return f"{r.__qualname__}: function = {_safe_repr(r)}", r
+    if inspect.ismodule(r):
+        return f"{_fullname(r)}: module = {_safe_repr(r)}", r
     if isinstance(r, dict):
+        suffix = _key_suffix(r, referent)
         owner = _dict_owner(r)
         if owner is not None:
-            return f"{_fullname(owner)}.__dict__ ({name})", owner
+            # e.g. "some.module.SomeClass.__dict__['attr']: dict = <len=1>"
+            name = f"{_fullname(owner)}.__dict__{suffix}"
+            return f"{name}: dict = <len={len(r)}>", owner
+        global_name = _module_global_name(r)
         if global_name is not None:
-            return f"{global_name} (module-level dict, len={len(r)})", None
-        return f"{name} (len={len(r)})", r
+            # e.g. "sys.modules['__main__']: dict = <len=2142>"
+            return f"{global_name}{suffix}: dict = <len={len(r)}>", None
+        return f"dict{suffix}: dict = <len={len(r)}>", r
     if isinstance(r, list | tuple):
+        suffix = _key_suffix(r, referent)
+        kind = "list" if isinstance(r, list) else "tuple"
+        global_name = _module_global_name(r)
         if global_name is not None:
-            return f"{global_name} (module-level {name}, len={len(r)})", None
-        return f"{name} (len={len(r)})", r
+            return f"{global_name}{suffix}: {kind} = <len={len(r)}>", None
+        return f"{kind}{suffix}: {kind} = <len={len(r)}>", r
+    global_name = _module_global_name(r)
     if global_name is not None:
-        return f"{global_name} ({_safe_repr(r)})", None
+        return f"{global_name}: {_fullname(r)} = {_safe_repr(r)}", None
     rep = _safe_repr(r)
     if rep.startswith("<cell at "):  # a closure variable
         try:
             rep += f" ({_safe_repr(r.cell_contents)})"
         except Exception:
             pass
-    return f"{name} | {rep}", r
+    name = _fullname(r)
+    return f"{name}: {name} = {rep}", r
 
 
-def _append_referrers(o, depth, *, max_depth, max_lines, excluded, recursed, lines):
-    """Recursively describe referrers of o into lines, indented by depth.
+def _referrer_tree(o, depth, *, max_depth, max_lines, count, excluded, recursed):
+    """Recursively build a tree of (description, children) referrer nodes.
 
     ``excluded`` objects (e.g. the huge ``gc.get_objects()`` snapshot) are
     never shown or recursed into. ``recursed`` tracks objects already used
     as a recursion root, so a cycle in the referrer graph can't recurse
     forever; unlike ``excluded`` it doesn't prevent an object from being
-    *listed* (only from being expanded again).
+    *listed* (only from being expanded again). ``count`` is a 1-element list
+    used as a mutable counter shared across the whole recursion, so the
+    total number of nodes (not just per-level) is capped at ``max_lines``.
     """
-    any_shown = False
+    nodes = list()
     refs = gc.get_referrers(o)
     # While this list is alive (i.e. for the duration of this call, including
     # any recursive calls below), it itself shows up as a "referrer" of any
@@ -499,14 +519,14 @@ def _append_referrers(o, depth, *, max_depth, max_lines, excluded, recursed, lin
     # an artifact of doing this traversal at all, not a real anchor.
     excluded.add(id(refs))
     for r in refs:
-        if len(lines) >= max_lines:
-            lines.append("  " * depth + "- ... (truncated)")
-            return any_shown
+        if count[0] >= max_lines:
+            nodes.append(("... (truncated)", []))
+            return nodes
         if inspect.isframe(r) or id(r) in excluded:
             continue
-        any_shown = True
+        count[0] += 1
         desc, next_obj = _describe_referrer(r, o)
-        lines.append("  " * depth + "- " + desc)
+        children = list()
         if (
             next_obj is not None
             and id(next_obj) not in recursed
@@ -514,41 +534,53 @@ def _append_referrers(o, depth, *, max_depth, max_lines, excluded, recursed, lin
             and depth + 1 < max_depth
         ):
             recursed.add(id(next_obj))
-            _append_referrers(
+            children = _referrer_tree(
                 next_obj,
                 depth + 1,
                 max_depth=max_depth,
                 max_lines=max_lines,
+                count=count,
                 excluded=excluded,
                 recursed=recursed,
-                lines=lines,
             )
+        nodes.append((desc, children))
         del r
     del refs
-    return any_shown
+    return nodes
+
+
+def _render_tree(nodes, prefix=""):
+    """Render a (description, children) tree using box-drawing characters."""
+    lines = list()
+    for i, (desc, children) in enumerate(nodes):
+        last = i == len(nodes) - 1
+        lines.append(prefix + ("└── " if last else "├── ") + desc)
+        child_prefix = prefix + ("    " if last else "│   ")
+        lines.extend(_render_tree(children, child_prefix))
+    return lines
 
 
 def _referrer_chain(obj, *, max_depth=5, max_lines=40, exclude_ids=()):
     """Describe, recursively, what holds references to obj.
 
-    Referrers are walked (and indented) up to ``max_depth`` hops so that a
-    leaked object's actual anchor (e.g. a module-level registry several
-    containers away) is visible directly in the failure message, instead of
-    just the immediate (often uninformative, e.g. a bare ``list``) referrer.
+    Referrers are walked up to ``max_depth`` hops and rendered as a tree, so
+    that a leaked object's actual anchor (e.g. a module-level registry
+    several containers away) is visible directly in the failure message,
+    instead of just the immediate (often uninformative, e.g. a bare
+    ``list``) referrer.
     """
-    lines = list()
     excluded = set(exclude_ids)
     recursed = {id(obj)}
-    has_referrers = _append_referrers(
+    nodes = _referrer_tree(
         obj,
         0,
         max_depth=max_depth,
         max_lines=max_lines,
+        count=[0],
         excluded=excluded,
         recursed=recursed,
-        lines=lines,
     )
-    return lines, has_referrers
+    return _render_tree(nodes), len(nodes) > 0
 
 
 def _assert_no_instances(cls, when="", *, request=None, objs=None):
