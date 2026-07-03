@@ -14,7 +14,6 @@ class _LinkViewer:
     def __init__(self, brains, time=True, camera=False, colorbar=True, picking=False):
         self.brains = brains
         self.leader = self.brains[0]  # select a brain as leader
-        self._camera_observer = None
 
         # check time infos
         times = [brain._times for brain in brains]
@@ -24,15 +23,6 @@ class _LinkViewer:
 
         if camera:
             self.link_cameras()
-
-        # A camera observer (below) holds a reference back to this
-        # _LinkViewer (and hence to all linked brains) that gc.collect()
-        # cannot resolve on its own: VTK's AddObserver keeps the callback
-        # alive from the C side, outside of Python's reference-cycle
-        # tracking. So unlink it whenever any linked brain closes (harmless
-        # no-op if camera linking was never enabled).
-        for brain in brains:
-            brain._renderer._window_close_connect(self._unlink_camera)
 
         events_to_link = []
         if time:
@@ -102,14 +92,7 @@ class _LinkViewer:
                 brain.plotter.update()
 
         camera = self.leader.plotter.camera
-        tag = _add_camera_callback(camera, _update_camera)
-        self._camera_observer = (camera, tag)
+        _add_camera_callback(camera, _update_camera)
         for brain in self.brains:
             for renderer in brain.plotter.renderers:
                 renderer.camera = camera
-
-    def _unlink_camera(self):
-        if self._camera_observer is not None:
-            camera, tag = self._camera_observer
-            camera.RemoveObserver(tag)
-            self._camera_observer = None
