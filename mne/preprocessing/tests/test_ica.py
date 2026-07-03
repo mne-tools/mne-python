@@ -188,7 +188,9 @@ def test_warnings():
     """Test that ICA warns on certain input data conditions."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     events = read_events(event_name)
-    epochs = Epochs(raw, events=events, baseline=None, preload=True, on_outside="ignore")
+    epochs = Epochs(
+        raw, events=events, baseline=None, preload=True, on_outside="ignore"
+    )
     ica = ICA(n_components=2, max_iter=1, method="infomax", random_state=0)
 
     # not high-passed
