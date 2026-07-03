@@ -7,6 +7,7 @@
 import functools
 import gc
 import os
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -175,6 +176,18 @@ def reset_modules(gallery_conf, fname, when):
         import neo
 
         neo.io.stimfitio.STFIO_ERR = None
+    except Exception:
+        pass
+    # IPython.core.completer does `import __main__` at import time, permanently
+    # capturing whatever sys.modules['__main__'] was at that moment. Since SG
+    # temporarily swaps sys.modules['__main__'] to each example's throwaway
+    # namespace while it runs, if that import happens to fire during one of
+    # those windows, it pins that example's globals (and anything reachable
+    # from them) alive for the rest of the process.
+    try:
+        import IPython.core.completer
+
+        IPython.core.completer.__main__ = sys.modules["__main__"]
     except Exception:
         pass
     gc.collect()
