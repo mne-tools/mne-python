@@ -485,9 +485,27 @@ def test_plot_alignment_meg(renderer, system):
         sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
-    # 1 actor per distinct coil color (merged for speed) + helmet + head
-    n_colors = 2 if system == "KIT" else 1  # KIT also has a separate ref_meg color
-    _assert_n_actors(fig, renderer, n_colors + 2)
+    # one actor per distinct coil shape + helmet + head
+    # Neuromag has 2 shapes, CTF and BTi expose only mags, KIT's mag + ref mag are same
+    n_shapes = 1 if system in ("CTF", "BTi") else 2
+    _assert_n_actors(fig, renderer, n_shapes + 2)
+
+    if system == "Neuromag":
+        # Passing fully-random per-channel colors should not blow up the
+        # actor count (proves per-channel MEG coil coloring no longer
+        # requires one actor per unique color).
+        rng = np.random.default_rng(0)
+        n_meg = len(pick_types(this_info, meg=True))
+        fig2 = plot_alignment(
+            this_info,
+            read_trans(trans_fname),
+            subject="sample",
+            subjects_dir=subjects_dir,
+            meg=meg,
+            eeg=False,
+            sensor_colors=dict(meg=rng.random((n_meg, 4))),
+        )
+        _assert_n_actors(fig2, renderer, n_shapes + 2)
 
 
 @testing.requires_testing_data

@@ -473,6 +473,67 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
+    def instanced_mesh(
+        self,
+        rr,
+        tris,
+        positions,
+        quats,
+        colors,
+        opacity=1.0,
+        backface_culling=False,
+        name=None,
+    ):
+        """Add one mesh GPU-instanced at multiple positions/orientations.
+
+        Unlike :meth:`quiver3d` or :meth:`sphere`, which bake a merged,
+        static glyph mesh, this draws one copy of a single template mesh at
+        each of ``n_instances`` locations using per-instance position,
+        orientation, and color that can be changed later without rebuilding
+        the geometry (see ``mesh`` in "Returns" below).
+
+        Parameters
+        ----------
+        rr : array, shape (n_vertices, 3)
+            The vertices of the template mesh, in the local (object) frame
+            shared by all instances.
+        tris : array, shape (n_tris, 3)
+            The triangles of the template mesh.
+        positions : array, shape (n_instances, 3)
+            The position of each instance.
+        quats : array, shape (n_instances, 3)
+            The orientation of each instance as a unit quaternion, given as
+            only the ``(x, y, z)`` vector part (``w`` omitted, recoverable
+            as ``sqrt(max(1 - x**2 - y**2 - z**2, 0))``) -- the same
+            convention used by :func:`~mne.transforms.rot_to_quat` /
+            :func:`~mne.transforms.quat_to_rot`.
+        colors : array, shape (n_instances, 4)
+            The per-instance RGBA color (float values between 0 and 1) to
+            use for each instance. Per-instance alpha (the fourth column)
+            is respected.
+        opacity : float
+            A uniform opacity multiplier applied on top of the per-instance
+            alpha values in ``colors``.
+        backface_culling : bool
+            If True, enable backface culling on the mesh.
+        name : str | None
+            Name of the mesh.
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        mesh :
+            The point cloud (one point per instance) backing the glyph
+            mapper. Its per-instance color and orientation arrays can be
+            mutated in place (followed by a render update) to recolor or
+            re-orient individual instances live, without rebuilding the
+            actor or its geometry.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
     def text2d(
         self,
         x_window,

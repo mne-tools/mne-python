@@ -39,6 +39,7 @@ from vtkmodules.vtkRenderingCore import (
     vtkColorTransferFunction,
     vtkCoordinate,
     vtkDataSetMapper,
+    vtkGlyph3DMapper,
     vtkMapper,
     vtkPolyDataMapper,
     vtkVolume,
@@ -687,6 +688,47 @@ class _PyVistaRenderer(_AbstractRenderer):
         )
         return actor, mesh
 
+    def instanced_mesh(
+        self,
+        rr,
+        tris,
+        positions,
+        quats,
+        colors,
+        opacity=1.0,
+        backface_culling=False,
+        *,
+        name=None,
+    ):
+        faces = np.c_[np.full(len(tris), 3), tris]
+        geom = PolyData(np.asarray(rr, float), faces)
+        _compute_normals(geom)
+
+        cloud = PolyData(np.asarray(positions, float).copy())
+        cloud.point_data["orientation"] = _quat_to_vtk_wxyz(np.asarray(quats, float))
+        cloud.point_data["colors"] = (np.asarray(colors, float) * 255).astype(np.uint8)
+
+        mapper = vtkGlyph3DMapper()
+        mapper.SetInputData(cloud)
+        mapper.SetSourceData(geom)
+        mapper.SetOrientationArray("orientation")
+        mapper.SetOrientationModeToQuaternion()
+        mapper.ScalingOff()  # coil size is baked into rr; no per-instance scale
+        mapper.SetScalarModeToUsePointFieldData()
+        mapper.SelectColorArray("colors")
+        mapper.SetColorModeToDirectScalars()
+
+        actor = self._actor(mapper)
+        prop = actor.GetProperty()
+        prop.SetOpacity(opacity)
+        prop.SetBackfaceCulling(backface_culling)
+        if self.smooth_shading and "Normals" in geom.point_data:
+            prop.SetInterpolationToPhong()
+        self.plotter.add_actor(
+            actor, name=name, render=False, reset_camera=False, pickable=True
+        )
+        return actor, cloud
+
     def text2d(
         self,
         x_window,
@@ -1036,6 +1078,13 @@ def _compute_normals(mesh):
             non_manifold_traversal=False,
             inplace=True,
         )
+
+
+def _quat_to_vtk_wxyz(quat):
+    """Convert MNE's (..., 3) unit quaternions to VTK-order (w, x, y, z)."""
+    assert quat.ndim >= 2 and quat.shape[-1] == 3, quat.shape
+    w = np.sqrt(np.clip(1.0 - (quat * quat).sum(-1), 0.0, 1.0))
+    return np.concatenate([w[..., np.newaxis], quat], axis=-1)
 
 
 def _add_mesh(plotter, **kwargs):

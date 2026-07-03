@@ -1103,7 +1103,8 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
             # add sensors and detectors too for fNIRS
             type_slices.update(sources=slice(3, 6), detectors=slice(6, 9))
         for type_name, type_slice in type_slices.items():
-            if ch_type in _MEG_CH_TYPES_SPLIT + ("ref_meg",):
+            is_meg = ch_type in _MEG_CH_TYPES_SPLIT + ("ref_meg",)
+            if is_meg:
                 coil_trans = _loc_to_coil_trans(info["chs"][idx]["loc"])
                 # Here we prefer accurate geometry in case we need to
                 # ConvexHull the coil, we want true 3D geometry (and not, for
@@ -1117,11 +1118,15 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
                     coil = _create_meg_coils(this_coil, acc="normal", coilset=coilset)[
                         0
                     ]
-                # store verts as ch_coord
-                ch_coord, triangles = _sensor_shape(coil)
-                ch_coord = apply_trans(coil_trans, ch_coord)
-                if len(ch_coord) == 0 and warn_meg:
+                # Keep the local (template) geometry and the per-channel
+                # transform separate (rather than baking into absolute
+                # vertex positions) so that channels sharing a coil shape
+                # can share one template/actor when rendered.
+                local_rr, triangles, extra_z = _sensor_shape(coil)
+                if len(local_rr) == 0 and warn_meg:
                     warn(f"MEG sensor {info.ch_names[idx]} not found.")
+                coil_trans = coil_trans.copy()
+                coil_trans[:3, 3] += coil_trans[:3, :3] @ [0, 0, extra_z]
             else:
                 ch_coord = info["chs"][idx]["loc"][type_slice]
             ch_coord_frame = info["chs"][idx]["coord_frame"]
@@ -1139,10 +1144,21 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
             if ch_coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
                 unknown_chs.append(info.ch_names[idx])
                 ch_coord_frame = FIFF.FIFFV_COORD_HEAD
-            ch_coord = apply_trans(to_cf_t[_frame_to_str[ch_coord_frame]], ch_coord)
-            if ch_type in _MEG_CH_TYPES_SPLIT + ("ref_meg",):
-                chs[type_name][info.ch_names[idx]] = (ch_coord, triangles)
+            if is_meg:
+                frame_trans = to_cf_t[_frame_to_str[ch_coord_frame]]["trans"]
+                transform = frame_trans @ coil_trans
+                position = transform[:3, 3]
+                quat = rot_to_quat(transform[:3, :3])
+                shape_key = (local_rr.round(10).tobytes(), triangles.tobytes())
+                chs[type_name][info.ch_names[idx]] = (
+                    local_rr,
+                    triangles,
+                    position,
+                    quat,
+                    shape_key,
+                )
             else:
+                ch_coord = apply_trans(to_cf_t[_frame_to_str[ch_coord_frame]], ch_coord)
                 chs[type_name][info.ch_names[idx]] = ch_coord
     if unknown_chs:
         warn(
@@ -1570,7 +1586,14 @@ def _plot_sensors_3d(
                 plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
-            ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
+            local_rr, triangles, position, quat, shape_key = ch_coord
+            ch_coord = dict(
+                rr=local_rr * unit_scalar,
+                tris=triangles,
+                position=position * unit_scalar,
+                quat=quat,
+                shape_key=shape_key,
+            )
         if plot_sensors:
             if ch_type == "eeg":
                 if "original" in eeg:
@@ -1648,18 +1671,24 @@ def _plot_sensors_3d(
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
                 colors = [colors[0]] * len(sens_loc)
-            # Merge same-color coils into one mesh/actor instead of one per
-            # coil (can number in the hundreds), since per-call overhead
-            # dominates. Could also use a GPU-instanced vtkGlyph3DMapper
-            # (quaternion mode), but that's a larger refactor for little gain.
+            colors = np.array(colors, float)
+            colors[:, 3] *= this_alpha
+            # Group coils by shape: one GPU-instanced actor per shape
             groups = defaultdict(list)
-            for surface, color in zip(sens_loc, colors):
-                groups[tuple(color)].append(surface)
-            for color, surfaces in groups.items():
-                actor, _ = renderer.surface(
-                    surface=_merge_surfaces(surfaces),
-                    color=color[:3],
-                    opacity=this_alpha * color[3],
+            for si, surface in enumerate(sens_loc):
+                if len(surface["rr"]) == 0:
+                    continue  # coil geometry not found (already warned above)
+                groups[surface["shape_key"]].append(si)
+            for idxs in groups.values():
+                template = sens_loc[idxs[0]]
+                positions = np.array([sens_loc[i]["position"] for i in idxs])
+                quats = np.array([sens_loc[i]["quat"] for i in idxs])
+                actor, _ = renderer.instanced_mesh(
+                    rr=template["rr"],
+                    tris=template["tris"],
+                    positions=positions,
+                    quats=quats,
+                    colors=colors[idxs],
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
@@ -1768,18 +1797,6 @@ def _plot_sensors_3d(
     return actors
 
 
-def _merge_surfaces(surfaces):
-    """Merge a list of surface dicts (rr, tris) into a single surface dict."""
-    rrs = list()
-    tris = list()
-    offset = 0
-    for surface in surfaces:
-        rrs.append(surface["rr"])
-        tris.append(surface["tris"] + offset)
-        offset += len(surface["rr"])
-    return dict(rr=np.concatenate(rrs), tris=np.concatenate(tris))
-
-
 def _make_tris_fan(n_vert):
     """Make tris given a number of vertices of a circle-like obj."""
     tris = np.zeros((n_vert - 2, 3), int)
@@ -1789,13 +1806,30 @@ def _make_tris_fan(n_vert):
 
 
 def _sensor_shape(coil):
-    """Get the sensor shape vertices."""
+    """Get the sensor shape vertices.
+
+    Returns
+    -------
+    rrs : ndarray, shape (n_vert, 3)
+        Vertex coordinates in the local coil frame. A pure function of coil
+        type/size/base only (never per-channel), so that channels sharing a
+        coil type can share one template mesh.
+    tris : ndarray, shape (n_tri, 3)
+        Triangle indices.
+    extra_z : float
+        Extra translation (in local +Z) for this specific channel on top of
+        the shared template -- used only to keep paired Neuromag planar
+        gradiometer channels (e.g. MEG0112/MEG0113) from z-fighting on
+        screen. Kept separate from ``rrs`` so it can be folded into a
+        per-channel transform instead of the (otherwise shared) template.
+    """
     try:
         from scipy.spatial import QhullError
     except ImportError:  # scipy < 1.8
         from scipy.spatial.qhull import QhullError
     id_ = coil["type"] & 0xFFFF
     z_value = 0
+    extra_z = 0.0
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1822,7 +1856,7 @@ def _sensor_shape(coil):
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
         # Offset for visibility (using heuristic for sanely named Neuromag coils)
-        z_value = 0.001 * (1 + coil["chname"].endswith("2"))
+        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1899,7 +1933,7 @@ def _sensor_shape(coil):
     if z_value is not None:
         rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=z_value)
     assert rrs.ndim == 2 and rrs.shape[1] == 3
-    return rrs, tris
+    return rrs, tris, extra_z
 
 
 def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
