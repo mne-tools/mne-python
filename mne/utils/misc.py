@@ -413,6 +413,28 @@ def _dict_owner(d):
     return None
 
 
+def _module_global_name(obj):
+    """Find the "module.attr" name of obj if it is itself a module-level global.
+
+    This is what lets a failure message name e.g. a long-lived module-level
+    registry (cache, weak-value dict, etc.) directly, which is often the
+    actual reason an object outlives a single test/example: a plain
+    ``gc.get_referrers`` walk only shows an anonymous ``dict``/``list``.
+    """
+    for modname, mod in list(sys.modules.items()):
+        d = getattr(mod, "__dict__", None)
+        if not d:
+            continue
+        try:
+            items = list(d.items())
+        except Exception:
+            continue
+        for key, val in items:
+            if val is obj:
+                return f"{modname}.{key}"
+    return None
+
+
 def _describe_referrer(r, referent):
     """Build a short, safe description of r, something that refers to referent.
 
@@ -420,62 +442,106 @@ def _describe_referrer(r, referent):
     -------
     desc : str
         Human-readable, safe description of r.
-    opaque : bool
-        Whether r is an unattributed container worth recursing into further
-        to find what is actually anchoring the reference (as opposed to
-        already being a well-identified owner, e.g. a specific instance's
-        ``__dict__`` or a bound method, where recursing further just adds
-        uninformative noise about how Python happens to store that owner).
+    next_obj : object | None
+        What to keep tracing referrers of (``None`` to stop here). This is
+        usually ``r`` itself, but for e.g. an instance's ``__dict__`` it's
+        the owning instance (tracing the dict's own referrers is normally
+        just uninformative interpreter-internal noise), and for a
+        module-level global it's ``None`` (a named global is already a
+        fully-explained anchor; nothing more useful to say).
     """
+    global_name = _module_global_name(r)
     if inspect.ismethod(r):
         desc = f"bound method {r.__func__.__qualname__} of {_safe_repr(r.__self__)}"
-        return desc, False
+        return desc, r
     name = _fullname(r, referent=referent)
     if isinstance(r, dict):
         owner = _dict_owner(r)
         if owner is not None:
-            return f"{_fullname(owner)}.__dict__ ({name})", False
-        return f"{name} (len={len(r)})", True
+            return f"{_fullname(owner)}.__dict__ ({name})", owner
+        if global_name is not None:
+            return f"{global_name} (module-level dict, len={len(r)})", None
+        return f"{name} (len={len(r)})", r
     if isinstance(r, list | tuple):
-        return f"{name} (len={len(r)})", True
+        if global_name is not None:
+            return f"{global_name} (module-level {name}, len={len(r)})", None
+        return f"{name} (len={len(r)})", r
+    if global_name is not None:
+        return f"{global_name} ({_safe_repr(r)})", None
     rep = _safe_repr(r)
     if rep.startswith("<cell at "):  # a closure variable
         try:
             rep += f" ({_safe_repr(r.cell_contents)})"
         except Exception:
             pass
-    return f"{name} | {rep}", False
+    return f"{name} | {rep}", r
 
 
-def _append_referrers(o, depth, *, max_depth, seen, lines):
-    """Recursively describe referrers of o into lines, indented by depth."""
+def _append_referrers(o, depth, *, max_depth, max_lines, excluded, recursed, lines):
+    """Recursively describe referrers of o into lines, indented by depth.
+
+    ``excluded`` objects (e.g. the huge ``gc.get_objects()`` snapshot) are
+    never shown or recursed into. ``recursed`` tracks objects already used
+    as a recursion root, so a cycle in the referrer graph can't recurse
+    forever; unlike ``excluded`` it doesn't prevent an object from being
+    *listed* (only from being expanded again).
+    """
     any_shown = False
-    for r in gc.get_referrers(o):
-        if inspect.isframe(r) or id(r) in seen:
+    refs = gc.get_referrers(o)
+    # While this list is alive (i.e. for the duration of this call, including
+    # any recursive calls below), it itself shows up as a "referrer" of any
+    # of its own elements if we ask gc.get_referrers() about them -- that's
+    # an artifact of doing this traversal at all, not a real anchor.
+    excluded.add(id(refs))
+    for r in refs:
+        if len(lines) >= max_lines:
+            lines.append("  " * depth + "- ... (truncated)")
+            return any_shown
+        if inspect.isframe(r) or id(r) in excluded:
             continue
-        seen.add(id(r))
         any_shown = True
-        desc, opaque = _describe_referrer(r, o)
+        desc, next_obj = _describe_referrer(r, o)
         lines.append("  " * depth + "- " + desc)
-        if opaque and depth + 1 < max_depth:
-            _append_referrers(r, depth + 1, max_depth=max_depth, seen=seen, lines=lines)
+        if (
+            next_obj is not None
+            and id(next_obj) not in recursed
+            and id(next_obj) not in excluded
+            and depth + 1 < max_depth
+        ):
+            recursed.add(id(next_obj))
+            _append_referrers(
+                next_obj,
+                depth + 1,
+                max_depth=max_depth,
+                max_lines=max_lines,
+                excluded=excluded,
+                recursed=recursed,
+                lines=lines,
+            )
         del r
+    del refs
     return any_shown
 
 
-def _referrer_chain(obj, *, max_depth=3, exclude_ids=()):
+def _referrer_chain(obj, *, max_depth=5, max_lines=40, exclude_ids=()):
     """Describe, recursively, what holds references to obj.
 
     Referrers are walked (and indented) up to ``max_depth`` hops so that a
-    leaked object's actual anchor (e.g. some instance's ``__dict__`` several
+    leaked object's actual anchor (e.g. a module-level registry several
     containers away) is visible directly in the failure message, instead of
     just the immediate (often uninformative, e.g. a bare ``list``) referrer.
     """
     lines = list()
-    seen = set(exclude_ids)
-    seen.add(id(obj))
+    excluded = set(exclude_ids)
+    recursed = {id(obj)}
     has_referrers = _append_referrers(
-        obj, 0, max_depth=max_depth, seen=seen, lines=lines
+        obj,
+        0,
+        max_depth=max_depth,
+        max_lines=max_lines,
+        excluded=excluded,
+        recursed=recursed,
+        lines=lines,
     )
     return lines, has_referrers
 
