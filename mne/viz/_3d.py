@@ -1812,7 +1812,7 @@ def _sensor_shape(coil):
     except ImportError:  # scipy < 1.8
         from scipy.spatial.qhull import QhullError
     id_ = coil["type"] & 0xFFFF
-    z_value = 0
+    add_z_coord = True  # almost all geometry is planar
     extra_z = 0.0
     # Square figure eight
     if id_ in (
@@ -1911,11 +1911,11 @@ def _sensor_shape(coil):
             rr_rot = rrs @ u
             tris = Delaunay(rr_rot[:, :2]).simplices
             tris = np.concatenate((tris, tris[:, ::-1]))
-        z_value = None
+        add_z_coord = False
 
     # Go from (x,y) -> (x,y,z)
-    if z_value is not None:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=z_value)
+    if add_z_coord:
+        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
     assert rrs.ndim == 2 and rrs.shape[1] == 3
     return rrs, tris, extra_z
 
