@@ -318,10 +318,6 @@ class Brain:
         from ..backends import renderer as _renderer_mod
         from ..backends.renderer import _get_renderer, backend
 
-        # This is only used in testing!
-        if _renderer_mod.MNE_3D_BACKEND_TESTING:
-            Brain._instances.add(self)
-
         _validate_type(subject, str, "subject")
         self._surf = surf
         if hemi is None:
@@ -368,6 +364,10 @@ class Brain:
 
         self.time_viewer = False
         self._hash = time.time_ns()
+        # This is only used in testing! Needs self._hash to already be set,
+        # since Brain.__hash__ (used when adding to the WeakSet) depends on it.
+        if _renderer_mod.MNE_3D_BACKEND_TESTING:
+            Brain._instances.add(self)
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)

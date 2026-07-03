@@ -1222,7 +1222,7 @@ def _process_events(plotter):
 
 
 def _add_camera_callback(camera, callback):
-    camera.AddObserver(vtkCommand.ModifiedEvent, callback)
+    return camera.AddObserver(vtkCommand.ModifiedEvent, callback)
 
 
 def _arrow_glyph(grid, factor):
