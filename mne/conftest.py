@@ -41,6 +41,7 @@ from mne.utils import (
     _assert_no_instances,
     _check_qt_version,
     _chmod_rw_R,
+    _gc_collect_once,
     _pl,
     _record_warnings,
     _TempDir,
@@ -628,10 +629,10 @@ def triaxial_evoked(triaxial_raw):
 
 
 @pytest.fixture
-def garbage_collect():
+def garbage_collect(request):
     """Garbage collect on exit."""
     yield
-    gc.collect()
+    _gc_collect_once(request)
 
 
 @pytest.fixture
@@ -687,7 +688,9 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         if not _test_passed(request):
             return
-        _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
+        _assert_no_instances(
+            MNEQtBrowser, f"Closure of {request.node.name}", request=request
+        )
 
 
 @pytest.fixture(
@@ -1081,8 +1084,13 @@ def brain_gc(request):
     close_func()
     if not _test_passed(request):
         return
-    _assert_no_instances(Brain, "after")
-    # Check VTK
+    _gc_collect_once(request)
+    # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
+    # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
+    # scan of the whole process to check for lingering Brain instances.
+    _assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
+    # Check VTK -- these aren't individually tracked, so we still need a full
+    # heap scan here.
     objs = gc.get_objects()
     bad = list()
     for o in objs:

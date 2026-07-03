@@ -376,12 +376,33 @@ def _fullname(obj, *, referent=None):
     return name
 
 
-def _assert_no_instances(cls, when=""):
+def _gc_collect_once(request=None):
+    """Call gc.collect(), deduplicated once per test item if given a request.
+
+    ``gc.collect()`` cost scales with the number of tracked objects in the
+    whole process, so when several independent test fixtures each want a
+    fresh collect during the same test's teardown, doing it more than once
+    is a significant and unnecessary fraction of total test time. When
+    ``request`` (a pytest fixture request) is given, only the first call
+    for a given test item actually collects; later calls are no-ops.
+    """
+    if request is None:
+        gc.collect()
+        return
+    node = request.node
+    if getattr(node, "_mne_gc_collected", False):
+        return
+    node._mne_gc_collected = True
+    gc.collect()
+
+
+def _assert_no_instances(cls, when="", *, request=None, objs=None):
     __tracebackhide__ = True
     n = 0
     ref = list()
-    gc.collect()
-    objs = gc.get_objects()
+    _gc_collect_once(request)
+    if objs is None:
+        objs = gc.get_objects()
     for obj in objs:  # e.g., vtkPolyData, Brain, Plotter, etc.
         try:
             check = isinstance(obj, cls)
@@ -425,7 +446,6 @@ def _assert_no_instances(cls, when=""):
             n += count > 0
         del obj
     del objs
-    gc.collect()
     assert n == 0, f"\n{n} {cls.__name__} @ {when}:\n" + "\n".join(ref)
 
 

@@ -8,6 +8,7 @@ import os.path as op
 import time
 import traceback
 import warnings
+import weakref
 from functools import partial
 from io import BytesIO
 
@@ -286,6 +287,11 @@ class Brain:
        +-------------------------------------+--------------+---------------+
     """
 
+    # Tracks live instances when MNE_3D_BACKEND_TESTING is set (see
+    # __init__), so that tests can check for lingering instances without
+    # having to scan gc.get_objects() for the whole process.
+    _instances = weakref.WeakSet()
+
     def __init__(
         self,
         subject,
@@ -309,7 +315,12 @@ class Brain:
         theme=None,
         show=True,
     ):
+        from ..backends import renderer as _renderer_mod
         from ..backends.renderer import _get_renderer, backend
+
+        # This is only used in testing!
+        if _renderer_mod.MNE_3D_BACKEND_TESTING:
+            Brain._instances.add(self)
 
         _validate_type(subject, str, "subject")
         self._surf = surf
@@ -414,7 +425,6 @@ class Brain:
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
         self.widgets = dict()
-
         self._setup_canonical_rotation()
 
         # plot hemis
@@ -1455,7 +1465,13 @@ class Brain:
     def _remove_vertex_glyph(self, *, hemi, vertex_id, render=True):
         _ensure_int(vertex_id)
         assert isinstance(hemi, str), f"got {type(hemi)} for {hemi=}"
-        spheres = self._picked_points.pop((hemi, vertex_id))
+        # When linked via _LinkViewer, removing a vertex on one brain cascades
+        # to all linked brains, so by the time a given brain's own loop (e.g.
+        # in clear_glyphs) reaches this (hemi, vertex_id) it may already be
+        # gone; just no-op in that case.
+        spheres = self._picked_points.pop((hemi, vertex_id), None)
+        if spheres is None:
+            return
         color, line = spheres[0]["color"], spheres[0]["line"]
         line.remove()
         self.mpl_canvas.update_plot()
