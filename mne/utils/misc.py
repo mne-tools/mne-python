@@ -354,11 +354,16 @@ def _file_like(obj):
 
 
 def _fullname(obj, *, referent=None):
-    klass = obj.__class__
-    module = klass.__module__
-    name = klass.__qualname__
-    if module != "builtins":
-        name = f"{module}.{name}"
+    if inspect.ismodule(obj):
+        # Otherwise every module shows up identically as just "module",
+        # which is exactly the info we need to tell which one is which.
+        name = getattr(obj, "__name__", "<unknown module>")
+    else:
+        klass = obj.__class__
+        module = klass.__module__
+        name = klass.__qualname__
+        if module != "builtins":
+            name = f"{module}.{name}"
     if referent is not None:
         if isinstance(obj, list | tuple):
             for ii, item in enumerate(obj):
