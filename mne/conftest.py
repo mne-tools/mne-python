@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
-from refleak import gc_collect_once
+from refleak.testing import gc_collect_once
 
 # Any `assert` statements in our testing functions should be verbose versions
 register_assert_rewrite("mne.utils._testing")
