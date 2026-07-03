@@ -22,6 +22,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
+from refleak import gc_collect_once
 
 # Any `assert` statements in our testing functions should be verbose versions
 register_assert_rewrite("mne.utils._testing")
@@ -41,7 +42,6 @@ from mne.utils import (
     _assert_no_instances,
     _check_qt_version,
     _chmod_rw_R,
-    _gc_collect_once,
     _pl,
     _record_warnings,
     _TempDir,
@@ -632,7 +632,7 @@ def triaxial_evoked(triaxial_raw):
 def garbage_collect(request):
     """Garbage collect on exit."""
     yield
-    _gc_collect_once(request)
+    gc_collect_once(request)
 
 
 @pytest.fixture
@@ -1084,7 +1084,7 @@ def brain_gc(request):
     close_func()
     if not _test_passed(request):
         return
-    _gc_collect_once(request)
+    gc_collect_once(request)
     # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
     # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
     # scan of the whole process to check for lingering Brain instances.
