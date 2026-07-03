@@ -87,9 +87,7 @@ if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = mne.__version__ or "1.9.0"
-if release == "None":
-    release = "1.9.0"
+release = mne.__version__
 sphinx_logger.info(f"Building documentation for MNE {release} ({mne.__file__})")
 # The short X.Y version.
 version = ".".join(release.split(".")[:2])
@@ -116,11 +114,11 @@ extensions = [
     # contrib
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
-    "sphinxcontrib.bibtex",
-    "sphinx_gallery.gen_gallery",
-    "jupyterlite_sphinx",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_gallery.gen_gallery",
+    "jupyterlite_sphinx",
+    "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     "sphinxcontrib.towncrier.ext",
     # homegrown
@@ -1035,7 +1033,7 @@ sphinx_gallery_conf = {
         "                        _m = _fv >= _edges[_i]\n"
         "                    if int(_m.sum()) == 0:\n"
         "                        continue\n"
-        "                    _rgb = _hot(0.25 + 0.75 * (_i / (_N - 1)))\n"
+        "                    _rgb = _hot(0.25 + 0.41 * (_i / (_N - 1)))\n"
         "                    _col = (float(_rgb[0]), float(_rgb[1]),\n"
         "                            float(_rgb[2]))\n"
         "                    _s = _sub(_pts, _tris, _m, 0.02, _cen)\n"
