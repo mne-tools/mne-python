@@ -29,8 +29,12 @@ from ..._freesurfer import (
 )
 from ...defaults import DEFAULTS, _handle_default
 from ...fixes import _reshape_view
-from ...source_space._source_space import _decimate_surface_ico_oct
-from ...surface import _marching_cubes, _mesh_borders, mesh_edges
+from ...surface import (
+    _decimate_surface_ico_oct,
+    _marching_cubes,
+    _mesh_borders,
+    mesh_edges,
+)
 from ...transforms import (
     Transform,
     _frame_to_str,
@@ -169,7 +173,7 @@ class Brain:
        a level of decimation between 0 and 1, None for no decimation, or a spacing
        string (e.g. ``"ico4"``, ``"oct6"``) to instead pick vertices the same way
        :func:`mne.setup_source_space` does, which is faster and better preserves
-       the shape than plain decimation. If True, the default values are used and
+       the shape than plain decimation. If True, ``"ico5"`` is used and
        if False, no silhouette will be displayed. Defaults to False.
 
        .. versionchanged:: 1.13
