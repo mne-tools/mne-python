@@ -3557,6 +3557,12 @@ docdict["picks_good_data"] = _reflow_param_docstring(
 docdict["picks_good_data_noref"] = _reflow_param_docstring(
     f"{picks_base} good data channels {noref}"
 )
+docdict["picks_all_get_data"] = _reflow_param_docstring(
+    f"{picks_base} all channels, and bad channels are included by default "
+    f"when picks is None. If picks are given as channel type(s) (e.g., "
+    f"``'eeg'``), bad channels of those types are excluded by default. "
+    f"{reminder}"
+)
 docdict["picks_header"] = _picks_header
 docdict["picks_ica"] = """
 picks : int | list of int | slice | None
