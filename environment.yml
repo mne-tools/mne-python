@@ -36,7 +36,7 @@ dependencies:
   - nomkl
   - noqt5
   - numba >=0.35
-  - numpy >=1.26,<3
+  - numpy >=2.0,<3
   - openmeeg >=2.5.7
   - packaging
   - pandas >=2.2,!=3.0.4
@@ -54,7 +54,7 @@ dependencies:
   - qdarkstyle !=3.2.2
   - qtpy
   - scikit-learn >=1.5
-  - scipy >=1.13
+  - scipy >=1.14
   - sip
   - snirf
   - statsmodels >=0.6
