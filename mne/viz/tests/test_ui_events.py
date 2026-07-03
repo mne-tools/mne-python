@@ -234,10 +234,10 @@ def test_link(event_channels, event_channel_links):
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
     assert len(callback_calls) == 2  # Only called for both figures once
 
-    # Test merge link groups
+    # Test recursive linking.
     fig3 = plt.figure()
     ui_events.subscribe(fig3, "time_change", callback)
-    ui_events.link(fig2, fig3, merge=True)  # fig1 and fig2 are already linked
+    ui_events.link(fig2, fig3, recursive=True)  # fig1 and fig2 are already linked
     callback_calls.clear()
     ui_events.publish(fig3, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
