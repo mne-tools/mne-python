@@ -344,6 +344,22 @@ def test_scale_bar(browser_backend):
         browser_backend._close_all()
 
 
+def test_zero_line(raw, mpl_backend):
+    """Test toggling the zero line for raw (matplotlib backend only)."""
+    fig = raw.plot()
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+    fig._fake_keypress("0")
+    assert fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == len(fig.mne.picks)
+    for zero_line, offset in zip(fig.mne.zero_lines, fig.mne.trace_offsets):
+        assert_allclose(zero_line.get_ydata(), (offset, offset))
+    assert_allclose(fig.mne.zero_lines[0].get_xdata(), fig.mne.ax_main.get_xlim())
+    fig._fake_keypress("0")  # toggle back off -> artists removed
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+
+
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"

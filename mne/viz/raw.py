@@ -67,6 +67,7 @@ def plot_raw(
     event_id=None,
     show_scrollbars=True,
     show_scalebars=True,
+    show_zero_line=False,
     time_format="float",
     precompute=None,
     use_opengl=None,
@@ -213,6 +214,7 @@ def plot_raw(
     %(show_scalebars)s
 
         .. versionadded:: 0.20.0
+    %(show_zero_line)s
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
@@ -427,6 +429,7 @@ def plot_raw(
         clipping=clipping,
         scrollbars_visible=show_scrollbars,
         scalebars_visible=show_scalebars,
+        zero_line_visible=show_zero_line,
         window_title=title,
         bgcolor=bgcolor,
         # Qt-specific

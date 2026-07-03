@@ -645,6 +645,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.traces = ax_main.plot(
             np.full((1, self.mne.n_channels), np.nan), **self.mne.trace_kwargs
         )
+        self.mne.zero_line_kwargs = dict(
+            color=self.mne.fgcolor,
+            alpha=0.5,
+            linewidth=0.5,
+            linestyle="dashed",
+            zorder=self.mne.zorder["zero_line"],
+        )
 
         # SAVE UI ELEMENT HANDLES
         vars(self.mne).update(
@@ -874,6 +881,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     checkbox.set_active(0)
         elif key == "s":  # scalebars
             self._toggle_scalebars(event)
+        elif key == "0":  # zero line
+            self._toggle_zero_line(event)
         elif key == "w":  # toggle noise cov whitening
             self._toggle_whitening()
         elif key == "z":  # zen mode: hide scrollbars and buttons
@@ -1124,6 +1133,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ("shift+j", "Toggle all SSPs"),
                 ("p", "Toggle draggable annotations" if is_raw else None),
                 ("s", "Toggle scalebars" if not is_ica else None),
+                ("0", "Toggle zero line"),
                 ("z", "Toggle scrollbars"),
                 ("t", "Toggle time format" if not is_epo else None),
                 ("F11", "Toggle fullscreen" if not is_mac else None),
@@ -1993,6 +2003,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.scalebars_visible = not self.mne.scalebars_visible
         self._redraw(update_data=False)
 
+    def _toggle_zero_line(self, event):
+        """Show/hide the zero line for each channel trace."""
+        self.mne.zero_line_visible = not self.mne.zero_line_visible
+        self._redraw(update_data=False)
+
     def _draw_one_scalebar(self, x, y, ch_type):
         """Draw a scalebar."""
         from .utils import _simplify_float
@@ -2213,6 +2228,23 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             trace.remove()
         self.mne.traces = self.mne.traces[:n_picks]
 
+        # add/remove zero lines if needed
+        if self.mne.zero_line_visible:
+            if n_picks > len(self.mne.zero_lines):
+                n_new_chs = n_picks - len(self.mne.zero_lines)
+                new_zero_lines = self.mne.ax_main.plot(
+                    np.full((1, n_new_chs), np.nan), **self.mne.zero_line_kwargs
+                )
+                self.mne.zero_lines.extend(new_zero_lines)
+            extra_zero_lines = self.mne.zero_lines[n_picks:]
+            for zero_line in extra_zero_lines:
+                zero_line.remove()
+            self.mne.zero_lines = self.mne.zero_lines[:n_picks]
+        elif self.mne.zero_lines:
+            for zero_line in self.mne.zero_lines:
+                zero_line.remove()
+            self.mne.zero_lines = list()
+
         # check for bad epochs
         time_range = (self.mne.times + self.mne.first_time)[[0, -1]]
         if self.mne.instance_type == "epochs":
@@ -2248,6 +2280,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             this_name = ch_names[ii]
             this_type = ch_types[ii]
             this_offset = offsets[ii]
+            if self.mne.zero_line_visible:
+                self.mne.zero_lines[ii].set_xdata(time_range)
+                self.mne.zero_lines[ii].set_ydata((this_offset, this_offset))
             this_times = decim_times[decim[ii]]
             this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
             this_data = this_data[..., :: decim[ii]]

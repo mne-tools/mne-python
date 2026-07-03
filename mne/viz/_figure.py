@@ -105,6 +105,7 @@ class BrowserBase(ABC):
             patch=0,
             grid=1,
             ann=2,
+            zero_line=3,
             events=10003,
             bads=10004,
             data=10005,
@@ -140,6 +141,7 @@ class BrowserBase(ABC):
             self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.0
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
+        self.mne.zero_lines = list()
         # ancillary child figures
         self.mne.child_figs = list()
         self.mne.fig_help = None
