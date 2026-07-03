@@ -844,7 +844,7 @@ class Brain:
             hlayout = self._renderer._dock_add_layout(vertical=False)
             self.widgets[key] = self._renderer._dock_add_slider(
                 name=None,
-                value=self._all_data[key] * self._data["fscale"],
+                value=self._data[key] * self._data["fscale"],
                 rng=rng,
                 callback=partial(update_single_lut_value, key=key),
                 double=True,
@@ -852,7 +852,7 @@ class Brain:
             )
             self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
                 name=None,
-                value=self._all_data[key] * self._data["fscale"],
+                value=self._data[key] * self._data["fscale"],
                 callback=partial(update_single_lut_value, key=key),
                 rng=rng,
                 layout=hlayout,
@@ -1308,7 +1308,7 @@ class Brain:
             return
         lims = {key: getattr(event, key) for key in ("fmin", "fmid", "fmax", "alpha")}
         # Check if limits have changed at all.
-        if all(val is None or val == self._all_data[key] for key, val in lims.items()):
+        if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
         # Update the GUI elements.
         with disable_ui_events(self):
