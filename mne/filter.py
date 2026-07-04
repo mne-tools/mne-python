@@ -22,7 +22,7 @@ from .cuda import (
     _setup_cuda_fft_resample,
     _smart_pad,
 )
-from .fixes import _reshape_view, minimum_phase
+from .fixes import _reshape_view
 from .parallel import parallel_func
 from .utils import (
     _check_option,
@@ -495,11 +495,11 @@ def _construct_fir_filter(
     # construct symmetric (linear phase) filter
     if phase == "minimum-half":
         h = fir_design(N * 2 - 1, freq, gain, window=fir_window)
-        h = minimum_phase(h)
+        h = signal.minimum_phase(h)
     else:
         h = fir_design(N, freq, gain, window=fir_window)
         if phase == "minimum":
-            h = minimum_phase(h, half=False)
+            h = signal.minimum_phase(h, half=False)
     assert h.size == N
     att_db, att_freq = _filter_attenuation(h, freq, gain)
     if phase == "zero-double":
