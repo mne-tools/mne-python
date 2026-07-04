@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
-from refleak.testing import gc_collect_once
+from refleak.testing import assert_no_instances, gc_collect_once
 
 # Any `assert` statements in our testing functions should be verbose versions
 register_assert_rewrite("mne.utils._testing")
@@ -39,7 +39,6 @@ from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw
 from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
-    _assert_no_instances,
     _check_qt_version,
     _chmod_rw_R,
     _pl,
@@ -688,7 +687,7 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         if not _test_passed(request):
             return
-        _assert_no_instances(
+        assert_no_instances(
             MNEQtBrowser, f"Closure of {request.node.name}", request=request
         )
 
@@ -1088,7 +1087,7 @@ def brain_gc(request):
     # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
     # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
     # scan of the whole process to check for lingering Brain instances.
-    _assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
+    assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
     # Check VTK -- these aren't individually tracked, so we still need a full
     # heap scan here.
     objs = gc.get_objects()

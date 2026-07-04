@@ -15,14 +15,11 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
+from refleak.testing import assert_no_instances
 from sphinx.errors import ExtensionError
 
 import mne
-from mne.utils import (
-    _assert_no_instances,
-    _get_extra_data_path,
-    sizeof_fmt,
-)
+from mne.utils import _get_extra_data_path, sizeof_fmt
 from mne.viz import Brain
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
@@ -205,19 +202,20 @@ def reset_modules(gallery_conf, fname, when):
     # to just test MNEQtBrowser
     skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
     prefix = ""
+    request = object()  # just give it something to say "we have done GC already"
     if skips not in ("true", "1", "all"):
         prefix = "Clean "
         skips = skips.split(",")
         if "brain" not in skips:
-            _assert_no_instances(Brain, when)  # calls gc.collect()
+            assert_no_instances(Brain, when, request)
         if Plotter is not None and "plotter" not in skips:
-            _assert_no_instances(Plotter, when)
+            assert_no_instances(Plotter, when, request)
         if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-            _assert_no_instances(BackgroundPlotter, when)
+            assert_no_instances(BackgroundPlotter, when, request)
         if vtkPolyData is not None and "vtkpolydata" not in skips:
-            _assert_no_instances(vtkPolyData, when)
+            assert_no_instances(vtkPolyData, when, request)
         if "_renderer" not in skips:
-            _assert_no_instances(_Renderer, when)
+            assert_no_instances(_Renderer, when, request)
         if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
             # Ensure any manual fig.close() events get properly handled
             from mne_qt_browser._pg_figure import QApplication
@@ -226,7 +224,7 @@ def reset_modules(gallery_conf, fname, when):
             if inst is not None:
                 for _ in range(2):
                     inst.processEvents()
-            _assert_no_instances(MNEQtBrowser, when)
+            assert_no_instances(MNEQtBrowser, when, request)
     # This will overwrite some Sphinx printing but it's useful
     # for memory timestamps
     if os.getenv("SG_STAMP_STARTS", "").lower() == "true":

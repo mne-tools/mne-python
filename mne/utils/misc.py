@@ -352,11 +352,12 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ("read", "seek"))
 
 
-def _assert_no_instances(cls, when="", *, request=None, objs=None):
+# Low-effort backward compat wrapper in case other MNE libraries use this function
+def _assert_no_instances(cls, when=""):
     __tracebackhide__ = True
     from refleak.testing import assert_no_instances
 
-    return assert_no_instances(cls, when=when, request=request, objs=objs)
+    return assert_no_instances(cls, when=when)
 
 
 def _resource_path(submodule, filename):

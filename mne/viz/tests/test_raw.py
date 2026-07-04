@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
+from refleak.testing import assert_no_instances
 
 import mne
 from mne import Annotations, create_info, pick_types
@@ -21,7 +22,6 @@ from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.utils import (
-    _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
     catch_logging,
@@ -1357,7 +1357,7 @@ def test_plotting_memory_garbage_collection(raw, pg_backend):
     from mne_qt_browser._pg_figure import MNEQtBrowser
 
     assert len(mne_qt_browser._browser_instances) == 0
-    _assert_no_instances(MNEQtBrowser, "after closing")
+    assert_no_instances(MNEQtBrowser, "after closing")
 
 
 def test_plotting_scalebars(browser_backend, qtbot):
