@@ -17,7 +17,6 @@ dependencies:
   - h5io >=0.2.4
   - h5py >=2.4
   - imageio >=2.6.1
-  - imageio-ffmpeg >=0.4.1
   - ipyevents
   - ipympl
   - ipython >=2.0,!=8.7.0

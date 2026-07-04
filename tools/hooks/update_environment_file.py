@@ -74,7 +74,7 @@ for dep in deps:
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
         pip_deps.add(line[4:])
-    else:
+    elif package_name not in pip_deps:
         conda_dep_lines.add(line)
 
 # prepare the pip dependencies section
