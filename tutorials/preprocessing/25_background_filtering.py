@@ -150,7 +150,6 @@ from numpy.fft import fft, fftfreq
 from scipy import signal
 
 import mne
-from mne.fixes import minimum_phase
 from mne.time_frequency.tfr import morlet
 from mne.viz import plot_filter, plot_ideal_filter
 
