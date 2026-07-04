@@ -46,6 +46,7 @@ from .topomap import (
     _set_contour_locator,
     plot_topomap,
 )
+from .ui_events import subscribe
 from .utils import (
     DraggableColorbar,
     _check_cov,
@@ -848,6 +849,17 @@ def _plot_lines(
                 useblit=blit,
                 props=dict(alpha=0.5, facecolor="red"),
             )
+
+    def on_time_change(event):
+        """Respond to a time change UI event."""
+        for ax in np.array(axes)[selectables]:
+            if hasattr(ax, "_selectline") and ax._selectline is not None:
+                ax._selectline.remove()
+
+            ax._selectline = ax.axvline(event.time, color="black", alpha=1)
+            ax.figure.canvas.draw()
+
+    subscribe(fig, "time_change", on_time_change)
 
 
 def _add_nave(ax, nave):
