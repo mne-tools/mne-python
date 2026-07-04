@@ -25,7 +25,9 @@ recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
 # not on conda-forge
-pip_deps = {"pymef"}
+pip_deps = {
+    "pymef",  # not on conda-forge
+}
 deps -= pip_deps
 
 
@@ -53,8 +55,8 @@ translations = dict(neo="python-neo")
 conda_dep_lines = set()
 version_spec_overrides = {
     # Help the solver work faster by specifying these (should be updated periodically):
-    "PySide6": "==6.10.2",
-    "vtk": "==9.6.0",
+    "PySide6": "==6.11.1",
+    "vtk": "==9.6.2",
 }
 for key in version_spec_overrides:
     assert any(dep.startswith(key) for dep in deps), (
@@ -71,8 +73,9 @@ for dep in deps:
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
         pip_deps.add(line[4:])
-    else:
+    elif package_name not in pip_deps:
         conda_dep_lines.add(line)
+conda_dep_lines.add("  - ffmpeg =8.1.2")  # try to fix conda issue
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
