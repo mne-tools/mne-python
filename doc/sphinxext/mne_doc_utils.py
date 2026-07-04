@@ -19,7 +19,7 @@ from refleak.testing import assert_no_instances
 from sphinx.errors import ExtensionError
 
 import mne
-from mne.utils import _get_extra_data_path, sizeof_fmt
+from mne.utils import Bunch, _get_extra_data_path, sizeof_fmt
 from mne.viz import Brain
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
@@ -202,7 +202,8 @@ def reset_modules(gallery_conf, fname, when):
     # to just test MNEQtBrowser
     skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
     prefix = ""
-    request = object()  # just give it something to say "we have done GC already"
+    request = Bunch()  # just give it something to say "we have done GC already"
+    request.node = Bunch()
     if skips not in ("true", "1", "all"):
         prefix = "Clean "
         skips = skips.split(",")
