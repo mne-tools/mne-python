@@ -27,7 +27,6 @@ deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
 # not on conda-forge
 pip_deps = {
     "pymef",  # not on conda-forge
-    "imageio-ffmpeg",  # as of 2026-07-03, ffmpeg-8.1.2 has an unknown bug
 }
 deps -= pip_deps
 
@@ -56,8 +55,8 @@ translations = dict(neo="python-neo")
 conda_dep_lines = set()
 version_spec_overrides = {
     # Help the solver work faster by specifying these (should be updated periodically):
-    "PySide6": "==6.10.2",
-    "vtk": "==9.6.0",
+    "PySide6": "==6.11.1",
+    "vtk": "==9.6.2",
 }
 for key in version_spec_overrides:
     assert any(dep.startswith(key) for dep in deps), (
@@ -76,6 +75,7 @@ for dep in deps:
         pip_deps.add(line[4:])
     elif package_name not in pip_deps:
         conda_dep_lines.add(line)
+conda_dep_lines.add("  - ffmpeg =8.1.2")  # try to fix conda issue
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
