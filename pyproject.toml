@@ -22,7 +22,7 @@ doc = [
   "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
   "pymef",
-  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
+  "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
@@ -40,7 +40,7 @@ doc-full = ["rpy2", {include-group = "doc"}]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
-  "pandas >= 2.2,!=3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
 ]
 test = [
@@ -50,7 +50,7 @@ test = [
   "numpydoc >= 1.6",
   "pillow >= 10.2",
   "pre-commit",
-  "pytest >= 8.0,!=9.1.0",  # https://github.com/pytest-dev/pytest/issues/14591
+  "pytest >= 8.0, != 9.1.0",  # https://github.com/pytest-dev/pytest/issues/14591
   "pytest-cov >= 4.1",
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
@@ -108,10 +108,10 @@ dependencies = [
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.9",  # released 2024-05-15, will become 3.10 on 2026-12-14
-  "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
+  "numpy >= 2.0, < 3",  # released 2024-06-16, will become 2.1 on 2026-08-18
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.13",  # released 2024-04-02, will become 1.14 on 2026-06-24
+  "scipy >= 1.14",  # released 2024-06-24, will become 1.15 on 2027-01-03
   "tqdm >= 4.66",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -171,7 +171,7 @@ full-no-qt = [
   "nilearn",
   "numba >= 0.35",
   "openmeeg >= 2.5.7",
-  "pandas >= 2.2,!=3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
@@ -179,7 +179,7 @@ full-no-qt = [
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard >= 0.4",
   "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
-  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
+  "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "qdarkstyle != 3.2.2",
   "qtpy",
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
