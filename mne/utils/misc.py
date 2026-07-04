@@ -354,10 +354,11 @@ def _file_like(obj):
 
 # Low-effort backward compat wrapper in case other MNE libraries use this function
 def _assert_no_instances(cls, when=""):
-    __tracebackhide__ = True
     from refleak.testing import assert_no_instances
 
-    return assert_no_instances(cls, when=when)
+    __tracebackhide__ = True
+
+    assert_no_instances(cls, when=when)
 
 
 def _resource_path(submodule, filename):
