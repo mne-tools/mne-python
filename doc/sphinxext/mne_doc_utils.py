@@ -207,15 +207,15 @@ def reset_modules(gallery_conf, fname, when):
         prefix = "Clean "
         skips = skips.split(",")
         if "brain" not in skips:
-            assert_no_instances(Brain, when, request)
+            assert_no_instances(Brain, when=when, request=request)
         if Plotter is not None and "plotter" not in skips:
-            assert_no_instances(Plotter, when, request)
+            assert_no_instances(Plotter, when=when, request=request)
         if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-            assert_no_instances(BackgroundPlotter, when, request)
+            assert_no_instances(BackgroundPlotter, when=when, request=request)
         if vtkPolyData is not None and "vtkpolydata" not in skips:
-            assert_no_instances(vtkPolyData, when, request)
+            assert_no_instances(vtkPolyData, when=when, request=request)
         if "_renderer" not in skips:
-            assert_no_instances(_Renderer, when, request)
+            assert_no_instances(_Renderer, when=when, request=request)
         if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
             # Ensure any manual fig.close() events get properly handled
             from mne_qt_browser._pg_figure import QApplication
@@ -224,7 +224,7 @@ def reset_modules(gallery_conf, fname, when):
             if inst is not None:
                 for _ in range(2):
                     inst.processEvents()
-            assert_no_instances(MNEQtBrowser, when, request)
+            assert_no_instances(MNEQtBrowser, when=when, request=request)
     # This will overwrite some Sphinx printing but it's useful
     # for memory timestamps
     if os.getenv("SG_STAMP_STARTS", "").lower() == "true":
