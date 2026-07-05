@@ -639,26 +639,12 @@ class _PyVistaRenderer(_AbstractRenderer):
             if mode == "cone":
                 geom = pyvista.Cone(center=(0.5, 0, 0), radius=glyph_radius)
             elif mode == "cylinder":
-                # vtkCylinderSource's axis is along y, so rotate 90 degrees
-                # about z to match the arrow/cone convention of pointing
-                # along x
-                source = vtkCylinderSource()
-                if glyph_radius is not None:
-                    source.SetRadius(glyph_radius)
-                if glyph_height is not None:
-                    source.SetHeight(glyph_height)
-                if glyph_center is not None:
-                    source.SetCenter(glyph_center)
-                if glyph_resolution is not None:
-                    source.SetResolution(glyph_resolution)
-                source.Update()
-                tr = vtkTransform()
-                tr.RotateWXYZ(90, 0, 0, 1)
-                trp = vtkTransformFilter()
-                trp.SetInputData(source.GetOutput())
-                trp.SetTransform(tr)
-                trp.Update()
-                geom = trp.GetOutput()
+                geom = _cylinder_geom(
+                    radius=glyph_radius,
+                    height=glyph_height,
+                    center=glyph_center,
+                    resolution=glyph_resolution,
+                )
             elif mode == "oct":
                 geom = pyvista.PlatonicSolid(kind="octahedron")
                 if solid_transform is not None:
@@ -688,6 +674,11 @@ class _PyVistaRenderer(_AbstractRenderer):
         )
         return actor, mesh
 
+    # quiver3d (above) and instanced_mesh (below) split along principled lines:
+    # quiver3d bakes a static, merged glyph mesh with direction-vector
+    # orientation and scalar/colormap coloring (arrows and friends), while
+    # instanced_mesh GPU-instances one template with per-instance, updatable
+    # quaternion orientation and RGBA coloring (sensors, MEG coils).
     def instanced_mesh(
         self,
         rr,
@@ -695,6 +686,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         positions,
         quats,
         colors,
+        scales=None,
         opacity=1.0,
         backface_culling=False,
         *,
@@ -713,7 +705,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         mapper.SetSourceData(geom)
         mapper.SetOrientationArray("orientation")
         mapper.SetOrientationModeToQuaternion()
-        mapper.ScalingOff()  # coil size is baked into rr; no per-instance scale
+        if scales is None:
+            # size is baked into rr (e.g. MEG coils); no per-instance scaling
+            mapper.ScalingOff()
+        else:
+            cloud.point_data["scale"] = np.asarray(scales, float)
+            mapper.SetScaleArray("scale")
+            mapper.SetScaleModeToScaleByMagnitude()
+            mapper.SetScaleFactor(1.0)
+            mapper.ScalingOn()
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray("colors")
         mapper.SetColorModeToDirectScalars()
@@ -728,6 +728,23 @@ class _PyVistaRenderer(_AbstractRenderer):
             actor, name=name, render=False, reset_camera=False, pickable=True
         )
         return actor, cloud
+
+    def _glyph_template(self, kind, **kwargs):
+        """Return (rr, tris) for a standard template mesh for instanced_mesh.
+
+        ``kind`` is ``"sphere"`` (unit-diameter, i.e. radius 0.5) or
+        ``"cylinder"`` (see ``_cylinder_geom`` for ``**kwargs``). The template
+        is oriented along +x so per-instance quaternions can point it anywhere.
+        """
+        if kind == "sphere":
+            geom = pyvista.Sphere(radius=0.5, theta_resolution=8, phi_resolution=8)
+        else:
+            assert kind == "cylinder", kind
+            geom = pyvista.wrap(_cylinder_geom(**kwargs))
+        geom = geom.triangulate()
+        rr = np.asarray(geom.points, float)
+        tris = np.asarray(geom.faces).reshape(-1, 4)[:, 1:]
+        return rr, tris
 
     def text2d(
         self,
@@ -1272,6 +1289,32 @@ def _process_events(plotter):
 
 def _add_camera_callback(camera, callback):
     return camera.AddObserver(vtkCommand.ModifiedEvent, callback)
+
+
+def _cylinder_geom(radius=None, height=None, center=None, resolution=None):
+    """Build a cylinder vtkPolyData with its axis along +x.
+
+    vtkCylinderSource's axis is along y, so we rotate 90 degrees about z to
+    match the arrow/cone convention of pointing along x (the axis that
+    vtkGlyph3D/vtkGlyph3DMapper orient toward the per-instance vector).
+    """
+    source = vtkCylinderSource()
+    if radius is not None:
+        source.SetRadius(radius)
+    if height is not None:
+        source.SetHeight(height)
+    if center is not None:
+        source.SetCenter(center)
+    if resolution is not None:
+        source.SetResolution(resolution)
+    source.Update()
+    tr = vtkTransform()
+    tr.RotateWXYZ(90, 0, 0, 1)
+    trp = vtkTransformFilter()
+    trp.SetInputData(source.GetOutput())
+    trp.SetTransform(tr)
+    trp.Update()
+    return trp.GetOutput()
 
 
 def _arrow_glyph(grid, factor):

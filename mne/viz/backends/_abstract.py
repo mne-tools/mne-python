@@ -480,6 +480,7 @@ class _AbstractRenderer(ABC):
         positions,
         quats,
         colors,
+        scales=None,
         opacity=1.0,
         backface_culling=False,
         name=None,
@@ -511,6 +512,11 @@ class _AbstractRenderer(ABC):
             The per-instance RGBA color (float values between 0 and 1) to
             use for each instance. Per-instance alpha (the fourth column)
             is respected.
+        scales : array, shape (n_instances,) | None
+            The per-instance isotropic scale factor applied to the template
+            geometry. If ``None`` (the default), no per-instance scaling is
+            applied and the size baked into ``rr`` is used as-is (e.g. for
+            MEG coils).
         opacity : float
             A uniform opacity multiplier applied on top of the per-instance
             alpha values in ``colors``.

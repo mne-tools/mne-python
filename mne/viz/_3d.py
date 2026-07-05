@@ -51,6 +51,7 @@ from ..transforms import (
     _angle_between_quats,
     _ensure_trans,
     _find_trans,
+    _find_vector_rotation,
     _frame_to_str,
     _get_trans,
     _get_transforms_to_coord_frame,
@@ -1342,11 +1343,11 @@ def _plot_hpi_coils(
         ]
     )
     hpi_loc = apply_trans(to_cf_t["head"], hpi_loc)
-    actor, _ = _plot_glyphs(
+    return _plot_glyphs(
         renderer=renderer,
         loc=hpi_loc,
-        color=defaults["hpi_color"],
-        scale=scale,
+        colors=defaults["hpi_color"],
+        scales=scale,
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
@@ -1355,7 +1356,6 @@ def _plot_hpi_coils(
         check_inside=check_inside,
         nearest=nearest,
     )
-    return actor
 
 
 def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
@@ -1394,67 +1394,80 @@ def _orient_glyphs(
 def _plot_glyphs(
     renderer,
     loc,
-    color,
-    scale,
-    opacity=1,
-    mode="cylinder",
+    colors,
+    scales,
+    opacity,
+    *,
     orient_glyphs=False,
     scale_by_distance=False,
     project_points=False,
     mark_inside=False,
     surf=None,
+    orient_nn=None,
+    cylinder_geom=None,
     backface_culling=False,
     check_inside=None,
     nearest=None,
 ):
-    from matplotlib.colors import ListedColormap, to_rgba
+    """Plot glyphs (sensors, HPI coils, head-shape points) as one instanced actor.
 
-    _validate_type(mark_inside, bool, "mark_inside")
-    if surf is not None and len(loc) > 0:
-        defaults = DEFAULTS["coreg"]
-        scalars, vectors, proj_pts = _orient_glyphs(
+    ``loc`` is already in render units. ``colors`` (any Matplotlib color spec or
+    an ``(n, 4)`` / ``(1, 4)`` RGBA array) and ``scales`` may be per-instance or
+    a single value to broadcast; a single GPU-instanced actor is produced
+    regardless. When ``surf`` is set (coreg), glyphs are oriented along, scaled
+    by distance to, projected onto, and/or marked inside the surface. Callers
+    that have already projected/oriented the points (e.g. projected EEG) can
+    instead pass per-instance orientation vectors as ``orient_nn`` and, if the
+    default coreg cylinder is not wanted, a ``cylinder_geom`` dict of
+    ``_cylinder_geom`` keyword arguments.
+    """
+    from matplotlib.colors import to_rgba, to_rgba_array
+
+    defaults = DEFAULTS["coreg"]
+    n = len(loc)
+    if n == 0:
+        return None
+    colors = np.array(np.broadcast_to(to_rgba_array(colors), (n, 4)), float)
+    colors[:, 3] *= opacity
+    scales = np.broadcast_to(np.asarray(scales, float).reshape(-1), (n,))
+    positions = loc
+    vectors = orient_nn  # explicit per-instance orientation, if given
+    if surf is not None:
+        scalars, surf_vectors, proj_pts = _orient_glyphs(
             loc, surf, project_points, mark_inside, check_inside, nearest
         )
-        if mark_inside:
-            colormap = ListedColormap([to_rgba("darkslategray"), to_rgba(color)])
-            color = None
-            clim = [0, 1]
-        else:
-            scalars = None
-            colormap = None
-            clim = None
-        mode = "cylinder" if orient_glyphs else "sphere"
-        scale_mode = "vector" if scale_by_distance else "none"
-        x, y, z = proj_pts.T if project_points else loc.T
-        u, v, w = vectors.T
-        return renderer.quiver3d(
-            x,
-            y,
-            z,
-            u,
-            v,
-            w,
-            color=color,
-            scale=scale,
-            mode=mode,
-            glyph_height=defaults["eegp_height"],
-            glyph_center=(0.0, -defaults["eegp_height"], 0),
-            glyph_resolution=16,
-            glyph_radius=None,
-            opacity=opacity,
-            scale_mode=scale_mode,
-            scalars=scalars,
-            colormap=colormap,
-            clim=clim,
+        if project_points:
+            positions = proj_pts
+        if scale_by_distance:
+            scales = scales * np.linalg.norm(surf_vectors, axis=1)
+        if mark_inside:  # recolor points that fall inside the surface
+            colors[scalars < 0.5, :3] = to_rgba("darkslategray")[:3]
+        if orient_glyphs:  # point cylinders along the surface normal
+            vectors = surf_vectors
+    kind, template_kw = "sphere", dict()
+    quats = np.zeros((n, 3))  # identity: unrotated (sphere is orientation-free)
+    if vectors is not None:  # orient cylinders along the given direction
+        kind = "cylinder"
+        template_kw = cylinder_geom or dict(
+            height=defaults["eegp_height"],
+            center=(0.0, -defaults["eegp_height"], 0.0),
+            resolution=16,
         )
-    else:
-        return renderer.sphere(
-            center=loc,
-            color=color,
-            scale=scale,
-            opacity=opacity,
-            backface_culling=backface_culling,
-        )
+        x_axis = np.array([1.0, 0.0, 0.0])
+        nn = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
+        quats = rot_to_quat(rots)
+    rr, tris = renderer._glyph_template(kind, **template_kw)
+    actor, _ = renderer.instanced_mesh(
+        rr=rr,
+        tris=tris,
+        positions=positions,
+        quats=quats,
+        colors=colors,
+        scales=scales,
+        backface_culling=backface_culling,
+    )
+    return actor
 
 
 @verbose
@@ -1485,11 +1498,11 @@ def _plot_head_shape_points(
     )
     ext_loc = apply_trans(to_cf_t["head"], ext_loc)
     ext_loc = ext_loc[mask] if mask is not None else ext_loc
-    actor, _ = _plot_glyphs(
+    return _plot_glyphs(
         renderer=renderer,
         loc=ext_loc,
-        color=defaults["extra_color"],
-        scale=defaults["extra_scale"],
+        colors=defaults["extra_color"],
+        scales=defaults["extra_scale"],
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
@@ -1499,7 +1512,6 @@ def _plot_head_shape_points(
         check_inside=check_inside,
         nearest=nearest,
     )
-    return actor
 
 
 def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
@@ -1693,104 +1705,51 @@ def _plot_sensors_3d(
                 )
                 actors[ch_type].append(actor)
         else:
+            # One GPU-instanced actor regardless of how many distinct
+            # colors/scales are requested (broadcasting handles 1-vs-N).
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if ch_type == "eegp":  # special case, need to project
+            loc = sens_loc[mask]
+            these_colors = colors[mask] if len(colors) == len(mask) else colors
+            these_scales = scales[mask] if len(scales) == len(mask) else scales
+            orient_nn = cylinder_geom = None
+            backface_culling = False
+            actor_key = ch_type
+            if ch_type == "eegp":
+                # Projected EEG differs: reproject onto the scalp, orient along
+                # its normals, and use a single color/scale + flat disc glyph.
                 logger.info("Projecting sensors to the head surface")
-                eegp_loc, eegp_nn = _project_onto_surface(
-                    sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+                loc, orient_nn = _project_onto_surface(
+                    loc, head_surf, project_rrs=True, return_nn=True
                 )[2:4]
-                eegp_loc *= unit_scalar
-                actor, _ = renderer.quiver3d(
-                    x=eegp_loc[:, 0],
-                    y=eegp_loc[:, 1],
-                    z=eegp_loc[:, 2],
-                    u=eegp_nn[:, 0],
-                    v=eegp_nn[:, 1],
-                    w=eegp_nn[:, 2],
-                    color=colors[0],  # TODO: Maybe eventually support multiple
-                    mode="cylinder",
-                    scale=scales[0] * unit_scalar,  # TODO: Also someday maybe multiple
-                    opacity=sensor_alpha[ch_type],
-                    glyph_height=defaults["eegp_height"],
-                    glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-                    glyph_resolution=20,
-                    backface_culling=True,
+                these_colors = colors[0]  # TODO: someday maybe support multiple
+                these_scales = scales[0] * unit_scalar  # TODO: someday maybe multiple
+                height = defaults["eegp_height"]
+                cylinder_geom = dict(
+                    radius=0.15,
+                    height=height,
+                    center=(0.0, -height / 2.0, 0.0),
+                    resolution=20,
                 )
-                actors["eeg"].append(actor)
-            elif len(colors) == 1 and len(scales) == 1:
-                # Single color mode (one actor)
-                actor, _ = _plot_glyphs(
-                    renderer=renderer,
-                    loc=sens_loc[mask] * unit_scalar,
-                    color=colors[0, :3],
-                    scale=scales[0],
-                    opacity=this_alpha * colors[0, 3],
-                    orient_glyphs=orient_glyphs,
-                    scale_by_distance=scale_by_distance,
-                    project_points=project_points,
-                    surf=surf,
-                    check_inside=check_inside,
-                    nearest=nearest,
-                )
-                actors[ch_type].append(actor)
-            elif len(colors) == len(sens_loc) and len(scales) == 1:
-                # Multi-color single scale mode (multiple actors)
-                for loc, color, usable in zip(sens_loc, colors, mask):
-                    if not usable:
-                        continue
-                    actor, _ = _plot_glyphs(
-                        renderer=renderer,
-                        loc=loc * unit_scalar,
-                        color=color[:3],
-                        scale=scales[0],
-                        opacity=this_alpha * color[3],
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf,
-                        check_inside=check_inside,
-                        nearest=nearest,
-                    )
-                    actors[ch_type].append(actor)
-            elif len(colors) == 1 and len(scales) == len(sens_loc):
-                # Multi-scale single color mode (multiple actors)
-                for loc, scale, usable in zip(sens_loc, scales, mask):
-                    if not usable:
-                        continue
-                    actor, _ = _plot_glyphs(
-                        renderer=renderer,
-                        loc=loc * unit_scalar,
-                        color=colors[0, :3],
-                        scale=scale,
-                        opacity=this_alpha * colors[0, 3],
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf,
-                        check_inside=check_inside,
-                        nearest=nearest,
-                    )
-                    actors[ch_type].append(actor)
-            else:
-                # Multi-color multi-scale mode (multiple actors)
-                for loc, color, scale, usable in zip(sens_loc, colors, scales, mask):
-                    if not usable:
-                        continue
-                    actor, _ = _plot_glyphs(
-                        renderer=renderer,
-                        loc=loc * unit_scalar,
-                        color=color[:3],
-                        scale=scale,
-                        opacity=this_alpha * color[3],
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf,
-                        check_inside=check_inside,
-                        nearest=nearest,
-                    )
-                    actors[ch_type].append(actor)
+                backface_culling = True
+                actor_key = "eeg"
+            actor = _plot_glyphs(
+                renderer=renderer,
+                loc=loc * unit_scalar,
+                colors=these_colors,
+                scales=these_scales,
+                opacity=this_alpha,
+                orient_glyphs=orient_glyphs,
+                scale_by_distance=scale_by_distance,
+                project_points=project_points,
+                surf=surf,
+                orient_nn=orient_nn,
+                cylinder_geom=cylinder_geom,
+                backface_culling=backface_culling,
+                check_inside=check_inside,
+                nearest=nearest,
+            )
+            actors[actor_key].append(actor)
 
     actors = dict(actors)  # get rid of defaultdict
 
