@@ -706,7 +706,14 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
             write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)
 
         write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj["data"]["nrow"])
-        write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, proj["active"])
+        
+        if proj.get("desc") is not None:
+            write_string(fid, FIFF.FIFF_NAME, proj["desc"])
+
+        
+        if proj["active"] is not None:
+            val = 1 if proj["active"] else 0
+            write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, val)
         write_float_matrix(fid, FIFF.FIFF_PROJ_ITEM_VECTORS, proj["data"]["data"])
         if proj["explained_var"] is not None:
             write_float(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR, proj["explained_var"])
