@@ -649,7 +649,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             color=self.mne.fgcolor,
             alpha=0.5,
             linewidth=0.5,
-            linestyle="dashed",
             zorder=self.mne.zorder["zero_line"],
         )
 
@@ -2283,6 +2282,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if self.mne.zero_line_visible:
                 self.mne.zero_lines[ii].set_xdata(time_range)
                 self.mne.zero_lines[ii].set_ydata((this_offset, this_offset))
+                self.mne.zero_lines[ii].set_linestyle(
+                    "dashed" if self.mne.remove_dc else "solid"
+                )
             this_times = decim_times[decim[ii]]
             this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
             this_data = this_data[..., :: decim[ii]]

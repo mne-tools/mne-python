@@ -346,7 +346,7 @@ def test_scale_bar(browser_backend):
 
 def test_zero_line(raw, mpl_backend):
     """Test toggling the zero line for raw (matplotlib backend only)."""
-    fig = raw.plot()
+    fig = raw.plot(remove_dc=True)
     assert not fig.mne.zero_line_visible
     assert len(fig.mne.zero_lines) == 0
     fig._fake_keypress("0")
@@ -355,6 +355,11 @@ def test_zero_line(raw, mpl_backend):
     for zero_line, offset in zip(fig.mne.zero_lines, fig.mne.trace_offsets):
         assert_allclose(zero_line.get_ydata(), (offset, offset))
     assert_allclose(fig.mne.zero_lines[0].get_xdata(), fig.mne.ax_main.get_xlim())
+    # dashed while DC removal is on ("virtual" zero), solid once it's off (true zero)
+    assert fig.mne.zero_lines[0].get_linestyle() == "--"
+    fig._fake_keypress("d")
+    assert not fig.mne.remove_dc
+    assert fig.mne.zero_lines[0].get_linestyle() == "-"
     fig._fake_keypress("0")  # toggle back off -> artists removed
     assert not fig.mne.zero_line_visible
     assert len(fig.mne.zero_lines) == 0
