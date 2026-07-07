@@ -852,12 +852,12 @@ def _plot_lines(
 
     def on_time_change(event):
         """Respond to a time change UI event."""
-        for ax in np.array(axes)[selectables]:
-            if hasattr(ax, "_selectline") and ax._selectline is not None:
+        for ax in np.array(axes):
+            if getattr(ax, "_selectline", None) is not None:
                 ax._selectline.remove()
 
             ax._selectline = ax.axvline(event.time, color="black", alpha=1)
-            ax.figure.canvas.draw()
+        ax.figure.canvas.draw()
 
     subscribe(fig, "time_change", on_time_change)
 
