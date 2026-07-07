@@ -10,7 +10,25 @@ from contextlib import nullcontext
 import pytest
 
 import mne
-from mne.utils import _clean_names, catch_logging, run_subprocess, sizeof_fmt
+from mne.utils import (
+    _assert_no_instances,
+    _clean_names,
+    catch_logging,
+    run_subprocess,
+    sizeof_fmt,
+)
+
+
+def test_assert_no_instances():
+    """Test that our wrapper works."""
+
+    class _Foo:
+        pass
+
+    _holder = {"key": _Foo()}
+
+    with pytest.raises(AssertionError, match="after closing"):
+        _assert_no_instances(_Foo, "after closing")
 
 
 def test_sizeof_fmt():

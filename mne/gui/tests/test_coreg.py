@@ -263,7 +263,10 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._redraw(verbose="debug")
     assert "Drawing meg sensors" in log.getvalue()
     assert coreg._actors["helmet"] is not None
-    assert len(coreg._actors["sensors"]) == 306
+    # coil surfaces sharing a shape are GPU-instanced into a single
+    # mesh/actor; this Neuromag sample dataset has 2 distinct MEG coil
+    # shapes (magnetometer + planar gradiometer)
+    assert len(coreg._actors["sensors"]) == 2
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside

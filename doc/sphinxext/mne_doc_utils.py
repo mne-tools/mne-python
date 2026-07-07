@@ -7,6 +7,7 @@
 import functools
 import gc
 import os
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -14,14 +15,11 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
+from refleak.testing import assert_no_instances
 from sphinx.errors import ExtensionError
 
 import mne
-from mne.utils import (
-    _assert_no_instances,
-    _get_extra_data_path,
-    sizeof_fmt,
-)
+from mne.utils import Bunch, _get_extra_data_path, sizeof_fmt
 from mne.viz import Brain
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
@@ -177,6 +175,18 @@ def reset_modules(gallery_conf, fname, when):
         neo.io.stimfitio.STFIO_ERR = None
     except Exception:
         pass
+    # IPython.core.completer does `import __main__` at import time, permanently
+    # capturing whatever sys.modules['__main__'] was at that moment. Since SG
+    # temporarily swaps sys.modules['__main__'] to each example's throwaway
+    # namespace while it runs, if that import happens to fire during one of
+    # those windows, it pins that example's globals (and anything reachable
+    # from them) alive for the rest of the process.
+    try:
+        import IPython.core.completer
+
+        IPython.core.completer.__main__ = sys.modules["__main__"]
+    except Exception:
+        pass
     gc.collect()
 
     # Agg does not call close_event so let's clean up on our own :(
@@ -192,19 +202,21 @@ def reset_modules(gallery_conf, fname, when):
     # to just test MNEQtBrowser
     skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
     prefix = ""
+    request = Bunch()  # just give it something to say "we have done GC already"
+    request.node = Bunch()
     if skips not in ("true", "1", "all"):
         prefix = "Clean "
         skips = skips.split(",")
         if "brain" not in skips:
-            _assert_no_instances(Brain, when)  # calls gc.collect()
+            assert_no_instances(Brain, when=when, request=request)
         if Plotter is not None and "plotter" not in skips:
-            _assert_no_instances(Plotter, when)
+            assert_no_instances(Plotter, when=when, request=request)
         if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-            _assert_no_instances(BackgroundPlotter, when)
+            assert_no_instances(BackgroundPlotter, when=when, request=request)
         if vtkPolyData is not None and "vtkpolydata" not in skips:
-            _assert_no_instances(vtkPolyData, when)
+            assert_no_instances(vtkPolyData, when=when, request=request)
         if "_renderer" not in skips:
-            _assert_no_instances(_Renderer, when)
+            assert_no_instances(_Renderer, when=when, request=request)
         if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
             # Ensure any manual fig.close() events get properly handled
             from mne_qt_browser._pg_figure import QApplication
@@ -213,7 +225,7 @@ def reset_modules(gallery_conf, fname, when):
             if inst is not None:
                 for _ in range(2):
                     inst.processEvents()
-            _assert_no_instances(MNEQtBrowser, when)
+            assert_no_instances(MNEQtBrowser, when=when, request=request)
     # This will overwrite some Sphinx printing but it's useful
     # for memory timestamps
     if os.getenv("SG_STAMP_STARTS", "").lower() == "true":
