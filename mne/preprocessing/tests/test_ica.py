@@ -1384,7 +1384,15 @@ def test_n_components_none(method, tmp_path):
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)[::5]
     epochs = Epochs(
-        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        baseline=(None, 0),
+        preload=True,
+        on_outside="ignore",
     )
 
     n_components = None
