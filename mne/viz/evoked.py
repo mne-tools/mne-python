@@ -46,7 +46,7 @@ from .topomap import (
     _set_contour_locator,
     plot_topomap,
 )
-from .ui_events import subscribe
+from .ui_events import TimeChange, publish, subscribe
 from .utils import (
     DraggableColorbar,
     _check_cov,
@@ -112,6 +112,8 @@ def _butterfly_on_button_press(event, params):
             event.canvas.draw()
     params["need_draw"] = False
 
+    publish(params["axes"][0].figure, TimeChange(event.xdata))
+
 
 def _line_plot_onselect(
     xmin,
@@ -133,6 +135,7 @@ def _line_plot_onselect(
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
         raise ValueError("Interactive topomaps only allowed for EEG and MEG channels.")
+    #
     if xmin == xmax:
         return
     if (
