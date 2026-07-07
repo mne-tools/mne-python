@@ -133,6 +133,8 @@ def _line_plot_onselect(
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
         raise ValueError("Interactive topomaps only allowed for EEG and MEG channels.")
+    if xmin == xmax:
+        return
     if (
         "grad" in ch_types
         and len(_pair_grad_sensors(info, topomap_coords=False, raise_error=False)) < 2
