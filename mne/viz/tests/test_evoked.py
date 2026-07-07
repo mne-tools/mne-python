@@ -28,7 +28,7 @@ from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.stats.parametric import _parametric_ci
 from mne.utils import _record_warnings, catch_logging
-from mne.viz import plot_compare_evokeds, plot_evoked_white
+from mne.viz import plot_compare_evokeds, plot_evoked_white, ui_events
 from mne.viz.utils import _fake_click, _get_cmap
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -228,6 +228,23 @@ def test_plot_evoked():
     fig = evoked.plot(time_unit="s", spatial_colors=True)
     line_clr = [x.get_color() for x in fig.axes[0].get_lines()]
     assert not np.all(np.isnan(line_clr) & (line_clr == 0))
+
+
+def test_plot_evoked_timechange():
+    """Test that time change events are properly handled in plot_evoked."""
+    epochs = _get_epochs()
+    evoked = epochs.average()
+    fig = evoked.plot(picks="mag")
+    ax = fig.axes[0]
+
+    assert not hasattr(ax, "_selectline")
+    ui_events.publish(fig, ui_events.TimeChange(time=0.0))
+    assert hasattr(ax, "_selectline")
+    assert ax._selectline.get_xdata()[0] == 0.0
+    ui_events.publish(fig, ui_events.TimeChange(time=0.1))
+    assert ax._selectline.get_xdata()[0] == 0.1
+
+    plt.close("all")
 
 
 def test_constrained_layout():
