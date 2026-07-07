@@ -1003,7 +1003,7 @@ def plot_evoked(
     axes=None,
     gfp=False,
     window_title=None,
-    spatial_colors=False,
+    spatial_colors="auto",
     zorder="unsorted",
     selectable=True,
     noise_cov=None,
