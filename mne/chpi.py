@@ -524,7 +524,7 @@ def _magnetic_dipole_objective(
     out, u, s, one = _magnetic_dipole_delta(fwd, whitener, B, B2)
     if return_moment:
         one /= s
-        Q = np.dot(one, u.T)
+        Q = one @ u.T
         out = (out, Q)
     return out
 
@@ -532,24 +532,24 @@ def _magnetic_dipole_objective(
 @jit()
 def _magnetic_dipole_delta(fwd, whitener, B, B2):
     # Here we use .T to get whitener to Fortran order, which speeds things up
-    fwd = np.dot(fwd, whitener.T)
+    fwd = fwd @ whitener.T
     u, s, v = np.linalg.svd(fwd, full_matrices=False)
-    one = np.dot(v, B)
-    Bm2 = np.dot(one, one)
+    one = v @ B
+    Bm2 = one @ one
     return B2 - Bm2, u, s, one
 
 
 def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
     # Here we use .T to get whitener to Fortran order, which speeds things up
-    one = np.matmul(whitened_fwd_svd, B)
+    one = whitened_fwd_svd @ B
     Bm2 = np.sum(one * one, axis=1)
     return B2 - Bm2
 
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
-    B = np.dot(whitener, B_orig)
-    B2 = np.dot(B, B)
+    B = whitener @ B_orig
+    B2 = B @ B
     objective = partial(
         _magnetic_dipole_objective,
         B=B,
@@ -574,7 +574,7 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
 @jit()
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs, weights):
     """Compute objective function."""
-    d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
+    d = coil_dev_rrs @ quat_to_rot(x[:3]).T
     d += x[3:]
     d -= coil_head_rrs
     d *= d
@@ -1353,7 +1353,6 @@ def _compute_chpi_amp_or_snr(
             # note that mean residual is a scalar (same for all HPI freqs) but
             # is returned as a (tiled) vector (again, because Numba) so that's
             # why below we take amps_or_snrs[0, 2] instead of [:, 2]
-            ch_types = raw.get_channel_types()
             if "mag" in ch_types:
                 sin_fits["mag_snr"][mi] = amps_or_snrs[:, 0]  # SNR
                 sin_fits["mag_power"][mi] = amps_or_snrs[:, 1]  # mean power
@@ -1449,7 +1448,7 @@ def compute_chpi_locs(
         f"(1 cm grid in a {R * 100:.1f} cm sphere)"
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
-    fwd = np.dot(fwd, whitener.T)
+    fwd = fwd @ whitener.T
     fwd = _reshape_view(fwd, (guesses.shape[0], 3, -1))
     fwd = np.linalg.svd(fwd, full_matrices=False)[2]
     guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
@@ -1616,7 +1615,7 @@ def filter_chpi(
         msg += f" and {len(hpi['line_freqs'])} line harmonic"
     msg += f" frequencies from {len(meg_picks)} MEG channels"
 
-    recon = np.dot(hpi["model"][:, :n_remove], hpi["inv_model"][:n_remove]).T
+    recon = (hpi["model"][:, :n_remove] @ hpi["inv_model"][:n_remove]).T
     logger.info(msg)
     chunks = list()  # the chunks to subtract
     last_endpt = 0
@@ -1632,13 +1631,13 @@ def filter_chpi(
         else:  # first or last window
             model = hpi["model"][:this_len]
             inv_model = np.linalg.pinv(model)
-            this_recon = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
+            this_recon = (model[:, :n_remove] @ inv_model[:n_remove]).T
         this_data = raw._data[meg_picks, time_sl]
         subt_pt = min(midpt + n_step, n_times)
         if last_endpt != subt_pt:
             fit_left_edge = left_edge - time_sl.start + hpi["n_window"] // 2
             fit_sl = slice(fit_left_edge, fit_left_edge + (subt_pt - last_endpt))
-            chunks.append((subt_pt, np.dot(this_data, this_recon[:, fit_sl])))
+            chunks.append((subt_pt, this_data @ this_recon[:, fit_sl]))
         last_endpt = subt_pt
 
         # Consume (trailing) chunks that are now safe to remove because
@@ -2008,7 +2007,7 @@ def refit_hpi(
     # entry. At some point we should try recording data where multiple fits are stored
     # (maybe there actually aren't any...)
     info["hpi_meas"][-1] = meas
-    info["hpi_results"][-1] = result
+    info["hpi_results"][-1] = results
     return info
 
 
