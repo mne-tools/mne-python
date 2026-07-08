@@ -50,11 +50,6 @@ stages:
               python -m pip install --progress-bar off --upgrade pip build
               python -m pip install --only-binary=":all:" --progress-bar off -ve .[hdf5] --group=test
               python -m pip uninstall -yq pytest-qt  # don't want to set up display, etc. for this
-              pre-commit install --install-hooks
-            displayName: Install dependencies
-          - bash: make pre-commit
-            displayName: make pre-commit
-            condition: always()
           - bash: make nesting
             displayName: make nesting
             condition: always()

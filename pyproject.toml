@@ -41,14 +41,13 @@ doc-full = ["rpy2", {include-group = "doc"}]
 lockfile_extras = [
   "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
-  "typing_extensions >= 4.0; python_version < '3.11'",  # for typing.Self TODO VERSION
+  "typing_extensions >= 4.0",  # for typing.Self TODO VERSION remove when 3.11+
 ]
 test = [
   "codespell",
   "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "numpydoc >= 1.6",
   "pillow >= 10.2",
-  "pre-commit",
   "pytest >= 8.0, != 9.1.0",  # https://github.com/pytest-dev/pytest/issues/14591
   "pytest-cov >= 4.1",
   "pytest-qt >= 4.3",
