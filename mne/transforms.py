@@ -55,7 +55,7 @@ _str_to_frame = dict(
     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
     unknown=FIFF.FIFFV_COORD_UNKNOWN,
 )
-_frame_to_str = {val: key for key, val in _str_to_frame.items()}
+_frame_to_str: dict[int, str] = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {
     FIFF.FIFFV_COORD_UNKNOWN: "unknown",

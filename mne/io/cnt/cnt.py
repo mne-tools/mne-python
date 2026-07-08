@@ -249,7 +249,7 @@ def read_raw_cnt(
 
     Returns
     -------
-    raw : instance of RawCNT.
+    raw : instance of RawCNT
         The raw data.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -634,6 +634,7 @@ class RawCNT(BaseRaw):
                     )
                     block[:f_channels, block_slice] = row
                 if "stim_channel" in self._raw_extras[fi]:
+                    assert stim_ch is not None
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
                     block[-1] = stim_ch[_data_start:_data_stop]

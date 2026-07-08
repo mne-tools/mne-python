@@ -27,8 +27,8 @@ _coord_dict = {
 def _read_one_coil_point(fid):
     """Read coil coordinate information from the hc file."""
     # Descriptor
-    one = "#"
-    while len(one) > 0 and one[0] == "#":
+    one = b"#"
+    while len(one) > 0 and one[0:1] == b"#":
         one = fid.readline()
     if len(one) == 0:
         return None

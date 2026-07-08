@@ -6,6 +6,7 @@ import os
 import os.path as op
 from collections import OrderedDict
 from datetime import datetime, timezone
+from typing import Any
 
 import numpy as np
 
@@ -137,9 +138,9 @@ class RawPersyst(BaseRaw):
 
         # get numerical metadata
         # datatype is either 7 for 32 bit, or 0 for 16 bit
-        datatype = fileinfo_dict.get("datatype")
-        cal = float(fileinfo_dict.get("calibration"))
-        n_chs = int(fileinfo_dict.get("waveformcount"))
+        datatype = fileinfo_dict["datatype"]
+        cal = float(fileinfo_dict["calibration"])
+        n_chs = int(fileinfo_dict["waveformcount"])
 
         # Store subject information from lay file in mne format
         # Note: Persyst also records "Physician", "Technician",
@@ -169,7 +170,7 @@ class RawPersyst(BaseRaw):
                 )
                 meas_date = None
             else:
-                testtime = datetime.strptime(patient_dict.get("testtime"), "%H:%M:%S")
+                testtime = datetime.strptime(patient_dict["testtime"], "%H:%M:%S")
                 meas_date = datetime(
                     year=testdate.year,
                     month=testdate.month,
@@ -305,7 +306,7 @@ def _get_subjectinfo(patient_dict):
             birthdate = None
             print(f"Unable to process birthdate of {birthdate} ")
 
-    subject_info = {
+    subject_info: dict[str, Any] = {
         "first_name": patient_dict.get("first"),
         "middle_name": patient_dict.get("middle"),
         "last_name": patient_dict.get("last"),

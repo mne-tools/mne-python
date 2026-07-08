@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from inspect import getfullargspec
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -18,6 +19,7 @@ from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (
     ContainsMixin,
+    Info,
     SetChannelsMixin,
     _ensure_infos_match,
     _unit2human,
@@ -183,6 +185,7 @@ class BaseRaw(
     # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
 
     _extra_attributes = ()
+    _filenames: list[Path | None]
 
     @verbose
     def __init__(
@@ -281,7 +284,12 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if "STI 014" in ch_names and self.filenames[0].suffix != ".fif":
+            first_fname = self.filenames[0]
+            if (
+                "STI 014" in ch_names
+                and first_fname is not None
+                and first_fname.suffix != ".fif"
+            ):
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
@@ -347,6 +355,7 @@ class BaseRaw(
             # We might need to apply it to our data now
             if self.preload:
                 logger.info("Applying compensator to loaded data")
+                assert self._data is not None
                 lims = np.concatenate(
                     [np.arange(0, len(self.times), 10000), [len(self.times)]]
                 )
@@ -616,7 +625,7 @@ class BaseRaw(
         return self.first_samp / float(self.info["sfreq"])
 
     @property
-    def first_samp(self):
+    def first_samp(self) -> int:
         """The first data sample.
 
         See :term:`first_samp`.
@@ -629,7 +638,7 @@ class BaseRaw(
         return self._first_time
 
     @property
-    def last_samp(self):
+    def last_samp(self) -> int:
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
@@ -698,17 +707,19 @@ class BaseRaw(
     def filenames(self, value):
         """The filenames used, cast to list of paths."""  # noqa: D401
         _validate_type(value, (list, tuple), "filenames")
-        if isinstance(value, tuple):
-            value = list(value)
-        for k, elt in enumerate(value):
-            if elt is not None:
-                value[k] = _check_fname(elt, overwrite="read", must_exist=False)
-                if not value[k].exists():
-                    # check existence separately from _check_fname since some
-                    # fileformats use directories instead of files and '_check_fname'
-                    # does not handle it correctly.
-                    raise FileNotFoundError(f"File {value[k]} not found.")
-        self._filenames = list(value)
+        filenames: list[Path | None] = []
+        for elt in value:
+            if elt is None:
+                filenames.append(None)
+                continue
+            fname = _check_fname(elt, overwrite="read", must_exist=False)
+            if not fname.exists():
+                # check existence separately from _check_fname since some
+                # fileformats use directories instead of files and '_check_fname'
+                # does not handle it correctly.
+                raise FileNotFoundError(f"File {fname} not found.")
+            filenames.append(fname)
+        self._filenames = filenames
 
     @verbose
     def set_annotations(
@@ -772,13 +783,13 @@ class BaseRaw(
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
-        if hasattr(self, "_data") and getattr(self._data, "filename", None) is not None:
+        fname = getattr(getattr(self, "_data", None), "filename", None)
+        if fname is not None:
             # First, close the file out; happens automatically on del
-            filename = self._data.filename
             del self._data
             # Now file can be removed
             try:
-                os.remove(filename)
+                os.remove(fname)
             except OSError:
                 pass  # ignore file that no longer exists
 
@@ -876,6 +887,7 @@ class BaseRaw(
     def _getitem(self, item, return_times=True):
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
+            assert self._data is not None
             data = self._data[sel, start:stop]
         else:
             data = self._read_segment(start=start, stop=stop, sel=sel)
@@ -893,6 +905,7 @@ class BaseRaw(
     def __setitem__(self, item, value):
         """Set raw data content."""
         _check_preload(self, "Modifying data of Raw")
+        assert self._data is not None
         sel, start, stop = self._parse_get_set_params(item)
         # set the data
         self._data[sel, start:stop] = value
@@ -1099,6 +1112,7 @@ class BaseRaw(
             The raw object with transformed data.
         """
         _check_preload(self, "raw.apply_function")
+        assert self._data is not None
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -1281,6 +1295,7 @@ class BaseRaw(
         fs = float(self.info["sfreq"])
         picks = _picks_to_idx(self.info, picks, exclude=(), none="data_or_ica")
         _check_preload(self, "raw.notch_filter")
+        assert self._data is not None
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
             "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
@@ -1439,10 +1454,12 @@ class BaseRaw(
         ratio, n_news = ratio[0], np.array(n_news, int)
         new_offsets = np.cumsum([0] + list(n_news))
         if self.preload:
+            assert self._data is not None
             new_data = np.empty((len(self.ch_names), new_offsets[-1]), self._data.dtype)
         for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
             this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
             if self.preload:
+                assert self._data is not None
                 data_chunk = self._data[:, offsets[ri] : offsets[ri + 1]]
                 new_data[:, this_sl] = resample(data_chunk, **kwargs)
                 # In empirical testing, it was faster to resample all channels
@@ -1689,6 +1706,7 @@ class BaseRaw(
         self.filenames = [self.filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
+            assert self._data is not None
             self._data = self._data[:, smin : smax + 1].copy()
 
         annotations = self.annotations
@@ -1858,6 +1876,7 @@ class BaseRaw(
             )
 
         if self.preload:
+            assert self._data is not None
             if np.iscomplexobj(self._data):
                 warn(
                     "Saving raw file with complex data. Loading with command-line MNE "
@@ -2179,6 +2198,7 @@ class BaseRaw(
             else:
                 this_data = self._data
 
+            assert this_data is not None
             # allocate the buffer
             _data = _allocate_data(preload, (nchan, nsamp), this_data.dtype)
             _data[:, 0 : c_ns[0]] = this_data
@@ -2325,6 +2345,7 @@ class BaseRaw(
             )
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
+        assert self._data is not None
         if replace:
             self._data[pick, :] = 0.0
         self._data[pick, idx - self.first_samp] += events[:, 2]
@@ -2783,6 +2804,11 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
+    # attributes populated externally (e.g. by the FIF reader)
+    info: Info
+    orig_format: str | None
+    _raw_extras: dict[str, Any]
+
     def __init__(self):
         self.first_samp = None
         self.last_samp = None
@@ -2793,6 +2819,8 @@ class _RawShell:
 
     @property
     def n_times(self):  # noqa: D102
+        assert self.first_samp is not None
+        assert self.last_samp is not None
         return self.last_samp - self.first_samp + 1
 
     @property

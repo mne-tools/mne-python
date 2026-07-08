@@ -95,7 +95,9 @@ def _get_signalfname(filepath):
     all_files = {}
     infofiles = list()
     for binfile in binfiles:
-        bin_num_str = re.search(r"\d+", binfile).group()
+        match = re.search(r"\d+", binfile)
+        assert match is not None
+        bin_num_str = match.group()
         infofile = "info" + bin_num_str + ".xml"
         infofiles.append(infofile)
         info_obj = XML.from_file(os.path.join(filepath, infofile))
@@ -122,7 +124,7 @@ def _block_r(fid):
     header_size = np.fromfile(fid, dtype=np.dtype("i4"), count=1).item()
     block_size = np.fromfile(fid, dtype=np.dtype("i4"), count=1).item()
     hl = int(block_size / 4)
-    nc = np.fromfile(fid, dtype=np.dtype("i4"), count=1).item()
+    nc = int(np.fromfile(fid, dtype=np.dtype("i4"), count=1).item())
     nsamples = int(hl / nc)
     np.fromfile(fid, dtype=np.dtype("i4"), count=nc)  # sigoffset
     sigfreq = np.fromfile(fid, dtype=np.dtype("i4"), count=nc)

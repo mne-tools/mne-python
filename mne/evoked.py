@@ -65,6 +65,7 @@ from .utils import (
     verbose,
     warn,
 )
+from .utils._typing import Self
 from .viz import (
     plot_evoked,
     plot_evoked_field,
@@ -474,13 +475,10 @@ class Evoked(
     @repr_html
     def _repr_html_(self):
         t = _get_html_template("repr", "evoked.html.jinja")
+        fname = self.filename
         t = t.render(
             inst=self,
-            filenames=(
-                [Path(self.filename).name]
-                if getattr(self, "filename", None) is not None
-                else None
-            ),
+            filenames=[Path(fname).name] if fname is not None else None,
         )
         return t
 
@@ -991,7 +989,7 @@ class Evoked(
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
         return self
 
-    def copy(self):
+    def copy(self) -> Self:
         """Copy the instance of evoked.
 
         Returns
@@ -1981,6 +1979,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if first_time is not None and nsamp is not None:
             times = first_time + np.arange(nsamp) / info["sfreq"]
         elif first is not None:
+            assert last is not None  # always read together with first
             nsamp = last - first + 1
             times = np.arange(first, last + 1) / info["sfreq"]
         else:

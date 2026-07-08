@@ -10,6 +10,7 @@ import os.path as op
 import re
 from collections import OrderedDict
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -536,7 +537,9 @@ class RawMff(BaseRaw):
         first_samps = [0]
         last_samps = [egi_info["last_samps"][-1] - 1]
 
-        annot = dict(onset=list(), duration=list(), description=list(), extras=list())
+        annot: dict[str, Any] = dict(
+            onset=list(), duration=list(), description=list(), extras=list()
+        )
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
@@ -676,6 +679,7 @@ class RawMff(BaseRaw):
                     this_block_info = _block_r(fid)
                     if this_block_info is not None:
                         current_block_info = this_block_info
+                    assert current_block_info is not None
                     fid.seek(current_block_info["block_size"], 1)
                     current_block += 1
 
@@ -691,6 +695,7 @@ class RawMff(BaseRaw):
                     if this_block_info is not None:
                         current_block_info = this_block_info
 
+                    assert current_block_info is not None
                     to_read = current_block_info["nsamples"] * current_block_info["nc"]
                     block_data = np.fromfile(fid, dtype, to_read)
                     block_data = block_data.reshape(n_channels, -1, order="C")
