@@ -706,9 +706,7 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
             write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)
 
         write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj["data"]["nrow"])
-        
-       
-        
+
         if proj["active"] is not None:
             val = 1 if proj["active"] else 0
             write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, val)
