@@ -14,13 +14,7 @@ from scipy import ndimage
 from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
-from .ui_events import (
-    ChannelsSelect,
-    TimeChange,
-    link,
-    publish,
-    subscribe,
-)
+from .ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
@@ -670,6 +664,8 @@ def _plot_timeseries(
 
     ax._selectline = None
     ax._selectcolor = "white" if face_brightness < 150 else "black"
+    if orig_fig._current_time is not None:
+        _update_selectline(orig_fig._current_time)
 
     plt.connect("motion_notify_event", _cursor_vline)
     plt.connect("axes_leave_event", _rm_cursor)
@@ -1174,11 +1170,38 @@ def _plot_evoked_topo(
 
     setattr(fig, "_current_time", None)
 
-    def on_time_change(event, fig):
+    def _on_time_change(event, fig, tmin, tmax):
         """Respond to a time change UI event."""
         fig._current_time = event.time
 
-    subscribe(fig, "time_change", partial(on_time_change, fig=fig))
+        # Draw a vertical line at the current time.
+        axs = fig.axes[0]._mne_axs
+        for subax in axs:
+            time = subax.x_s * event.time + subax.x_t
+            if "time_cursor" not in subax:
+                subax["time_cursor"] = subax.ax.axvline(
+                    time,
+                    subax.pos[1],
+                    subax.pos[1] + subax.pos[3],
+                    color=font_color,
+                    linewidth=0.5,
+                )
+            else:
+                subax.time_cursor.set_xdata([time, time])
+            # Hide the vertical line when the time is out of bounds.
+            subax.time_cursor.set_visible(tmin <= event.time <= tmax)
+        fig.canvas.draw()
+
+    subscribe(
+        fig,
+        "time_change",
+        partial(
+            _on_time_change,
+            fig=fig,
+            tmin=np.min([t[0] for t in times]),
+            tmax=np.max([t[-1] for t in times]),
+        ),
+    )
 
     add_background_image(fig, fig_background)
 
