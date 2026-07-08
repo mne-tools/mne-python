@@ -41,7 +41,6 @@ doc-full = ["rpy2", {include-group = "doc"}]
 lockfile_extras = [
   "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
-  "typing_extensions >= 4.0",  # for typing.Self TODO VERSION remove when 3.11+
 ]
 test = [
   "codespell",
@@ -112,7 +111,7 @@ dependencies = [
   "pooch >= 1.5",
   "scipy >= 1.14",  # released 2024-06-24, will become 1.15 on 2027-01-03
   "tqdm >= 4.66",
-  "typing_extensions >= 4.0; python_version < '3.11'",  # for typing.Self TODO VERSION
+  "typing-extensions >= 4.15; python_version < '3.11'",  # for typing.Self TODO VERSION
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
 dynamic = ["version"]

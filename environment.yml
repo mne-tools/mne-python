@@ -71,4 +71,4 @@ dependencies:
   - pip:
       - pymef
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'
-      - typing_extensions >=4.0;python_version<'3.11'
+      - typing-extensions >=4.15;python_version<'3.11'

@@ -47,7 +47,7 @@ jobs:
           activate-environment: true
           python-version: "3.12"
       - name: Install dependencies
-        run: uv pip install -e . packaging requests tomlkit
+        run: uv pip install -e . packaging requests tomlkit prek
       - name: Update tracked dependencies
         run: python ./tools/dev/spec_zero_update_versions.py
       - name: Sync updated dependencies to README
@@ -57,6 +57,7 @@ jobs:
         run: |
           uv pip compile pyproject.toml --python "3.10" --python-platform "x86_64-unknown-linux-gnu" --group test --group lockfile_extras --resolution lowest-direct --format pylock.toml --output-file tools/pylock.ci-old.toml --no-cache
           python tools/github_actions_check_old_lockfile.py
+      - run: prek auto-update
       - name: check if files changed
         run: |
           git diff && git status --porcelain
