@@ -112,7 +112,11 @@ def _butterfly_on_button_press(event, params):
             event.canvas.draw()
     params["need_draw"] = False
 
-    publish(params["axes"][0].figure, TimeChange(event.xdata))
+    idx = np.where([event.inaxes is ax for ax in params["axes"]])[0]
+    for ax in params["axes"]:
+        if event.inaxes is ax:
+            publish(ax.figure, TimeChange(event.xdata))
+            break
 
 
 def _line_plot_onselect(
