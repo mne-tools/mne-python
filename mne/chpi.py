@@ -4,9 +4,11 @@
 
 1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
    remain, abandon fitting for the chunk.
-2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
-   iteratively dropping coils (as long as 3 remain) to find the best GOF
-   (using ``_fit_chpi_quat``).
+2. Fit dev_head_t quaternion. With ``weighted=False`` this uses
+   ``_fit_chpi_quat_subset``, iteratively dropping coils (as long as 3 remain)
+   to find the best GOF. With ``weighted=True`` all remaining coils are fit at
+   once, smoothly down-weighting each coil by its GOF and inter-coil distance error
+   so that coils do not switch in and out of the fit discontinuously (see :gh:`11330`).
 3. If fewer than 3 coils meet the ``dist_limit`` criteria following
    projection of the fitted device coil locations into the head frame,
    abandon fitting for the chunk.
@@ -570,25 +572,32 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
 
 
 @jit()
-def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
+def _chpi_objective(x, coil_dev_rrs, coil_head_rrs, weights):
     """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
     d += x[3:]
     d -= coil_head_rrs
     d *= d
-    return d.sum()
+    return d.sum(axis=1) @ weights  # sum over coils, weighted
 
 
-def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, quat=None):
-    """Fit rotation and translation (quaternion) parameters for cHPI coils."""
-    denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
-    denom *= denom
-    # We could try to solve it the analytic way:
-    # TODO someday we could choose to weight these points by their goodness
-    # of fit somehow, see also https://github.com/mne-tools/mne-python/issues/11330
+def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, weights=None, quat=None):
+    """Fit rotation and translation (quaternion) parameters for cHPI coils.
+
+    ``weights`` optionally down-weights individual coils (e.g. by goodness of fit
+    and inter-coil distance error) so that coils can smoothly enter or leave the
+    fit rather than switching in and out discontinuously; see :gh:`11330`.
+    """
+    if weights is None:
+        weights = np.ones(len(coil_head_rrs))
+    # The GOF ratio is invariant to the overall weight scale, so we can pass the
+    # (possibly zero-containing) weights through unnormalized to keep the
+    # unweighted case bit-for-bit identical to before.
+    mu = (weights @ coil_head_rrs) / weights.sum()
+    denom = ((coil_head_rrs - mu) ** 2).sum(axis=1) @ weights
     if quat is None:
-        quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)[0]
-    gof = 1.0 - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
+        quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs, weights=weights)[0]
+    gof = 1.0 - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs, weights) / denom
     return quat, gof
 
 
@@ -954,7 +963,14 @@ def _check_chpi_param(chpi_, name):
 
 @verbose
 def compute_head_pos(
-    info, chpi_locs, dist_limit=0.005, gof_limit=0.98, adjust_dig=False, verbose=None
+    info,
+    chpi_locs,
+    dist_limit=0.005,
+    gof_limit=0.98,
+    adjust_dig=False,
+    *,
+    weighted=None,
+    verbose=None,
 ):
     """Compute time-varying head positions.
 
@@ -969,6 +985,15 @@ def compute_head_pos(
     gof_limit : float
         Minimum goodness of fit to accept for each coil.
     %(adjust_dig_chpi)s
+    weighted : bool
+        If ``True``, fit all coils that pass the ``gof_limit`` and ``dist_limit``
+        criteria simultaneously, weighting each coil by its goodness of fit and its
+        inter-coil distance error. If ``False``, subselect the three coils that yield
+        the best fit. Weighting avoids discontinuous jumps in the estimated head
+        position caused by coils switching in and out of the fit (see :gh:`11330`).
+        The default (False) will change to True in 1.14.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -990,8 +1015,17 @@ def compute_head_pos(
     """
     _check_chpi_param(chpi_locs, "chpi_locs")
     _validate_type(info, Info, "info")
+    if weighted is None:
+        warn(
+            "The default for weighted will change from False to True in 1.14, set it "
+            "explicitly to avoid this warning. Using False.",
+            FutureWarning,
+        )
+        weighted = False
     hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig, verbose="error")
     n_coils = len(hpi_dig_head_rrs)
+    # reference inter-coil distances (rigid, so invariant to the dev_head_t we fit)
+    hpi_coil_dists = cdist(hpi_dig_head_rrs, hpi_dig_head_rrs)
     coil_dev_rrs = apply_trans(invert_transform(info["dev_head_t"]), hpi_dig_head_rrs)
     dev_head_t = info["dev_head_t"]["trans"]
     pos_0 = dev_head_t[:3, 3]
@@ -1021,12 +1055,38 @@ def compute_head_pos(
 
         #
         # 2. Fit the head translation and rotation params (minimize error
-        #    between coil positions and the head coil digitization
-        #    positions) iteratively using different sets of coils.
+        #    between coil positions and the head coil digitization positions).
         #
-        this_quat, g, use_idx = _fit_chpi_quat_subset(
-            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx
-        )
+        if weighted:
+            # Fit all good coils at once, smoothly down-weighting each coil by its
+            # GOF and its inter-coil distance error, so that coils enter and leave
+            # the fit continuously rather than switching in and out (gh-11330).
+            these_dists = cdist(this_coil_dev_rrs, this_coil_dev_rrs)
+            dist_err = np.abs(hpi_coil_dists - these_dists).sum(axis=1) / max(
+                n_coils - 1, 1
+            )
+            w_gof = np.clip(
+                (g_coils - gof_limit) / max(1.0 - gof_limit, 1e-12), 0.0, 1.0
+            )
+            w_dist = np.clip(1.0 - dist_err / dist_limit, 0.0, 1.0)
+            weights = w_gof * w_dist
+            use_idx = np.where(weights > 0)[0]
+            if len(use_idx) < 3:
+                gofs = ", ".join(f"{g:0.2f}" for g in g_coils)
+                warn(
+                    f"{_time_prefix(fit_time)}{len(use_idx)}/{n_coils} "
+                    "usable HPI coils, cannot determine the transformation "
+                    f"({gofs} GOF)!"
+                )
+                continue
+            this_quat, g = _fit_chpi_quat(
+                this_coil_dev_rrs, hpi_dig_head_rrs, weights=weights
+            )
+        else:
+            # iteratively drop coils (keeping the best-GOF subset of >= 3)
+            this_quat, g, use_idx = _fit_chpi_quat_subset(
+                this_coil_dev_rrs, hpi_dig_head_rrs, use_idx
+            )
 
         #
         # 3. Stop if < 3 good
