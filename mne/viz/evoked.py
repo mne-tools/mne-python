@@ -135,7 +135,7 @@ def _line_plot_onselect(
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
         raise ValueError("Interactive topomaps only allowed for EEG and MEG channels.")
-    #
+    # First click after SpanSelector triggers this again, so reject when zero-width span
     if xmin == xmax:
         return
     if (
