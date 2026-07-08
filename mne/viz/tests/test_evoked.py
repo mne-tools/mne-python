@@ -229,6 +229,22 @@ def test_plot_evoked():
     line_clr = [x.get_color() for x in fig.axes[0].get_lines()]
     assert not np.all(np.isnan(line_clr) & (line_clr == 0))
 
+    # test time selection by clicking on the plot
+    epochs = _get_epochs()
+    evoked = epochs.average()
+    fig = evoked.plot(picks="mag")
+    ax = fig.axes[0]
+
+    assert not hasattr(ax, "_selectline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
+    assert hasattr(ax, "_selectline")
+    assert ax._selectline.get_xdata()[0] == 0.0
+
+    _fake_click(fig, ax, (0.6, 0.5), kind="press")
+    assert ax._selectline.get_xdata()[0] != 0.0
+
+    plt.close("all")
+
 
 def test_plot_evoked_timechange():
     """Test that time change events are properly handled in plot_evoked."""
@@ -237,10 +253,9 @@ def test_plot_evoked_timechange():
     fig = evoked.plot(picks="mag")
     ax = fig.axes[0]
 
-    assert not hasattr(ax, "_selectline")
-    ui_events.publish(fig, ui_events.TimeChange(time=0.0))
-    assert hasattr(ax, "_selectline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
     assert ax._selectline.get_xdata()[0] == 0.0
+
     ui_events.publish(fig, ui_events.TimeChange(time=0.1))
     assert ax._selectline.get_xdata()[0] == 0.1
 
