@@ -585,11 +585,11 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
         # else:
         #     nchan = global_nchan
 
-        tag = find_tag(fid, item, FIFF.FIFF_DESCRIPTION)
+        tag = find_tag(fid, item, FIFF.FIFF_NAME)
         if tag is not None:
             desc = tag.data
         else:
-            tag = find_tag(fid, item, FIFF.FIFF_NAME)
+            tag = find_tag(fid, item, FIFF.FIFF_DESCRIPTION)
             if tag is not None:
                 desc = tag.data
             else:
@@ -707,9 +707,7 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
 
         write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj["data"]["nrow"])
         
-        if proj.get("desc") is not None:
-            write_string(fid, FIFF.FIFF_NAME, proj["desc"])
-
+       
         
         if proj["active"] is not None:
             val = 1 if proj["active"] else 0
