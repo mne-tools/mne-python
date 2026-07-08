@@ -1134,7 +1134,7 @@ def plot_evoked(
 
     Notes
     -----
-    The figure will subscribe to the following UI events:
+    The figure will publish and subscribe to the following UI events:
 
     * :class:`~mne.viz.ui_events.TimeChange`
 
