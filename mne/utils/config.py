@@ -863,6 +863,7 @@ def sys_info(
             "pytest-qt",
             "pytest-rerunfailures",
             "pytest-timeout",
+            "refleak",
             "codespell",
             "ipython",
             "mypy",

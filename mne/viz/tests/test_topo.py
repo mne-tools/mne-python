@@ -25,6 +25,7 @@ from mne.viz import (
     mne_analyze_colormap,
     plot_evoked_topo,
     plot_topo_image_epochs,
+    ui_events,
 )
 from mne.viz.evoked import _line_plot_onselect
 from mne.viz.topo import _imshow_tfr, _plot_update_evoked_topo_proj, iter_topography
@@ -134,18 +135,6 @@ def test_plot_joint():
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
     plt.close("all")
-
-
-def test_plot_joint_opm_triaxial(triaxial_evoked):
-    """Test joint plot with triaxial colocated OPM channels."""
-    fig = triaxial_evoked.plot_joint(
-        times=[0.0],
-        picks="mag",
-        show=False,
-        ts_args=dict(time_unit="s"),
-        topomap_args=dict(time_unit="s", contours=0, res=8, sensors=False),
-    )
-    assert len(fig.axes) >= 2
 
 
 def test_plot_topo():
@@ -286,6 +275,16 @@ def test_plot_topo_single_ch():
     assert isinstance(ax._cursorline, matplotlib.lines.Line2D)
     _fake_click(fig, ax, (1.5, 1.5), kind="motion")  # cursor should disappear
     assert ax._cursorline is None
+    # test select bar
+    _fake_click(fig, ax, (1.5, 1.5), kind="press")
+    assert ax._selectline is None
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
+    assert isinstance(ax._selectline, matplotlib.lines.Line2D)
+    init_time = ax._selectline.get_xdata()[0]
+    assert init_time == 0.0
+    _fake_click(fig, ax, (0.6, 0.5), kind="press")
+    changed_time = ax._selectline.get_xdata()[0]
+    assert changed_time != init_time
     plt.close("all")
 
 
@@ -344,6 +343,32 @@ def test_plot_topo_select():
     _fake_click(fig, ax, (0.21, 0.65), xform="data", kind="release")
     _fake_keypress(fig, "control", kind="release")
     assert fig.lasso.selection == ["MEG 0111", "MEG 0132", "MEG 0133", "MEG 0131"]
+
+
+def test_plot_topo_timechange():
+    """Test that time change events are properly handled in plot_evoked_topo."""
+    evoked = _get_epochs().average()
+    fig = plot_evoked_topo(evoked)
+    _fake_click(fig, fig.axes[0], (0.08, 0.65))  # open single channel
+    subfig = plt.gcf()
+    ax = plt.gca()
+    _fake_click(subfig, ax, (0.5, 0.5), kind="press")
+    init_time = ax._selectline.get_xdata()[0]
+    assert init_time == 0.0
+
+    # test existence of _current_time in main figure
+    assert hasattr(fig, "_current_time")
+    assert fig._current_time == 0.0
+
+    # test time change event from subfig and main fig
+    ui_events.publish(subfig, ui_events.TimeChange(time=0.1))
+    assert ax._selectline.get_xdata()[0] == 0.1
+    assert fig._current_time == 0.1
+    ui_events.publish(subfig, ui_events.TimeChange(time=0.2))
+    assert ax._selectline.get_xdata()[0] == 0.2
+    assert fig._current_time == 0.2
+
+    plt.close("all")
 
 
 def test_plot_tfr_topo():

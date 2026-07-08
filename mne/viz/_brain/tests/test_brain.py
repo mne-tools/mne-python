@@ -638,7 +638,7 @@ def test_add_sensors_scales(renderer_interactive_pyvistaqt):
         title=title,
         cortex=cortex,
         units="m",
-        silhouette=dict(decimate=0.95),
+        silhouette=dict(decimate="oct6"),
         **kwargs,
     )
 
@@ -957,7 +957,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain = _create_testing_brain(
         hemi="both",
         show_traces=False,
-        brain_kwargs=dict(silhouette=dict(decimate=0.95)),
+        brain_kwargs=dict(silhouette=dict(decimate="ico5")),
     )
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
