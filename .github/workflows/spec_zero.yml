@@ -42,37 +42,12 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v8.2.0
-        with:
-          version: ">=0.9,<=0.9.26"
-          activate-environment: true
-          python-version: "3.12"
+      - name: Setup Python
+        uses: actions/setup-python@v6.2.0
       - name: Install dependencies
-        run: uv pip install -e . packaging requests tomlkit
+        run: pip install --upgrade packaging requests tomlkit
       - name: Update tracked dependencies
         run: python ./tools/dev/spec_zero_update_versions.py
-      - name: Sync updated dependencies to README
-        uses: tsbinns/mne-tools/actions/sync-dependencies-to-readme@add_tools
-        with:
-          project-root: ${{ github.workspace }}
-          ignore-upper-pins: numpy
-      - name: Sync updated dependencies to environment file
-        uses: tsbinns/mne-tools/actions/sync-dependencies-to-environment-file@add_tools
-        with:
-          project-root: ${{ github.workspace }}
-          extras: full,full-no-qt,hdf5
-          additional-dependencies: pip,mamba,conda,nomkl,noqt5
-          pip-dependencies: pymef
-          requirements-overrides: PySide6==6.10.2,vtk==9.6.0
-      - name: Create lockfile for old CI
-        # uv pip compile requires setting the python version explicitly in the command :(
-        run: uv pip compile pyproject.toml --python "3.10" --python-platform "x86_64-unknown-linux-gnu" --group test --group lockfile_extras --resolution lowest-direct --format pylock.toml --output-file tools/pylock.ci-old.toml
-      - name: Validate lockfile for old CI
-        uses: tsbinns/mne-tools/actions/check-lockfile@add_tools
-        with:
-          project-root: ${{ github.workspace }}
-          lockfile-path: tools/pylock.ci-old.toml
-          groups: lockfile_extras
       - name: check if files changed
         run: |
           git diff && git status --porcelain
@@ -81,5 +56,5 @@ jobs:
           fi
         id: status
       - name: Show diff
-        run: git diff -- ':!pylock.ci-old.toml'
+        run: git diff
         if: steps.status.outputs.dirty == 'true'
