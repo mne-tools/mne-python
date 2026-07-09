@@ -4,8 +4,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import fnmatch
 import hashlib
+import fnmatch
 import inspect
 import os
 import subprocess
