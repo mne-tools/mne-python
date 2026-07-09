@@ -362,7 +362,6 @@ def test_plot_topomap_interactive_slider_cmap():
     """
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick("mag")
-    plt.close("all")
     fig = evoked.plot_topomap(times="interactive", **fast_test)
     # Trigger the slider callback — this crashed before the fix.
     # The slider axes is not necessarily fig.axes[-1] (colorbar may follow it),
@@ -371,7 +370,6 @@ def test_plot_topomap_interactive_slider_cmap():
     slider_ax.slider.set_val(evoked.times[len(evoked.times) // 2])
     # Verify the topomap was redrawn (not blank) — would fail with double-scaling
     assert len(fig.axes[0].images) > 0
-    plt.close("all")
 
 
 @pytest.mark.slowtest
