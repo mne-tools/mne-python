@@ -765,6 +765,7 @@ def plot_epochs(
     overview_mode=None,
     splash=True,
     annotation_colors=None,
+    figure_class=None,
 ):
     """Visualize epochs.
 
@@ -875,6 +876,9 @@ def plot_epochs(
         will trigger a warning. If ``None`` (default), automatic colors are used.
 
         .. versionadded:: 1.12.1
+    %(figure_class)s
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -1089,6 +1093,7 @@ def plot_epochs(
         theme=theme,
         overview_mode=overview_mode,
         splash=splash,
+        figure_class=figure_class,
     )
 
     fig = _get_browser(show=show, block=block, **params)
