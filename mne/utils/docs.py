@@ -1723,7 +1723,7 @@ fig_facecolor : str | tuple
 
 docdict["figure_class"] = """
 figure_class : class
-    The backend specific `MNEBrowseFigure` class to use. This is typically used
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
     to pass a subclass in order to customize the plot. This parameter requires
     cooperation from the backend, and is currently only supported by the
     ``matplotlib`` backend.
