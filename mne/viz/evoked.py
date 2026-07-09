@@ -112,10 +112,9 @@ def _butterfly_on_button_press(event, params):
             event.canvas.draw()
     params["need_draw"] = False
 
-    idx = np.where([event.inaxes is ax for ax in params["axes"]])[0]
     for ax in params["axes"]:
         if event.inaxes is ax:
-            publish(ax.figure, TimeChange(event.xdata))
+            publish(ax.figure, TimeChange(time=event.xdata))
             break
 
 
@@ -861,11 +860,12 @@ def _plot_lines(
 
     def on_time_change(event):
         """Respond to a time change UI event."""
-        for ax in np.array(axes):
-            if getattr(ax, "_selectline", None) is not None:
-                ax._selectline.remove()
-
-            ax._selectline = ax.axvline(event.time, color="black", alpha=1)
+        for ax in axes:
+            line = getattr(ax, "_selectline", None)
+            if line is None:
+                ax._selectline = ax.axvline(event.time, color="black", alpha=1)
+            else:
+                line.set_xdata([event.time, event.time])
         ax.figure.canvas.draw()
 
     subscribe(fig, "time_change", on_time_change)
