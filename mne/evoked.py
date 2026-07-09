@@ -614,12 +614,6 @@ class Evoked(
         select=False,
         show=True,
     ):
-        """.
-
-        Notes
-        -----
-        .. versionadded:: 0.10.0
-        """
         return plot_evoked_topo(
             self,
             layout=layout,

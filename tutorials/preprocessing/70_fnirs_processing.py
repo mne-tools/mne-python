@@ -18,8 +18,6 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 
 # %%
 
-from itertools import compress
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -118,7 +116,7 @@ ax.set(xlabel="Scalp Coupling Index", ylabel="Count", xlim=[0, 1])
 # In this example we will mark all channels with a SCI less than 0.5 as bad
 # (this dataset is quite clean, so no channels are marked as bad).
 
-raw_od.info["bads"] = list(compress(raw_od.ch_names, sci < 0.5))
+raw_od.info["bads"] = [raw_od.ch_names[idx] for idx in np.where(sci < 0.5)[0]]
 
 # %%
 # At this stage it is appropriate to inspect your data
