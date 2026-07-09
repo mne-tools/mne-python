@@ -1,1 +1,0 @@
-Add a link to the AI usage policy in the documentation by :newcontrib:`sametSeckiiin`.
