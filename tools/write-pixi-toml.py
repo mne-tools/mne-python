@@ -55,6 +55,7 @@ workspace = dict(
     version="0.1.0",
 )
 dependencies = pyproject["project"]["dependencies"]
+dependencies.extend(pyproject["dependency-groups"]["dev"])
 dependencies.extend(pyproject["dependency-groups"]["test"])
 dependencies.extend(pyproject["dependency-groups"]["test_extra"])
 dependencies.extend(pyproject["project"]["optional-dependencies"]["hdf5"])
