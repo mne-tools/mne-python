@@ -149,7 +149,7 @@ jobs:
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
-      - name: Run MNE-Tools action
+      - name: Check 'old' CI environment
         uses: tsbinns/mne-tools/actions/check-environment@add_tools
         with:
           project-root: ${{ github.workspace }}
