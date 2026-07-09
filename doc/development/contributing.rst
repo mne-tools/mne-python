@@ -6,7 +6,7 @@ Contributing guide
 .. highlight:: console
 
 .. important::
-   **AI Usage Policy:** Before submitting any code or documentation, please make sure to review our AI usage policy outlined in the main CONTRIBUTING.md file at the root of the repository.
+   **AI Usage Policy:** Before submitting any code or documentation, please make sure to review our AI usage policy outlined in the repository `CONTRIBUTING.md file <https://github.com/mne-tools/mne-python/blob/main/CONTRIBUTING.md`_.
 
    
 Thanks for taking the time to contribute! MNE-Python is an open-source project
