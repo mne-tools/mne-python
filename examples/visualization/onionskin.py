@@ -23,6 +23,10 @@ available when other customization possibilities offered by MNE are not
 sufficient.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from mne.datasets import eegbci
 from mne.io import read_raw_edf
 from mne.viz import set_browser_backend
