@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   autofix:
-    name: Autoupdate changelog entry and headers
+    name: Autoupdate pre-commit, changelog, and headers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.0
