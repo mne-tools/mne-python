@@ -706,16 +706,9 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
             write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)
 
         write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj["data"]["nrow"])
-<<<<<<< HEAD
-
-        if proj.get("desc") is not None:
-            write_string(fid, FIFF.FIFF_NAME, proj["desc"])
-
-=======
         
        
         
->>>>>>> 4089c7594 (Fix round-trip descriptor preservation and remove redundant check)
         if proj["active"] is not None:
             val = 1 if proj["active"] else 0
             write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, val)
