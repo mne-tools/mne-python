@@ -1296,12 +1296,12 @@ def quat_to_rot(quat):
 
 
 @jit()
-def _one_rot_to_quat(rot):
+def _one_rot_to_quat(rot, *, tol=1e-3):
     """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
     #                 conversions/matrixToQuaternion/
     det = np.linalg.det(np.reshape(rot, (3, 3)))
-    if np.abs(det - 1.0) > 1e-3:
+    if np.abs(det - 1.0) > tol:
         raise ValueError("Matrix is not a pure rotation, got determinant != 1")
     t = 1.0 + rot[0] + rot[4] + rot[8]
     if t > np.finfo(rot.dtype).eps:
@@ -1331,13 +1331,16 @@ def _one_rot_to_quat(rot):
     return np.array((qx, qy, qz))
 
 
-def rot_to_quat(rot):
+def rot_to_quat(rot, *, tol=1e-3):
     """Convert a set of rotations to quaternions.
 
     Parameters
     ----------
     rot : array, shape (..., 3, 3)
         The rotation matrices to convert.
+    tol : float
+        Tolerance for the determinant checking that the rotation matrices are valid.
+        The default (1e-3) should be suitable for most cases.
 
     Returns
     -------
@@ -1350,7 +1353,7 @@ def rot_to_quat(rot):
     quat_to_rot
     """
     rot = rot.reshape(rot.shape[:-2] + (9,))
-    return np.apply_along_axis(_one_rot_to_quat, -1, rot)
+    return np.apply_along_axis(_one_rot_to_quat, -1, rot, tol=tol)
 
 
 def _quat_to_affine(quat):

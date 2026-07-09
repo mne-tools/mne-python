@@ -457,6 +457,19 @@ def test_plot_alignment_meg(renderer, system):
     pytest.importorskip("nibabel")
     if system == "Neuromag":
         this_info = read_info(evoked_fname)
+        # Test regression for somato dataset, which has less than ideal rot encoded
+        idx = this_info["ch_names"].index("MEG 0322")
+        this_info["chs"][idx]["loc"][3:] = [
+            -0.351594,
+            0.118898,
+            -0.92858398,
+            -0.370994,
+            -0.92838401,
+            0.0216,
+            -0.85886598,
+            0.37848499,
+            0.34239799,
+        ]
     elif system == "CTF":
         this_info = read_raw_ctf(ctf_fname).info
     elif system == "BTi":

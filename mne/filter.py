@@ -440,7 +440,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
             if this_N > N:
                 raise ValueError(
                     f"The requested filter length {N} is too short for the requested "
-                    f"{transition * sfreq / 2.0:0.2f} Hz transition band, which "
+                    f"{transition * sfreq:0.2f} Hz transition band, which "
                     f"requires {this_N} samples"
                 )
             # Construct a lowpass
