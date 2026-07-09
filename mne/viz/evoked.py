@@ -1132,6 +1132,10 @@ def plot_evoked(
     fig : instance of matplotlib.figure.Figure
         Figure containing the butterfly plots.
 
+    See Also
+    --------
+    mne.viz.plot_evoked_white
+
     Notes
     -----
     The figure will publish and subscribe to the following UI events:
@@ -1139,10 +1143,6 @@ def plot_evoked(
     * :class:`~mne.viz.ui_events.TimeChange`
 
     .. versionadded:: 1.13.0
-
-    See Also
-    --------
-    mne.viz.plot_evoked_white
     """  # noqa: E501
     return _plot_evoked(
         evoked=evoked,
