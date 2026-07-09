@@ -5,6 +5,7 @@
 from pathlib import Path
 
 import tomlkit
+import yaml
 
 
 def pip_to_pixi(dependencies_list):
@@ -22,12 +23,26 @@ def pip_to_pixi(dependencies_list):
 pypi_dependencies = ["pymef"]  # "nest-asyncio2", "pyobjc-framework-Cocoa"]
 
 repo_root = Path(__file__).resolve().parent.parent
+tests_yaml_fpath = repo_root / ".github" / "workflows" / "tests.yml"
 pyproject_fpath = repo_root / "pyproject.toml"
 pyproject = tomlkit.loads(pyproject_fpath.read_bytes())
 outfile = repo_root / "tools" / "ci" / "macos-intel" / "pixi.toml"
 
 # handle naming differences between PyPI and conda-forge
 remapping = dict(neo="python-neo")
+
+# Specify the python version that our pixi job wants
+with open(tests_yaml_fpath) as fid:
+    test_yaml = yaml.safe_load(fid)
+
+foo = test_yaml["jobs"]["pytest"]["strategy"]["matrix"]["include"]
+for job in foo:
+    if job["os"] == "macos-15-intel":
+        python_version = job["python"]
+        # Pixi complains if we don't specify a patch version
+        if len(python_version.split(".")) <= 2:
+            python_version += ".*"
+        break
 
 # in keys: build-system, dependency-groups, project, tool
 # out keys: workspace, dependencies, pypi-dependencies (may need tasks)
@@ -57,6 +72,9 @@ for ix, dep in enumerate(dependencies):
         dependencies[ix] = dep[:split_ix].strip()
 # handle mismatch between names on PyPI and conda-forge
 dependencies = [remapping.get(dep, dep) for dep in dependencies]
+
+# Add Python Version
+dependencies.append(f"python {python_version}")
 
 # exclude pypi-only deps
 dependencies = sorted(set(dependencies) - set(pypi_dependencies))

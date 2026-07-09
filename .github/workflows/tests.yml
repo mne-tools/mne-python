@@ -80,7 +80,7 @@ jobs:
             python: '3.14'
             kind: pip
           - os: macos-15-intel  # Intel
-            python: '3.14'
+            python: '3.13'
             kind: pixi
           - os: ubuntu-latest
             python: '3.12'
