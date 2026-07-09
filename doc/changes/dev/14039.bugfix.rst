@@ -1,0 +1,1 @@
+Fix :func:`~mne.viz.plot_evoked_topomap` with ``times='interactive'`` crashing with a :class:`KeyError` when moving the time slider, by passing the colormap name string rather than the full ``(name, draggable)`` tuple to the slider update callback (:gh:`14039`). By :newcontrib:`Pragnya Khandelwal`.
