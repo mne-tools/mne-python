@@ -1939,7 +1939,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one; has (useful) option title="auto"
+        title=None,  # keep: has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -2481,7 +2481,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         vmax=None,
         layout=None,
         cmap="RdBu_r",
-        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
+        title=None,  # keep: topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -3432,7 +3432,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one; has (useful) option title="auto"
+        title=None,  # keep: has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -3484,7 +3484,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         vmax=None,
         layout=None,
         cmap=None,
-        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
+        title=None,  # keep: topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,

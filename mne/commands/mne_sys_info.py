@@ -40,7 +40,7 @@ def run():
         dest="unicode",
         help="Use ASCII instead of unicode symbols",
         action="store_false",
-        default=True,
+        default=None,
     )
     parser.add_option(
         "--no-check-version",
@@ -55,11 +55,14 @@ def run():
         parser.print_help()
         sys.exit(1)
 
+    kwargs = dict()
+    if options.unicode is not None:
+        kwargs["unicode"] = options.unicode
     mne.sys_info(
         show_paths=options.show_paths,
         dependencies=dependencies,
-        unicode=options.unicode,
         check_version=options.check_version,
+        **kwargs,
     )
 
 

@@ -1084,6 +1084,18 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     _assert_annotations_equal(annot, annot2)
 
 
+def test_read_annotations_txt_single_channel_specific(tmp_path):
+    """Read a .txt with a SINGLE channel-specific annotation (gh-13961)."""
+    # np.loadtxt(..., unpack=True) squeezes a 1-row file to 0-D scalars;
+    # ch_names (unlike onset/duration/description) was not wrapped in
+    # np.atleast_1d, so it was iterated as bytes-ints -> AttributeError.
+    annot = Annotations([1.0], [0.5], ["BAD_x"], ch_names=[["EEG001"]])
+    fname = tmp_path / "annotations.txt"
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    assert list(annot_read.ch_names) == [("EEG001",)]
+
+
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
 def test_write_annotation_warn_heterogeneous(tmp_path, fmt):
     """Test that CSV, and TXT annotation writers warn on heterogeneous dtypes."""
@@ -1750,6 +1762,41 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa": 2.2})
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
+
+
+def test_setter_validation():
+    """Test that onset/duration/description/ch_names setters validate length."""
+    annots = Annotations(onset=[1, 3, 2, 4], duration=0, description="foo")
+
+    # onset mismatch should raise
+    with pytest.raises(ValueError, match="Length of onset"):
+        annots.onset = annots.onset[:2]
+
+    # duration mismatch should raise
+    with pytest.raises(ValueError, match="Length of duration"):
+        annots.duration = annots.duration[:2]
+
+    # description mismatch should raise
+    with pytest.raises(ValueError, match="Length of description"):
+        annots.description = annots.description[:2]
+
+    # scalar duration should broadcast without error
+    annots.duration = 1.0
+    assert len(annots.duration) == 4
+    assert all(annots.duration == 1.0)
+
+    # scalar description should broadcast without error
+    annots.description = "bad"
+    assert len(annots.description) == 4
+    assert all(annots.description == "bad")
+
+    # ch_names mismatch should raise
+    with pytest.raises(ValueError, match="Length of ch_names"):
+        annots.ch_names = [(), ()]
+
+    # valid ch_names assignment (correct length) should succeed
+    annots.ch_names = [("MEG 0111",), (), (), ()]
+    assert annots.ch_names[0] == ("MEG 0111",)
 
 
 @pytest.mark.parametrize("meas_date", (None, 1))

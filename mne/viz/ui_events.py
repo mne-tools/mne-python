@@ -18,6 +18,7 @@ import contextlib
 import re
 import weakref
 from dataclasses import dataclass
+from functools import partial
 
 from matplotlib.colors import Colormap
 
@@ -230,6 +231,22 @@ class ChannelsSelect(UIEvent):
     ch_names: list[str]
 
 
+def _delete_event_channel(event=None, *, weakfig):
+    """Delete the event channel (callback function)."""
+    fig = weakfig()
+    if fig is None:
+        return
+    publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
+    logger.debug(f"unlink(({fig})")
+    unlink(fig)  # Remove channel from the _event_channel_links dict
+    if fig in _event_channels:
+        logger.debug(f"  del _event_channels[{fig}]")
+        del _event_channels[fig]
+    if fig in _disabled_event_channels:
+        logger.debug(f"  _disabled_event_channels.remove({fig})")
+        _disabled_event_channels.remove(fig)
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -263,30 +280,17 @@ def _get_event_channel(fig):
 
         # When the figure is closed, its associated event channel should be
         # deleted. This is a good time to set this up.
-        def delete_event_channel(event=None, *, weakfig=weakfig):
-            """Delete the event channel (callback function)."""
-            fig = weakfig()
-            if fig is None:
-                return
-            publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
-            logger.debug(f"unlink(({fig})")
-            unlink(fig)  # Remove channel from the _event_channel_links dict
-            if fig in _event_channels:
-                logger.debug(f"  del _event_channels[{fig}]")
-                del _event_channels[fig]
-            if fig in _disabled_event_channels:
-                logger.debug(f"  _disabled_event_channels.remove({fig})")
-                _disabled_event_channels.remove(fig)
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
         _validate_type(fig, (matplotlib.figure.Figure, Brain, EvokedField), "fig")
+        this_delete_event_channel = partial(_delete_event_channel, weakfig=weakfig)
         if isinstance(fig, matplotlib.figure.Figure):
-            fig.canvas.mpl_connect("close_event", delete_event_channel)
+            fig.canvas.mpl_connect("close_event", this_delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
-            fig._renderer._window_close_connect(delete_event_channel, after=False)
+            fig._renderer._window_close_connect(this_delete_event_channel, after=False)
 
     # Now the event channel exists for sure.
     return _event_channels[fig]
@@ -407,7 +411,9 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
 
 
 @verbose
-def link(*figs, include_events=None, exclude_events=None, verbose=None):
+def link(
+    *figs, include_events=None, exclude_events=None, recursive=False, verbose=None
+):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
@@ -426,6 +432,9 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
     exclude_events : list of str | None
         Select which events not to publish across figures. By default (``None``),
         no events are excluded.
+    recursive : bool
+        If ``True``, also link the existing link-groups that figs already belong
+        to, so all members are mutually linked.
     %(verbose)s
     """
     if include_events is not None:
@@ -439,7 +448,17 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
         if fig not in _event_channel_links:
             _event_channel_links[fig] = weakref.WeakKeyDictionary()
 
-    # Link the event channels
+    if recursive:
+        # Also link to anything that is linked to any of the figures in `figs`.
+        figs_set = weakref.WeakSet()
+        for fig in figs:
+            figs_set.add(fig)
+            for linked_fig in _event_channel_links[fig].keys():
+                figs_set.add(linked_fig)
+        # Deliberately let current include and exclude events dominate over past ones.
+        figs = figs_set
+
+    # Do the actual linking.
     for fig1 in figs:
         for fig2 in figs:
             if fig1 is not fig2:
@@ -485,14 +504,11 @@ def disable_ui_events(fig):  # numpydoc ignore=YD01
 
 def _cleanup_agg():
     """Call close_event for Agg canvases to help our doc build."""
-    import matplotlib.backends.backend_agg
     import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
         if isinstance(key, matplotlib.figure.Figure):
-            canvas = key.canvas
-            if isinstance(canvas, matplotlib.backends.backend_agg.FigureCanvasAgg):
-                for cb in key.canvas.callbacks.callbacks["close_event"].values():
-                    cb = cb()  # get the true ref
-                    if cb is not None:
-                        cb()
+            for cb in key.canvas.callbacks.callbacks["close_event"].values():
+                cb = cb()  # get the true ref
+                if isinstance(cb, partial) and cb.func is _delete_event_channel:
+                    cb()

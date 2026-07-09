@@ -6,17 +6,19 @@
 
 import atexit
 import contextlib
+import importlib.metadata
+import importlib.util
 import json
 import multiprocessing
 import os
 import os.path as op
 import platform
 import shutil
+import site
 import subprocess
 import sys
 import tempfile
 from functools import lru_cache, partial
-from importlib import import_module
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
@@ -96,67 +98,62 @@ _known_config_types = {
         "tuple, width and height of the raw browser window (in inches)"
     ),
     "MNE_BROWSER_BACKEND": (
-        "str, the backend to use for the MNE Browse Raw window (qt or matplotlib)"
+        'str, the backend to use for the raw browser ("qt" or "matplotlib")'
     ),
     "MNE_BROWSER_OVERVIEW_MODE": (
-        "str, the overview mode to use in the MNE Browse Raw window )"
-        "(see mne.viz.plot_raw for valid options)"
+        "str, the overview mode to use in the raw browser (see mne.viz.plot_raw() for "
+        "valid options)"
     ),
     "MNE_BROWSER_PRECOMPUTE": (
-        "bool, whether to precompute raw data in the MNE Browse Raw window"
+        "bool, whether to precompute raw data in the raw browser"
     ),
-    "MNE_BROWSER_THEME": "str, the color theme (light or dark) to use for the browser",
+    "MNE_BROWSER_THEME": (
+        "str, the color theme (light or dark) to use for the raw browser"
+    ),
     "MNE_BROWSER_USE_OPENGL": (
-        "bool, whether to use OpenGL for rendering in the MNE Browse Raw window"
+        "bool, whether to use OpenGL for rendering in the raw browser"
     ),
     "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
     "MNE_COREG_ADVANCED_RENDERING": (
-        "bool, whether to use advanced OpenGL rendering in mne coreg"
+        "bool, whether to use advanced OpenGL rendering in coreg"
     ),
     "MNE_COREG_COPY_ANNOT": (
         "bool, whether to copy the annotation files during warping"
     ),
-    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in mne coreg",
-    "MNE_COREG_GUESS_MRI_SUBJECT": (
-        "bool, whether to guess the MRI subject in mne coreg"
-    ),
-    "MNE_COREG_HEAD_HIGH_RES": (
-        "bool, whether to use high-res head surface in mne coreg"
-    ),
-    "MNE_COREG_HEAD_OPACITY": ("bool, the head surface opacity to use in mne coreg"),
+    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in coreg",
+    "MNE_COREG_GUESS_MRI_SUBJECT": "bool, whether to guess the MRI subject in coreg",
+    "MNE_COREG_HEAD_HIGH_RES": "bool, whether to use high-res head surface in coreg",
+    "MNE_COREG_HEAD_OPACITY": "bool, the head surface opacity to use in coreg",
     "MNE_COREG_HEAD_INSIDE": (
-        "bool, whether to add an opaque inner scalp head surface to help "
-        "occlude points behind the head in mne coreg"
+        "bool, whether to add an opaque inner scalp head surface to help occlude points"
+        " behind the head in coreg"
     ),
-    "MNE_COREG_INTERACTION": (
-        "str, interaction style in mne coreg (trackball or terrain)"
-    ),
+    "MNE_COREG_INTERACTION": ("str, interaction style in coreg (trackball or terrain)"),
     "MNE_COREG_MARK_INSIDE": (
-        "bool, whether to mark points inside the head surface in mne coreg"
+        "bool, whether to mark points inside the head surface in coreg"
     ),
     "MNE_COREG_PREPARE_BEM": (
-        "bool, whether to prepare the BEM solution after warping in mne coreg"
+        "bool, whether to prepare the BEM solution after warping in coreg"
     ),
     "MNE_COREG_ORIENT_TO_SURFACE": (
-        "bool, whether to orient the digitization markers to the head surface "
-        "in mne coreg"
+        "bool, whether to orient the digitization markers to the head surface in coreg"
     ),
     "MNE_COREG_SCALE_LABELS": (
-        "bool, whether to scale the MRI labels during warping in mne coreg"
+        "bool, whether to scale the MRI labels during warping in coreg"
     ),
     "MNE_COREG_SCALE_BY_DISTANCE": (
-        "bool, whether to scale the digitization markers by their distance from "
-        "the scalp in mne coreg"
+        "bool, whether to scale the digitization markers by their distance from the "
+        "scalp in coreg"
     ),
     "MNE_COREG_SCENE_SCALE": (
-        "float, the scale factor of the 3D scene in mne coreg (default 0.16)"
+        "float, the scale factor of the 3D scene in coreg (default 0.16)"
     ),
-    "MNE_COREG_WINDOW_HEIGHT": "int, window height for mne coreg",
-    "MNE_COREG_WINDOW_WIDTH": "int, window width for mne coreg",
-    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for mne coreg",
+    "MNE_COREG_WINDOW_HEIGHT": "int, window height for coreg",
+    "MNE_COREG_WINDOW_WIDTH": "int, window width for coreg",
+    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for coreg",
     "MNE_CUDA_DEVICE": "int, CUDA device to use for GPU processing",
     "MNE_DATA": "str, default data directory",
-    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for brainstorm data",
+    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for Brainstorm data",
     "MNE_DATASETS_EEGBCI_PATH": "str, path for EEGBCI data",
     "MNE_DATASETS_EPILEPSY_ECOG_PATH": "str, path for epilepsy_ecog data",
     "MNE_DATASETS_HF_SEF_PATH": "str, path for HF_SEF data",
@@ -183,29 +180,28 @@ _known_config_types = {
     "MNE_DATASETS_ERP_CORE_PATH": "str, path for erp_core data",
     "MNE_FORCE_SERIAL": "bool, force serial rather than parallel execution",
     "MNE_LOGGING_LEVEL": (
-        "str or int, controls the level of verbosity of any function "
-        "decorated with @verbose. See "
-        "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"
+        "str or int, controls the level of verbosity of any function decorated with "
+        "@verbose"
     ),
     "MNE_MEMMAP_MIN_SIZE": (
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
     ),
     "MNE_REPR_HTML": (
-        "bool, represent some of our objects with rich HTML in a notebook environment"
+        "bool, represent some objects with rich HTML in a notebook environment"
     ),
     "MNE_SKIP_NETWORK_TESTS": (
-        "bool, used in a test decorator (@requires_good_network) to skip "
-        "tests that include large downloads"
+        "bool, used in a test decorator (@requires_good_network) to skip  tests that "
+        "include large downloads"
     ),
     "MNE_SKIP_TESTING_DATASET_TESTS": (
-        "bool, used in test decorators (@requires_spm_data, "
-        "@requires_bstraw_data) to skip tests that require specific datasets"
+        "bool, used in test decorators (@requires_spm_data, @requires_bstraw_data) to "
+        "skip tests that require specific datasets"
     ),
-    "MNE_STIM_CHANNEL": "string, the default channel name for mne.find_events",
+    "MNE_STIM_CHANNEL": "str, the default channel name for mne.find_events()",
     "MNE_TQDM": (
-        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence '
-        "of progress bars"
+        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence of '
+        "progress bars"
     ),
     "MNE_USE_CUDA": "bool, use GPU for filtering/resampling",
     "MNE_USE_NUMBA": (
@@ -757,6 +753,8 @@ def sys_info(
 
         .. versionadded:: 1.6
     """
+    import matplotlib
+
     _validate_type(dependencies, str)
     _check_option("dependencies", dependencies, ("user", "developer"))
     _validate_type(check_version, (bool, "numeric"), "check_version")
@@ -764,7 +762,10 @@ def sys_info(
     _check_option("unicode", unicode, ("auto", True, False))
     if unicode == "auto":
         if platform.system() in ("Darwin", "Linux"):
-            unicode = True
+            try:
+                unicode = sys.stdout.encoding.lower().startswith("utf")
+            except Exception:  # in case someone overrides sys.stdout in an unsafe way
+                unicode = False
         else:  # Windows
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
@@ -788,6 +789,13 @@ def sys_info(
     else:
         total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
+    site_packages_path = (site.getsitepackages() or [None])[0]
+    if show_paths and site_packages_path is not None:
+        out("Site-packages".ljust(ljust) + f"{site_packages_path}\n")
+        site_packages_path = Path(site_packages_path)
+        out("".ljust(ljust))
+        out("└►" if unicode else "^-")
+        out(" Any paths not listed below are in site-packages")
     out("\n")
     ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
@@ -800,12 +808,13 @@ def sys_info(
         "matplotlib",
         "",
         "# Numerical (optional)",
-        "sklearn",
+        "scikit-learn",
         "numba",
         "nibabel",
         "nilearn",
         "dipy",
         "openmeeg",
+        "python-picard",
         "cupy",
         "pandas",
         "h5io",
@@ -820,9 +829,10 @@ def sys_info(
         "pyqtgraph",
         "mne-qt-browser",
         "ipywidgets",
-        # "trame",  # no version, see https://github.com/Kitware/trame/issues/183
+        "trame",
         "trame_client",
         "trame_server",
+        "trame_pyvista",
         "trame_vtk",
         "trame_vuetify",
         "",
@@ -833,6 +843,7 @@ def sys_info(
         "mne-connectivity",
         "mne-icalabel",
         "mne-bids-pipeline",
+        "autoreject",
         "neo",
         "eeglabio",
         "edfio",
@@ -848,6 +859,19 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
+            "pytest-cov",
+            "pytest-qt",
+            "pytest-rerunfailures",
+            "pytest-timeout",
+            "refleak",
+            "codespell",
+            "ipython",
+            "mypy",
+            "pillow",
+            "pre-commit",
+            "ruff",
+            "vulture",
+            "",
             "hedtools",
             "statsmodels",
             "numpydoc",
@@ -858,6 +882,7 @@ def sys_info(
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "twine",
             "",
             "# Documentation",
             "sphinx",
@@ -873,12 +898,24 @@ def sys_info(
             "tqdm",
             "",
         )
-    try:
-        unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
-    except Exception:  # in case someone overrides sys.stdout in an unsafe way
-        unicode = False
-    mne_version_good = True
-    import_names = dict(hedtools="hed")
+    if check_version:
+        timeout = 2.0 if check_version is True else float(check_version)
+        mne_version_good, mne_extra = _check_mne_version(timeout)
+        if mne_version_good is None:
+            mne_version_good = True
+        del timeout
+    else:
+        mne_version_good = True
+        mne_extra = ""
+    del check_version
+    import_names = {
+        "codespell": "codespell_lib",
+        "hedtools": "hed",
+        "ipython": "IPython",
+        "pillow": "PIL",
+        "pytest-qt": "pytestqt",
+        "scikit-learn": "sklearn",
+    }
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -896,45 +933,32 @@ def sys_info(
             continue
         pre = "├"
         last = use_mod_names[mi + 1] == "" and not unavailable
+        import_name = import_names.get(mod_name, mod_name).replace("-", "_")
         if last:
             pre = "└"
         try:
-            import_name = import_names.get(mod_name, mod_name.replace("-", "_"))
-            mod = import_module(import_name)
+            ver = importlib.metadata.version(mod_name)
+            mod_loc = Path(importlib.util.find_spec(import_name).origin)
         except Exception:
             unavailable.append(mod_name)
         else:
+            if mod_loc.stem == "__init__":
+                mod_loc = mod_loc.parent
+            if site_packages_path and mod_loc.is_relative_to(site_packages_path):
+                mod_loc = None
             mark = "☑" if unicode else "+"
-            mne_extra = ""
-            if mod_name == "mne" and check_version:
-                timeout = 2.0 if check_version is True else float(check_version)
-                mne_version_good, mne_extra = _check_mne_version(timeout)
-                if mne_version_good is None:
-                    mne_version_good = True
-                elif not mne_version_good:
-                    mark = "☒" if unicode else "X"
+            if mod_name == "mne" and not mne_version_good:
+                mark = "☒" if unicode else "X"
             out(f"{pre}{mark} " if unicode else f" {mark} ")
             out(f"{mod_name}".ljust(ljust))
-            if mod_name == "vtk":
-                vtk_version = mod.vtkVersion()
-                # 9.0 dev has VersionFull but 9.0 doesn't
-                for attr in ("GetVTKVersionFull", "GetVTKVersion"):
-                    if hasattr(vtk_version, attr):
-                        version = getattr(vtk_version, attr)()
-                        if version != "":
-                            out(version)
-                            break
-                else:
-                    out("unknown")
-            else:
-                out(mod.__version__.lstrip("v"))
+            out(ver)
             if mod_name == "numpy":
                 out(f" ({libs})")
             elif mod_name == "qtpy":
                 version, api = _check_qt_version(return_api=True)
                 out(f" ({api}={version})")
             elif mod_name == "matplotlib":
-                out(f" (backend={mod.get_backend()})")
+                out(f" (backend={matplotlib.get_backend()})")
             elif mod_name == "pyvista":
                 version, renderer = _get_gpu_info()
                 if version is None:
@@ -942,16 +966,17 @@ def sys_info(
                 else:
                     out(f" (OpenGL {version} via {renderer})")
             elif mod_name == "mne":
-                out(f" ({mne_extra})")
+                if mne_extra:
+                    out(f" ({mne_extra})")
             # Now comes stuff after the version
-            if show_paths:
+            if show_paths and mod_loc is not None:
                 if last:
                     pre = "   "
                 elif unicode:
                     pre = "│  "
                 else:
                     pre = " | "
-                out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
+                out(f"\n{pre}{' ' * ljust}{mod_loc}")
             out("\n")
 
     if not mne_version_good:
@@ -985,7 +1010,7 @@ def _check_mne_version(timeout):
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
     rel_ver = parse(rel_ver)
-    this_ver = parse(import_module("mne").__version__)
+    this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:
         return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:

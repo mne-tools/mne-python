@@ -71,7 +71,7 @@ print(info)
 ch_names = ["Fp1", "Fp2", "Fz", "Cz", "Pz", "O1", "O2"]
 ch_types = ["eeg"] * 7
 info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
-info.set_montage("standard_1020")
+info.set_montage("spherical_1020")
 
 # %%
 # .. admonition:: Info consistency

@@ -139,12 +139,27 @@ raw_et.plot(scalings=ps_scalings)
 #
 # Naturally, there are blinks in our data, which occur within ``"BAD_blink"``
 # annotations. During blink periods, eyegaze coordinates are not reported, and pupil
-# size data are ``0``. We don't want these blink artifacts biasing our analysis, so we
-# have two options: Drop the blink periods from our data during epoching, or interpolate
-# the missing data during the blink periods. For this tutorial, let's interpolate the
-# blink samples. We'll pass ``(0.05, 0.2)`` to
-# :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, expanding the interpolation
-# window 50 ms before and 200 ms after the blink, so that the noisy data surrounding
+# size data are ``0``.
+#
+# .. note:: SR Research EyeLink files already ship blink annotations, which is why these
+#           were created when we loaded the data with ``create_annotations=["blinks"]``.
+#           Many other eye-trackers do not. For those, you can detect blinks from the
+#           pupil channel with :func:`~mne.preprocessing.eyetracking.find_blinks`,
+#           which annotates segments where the pupil signal drops out. EyeLink encodes
+#           dropouts as ``0`` (hence ``dropout_value=0`` below; the default looks for
+#           ``np.nan``). The function *returns* the annotations rather than modifying
+#           ``raw`` in place, so you can inspect or edit them before attaching them with
+#           :meth:`~mne.io.Raw.set_annotations`.
+
+blink_annots = mne.preprocessing.eyetracking.find_blinks(raw_et, dropout_value=0)
+print(blink_annots)
+
+# %%
+# We don't want these blink artifacts biasing our analysis, so we have two options: drop
+# the blink periods during epoching, or interpolate the missing data. For this tutorial
+# we'll interpolate, passing ``(0.05, 0.2)`` to
+# :func:`~mne.preprocessing.eyetracking.interpolate_blinks` to expand the interpolation
+# window 50 ms before and 200 ms after each blink, so that the noisy data surrounding
 # the blink is also interpolated.
 
 mne.preprocessing.eyetracking.interpolate_blinks(

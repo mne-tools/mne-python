@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b770a02202e4e9372e7046ca0269fe1b8f95bd97",
+  "authors": [
+    {
+      "n": "Apoorva Verma",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13999.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 31,
+      "d": 0
+    }
+  }
+}

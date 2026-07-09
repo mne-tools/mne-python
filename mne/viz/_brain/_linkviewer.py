@@ -61,8 +61,8 @@ class _LinkViewer:
 
             # link the initial points
             for hemi in initial_points.keys():
-                if hemi in brain._layered_meshes:
-                    mesh = brain._layered_meshes[hemi]._polydata
+                if hemi in brain.layered_meshes:
+                    mesh = brain.layered_meshes[hemi]._polydata
                     for vertex_id in initial_points[hemi]:
                         self.leader._add_vertex_glyph(hemi, mesh, vertex_id)
 

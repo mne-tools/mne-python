@@ -564,6 +564,20 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     make_lcmv(epochs.info, forward_fixed, data_cov_grad, reg=0.01, noise_cov=noise_cov)
 
 
+@pytest.fixture(scope="module")
+def evoked_fwd_noise_data():
+    """Fixture to supply reusable data."""
+    _, _, evoked, data_cov, noise_cov, _, _, _, _, _ = _get_data(proj=True)
+    assert "eeg" not in evoked
+    assert "meg" in evoked
+    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
+    src = mne.setup_volume_source_space(
+        pos=25.0, sphere=sphere, mindist=5.0, exclude=2.0
+    )
+    fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
+    return evoked, fwd_sphere, noise_cov, data_cov
+
+
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
@@ -576,24 +590,16 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
         (None, "max-power"),
     ],
 )
-def test_make_lcmv_sphere(pick_ori, weight_norm):
+def test_make_lcmv_sphere(pick_ori, weight_norm, evoked_fwd_noise_data):
     """Test LCMV with sphere head model."""
     # unit-noise gain beamformer and orientation
     # selection and rank reduction of the leadfield
-    _, _, evoked, data_cov, noise_cov, _, _, _, _, _ = _get_data(proj=True)
-    assert "eeg" not in evoked
-    assert "meg" in evoked
-    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
-    src = mne.setup_volume_source_space(
-        pos=25.0, sphere=sphere, mindist=5.0, exclude=2.0
-    )
-    fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
-
+    evoked, fwd_sphere, noise_cov, data_cov = evoked_fwd_noise_data
     # Test that we get an error if not reducing rank
     with (
         pytest.raises(ValueError, match="Singular matrix detected"),
         _record_warnings(),
-        pytest.warns(RuntimeWarning, match="positive semidefinite"),
+        pytest.warns(RuntimeWarning, match="(positive semidefinite|largest eigenvalu)"),
     ):
         make_lcmv(
             evoked.info,

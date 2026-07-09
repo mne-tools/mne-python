@@ -168,6 +168,7 @@ Projections:
    read_eyelink_calibration
    set_channel_types_eyetrack
    convert_units
+   find_blinks
    get_screen_visual_angle
    interpolate_blinks
 
