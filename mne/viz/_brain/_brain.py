@@ -8,6 +8,7 @@ import os.path as op
 import time
 import traceback
 import warnings
+import weakref
 from functools import partial
 from io import BytesIO
 
@@ -29,7 +30,12 @@ from ..._freesurfer import (
 )
 from ...defaults import DEFAULTS, _handle_default
 from ...fixes import _reshape_view
-from ...surface import _marching_cubes, _mesh_borders, mesh_edges
+from ...surface import (
+    _decimate_surface_ico_oct,
+    _marching_cubes,
+    _mesh_borders,
+    mesh_edges,
+)
 from ...transforms import (
     Transform,
     _frame_to_str,
@@ -164,9 +170,15 @@ class Brain:
     %(view_layout)s
     silhouette : dict | bool
        As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
-       and ``decimate`` (level of decimation between 0 and 1 or None) of the
-       brain's silhouette to display. If True, the default values are used
-       and if False, no silhouette will be displayed. Defaults to False.
+       and ``decimate`` of the brain's silhouette to display. ``decimate`` can be
+       a level of decimation between 0 and 1, None for no decimation, or a spacing
+       string (e.g. ``"ico4"``, ``"oct6"``) to instead pick vertices the same way
+       :func:`mne.setup_source_space` does, which is faster and better preserves
+       the shape than plain decimation. If True, ``"ico5"`` is used and
+       if False, no silhouette will be displayed. Defaults to False.
+
+       .. versionchanged:: 1.13
+          The default ``decimate`` value changed from ``0.9`` to ``"ico5"``.
     %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
@@ -275,6 +287,11 @@ class Brain:
        +-------------------------------------+--------------+---------------+
     """
 
+    # Tracks live instances when MNE_3D_BACKEND_TESTING is set (see
+    # __init__), so that tests can check for lingering instances without
+    # having to scan gc.get_objects() for the whole process.
+    _instances = weakref.WeakSet()
+
     def __init__(
         self,
         subject,
@@ -298,6 +315,7 @@ class Brain:
         theme=None,
         show=True,
     ):
+        from ..backends import renderer as _renderer_mod
         from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
@@ -346,6 +364,10 @@ class Brain:
 
         self.time_viewer = False
         self._hash = time.time_ns()
+        # This is only used in testing! Needs self._hash to already be set,
+        # since Brain.__hash__ (used when adding to the WeakSet) depends on it.
+        if _renderer_mod.MNE_3D_BACKEND_TESTING:
+            Brain._instances.add(self)
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -366,7 +388,7 @@ class Brain:
             "color": self._bg_color,
             "line_width": 2,
             "alpha": alpha,
-            "decimate": 0.9,
+            "decimate": "ico5",
         }
         _validate_type(silhouette, (dict, bool), "silhouette")
         if isinstance(silhouette, dict):
@@ -403,7 +425,6 @@ class Brain:
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
         self.widgets = dict()
-
         self._setup_canonical_rotation()
 
         # plot hemis
@@ -450,12 +471,30 @@ class Brain:
                     self._renderer.plotter.add_actor(actor, render=False)
                 if self.silhouette:
                     mesh = self.layered_meshes[h]
+                    decimate = self._silhouette["decimate"]
+                    if isinstance(decimate, str):
+                        import pyvista as pv
+
+                        vertno, tris = _decimate_surface_ico_oct(
+                            self._subject,
+                            self._subjects_dir,
+                            h,
+                            self.geo[h].surf,
+                            decimate,
+                        )
+                        sil_mesh = pv.PolyData(
+                            self.geo[h].coords[vertno],
+                            np.c_[np.full(len(tris), 3), tris],
+                        )
+                        decimate = None  # already decimated
+                    else:
+                        sil_mesh = mesh._polydata
                     self._renderer._silhouette(
-                        mesh=mesh._polydata,
+                        mesh=sil_mesh,
                         color=self._silhouette["color"],
                         line_width=self._silhouette["line_width"],
                         alpha=self._silhouette["alpha"],
-                        decimate=self._silhouette["decimate"],
+                        decimate=decimate,
                     )
                 self._set_camera(**views_dicts[h][v])
 
@@ -1426,7 +1465,13 @@ class Brain:
     def _remove_vertex_glyph(self, *, hemi, vertex_id, render=True):
         _ensure_int(vertex_id)
         assert isinstance(hemi, str), f"got {type(hemi)} for {hemi=}"
-        spheres = self._picked_points.pop((hemi, vertex_id))
+        # When linked via _LinkViewer, removing a vertex on one brain cascades
+        # to all linked brains, so by the time a given brain's own loop (e.g.
+        # in clear_glyphs) reaches this (hemi, vertex_id) it may already be
+        # gone; just no-op in that case.
+        spheres = self._picked_points.pop((hemi, vertex_id), None)
+        if spheres is None:
+            return
         color, line = spheres[0]["color"], spheres[0]["line"]
         line.remove()
         self.mpl_canvas.update_plot()
@@ -3023,7 +3068,12 @@ class Brain:
                 )
 
         if hover:
-            obs = self.plotter.AddObserver("MouseMoveEvent", self._on_annotation_hover)
+
+            @_auto_weakref
+            def on_annotation_hover(iren, event):
+                self._on_annotation_hover(iren, event)
+
+            obs = self.plotter.AddObserver("MouseMoveEvent", on_annotation_hover)
             for hemi in hemis:
                 caption = self._create_caption()
                 self._annots[hemi][-1].update(caption=caption, obs=obs)

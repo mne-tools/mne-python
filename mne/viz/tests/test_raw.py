@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
+from refleak.testing import assert_no_instances
 
 import mne
 from mne import Annotations, create_info, pick_types
@@ -21,7 +22,6 @@ from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.utils import (
-    _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
     catch_logging,
@@ -587,6 +587,32 @@ def test_plot_raw_keypresses(raw, browser_backend):
     _monkeypatch_fig(fig, browser_backend)
     for key in 2 * keys + ("escape",):
         fig._fake_keypress(key)
+
+
+def test_plot_raw_scroll(raw, browser_backend):
+    """Test scroll wheel channel navigation in raw.plot()."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    # use n_channels < total so there is room to scroll
+    fig = raw.plot(n_channels=3)
+    assert len(fig.mne.ch_order) > fig.mne.n_channels  # sanity check
+    # the sign of "step" that means "scroll down" differs between backends
+    down, up = (-1, 1) if browser_backend.name == "matplotlib" else (1, -1)
+    # scroll down moves ch_start forward by 1
+    ch_start_before = fig.mne.ch_start
+    fig._fake_scroll(0.5, 0.5, down)
+    assert fig.mne.ch_start == ch_start_before + 1
+    # scroll up moves ch_start back by 1
+    fig._fake_scroll(0.5, 0.5, up)
+    assert fig.mne.ch_start == ch_start_before
+    # scroll up at the top is a no-op (already at 0)
+    assert fig.mne.ch_start == 0
+    fig._fake_scroll(0.5, 0.5, up)
+    assert fig.mne.ch_start == 0
+    # scroll is a no-op in butterfly mode
+    fig._fake_keypress("b")
+    fig._fake_scroll(0.5, 0.5, down)
+    assert fig.mne.ch_start == 0
 
 
 def test_plot_raw_traces(raw, events, browser_backend):
@@ -1331,7 +1357,7 @@ def test_plotting_memory_garbage_collection(raw, pg_backend):
     from mne_qt_browser._pg_figure import MNEQtBrowser
 
     assert len(mne_qt_browser._browser_instances) == 0
-    _assert_no_instances(MNEQtBrowser, "after closing")
+    assert_no_instances(MNEQtBrowser, "after closing")
 
 
 def test_plotting_scalebars(browser_backend, qtbot):

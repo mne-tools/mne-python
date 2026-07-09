@@ -23,11 +23,10 @@ from mne.datasets import fetch_fsaverage, sample
 # %%
 # Introduction to beamformers
 # ---------------------------
-# A beamformer is a spatial filter that reconstructs source activity by
-# scanning through a grid of pre-defined source points and estimating activity
-# at each of those source points independently. A set of weights is
-# constructed for each defined source location which defines the contribution
-# of each sensor to this source.
+# A beamformer is a spatial filter that reconstructs source activity by scanning through
+# a grid of pre-defined source points and estimating activity at each of those source
+# points independently. A set of weights is constructed for each defined source location
+# which defines the contribution of each sensor to this source.
 #
 # Beamformers are often used for their focal reconstructions and their ability
 # to reconstruct deeper sources. They can also suppress external noise sources.

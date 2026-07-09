@@ -323,6 +323,7 @@ numpydoc_xref_ignore = {
     "and",
     "as",
     "between",
+    "class",
     "data",
     "instance",
     "instances",

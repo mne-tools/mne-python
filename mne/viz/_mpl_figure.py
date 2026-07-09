@@ -220,6 +220,10 @@ class MNEFigure(Figure):
         """Handle buttonpress events."""
         pass
 
+    def _scroll(self, event):
+        """Handle scroll wheel events."""
+        pass
+
     def _pick(self, event):
         """Handle matplotlib pick events."""
         pass
@@ -241,6 +245,7 @@ class MNEFigure(Figure):
             resize_event=self._resize,
             key_press_event=self._keypress,
             button_press_event=self._buttonpress,
+            scroll_event=self._scroll,
             close_event=self._close,
             pick_event=self._pick,
         )
@@ -958,6 +963,20 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
+    def _scroll(self, event):
+        """Handle scroll wheel events for channel navigation."""
+        if self.mne.butterfly or self.mne.fig_selection is not None:
+            return
+        direction = -1 if event.button == "up" else 1
+        ceiling = len(self.mne.ch_order) - self.mne.n_channels
+        old_start = self.mne.ch_start
+        self.mne.ch_start = np.clip(self.mne.ch_start + direction, 0, ceiling)
+        if self.mne.ch_start == old_start:
+            return
+        self._update_picks()
+        self._update_vscroll()
+        self._redraw()
+
     def _pick(self, event):
         """Handle matplotlib pick events."""
         from matplotlib.text import Text
@@ -1111,6 +1130,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ("?", "Open this help window"),
                 ("esc", "Close focused figure or dialog window"),
                 ("_MOUSE INTERACTION", " "),
+                ("Scroll wheel", "Scroll channels up/down"),
                 (f"Left-click {ch_cmp} name", lclick_name),
                 (f"Left-click {ch_cmp} data", lclick_data),
                 ("Left-click-and-drag on plot", ldrag),
@@ -2618,7 +2638,11 @@ def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
 
-    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, layout=None, **kwargs)
+    figure_class = kwargs.pop("figure_class", None)
+    if figure_class is None:
+        figure_class = MNEBrowseFigure
+
+    fig = _figure(toolbar=False, FigureClass=figure_class, layout=None, **kwargs)
 
     # splash is ignored (maybe we could do it for mpl if we get_backend() and
     # check if it's Qt... but seems overkill)
