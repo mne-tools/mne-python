@@ -356,10 +356,9 @@ def test_plot_evoked_topomap_border():
 def test_plot_topomap_interactive_slider_cmap():
     """Regression test: moving the time slider must not raise KeyError on cmap.
 
-    The interactive slider callback passes kwargs["cmap"] to _plot_topomap.
-    Before the fix for gh-14038, group_cmaps stored full (name, draggable)
-    tuples and the slider path passed the tuple instead of just the name string,
-    causing a KeyError in matplotlib's colormap registry.
+    gh-14038: group_cmaps stored full (name, draggable) tuples but the slider
+    callback passed the tuple as the cmap kwarg, causing a KeyError in
+    matplotlib's colormap registry.
     """
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick("mag")
@@ -370,6 +369,8 @@ def test_plot_topomap_interactive_slider_cmap():
     # so find it by looking for the axes that has a .slider attribute.
     slider_ax = next(ax for ax in fig.axes if hasattr(ax, "slider"))
     slider_ax.slider.set_val(evoked.times[len(evoked.times) // 2])
+    # Verify the topomap was redrawn (not blank) — would fail with double-scaling
+    assert len(fig.axes[0].images) > 0
     plt.close("all")
 
 
