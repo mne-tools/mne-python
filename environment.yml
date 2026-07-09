@@ -13,7 +13,6 @@ dependencies:
   - dipy >=0.8
   - edfio >=0.4.10
   - eeglabio
-  - ffmpeg =8.1.2
   - filelock >=3.18.0
   - h5io >=0.2.4
   - h5py >=2.4
@@ -37,7 +36,7 @@ dependencies:
   - nomkl
   - noqt5
   - numba >=0.35
-  - numpy <3,>=1.26
+  - numpy <3,>=2.0
   - openmeeg >=2.5.7
   - packaging
   - pandas !=3.0.4,>=2.2
@@ -47,7 +46,7 @@ dependencies:
   - pyarrow
   - pybv
   - pymatreader
-  - PySide6 ==6.11.1
+  - PySide6 ==6.10.2
   - python-neo
   - python-picard >=0.4
   - pyvista >=0.43
@@ -55,7 +54,7 @@ dependencies:
   - qdarkstyle !=3.2.2
   - qtpy
   - scikit-learn >=1.5
-  - scipy >=1.13
+  - scipy >=1.14
   - sip
   - snirf
   - statsmodels >=0.6
@@ -66,7 +65,7 @@ dependencies:
   - trame-pyvista
   - trame-vtk
   - trame-vuetify
-  - vtk ==9.6.2
+  - vtk ==9.6.0
   - xlrd
   - pip:
       - pymef
