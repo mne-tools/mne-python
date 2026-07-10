@@ -2281,10 +2281,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             this_type = ch_types[ii]
             this_offset = offsets[ii]
             if self.mne.zero_line_visible:
-                self.mne.zero_lines[ii].set_ydata((this_offset, this_offset))
-                self.mne.zero_lines[ii].set_linestyle(
-                    "dashed" if self.mne.remove_dc else "solid"
+                zero_line_offset = (
+                    0
+                    if self.mne.zero_line_offset is None
+                    else self.mne.zero_line_offset[ii] * self.mne.scale_factor
                 )
+                true_zero = this_offset + zero_line_offset
+                self.mne.zero_lines[ii].set_ydata((true_zero, true_zero))
             this_times = decim_times[decim[ii]]
             this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
             this_data = this_data[..., :: decim[ii]]

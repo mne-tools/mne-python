@@ -352,14 +352,20 @@ def test_zero_line(raw, mpl_backend):
     fig._fake_keypress("0")
     assert fig.mne.zero_line_visible
     assert len(fig.mne.zero_lines) == len(fig.mne.picks)
-    for zero_line, offset in zip(fig.mne.zero_lines, fig.mne.trace_offsets):
-        assert_allclose(zero_line.get_ydata(), (offset, offset))
+    # with DC removal on, the true zero generally differs from the trace offset
+    assert fig.mne.zero_line_offset is not None
+    assert not np.allclose(fig.mne.zero_lines[0].get_ydata(), fig.mne.trace_offsets[0])
+    for ii, (zero_line, offset) in enumerate(
+        zip(fig.mne.zero_lines, fig.mne.trace_offsets)
+    ):
+        true_zero = offset + fig.mne.zero_line_offset[ii] * fig.mne.scale_factor
+        assert_allclose(zero_line.get_ydata(), (true_zero, true_zero))
     assert_allclose(fig.mne.zero_lines[0].get_xdata(), (0, 1))
-    # dashed while DC removal is on ("virtual" zero), solid once it's off (true zero)
-    assert fig.mne.zero_lines[0].get_linestyle() == "--"
-    fig._fake_keypress("d")
+    fig._fake_keypress("d")  # turn DC removal off
     assert not fig.mne.remove_dc
-    assert fig.mne.zero_lines[0].get_linestyle() == "-"
+    assert fig.mne.zero_line_offset is None
+    # with DC removal off, the true zero coincides with the trace offset again
+    assert_allclose(fig.mne.zero_lines[0].get_ydata(), (fig.mne.trace_offsets[0],) * 2)
     fig._fake_keypress("0")  # toggle back off -> artists removed
     assert not fig.mne.zero_line_visible
     assert len(fig.mne.zero_lines) == 0
