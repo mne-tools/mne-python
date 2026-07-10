@@ -4279,6 +4279,17 @@ show_traces : bool | str | float
     .. versionadded:: 0.20.0
 """
 
+docdict["show_zero_line"] = """
+show_zero_line : bool
+    Whether to show the zero line for each channel trace when the plot is
+    initialized. The line always marks the true zero of the channel, even
+    if the currently-visible window's mean has been subtracted for display
+    (see ``remove_dc``). Can be toggled after initialization by pressing
+    :kbd:`0` while the plot window is focused. Default is ``False``.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["size_topomap"] = """
 size : float
     Side length of each subplot in inches.
