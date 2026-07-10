@@ -23,7 +23,7 @@ doc = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
-  "refleak",
+  "refleak >=0.2.1",
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
@@ -54,7 +54,7 @@ test = [
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
-  "refleak",
+  "refleak >=0.2.1",
   "ruff >= 0.1",
   "twine",
   "vulture",

@@ -15,15 +15,20 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
-from refleak.testing import assert_no_instances
+from refleak.testing import Snapshot, assert_no_instances, gc_collect_once
 from sphinx.errors import ExtensionError
 
 import mne
-from mne.utils import Bunch, _get_extra_data_path, sizeof_fmt
+from mne.utils import Bunch, _get_extra_data_path, _is_vtk, sizeof_fmt
 from mne.viz import Brain
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 _np_print_defaults = np.get_printoptions()
+
+# Taken at each example's "before" reset and diffed at its "after" reset, so
+# any VTK object an example creates but fails to release is flagged -- not
+# just the specific classes checked by name below.
+_vtk_snapshot = None
 
 
 def reset_warnings(gallery_conf, fname):
@@ -149,10 +154,6 @@ def reset_modules(gallery_conf, fname, when):
     except ImportError:
         BackgroundPlotter = None  # noqa
     try:
-        from vtkmodules.vtkCommonDataModel import vtkPolyData  # noqa
-    except ImportError:
-        vtkPolyData = None  # noqa
-    try:
         from mne_qt_browser._pg_figure import MNEQtBrowser
     except ImportError:
         MNEQtBrowser = None
@@ -187,7 +188,9 @@ def reset_modules(gallery_conf, fname, when):
         IPython.core.completer.__main__ = sys.modules["__main__"]
     except Exception:
         pass
-    gc.collect()
+    request = Bunch()  # just give it something to say "we have done GC already"
+    request.node = Bunch()
+    gc_collect_once(request)  # dedupes the collects inside the checks below
 
     # Agg does not call close_event so let's clean up on our own :(
     # https://github.com/matplotlib/matplotlib/issues/18609
@@ -198,25 +201,14 @@ def reset_modules(gallery_conf, fname, when):
     orig_when = when
     when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
     # Support stuff like
-    # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
+    # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtk,_Renderer" make html-memory  # noqa: E501
     # to just test MNEQtBrowser
     skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
     prefix = ""
-    request = Bunch()  # just give it something to say "we have done GC already"
-    request.node = Bunch()
+    global _vtk_snapshot
     if skips not in ("true", "1", "all"):
         prefix = "Clean "
         skips = skips.split(",")
-        if "brain" not in skips:
-            assert_no_instances(Brain, when=when, request=request)
-        if Plotter is not None and "plotter" not in skips:
-            assert_no_instances(Plotter, when=when, request=request)
-        if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-            assert_no_instances(BackgroundPlotter, when=when, request=request)
-        if vtkPolyData is not None and "vtkpolydata" not in skips:
-            assert_no_instances(vtkPolyData, when=when, request=request)
-        if "_renderer" not in skips:
-            assert_no_instances(_Renderer, when=when, request=request)
         if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
             # Ensure any manual fig.close() events get properly handled
             from mne_qt_browser._pg_figure import QApplication
@@ -225,7 +217,30 @@ def reset_modules(gallery_conf, fname, when):
             if inst is not None:
                 for _ in range(2):
                     inst.processEvents()
-            assert_no_instances(MNEQtBrowser, when=when, request=request)
+        objs = gc.get_objects()  # scan the heap once, share across all checks
+        if "brain" not in skips:
+            assert_no_instances(Brain, when=when, request=request, objs=objs)
+        if Plotter is not None and "plotter" not in skips:
+            assert_no_instances(Plotter, when=when, request=request, objs=objs)
+        if BackgroundPlotter is not None and "backgroundplotter" not in skips:
+            assert_no_instances(
+                BackgroundPlotter, when=when, request=request, objs=objs
+            )
+        if "_renderer" not in skips:
+            assert_no_instances(_Renderer, when=when, request=request, objs=objs)
+        if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
+            assert_no_instances(MNEQtBrowser, when=when, request=request, objs=objs)
+        if "vtk" not in skips:
+            # Diff all VTK objects across each example: catches leaks of any
+            # VTK class (actors, mappers, arrays, ...), not just the specific
+            # classes above, while tolerating VTK state that legitimately
+            # pre-dates the example.
+            if orig_when == "after" and _vtk_snapshot is not None:
+                _vtk_snapshot.assert_no_new(when=when, request=request, objs=objs)
+            _vtk_snapshot = None
+            if orig_when == "before":
+                _vtk_snapshot = Snapshot(_is_vtk, label="VTK", objs=objs)
+        del objs
     # This will overwrite some Sphinx printing but it's useful
     # for memory timestamps
     if os.getenv("SG_STAMP_STARTS", "").lower() == "true":
