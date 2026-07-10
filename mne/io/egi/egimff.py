@@ -25,7 +25,6 @@ from ...utils import _check_fname, _check_option, _soft_import, logger, verbose,
 from ..base import BaseRaw
 from .events import _combine_triggers, _read_events, _triage_include_exclude
 from .general import (
-    _get_blocks,
     _get_ep_info,
     _get_signalfname,
 )
@@ -70,6 +69,7 @@ def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
 def _read_mff_header(filepath):
     """Read mff header."""
     _soft_import("mffpy", "reading EGI MFF data")
+    from mffpy import Reader
     from mffpy.xml_files import XML
 
     all_files = _get_signalfname(filepath)
@@ -88,8 +88,14 @@ def _read_mff_header(filepath):
     rt_elem = info_obj.find("recordTime")
     record_time = str(rt_elem.text) if rt_elem is not None else ""
 
-    fname = op.join(filepath, eeg_file)
-    signal_blocks = _get_blocks(fname)
+    reader = Reader(filepath)
+    signal_blocks = dict(
+        n_channels=reader.num_channels["EEG"],
+        sfreq=reader.sampling_rates["EEG"],
+        n_blocks=len(reader.block_sample_counts["EEG"]),
+        samples_block=np.array(reader.block_sample_counts["EEG"]),
+        header_sizes=[],
+    )
     epochs = _get_ep_info(filepath)
     summaryinfo = dict(eeg_fname=eeg_file, info_fname=eeg_info_file)
     summaryinfo.update(signal_blocks)
@@ -169,9 +175,10 @@ def _read_mff_header(filepath):
 
     pns_names = []
     if "PNS" in all_files:
-        pns_fpath = op.join(filepath, all_files["PNS"]["signal"])
-        pns_blocks = _get_blocks(pns_fpath)
-        pns_samples = pns_blocks["samples_block"]
+        pns_sample_blocks = dict(
+            samples_block=np.array(reader.block_sample_counts["PNSData"])
+        )
+        pns_samples = pns_sample_blocks["samples_block"]
         signal_samples = signal_blocks["samples_block"]
         same_blocks = np.array_equal(
             pns_samples[:-1], signal_samples[:-1]
@@ -210,7 +217,7 @@ def _read_mff_header(filepath):
             pns_types=pns_types,
             pns_units=pns_units,
             pns_fname=all_files["PNS"]["signal"],
-            pns_sample_blocks=pns_blocks,
+            pns_sample_blocks=pns_sample_blocks,
         )
 
     summaryinfo.update(
