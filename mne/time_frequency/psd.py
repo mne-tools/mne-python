@@ -266,7 +266,7 @@ def psd_array_welch(
         # A good data span shorter than n_per_seg cannot hold a full-length Welch
         # window. SciPy clamps nperseg down to the span length internally but leaves
         # noverlap unchanged, then raises "noverlap must be less than nperseg"
-        # (#13039). Pre-empt that here: analyze each short span with a window shrunk
+        # (#13039). Preempt that here: analyze each short span with a window shrunk
         # to its own length and noverlap clamped below it. n_fft is left unchanged,
         # so every span is zero-padded to the same length and shares one frequency
         # grid; short spans simply get coarser spectral resolution. A per-span
