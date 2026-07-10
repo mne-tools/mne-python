@@ -40,7 +40,7 @@ pytest mne/tests/test_evoked.py -k test_io_evoked --verbose
 
 # fetch datasets explicitly if needed
 python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-python -c "import mne; mne.datasets.sample.data_path(verbose=True)
+python -c "import mne; mne.datasets.sample.data_path(verbose=True)"
 
 # useful flags: -x (stop on first failure), --pdb, --durations=5,
 # --cov=mne.viz --cov-report=term-missing (see which lines are covered)
