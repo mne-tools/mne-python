@@ -2724,7 +2724,7 @@ def _plot_evoked_topomap(
     if interactive:
         # Add a slider to the figure and start publishing and subscribing to time_change
         # events.
-        kwargs.update(vlim=group_vlims[0], cmap=group_cmaps[0])
+        kwargs.update(vlim=group_vlims[0], cmap=group_cmaps[0][0])
         axes.append(fig.add_subplot(gs[1]))
         slider = Slider(
             axes[-1],

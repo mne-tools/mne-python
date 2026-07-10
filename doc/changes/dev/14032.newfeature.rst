@@ -1,0 +1,1 @@
+Make :func:`mne.viz.plot_evoked_topo` show the currently select time with a solid vertical line also in the main figure, by `Marijn van Vliet`_.

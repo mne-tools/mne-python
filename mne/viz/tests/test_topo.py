@@ -10,12 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import (
-    Epochs,
-    compute_proj_evoked,
-    read_cov,
-    read_events,
-)
+from mne import Epochs, compute_proj_evoked, read_cov, read_events
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFRArray
@@ -355,18 +350,24 @@ def test_plot_topo_timechange():
     _fake_click(subfig, ax, (0.5, 0.5), kind="press")
     init_time = ax._selectline.get_xdata()[0]
     assert init_time == 0.0
-
-    # test existence of _current_time in main figure
     assert hasattr(fig, "_current_time")
     assert fig._current_time == 0.0
+    assert hasattr(fig.axes[0]._mne_axs[0], "time_cursor")
 
     # test time change event from subfig and main fig
     ui_events.publish(subfig, ui_events.TimeChange(time=0.1))
     assert ax._selectline.get_xdata()[0] == 0.1
     assert fig._current_time == 0.1
+    for subax in fig.axes[0]._mne_axs:
+        time = 0.1 * subax.x_s + subax.x_t
+        assert subax.time_cursor.get_xdata() == [time, time]
+
     ui_events.publish(subfig, ui_events.TimeChange(time=0.2))
     assert ax._selectline.get_xdata()[0] == 0.2
     assert fig._current_time == 0.2
+    for subax in fig.axes[0]._mne_axs:
+        time = 0.2 * subax.x_s + subax.x_t
+        assert subax.time_cursor.get_xdata() == [time, time]
 
     plt.close("all")
 

@@ -1327,6 +1327,7 @@ class BaseEpochs(
         overview_mode=None,
         splash=True,
         annotation_colors=None,
+        figure_class=None,
     ):
         return plot_epochs(
             self,
@@ -1354,6 +1355,7 @@ class BaseEpochs(
             overview_mode=overview_mode,
             splash=splash,
             annotation_colors=annotation_colors,
+            figure_class=figure_class,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
