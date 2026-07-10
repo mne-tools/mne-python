@@ -1501,6 +1501,9 @@ class _IpyWidget(_AbstractWdgt):
         for key, val in style.items():
             setattr(self._widget.layout, key, val)
 
+    def set_items(self, items):
+        self._widget.options = tuple(items)
+
 
 class _IpyAction(_AbstractAction):
     def trigger(self):

@@ -1406,6 +1406,10 @@ class _AbstractWdgt(ABC):
     def set_style(self, style):
         pass
 
+    @abstractmethod
+    def set_items(self, items):
+        pass
+
 
 class _AbstractAction(ABC):
     def __init__(self, action):

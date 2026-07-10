@@ -182,6 +182,78 @@ brain.add_text(
 #                  time_dilation=20, framerate=10, time_viewer=True)
 
 # %%
+# Overlay all four methods simultaneously
+# ----------------------------------------
+#
+# We compute all four inverse solutions and overlay them on the same
+# :class:`~mne.viz.Brain`.  Because the four methods operate on very different
+# amplitude scales (MNE/eLORETA in pA·m, dSPM/sLORETA as pseudo-Z scores),
+# we normalize each method's data to ``[0, 1]`` using its own 5th–95th
+# percentile range before overlaying so the colormaps are
+# comparable.
+#
+# :func:`~mne.viz.Brain.add_data` defaults to ``key="data"`` when no key is
+# supplied, which is what :func:`~mne.minimum_norm.apply_inverse` uses
+# internally.  We pass an explicit key for every layer so the "Overlay"
+# dropdown in the *Color Limits* panel shows meaningful names.
+
+overlay_configs = [
+    dict(method="dSPM", colormap="hot", alpha=0.6),
+    dict(method="MNE", colormap="Blues", alpha=0.6),
+    dict(method="sLORETA", colormap="Greens", alpha=0.6),
+    dict(method="eLORETA", colormap="Oranges", alpha=0.6),
+]
+
+surfer_kwargs_overlay = {k: v for k, v in surfer_kwargs.items() if k != "clim"}
+
+brain2 = None
+for i, cfg in enumerate(overlay_configs):
+    stc_i, _ = apply_inverse(
+        evoked,
+        inverse_operator,
+        lambda2,
+        method=cfg["method"],
+        pick_ori=None,
+        return_residual=True,
+        verbose=True,
+    )
+
+    data_rh = stc_i.rh_data
+    p5, p95 = np.percentile(data_rh, [5, 95])
+    data_rh_norm = np.clip((data_rh - p5) / (p95 - p5), 0, 1)
+
+    if brain2 is None:
+        # stc.plot() always adds data with the default key="data".  We create
+        # the Brain here, then immediately replace that overlay with a
+        # normalized version under the method's own key.
+        brain2 = stc_i.plot(
+            **surfer_kwargs_overlay,
+            clim=dict(kind="value", lims=[0.2, 0.5, 1.0]),
+            colormap=cfg["colormap"],
+            alpha=cfg["alpha"],
+        )
+
+    brain2.add_data(
+        data_rh_norm,
+        vertices=stc_i.rh_vertno,
+        hemi="rh",
+        fmin=0.96,
+        fmid=0.98,
+        fmax=1.0,
+        colormap=cfg["colormap"],
+        alpha=cfg["alpha"],
+        smoothing_steps=surfer_kwargs["smoothing_steps"],
+        time=stc_i.times,
+        initial_time=surfer_kwargs["initial_time"],
+        key=cfg["method"].lower(),
+        remove_existing=(i == 0),  # first pass removes the default "data" layer
+    )
+
+brain2.add_text(
+    0.1, 0.9, "MNE · dSPM · sLORETA · eLORETA overlay", "title", font_size=14
+)
+
+# %%
 # There are many other ways to visualize and work with source data, see
 # for example:
 #

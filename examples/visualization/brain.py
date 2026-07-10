@@ -219,8 +219,11 @@ brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 # alpha-composited by :class:`~mne.viz.LayeredMesh` so both datasets appear
 # at the same time.
 #
-# Here we simulate two focal patches of activity in different brain regions:
-# a temporal source (red/hot) and a frontal source (blue).
+# Here we simulate two focal patches of activity evolving over time in
+# different brain regions: a temporal source (red/hot) that peaks early and
+# a frontal source (blue) that peaks later.  In the interactive viewer an
+# "Overlay" drop-down appears in the *Color Limits* panel — use it to switch
+# which overlay's limits and smoothing the sliders control.
 
 brain = mne.viz.Brain(
     "sample",
