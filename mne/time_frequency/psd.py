@@ -257,37 +257,51 @@ def psd_array_welch(
         # Aligned NaNs across channels → treat as bad annotations.
         good_mask = ~nan_mask_full
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
-        all_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
-        # Drop good data spans shorter than n_per_seg: a single Welch window does not
-        # fit them. (Shrinking the window per-span would mix incompatible estimates,
-        # and passing them to SciPy as-is raises "noverlap must be less than
-        # nperseg".) Warn so the user can lower n_per_seg to keep them. See #13039.
-        x_splits = [span for span in all_splits if span.shape[-1] >= n_per_seg]
-        n_dropped = len(all_splits) - len(x_splits)
-        if n_dropped:
-            warn(
-                f"{n_dropped} good data span{_pl(n_dropped)} shorter than n_per_seg "
-                f"({n_per_seg}) {'was' if n_dropped == 1 else 'were'} excluded from "
-                "the PSD estimate; reduce n_per_seg (or n_fft) to include them."
-            )
+        x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
         if not x_splits:
             raise ValueError(
-                f"All good data spans are shorter than n_per_seg ({n_per_seg}); no "
-                "data is left to compute the PSD. Reduce n_per_seg (or n_fft)."
+                "No good data spans remain to compute the PSD (all samples are "
+                "excluded by bad annotations)."
             )
-        # weights reflect the number of samples used from each (kept) span; trailing
-        # samples beyond the last full window are discarded.
-        step = n_per_seg - n_overlap
-        weights = [
-            w - ((w - n_overlap) % step) for w in (s.shape[-1] for s in x_splits)
-        ]
+        # A good data span shorter than n_per_seg cannot hold a full-length Welch
+        # window. SciPy clamps nperseg down to the span length internally but leaves
+        # noverlap unchanged, then raises "noverlap must be less than nperseg"
+        # (#13039). Pre-empt that here: analyze each short span with a window shrunk
+        # to its own length and noverlap clamped below it. n_fft is left unchanged,
+        # so every span is zero-padded to the same length and shares one frequency
+        # grid; short spans simply get coarser spectral resolution. A per-span
+        # ``partial`` overrides the nperseg/noverlap baked into ``_func``.
+        funcs = []
+        weights = []
+        n_short = 0
+        for span in x_splits:
+            span_len = span.shape[-1]
+            if span_len < n_per_seg:
+                span_nperseg = span_len
+                span_noverlap = min(n_overlap, span_nperseg - 1)
+                n_short += 1
+            else:
+                span_nperseg = n_per_seg
+                span_noverlap = n_overlap
+            funcs.append(partial(_func, nperseg=span_nperseg, noverlap=span_noverlap))
+            # weight by the samples covered by whole windows (trailing remainder is
+            # discarded); a shrunk span contributes a single full-length window.
+            span_step = max(span_nperseg - span_noverlap, 1)
+            weights.append(span_len - ((span_len - span_noverlap) % span_step))
+        if n_short:
+            warn(
+                f"{n_short} good data span{_pl(n_short)} shorter than n_per_seg "
+                f"({n_per_seg}) {'was' if n_short == 1 else 'were'} analyzed with a "
+                "reduced window; spectral resolution is lower for "
+                f"{'that span' if n_short == 1 else 'those spans'}. Reduce n_per_seg "
+                "(or n_fft) to silence this warning."
+            )
         agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
             logger.info(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
                 '"bad_*" annotations. Parallelization may be sub-optimal.'
             )
-        func = _func
 
     else:
         # Either no NaNs, or NaNs are not aligned across channels.
@@ -298,10 +312,10 @@ def psd_array_welch(
             )
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
-        func = _func
+        funcs = [_func] * len(x_splits)
     f_spect = parallel(
-        my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
-        for d in x_splits
+        my_spect_func(d, func=fn, freq_sl=freq_sl, average=average, output=output)
+        for d, fn in zip(x_splits, funcs)
     )
     psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
