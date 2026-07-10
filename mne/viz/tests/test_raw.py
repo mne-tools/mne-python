@@ -354,7 +354,7 @@ def test_zero_line(raw, mpl_backend):
     assert len(fig.mne.zero_lines) == len(fig.mne.picks)
     for zero_line, offset in zip(fig.mne.zero_lines, fig.mne.trace_offsets):
         assert_allclose(zero_line.get_ydata(), (offset, offset))
-    assert_allclose(fig.mne.zero_lines[0].get_xdata(), fig.mne.ax_main.get_xlim())
+    assert_allclose(fig.mne.zero_lines[0].get_xdata(), (0, 1))
     # dashed while DC removal is on ("virtual" zero), solid once it's off (true zero)
     assert fig.mne.zero_lines[0].get_linestyle() == "--"
     fig._fake_keypress("d")

@@ -2231,9 +2231,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.zero_line_visible:
             if n_picks > len(self.mne.zero_lines):
                 n_new_chs = n_picks - len(self.mne.zero_lines)
-                new_zero_lines = self.mne.ax_main.plot(
-                    np.full((1, n_new_chs), np.nan), **self.mne.zero_line_kwargs
-                )
+                new_zero_lines = [
+                    self.mne.ax_main.axhline(np.nan, **self.mne.zero_line_kwargs)
+                    for _ in range(n_new_chs)
+                ]
                 self.mne.zero_lines.extend(new_zero_lines)
             extra_zero_lines = self.mne.zero_lines[n_picks:]
             for zero_line in extra_zero_lines:
@@ -2280,7 +2281,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             this_type = ch_types[ii]
             this_offset = offsets[ii]
             if self.mne.zero_line_visible:
-                self.mne.zero_lines[ii].set_xdata(time_range)
                 self.mne.zero_lines[ii].set_ydata((this_offset, this_offset))
                 self.mne.zero_lines[ii].set_linestyle(
                     "dashed" if self.mne.remove_dc else "solid"
