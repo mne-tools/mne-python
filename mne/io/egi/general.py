@@ -55,4 +55,3 @@ def _get_signalfname(filepath):
             f"found in {filepath}:\n{infofiles_str}"
         )
     return all_files
-
