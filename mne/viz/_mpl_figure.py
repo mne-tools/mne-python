@@ -220,6 +220,14 @@ class MNEFigure(Figure):
         """Handle buttonpress events."""
         pass
 
+    def _buttonrelease(self, event):
+        """Handle button release events."""
+        pass
+
+    def _mouse_move(self, event):
+        """Handle mouse motion events."""
+        pass
+
     def _scroll(self, event):
         """Handle scroll wheel events."""
         pass
@@ -245,6 +253,8 @@ class MNEFigure(Figure):
             resize_event=self._resize,
             key_press_event=self._keypress,
             button_press_event=self._buttonpress,
+            button_release_event=self._buttonrelease,
+            motion_notify_event=self._mouse_move,
             scroll_event=self._scroll,
             close_event=self._close,
             pick_event=self._pick,
@@ -655,6 +665,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch,
             hsel_patch=hsel_patch,
+            vscroll_drag_offset=None,
+            hscroll_drag_offset=None,
             vline=vline,
             vline_hscroll=vline_hscroll,
             vline_text=vline_text,
@@ -916,12 +928,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
                     self._change_selection_vscroll(event)
-                elif self._check_update_vscroll_clicked(event):
-                    self._redraw()
+                else:
+                    if self._check_update_vscroll_clicked(event):
+                        self._redraw()
+                    self.mne.vscroll_drag_offset = event.ydata - self.mne.ch_start
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
                     self._redraw(annotations=True)
+                self.mne.hscroll_drag_offset = event.xdata - self.mne.t_start
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -962,6 +977,46 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.canvas.draw_idle()
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
+
+    def _buttonrelease(self, event):
+        """Handle mouse button releases (end scrollbar handle drags)."""
+        self.mne.vscroll_drag_offset = None
+        self.mne.hscroll_drag_offset = None
+
+    def _mouse_move(self, event):
+        """Handle mouse motion (drag the scrollbar handles)."""
+        if self.mne.vscroll_drag_offset is not None:
+            if event.y is None:
+                return
+            ydata = self.mne.ax_vscroll.transData.inverted().transform((0, event.y))[1]
+            new_ch_start = np.clip(
+                int(round(ydata - self.mne.vscroll_drag_offset)),
+                0,
+                len(self.mne.ch_order) - self.mne.n_channels,
+            )
+            if self.mne.ch_start != new_ch_start:
+                self.mne.ch_start = new_ch_start
+                self._update_picks()
+                self._update_vscroll()
+                self._redraw()
+        elif self.mne.hscroll_drag_offset is not None:
+            if event.x is None:
+                return
+            xdata = self.mne.ax_hscroll.transData.inverted().transform((event.x, 0))[0]
+            time = xdata - self.mne.hscroll_drag_offset
+            max_time = (
+                self.mne.n_times / self.mne.info["sfreq"]
+                + self.mne.first_time
+                - self.mne.duration
+            )
+            time = np.clip(time, self.mne.first_time, max_time)
+            if self.mne.is_epochs:
+                ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
+                time = self.mne.boundary_times[ix]
+            if self.mne.t_start != time:
+                self.mne.t_start = time
+                self._update_hscroll()
+                self._redraw(annotations=True)
 
     def _scroll(self, event):
         """Handle scroll wheel events for channel navigation."""
