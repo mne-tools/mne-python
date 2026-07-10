@@ -188,9 +188,10 @@ def reset_modules(gallery_conf, fname, when):
         IPython.core.completer.__main__ = sys.modules["__main__"]
     except Exception:
         pass
-    request = Bunch()  # just give it something to say "we have done GC already"
-    request.node = Bunch()
-    gc_collect_once(request)  # dedupes the collects inside the checks below
+    # A plain collect (not the deduped one): dead figures must drop out of
+    # ui_events._event_channels (a WeakKeyDictionary) before the emptiness
+    # assert below.
+    gc.collect()
 
     # Agg does not call close_event so let's clean up on our own :(
     # https://github.com/matplotlib/matplotlib/issues/18609
@@ -205,6 +206,8 @@ def reset_modules(gallery_conf, fname, when):
     # to just test MNEQtBrowser
     skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
     prefix = ""
+    request = Bunch()  # just give it something to say "we have done GC already"
+    request.node = Bunch()
     global _vtk_snapshot
     if skips not in ("true", "1", "all"):
         prefix = "Clean "
@@ -217,6 +220,12 @@ def reset_modules(gallery_conf, fname, when):
             if inst is not None:
                 for _ in range(2):
                     inst.processEvents()
+        # This collect must come AFTER _cleanup_agg() above: an example's
+        # subscribed ui-events callback can be the last anchor of its whole
+        # object graph (channel dict -> callback -> __globals__ -> figures),
+        # and only cleanup breaks that loop. It is the once-per-reset collect
+        # that the checks below dedupe against (see gc_collect_once).
+        gc_collect_once(request)
         objs = gc.get_objects()  # scan the heap once, share across all checks
         if "brain" not in skips:
             assert_no_instances(Brain, when=when, request=request, objs=objs)
