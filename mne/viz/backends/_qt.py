@@ -1699,6 +1699,9 @@ class _QtWidget(_AbstractWdgt):
     def is_enabled(self):
         return self._widget.isEnabled()
 
+    def is_visible(self):
+        return self._widget.isVisible()
+
     def update(self, repaint=True):
         self._widget.update()
         if repaint:

@@ -1059,7 +1059,7 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
 
     # with a single overlay the selector widget should exist but be hidden
     assert "data_key" in brain.widgets
-    assert not brain.widgets["data_key"].isVisible()
+    assert not brain.widgets["data_key"].is_visible()
     assert brain._active_data_key == "data"
 
     # add a second overlay — widget should become visible and list both keys
@@ -1077,7 +1077,7 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
         key="overlay2",
         remove_existing=False,
     )
-    assert brain.widgets["data_key"].isVisible()
+    assert brain.widgets["data_key"].is_visible()
     assert brain._active_data_key == "overlay2"
 
     # switching the dropdown updates the active key and refreshes sliders

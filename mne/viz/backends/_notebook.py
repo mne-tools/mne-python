@@ -1486,6 +1486,9 @@ class _IpyWidget(_AbstractWdgt):
     def is_enabled(self):
         return not self._widget.disabled
 
+    def is_visible(self):
+        return self._widget.layout.visibility != "hidden"
+
     def update(self, repaint=True):
         pass
 
