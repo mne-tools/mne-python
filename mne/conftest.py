@@ -1315,12 +1315,21 @@ def nirx_snirf(request):
 def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    qapp.processEvents()
+    from qtpy.QtCore import QEvent
+
+    # pyvistaqt >= 0.11.3 deletes plotter windows via deleteLater on close;
+    # processEvents alone never dispatches those DeferredDelete events, so
+    # drain them symmetrically before counting and before re-counting (a
+    # pending deletion from an earlier test must not inflate n_before)
+    for _ in range(2):
+        qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     n_before = len(qapp.topLevelWidgets())
     yield
     for _ in range(2):
         qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     # Don't check when the test fails
     if not _test_passed(request):
