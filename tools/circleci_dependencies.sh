@@ -12,8 +12,8 @@ python -m pip install --upgrade --only-binary=:all: \
     --group=doc-full \
     "mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
     "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
-    "pyvista @ https://github.com/larsoner/pyvista/archive/refs/heads/gc.zip" \
-    "pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
+    "pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
+    "pyvistaqt @ https://github.com/larsoner/pyvistaqt/archive/refs/heads/qvtk-opengl-widget.zip" \
     "sphinx-gallery @ https://github.com/sphinx-gallery/sphinx-gallery/archive/refs/heads/master.zip" \
     -r doc/sphinxext/related_software.txt
 python -m pip install --upgrade --no-deps --only-binary=:all: \
