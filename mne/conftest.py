@@ -1083,6 +1083,17 @@ def brain_gc(request):
     snap = Snapshot(_is_vtk, label="VTK")
     yield
     close_func()
+    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+    # (deleteLater) on close; until Qt processes it, the C++ window object
+    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is not None:
+        for _ in range(2):
+            app.processEvents()
+            app.sendPostedEvents(None, QEvent.DeferredDelete)
     if not _test_passed(request):
         return
     # The collect must happen *before* list(Brain._instances) is evaluated:
