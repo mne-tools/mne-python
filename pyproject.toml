@@ -96,6 +96,7 @@ classifiers = [
   "License :: OSI Approved",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
   "Operating System :: POSIX",
   "Operating System :: Unix",
   "Programming Language :: Python :: 3",
@@ -114,13 +115,21 @@ dependencies = [
   "scipy >= 1.14",  # released 2024-06-24, will become 1.15 on 2027-01-03
   "tqdm >= 4.66",
 ]
-description = "MNE-Python project for MEG and EEG data analysis."
+description = "MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, machine learning, and statistics."
 dynamic = ["version"]
 keywords = [
   "brain",
+  "DBS",
+  "deep brain stimulation",
   "ECoG",
   "EEG",
+  "electrocorticography",
+  "electroencephalography",
   "fNIRS",
+  "functional near-infrared spectroscopy",
+  "iEEG",
+  "intracranial EEG",
+  "magnetoencephalography",
   "MEG",
   "neuroimaging",
   "neuroscience",
