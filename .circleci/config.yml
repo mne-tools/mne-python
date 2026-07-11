@@ -138,7 +138,9 @@ jobs:
           name: Check Qt
           command: |
             set -x
-            ./tools/check_qt_import.sh ${MNE_QT_BACKEND}
+            curl https://raw.githubusercontent.com/tsbinns/mne-tools/add_tools/tools/check_qt_import.sh -o check_qt_import.sh
+            chmod +x check_qt_import.sh
+            ./check_qt_import.sh $MNE_QT_BACKEND
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:

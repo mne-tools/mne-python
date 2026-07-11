@@ -78,13 +78,18 @@ stages:
         pool:
           vmImage: 'ubuntu-latest'
         variables:
+          MNE_TOOLS_DIR: '$(Pipeline.Workspace)/mne-tools'
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
           OMP_NUM_THREADS: '1'
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing
           MNE_BROWSER_PRECOMPUTE: 'false'
         steps:
-          - bash: ./tools/setup_xvfb.sh
+          - bash: |
+              set -xeo pipefail
+              git clone -b add_tools https://github.com/tsbinns/mne-tools.git "$MNE_TOOLS_DIR"
+            displayName: Clone mne-tools
+          - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
           - task: Cache@2
             inputs:
@@ -103,7 +108,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --only-binary=":all:" -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef
             displayName: Install dependencies with pip
-          - bash: ./tools/check_qt_import.sh PySide6
+          - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
           - bash: |
               set -xeo pipefail
@@ -131,12 +136,17 @@ stages:
         pool:
           vmImage: 'ubuntu-latest'
         variables:
+          MNE_TOOLS_DIR: '$(Pipeline.Workspace)/mne-tools'
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/gui mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/report"
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
         steps:
-          - bash: ./tools/setup_xvfb.sh
+          - bash: |
+              set -xeo pipefail
+              git clone -b add_tools https://github.com/tsbinns/mne-tools.git "$MNE_TOOLS_DIR"
+            displayName: Clone mne-tools
+          - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
           - task: UsePythonVersion@0
             inputs:
@@ -164,7 +174,7 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - bash: ./tools/check_qt_import.sh PySide6
+          - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
           - bash: |
               set -xeo pipefail

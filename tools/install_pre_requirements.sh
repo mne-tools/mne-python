@@ -2,7 +2,6 @@
 
 set -eo pipefail
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
@@ -69,5 +68,7 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 echo "::endgroup::"
 
 echo "::group::Check Qt import"
-${SCRIPT_DIR}/check_qt_import.sh "$MNE_QT_BACKEND"
+curl https://raw.githubusercontent.com/tsbinns/mne-tools/add_tools/tools/check_qt_import.sh -o check_qt_import.sh
+chmod +x check_qt_import.sh
+./check_qt_import.sh "$MNE_QT_BACKEND"
 echo "::endgroup::"
