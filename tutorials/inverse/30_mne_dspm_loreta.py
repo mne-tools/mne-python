@@ -189,19 +189,19 @@ brain.add_text(
 # :class:`~mne.viz.Brain`.  Because the four methods operate on very different
 # amplitude scales (MNE/eLORETA in pA·m, dSPM/sLORETA as pseudo-Z scores),
 # we normalize each method's data to ``[0, 1]`` using its own 5th–95th
-# percentile range before overlaying so the colormaps are
-# comparable.
+# percentile range before overlaying so the colormaps are comparable.
 #
 # :func:`~mne.viz.Brain.add_data` defaults to ``key="data"`` when no key is
 # supplied, which is what :func:`~mne.minimum_norm.apply_inverse` uses
 # internally.  We pass an explicit key for every layer so the "Overlay"
 # dropdown in the *Color Limits* panel shows meaningful names.
 
+
 overlay_configs = [
-    dict(method="dSPM", colormap="hot", alpha=0.6),
-    dict(method="MNE", colormap="Blues", alpha=0.6),
-    dict(method="sLORETA", colormap="Greens", alpha=0.6),
-    dict(method="eLORETA", colormap="Oranges", alpha=0.6),
+    dict(method="dSPM", colormap="Reds", alpha=1.0),
+    dict(method="MNE", colormap="Greens", alpha=0.7),
+    dict(method="sLORETA", colormap="Blues", alpha=0.4),
+    dict(method="eLORETA", colormap="RdPu", alpha=0.1),
 ]
 
 surfer_kwargs_overlay = {k: v for k, v in surfer_kwargs.items() if k != "clim"}
@@ -223,12 +223,9 @@ for i, cfg in enumerate(overlay_configs):
     data_rh_norm = np.clip((data_rh - p5) / (p95 - p5), 0, 1)
 
     if brain2 is None:
-        # stc.plot() always adds data with the default key="data".  We create
-        # the Brain here, then immediately replace that overlay with a
-        # normalized version under the method's own key.
         brain2 = stc_i.plot(
             **surfer_kwargs_overlay,
-            clim=dict(kind="value", lims=[0.2, 0.5, 1.0]),
+            clim=dict(kind="value", lims=[0.5, 0.75, 1.0]),
             colormap=cfg["colormap"],
             alpha=cfg["alpha"],
         )
@@ -237,8 +234,8 @@ for i, cfg in enumerate(overlay_configs):
         data_rh_norm,
         vertices=stc_i.rh_vertno,
         hemi="rh",
-        fmin=0.96,
-        fmid=0.98,
+        fmin=0.5,
+        fmid=0.75,
         fmax=1.0,
         colormap=cfg["colormap"],
         alpha=cfg["alpha"],
