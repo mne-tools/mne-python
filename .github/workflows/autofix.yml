@@ -19,16 +19,25 @@ jobs:
       - run: pip install --upgrade towncrier pygithub gitpython numpy
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - run: python ./tools/dev/ensure_headers.py
-      # - name: Generate citation
-      #  uses: tsbinns/mne-tools/actions/generate-citation@add_tools
-      #  with:
-      #    project-root: ${{ github.workspace }}
-      #    release-version: "1.13.0"
-      # - name: Generate codemeta
-      #  uses: tsbinns/mne-tools/actions/generate-codemeta@add_tools
-      #  with:
-      #    project-root: ${{ github.workspace }}
-      #    release-version: "1.13.0"
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
+  autofix-citation-codemeta:
+    ### TODO: Remove before merging ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    name: Autoupdate CITATION.cff and codemeta.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
+      - name: Generate citation
+        uses: tsbinns/mne-tools/actions/generate-citation@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          release-version: "1.13.0"
+      - name: Generate codemeta
+        uses: tsbinns/mne-tools/actions/generate-codemeta@add_tools
+        with:
+          project-root: ${{ github.workspace }}
+          release-version: "1.13.0"
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
   autofix-dependencies:
     name: Autoupdate 'old' CI lockfile, README dependencies, and environment file
