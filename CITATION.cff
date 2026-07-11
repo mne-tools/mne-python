@@ -2,14 +2,22 @@ cff-version: 1.2.0
 title: MNE-Python
 message: If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field.
 version: 1.13.0
-date-released: '2026-07-01'
-commit: 5f66c6e9f9102f0d7ec0bb051ef98bd71ed5a69f
+date-released: '2026-07-11'
+commit: 3f031eb7f37936b7b7eddee95c2430a467198e57
 doi: 10.5281/zenodo.592483
 keywords:
 - brain
+- DBS
+- deep brain stimulation
 - ECoG
 - EEG
+- electrocorticography
+- electroencephalography
 - fNIRS
+- functional near-infrared spectroscopy
+- iEEG
+- intracranial EEG
+- magnetoencephalography
 - MEG
 - neuroimaging
 - neuroscience
@@ -60,6 +68,8 @@ authors:
   given-names: Joan
 - family-names: Bekhti
   given-names: Yousra
+- family-names: Binns
+  given-names: Thomas S
 - family-names: Leggitt
   given-names: Alan
 - family-names: Dykstra
@@ -74,8 +84,6 @@ authors:
   given-names: Asish
 - family-names: Magnuski
   given-names: Mikołaj
-- family-names: Binns
-  given-names: Thomas S
 - family-names: Westner
   given-names: Britta
 - family-names: Wakeman
@@ -122,6 +130,8 @@ authors:
   given-names: José C
 - family-names: Orfanos
   given-names: Dimitri Papadopoulos
+- family-names: Khandelwal
+  given-names: Pragnya
 - family-names: Hauk
   given-names: Olaf
 - family-names: Maddox
@@ -135,8 +145,6 @@ authors:
 - family-names: Dumas
   given-names: Guillaume
 - name: Martin
-- family-names: Khandelwal
-  given-names: Pragnya
 - family-names: Benerradi
   given-names: Johann
 - family-names: Hartmann
@@ -302,6 +310,8 @@ authors:
   given-names: Nick
 - family-names: Kapralov
   given-names: Nikolai
+- family-names: Sadeghi-Shabestari
+  given-names: Payam
 - family-names: Chu
   given-names: Qian
 - family-names: Herbst
@@ -344,6 +354,7 @@ authors:
   given-names: Judy D
 - family-names: Eisenman
   given-names: Larry
+- name: Lifeng
 - family-names: Esch
   given-names: Lorenz
 - family-names: Dovgialo
@@ -352,7 +363,6 @@ authors:
   given-names: Nicolas
 - family-names: Legrand
   given-names: Nicolas
-- name: Payam
 - family-names: Molfese
   given-names: Peter J
 - family-names: Falach
@@ -377,8 +387,6 @@ authors:
   given-names: Victoria
 - family-names: Baratz
   given-names: Zvi
-- family-names: M
-  given-names: ATHISH
 - family-names: Tonin
   given-names: Alessandro
 - family-names: Kovrig
@@ -387,8 +395,12 @@ authors:
   given-names: Annalisa
 - family-names: Karekal
   given-names: Apoorva
+- family-names: M
+  given-names: Athish
 - family-names: de la Torre
   given-names: Carlos
+- family-names: Conday
+  given-names: Cedric
 - family-names: Gohil
   given-names: Chetan
 - family-names: Zhao
@@ -425,7 +437,6 @@ authors:
   given-names: Lenny
 - family-names: Hamilton
   given-names: Liberty
-- name: Lifeng
 - family-names: Gemein
   given-names: Lukas
 - family-names: Hecker
@@ -611,6 +622,8 @@ authors:
   given-names: Federico
 - family-names: Pop
   given-names: Florin
+- family-names: Robertson
+  given-names: Frankie
 - family-names: Weber
   given-names: Frederik D
 - family-names: Tan
@@ -907,6 +920,7 @@ authors:
 - name: buildqa
 - name: luzpaz
 - name: pjdurka
+- name: sametseckın
 - name: tcastillo
 - name: user27182
 preferred-citation:
