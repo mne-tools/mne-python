@@ -5,20 +5,28 @@
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "2026-07-03",
+    "dateModified": "2026-07-11",
     "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.13.0.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
     "version": "1.13.0",
-    "description": "MNE-Python project for MEG and EEG data analysis.",
+    "description": "MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, machine learning, and statistics.",
     "applicationCategory": "Neuroscience",
     "developmentStatus": "active",
     "referencePublication": "10.3389/fnins.2013.00267",
     "keywords": [
         "brain",
+        "DBS",
+        "deep brain stimulation",
         "ECoG",
         "EEG",
+        "electrocorticography",
+        "electroencephalography",
         "fNIRS",
+        "functional near-infrared spectroscopy",
+        "iEEG",
+        "intracranial EEG",
+        "magnetoencephalography",
         "MEG",
         "neuroimaging",
         "neuroscience"
@@ -27,6 +35,7 @@
         "Python"
     ],
     "operatingSystem": [
+        "Linux",
         "MacOS",
         "POSIX",
         "Unix",
@@ -38,10 +47,10 @@
         "jinja2 >= 3.1",
         "lazy_loader >= 0.3",
         "matplotlib >= 3.9",
-        "numpy >= 1.26, < 3",
+        "numpy >= 2.0, < 3",
         "packaging",
         "pooch >= 1.5",
-        "scipy >= 1.13",
+        "scipy >= 1.14",
         "tqdm >= 4.66"
     ],
     "author": [
@@ -185,6 +194,12 @@
         },
         {
             "@type": "Person",
+            "email": "t.s.binns@outlook.com",
+            "givenName": "Thomas S",
+            "familyName": "Binns"
+        },
+        {
+            "@type": "Person",
             "email": "leggitta3@gmail.com",
             "givenName": "Alan",
             "familyName": "Leggitt"
@@ -194,12 +209,6 @@
             "email": "andrew.r.dykstra@gmail.com",
             "givenName": "Andrew",
             "familyName": "Dykstra"
-        },
-        {
-            "@type": "Person",
-            "email": "t.s.binns@outlook.com",
-            "givenName": "Thomas S",
-            "familyName": "Binns"
         },
         {
             "@type": "Person",
@@ -371,6 +380,12 @@
         },
         {
             "@type": "Person",
+            "email": "prag1704@gmail.com",
+            "givenName": "Pragnya",
+            "familyName": "Khandelwal"
+        },
+        {
+            "@type": "Person",
             "email": "olaf.hauk@mrc-cbu.cam.ac.uk",
             "givenName": "Olaf",
             "familyName": "Hauk"
@@ -398,12 +413,6 @@
             "email": "chdinh@nmr.mgh.harvard.edu",
             "givenName": "Christoph",
             "familyName": "Dinh"
-        },
-        {
-            "@type": "Person",
-            "email": "prag1704@gmail.com",
-            "givenName": "Pragnya",
-            "familyName": "Khandelwal"
         },
         {
             "@type": "Person",
@@ -917,6 +926,12 @@
         },
         {
             "@type": "Person",
+            "email": "payam.sadeghi74@gmail.com",
+            "givenName": "Payam",
+            "familyName": "Sadeghi-Shabestari"
+        },
+        {
+            "@type": "Person",
             "email": "",
             "givenName": "Qian",
             "familyName": "Chu"
@@ -1043,6 +1058,12 @@
         },
         {
             "@type": "Person",
+            "email": "",
+            "givenName": "",
+            "familyName": "Lifeng"
+        },
+        {
+            "@type": "Person",
             "email": "Lorenz.Esch@tu-ilmenau.de",
             "givenName": "Lorenz",
             "familyName": "Esch"
@@ -1064,12 +1085,6 @@
             "email": "legrand@cyceron.fr",
             "givenName": "Nicolas",
             "familyName": "Legrand"
-        },
-        {
-            "@type": "Person",
-            "email": "payam.sadeghi74@gmail.com",
-            "givenName": "Payam",
-            "familyName": "Sadeghi-Shabestari"
         },
         {
             "@type": "Person",
@@ -1292,12 +1307,6 @@
             "email": "",
             "givenName": "Liberty",
             "familyName": "Hamilton"
-        },
-        {
-            "@type": "Person",
-            "email": "",
-            "givenName": "",
-            "familyName": "Lifeng"
         },
         {
             "@type": "Person",
@@ -1661,6 +1670,12 @@
         },
         {
             "@type": "Person",
+            "email": "",
+            "givenName": "Cedric",
+            "familyName": "Conday"
+        },
+        {
+            "@type": "Person",
             "email": "cclauss@me.com",
             "givenName": "Christian",
             "familyName": "Clauss"
@@ -1862,6 +1877,12 @@
             "email": "florinpop@me.com",
             "givenName": "Florin",
             "familyName": "Pop"
+        },
+        {
+            "@type": "Person",
+            "email": "",
+            "givenName": "Frankie",
+            "familyName": "Robertson"
         },
         {
             "@type": "Person",
@@ -2768,6 +2789,12 @@
             "email": "",
             "givenName": "",
             "familyName": "pjdurka"
+        },
+        {
+            "@type": "Person",
+            "email": "sametbaba6589@gmail.com",
+            "givenName": "",
+            "familyName": "sametseck\u0131n"
         },
         {
             "@type": "Person",
