@@ -434,6 +434,7 @@ brain.add_data(
     fmid=fmid_vis,
     fmax=fmax_vis,
     colormap="Blues",
+    transparent=True,
     alpha=0.8,
     time=stc_vis.times,
     initial_time=0.1,

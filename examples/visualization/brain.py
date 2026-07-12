@@ -249,6 +249,7 @@ brain.add_data(
     fmin=0.1,
     fmax=1.5,
     colormap="hot",
+    transparent=True,
     key="temporal",
     smoothing_steps=5,
 )
@@ -260,6 +261,7 @@ brain.add_data(
     fmin=0.1,
     fmax=0.6,
     colormap="Blues",
+    transparent=True,
     alpha=0.5,
     key="frontal",
     remove_existing=False,
