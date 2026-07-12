@@ -82,7 +82,7 @@ print(raw.info)
 # bad channel marking, annotations, projector toggling, etc.
 
 raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
-# raw.plot(duration=5, n_channels=30)
+raw.plot(duration=5, n_channels=30)
 
 # %%
 # Preprocessing
@@ -140,8 +140,8 @@ chs = [
     "EEG 008",
 ]
 chan_idxs = [raw.ch_names.index(ch) for ch in chs]
-# orig_raw.plot(order=chan_idxs, start=12, duration=4)
-# raw.plot(order=chan_idxs, start=12, duration=4)
+orig_raw.plot(order=chan_idxs, start=12, duration=4)
+raw.plot(order=chan_idxs, start=12, duration=4)
 
 # %%
 # .. _overview-tut-events-section:
