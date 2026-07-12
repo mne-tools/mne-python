@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
-from refleak.testing import assert_no_instances, gc_collect_once
+from refleak.testing import Snapshot, assert_no_instances, gc_collect_once
 
 # Any `assert` statements in our testing functions should be verbose versions
 register_assert_rewrite("mne.utils._testing")
@@ -41,6 +41,7 @@ from mne.utils import (
     Bunch,
     _check_qt_version,
     _chmod_rw_R,
+    _is_vtk,
     _pl,
     _record_warnings,
     _TempDir,
@@ -1077,36 +1078,34 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
-    ignore = set(id(o) for o in gc.get_objects())
-    vtk_ignores = ("vtkBuffer_IhE",)
+    # Snapshot stores only ids (pins nothing alive) so VTK objects that
+    # pre-date the test (e.g. held by module-level state) are never reported.
+    snap = Snapshot(_is_vtk, label="VTK")
     yield
     close_func()
+    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+    # (deleteLater) on close; until Qt processes it, the C++ window object
+    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is not None:
+        for _ in range(2):
+            app.processEvents()
+            app.sendPostedEvents(None, QEvent.DeferredDelete)
     if not _test_passed(request):
         return
+    # The collect must happen *before* list(Brain._instances) is evaluated:
+    # a Brain in a dead reference cycle is still in the WeakSet until
+    # collected, and the list would pin it alive and falsely report it.
     gc_collect_once(request)
     # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
     # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
     # scan of the whole process to check for lingering Brain instances.
     assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
-    # Check VTK -- these aren't individually tracked, so we still need a full
-    # heap scan here.
-    objs = gc.get_objects()
-    bad = list()
-    for o in objs:
-        try:
-            name = o.__class__.__name__
-        except Exception:  # old Python, probably
-            pass
-        else:
-            if (
-                name.startswith("vtk")
-                and name not in vtk_ignores
-                and id(o) not in ignore
-            ):
-                bad.append(name)
-        del o
-    del objs, ignore, Brain
-    assert len(bad) == 0, "VTK objects linger:\n" + "\n".join(bad)
+    # VTK objects aren't individually tracked, so this one is a full heap scan.
+    snap.assert_no_new("after", request=request)
 
 
 _files = list()
@@ -1316,12 +1315,21 @@ def nirx_snirf(request):
 def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    qapp.processEvents()
+    from qtpy.QtCore import QEvent
+
+    # pyvistaqt >= 0.11.3 deletes plotter windows via deleteLater on close;
+    # processEvents alone never dispatches those DeferredDelete events, so
+    # drain them symmetrically before counting and before re-counting (a
+    # pending deletion from an earlier test must not inflate n_before)
+    for _ in range(2):
+        qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     n_before = len(qapp.topLevelWidgets())
     yield
     for _ in range(2):
         qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     # Don't check when the test fails
     if not _test_passed(request):
