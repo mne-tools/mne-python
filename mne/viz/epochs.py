@@ -755,6 +755,7 @@ def plot_epochs(
     butterfly=False,
     show_scrollbars=True,
     show_scalebars=True,
+    show_zero_line=False,
     epoch_colors=None,
     event_id=None,
     group_by="type",
@@ -765,6 +766,7 @@ def plot_epochs(
     overview_mode=None,
     splash=True,
     annotation_colors=None,
+    figure_class=None,
 ):
     """Visualize epochs.
 
@@ -845,6 +847,7 @@ def plot_epochs(
     %(show_scalebars)s
 
         .. versionadded:: 0.24.0
+    %(show_zero_line)s
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : bool | dict
@@ -875,6 +878,9 @@ def plot_epochs(
         will trigger a warning. If ``None`` (default), automatic colors are used.
 
         .. versionadded:: 1.12.1
+    %(figure_class)s
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -1081,6 +1087,7 @@ def plot_epochs(
         clipping=None,
         scrollbars_visible=show_scrollbars,
         scalebars_visible=show_scalebars,
+        zero_line_visible=show_zero_line,
         window_title=title,
         xlabel="Epoch number",
         # pyqtgraph-specific
@@ -1089,6 +1096,7 @@ def plot_epochs(
         theme=theme,
         overview_mode=overview_mode,
         splash=splash,
+        figure_class=figure_class,
     )
 
     fig = _get_browser(show=show, block=block, **params)

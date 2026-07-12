@@ -40,6 +40,7 @@ data_dir = doc_root / "sphinxext"
 # Allowed singletons
 single_names = """
 btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot] varshaa-1616
+Farzah11
 """.strip().split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
@@ -55,6 +56,7 @@ name_counts = dict(
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
+    "Athish M",
     "Natneal B",
     "T. Wang",
     "Ziyi ZENG",
@@ -67,9 +69,11 @@ manual_renames = {
     "Akhilesh": "Akhilesh S. Yadav",  # 13639
     "Aniket": "Aniket Singh Yadav",  # 13672
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
+    "Baris": "Baris Talar",  # 13870
     "Basile": "Basile Pinsard",  # 1791
     "Bru": "Bruno Aristimunha",  # 13489
     "ChristinaZhao": "Christina Zhao",  # 9075
+    "Deep ": "Deep Kaur",  # 13846
     "Drew, J.": "Jordan Drew",  # 10861
     "enzo": "Enzo Altamiranda",  # 11351
     "Emma": "Emma Zhang",  # 13486
@@ -82,6 +86,7 @@ manual_renames = {
     "Hansuja ": "Hansuja Budhiraja",  # 13765
     "jwelzel": "Julius Welzel",  # 11118
     "Katia": "Katia Al-Amir",  # 13225
+    "Lifeng": "Lifeng Qiu Lin",  # 13797
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -236,6 +241,10 @@ def generate_credit_rst(app=None, *, verbose=False):
                     if author["e"]:
                         expected_bad_names[name] += f" email {author['e']}"
                 assert name.strip(), repr(name)
+                assert name == name.strip(), (
+                    f"Un-stripped name from {commit}, "
+                    f"add to manual_renames: {repr(name)}"
+                )
                 used_authors.add(name)
                 # treat moves and permission changes like a single-line change
                 if p == m == 0:
@@ -253,7 +262,6 @@ def generate_credit_rst(app=None, *, verbose=False):
     bad_names = set()
     for these_stats in stats.values():
         for name in these_stats:
-            assert name == name.strip(), f"Un-stripped name: {repr(name)}"
             last = name.split()[-1]
             first = name.split()[0]
             last_map[last].add(name)
@@ -281,6 +289,8 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
         and "50266005+mne-bot" not in email
+        and "copilot@github.com" not in email
+        and "noreply@anthropic.com" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
@@ -547,7 +557,7 @@ contributions by submodule as well below.
 {indent}{stat_lines}
 
 """
-    (doc_root / "code_credit.inc").write_text(content, encoding="utf-8")
+    (doc_root / "credits" / "code_credit.inc").write_text(content, encoding="utf-8")
 
 
 if __name__ == "__main__":

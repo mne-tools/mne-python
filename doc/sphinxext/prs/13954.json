@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "61ad91b0cc7ae49a4a8e841a4bbd21f1e319693e",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

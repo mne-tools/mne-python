@@ -314,7 +314,7 @@ def _check_complete_surface(surf, copy=False, incomplete="raise", extra=""):
         fewer = (fewer[:80] + ["..."]) if len(fewer) > 80 else fewer
         fewer = ", ".join(str(f) for f in fewer)
         msg = (
-            f"Surface {_bem_surf_name[surf['id']]} has topological defects: "
+            f"Surface {_bem_surf_name[surf['id']].strip()} has topological defects: "
             f"{len(fewer)} / {len(surf['rr'])} vertices have fewer than three "
             f"neighboring triangles [{fewer}]{extra}"
         )
@@ -1229,7 +1229,7 @@ def make_watershed_bem(
     .. versionadded:: 0.10
     """
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
-    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
+    tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
 
     subjects_dir = env["SUBJECTS_DIR"]  # Set by _prepare_env() above.
@@ -1313,7 +1313,19 @@ def make_watershed_bem(
         f"\nResults dir = {ws_dir}\nCommand = {' '.join(cmd)}\n"
     )
     os.makedirs(op.join(ws_dir))
-    run_subprocess_env(cmd)
+    try:
+        run_subprocess_env(cmd)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "FreeSurfer executable 'mri_watershed' not found.\n\n"
+            "This usually means FreeSurfer is not properly configured.\n"
+            "Make sure:\n"
+            "- FREESURFER_HOME is set\n"
+            "- $FREESURFER_HOME/bin is in your PATH\n"
+            "- You started Python/Jupyter from a terminal where "
+            "SetupFreeSurfer.sh is sourced\n\n"
+            "See https://mne.tools/stable/install/index.html for details."
+        ) from e
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
@@ -1986,12 +1998,12 @@ def convert_flash_mris(
 
     Notes
     -----
-    This function assumes that the Freesurfer segmentation of the subject
+    This function assumes that the FreeSurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """  # noqa: E501
     env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
-    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
+    tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
 
     mri_dir = Path(mri_dir)
@@ -2121,7 +2133,7 @@ def make_flash_bem(
     images acquired with spin angles of 5 and 30 degrees.
     """
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
-    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
+    tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
 
     mri_dir = Path(mri_dir)
@@ -2224,7 +2236,7 @@ def make_flash_bem(
         shutil.move(bem_dir / (surf + ".tri"), out_fname)
         nodes, tris = read_tri(out_fname, swap=True)
         # Do not write volume info here because the tris are already in
-        # standard Freesurfer coords
+        # standard FreeSurfer coords
         write_surface(op.splitext(out_fname)[0] + ".surf", nodes, tris, overwrite=True)
 
     # Cleanup section

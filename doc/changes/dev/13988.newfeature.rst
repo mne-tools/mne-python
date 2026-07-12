@@ -1,0 +1,1 @@
+Add mouse wheel scrolling support to the ``'matplotlib'`` browser backend to navigate through channels, by `Clemens Brunner`_.

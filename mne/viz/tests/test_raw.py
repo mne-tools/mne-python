@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
+from refleak.testing import assert_no_instances
 
 import mne
 from mne import Annotations, create_info, pick_types
@@ -21,7 +22,6 @@ from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.utils import (
-    _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
     catch_logging,
@@ -344,6 +344,33 @@ def test_scale_bar(browser_backend):
         browser_backend._close_all()
 
 
+def test_zero_line(raw, mpl_backend):
+    """Test toggling the zero line for raw (matplotlib backend only)."""
+    fig = raw.plot(remove_dc=True)
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+    fig._fake_keypress("0")
+    assert fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == len(fig.mne.picks)
+    # with DC removal on, the true zero generally differs from the trace offset
+    assert fig.mne.zero_line_offset is not None
+    assert not np.allclose(fig.mne.zero_lines[0].get_ydata(), fig.mne.trace_offsets[0])
+    for ii, (zero_line, offset) in enumerate(
+        zip(fig.mne.zero_lines, fig.mne.trace_offsets)
+    ):
+        true_zero = offset + fig.mne.zero_line_offset[ii] * fig.mne.scale_factor
+        assert_allclose(zero_line.get_ydata(), (true_zero, true_zero))
+    assert_allclose(fig.mne.zero_lines[0].get_xdata(), (0, 1))
+    fig._fake_keypress("d")  # turn DC removal off
+    assert not fig.mne.remove_dc
+    assert fig.mne.zero_line_offset is None
+    # with DC removal off, the true zero coincides with the trace offset again
+    assert_allclose(fig.mne.zero_lines[0].get_ydata(), (fig.mne.trace_offsets[0],) * 2)
+    fig._fake_keypress("0")  # toggle back off -> artists removed
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+
+
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
@@ -587,6 +614,32 @@ def test_plot_raw_keypresses(raw, browser_backend):
     _monkeypatch_fig(fig, browser_backend)
     for key in 2 * keys + ("escape",):
         fig._fake_keypress(key)
+
+
+def test_plot_raw_scroll(raw, browser_backend):
+    """Test scroll wheel channel navigation in raw.plot()."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    # use n_channels < total so there is room to scroll
+    fig = raw.plot(n_channels=3)
+    assert len(fig.mne.ch_order) > fig.mne.n_channels  # sanity check
+    # the sign of "step" that means "scroll down" differs between backends
+    down, up = (-1, 1) if browser_backend.name == "matplotlib" else (1, -1)
+    # scroll down moves ch_start forward by 1
+    ch_start_before = fig.mne.ch_start
+    fig._fake_scroll(0.5, 0.5, down)
+    assert fig.mne.ch_start == ch_start_before + 1
+    # scroll up moves ch_start back by 1
+    fig._fake_scroll(0.5, 0.5, up)
+    assert fig.mne.ch_start == ch_start_before
+    # scroll up at the top is a no-op (already at 0)
+    assert fig.mne.ch_start == 0
+    fig._fake_scroll(0.5, 0.5, up)
+    assert fig.mne.ch_start == 0
+    # scroll is a no-op in butterfly mode
+    fig._fake_keypress("b")
+    fig._fake_scroll(0.5, 0.5, down)
+    assert fig.mne.ch_start == 0
 
 
 def test_plot_raw_traces(raw, events, browser_backend):
@@ -1331,7 +1384,7 @@ def test_plotting_memory_garbage_collection(raw, pg_backend):
     from mne_qt_browser._pg_figure import MNEQtBrowser
 
     assert len(mne_qt_browser._browser_instances) == 0
-    _assert_no_instances(MNEQtBrowser, "after closing")
+    assert_no_instances(MNEQtBrowser, "after closing")
 
 
 def test_plotting_scalebars(browser_backend, qtbot):
@@ -1364,3 +1417,65 @@ def test_plotting_scalebars(browser_backend, qtbot):
         else:
             yvals = this_bar.get_ydata()
         assert_allclose(yvals, [ci - delta, ci + delta], err_msg=err_msg)
+
+
+@pytest.mark.parametrize("theme", ("light", "dark"))
+def test_raw_plot_theme(theme, mpl_backend):
+    """Test dark/light theme for the matplotlib browser backend."""
+    import matplotlib.colors as mcolors
+
+    from mne.viz._mpl_figure import (
+        _DARK_BAD_COLOR,
+        _DARK_BGCOLOR,
+        _DARK_CHANNEL_OVERRIDES,
+        _DARK_FGCOLOR,
+    )
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+    fig = raw.plot(theme=theme)
+
+    def _hex(c):
+        return mcolors.to_hex(c)
+
+    if theme == "dark":
+        assert _hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+        assert _hex(fig.mne.fgcolor) == _DARK_FGCOLOR
+        assert _hex(fig.mne.ch_color_bad) == _DARK_BAD_COLOR
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _DARK_CHANNEL_OVERRIDES["eeg"]
+        assert _hex(fig.patch.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_hscroll.get_facecolor()) == _DARK_BGCOLOR
+    else:  # light
+        assert _hex(fig.mne.bgcolor) == _hex("w")
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _hex("k")
+        assert _hex(fig.patch.get_facecolor()) == _hex("w")
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _hex("w")
+    plt.close("all")
+
+
+def test_raw_plot_theme_auto(mpl_backend, monkeypatch):
+    """Test theme="auto" resolves via _resolve_mpl_theme for the mpl backend."""
+    import matplotlib.colors as mcolors
+
+    import mne.viz._mpl_figure as mpl_fig
+    from mne.viz._mpl_figure import _DARK_BGCOLOR
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "dark")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+    plt.close("all")
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "light")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == mcolors.to_hex("w")
+    plt.close("all")

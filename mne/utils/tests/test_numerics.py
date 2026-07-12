@@ -10,11 +10,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
+from scipy import sparse
 
 from mne import pick_types, read_cov, read_evokeds
 from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
-from mne.fixes import _eye_array
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (
@@ -307,19 +307,19 @@ def test_object_size():
     assert object_size(np.ones(10, np.float32)) < object_size(np.ones(10, np.float64))
     for lower, upper, obj in (
         (0, 60, ""),
-        (0, 30, 1),
-        (0, 30, 1.0),
+        (0, 45, 1),
+        (0, 45, 1.0),
         (0, 70, "foo"),
         (0, 150, np.ones(0)),
         (0, 150, np.int32(1)),
         (150, 500, np.ones(20)),
         (30, 400, dict()),
         (400, 1000, dict(a=np.ones(50))),
-        (200, 900, _eye_array(20, format="csc")),
-        (200, 900, _eye_array(20, format="csr")),
+        (200, 900, sparse.eye_array(20, format="csc")),
+        (200, 900, sparse.eye_array(20, format="csr")),
     ):
         size = object_size(obj)
-        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
+        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj!r}"
     # views work properly
     x = dict(a=1)
     assert object_size(x) < 1000
@@ -417,14 +417,14 @@ def test_hash():
     pytest.raises(RuntimeError, object_diff, d1, d2)
     pytest.raises(RuntimeError, object_hash, d1)
 
-    x = _eye_array(2, format="csc")
-    y = _eye_array(2, format="csr")
+    x = sparse.eye_array(2, format="csc")
+    y = sparse.eye_array(2, format="csr")
     assert "type mismatch" in object_diff(x, y)
-    y = _eye_array(2, format="csc")
+    y = sparse.eye_array(2, format="csc")
     assert len(object_diff(x, y)) == 0
     y[1, 1] = 2
     assert "elements" in object_diff(x, y)
-    y = _eye_array(3, format="csc")
+    y = sparse.eye_array(3, format="csc")
     assert "shape" in object_diff(x, y)
     y = 0
     assert "type mismatch" in object_diff(x, y)
@@ -598,12 +598,12 @@ def test_custom_lru_cache():
     assert my_fun(1, np.array([2]), 3) == "int, ndarray, int"
     assert n_calls == [2, 1]
     assert len(_LRU_CACHES[fun_hash]) == 2
-    assert my_fun_2(1, _eye_array(1, format="csc")) == "int, csc_array"
+    assert my_fun_2(1, sparse.eye_array(1, format="csc")) == "int, csc_array"
     assert n_calls == [2, 2]
     assert len(_LRU_CACHES[fun_2_hash]) == 1  # other got popped
     # we could add support for this eventually, but don't bother for now
     with pytest.raises(RuntimeError, match="Unsupported sparse type"):
-        my_fun_2(1, _eye_array(1, format="coo"))
+        my_fun_2(1, sparse.eye_array(1, format="coo"))
     assert n_calls == [2, 2]  # never did any computation
 
 

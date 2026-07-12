@@ -979,6 +979,11 @@ class BaseEpochs(
         copy : bool
             If False copies of data and measurement info will be omitted
             to save time.
+
+        Yields
+        ------
+        evoked : instance of Evoked
+            The epochs as a sequence of Evoked objects, one per epoch.
         """
         self.__iter__()
 
@@ -1312,6 +1317,7 @@ class BaseEpochs(
         butterfly=False,
         show_scrollbars=True,
         show_scalebars=True,
+        show_zero_line=False,
         epoch_colors=None,
         event_id=None,
         group_by="type",
@@ -1322,6 +1328,7 @@ class BaseEpochs(
         overview_mode=None,
         splash=True,
         annotation_colors=None,
+        figure_class=None,
     ):
         return plot_epochs(
             self,
@@ -1340,6 +1347,7 @@ class BaseEpochs(
             butterfly=butterfly,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             epoch_colors=epoch_colors,
             event_id=event_id,
             group_by=group_by,
@@ -1349,6 +1357,7 @@ class BaseEpochs(
             overview_mode=overview_mode,
             splash=splash,
             annotation_colors=annotation_colors,
+            figure_class=figure_class,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
@@ -1969,7 +1978,7 @@ class BaseEpochs(
 
         Parameters
         ----------
-        %(fun_applyfun)s
+        %(fun_applyfun_epochs)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
         %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
@@ -2040,7 +2049,7 @@ class BaseEpochs(
                 for run_idx, ch_idx in enumerate(picks):
                     self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:
-            self._data = _check_fun(fun, data_in, **kwargs)
+            self._data[:, picks, :] = _check_fun(fun, data_in[:, picks, :], **kwargs)
 
         return self
 
