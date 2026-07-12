@@ -1285,6 +1285,11 @@ class QFloatSlider(QSlider):
         """Set the maximum."""
         super().setMaximum(int(value * self._precision))
 
+    def setRange(self, minimum, maximum):
+        """Set the range using float values."""
+        self.setMinimum(minimum)
+        self.setMaximum(maximum)
+
     def value(self):
         """Get the current value."""
         return super().value() / self._precision
@@ -1694,6 +1699,9 @@ class _QtWidget(_AbstractWdgt):
     def is_enabled(self):
         return self._widget.isEnabled()
 
+    def is_visible(self):
+        return self._widget.isVisible()
+
     def update(self, repaint=True):
         self._widget.update()
         if repaint:
@@ -1712,6 +1720,12 @@ class _QtWidget(_AbstractWdgt):
         for key, val in style.items():
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
+
+    def set_items(self, items):
+        self._widget.blockSignals(True)
+        self._widget.clear()
+        self._widget.addItems(items)
+        self._widget.blockSignals(False)
 
 
 class _QtDialogCommunicator(QObject):
