@@ -660,14 +660,42 @@ def test_plot_raw_traces(raw, events, browser_backend):
     fig._fake_click((0.5, 0.05), ax=vscroll)  # change channels to end
     labels = fig._get_ticklabels("y")
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
-    for _ in (0, 0):
-        # first click changes channels to mid; second time shouldn't change
-        # This needs to be changed for Qt, because there scrollbars are
-        # drawn differently (value of slider at lower end, not at middle)
+    for _ in range(2):  # first click jumps to mid, second is a no-op (already there)
+        # mpl centers the handle on the click; Qt's QScrollBar positions the handle at
+        # its low end, hence the different target for Qt
         yclick = 0.5 if ismpl else 0.7
         fig._fake_click((0.5, yclick), ax=vscroll)
         labels = fig._get_ticklabels("y")
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
+
+    # Qt scrollbars are native QScrollBar widgets, so dragging them is already handled
+    # by Qt itself; here we only need to test the custom drag handling added for the
+    # 'matplotlib' scrollbars.
+    if ismpl:
+        # dragging the vertical scrollbar handle
+        n_channels = fig.mne.n_channels
+        ch_start = fig.mne.ch_start
+        center = ch_start + n_channels / 2
+        fig._fake_click((0.5, center), ax=vscroll, xform="data", kind="press")
+        fig._fake_click((0.5, center + 1), ax=vscroll, xform="data", kind="motion")
+        assert fig.mne.ch_start == ch_start + 1
+        fig._fake_click((0.5, center + 1), ax=vscroll, xform="data", kind="release")
+        # further motion after release should be a no-op
+        fig._fake_click((0.5, center + 5), ax=vscroll, xform="data", kind="motion")
+        assert fig.mne.ch_start == ch_start + 1
+
+        # dragging the horizontal scrollbar handle
+        duration = fig.mne.duration
+        t_start = fig.mne.t_start
+        center = t_start + duration / 2
+        fig._fake_click((center, 0.5), ax=hscroll, xform="data", kind="press")
+        fig._fake_click((center + 1, 0.5), ax=hscroll, xform="data", kind="motion")
+        assert fig.mne.t_start == pytest.approx(t_start + 1, abs=0.05)
+        fig._fake_click((center + 1, 0.5), ax=hscroll, xform="data", kind="release")
+        dragged_t_start = fig.mne.t_start
+        # further motion after release should be a no-op
+        fig._fake_click((center + 5, 0.5), ax=hscroll, xform="data", kind="motion")
+        assert fig.mne.t_start == dragged_t_start
 
     # test clicking a channel name in butterfly mode
     bads = fig.mne.info["bads"].copy()
