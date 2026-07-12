@@ -418,13 +418,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
-    on_outside : 'raise' | 'warn' | 'ignore'
-        What to do if an event's sample number falls outside the recorded data
-        range. Such events yield no epoch and are dropped. Can be ``'raise'``
-        to raise an error, ``'warn'`` (default) to emit a warning, or
-        ``'ignore'`` to do nothing.
-
-        .. versionadded:: 1.13
+    %(on_outside_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -469,8 +463,8 @@ class BaseEpochs(
         filename=None,
         metadata=None,
         event_repeated="error",
-        on_outside="warn",
         *,
+        on_outside="warn",
         raw_sfreq=None,
         annotations=None,
         verbose=None,
@@ -543,6 +537,10 @@ class BaseEpochs(
                 self.drop_log,
             )
 
+            # Warn if any events fall outside the recorded data range (gh-12989),
+            # now that selection and repeated-event handling have been applied.
+            self._check_events_outside_data(on_outside, raw)
+
             # then subselect
             sub = np.where(np.isin(selection, self.selection))[0]
             if isinstance(metadata, list):
@@ -583,7 +581,6 @@ class BaseEpochs(
         self.detrend = detrend
 
         self._raw = raw
-        self._oob_check(on_outside)
         info._check_consistency()
         self.picks = _picks_to_idx(
             info, picks, none="all", exclude=(), allow_empty=False
@@ -700,24 +697,20 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def _oob_check(self, on_outside):
-        """Warn when event sample numbers fall outside recorded data (gh-12989)."""
-        if (
-            self._raw is not None
-            and len(self.events) > 0
-            and hasattr(self._raw, "first_samp")
-        ):
-            lo = self._raw.first_samp
-            hi = lo + self._raw.n_times
+    def _check_events_outside_data(self, on_outside, raw):
+        """Warn when events fall outside the range of the recorded data (gh-12989)."""
+        if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
+            lo = raw.first_samp
+            hi = lo + raw.n_times
             n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
             if n_oob:
                 _on_missing(
                     on_outside,
-                    f"{n_oob} event{_pl(n_oob)} {'has' if n_oob == 1 else 'have'} a "
-                    "sample number outside the recorded data; the corresponding "
-                    f"epoch{_pl(n_oob)} will be dropped. This can happen if the "
-                    "events were created at a different sampling frequency, or "
-                    "contain sample numbers before first_samp.",
+                    f"{n_oob} event{_pl(n_oob)} {'is' if n_oob == 1 else 'are'} "
+                    f"outside the data range; the corresponding epoch{_pl(n_oob)} "
+                    "cannot be created. This can happen if the events were created at "
+                    "a different sampling frequency, or have entries before "
+                    "first_samp.",
                     name="on_outside",
                 )
 
@@ -3517,13 +3510,7 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
-    on_outside : 'raise' | 'warn' | 'ignore'
-        What to do if an event's sample number falls outside the recorded data
-        range. Such events yield no epoch and are dropped. Can be ``'raise'``
-        to raise an error, ``'warn'`` (default) to emit a warning, or
-        ``'ignore'`` to do nothing.
-
-        .. versionadded:: 1.13
+    %(on_outside_epochs)s
     %(verbose)s
 
     Attributes
@@ -3768,13 +3755,7 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
-    on_outside : 'raise' | 'warn' | 'ignore'
-        What to do if an event's sample number falls outside the recorded data
-        range. Such events yield no epoch and are dropped. Can be ``'raise'``
-        to raise an error, ``'warn'`` (default) to emit a warning, or
-        ``'ignore'`` to do nothing.
-
-        .. versionadded:: 1.13
+    %(on_outside_epochs)s
     %(drop_log)s
 
         .. versionadded:: 1.3

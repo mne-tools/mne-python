@@ -1436,6 +1436,15 @@ event_repeated : str
     .. versionadded:: 0.19
 """
 
+docdict["on_outside_epochs"] = """
+on_outside : 'raise' | 'warn' | 'ignore'
+    What to do if an event falls outside the range of the recorded data, so that
+    the corresponding epoch cannot be created. Can be ``'raise'`` to raise an
+    error, ``'warn'`` (default) to emit a warning, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
+"""
+
 _events_template = """
 events : ndarray of int, shape (n_events, 3){or_none}
     The identity and timing of experimental events, around which the epochs were
