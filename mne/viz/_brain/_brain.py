@@ -2026,6 +2026,7 @@ class Brain:
         self._all_data[key]["fmin"] = fmin
         self._all_data[key]["fmid"] = fmid
         self._all_data[key]["fmax"] = fmax
+        self.set_time_interpolation(self.time_interpolation)
         self._update_colormap_range()
 
         if "data_key" in self.widgets:
@@ -2050,7 +2051,6 @@ class Brain:
         # 2) update time and smoothing properties
         # set_data_smoothing calls "_update_current_time_idx" for us, which will set
         # _current_time
-        self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._all_data[key]["smoothing_steps"])
 
         # 3) add the other actors
@@ -3769,14 +3769,9 @@ class Brain:
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:
-                        # Stage scalars directly without triggering a per-overlay
-                        # recompose; a single mesh.update() below handles all of them
-                        # in O(N) instead of O(N²).
-                        overlay = mesh._overlays[data_key]
-                        scalars = np.asarray(act_data)
-                        if mesh.smooth_mat is not None:
-                            scalars = mesh.smooth_mat.dot(scalars)
-                        overlay._scalars = scalars
+                        # Stage without recomposing; a single mesh.update() below
+                        # handles all overlays in O(N) instead of O(N²).
+                        mesh.update_overlay(data_key, scalars=act_data, update=False)
                         hemi_needs_recompose = True
                     else:
                         mesh.add_overlay(

@@ -82,7 +82,7 @@ print(raw.info)
 # bad channel marking, annotations, projector toggling, etc.
 
 raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
-raw.plot(duration=5, n_channels=30)
+# raw.plot(duration=5, n_channels=30)
 
 # %%
 # Preprocessing
@@ -140,8 +140,8 @@ chs = [
     "EEG 008",
 ]
 chan_idxs = [raw.ch_names.index(ch) for ch in chs]
-orig_raw.plot(order=chan_idxs, start=12, duration=4)
-raw.plot(order=chan_idxs, start=12, duration=4)
+# orig_raw.plot(order=chan_idxs, start=12, duration=4)
+# raw.plot(order=chan_idxs, start=12, duration=4)
 
 # %%
 # .. _overview-tut-events-section:
@@ -402,6 +402,43 @@ subjects_dir = sample_data_folder / "subjects"
 # plot the STC
 stc.plot(
     initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
+)
+
+##############################################################################
+# We can also display multiple conditions on the same brain. Here we compare
+# auditory (red) and visual (blue) MNE solutions on the right hemisphere.
+# The "Overlay" dropdown in the time viewer lets you inspect each layer
+# independently:
+
+stc_aud = mne.minimum_norm.apply_inverse(
+    aud_evoked, inv_operator, lambda2=lambda2, method="dSPM"
+)
+stc_vis = mne.minimum_norm.apply_inverse(
+    vis_evoked, inv_operator, lambda2=lambda2, method="dSPM"
+)
+brain = stc_aud.plot(
+    initial_time=0.1,
+    hemi="rh",
+    views="lat",
+    subjects_dir=subjects_dir,
+    colormap="Reds",
+    alpha=0.8,
+    add_data_kwargs=dict(key="auditory"),
+)
+fmin_vis, fmid_vis, fmax_vis = np.percentile(stc_vis.rh_data, [50, 90, 99])
+brain.add_data(
+    stc_vis.rh_data,
+    vertices=stc_vis.rh_vertno,
+    hemi="rh",
+    fmin=fmin_vis,
+    fmid=fmid_vis,
+    fmax=fmax_vis,
+    colormap="Blues",
+    alpha=0.8,
+    time=stc_vis.times,
+    initial_time=0.1,
+    key="visual",
+    remove_existing=False,
 )
 
 ##############################################################################
