@@ -40,15 +40,39 @@ def _smart_ged(S, R, restr_mat=None, R_func=None):
     to the original space. The g-eigenvectors matrix is of shape (n_chs, r).
     If callable R_func is provided the GED will be performed on (S, R_func(S,R))
     """
+    # Array API Standard support for hardware acceleration (TPU/GPU)
+    if hasattr(S, "__array_namespace__"):
+        xp = S.__array_namespace__()
+    else:
+        import numpy as xp
+
     if restr_mat is None:
-        evals, evecs = scipy.linalg.eigh(S, R)
-        return evals, evecs
+        if xp.__name__ == 'numpy':
+            evals, evecs = scipy.linalg.eigh(S, R)
+            return evals, evecs
+        else:
+            # Hardware-accelerated Cholesky path since eigh(A,B) is not in Array API
+            L = xp.linalg.cholesky(R)
+            L_inv = xp.linalg.inv(L)
+            C = L_inv @ S @ L_inv.T
+            evals, evecs_C = xp.linalg.eigh(C)
+            evecs = L_inv.T @ evecs_C
+            return evals, evecs
 
     S_restr = restr_mat @ S @ restr_mat.T
     R_restr = restr_mat @ R @ restr_mat.T
     if R_func is not None:
         R_restr = R_func([S_restr, R_restr])
-    evals, evecs_restr = scipy.linalg.eigh(S_restr, R_restr)
+        
+    if xp.__name__ == 'numpy':
+        evals, evecs_restr = scipy.linalg.eigh(S_restr, R_restr)
+    else:
+        L = xp.linalg.cholesky(R_restr)
+        L_inv = xp.linalg.inv(L)
+        C = L_inv @ S_restr @ L_inv.T
+        evals, evecs_C = xp.linalg.eigh(C)
+        evecs_restr = L_inv.T @ evecs_C
+        
     evecs = restr_mat.T @ evecs_restr
 
     return evals, evecs
