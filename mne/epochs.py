@@ -4622,15 +4622,26 @@ def _concatenate_epochs(
             )
 
         # compare event_id
-        common_keys = list(set(event_id).intersection(set(epochs.event_id)))
-        for key in common_keys:
-            if not event_id[key] == epochs.event_id[key]:
-                msg = (
-                    "event_id values must be the same for identical keys "
-                    'for all concatenated epochs. Key "{}" maps to {} in '
-                    "some epochs and to {} in others."
-                )
-                raise ValueError(msg.format(key, event_id[key], epochs.event_id[key]))
+        for kind in ("keys", "values"):
+            a = event_id
+            b = epochs.event_id
+            if kind == "keys":
+                other = "values"
+                what = "maps to"
+            else:
+                assert kind == "values"
+                other = "keys"
+                what = "is mapped from"
+                a = {v: k for k, v in a.items()}
+                b = {v: k for k, v in b.items()}
+            common = list(set(a).intersection(set(b)))
+            for k_v in common:
+                if not a[k_v] == b[k_v]:
+                    raise ValueError(
+                        f"event_id {other} must be the same for identical {kind} "
+                        f'for all concatenated epochs. {other} "{k_v}" {what} {a[k_v]} '
+                        f"in epochs_list[0] and to {b[k_v]} in epochs_list[{ii}]."
+                    )
 
         if with_data:
             epochs.drop_bad()
