@@ -3221,10 +3221,10 @@ on_missing : 'raise' | 'warn' | 'ignore'
 """
 
 docdict["on_outside_epochs"] = """
-on_outside : 'raise' | 'warn' | 'ignore'
-    What to do if an event falls outside the range of the recorded data, so that
-    the corresponding epoch cannot be created. Can be ``'raise'`` to raise an
-    error, ``'warn'`` (default) to emit a warning, or ``'ignore'`` to do nothing.
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
 
     .. versionadded:: 1.13
 """

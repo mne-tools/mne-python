@@ -537,8 +537,7 @@ class BaseEpochs(
                 self.drop_log,
             )
 
-            # Warn if any events fall outside the recorded data range (gh-12989),
-            # now that selection and repeated-event handling have been applied.
+            # Handle events outside the data range
             self._check_events_outside_data(on_outside, raw)
 
             # then subselect
