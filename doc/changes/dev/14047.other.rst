@@ -1,0 +1,1 @@
+Remove dead placeholder keys ``gain``, ``bits``, and ``value_range`` from ``_read_header`` in ``egimff.py``; these were hardcoded to zero and unused since MFF calibration is handled via ``CAL_SCALES``, by `Pragnya Khandelwal`_.
