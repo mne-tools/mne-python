@@ -471,3 +471,6 @@ div.sphx-glr-animation video {
 .bd-article-container {
     max-width: 75em;
 }
+.bd-main .bd-content {
+    justify-content: flex-start;
+}
