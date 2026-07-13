@@ -45,6 +45,7 @@ __all__ = [
     "regress_artifact",
     "write_fine_calibration",
     "apply_pca_obs",
+    "GED",
 ]
 from . import eyetracking, ieeg, nirs
 from ._annotate_amplitude import annotate_amplitude
@@ -68,6 +69,7 @@ from .artifact_detection import (
 )
 from .ecg import create_ecg_epochs, find_ecg_events
 from .eog import create_eog_epochs, find_eog_events
+from .ged import GED
 from .hfc import compute_proj_hfc
 from .ica import (
     ICA,
