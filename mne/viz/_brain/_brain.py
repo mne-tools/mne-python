@@ -551,6 +551,12 @@ class Brain:
         'Down': Increase camera elevation angle
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
+
+        When multiple overlays are active (added via
+        :meth:`add_data` with ``remove_existing=False``), an **Overlay**
+        drop-down menu appears in the *Color Limits* dock panel.  Selecting
+        an entry from that menu switches which overlay's ``fmin`` / ``fmid``
+        / ``fmax`` sliders and smoothing control are active.
         """
         if self.time_viewer:
             return
@@ -719,6 +725,8 @@ class Brain:
 
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
+        if self._data is not None:
+            self._update_current_time_idx(self._data["time_idx"])
         self._update_auto_scaling()
 
     def restore_user_scaling(self):
@@ -859,11 +867,28 @@ class Brain:
         )
 
     def _configure_dock_colormap_widget(self, name):
+        self._active_data_key = next(iter(self._all_data))
         fmax, fscale, fscale_power = _get_range(self)
         rng = [0, fmax * fscale]
         self._data["fscale"] = fscale
 
         layout = self._renderer._dock_add_group_box(name)
+
+        @_auto_weakref
+        def select_data_key(value):
+            self._active_data_key = value
+            self._refresh_colormap_widgets()
+
+        self.widgets["data_key"] = self._renderer._dock_add_combo_box(
+            name="Overlay",
+            value=self._active_data_key,
+            rng=list(self._all_data.keys()),
+            callback=select_data_key,
+            layout=layout,
+        )
+        if len(self._all_data) <= 1:
+            self.widgets["data_key"].hide()
+
         text = "min / mid / max"
         if fscale_power != 0:
             text += f" (×1e{fscale_power:d})"
@@ -907,7 +932,7 @@ class Brain:
         )
         self.widgets["reset"] = self._renderer._dock_add_button(
             name="↺",
-            callback=self.restore_user_scaling,
+            callback=self.apply_auto_scaling,
             layout=hlayout,
             style="toolbutton",
         )
@@ -934,6 +959,31 @@ class Brain:
             style="toolbutton",
         )
         self._renderer._layout_add_widget(layout, hlayout)
+        self._update_colormap_range()
+
+    def _refresh_colormap_widgets(self):
+        """Sync colormap dock widgets with the currently active overlay."""
+        if self._data is None or "fmin" not in self.widgets:
+            return
+        fmax, fscale, fscale_power = _get_range(self)
+        self._data["fscale"] = fscale
+        rng = [0, fmax * fscale]
+        with disable_ui_events(self):
+            for key in ("fmin", "fmid", "fmax"):
+                val = self._data[key] * fscale
+                self.widgets[key].set_range(rng)
+                self.widgets[key].set_value(val)
+                self.widgets[f"entry_{key}"].set_range(rng)
+                self.widgets[f"entry_{key}"].set_value(val)
+            if "smoothing" in self.widgets:
+                self.widgets["smoothing"].set_value(self._data["smoothing_steps"])
+        # Force the brain and colorbar to reflect the newly active overlay.
+        self._update_colormap_range(
+            fmin=self._data["fmin"],
+            fmid=self._data["fmid"],
+            fmax=self._data["fmax"],
+        )
+        self._renderer._process_events()
 
     def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
@@ -1060,23 +1110,38 @@ class Brain:
         else:
             self.clear_glyphs()
 
-        # plot RMS of the activation
-        y = np.concatenate(
-            list(v[0] for v in self.act_data_smooth.values() if v[0] is not None)
-        )
-        rms = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
-        del y
-
-        (self.rms,) = self.mpl_canvas.axes.plot(
-            self._data["time"],
-            rms,
-            lw=3,
-            label="RMS",
-            zorder=3,
-            color=self._fg_color,
-            alpha=0.5,
-            ls=":",
-        )
+        # Plot one RMS curve per overlay so the viewer shows all overlays.
+        self.rms = []
+        multi = len(self._all_data) > 1
+        for overlay_key, overlay_data in self._all_data.items():
+            y_parts = []
+            for hemi_key in ["lh", "rh", "vol"]:
+                hemi_data = overlay_data.get(hemi_key)
+                if hemi_data is None:
+                    continue
+                arr = hemi_data["array"]
+                if arr.ndim == 1:
+                    continue  # static data — no time axis
+                if arr.ndim == 3:
+                    arr = np.linalg.norm(arr, axis=1)
+                y_parts.append(arr)
+            if not y_parts:
+                continue
+            y = np.concatenate(y_parts)
+            rms = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
+            del y
+            label = f"RMS ({overlay_key})" if multi else "RMS"
+            (line,) = self.mpl_canvas.axes.plot(
+                overlay_data["time"],
+                rms,
+                lw=3,
+                label=label,
+                zorder=3,
+                color=next(self.color_cycle),
+                alpha=0.5,
+                ls=":",
+            )
+            self.rms.append(line)
 
         # now plot the time line
         self.plot_time_line(update=False)
@@ -1340,6 +1405,7 @@ class Brain:
                 if "current_time" in self.widgets:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
+        self._renderer._process_events()
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -1360,9 +1426,12 @@ class Brain:
                         self.widgets[entry_key].set_value(val * self._data["fscale"])
         # Update the render.
         self._update_colormap_range(**lims)
+        self._renderer._process_events()
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
+        if self._data is None:
+            return
         if event.hemi == "vol":
             try:
                 mesh = self._data[event.hemi]["grid"]
@@ -1500,7 +1569,8 @@ class Brain:
                 self._remove_label_glyph(hemi, label_id)
         assert sum(len(v) for v in self._picked_patches.values()) == 0
         if self.rms is not None:
-            self.rms.remove()
+            for line in self.rms:
+                line.remove()
             self.rms = None
         self._renderer._update()
 
@@ -1819,7 +1889,11 @@ class Brain:
             (e.g., ``dict(title_font_size=10)``).
         key : str
             Key used to identify this data overlay in
-            ``Brain.layered_meshes``. Defaults to ``"data"``.
+            ``Brain.layered_meshes``. Defaults to ``"data"``.  When multiple
+            overlays are present (``remove_existing=False``), each overlay
+            must have a distinct key; the key also becomes the label shown in
+            the **Overlay** drop-down in the interactive time viewer (see
+            :meth:`setup_time_viewer`).
 
             .. versionadded:: 1.12
         %(verbose)s
@@ -1952,7 +2026,16 @@ class Brain:
         self._all_data[key]["fmin"] = fmin
         self._all_data[key]["fmid"] = fmid
         self._all_data[key]["fmax"] = fmax
+        self.set_time_interpolation(self.time_interpolation)
         self._update_colormap_range()
+
+        if "data_key" in self.widgets:
+            keys = list(self._all_data.keys())
+            self.widgets["data_key"].set_items(keys)
+            self.widgets["data_key"].set_value(key)
+            if len(keys) > 1:
+                self.widgets["data_key"].show()
+            self._refresh_colormap_widgets()
 
         # 1) add the surfaces first
         actor = None
@@ -1963,12 +2046,11 @@ class Brain:
                 src_vol = src[2:] if src.kind == "mixed" else src
                 actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
         assert actor is not None  # should have added one
-        self._add_actor("data", actor)
+        self._add_actor(key, actor)
 
         # 2) update time and smoothing properties
         # set_data_smoothing calls "_update_current_time_idx" for us, which will set
         # _current_time
-        self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._all_data[key]["smoothing_steps"])
 
         # 3) add the other actors
@@ -3145,7 +3227,7 @@ class Brain:
         if not isinstance(mapper, DataSetMapper) or cell_id == -1:
             do_update = False
             for annot in self._annots.values():
-                if "caption" not in annot[-1]:
+                if not annot or "caption" not in annot[-1]:
                     continue
                 caption = annot[-1]["caption"]
                 if caption.GetVisibility():
@@ -3188,7 +3270,7 @@ class Brain:
             centroid,
         )
         other_hemi = "lh" if hemi == "rh" else "rh"
-        if other_hemi in self._annots:
+        if self._annots.get(other_hemi):
             self._annots[other_hemi][-1]["caption"].SetVisibility(False)
         caption.SetCaption(label.name)
         caption.SetAttachmentPoint(*centroid)
@@ -3350,6 +3432,7 @@ class Brain:
                     self._set_camera(**view_params, align=align)
         if update:
             self._renderer._update()
+            self._renderer._process_events()
 
     def _set_camera(
         self,
@@ -3551,14 +3634,16 @@ class Brain:
         from ...morph import _hemi_morph
 
         for hemi in ["lh", "rh"]:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
+            for data_key, key_data in self._all_data.items():
+                hemi_data = key_data.get(hemi)
+                if hemi_data is None:
+                    continue
                 if len(hemi_data["array"]) >= self.geo[hemi].x.shape[0]:
                     continue
                 vertices = hemi_data["vertices"]
                 if vertices is None:
                     raise ValueError(
-                        f"len(data) < nvtx ({len(hemi_data)} < "
+                        f"len(data) < nvtx ({len(hemi_data['array'])} < "
                         f"{self.geo[hemi].x.shape[0]}): the vertices "
                         "parameter must not be None"
                     )
@@ -3572,9 +3657,7 @@ class Brain:
                         maps=None,
                         warn=False,
                     )
-                self._data[hemi]["smooth_mat"] = smooth_mat
-                if hemi in self.layered_meshes:
-                    self.layered_meshes[hemi].smooth_mat = smooth_mat
+                hemi_data["smooth_mat"] = smooth_mat
         self._update_current_time_idx(self._data["time_idx"])
         self._data["smoothing_steps"] = n_steps
 
@@ -3633,6 +3716,7 @@ class Brain:
         time_actor = active.get("time_actor", None)
         time_label = active.get("time_label", None)
         for hemi in ["lh", "rh", "vol"]:
+            hemi_needs_recompose = False
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
@@ -3674,9 +3758,10 @@ class Brain:
                         # if 21334 in vertices:
                         #     grid.point_data["values"][21334] = values.max()
 
-                # update the mesh scalar values (LayeredMesh applies smooth_mat)
+                # update the mesh scalar values
                 if hemi in self.layered_meshes:
                     mesh = self.layered_meshes[hemi]
+                    mesh.smooth_mat = hemi_data.get("smooth_mat")
                     key_rng = [
                         -key_data["fmax"]
                         if key_data["center"] is not None
@@ -3684,7 +3769,10 @@ class Brain:
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:
-                        mesh.update_overlay(name=data_key, scalars=act_data)
+                        # Stage without recomposing; a single mesh.update() below
+                        # handles all overlays in O(N) instead of O(N²).
+                        mesh.update_overlay(data_key, scalars=act_data, update=False)
+                        hemi_needs_recompose = True
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
@@ -3698,6 +3786,9 @@ class Brain:
                 # update the glyphs (active key only)
                 if vectors is not None and data_key == self._active_data_key:
                     self._update_glyphs(hemi, vectors)
+
+            if hemi_needs_recompose and hemi in self.layered_meshes:
+                self.layered_meshes[hemi].update()
 
         active["time_idx"] = time_idx
         self._renderer._update()
@@ -3817,6 +3908,13 @@ class Brain:
             allow_pos_lims = True
         if user_clim is not None and restore:
             clim = user_clim
+        elif restore:
+            self.update_lut(
+                fmin=self._data["fmin"],
+                fmid=self._data["fmid"],
+                fmax=self._data["fmax"],
+            )
+            return
         else:
             clim = "auto"
         colormap = self._data["colormap"]
