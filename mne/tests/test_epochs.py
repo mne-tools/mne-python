@@ -4726,7 +4726,7 @@ def test_make_fixed_length_epochs():
     assert "2" in epochs.event_id and len(epochs.event_id) == 1
 
 
-def test_epochs_huge_events(tmp_path):
+def test_epochs_huge_events(tmp_path, monkeypatch):
     """Test epochs with event numbers that are too large."""
     data = np.zeros((1, 1, 1000))
     info = create_info(1, 1000.0, "eeg")
@@ -4738,6 +4738,7 @@ def test_epochs_huge_events(tmp_path):
         EpochsArray(data, info, events)
     epochs = EpochsArray(data, info)
     epochs.events = events
+    epochs.event_id["1"] = 2147483648
     with pytest.raises(TypeError, match="exceeds maximum"):
         epochs.save(tmp_path / "temp-epo.fif")
 
