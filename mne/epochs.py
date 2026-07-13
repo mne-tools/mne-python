@@ -418,6 +418,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -463,6 +464,7 @@ class BaseEpochs(
         metadata=None,
         event_repeated="error",
         *,
+        on_outside="warn",
         raw_sfreq=None,
         annotations=None,
         verbose=None,
@@ -534,6 +536,9 @@ class BaseEpochs(
                 self.selection,
                 self.drop_log,
             )
+
+            # Handle events outside the data range
+            self._check_events_outside_data(on_outside, raw)
 
             # then subselect
             sub = np.where(np.isin(selection, self.selection))[0]
@@ -690,6 +695,23 @@ class BaseEpochs(
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
+
+    def _check_events_outside_data(self, on_outside, raw):
+        """Warn when events fall outside the range of the recorded data (gh-12989)."""
+        if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
+            lo = raw.first_samp
+            hi = lo + raw.n_times
+            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
+            if n_oob:
+                _on_missing(
+                    on_outside,
+                    f"{n_oob} event{_pl(n_oob)} {'is' if n_oob == 1 else 'are'} "
+                    f"outside the data range; the corresponding epoch{_pl(n_oob)} "
+                    "cannot be created. This can happen if the events were created at "
+                    "a different sampling frequency, or have entries before "
+                    "first_samp.",
+                    name="on_outside",
+                )
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
@@ -3491,6 +3513,7 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(verbose)s
 
     Attributes
@@ -3591,6 +3614,8 @@ class Epochs(BaseEpochs):
         reject_by_annotation=True,
         metadata=None,
         event_repeated="error",
+        *,
+        on_outside="warn",
         verbose=None,
     ):
         from .io import BaseRaw
@@ -3650,6 +3675,7 @@ class Epochs(BaseEpochs):
             on_missing=on_missing,
             preload_at_end=preload,
             event_repeated=event_repeated,
+            on_outside=on_outside,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
             annotations=annotations,
@@ -3732,6 +3758,7 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
+    %(on_outside_epochs)s
     %(drop_log)s
 
         .. versionadded:: 1.3
@@ -3781,6 +3808,7 @@ class EpochsArray(BaseEpochs):
         metadata=None,
         selection=None,
         *,
+        on_outside="warn",
         drop_log=None,
         raw_sfreq=None,
         verbose=None,
@@ -3817,6 +3845,7 @@ class EpochsArray(BaseEpochs):
             selection=selection,
             proj=proj,
             on_missing=on_missing,
+            on_outside=on_outside,
             drop_log=drop_log,
             raw_sfreq=raw_sfreq,
             verbose=verbose,
