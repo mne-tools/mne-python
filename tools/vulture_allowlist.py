@@ -24,6 +24,7 @@ pg_backend
 mpl_backend
 recwarn
 pytestmark
+_is_vtk
 nbexec
 disabled_event_channels
 ch_subset_adjacency

@@ -417,6 +417,44 @@ else:
     stc.plot(initial_time=0.1, hemi="both", subjects_dir=subjects_dir)
 
 ##############################################################################
+# We can also display multiple conditions on the same brain. Here we compare
+# auditory (red) and visual (blue) MNE solutions on the right hemisphere.
+# The "Overlay" dropdown in the time viewer lets you inspect each layer
+# independently:
+
+stc_aud = mne.minimum_norm.apply_inverse(
+    aud_evoked, inv_operator, lambda2=lambda2, method="dSPM"
+)
+stc_vis = mne.minimum_norm.apply_inverse(
+    vis_evoked, inv_operator, lambda2=lambda2, method="dSPM"
+)
+brain = stc_aud.plot(
+    initial_time=0.1,
+    hemi="rh",
+    views="lat",
+    subjects_dir=subjects_dir,
+    colormap="Reds",
+    alpha=0.8,
+    add_data_kwargs=dict(key="auditory"),
+)
+fmin_vis, fmid_vis, fmax_vis = np.percentile(stc_vis.rh_data, [50, 90, 99])
+brain.add_data(
+    stc_vis.rh_data,
+    vertices=stc_vis.rh_vertno,
+    hemi="rh",
+    fmin=fmin_vis,
+    fmid=fmid_vis,
+    fmax=fmax_vis,
+    colormap="Blues",
+    transparent=True,
+    alpha=0.8,
+    time=stc_vis.times,
+    initial_time=0.1,
+    key="visual",
+    remove_existing=False,
+)
+
+##############################################################################
 # The remaining tutorials have *much more detail* on each of these topics (as
 # well as many other capabilities of MNE-Python not mentioned here:
 # connectivity analysis, encoding/decoding models, lots more visualization

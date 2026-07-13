@@ -1053,6 +1053,44 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
 
 
 @testing.requires_testing_data
+def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the Overlay dropdown widget shown when multiple overlays are active."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    # with a single overlay the selector widget should exist but be hidden
+    assert "data_key" in brain.widgets
+    assert not brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "data"
+
+    # add a second overlay — widget should become visible and list both keys
+    stc = read_source_estimate(fname_stc)
+    hemi_data = stc.data[: len(stc.vertices[0]), 0]
+    brain.add_data(
+        hemi_data,
+        fmin=stc.data.min(),
+        fmax=stc.data.max(),
+        hemi="lh",
+        colormap="Blues",
+        vertices=stc.vertices[0],
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "overlay2"
+
+    # switching the dropdown updates the active key and refreshes sliders
+    brain.widgets["data_key"].set_value("data")
+    assert brain._active_data_key == "data"
+
+    brain.widgets["data_key"].set_value("overlay2")
+    assert brain._active_data_key == "overlay2"
+
+    brain.close()
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     "hemi, src",
     [

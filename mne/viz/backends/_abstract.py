@@ -1391,6 +1391,10 @@ class _AbstractWdgt(ABC):
         pass
 
     @abstractmethod
+    def is_visible(self):
+        pass
+
+    @abstractmethod
     def update(self, repaint=True):
         pass
 
@@ -1404,6 +1408,10 @@ class _AbstractWdgt(ABC):
 
     @abstractmethod
     def set_style(self, style):
+        pass
+
+    @abstractmethod
+    def set_items(self, items):
         pass
 
 

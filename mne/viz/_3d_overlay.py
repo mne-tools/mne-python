@@ -263,7 +263,9 @@ class LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None):
+    def update_overlay(
+        self, name, scalars=None, colormap=None, opacity=None, rng=None, update=True
+    ):
         """Update an existing overlay in-place.
 
         Parameters
@@ -281,6 +283,11 @@ class LayeredMesh:
             New opacity in ``[0, 1]``. If ``None``, opacity is unchanged.
         rng : array-like, shape (2,) | None
             New ``[min, max]`` colormap range. If ``None``, range is unchanged.
+        update : bool
+            If ``True`` (default), recompose overlays and refresh the mesh
+            immediately.  Pass ``False`` to stage the change without
+            triggering a recompose; the caller is then responsible for
+            calling :meth:`update` once all overlays have been staged.
         """
         overlay = self._overlays.get(name, None)
         if overlay is None:
@@ -304,6 +311,8 @@ class LayeredMesh:
             overlay._opacity = opacity
         if rng is not None:
             overlay._rng = rng
+        if not update:
+            return
         # partial update: use cache if possible
         if name == list(self._overlays.keys())[-1]:
             self.update(colors=overlay.to_colors())
