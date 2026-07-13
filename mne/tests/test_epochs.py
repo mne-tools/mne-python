@@ -3842,6 +3842,16 @@ def test_concatenate_epochs():
     epochs2.event_id = dict(a=2)
     with pytest.raises(ValueError, match="identical keys"):
         concatenate_epochs([epochs1, epochs2])
+    # corruption check
+    with pytest.raises(ValueError, match="has values that do not match any"):
+        epochs2["a"]
+    epochs2.event_id = dict(a=1, b=1)
+    with pytest.raises(ValueError, match="has duplicate values"):
+        epochs2["a"]
+    # mismatch check
+    epochs2.event_id = dict(b=1)
+    with pytest.raises(ValueError, match="identical values"):
+        concatenate_epochs([epochs1, epochs2])
 
     # check concatenating epochs where one of the objects is empty
     epochs2 = epochs.copy()[:0]
@@ -4716,7 +4726,7 @@ def test_make_fixed_length_epochs():
     assert "2" in epochs.event_id and len(epochs.event_id) == 1
 
 
-def test_epochs_huge_events(tmp_path):
+def test_epochs_huge_events(tmp_path, monkeypatch):
     """Test epochs with event numbers that are too large."""
     data = np.zeros((1, 1, 1000))
     info = create_info(1, 1000.0, "eeg")
@@ -4728,6 +4738,7 @@ def test_epochs_huge_events(tmp_path):
         EpochsArray(data, info, events)
     epochs = EpochsArray(data, info)
     epochs.events = events
+    epochs.event_id["1"] = 2147483648
     with pytest.raises(TypeError, match="exceeds maximum"):
         epochs.save(tmp_path / "temp-epo.fif")
 
