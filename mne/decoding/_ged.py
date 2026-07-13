@@ -47,7 +47,7 @@ def _smart_ged(S, R, restr_mat=None, R_func=None):
         import numpy as xp
 
     if restr_mat is None:
-        if xp.__name__ == 'numpy':
+        if xp.__name__ == "numpy":
             evals, evecs = scipy.linalg.eigh(S, R)
             return evals, evecs
         else:
@@ -63,8 +63,8 @@ def _smart_ged(S, R, restr_mat=None, R_func=None):
     R_restr = restr_mat @ R @ restr_mat.T
     if R_func is not None:
         R_restr = R_func([S_restr, R_restr])
-        
-    if xp.__name__ == 'numpy':
+
+    if xp.__name__ == "numpy":
         evals, evecs_restr = scipy.linalg.eigh(S_restr, R_restr)
     else:
         L = xp.linalg.cholesky(R_restr)
@@ -72,7 +72,7 @@ def _smart_ged(S, R, restr_mat=None, R_func=None):
         C = L_inv @ S_restr @ L_inv.T
         evals, evecs_C = xp.linalg.eigh(C)
         evecs_restr = L_inv.T @ evecs_C
-        
+
     evecs = restr_mat.T @ evecs_restr
 
     return evals, evecs

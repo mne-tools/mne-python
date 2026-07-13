@@ -210,14 +210,14 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             )
         self._validate_ged_params()
         covs, C_ref, info, rank, kwargs = self.cov_callable(X, y)
-        
+
         # Array API Standard support to preserve hardware acceleration tensors
         if len(covs) > 0 and hasattr(covs[0], "__array_namespace__"):
             xp = covs[0].__array_namespace__()
             covs = xp.stack(covs)
         else:
             covs = np.stack(covs)
-            
+
         self._validate_covariances(covs)
         if C_ref is not None:
             self._validate_covariances([C_ref])
