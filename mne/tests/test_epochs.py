@@ -3842,6 +3842,16 @@ def test_concatenate_epochs():
     epochs2.event_id = dict(a=2)
     with pytest.raises(ValueError, match="identical keys"):
         concatenate_epochs([epochs1, epochs2])
+    # corruption check
+    with pytest.raises(ValueError, match="has values that do not match any"):
+        epochs2["a"]
+    epochs2.event_id = dict(a=1, b=1)
+    with pytest.raises(ValueError, match="has duplicate values"):
+        epochs2["a"]
+    # mismatch check
+    epochs2.event_id = dict(b=1)
+    with pytest.raises(ValueError, match="identical values"):
+        concatenate_epochs([epochs1, epochs2])
 
     # check concatenating epochs where one of the objects is empty
     epochs2 = epochs.copy()[:0]
