@@ -1149,7 +1149,9 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
                 frame_trans = to_cf_t[_frame_to_str[ch_coord_frame]]["trans"]
                 transform = frame_trans @ coil_trans
                 position = transform[:3, 3]
-                quat = rot_to_quat(transform[:3, :3])
+                # Some MEG systems have rotation matrices that are not exactly
+                # orthonormal, so be a bit more tolerant than usual here
+                quat = rot_to_quat(transform[:3, :3], tol=2e-3)
                 shape_key = (local_rr.round(10).tobytes(), triangles.tobytes())
                 chs[type_name][info.ch_names[idx]] = (
                     local_rr,

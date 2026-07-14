@@ -6,6 +6,7 @@
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import numpy as np
 
@@ -14,7 +15,8 @@ from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import _check_pandas_installed, logger, warn
 
-EYELINK_COLS = {
+# heterogeneous nested structure (tuples of column names or sub-dicts by eye)
+EYELINK_COLS: dict[str, Any] = {
     "timestamp": ("time",),
     "pos": {
         "left": ("xpos_left", "ypos_left", "pupil_left"),
@@ -129,7 +131,7 @@ def _parse_recording_blocks(fname):
             if line.startswith("START"):  # start of recording block
                 is_recording_block = True
                 # Initialize container for new block data
-                current_block = {
+                current_block: dict[str, Any] = {
                     "samples": [],
                     "events": {
                         "START": [],
@@ -1030,7 +1032,9 @@ def _parse_calibration(
             avg_error = float(line.split("avg.")[0].split()[-1])  # e.g. 0.3
             max_error = float(line.split("max")[0].split()[-1])  # e.g. 0.9
 
-            n_points = int(regex.search(model).group())  # e.g. 13
+            match = regex.search(model)
+            assert match is not None
+            n_points = int(match.group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
 
             # The next n_point lines contain the validation data

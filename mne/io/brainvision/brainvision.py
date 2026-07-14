@@ -286,11 +286,12 @@ def _read_mrk(fname):
         # LookupError exception; Python recognize ANSI decoding as cp1252
         if codepage == "ANSI":
             codepage = "cp1252"
-        txt = txt.decode(codepage)
+        decoded = txt.decode(codepage)
     except UnicodeDecodeError:
         # if UTF-8 (new standard) or explicit codepage setting fails, fallback to
         # Latin-1, which is Windows default and implicit standard in older recordings
-        txt = txt.decode("latin-1")
+        decoded = txt.decode("latin-1")
+    txt = decoded
 
     # extract Marker Infos block
     onset, duration, type_, description = [], [], [], []
@@ -565,12 +566,13 @@ def _aux_hdr_info(hdr_fname, sfreq_override=None):
             # LookupError exception; Python recognize ANSI decoding as cp1252
             if codepage == "ANSI":
                 codepage = "cp1252"
-            settings = settings.decode(codepage)
+            decoded = settings.decode(codepage)
         except UnicodeDecodeError:
             # if UTF-8 (new standard) or explicit codepage setting fails, fallback to
             # Latin-1, which is Windows default and implicit standard in older
             # recordings
-            settings = settings.decode("latin-1")
+            decoded = settings.decode("latin-1")
+        settings = decoded
 
     if settings.find("[Comment]") != -1:
         params, settings = settings.split("[Comment]")
@@ -744,6 +746,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             with open(data_fname, "rb") as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
+                assert isinstance(fmt, str)
                 n_samples = n_bytes // _fmt_byte_dict[fmt] // nchan
 
     ch_names = [""] * nchan
@@ -936,6 +939,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             if ch in synthesized_chs:
                 continue
             # double check alignment with channel by using the hw settings
+            assert idx_amp is not None
             if idx == idx_amp:
                 line_amp = settings[idx + i]
             else:
@@ -1227,7 +1231,7 @@ _AHDR_CHANNEL_NAME = "AHDR_CHANNEL"
 class _BVEventParser(_DefaultEventParser):
     """Parse standard brainvision events, accounting for non-standard ones."""
 
-    def __call__(self, description):
+    def __call__(self, description):  # ty: ignore[invalid-method-override]  # intentional
         """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
         offsets = _BV_EVENT_IO_OFFSETS
 

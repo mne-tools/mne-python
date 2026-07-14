@@ -173,7 +173,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
 
     Returns
     -------
-    raw : mne.io.Raw
+    raw : instance of BaseRaw
         Raw object.
     """
     _, ext = split_name_ext(fname)

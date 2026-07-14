@@ -28,7 +28,7 @@ from qtpy.QtCore import (
     # non-object-based-abstraction-only, remove
     Signal,
 )
-from qtpy.QtGui import QCursor, QIcon, QKeyEvent
+from qtpy.QtGui import QCursor, QGuiApplication, QIcon, QKeyEvent
 from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -1285,6 +1285,11 @@ class QFloatSlider(QSlider):
         """Set the maximum."""
         super().setMaximum(int(value * self._precision))
 
+    def setRange(self, minimum, maximum):
+        """Set the range using float values."""
+        self.setMinimum(minimum)
+        self.setMaximum(maximum)
+
     def value(self):
         """Get the current value."""
         return super().value() / self._precision
@@ -1523,7 +1528,13 @@ class _QtWindow(_AbstractWindow):
             self._window_before_close_callbacks.clear()
 
     def _window_get_dpi(self):
-        return self._window.windowHandle().screen().logicalDotsPerInch()
+        # windowHandle() is None until the window is realized (e.g. when the
+        # figure has not been shown yet), so fall back to the primary screen
+        handle = self._window.windowHandle()
+        screen = None if handle is None else handle.screen()
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
+        return screen.logicalDotsPerInch()
 
     def _window_get_size(self):
         w = self._interactor.geometry().width()
@@ -1694,6 +1705,9 @@ class _QtWidget(_AbstractWdgt):
     def is_enabled(self):
         return self._widget.isEnabled()
 
+    def is_visible(self):
+        return self._widget.isVisible()
+
     def update(self, repaint=True):
         self._widget.update()
         if repaint:
@@ -1712,6 +1726,12 @@ class _QtWidget(_AbstractWdgt):
         for key, val in style.items():
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
+
+    def set_items(self, items):
+        self._widget.blockSignals(True)
+        self._widget.clear()
+        self._widget.addItems(items)
+        self._widget.blockSignals(False)
 
 
 class _QtDialogCommunicator(QObject):

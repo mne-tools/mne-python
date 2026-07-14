@@ -105,6 +105,7 @@ class BrowserBase(ABC):
             patch=0,
             grid=1,
             ann=2,
+            zero_line=3,
             events=10003,
             bads=10004,
             data=10005,
@@ -140,6 +141,8 @@ class BrowserBase(ABC):
             self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.0
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
+        self.mne.zero_lines = list()
+        self.mne.zero_line_offset = None
         # ancillary child figures
         self.mne.child_figs = list()
         self.mne.fig_help = None
@@ -399,10 +402,12 @@ class BrowserBase(ABC):
         # get only the channels we're displaying
         data = data[picks]
         # remove DC
+        dc_offset = None
         if self.mne.remove_dc:
             if thread:
                 thread.processText.emit("Removing DC...")
-            data -= np.nanmean(data[..., time_slice], axis=1, keepdims=True)
+            dc_offset = np.nanmean(data[..., time_slice], axis=1, keepdims=True)
+            data -= dc_offset
         # apply filter
         if self.mne.filter_coefs is not None:
             if thread:
@@ -424,6 +429,9 @@ class BrowserBase(ABC):
         norms[white] = self.mne.scalings["whitened"]
         norms[norms == 0] = 1
         data /= 2 * norms[:, np.newaxis]
+        self.mne.zero_line_offset = (
+            dc_offset[:, 0] / (2 * norms) if dc_offset is not None else None
+        )
 
         return data
 
