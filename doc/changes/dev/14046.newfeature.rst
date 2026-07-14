@@ -1,0 +1,1 @@
+The colorbar in the :class:`mne.viz.Brain` viewer now automatically switches to scientific notation for tick labels, and has more tick-label spacing. The Help dialog now uses a Qt dialog instead of a ``matplotlib`` popup, and the "Press ? for help" status bar message is now clickable, and "Help" text was removed from the top left of the GUI by `Payam Sadeghi-Shabestari`_.

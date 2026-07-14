@@ -675,6 +675,41 @@ def _show_help_fig(col1, col2, fig_help, ax, show):
             pass
 
 
+def _pairs_to_html(pairs):
+    """Format ``(key, description)`` pairs as an HTML definition table.
+
+    Colors are set via the Qt-specific ``palette()`` CSS function (rather
+    than fixed colors) so the result adapts to the app's light/dark theme.
+    """
+    from html import escape
+
+    # Note: the key "badge" background/padding is set on the <td> itself
+    # rather than on a nested <span>. Qt's rich-text engine does not clip
+    # inline-element backgrounds properly, which left a stray grey box
+    # bleeding behind neighboring glyphs when the background lived on a
+    # <span> instead.
+    rows = "".join(
+        "<tr>"
+        "<td style='padding: 6px 10px 6px 2px; border-bottom: 1px solid "
+        "palette(mid); white-space: nowrap;'>"
+        "<table style='border-collapse: collapse;'><tr>"
+        # a concrete font stack (rather than the bare generic "monospace")
+        # avoids Qt's one-time "Populating font family aliases" console
+        # warning when it resolves the generic family to a real one
+        '<td style=\'font-family: Menlo, Consolas, "Courier New", monospace; '
+        "font-weight: bold; "
+        "background-color: palette(alternate-base); "
+        f"padding: 3px 9px; border-radius: 4px;'>{escape(key)}</td>"
+        "</tr></table>"
+        "</td>"
+        "<td style='padding: 6px 2px; "
+        f"border-bottom: 1px solid palette(mid);'>{escape(desc)}</td>"
+        "</tr>"
+        for key, desc in pairs
+    )
+    return f"<table style='border-collapse: collapse; width: 100%;'>{rows}</table>"
+
+
 def _key_press(event):
     """Handle key press in dialog."""
     import matplotlib.pyplot as plt

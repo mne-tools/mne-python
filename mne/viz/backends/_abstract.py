@@ -1277,7 +1277,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         pass
 
     @abstractmethod
@@ -1582,6 +1582,11 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_get_simple_canvas(self, width, height, dpi):
+        pass
+
+    @abstractmethod
+    def _window_get_help_canvas(self, pairs):
+        """Return a widget listing ``(key, description)`` keyboard-shortcut pairs."""
         pass
 
     @abstractmethod

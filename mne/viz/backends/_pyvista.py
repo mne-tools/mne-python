@@ -799,7 +799,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         source,
         color="white",
-        title=None,
         n_labels=4,
         bgcolor=None,
         **extra_kwargs,
@@ -812,22 +811,25 @@ class _PyVistaRenderer(_AbstractRenderer):
             mapper = None
         kwargs = dict(
             color=color,
-            title=title,
+            title="",
             n_labels=n_labels,
             use_opacity=False,
             n_colors=256,
             position_x=0.15,
             position_y=0.05,
             width=0.7,
+            height=0.10,
             shadow=False,
-            bold=True,
-            label_font_size=22,
+            bold=False,
+            label_font_size=16,
             font_family=self.font_family,
             background_color=bgcolor,
             mapper=mapper,
         )
+        extra_kwargs.pop("title", None)
         kwargs.update(extra_kwargs)
         actor = self.plotter.add_scalar_bar(**kwargs)
+        actor.SetTextPad(10)
         _hide_testing_actor(actor)
         return actor
 
@@ -932,7 +934,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._picker.SetVolumeOpacityIsovalue(0.0)
 
     def _set_colormap_range(
-        self, actor, ctable, scalar_bar, rng=None, background_color=None
+        self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
     ):
         if rng is not None:
             mapper = actor.GetMapper()
@@ -946,8 +948,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                 ctable = _alpha_blend_background(ctable, background_color)
             lut.SetTable(numpy_to_vtk(ctable, array_type=VTK_UNSIGNED_CHAR))
             lut.SetRange(*rng)
+            if fmt is not None:
+                scalar_bar.SetLabelFormat(fmt)
 
-    def _set_volume_range(self, volume, ctable, alpha, scalar_bar, rng):
+    def _set_volume_range(self, volume, ctable, alpha, scalar_bar, rng, fmt=None):
         color_tf = vtkColorTransferFunction()
         opacity_tf = vtkPiecewiseFunction()
         for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
@@ -963,6 +967,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             lut.SetRange(*rng)
             lut.SetTable(numpy_to_vtk(ctable))
             scalar_bar.SetLookupTable(lut)
+            if fmt is not None:
+                scalar_bar.SetLabelFormat(fmt)
 
     def _sphere(self, center, color, radius):
         mesh = pyvista.Sphere(

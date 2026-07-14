@@ -37,6 +37,7 @@ from ipywidgets import (
 )
 
 from ...utils import _soft_import
+from ..utils import _show_help_fig
 from ._abstract import (
     _AbstractAction,
     _AbstractAppWindow,
@@ -1311,7 +1312,7 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
         self._status_bar = HBox()
         self._layout_initialize(None)
 
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(self._status_bar, widget)
         return _IpyWidget(widget)
@@ -1392,6 +1393,18 @@ class _IpyWindow(_AbstractWindow):
 
     def _window_get_simple_canvas(self, width, height, dpi):
         return _IpyMplCanvas(width, height, dpi)
+
+    def _window_get_help_canvas(self, pairs):
+        text1, text2 = zip(*pairs)
+        canvas = self._window_get_simple_canvas(width=5, height=2, dpi=80)
+        _show_help_fig(
+            col1="\n".join(text1),
+            col2="\n".join(text2),
+            fig_help=canvas.fig,
+            ax=canvas.axes,
+            show=False,
+        )
+        return canvas
 
     def _window_get_mplcanvas(
         self, brain, interactor_fraction, show_traces, separate_canvas

@@ -33,10 +33,13 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
+    QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -54,6 +57,7 @@ from qtpy.QtWidgets import (
     QSpinBox,
     QStyle,
     QStyleOptionSlider,
+    QTextBrowser,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -61,7 +65,7 @@ from qtpy.QtWidgets import (
 
 from ...fixes import _compare_version
 from ...utils import _check_option, get_config
-from ..utils import safe_event
+from ..utils import _pairs_to_html, safe_event
 from ._abstract import (
     _AbstractAction,
     _AbstractAppWindow,
@@ -1400,8 +1404,17 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
 
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         widget = QLabel(value)
+        if on_click is not None:
+            widget.setCursor(QCursor(Qt.PointingHandCursor))
+            widget.setToolTip("Click for help")
+
+            @safe_event
+            def mousePressEvent(event):
+                on_click()
+
+            widget.mousePressEvent = mousePressEvent
         self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
@@ -1448,6 +1461,28 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
         else:
             self.canvas.setParent(brain._renderer._window)
         self._connect()
+
+
+class _QtHelpDialog(QDialog):
+    """Non-modal dialog listing keyboard shortcuts.
+
+    Uses native Qt widgets so the text picks up the OS font,
+    DPI scaling, and light/dark theme automatically.
+    """
+
+    def __init__(self, pairs, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("MNE Key Bindings")
+        browser = QTextBrowser(self)
+        browser.setFrameShape(QFrame.NoFrame)
+        browser.setOpenExternalLinks(False)
+        browser.setHtml(_pairs_to_html(pairs))
+        buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        buttons.rejected.connect(self.close)
+        layout = QVBoxLayout(self)
+        layout.addWidget(browser)
+        layout.addWidget(buttons)
+        self.resize(460, 360)
 
 
 class _QtWindow(_AbstractWindow):
@@ -1543,6 +1578,9 @@ class _QtWindow(_AbstractWindow):
 
     def _window_get_simple_canvas(self, width, height, dpi):
         return _QtMplCanvas(width, height, dpi)
+
+    def _window_get_help_canvas(self, pairs):
+        return _QtHelpDialog(pairs, parent=self._window)
 
     def _window_get_mplcanvas(
         self, brain, interactor_fraction, show_traces, separate_canvas
