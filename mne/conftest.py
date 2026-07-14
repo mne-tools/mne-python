@@ -33,7 +33,6 @@ from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
 from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
-from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
     _assert_no_instances,
@@ -1075,15 +1074,6 @@ def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
     assert request.param in ("Numba", "NumPy")
     if request.param == "NumPy" and has_numba:
-        monkeypatch.setattr(
-            cluster_level, "_get_buddies", cluster_level._get_buddies_fallback
-        )
-        monkeypatch.setattr(
-            cluster_level, "_get_selves", cluster_level._get_selves_fallback
-        )
-        monkeypatch.setattr(
-            cluster_level, "_where_first", cluster_level._where_first_fallback
-        )
         monkeypatch.setattr(numerics, "_arange_div", numerics._arange_div_fallback)
     if request.param == "Numba" and not has_numba:
         pytest.skip("Numba not installed")

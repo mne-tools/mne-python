@@ -307,6 +307,7 @@
 .. _Sena Er: https://github.com/sena-neuro
 .. _Senwen Deng: https://snwn.de
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
+.. _Sharif Haason: https://github.com/sharifhsn
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral
