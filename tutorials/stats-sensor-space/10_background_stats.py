@@ -34,6 +34,7 @@ from mne.stats import (
 # %%
 # Hypothesis testing
 # ------------------
+#
 # Null hypothesis
 # ^^^^^^^^^^^^^^^
 # From `Wikipedia <https://en.wikipedia.org/wiki/Null_hypothesis>`__:

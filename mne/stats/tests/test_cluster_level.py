@@ -18,6 +18,7 @@ from scipy import linalg, sparse, stats
 from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
+    _find_clusters,
     _TTestReordered,
     f_oneway,
     permutation_cluster_1samp_test,
@@ -684,13 +685,48 @@ def test_ttest_reordered():
     """Test that _TTestReordered matches ttest_1samp_no_p under sign flips."""
     rng = np.random.RandomState(0)
     X = rng.randn(9, 5)
+    X_orig = X.copy()
     stat_fun = _TTestReordered(X)
     for _ in range(5):
-        signs = rng.choice([-1, 1], size=(9, 1))
-        assert_allclose(stat_fun(X * signs), ttest_1samp_no_p(X * signs))
+        signs = rng.choice([-1, 1], size=9)
+        want = ttest_1samp_no_p(X * signs[:, None])
+        assert_allclose(stat_fun(X * signs[:, None]), want)
+        # from_signs should match, and must not mutate X
+        assert_allclose(stat_fun.from_signs(signs.astype(float), X), want)
+        assert_array_equal(X, X_orig)
     # degenerate (zero-variance) columns should give 0, not nan/inf
     X_deg = np.ones((9, 1))
     assert_allclose(_TTestReordered(X_deg)(X_deg), 0.0)
+
+
+@pytest.mark.parametrize("t_power", (1, 2))
+@pytest.mark.parametrize("kind", ("no_adjacency", "global", "spatio_temporal"))
+def test_find_clusters_sums_only(kind, t_power):
+    """Test that sums_only=True matches the full-clusters path."""
+    rng = np.random.RandomState(0)
+    n_space = 8
+    kwargs = dict(threshold=0.0, tail=0, t_power=t_power)
+    if kind == "spatio_temporal":
+        x = rng.randn(3 * n_space)  # 3 timepoints
+        row, col = np.array([0, 1, 2, 3, 4]), np.array([1, 5, 3, 4, 5])
+        adj = sparse.coo_array((np.ones(5), (row, col)), shape=(n_space, n_space))
+        # spatio-temporal adjacency is always CSR (see _setup_adjacency)
+        kwargs["adjacency"] = (adj + adj.transpose()).tocsr()
+    elif kind == "global":
+        x = rng.randn(n_space)
+        row, col = np.arange(n_space - 1), np.arange(1, n_space)
+        kwargs["adjacency"] = sparse.coo_array(
+            (np.ones(n_space - 1), (row, col)), shape=(n_space, n_space)
+        )
+    else:
+        x = rng.randn(n_space)
+        kwargs["adjacency"] = False
+
+    clusters, sums_full = _find_clusters(x, **kwargs)
+    assert clusters is not None
+    clusters_none, sums_only = _find_clusters(x, sums_only=True, **kwargs)
+    assert clusters_none is None
+    assert_allclose(sorted(sums_only), sorted(sums_full))
 
 
 def test_spatio_temporal_cluster_adjacency(numba_conditional):
