@@ -264,6 +264,12 @@ jobs:
             python -c "import mne; mne.datasets.erp_core.data_path(update_path=True)"
             python -c "import mne; mne.datasets.mtrf.data_path(update_path=True)"
             python -c "import mne; mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True)"
+      # Build the dev MNE wheel the JupyterLite browser kernel installs, once,
+      # before Sphinx runs. conf.py reuses it and only builds it itself if this
+      # step did not run (e.g. a local build).
+      - run:
+          name: Build MNE wheel for JupyterLite
+          command: python doc/sphinxext/build_lite_wheel.py
       # Build docs
       - run:
           name: make html
