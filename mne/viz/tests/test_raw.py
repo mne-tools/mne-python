@@ -344,6 +344,33 @@ def test_scale_bar(browser_backend):
         browser_backend._close_all()
 
 
+def test_zero_line(raw, mpl_backend):
+    """Test toggling the zero line for raw (matplotlib backend only)."""
+    fig = raw.plot(remove_dc=True)
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+    fig._fake_keypress("0")
+    assert fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == len(fig.mne.picks)
+    # with DC removal on, the true zero generally differs from the trace offset
+    assert fig.mne.zero_line_offset is not None
+    assert not np.allclose(fig.mne.zero_lines[0].get_ydata(), fig.mne.trace_offsets[0])
+    for ii, (zero_line, offset) in enumerate(
+        zip(fig.mne.zero_lines, fig.mne.trace_offsets)
+    ):
+        true_zero = offset + fig.mne.zero_line_offset[ii] * fig.mne.scale_factor
+        assert_allclose(zero_line.get_ydata(), (true_zero, true_zero))
+    assert_allclose(fig.mne.zero_lines[0].get_xdata(), (0, 1))
+    fig._fake_keypress("d")  # turn DC removal off
+    assert not fig.mne.remove_dc
+    assert fig.mne.zero_line_offset is None
+    # with DC removal off, the true zero coincides with the trace offset again
+    assert_allclose(fig.mne.zero_lines[0].get_ydata(), (fig.mne.trace_offsets[0],) * 2)
+    fig._fake_keypress("0")  # toggle back off -> artists removed
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+
+
 def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
@@ -660,14 +687,42 @@ def test_plot_raw_traces(raw, events, browser_backend):
     fig._fake_click((0.5, 0.05), ax=vscroll)  # change channels to end
     labels = fig._get_ticklabels("y")
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
-    for _ in (0, 0):
-        # first click changes channels to mid; second time shouldn't change
-        # This needs to be changed for Qt, because there scrollbars are
-        # drawn differently (value of slider at lower end, not at middle)
+    for _ in range(2):  # first click jumps to mid, second is a no-op (already there)
+        # mpl centers the handle on the click; Qt's QScrollBar positions the handle at
+        # its low end, hence the different target for Qt
         yclick = 0.5 if ismpl else 0.7
         fig._fake_click((0.5, yclick), ax=vscroll)
         labels = fig._get_ticklabels("y")
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
+
+    # Qt scrollbars are native QScrollBar widgets, so dragging them is already handled
+    # by Qt itself; here we only need to test the custom drag handling added for the
+    # 'matplotlib' scrollbars.
+    if ismpl:
+        # dragging the vertical scrollbar handle
+        n_channels = fig.mne.n_channels
+        ch_start = fig.mne.ch_start
+        center = ch_start + n_channels / 2
+        fig._fake_click((0.5, center), ax=vscroll, xform="data", kind="press")
+        fig._fake_click((0.5, center + 1), ax=vscroll, xform="data", kind="motion")
+        assert fig.mne.ch_start == ch_start + 1
+        fig._fake_click((0.5, center + 1), ax=vscroll, xform="data", kind="release")
+        # further motion after release should be a no-op
+        fig._fake_click((0.5, center + 5), ax=vscroll, xform="data", kind="motion")
+        assert fig.mne.ch_start == ch_start + 1
+
+        # dragging the horizontal scrollbar handle
+        duration = fig.mne.duration
+        t_start = fig.mne.t_start
+        center = t_start + duration / 2
+        fig._fake_click((center, 0.5), ax=hscroll, xform="data", kind="press")
+        fig._fake_click((center + 1, 0.5), ax=hscroll, xform="data", kind="motion")
+        assert fig.mne.t_start == pytest.approx(t_start + 1, abs=0.05)
+        fig._fake_click((center + 1, 0.5), ax=hscroll, xform="data", kind="release")
+        dragged_t_start = fig.mne.t_start
+        # further motion after release should be a no-op
+        fig._fake_click((center + 5, 0.5), ax=hscroll, xform="data", kind="motion")
+        assert fig.mne.t_start == dragged_t_start
 
     # test clicking a channel name in butterfly mode
     bads = fig.mne.info["bads"].copy()

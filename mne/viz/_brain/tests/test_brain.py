@@ -397,6 +397,26 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert isinstance(lm, LayeredMesh)
     lm.update_overlay(name="data", rng=[fmin, fmax])
     lm.update()
+    with pytest.raises(ValueError, match="must have shape"):
+        lm.update_overlay(name="data", scalars=np.ones(1))
+    # remove_existing=False keeps the old overlay and adds a new one alongside
+    assert list(brain._all_data.keys()) == ["data"]
+    assert "data" in lm._overlays
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert "data" in brain._all_data and "overlay2" in brain._all_data
+    assert "data" in lm._overlays and "overlay2" in lm._overlays
+    assert brain._active_data_key == "overlay2"
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
@@ -1033,6 +1053,44 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
 
 
 @testing.requires_testing_data
+def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the Overlay dropdown widget shown when multiple overlays are active."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    # with a single overlay the selector widget should exist but be hidden
+    assert "data_key" in brain.widgets
+    assert not brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "data"
+
+    # add a second overlay — widget should become visible and list both keys
+    stc = read_source_estimate(fname_stc)
+    hemi_data = stc.data[: len(stc.vertices[0]), 0]
+    brain.add_data(
+        hemi_data,
+        fmin=stc.data.min(),
+        fmax=stc.data.max(),
+        hemi="lh",
+        colormap="Blues",
+        vertices=stc.vertices[0],
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "overlay2"
+
+    # switching the dropdown updates the active key and refreshes sliders
+    brain.widgets["data_key"].set_value("data")
+    assert brain._active_data_key == "data"
+
+    brain.widgets["data_key"].set_value("overlay2")
+    assert brain._active_data_key == "overlay2"
+
+    brain.close()
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     "hemi, src",
     [
@@ -1142,7 +1200,7 @@ def test_brain_traces_vertex(
     # add foci should work for 'lh', 'rh' and 'vol'
     for current_hemi in hemi_str:
         brain.add_foci([[0, 0, 0]], hemi=current_hemi)
-        assert_array_equal(brain._data[current_hemi]["foci"], [[0, 0, 0]])
+        assert_array_equal(brain._foci_data[current_hemi]["foci"], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1584,4 +1642,6 @@ def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo["lh"].coords[:2] + 0.01
     tiny_brain.add_foci(foci_coords, map_surface="white")
-    assert_array_equal(tiny_brain._data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
+    assert_array_equal(
+        tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2]
+    )

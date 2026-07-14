@@ -460,3 +460,17 @@ div.sphx-glr-animation video {
     margin-left: 0 !important;
     margin-right: 0 !important;
 }
+
+/* widen main content area */
+.bd-page-width {
+    max-width: 100rem;
+}
+.bd-sidebar-primary {
+    max-width: 16rem;
+}
+.bd-article-container {
+    max-width: 75em;
+}
+.bd-main .bd-content {
+    justify-content: flex-start;
+}

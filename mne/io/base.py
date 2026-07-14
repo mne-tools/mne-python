@@ -2012,6 +2012,7 @@ class BaseRaw(
         event_id=None,
         show_scrollbars=True,
         show_scalebars=True,
+        show_zero_line=False,
         time_format="float",
         precompute=None,
         use_opengl=None,
@@ -2020,6 +2021,7 @@ class BaseRaw(
         overview_mode=None,
         splash=True,
         verbose=None,
+        figure_class=None,
     ):
         return plot_raw(
             self,
@@ -2053,6 +2055,7 @@ class BaseRaw(
             event_id=event_id,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
@@ -2061,6 +2064,7 @@ class BaseRaw(
             overview_mode=overview_mode,
             splash=splash,
             verbose=verbose,
+            figure_class=figure_class,
         )
 
     @property

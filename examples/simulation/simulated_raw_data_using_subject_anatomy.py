@@ -215,7 +215,15 @@ raw_sim.plot(title="Simulated raw data")
 # --------------------------------------------
 #
 
-epochs = mne.Epochs(raw_sim, events, event_id, tmin=-0.2, tmax=0.3, baseline=(None, 0))
+epochs = mne.Epochs(
+    raw_sim,
+    events,
+    event_id,
+    tmin=-0.2,
+    tmax=0.3,
+    baseline=(None, 0),
+    on_outside="ignore",
+)
 evoked_aud_left = epochs["auditory/left"].average()
 evoked_vis_right = epochs["visual/right"].average()
 

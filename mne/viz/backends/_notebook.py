@@ -1486,6 +1486,9 @@ class _IpyWidget(_AbstractWdgt):
     def is_enabled(self):
         return not self._widget.disabled
 
+    def is_visible(self):
+        return self._widget.layout.visibility != "hidden"
+
     def update(self, repaint=True):
         pass
 
@@ -1500,6 +1503,9 @@ class _IpyWidget(_AbstractWdgt):
     def set_style(self, style):
         for key, val in style.items():
             setattr(self._widget.layout, key, val)
+
+    def set_items(self, items):
+        self._widget.options = tuple(items)
 
 
 class _IpyAction(_AbstractAction):
