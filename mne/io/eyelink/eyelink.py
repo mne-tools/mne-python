@@ -18,13 +18,13 @@ from ._utils import _make_eyelink_annots, _make_gap_annots, _parse_eyelink_ascii
 
 @fill_doc
 def read_raw_eyelink(
-    fname,
+    fname: Path | str,
     *,
-    create_annotations=True,
-    apply_offsets=False,
-    find_overlaps=False,
-    overlap_threshold=0.05,
-    verbose=None,
+    create_annotations: bool | list = True,
+    apply_offsets: bool = False,
+    find_overlaps: bool = False,
+    overlap_threshold: float = 0.05,
+    verbose: bool | str | int | None = None,
 ) -> "RawEyelink":
     """Reader for an Eyelink ``.asc`` file.
 

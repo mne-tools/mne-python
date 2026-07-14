@@ -2,15 +2,18 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from collections.abc import Callable
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import (
     ContainsMixin,
+    Info,
     SetChannelsMixin,
     _ensure_infos_match,
     _read_extended_ch_info,
@@ -36,7 +39,7 @@ from ._fiff.write import (
 )
 from .baseline import _check_baseline, _log_rescale, rescale
 from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
-from .channels.layout import _merge_ch_data, _pair_grad_sensors
+from .channels.layout import Layout, _merge_ch_data, _pair_grad_sensors
 from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
@@ -65,7 +68,7 @@ from .utils import (
     verbose,
     warn,
 )
-from .utils._typing import Self
+from .utils._typing import Color, Self
 from .viz import (
     plot_evoked,
     plot_evoked_field,
@@ -75,6 +78,19 @@ from .viz import (
 )
 from .viz.evoked import plot_evoked_joint, plot_evoked_white
 from .viz.topomap import _topomap_animation
+
+if TYPE_CHECKING:
+    # Heavy/optional deps kept out of the runtime import path (see
+    # mne/tests/test_import_nesting.py); referenced only via string annotations.
+    from matplotlib.animation import FuncAnimation
+    from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap, Normalize
+    from matplotlib.figure import Figure
+    from pandas import DataFrame
+
+    from .bem import ConductorModel
+    from .cov import Covariance
+    from .viz import Brain, EvokedField, Figure3D
 
 _aspect_dict = {
     "average": FIFF.FIFFV_ASPECT_AVERAGE,
@@ -109,10 +125,10 @@ class Evoked(
 
     Parameters
     ----------
-    fname : path-like
+    fname : path-like | None
         Name of evoked/average FIF file to load.
         If None no data is loaded.
-    condition : int, or str
+    condition : int | str | None
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
     proj : bool, optional
@@ -165,13 +181,13 @@ class Evoked(
     @verbose
     def __init__(
         self,
-        fname,
-        condition=None,
-        proj=True,
-        kind="average",
-        allow_maxshield=False,
+        fname: Path | str | None,
+        condition: int | str | None = None,
+        proj: bool = True,
+        kind: str = "average",
+        allow_maxshield: bool | str = False,
         *,
-        verbose=None,
+        verbose: bool | str | int | None = None,
     ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
@@ -205,31 +221,37 @@ class Evoked(
         return self._filename
 
     @filename.setter
-    def filename(self, value):
+    def filename(self, value: Path | str | None) -> None:
         self._filename = Path(value) if value is not None else value
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """The data kind."""
         return _aspect_rev[self._aspect_kind]
 
     @kind.setter
-    def kind(self, kind):
+    def kind(self, kind: str) -> None:
         _check_option("kind", kind, list(_aspect_dict.keys()))
         self._aspect_kind = _aspect_dict[kind]
 
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """The data matrix."""
         return self._data
 
     @data.setter
-    def data(self, data):
+    def data(self, data: np.ndarray) -> None:
         """Set the data matrix."""
         self._data = data
 
     @fill_doc
-    def get_data(self, picks=None, units=None, tmin=None, tmax=None):
+    def get_data(
+        self,
+        picks: str | np.ndarray | slice | None = None,
+        units: str | dict | None = None,
+        tmin: float | None = None,
+        tmax: float | None = None,
+    ) -> np.ndarray:
         """Get evoked data as 2D array.
 
         Parameters
@@ -268,15 +290,15 @@ class Evoked(
     @verbose
     def apply_function(
         self,
-        fun,
-        picks=None,
-        dtype=None,
-        n_jobs=None,
-        channel_wise=True,
+        fun: Callable,
+        picks: str | np.ndarray | slice | None = None,
+        dtype: np.dtype | None = None,
+        n_jobs: int | None = None,
+        channel_wise: bool = True,
         *,
-        verbose=None,
+        verbose: bool | str | int | None = None,
         **kwargs,
-    ):
+    ) -> Self:
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_evoked)s
@@ -362,7 +384,12 @@ class Evoked(
         return self
 
     @verbose
-    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
+    def apply_baseline(
+        self,
+        baseline: tuple[float | None, float | None] | None = (None, 0),
+        *,
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Baseline correct evoked data.
 
         Parameters
@@ -400,7 +427,13 @@ class Evoked(
         return self
 
     @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
+    def save(
+        self,
+        fname: Path | str,
+        *,
+        overwrite: bool = False,
+        verbose: bool | str | int | None = None,
+    ) -> None:
         """Save evoked data to a file.
 
         Parameters
@@ -423,7 +456,14 @@ class Evoked(
         write_evokeds(fname, self, overwrite=overwrite)
 
     @verbose
-    def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
+    def export(
+        self,
+        fname: str,
+        fmt: Literal["auto", "mff"] = "auto",
+        *,
+        overwrite: bool = False,
+        verbose: bool | str | int | None = None,
+    ) -> None:
         """Export Evoked to external formats.
 
         %(export_fmt_support_evoked)s
@@ -483,37 +523,37 @@ class Evoked(
         return t
 
     @property
-    def ch_names(self):
+    def ch_names(self) -> list[str]:
         """Channel names."""
         return self.info["ch_names"]
 
     @copy_function_doc_to_method_doc(plot_evoked)
     def plot(
         self,
-        picks=None,
-        exclude="bads",
-        unit=True,
-        show=True,
-        ylim=None,
-        xlim="tight",
-        proj=False,
-        hline=None,
-        units=None,
-        scalings=None,
-        titles=None,
-        axes=None,
-        gfp=False,
-        window_title=None,
-        spatial_colors="auto",
-        zorder="unsorted",
-        selectable=True,
-        noise_cov=None,
-        time_unit="s",
-        sphere=None,
+        picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
+        unit: bool = True,
+        show: bool = True,
+        ylim: dict | None = None,
+        xlim: Literal["tight"] | tuple | None = "tight",
+        proj: bool | Literal["interactive", "reconstruct"] = False,
+        hline: list[float] | None = None,
+        units: dict | None = None,
+        scalings: dict | None = None,
+        titles: dict | None = None,
+        axes: "Axes | list | None" = None,
+        gfp: bool | Literal["only"] = False,
+        window_title: str | None = None,
+        spatial_colors: bool | Literal["auto"] = "auto",
+        zorder: str | Callable = "unsorted",
+        selectable: bool = True,
+        noise_cov: "Covariance | str | None" = None,
+        time_unit: str = "s",
+        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
         *,
-        highlight=None,
-        verbose=None,
-    ):
+        highlight: np.ndarray | None = None,
+        verbose: bool | str | int | None = None,
+    ) -> "Figure":
         return plot_evoked(
             self,
             picks=picks,
@@ -543,28 +583,28 @@ class Evoked(
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(
         self,
-        picks=None,
-        exclude="bads",
-        unit=True,
-        show=True,
-        clim=None,
-        xlim="tight",
-        proj=False,
-        units=None,
-        scalings=None,
-        titles=None,
-        axes=None,
-        cmap="RdBu_r",
-        colorbar=True,
-        mask=None,
-        mask_style=None,
-        mask_cmap="Greys",
-        mask_alpha=0.25,
-        time_unit="s",
-        show_names=None,
-        group_by=None,
-        sphere=None,
-    ):
+        picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
+        unit: bool = True,
+        show: bool = True,
+        clim: dict | None = None,
+        xlim: Literal["tight"] | tuple | None = "tight",
+        proj: bool | Literal["interactive"] = False,
+        units: dict | None = None,
+        scalings: dict | None = None,
+        titles: dict | None = None,
+        axes: "Axes | list | dict | None" = None,
+        cmap: "str | Colormap | tuple" = "RdBu_r",
+        colorbar: bool = True,
+        mask: np.ndarray | None = None,
+        mask_style: Literal["both", "contour", "mask"] | None = None,
+        mask_cmap: "str | Colormap | tuple" = "Greys",
+        mask_alpha: float = 0.25,
+        time_unit: str = "s",
+        show_names: bool | Literal["auto", "all"] | None = None,
+        group_by: dict | None = None,
+        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+    ) -> "Figure":
         return plot_evoked_image(
             self,
             picks=picks,
@@ -593,25 +633,25 @@ class Evoked(
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(
         self,
-        layout=None,
-        layout_scale=0.945,
-        color=None,
-        border="none",
-        ylim=None,
-        scalings=None,
-        title=None,
-        proj=False,
-        vline=(0.0,),
-        fig_background=None,
-        merge_grads=False,
-        legend=True,
-        axes=None,
-        background_color="w",
-        noise_cov=None,
-        exclude="bads",
-        select=False,
-        show=True,
-    ):
+        layout: Layout | None = None,
+        layout_scale: float = 0.945,
+        color: list[Color] | Color | None = None,
+        border: str = "none",
+        ylim: dict | None = None,
+        scalings: dict | None = None,
+        title: str | None = None,
+        proj: bool | Literal["interactive"] = False,
+        vline: list[float] | tuple[float, ...] | float | None = (0.0,),
+        fig_background: np.ndarray | None = None,
+        merge_grads: bool = False,
+        legend: bool | int | str | tuple = True,
+        axes: "Axes | None" = None,
+        background_color: Color = "w",
+        noise_cov: "Covariance | str | None" = None,
+        exclude: list[str] | Literal["bads"] = "bads",
+        select: bool = False,
+        show: bool = True,
+    ) -> "Figure":
         return plot_evoked_topo(
             self,
             layout=layout,
@@ -637,37 +677,37 @@ class Evoked(
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(
         self,
-        times="auto",
+        times: float | np.ndarray | Literal["auto", "peaks", "interactive"] = "auto",
         *,
-        average=None,
-        ch_type=None,
-        scalings=None,
-        proj=False,
-        sensors=True,
-        show_names=False,
-        mask=None,
-        mask_params=None,
-        contours=6,
-        outlines="head",
-        sphere=None,
-        image_interp=_INTERPOLATION_DEFAULT,
-        extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT,
-        res=64,
-        size=1,
-        cmap=None,
-        vlim=(None, None),
-        cnorm=None,
-        colorbar=True,
-        cbar_fmt="%3.1f",
-        units=None,
-        axes=None,
-        time_unit="s",
-        time_format=None,
-        nrows=1,
-        ncols="auto",
-        show=True,
-    ):
+        average: float | np.ndarray | None = None,
+        ch_type: Literal["mag", "grad", "planar1", "planar2", "eeg"] | None = None,
+        scalings: dict | float | None = None,
+        proj: bool | Literal["interactive", "reconstruct"] = False,
+        sensors: bool | str = True,
+        show_names: bool | Callable = False,
+        mask: np.ndarray | None = None,
+        mask_params: dict | None = None,
+        contours: int | np.ndarray = 6,
+        outlines: Literal["head"] | dict | None = "head",
+        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        image_interp: str = _INTERPOLATION_DEFAULT,
+        extrapolate: str = _EXTRAPOLATE_DEFAULT,
+        border: float | Literal["mean"] = _BORDER_DEFAULT,
+        res: int = 64,
+        size: float = 1,
+        cmap: "str | Colormap | tuple | Literal['interactive'] | None" = None,
+        vlim: tuple | Literal["joint"] = (None, None),
+        cnorm: "Normalize | None" = None,
+        colorbar: bool = True,
+        cbar_fmt: str = "%3.1f",
+        units: dict | str | None = None,
+        axes: "Axes | list[Axes] | None" = None,
+        time_unit: str = "s",
+        time_format: str | None = None,
+        nrows: int | Literal["auto"] = 1,
+        ncols: int | Literal["auto"] = "auto",
+        show: bool = True,
+    ) -> "Figure":
         return plot_evoked_topomap(
             self,
             times=times,
@@ -704,21 +744,21 @@ class Evoked(
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(
         self,
-        surf_maps,
-        time=None,
-        time_label="t = %0.0f ms",
-        n_jobs=None,
-        fig=None,
-        vmax=None,
-        n_contours=21,
+        surf_maps: list,
+        time: float | None = None,
+        time_label: str | None = "t = %0.0f ms",
+        n_jobs: int | None = None,
+        fig: "Figure3D | Brain | None" = None,
+        vmax: float | dict | None = None,
+        n_contours: int = 21,
         *,
-        show_density=True,
-        alpha=None,
-        interpolation="nearest",
-        interaction="terrain",
-        time_viewer="auto",
-        verbose=None,
-    ):
+        show_density: bool = True,
+        alpha: float | dict | None = None,
+        interpolation: str | None = "nearest",
+        interaction: Literal["trackball", "terrain"] = "terrain",
+        time_viewer: bool | str = "auto",
+        verbose: bool | str | int | None = None,
+    ) -> "Figure3D | EvokedField":
         return plot_evoked_field(
             self,
             surf_maps,
@@ -739,16 +779,16 @@ class Evoked(
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(
         self,
-        noise_cov,
-        show=True,
-        rank=None,
-        time_unit="s",
-        sphere=None,
-        axes=None,
+        noise_cov: "list | Covariance | Path | str",
+        show: bool = True,
+        rank: Literal["info", "full"] | dict | None = None,
+        time_unit: str = "s",
+        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        axes: list | None = None,
         *,
-        spatial_colors="auto",
-        verbose=None,
-    ):
+        spatial_colors: bool | Literal["auto"] = "auto",
+        verbose: bool | str | int | None = None,
+    ) -> "Figure":
         return plot_evoked_white(
             self,
             noise_cov=noise_cov,
@@ -764,14 +804,14 @@ class Evoked(
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(
         self,
-        times="peaks",
-        title="",
-        picks=None,
-        exclude="bads",
-        show=True,
-        ts_args=None,
-        topomap_args=None,
-    ):
+        times: float | np.ndarray | Literal["auto", "peaks"] = "peaks",
+        title: str | None = "",
+        picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
+        show: bool = True,
+        ts_args: dict | None = None,
+        topomap_args: dict | None = None,
+    ) -> "Figure | list":
         return plot_evoked_joint(
             self,
             times=times,
@@ -787,40 +827,40 @@ class Evoked(
     def animate_topomap(
         self,
         *,
-        times=None,
-        average=None,
-        ch_type=None,
-        scalings=None,
-        proj=False,
-        sensors=True,
-        show_names=False,
-        mask=None,
-        mask_params=None,
-        contours=6,
-        outlines="head",
-        sphere=None,
-        image_interp=_INTERPOLATION_DEFAULT,
-        extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT,
-        res=64,
-        size=1.0,
-        cmap=None,
-        vlim=(None, None),
-        cnorm=None,
-        colorbar=True,
-        cbar_fmt="%3.1f",
-        units=None,
-        axes=None,
-        time_unit="s",
-        time_format=None,
-        frame_rate=None,
-        butterfly=False,
-        blit=True,
-        show=True,
-        vmin=None,
-        vmax=None,
-        verbose=None,
-    ):
+        times: np.ndarray | None = None,
+        average: float | np.ndarray | None = None,
+        ch_type: Literal["mag", "grad", "planar1", "planar2", "eeg"] | None = None,
+        scalings: dict | float | None = None,
+        proj: bool | Literal["interactive", "reconstruct"] = False,
+        sensors: bool | str = True,
+        show_names: bool | Callable = False,
+        mask: np.ndarray | None = None,
+        mask_params: dict | None = None,
+        contours: int | np.ndarray = 6,
+        outlines: Literal["head"] | dict | None = "head",
+        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        image_interp: str = _INTERPOLATION_DEFAULT,
+        extrapolate: str = _EXTRAPOLATE_DEFAULT,
+        border: float | Literal["mean"] = _BORDER_DEFAULT,
+        res: int = 64,
+        size: float = 1.0,
+        cmap: "str | Colormap | tuple | Literal['interactive'] | None" = None,
+        vlim: tuple | Literal["joint"] = (None, None),
+        cnorm: "Normalize | None" = None,
+        colorbar: bool = True,
+        cbar_fmt: str = "%3.1f",
+        units: dict | str | None = None,
+        axes: "list[Axes] | None" = None,
+        time_unit: str = "s",
+        time_format: str | None = None,
+        frame_rate: int | None = None,
+        butterfly: bool = False,
+        blit: bool = True,
+        show: bool = True,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        verbose: bool | str | int | None = None,
+    ) -> tuple["Figure", "FuncAnimation"]:
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -934,7 +974,7 @@ class Evoked(
             show=show,
         )
 
-    def as_type(self, ch_type="grad", mode="fast"):
+    def as_type(self, ch_type: str = "grad", mode: str = "fast") -> "Evoked":
         """Compute virtual evoked using interpolated fields.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
@@ -968,7 +1008,9 @@ class Evoked(
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
     @fill_doc
-    def detrend(self, order=1, picks=None):
+    def detrend(
+        self, order: int = 1, picks: str | np.ndarray | slice | None = None
+    ) -> Self:
         """Detrend data.
 
         This function operates in-place.
@@ -1019,16 +1061,16 @@ class Evoked(
 
     def get_peak(
         self,
-        ch_type=None,
-        tmin=None,
-        tmax=None,
-        mode="abs",
-        time_as_index=False,
-        merge_grads=False,
-        return_amplitude=False,
+        ch_type: str | None = None,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        mode: Literal["pos", "neg", "abs"] = "abs",
+        time_as_index: bool = False,
+        merge_grads: bool = False,
+        return_amplitude: bool = False,
         *,
-        strict=True,
-    ):
+        strict: bool = True,
+    ) -> tuple:
         """Get location and latency of peak amplitude.
 
         Parameters
@@ -1170,20 +1212,20 @@ class Evoked(
     @verbose
     def compute_psd(
         self,
-        method="multitaper",
-        fmin=0,
-        fmax=np.inf,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
-        remove_dc=True,
-        exclude=(),
+        method: Literal["welch", "multitaper"] = "multitaper",
+        fmin: float = 0,
+        fmax: float = np.inf,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
+        remove_dc: bool = True,
+        exclude: list[str] | tuple[str, ...] | Literal["bads"] = (),
         *,
-        n_jobs=1,
-        verbose=None,
+        n_jobs: int | None = 1,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> Spectrum:
         """Perform spectral analysis on sensor data.
 
         Parameters
@@ -1236,19 +1278,19 @@ class Evoked(
     @verbose
     def compute_tfr(
         self,
-        method,
-        freqs,
+        method: Literal["morlet", "multitaper"] | None,
+        freqs: np.ndarray | None,
         *,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
-        output="power",
-        decim=1,
-        n_jobs=None,
-        verbose=None,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
+        output: str = "power",
+        decim: int | slice = 1,
+        n_jobs: int | None = None,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> AverageTFR:
         """Compute a time-frequency representation of evoked data.
 
         Parameters
@@ -1296,31 +1338,31 @@ class Evoked(
     @verbose
     def plot_psd(
         self,
-        fmin=0,
-        fmax=np.inf,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
+        fmin: float = 0,
+        fmax: float = np.inf,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
         *,
-        method="auto",
-        average=False,
-        dB=True,
-        estimate="power",
-        xscale="linear",
-        area_mode="std",
-        area_alpha=0.33,
-        color="black",
-        line_alpha=None,
-        spatial_colors=True,
-        sphere=None,
-        exclude="bads",
-        ax=None,
-        show=True,
-        n_jobs=1,
-        verbose=None,
+        method: Literal["welch", "multitaper", "auto"] = "auto",
+        average: bool = False,
+        dB: bool = True,
+        estimate: str = "power",
+        xscale: Literal["linear", "log"] = "linear",
+        area_mode: str | None = "std",
+        area_alpha: float = 0.33,
+        color: str | tuple = "black",
+        line_alpha: float | None = None,
+        spatial_colors: bool = True,
+        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        exclude: list[str] | Literal["bads"] = "bads",
+        ax: "Axes | list[Axes] | None" = None,
+        show: bool = True,
+        n_jobs: int | None = 1,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> "Figure":
         """%(plot_psd_doc)s.
 
         Parameters
@@ -1393,15 +1435,15 @@ class Evoked(
     @verbose
     def to_data_frame(
         self,
-        picks=None,
-        index=None,
-        scalings=None,
-        copy=True,
-        long_format=False,
-        time_format=None,
+        picks: str | np.ndarray | slice | None = None,
+        index: Literal["time"] | None = None,
+        scalings: dict | None = None,
+        copy: bool = True,
+        long_format: bool = False,
+        time_format: str | None = None,
         *,
-        verbose=None,
-    ):
+        verbose: bool | str | int | None = None,
+    ) -> "DataFrame":
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -1494,15 +1536,15 @@ class EvokedArray(Evoked):
     @verbose
     def __init__(
         self,
-        data,
-        info,
-        tmin=0.0,
-        comment="",
-        nave=1,
-        kind="average",
-        baseline=None,
+        data: np.ndarray,
+        info: Info,
+        tmin: float = 0.0,
+        comment: str | None = "",
+        nave: int = 1,
+        kind: str = "average",
+        baseline: tuple[float | None, float | None] | None = None,
         *,
-        verbose=None,
+        verbose: bool | str | int | None = None,
     ):
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -1619,7 +1661,9 @@ def _check_evokeds_ch_names_times(all_evoked, inplace=False):
     return all_evoked
 
 
-def combine_evoked(all_evoked, weights):
+def combine_evoked(
+    all_evoked: list[Evoked], weights: list[float] | Literal["equal", "nave"]
+) -> Evoked:
     """Merge evoked data by weighted addition or subtraction.
 
     Each `~mne.Evoked` in ``all_evoked`` should have the same channels and the
@@ -1656,13 +1700,13 @@ def combine_evoked(all_evoked, weights):
     if isinstance(weights, str):
         _check_option("weights", weights, ["nave", "equal"])
         if weights == "nave":
-            weights = naves / naves.sum()
+            weights_arr = naves / naves.sum()
         else:
-            weights = np.ones_like(naves) / len(naves)
+            weights_arr = np.ones_like(naves) / len(naves)
     else:
-        weights = np.array(weights, float)
+        weights_arr = np.array(weights, float)
 
-    if weights.ndim != 1 or weights.size != len(all_evoked):
+    if weights_arr.ndim != 1 or weights_arr.size != len(all_evoked):
         raise ValueError("weights must be the same size as all_evoked")
 
     # cf. https://en.wikipedia.org/wiki/Weighted_arithmetic_mean, section on
@@ -1675,7 +1719,7 @@ def combine_evoked(all_evoked, weights):
     #    σ² = w₁² / nave₁ + w₂² / nave₂ + ... + wₙ² / naveₙ
     #
     # And our resulting nave is the reciprocal of this:
-    new_nave = 1.0 / np.sum(weights**2 / naves)
+    new_nave = 1.0 / np.sum(weights_arr**2 / naves)
     # This general formula is equivalent to formulae in Matti's manual
     # (pp 128-129), where:
     # new_nave = sum(naves) when weights='nave' and
@@ -1687,11 +1731,11 @@ def combine_evoked(all_evoked, weights):
     # use union of bad channels
     bads = list(set(b for e in all_evoked for b in e.info["bads"]))
     evoked.info["bads"] = bads
-    evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
+    evoked.data = sum(w * e.data for w, e in zip(weights_arr, all_evoked))
     evoked.nave = new_nave
 
     comment = ""
-    for idx, (w, e) in enumerate(zip(weights, all_evoked)):
+    for idx, (w, e) in enumerate(zip(weights_arr, all_evoked)):
         # pick sign
         sign = "" if w >= 0 else "-"
         # format weight
@@ -1715,13 +1759,13 @@ def combine_evoked(all_evoked, weights):
 
 @verbose
 def read_evokeds(
-    fname,
-    condition=None,
-    baseline=None,
-    kind="average",
-    proj=True,
-    allow_maxshield=False,
-    verbose=None,
+    fname: Path | str,
+    condition: int | str | list[int] | list[str] | None = None,
+    baseline: tuple[float | None, float | None] | None = None,
+    kind: str = "average",
+    proj: bool = True,
+    allow_maxshield: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> list[Evoked] | Evoked:
     """Read evoked dataset(s).
 
@@ -1729,7 +1773,7 @@ def read_evokeds(
     ----------
     fname : path-like
         The filename, which should end with ``-ave.fif`` or ``-ave.fif.gz``.
-    condition : int or str | list of int or str | None
+    condition : int | str | list of int | list of str | None
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
         list.
@@ -1780,15 +1824,18 @@ def read_evokeds(
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
     logger.info(f"Reading {fname} ...")
     return_list = True
+    conditions: range | list
     if condition is None:
         evoked_node = _get_evoked_node(fname)
-        condition = range(len(evoked_node))
+        conditions = range(len(evoked_node))
     elif not isinstance(condition, list):
-        condition = [condition]
+        conditions = [condition]
         return_list = False
+    else:
+        conditions = condition
 
     out = []
-    for c in condition:
+    for c in conditions:
         evoked = Evoked(
             fname,
             c,
@@ -2013,7 +2060,14 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
 
 
 @verbose
-def write_evokeds(fname, evoked, *, on_mismatch="raise", overwrite=False, verbose=None):
+def write_evokeds(
+    fname: Path | str,
+    evoked: Evoked | list[Evoked],
+    *,
+    on_mismatch: Literal["raise", "warn", "ignore"] = "raise",
+    overwrite: bool = False,
+    verbose: bool | str | int | None = None,
+) -> None:
     """Write an evoked dataset to a file.
 
     Parameters

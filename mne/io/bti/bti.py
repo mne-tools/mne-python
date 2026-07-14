@@ -6,6 +6,7 @@ import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -1333,18 +1334,18 @@ def _get_bti_info(
 
 @verbose
 def read_raw_bti(
-    pdf_fname,
-    config_fname="config",
-    head_shape_fname="hs_file",
-    rotation_x=0.0,
-    translation=(0.0, 0.02, 0.11),
-    convert=True,
-    rename_channels=True,
-    sort_by_ch_name=True,
-    ecg_ch="E31",
-    eog_ch=("E63", "E64"),
-    preload=False,
-    verbose=None,
+    pdf_fname: Path | str,
+    config_fname: Path | str = "config",
+    head_shape_fname: Path | str | None = "hs_file",
+    rotation_x: float = 0.0,
+    translation: np.ndarray | tuple | list = (0.0, 0.02, 0.11),
+    convert: bool = True,
+    rename_channels: bool = True,
+    sort_by_ch_name: bool = True,
+    ecg_ch: str | None = "E31",
+    eog_ch: tuple[str, ...] | None = ("E63", "E64"),
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 

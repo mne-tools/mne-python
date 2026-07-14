@@ -136,6 +136,18 @@ def test_import_nesting_hierarchy():
                                 )
             super().generic_visit(node)
 
+        def visit_If(self, node):
+            # Imports guarded by ``if TYPE_CHECKING:`` never execute at runtime,
+            # so they are exempt from the import-nesting hierarchy.
+            test = node.test
+            if (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+                isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+            ):
+                for child in node.orelse:  # only the (runtime) else branch
+                    self.visit(child)
+                return
+            self.generic_visit(node)
+
     ignores = (
         # File, statement, kind (omit line number because this can change)
         ("mne/utils/docs.py", "    import mne", "non-relative mne import"),
