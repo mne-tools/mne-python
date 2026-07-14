@@ -43,19 +43,19 @@ def _sum_cluster_data(data, tstep):
     return np.sign(data) * tstep
 
 
-def _get_clusters_st(x_in, adjacency, max_step=1):
-    """Find spatio-temporal clusters via SciPy connected components.
+def _get_labels_st(x_in, adjacency, max_step):
+    """Label connected components among the active spatio-temporal points.
 
-    Builds a sparse adjacency graph over only the supra-threshold vertices
-    (spatial edges from ``adjacency``, temporal edges between the same
-    source at adjacent time steps) and labels clusters with
-    ``scipy.sparse.csgraph.connected_components``.
+    Only the supra-threshold ("active") points are ever placed in the graph
+    passed to ``connected_components``, so its size scales with the number
+    of active points rather than with the full ``n_times * n_src`` extent
+    of ``x_in`` -- important since this is called on every permutation.
     """
     n_src = adjacency.shape[0]
     n_total = len(x_in)
     active = np.where(x_in)[0]
     if len(active) == 0:
-        return []
+        return active, None
 
     indptr = adjacency.indptr
     indices = adjacency.indices
@@ -90,42 +90,84 @@ def _get_clusters_st(x_in, adjacency, max_step=1):
     cols.append(active)
     row = np.concatenate(rows)
     col = np.concatenate(cols)
-    adj = sparse.coo_array((np.ones(len(row)), (row, col)), shape=(n_total, n_total))
+
+    # Remap to a compact 0..len(active)-1 index space before building the
+    # graph, so connected_components only has to traverse the (typically
+    # much smaller) active subgraph instead of all n_total vertices.
+    remap = np.empty(n_total, dtype=np.intp)
+    remap[active] = np.arange(len(active))
+    n_active = len(active)
+    adj = sparse.coo_array(
+        (np.ones(len(row)), (remap[row], remap[col])), shape=(n_active, n_active)
+    )
     _, labels = connected_components(adj)
-
-    # Build cluster list directly from component labels
-    cluster_labels = labels[active]
-    return [active[cluster_labels == id_] for id_ in np.unique(cluster_labels)]
+    return active, labels
 
 
-def _get_components(x_in, adjacency, return_list=True):
-    """Get connected components from a mask and a adjacency matrix."""
+def _get_clusters_st(x_in, adjacency, max_step=1):
+    """Find spatio-temporal clusters via SciPy connected components."""
+    active, labels = _get_labels_st(x_in, adjacency, max_step)
+    if labels is None:
+        return []
+    return [active[labels == id_] for id_ in np.unique(labels)]
+
+
+def _get_cluster_sums_st(x, x_in, adjacency, max_step, t_power):
+    """Like _get_clusters_st, but return only the per-cluster sums of x."""
+    active, labels = _get_labels_st(x_in, adjacency, max_step)
+    if labels is None:
+        return np.array([])
+    weights = x[active]
+    if t_power != 1:
+        weights = np.sign(weights) * np.abs(weights) ** t_power
+    return np.bincount(labels, weights=weights)
+
+
+def _get_labels(x_in, adjacency):
+    """Label connected components among the active points of a global adjacency.
+
+    Same idea as :func:`_get_labels_st`, but for a plain (non spatio-temporal)
+    sparse adjacency matrix that already spans all of ``x_in``.
+    """
+    active = np.where(x_in)[0]
+    if len(active) == 0:
+        return active, None
     if adjacency is False:
-        components = np.arange(len(x_in))
-    else:
-        mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
-        data = adjacency.data[mask]
-        row = adjacency.row[mask]
-        col = adjacency.col[mask]
-        shape = adjacency.shape
-        idx = np.where(x_in)[0]
-        row = np.concatenate((row, idx))
-        col = np.concatenate((col, idx))
-        data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
-        adjacency = sparse.coo_array((data, (row, col)), shape=shape)
-        _, components = connected_components(adjacency)
-    if return_list:
-        start = np.min(components)
-        stop = np.max(components)
-        comp_list = [list() for i in range(start, stop + 1, 1)]
-        mask = np.zeros(len(comp_list), dtype=bool)
-        for ii, comp in enumerate(components):
-            comp_list[comp].append(ii)
-            mask[comp] += x_in[ii]
-        clusters = [np.array(k) for k, m in zip(comp_list, mask) if m]
-        return clusters
-    else:
-        return components
+        # no adjacency: every active point is its own cluster
+        return active, np.arange(len(active))
+    mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
+    row = adjacency.row[mask]
+    col = adjacency.col[mask]
+    data = adjacency.data[mask]
+    # Self-loops so isolated active vertices get their own component
+    row = np.concatenate((row, active))
+    col = np.concatenate((col, active))
+    data = np.concatenate((data, np.ones(len(active), dtype=data.dtype)))
+    remap = np.empty(len(x_in), dtype=np.intp)
+    remap[active] = np.arange(len(active))
+    n_active = len(active)
+    adj = sparse.coo_array((data, (remap[row], remap[col])), shape=(n_active, n_active))
+    _, labels = connected_components(adj)
+    return active, labels
+
+
+def _get_components(x_in, adjacency):
+    """Get connected components from a mask and a adjacency matrix."""
+    active, labels = _get_labels(x_in, adjacency)
+    if labels is None:
+        return []
+    return [active[labels == id_] for id_ in np.unique(labels)]
+
+
+def _get_cluster_sums(x, x_in, adjacency, t_power):
+    """Like _get_components, but return only the per-cluster sums of x."""
+    active, labels = _get_labels(x_in, adjacency)
+    if labels is None:
+        return np.array([])
+    weights = x[active]
+    if t_power != 1:
+        weights = np.sign(weights) * np.abs(weights) ** t_power
+    return np.bincount(labels, weights=weights)
 
 
 def _find_clusters(
@@ -138,6 +180,7 @@ def _find_clusters(
     partitions=None,
     t_power=1,
     show_info=False,
+    sums_only=False,
 ):
     """Find all clusters which are above/below a certain threshold.
 
@@ -180,12 +223,19 @@ def _find_clusters(
     show_info : bool
         If True, display information about thresholds used (for TFCE). Should
         only be done for the standard permutation.
+    sums_only : bool
+        If True, skip building the cluster index-array list and return only
+        the per-cluster sums (``clusters`` will be ``None``). Ignored for
+        TFCE (a dict ``threshold``), which always needs the cluster indices.
+        Used to speed up the permutation loop, where only the maximum
+        per-permutation cluster statistic is needed.
 
     Returns
     -------
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
-        arrays. None is returned if threshold is a dict (TFCE)
+        arrays. None is returned if threshold is a dict (TFCE) or if
+        ``sums_only`` is True.
     sums : array
         Sum of x values in clusters.
     """
@@ -241,6 +291,8 @@ def _find_clusters(
     else:
         thresholds = [threshold]
         tfce = False
+    # TFCE always needs the actual cluster indices to accumulate scores
+    sums_only = sums_only and not tfce
 
     # include all points by default
     if include is None:
@@ -256,7 +308,7 @@ def _find_clusters(
     sums = list()
     for ti, thresh in enumerate(thresholds):
         # these need to be reset on each run
-        clusters = list()
+        clusters = None if sums_only else list()
         if tail == 0:
             x_ins = [
                 np.logical_and(x > thresh, include),
@@ -270,9 +322,17 @@ def _find_clusters(
         for x_in in x_ins:
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(
-                    x, x_in, adjacency, max_step, partitions, t_power, ndimage
+                    x,
+                    x_in,
+                    adjacency,
+                    max_step,
+                    partitions,
+                    t_power,
+                    ndimage,
+                    sums_only,
                 )
-                clusters += out[0]
+                if not sums_only:
+                    clusters += out[0]
                 sums.append(out[1])
         if tfce:
             # the score of each point is the sum of the h^H * e^E for each
@@ -303,27 +363,32 @@ def _find_clusters(
 
 
 def _find_clusters_1dir_parts(
-    x, x_in, adjacency, max_step, partitions, t_power, ndimage
+    x, x_in, adjacency, max_step, partitions, t_power, ndimage, sums_only=False
 ):
     """Deal with partitions, and pass the work to _find_clusters_1dir."""
     if partitions is None:
         clusters, sums = _find_clusters_1dir(
-            x, x_in, adjacency, max_step, t_power, ndimage
+            x, x_in, adjacency, max_step, t_power, ndimage, sums_only
         )
     else:
         # cluster each partition separately
-        clusters = list()
+        clusters = None if sums_only else list()
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, adjacency, max_step, t_power, ndimage)
-            clusters += out[0]
+            out = _find_clusters_1dir(
+                x, x_i, adjacency, max_step, t_power, ndimage, sums_only
+            )
+            if not sums_only:
+                clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
+def _find_clusters_1dir(
+    x, x_in, adjacency, max_step, t_power, ndimage, sums_only=False
+):
     """Actually call the clustering algorithm."""
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
@@ -360,12 +425,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             )
         if adjacency is False or adjacency.shape[0] == x_in.size:
             # global adjacency spans the whole (flattened) data;
-            # _get_components needs COO's .row/.col attributes
+            # _get_components/_get_cluster_sums need COO's .row/.col attributes
             if adjacency is not False and adjacency.format != "coo":
                 adjacency = sparse.coo_array(adjacency)
+            if sums_only:
+                return None, _get_cluster_sums(x, x_in, adjacency, t_power)
             clusters = _get_components(x_in, adjacency)
         elif sparse.issparse(adjacency):
             # spatial-only adjacency, applied along the second (e.g. time) dim
+            if sums_only:
+                return None, _get_cluster_sums_st(x, x_in, adjacency, max_step, t_power)
             clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
             raise TypeError(
@@ -509,7 +578,8 @@ def _do_permutations(
         if adjacency is None:
             t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
 
-        # Find cluster on randomized stats
+        # Find cluster on randomized stats (only the max cluster sum is
+        # needed here, so skip building the cluster index-array list)
         out = _find_clusters(
             t_obs_surr,
             threshold=threshold,
@@ -519,6 +589,7 @@ def _do_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            sums_only=True,
         )
         perm_clusters_sums = out[1]
 
@@ -548,7 +619,19 @@ class _TTestReordered:
         self._sqrt_n_nm1 = np.sqrt(self._n * (self._n - 1))
 
     def __call__(self, X):
-        mean = np.sum(X, axis=0) / self._n
+        return self._stat(np.sum(X, axis=0))
+
+    def from_signs(self, signs, X):
+        """Compute the statistic from a +/-1 sign vector and unflipped data.
+
+        Equivalent to ``self(X * signs[:, None])``, but ``signs @ X`` lets
+        BLAS reduce over samples directly to a length-n_vars vector, so we
+        never materialize a full sign-flipped copy of (or mutate) X.
+        """
+        return self._stat(signs @ X)
+
+    def _stat(self, col_sum):
+        mean = col_sum / self._n
         denom_sq = np.maximum(self._sum_sq - self._n * mean * mean, 0.0)
         # avoid divide-by-zero warnings for degenerate (zero-variance) columns
         out = np.zeros_like(mean)
@@ -592,40 +675,48 @@ def _do_1samp_permutations(
     for seed_idx, order in enumerate(orders):
         assert isinstance(order, np.ndarray)
         assert order.size == n_samp  # should be guaranteed by parent
-        # new surrogate data with specified sign flip
-        signs = 2 * order[:, None].astype(int) - 1
 
-        if buffer_size is None:
-            # be careful about non-writable memmap (GH#1507)
-            if X.flags.writeable:
-                X *= signs
-                try:
-                    # Recompute statistic on randomized data
-                    t_obs_surr = stat_fun(X)
-                finally:
-                    # Set X back to previous state (trade memory eff. for CPU use)
-                    X *= signs
-            else:
-                t_obs_surr = stat_fun(X * signs)
+        if isinstance(stat_fun, _TTestReordered):
+            # signs @ X is reduced by BLAS directly to a length-n_vars
+            # vector, so there's no full-size sign-flipped copy to make (or
+            # in-place mutation of X to undo afterward)
+            t_obs_surr = stat_fun.from_signs(2.0 * order - 1.0, X)
         else:
-            # only sign-flip a small data buffer, so we need less memory
-            t_obs_surr = np.empty(n_vars, dtype=X.dtype)
+            # new surrogate data with specified sign flip
+            signs = 2 * order[:, None].astype(int) - 1
 
-            for pos in range(0, n_vars, buffer_size):
-                # number of variables for this loop
-                n_var_loop = min(pos + buffer_size, n_vars) - pos
+            if buffer_size is None:
+                # be careful about non-writable memmap (GH#1507)
+                if X.flags.writeable:
+                    X *= signs
+                    try:
+                        # Recompute statistic on randomized data
+                        t_obs_surr = stat_fun(X)
+                    finally:
+                        # Set X back to previous state (trade memory eff. for CPU use)
+                        X *= signs
+                else:
+                    t_obs_surr = stat_fun(X * signs)
+            else:
+                # only sign-flip a small data buffer, so we need less memory
+                t_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
-                X_flip_buffer[:, :n_var_loop] = signs * X[:, pos : pos + n_var_loop]
+                for pos in range(0, n_vars, buffer_size):
+                    # number of variables for this loop
+                    n_var_loop = min(pos + buffer_size, n_vars) - pos
 
-                # apply stat_fun and store result
-                tmp = stat_fun(X_flip_buffer)
-                t_obs_surr[pos : pos + n_var_loop] = tmp[:n_var_loop]
+                    X_flip_buffer[:, :n_var_loop] = signs * X[:, pos : pos + n_var_loop]
+
+                    # apply stat_fun and store result
+                    tmp = stat_fun(X_flip_buffer)
+                    t_obs_surr[pos : pos + n_var_loop] = tmp[:n_var_loop]
 
         # The stat should have the same shape as the samples for no adj.
         if adjacency is None:
             t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
 
-        # Find cluster on randomized stats
+        # Find cluster on randomized stats (only the max cluster sum is
+        # needed here, so skip building the cluster index-array list)
         out = _find_clusters(
             t_obs_surr,
             threshold=threshold,
@@ -635,6 +726,7 @@ def _do_1samp_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            sums_only=True,
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
