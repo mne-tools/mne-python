@@ -18,6 +18,7 @@ from scipy import linalg, sparse, stats
 from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
+    _TTestReordered,
     f_oneway,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
@@ -643,6 +644,53 @@ def test_permutation_adjacency_equiv(numba_conditional):
         for c1, c2 in zip(cs, this_cs):
             assert_array_equal(c1, c2)
         assert_array_equal(stat_map, this_stat_map)
+
+
+def test_spatio_temporal_cluster_chain_merge():
+    """Test that a chain of spatio-temporal merges combines into one cluster."""
+    # Regression test: joining these active points into one cluster requires
+    # a chain of 3 merges alternating between spatial and temporal adjacency
+    # (t0's {2, 3, 4} - t1's {4} - t0's {0} - t1's {0, 1, 5}); that chain used
+    # to get broken, incorrectly splitting off {(1, 2)} as its own cluster.
+    rng = np.random.RandomState(0)
+    n_subjects, n_times, n_space = 3, 2, 6
+    X = rng.randn(n_subjects, n_times, n_space) * 0.01
+    active = [(0, 0), (0, 2), (0, 3), (0, 4), (1, 0), (1, 1), (1, 2), (1, 4), (1, 5)]
+    for t, s in active:
+        X[:, t, s] += 10
+    # path graph: 0-1-5-4-3-2
+    row = np.array([0, 1, 2, 3, 4])
+    col = np.array([1, 5, 3, 4, 5])
+    adjacency = sparse.coo_array((np.ones(5), (row, col)), shape=(n_space, n_space))
+
+    _, clusters, cluster_pv, _ = permutation_cluster_1samp_test(
+        X,
+        threshold=5.0,
+        tail=1,
+        adjacency=adjacency,
+        max_step=1,
+        n_permutations=20,
+        out_type="indices",
+        seed=0,
+        verbose=False,
+    )
+    assert len(clusters) == 1
+    t_idx, s_idx = clusters[0]
+    assert_equal(sorted(zip(t_idx.tolist(), s_idx.tolist())), active)
+    assert_allclose(cluster_pv, [1 / 4])
+
+
+def test_ttest_reordered():
+    """Test that _TTestReordered matches ttest_1samp_no_p under sign flips."""
+    rng = np.random.RandomState(0)
+    X = rng.randn(9, 5)
+    stat_fun = _TTestReordered(X)
+    for _ in range(5):
+        signs = rng.choice([-1, 1], size=(9, 1))
+        assert_allclose(stat_fun(X * signs), ttest_1samp_no_p(X * signs))
+    # degenerate (zero-variance) columns should give 0, not nan/inf
+    X_deg = np.ones((9, 1))
+    assert_allclose(_TTestReordered(X_deg)(X_deg), 0.0)
 
 
 def test_spatio_temporal_cluster_adjacency(numba_conditional):
