@@ -1,0 +1,1 @@
+Added a ``description`` parameter to :meth:`mne.io.Raw.crop_by_annotations` to filter crops by annotation description, by `Aman Srivastava`_.
