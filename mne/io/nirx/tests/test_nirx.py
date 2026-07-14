@@ -573,14 +573,18 @@ def test_nirx_aurora_2025_2():
     mni_locs = apply_trans(head_mri_t, locs)
 
     assert raw.info["ch_names"][0][3:5] == "D1"
-    assert_allclose(mni_locs[0], [-0.035971, 0.027644, 0.077821], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[0], [-0.035971, 0.027644, 0.077821], atol=allowed_dist_error
+    )
 
     # Test source locations
     locs = [ch["loc"][3:6] for ch in raw.info["chs"]]
     mni_locs = apply_trans(head_mri_t, locs)
 
     assert raw.info["ch_names"][0][:2] == "S1"
-    assert_allclose(mni_locs[0], [-0.02948, 0.060438, 0.057351], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[0], [-0.02948, 0.060438, 0.057351], atol=allowed_dist_error
+    )
 
 
 @requires_testing_data
