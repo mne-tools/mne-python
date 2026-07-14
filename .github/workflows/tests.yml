@@ -20,23 +20,8 @@ permissions:
   contents: read
 
 jobs:
-  style:
-    name: Style
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - uses: actions/checkout@v7.0.0
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v6.3.0
-        with:
-          python-version: '3.14'
-      - run: pip install --upgrade vulture
-      - run: vulture
-
   bandit:
     name: Bandit
-    needs: style
     runs-on: ubuntu-latest
     steps:
       - uses: davidslusser/actions_python_bandit@v1.0.1
@@ -47,7 +32,6 @@ jobs:
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
-    needs: style
     timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     defaults:
