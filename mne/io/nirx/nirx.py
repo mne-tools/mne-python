@@ -209,6 +209,7 @@ class RawNIRX(BaseRaw):
                 "2021.4.0-34-ge9fdbbc8",
                 "2021.9.0-5-g3eb32851",
                 "2021.9.0-6-g14ef4a71",
+                "2025.2.0-17-geea6971f"
             ]:
                 warn(
                     "MNE has not been tested with Aurora version "
