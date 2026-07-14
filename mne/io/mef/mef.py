@@ -50,9 +50,7 @@ class RawMEF(BaseRaw):
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
         # The dataset maybe have password
         password = (
-            (password or "").decode()
-            if isinstance(password, bytes)
-            else (password or "")
+            password.decode() if isinstance(password, bytes) else (password or "")
         )
         # Open the dataset
         session = pymef.mef_session.MefSession(str(fname), password)

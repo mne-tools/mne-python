@@ -225,6 +225,7 @@ report.add_projs(info=raw_path, title="Projs from info")
 # The ECG projectors and events files are not bundled in JupyterLite
 if sys.platform != "emscripten":
     ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
+    # Now a joint plot
     events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
     raw_full = (
         mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
@@ -235,6 +236,7 @@ if sys.platform != "emscripten":
         tmin=-0.5,
         tmax=0.5,
         baseline=(None, None),
+        on_outside="ignore",
     ).average()
     report.img_max_width = None  # do not constrain image width
     report.add_projs(

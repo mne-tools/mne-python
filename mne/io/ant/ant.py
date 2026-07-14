@@ -221,13 +221,13 @@ def _parse_ch_types(
     ch_names: list[str], eog: str | None, misc: str | None, ch_refs: list[str]
 ) -> list[str]:
     """Parse the channel types."""
-    eog = re.compile(eog) if eog is not None else None
-    misc = re.compile(misc) if misc is not None else None
+    eog_re = re.compile(eog) if eog is not None else None
+    misc_re = re.compile(misc) if misc is not None else None
     ch_types = []
     for ch in ch_names:
-        if eog is not None and re.fullmatch(eog, ch):
+        if eog_re is not None and re.fullmatch(eog_re, ch):
             ch_types.append("eog")
-        elif misc is not None and re.fullmatch(misc, ch):
+        elif misc_re is not None and re.fullmatch(misc_re, ch):
             ch_types.append("misc")
         else:
             ch_types.append("eeg")

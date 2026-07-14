@@ -3228,6 +3228,15 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.20.1
 """
 
+docdict["on_outside_epochs"] = """
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["on_rank_mismatch"] = """
 on_rank_mismatch : str
     If an explicit MEG value is passed, what to do when it does not match

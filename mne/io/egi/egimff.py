@@ -10,6 +10,7 @@ import os.path as op
 import re
 from collections import OrderedDict
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -89,7 +90,7 @@ def _read_mff_header(filepath):
     record_time = str(rt_elem.text) if rt_elem is not None else ""
 
     reader = Reader(filepath)
-    signal_blocks = dict(
+    signal_blocks: dict[str, Any] = dict(
         n_channels=reader.num_channels["EEG"],
         sfreq=reader.sampling_rates["EEG"],
         n_blocks=len(reader.block_sample_counts["EEG"]),
@@ -539,7 +540,9 @@ class RawMff(BaseRaw):
         first_samps = [0]
         last_samps = [egi_info["last_samps"][-1] - 1]
 
-        annot = dict(onset=list(), duration=list(), description=list(), extras=list())
+        annot: dict[str, Any] = dict(
+            onset=list(), duration=list(), description=list(), extras=list()
+        )
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
