@@ -535,7 +535,7 @@ class RawSNIRF(BaseRaw):
                     rpa=rpa,
                     hpi=hpi,
                     dig_ch_pos=extra_ps,
-                    coord_frame=_frame_to_str[coord_frame],
+                    coord_frame=_frame_to_str[int(coord_frame)],
                     add_missing_fiducials=add_missing_fiducials,
                 )
             else:

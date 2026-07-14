@@ -608,7 +608,7 @@ class ExtendedTimeMixin(TimeMixin):
         return self.times[-1]
 
     @verbose
-    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None) -> Self:
         """Crop data to a given time interval.
 
         Parameters
@@ -667,7 +667,7 @@ class ExtendedTimeMixin(TimeMixin):
         return self
 
     @verbose
-    def decimate(self, decim, offset=0, *, verbose=None):
+    def decimate(self, decim, offset=0, *, verbose=None) -> Self:
         """Decimate the time-series data.
 
         Parameters
@@ -731,7 +731,7 @@ class ExtendedTimeMixin(TimeMixin):
         self._update_first_last()
         return self
 
-    def shift_time(self, tshift, relative=True):
+    def shift_time(self, tshift, relative=True) -> Self:
         """Shift time scale in epoched or evoked data.
 
         Parameters
