@@ -1,2 +1,2 @@
-Fix `spatial_colors` is not "auto" as described by docstring in :func:`mne.viz.plot_evoked`.
+Fix ``spatial_colors`` is not ``"auto"`` as described by docstring in :func:`mne.viz.plot_evoked`.
 Fix empty topomap created when clicking after time range selection in :func:`mne.viz.plot_evoked`, by `Lifeng Qiu Lin`_.
