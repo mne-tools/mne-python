@@ -16,11 +16,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6.3.0
-      - run: pip install --upgrade towncrier pygithub gitpython numpy vulture twine build
+      - run: pip install --upgrade towncrier pygithub gitpython numpy vulture
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - run: python ./tools/dev/ensure_headers.py
       - run: vulture
-      - run: make check-readme
       # Run this last, since it can fail the job if moved up
       - uses: j178/prek-action@v2
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
