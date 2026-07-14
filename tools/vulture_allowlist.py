@@ -168,3 +168,5 @@ _.fake_keypress
 _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
+_show_help_fig
+_pairs_to_html
