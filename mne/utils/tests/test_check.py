@@ -20,6 +20,7 @@ from mne.utils import (
     Bunch,
     _check_ch_locs,
     _check_fname,
+    _check_if_nan,
     _check_info_inv,
     _check_option,
     _check_range,
@@ -204,6 +205,24 @@ def test_check_option():
     )
     with pytest.raises(ValueError, match=msg):
         assert _check_option("option", "bad", ["valid"])
+
+
+def test_check_if_nan():
+    """Test NaN handling and option validation."""
+    msg = (
+        "Invalid value for the 'on_nan' parameter. "
+        "Allowed values are 'error' and 'warn', but got 'er' instead."
+    )
+    nan_error_msg = r"Some of the values\s+to be plotted are NaN\."
+    nan_warn_msg = r"Some of the values\s+to be plotted are NaN"
+    with pytest.raises(ValueError, match=msg):
+        _check_if_nan([0.0], on_nan="er")
+
+    with pytest.raises(ValueError, match=nan_error_msg):
+        _check_if_nan([0.0, np.nan], on_nan="error")
+
+    with pytest.warns(RuntimeWarning, match=nan_warn_msg):
+        _check_if_nan([0.0, np.nan], on_nan="warn")
 
 
 def test_path_like():
@@ -415,3 +434,19 @@ def test_soft_import():
     """Test _soft_import."""
     with pytest.raises(RuntimeError, match=r".* the module mne>=999 \(found version.*"):
         _soft_import("mne", "testing", min_version="999")
+
+
+def test_soft_import_missing_version(monkeypatch):
+    """Test _soft_import handles packages without __version__."""
+    import types
+
+    fake_mod = types.ModuleType("fake_no_version")
+    monkeypatch.setitem(sys.modules, "fake_no_version", fake_mod)
+
+    # No min_version: should succeed even without __version__
+    mod = _soft_import("fake_no_version", "testing", strict=True)
+    assert mod is fake_mod
+
+    # With min_version: should fail because __version__ is absent
+    with pytest.raises(RuntimeError, match="module fake_no_version"):
+        _soft_import("fake_no_version", "testing", strict=True, min_version="1.0")

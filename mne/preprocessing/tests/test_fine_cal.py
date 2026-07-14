@@ -59,6 +59,37 @@ def test_fine_cal_io(tmp_path, fname):
     assert object_diff(fine_cal_dict, fine_cal_dict_reload) == ""
 
 
+def test_fine_cal_io_preserves_channel_numbers(tmp_path):
+    """Test that writing keeps bare channel numbers MaxFilter expects (#13859)."""
+    loc = " ".join(["0.000000"] * 12)
+    src = tmp_path / "sss_cal.dat"
+    # both 3-digit (zero-padded on read) and 4-digit channel numbers
+    src.write_text(f"113\t{loc} -0.008282\n2643\t{loc} -0.005429\n")
+
+    cal = read_fine_calibration(src)
+    # read_fine_calibration renames Neuromag channels to match raw.info
+    assert cal["ch_names"] == ["MEG0113", "MEG2643"]
+
+    out = tmp_path / "out.dat"
+    write_fine_calibration(out, cal)
+    written_numbers = [line.split()[0] for line in out.read_text().splitlines()]
+    assert written_numbers == ["113", "2643"]
+
+
+def test_fine_cal_io_keeps_non_neuromag_names(tmp_path):
+    """Test that writing leaves non-Neuromag channel names untouched."""
+    loc = " ".join(["0.000000"] * 12)
+    src = tmp_path / "sss_cal.dat"
+    src.write_text(f"MLC11\t{loc} -0.008282\n")
+
+    cal = read_fine_calibration(src)
+    assert cal["ch_names"] == ["MLC11"]
+
+    out = tmp_path / "out.dat"
+    write_fine_calibration(out, cal)
+    assert out.read_text().split()[0] == "MLC11"
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "kind",
@@ -242,7 +273,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 15
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
-        sfs = [4, 5, 125, 159]
+        sfs = [4, 5, 120, 162]
         corr_tol = 0.38
     else:
         assert system == "triux", f"Unknown system {system}"

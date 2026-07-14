@@ -9,8 +9,10 @@
     --mne-color-discord: #5865F2;
     /* font weight */
     --mne-font-weight-semibold: 600;
+    /* sponsor/instutition logo sizes */
+    --mne-sponsor-logo-lg: 6rem;
+    --mne-sponsor-logo-sm: 3rem;
 }
-
 
 html[data-theme="light"] {
     /* pydata-sphinx-theme overrides */
@@ -80,7 +82,10 @@ html[data-theme="dark"] {
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
 }
-
+html[data-theme="dark"] img:not(.only-dark, .dark-light) {
+    /* remove img filters from pydata-sphinx theme */
+    filter: unset !important;
+}
 /* ************************************************************ Sphinx fixes */
 
 /* API docs parameter lists */
@@ -364,35 +369,61 @@ div.card {
     background-color: var(--mne-color-card-header);
 }
 
-/* *************************************** homepage funder/institution logos */
-div#funder-logos div.card,
-div#funder-logos div.card img,
-div#institution-logos div.card,
-div#institution-logos div.card img,
+/* ************************************************ funder/institution logos */
+div#sponsor-logos div.card,
+div#sponsor-logos div.card img,
 div#contributor-avatars div.card,
 div#contributor-avatars div.card img {
     background-color: unset;
     border: none;
     border-radius: unset;
 }
+div#sponsor-logos div.card img,
 div#contributor-avatars div.card img {
-    width: 2.5em;
+    box-sizing: content-box;
+    max-height: 3rem;
+    width: 3rem;
+    margin: 0 0.2rem;
 }
 .contributor-avatar {
     clip-path: circle(closest-side);
 }
+p.centered {
+    text-align: center;
+}
+p.centered a img.instlogo {
+    background-color: unset !important;
+    border: none;
+    border-radius: unset !important;
+    margin: 0.25rem;
+    max-height: 2rem;
+    max-width: 6rem;
+}
 
 /* ************************************************************ funders page */
-ul.funders li {
-    margin-left: 36px;
-    text-indent: -36px;
-    padding-bottom: 9px;
+ul.currentsponsor li {
+    margin-left: calc(var(--mne-sponsor-logo-lg) + 0.5rem);
+    text-indent: calc(-1 * var(--mne-sponsor-logo-lg) - 0.5rem);
+    padding-bottom: 0.75rem;
 }
-ul.funders li img {
-    width: 30px;
-    max-height: 24px;
-    object-fit: contain;
+ul.formersponsor li {
+    margin-left: calc(var(--mne-sponsor-logo-sm) + 1rem);
+    text-indent: calc(-1 * var(--mne-sponsor-logo-sm) - 1rem);
+    padding-bottom: 0.5rem;
+}
+ul.currentsponsor li img,
+ul.formersponsor li img {
     background-color: unset !important;
+    box-sizing: content-box;
+    object-fit: contain;
+}
+ul.currentsponsor li img {
+    max-height: calc(0.4 * var(--mne-sponsor-logo-lg));
+    width: var(--mne-sponsor-logo-lg);
+}
+ul.formersponsor li img {
+    max-height: calc(0.5 * var(--mne-sponsor-logo-sm));
+    width: var(--mne-sponsor-logo-sm);
 }
 
 /* *********************************************************** contrib guide */
@@ -428,4 +459,18 @@ div.sphx-glr-animation video {
     margin-top: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+}
+
+/* widen main content area */
+.bd-page-width {
+    max-width: 100rem;
+}
+.bd-sidebar-primary {
+    max-width: 16rem;
+}
+.bd-article-container {
+    max-width: 75em;
+}
+.bd-main .bd-content {
+    justify-content: flex-start;
 }

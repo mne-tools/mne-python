@@ -373,6 +373,7 @@ def test_plot_white_rank():
     evoked.plot_white(cov, rank=rank)
 
 
+@pytest.mark.slowtest
 def test_plot_white():
     """Test plot_white."""
     cov = read_cov(cov_fname)
@@ -441,6 +442,16 @@ def test_plot_compare_evokeds(evoked):
     # test defaults
     figs = plot_compare_evokeds(evoked)
     assert len(figs) == 3
+    # test arbitrary ordering of channels is handled correctly, in topo mode
+    evoked_subset = evoked.copy().pick(["MEG 0113", "MEG 0112"])
+    fig_ordered = plot_compare_evokeds(evoked_subset, axes="topo")
+    evoked_reordered = evoked_subset.copy()
+    evoked_reordered.reorder_channels(["MEG 0112", "MEG 0113"])
+    figs_reordered = plot_compare_evokeds(evoked_reordered, axes="topo")
+    assert_allclose(
+        fig_ordered[0].axes[0].lines[0].get_ydata(),
+        figs_reordered[0].axes[0].lines[0].get_ydata(),
+    )
     # test passing more than one evoked
     red, blue = evoked.copy(), evoked.copy()
     red.comment = red.comment + "*" * 100
@@ -462,6 +473,19 @@ def test_plot_compare_evokeds(evoked):
         yvals = line.get_ydata()
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
+    # test that the channels are aligned when many evoked
+    # are passed in different orders, in topo mode
+    evoked_subset = evoked.copy().pick(["MEG 0113", "MEG 0112"])
+    evoked_reordered = evoked_subset.copy()
+    evoked_reordered.reorder_channels(["MEG 0112", "MEG 0113"])
+    # catch warnings when testing misalignment on purpose
+    with pytest.warns(RuntimeWarning, match="Order of channels differs"):
+        figs = plot_compare_evokeds(
+            dict(orig=evoked_subset, reordered=evoked_reordered), axes="topo"
+        )
+    assert_allclose(
+        figs[0].axes[0].lines[0].get_ydata(), figs[0].axes[0].lines[1].get_ydata()
+    )
     # test plotting eyetracking data
     plt.close("all")  # close the previous figures as to avoid a too many figs warning
     info_tmp = mne.create_info(["pupil_left"], evoked.info["sfreq"], ["pupil"])

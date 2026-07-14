@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from inspect import getfullargspec
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -18,6 +19,7 @@ from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (
     ContainsMixin,
+    Info,
     SetChannelsMixin,
     _ensure_infos_match,
     _unit2human,
@@ -183,6 +185,7 @@ class BaseRaw(
     # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
 
     _extra_attributes = ()
+    _filenames: list[Path | None]
 
     @verbose
     def __init__(
@@ -281,7 +284,12 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if "STI 014" in ch_names and self.filenames[0].suffix != ".fif":
+            first_fname = self.filenames[0]
+            if (
+                "STI 014" in ch_names
+                and first_fname is not None
+                and first_fname.suffix != ".fif"
+            ):
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
@@ -347,6 +355,7 @@ class BaseRaw(
             # We might need to apply it to our data now
             if self.preload:
                 logger.info("Applying compensator to loaded data")
+                assert self._data is not None
                 lims = np.concatenate(
                     [np.arange(0, len(self.times), 10000), [len(self.times)]]
                 )
@@ -562,15 +571,20 @@ class BaseRaw(
             )
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith("bad"):
-                    return descr
+                    return str(descr)
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
-    def load_data(self, verbose=None):
+    def load_data(self, *, memmap=None, verbose=None):
         """Load raw data.
 
         Parameters
         ----------
+        memmap : path-like | None
+            If not ``None``, preload data into a memory-mapped file at this
+            path. If ``None`` (default), preload data into RAM.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -586,7 +600,9 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
-            self._preload_data(True)
+            if memmap is not None:
+                _validate_type(memmap, "path-like", "memmap")
+            self._preload_data(memmap if memmap is not None else True)
         return self
 
     def _preload_data(self, preload):
@@ -609,7 +625,7 @@ class BaseRaw(
         return self.first_samp / float(self.info["sfreq"])
 
     @property
-    def first_samp(self):
+    def first_samp(self) -> int:
         """The first data sample.
 
         See :term:`first_samp`.
@@ -622,7 +638,7 @@ class BaseRaw(
         return self._first_time
 
     @property
-    def last_samp(self):
+    def last_samp(self) -> int:
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
@@ -691,17 +707,19 @@ class BaseRaw(
     def filenames(self, value):
         """The filenames used, cast to list of paths."""  # noqa: D401
         _validate_type(value, (list, tuple), "filenames")
-        if isinstance(value, tuple):
-            value = list(value)
-        for k, elt in enumerate(value):
-            if elt is not None:
-                value[k] = _check_fname(elt, overwrite="read", must_exist=False)
-                if not value[k].exists():
-                    # check existence separately from _check_fname since some
-                    # fileformats use directories instead of files and '_check_fname'
-                    # does not handle it correctly.
-                    raise FileNotFoundError(f"File {value[k]} not found.")
-        self._filenames = list(value)
+        filenames: list[Path | None] = []
+        for elt in value:
+            if elt is None:
+                filenames.append(None)
+                continue
+            fname = _check_fname(elt, overwrite="read", must_exist=False)
+            if not fname.exists():
+                # check existence separately from _check_fname since some
+                # fileformats use directories instead of files and '_check_fname'
+                # does not handle it correctly.
+                raise FileNotFoundError(f"File {fname} not found.")
+            filenames.append(fname)
+        self._filenames = filenames
 
     @verbose
     def set_annotations(
@@ -765,13 +783,13 @@ class BaseRaw(
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
-        if hasattr(self, "_data") and getattr(self._data, "filename", None) is not None:
+        fname = getattr(getattr(self, "_data", None), "filename", None)
+        if fname is not None:
             # First, close the file out; happens automatically on del
-            filename = self._data.filename
             del self._data
             # Now file can be removed
             try:
-                os.remove(filename)
+                os.remove(fname)
             except OSError:
                 pass  # ignore file that no longer exists
 
@@ -869,6 +887,7 @@ class BaseRaw(
     def _getitem(self, item, return_times=True):
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
+            assert self._data is not None
             data = self._data[sel, start:stop]
         else:
             data = self._read_segment(start=start, stop=stop, sel=sel)
@@ -886,6 +905,7 @@ class BaseRaw(
     def __setitem__(self, item, value):
         """Set raw data content."""
         _check_preload(self, "Modifying data of Raw")
+        assert self._data is not None
         sel, start, stop = self._parse_get_set_params(item)
         # set the data
         self._data[sel, start:stop] = value
@@ -1092,6 +1112,7 @@ class BaseRaw(
             The raw object with transformed data.
         """
         _check_preload(self, "raw.apply_function")
+        assert self._data is not None
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -1274,6 +1295,7 @@ class BaseRaw(
         fs = float(self.info["sfreq"])
         picks = _picks_to_idx(self.info, picks, exclude=(), none="data_or_ica")
         _check_preload(self, "raw.notch_filter")
+        assert self._data is not None
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
             "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
@@ -1432,10 +1454,12 @@ class BaseRaw(
         ratio, n_news = ratio[0], np.array(n_news, int)
         new_offsets = np.cumsum([0] + list(n_news))
         if self.preload:
+            assert self._data is not None
             new_data = np.empty((len(self.ch_names), new_offsets[-1]), self._data.dtype)
         for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
             this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
             if self.preload:
+                assert self._data is not None
                 data_chunk = self._data[:, offsets[ri] : offsets[ri + 1]]
                 new_data[:, this_sl] = resample(data_chunk, **kwargs)
                 # In empirical testing, it was faster to resample all channels
@@ -1568,7 +1592,15 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
+    def crop(
+        self,
+        tmin=0.0,
+        tmax=None,
+        include_tmax=True,
+        *,
+        reset_first_samp=False,
+        verbose=None,
+    ):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1585,12 +1617,51 @@ class BaseRaw(
         %(tmin_raw)s
         %(tmax_raw)s
         %(include_tmax)s
+        reset_first_samp : bool
+            If True, reset :term:`first_samp` to 0 after cropping, treating
+            the cropped segment as an independent recording. Note that this
+            can break things if you extracted events before cropping and try
+            to use them afterward. Default is False.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+
+        Notes
+        -----
+        After cropping, :term:`first_samp` is updated to reflect the new
+        start of the data, preserving the original recording timeline.
+        This means ``raw.times`` will still start at ``0.0``, but
+        ``raw.first_samp`` will reflect the offset from the original
+        recording. If you want to treat the cropped segment as an
+        independent signal with ``first_samp=0``, you can convert it
+        to a :class:`~mne.io.RawArray`::
+
+            raw_array = mne.io.RawArray(raw.get_data(), raw.info)
+
+        Examples
+        --------
+        By default, cropping preserves the original recording timeline,
+        so :term:`first_samp` remains non-zero after cropping::
+
+            >>> raw = mne.io.read_raw_fif(fname)  # doctest: +SKIP
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            25800
+            >>> raw.crop(tmin=10, tmax=20)  # doctest: +SKIP
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            27810
+
+        If you want to treat the cropped segment as an independent
+        recording, use ``reset_first_samp=True``::
+
+            >>> raw2 = raw.copy().crop(tmin=10, tmax=20,
+            ...                        reset_first_samp=True)  # doctest: +SKIP
+            >>> print(raw2.first_samp)  # doctest: +SKIP
+            0
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
         if tmax is None:
@@ -1635,6 +1706,7 @@ class BaseRaw(
         self.filenames = [self.filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
+            assert self._data is not None
             self._data = self._data[:, smin : smax + 1].copy()
 
         annotations = self.annotations
@@ -1648,7 +1720,11 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
-
+        if reset_first_samp:
+            delta = self._first_samps[0]
+            self._first_samps -= delta
+            self._last_samps -= delta
+            self._cropped_samp -= delta
         return self
 
     @verbose
@@ -1800,6 +1876,7 @@ class BaseRaw(
             )
 
         if self.preload:
+            assert self._data is not None
             if np.iscomplexobj(self._data):
                 warn(
                     "Saving raw file with complex data. Loading with command-line MNE "
@@ -1913,6 +1990,7 @@ class BaseRaw(
         bad_color="lightgray",
         event_color="cyan",
         *,
+        annotation_colors=None,
         annotation_regex=".*",
         scalings=None,
         remove_dc=True,
@@ -1934,6 +2012,7 @@ class BaseRaw(
         event_id=None,
         show_scrollbars=True,
         show_scalebars=True,
+        show_zero_line=False,
         time_format="float",
         precompute=None,
         use_opengl=None,
@@ -1942,6 +2021,7 @@ class BaseRaw(
         overview_mode=None,
         splash=True,
         verbose=None,
+        figure_class=None,
     ):
         return plot_raw(
             self,
@@ -1953,6 +2033,7 @@ class BaseRaw(
             color,
             bad_color,
             event_color,
+            annotation_colors=annotation_colors,
             annotation_regex=annotation_regex,
             scalings=scalings,
             remove_dc=remove_dc,
@@ -1974,6 +2055,7 @@ class BaseRaw(
             event_id=event_id,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
@@ -1982,6 +2064,7 @@ class BaseRaw(
             overview_mode=overview_mode,
             splash=splash,
             verbose=verbose,
+            figure_class=figure_class,
         )
 
     @property
@@ -2119,6 +2202,7 @@ class BaseRaw(
             else:
                 this_data = self._data
 
+            assert this_data is not None
             # allocate the buffer
             _data = _allocate_data(preload, (nchan, nsamp), this_data.dtype)
             _data[:, 0 : c_ns[0]] = this_data
@@ -2265,6 +2349,7 @@ class BaseRaw(
             )
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
+        assert self._data is not None
         if replace:
             self._data[pick, :] = 0.0
         self._data[pick, idx - self.first_samp] += events[:, 2]
@@ -2723,6 +2808,11 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
+    # attributes populated externally (e.g. by the FIF reader)
+    info: Info
+    orig_format: str | None
+    _raw_extras: dict[str, Any]
+
     def __init__(self):
         self.first_samp = None
         self.last_samp = None
@@ -2733,6 +2823,8 @@ class _RawShell:
 
     @property
     def n_times(self):  # noqa: D102
+        assert self.first_samp is not None
+        assert self.last_samp is not None
         return self.last_samp - self.first_samp + 1
 
     @property
@@ -3114,8 +3206,11 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
-        if not isinstance(raw[ri], type(raw[0])):
-            raise ValueError(f"raw[{ri}] type must match")
+        if not isinstance(raw[ri], (BaseRaw, _RawShell)):
+            raise ValueError(
+                f"raw[{ri}] type must match raw[0]: expected BaseRaw, got "
+                f"{type(raw[ri]).__name__}"
+            )
         for key in ("nchan", "sfreq"):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
@@ -3128,7 +3223,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
+                    f"raw[{ri}].info[{kind}] must match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError(f"raw[{ri}]._cals must match")
@@ -3153,11 +3248,12 @@ def concatenate_raws(
 ):
     """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
-    .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
-              Boundaries of the raw files are annotated bad. If you wish to use
-              the data as continuous recording, you can remove the boundary
-              annotations after concatenation (see
-              :meth:`mne.Annotations.delete`).
+    .. note:: If all ``raws`` have the same type, ``raws[0]`` is modified in-place to
+              achieve the concatenation. If the types differ, a new
+              :class:`~mne.io.RawArray` is returned and all data are preloaded
+              automatically. Boundaries of the raw files are annotated bad. If you wish
+              to use the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------
@@ -3172,7 +3268,9 @@ def concatenate_raws(
     Returns
     -------
     raw : instance of Raw
-        The result of the concatenation (first Raw instance passed in).
+        The result of the concatenation. If all ``raws`` have the same type, the first
+        Raw instance passed in is returned (modified in-place). If the types differ, a
+        new :class:`~mne.io.RawArray` is returned.
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
@@ -3191,12 +3289,24 @@ def concatenate_raws(
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)
+
+    if not all(type(r) is type(raws[0]) for r in raws[1:]):
+        from .array import RawArray
+
+        raws = list(raws)  # local copy of list
+        if not raws[0].preload:
+            raws[0].load_data()
+        annotations = raws[0].annotations
+        raws[0] = RawArray(raws[0]._data, raws[0].info, first_samp=raws[0].first_samp)
+        raws[0].set_annotations(annotations)
+        preload = True
     raws[0].append(raws[1:], preload)
+    out = raws[0]
 
     if events_list is None:
-        return raws[0]
+        return out
     else:
-        return raws[0], events
+        return out, events
 
 
 @fill_doc

@@ -10,6 +10,8 @@ import warnings
 from functools import partial
 from numbers import Integral
 
+import matplotlib.artist
+import matplotlib.patches
 import numpy as np
 from scipy.interpolate import (
     CloughTocher2DInterpolator,
@@ -23,6 +25,7 @@ from scipy.spatial.distance import pdist, squareform
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, _simplify_info
 from .._fiff.pick import (
+    _FNIRS_CH_TYPES_SPLIT,
     _MEG_CH_TYPES_SPLIT,
     _pick_data_channels,
     _picks_by_type,
@@ -46,7 +49,6 @@ from ..utils import (
     _is_numeric,
     _time_mask,
     _validate_type,
-    check_version,
     fill_doc,
     legacy,
     logger,
@@ -76,14 +78,12 @@ from .utils import (
     plt_show,
 )
 
-_fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
-_opm_coils = (FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2)
-
-
-# 3.8+ uses a single Collection artist rather than .collections
-# https://github.com/matplotlib/matplotlib/pull/25247
-def _cont_collections(cont):
-    return (cont,) if check_version("matplotlib", "3.8") else tuple(cont.collections)
+_opm_coils = (
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG,
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
+    FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
+)
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
@@ -127,7 +127,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
     if any(ch["coil_type"] in _opm_coils for ch in info["chs"]):
         modality = "opm"
-    elif ch_type in _fnirs_types:
+    elif ch_type in _FNIRS_CH_TYPES_SPLIT:
         modality = "fnirs"
     else:
         modality = "other"
@@ -221,7 +221,8 @@ def _find_overlaps(info, ch_type, sphere, modality="fnirs"):
     channels_to_exclude = list()
 
     if len(locs3d) > 1 and np.min(dist) < 1e-10:
-        overlapping_mask = np.triu(squareform(dist < 1e-10))
+        # Use symmetric distance matrix to find all colocated channel groups
+        overlapping_mask = squareform(dist < 1e-10)
         for chan_idx in range(overlapping_mask.shape[0]):
             already_overlapped = list(
                 itertools.chain.from_iterable(overlapping_channels)
@@ -307,6 +308,92 @@ def _find_radial_channel(info, overlapping_set):
     return radial_sensor
 
 
+def _split_opm_overlaps(overlapping_channels):
+    """Split OPM overlap sets into radial and tangential channel groups.
+
+    This keeps the first channel from each overlap set, which is the radial
+    channel as determined by :func:`_find_overlaps`, separate from the
+    remaining tangential channels. The result can be used by later plotting
+    code to render separate topomaps per orientation family.
+    """
+    radial = [overlap_set[0] for overlap_set in overlapping_channels]
+    tangential = list(
+        itertools.chain.from_iterable(
+            overlap_set[1:] for overlap_set in overlapping_channels
+        )
+    )
+    return radial, tangential
+
+
+def _rms(data, axis=0):
+    """Compute root-mean-square magnitude along an axis."""
+    return np.sqrt(np.mean(data**2, axis=axis))
+
+
+def _compute_orientation_group_data(
+    data,
+    ch_names,
+    pos,
+    *,
+    ch_type,
+    modality,
+    merge_channels,
+    use_opm_orientation_groups,
+):
+    """Compute grouped topomap data for OPM/Neuromag-like orientations."""
+    from ..channels.layout import _merge_ch_data
+
+    if not merge_channels:
+        return [(None, data, pos, ch_names, False)]
+
+    if modality == "opm" and use_opm_orientation_groups:
+        radial_data, radial_names = _merge_ch_data(
+            data.copy(), "mag", copy.copy(ch_names), modality="opm"
+        )
+        radial_pos = pos
+
+        name_lookup = [name.removesuffix("_MERGE-REMOVE") for name in ch_names]
+        tangential_data = []
+        tangential_names = []
+        tangential_pos = []
+        for overlap_set in merge_channels:
+            idx = [name_lookup.index(ch_name) for ch_name in overlap_set[1:]]
+            # Collapse multiple tangential channels at one location using RMS.
+            tangential_data.append(_rms(data[idx], axis=0))
+            tangential_names.append(f"{overlap_set[0]}t")
+            tangential_pos.append(radial_pos[radial_names.index(overlap_set[0])])
+
+        tangential_data = np.array(tangential_data)
+        tangential_pos = np.array(tangential_pos)
+
+        return [
+            ("radial", radial_data, radial_pos, radial_names, False),
+            (
+                "tangential",
+                tangential_data,
+                tangential_pos,
+                tangential_names,
+                True,
+            ),
+        ]
+
+    data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
+    group_norm = ch_type == "grad"
+    return [(None, data, pos, ch_names, group_norm)]
+
+
+def _should_use_opm_orientation_groups(merge_channels, ch_type):
+    """Return whether OPM orientation grouping should be enabled.
+
+    Grouping is used for OPM magnetometer channels with overlap sets that
+    include at least 2 colocated channels (biaxial or triaxial sensors).
+    """
+    if ch_type != "mag" or not merge_channels:
+        return False
+    assert isinstance(merge_channels, (list, tuple))
+    return any(len(overlap_set) >= 2 for overlap_set in merge_channels)
+
+
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
     from ..channels.layout import _merge_ch_data
@@ -328,37 +415,34 @@ def _plot_update_evoked_topomap(params, bools):
 
     interp = params["interp"]
     new_contours = list()
-    use_contours = params["contours_"]
-    if not len(use_contours):
-        use_contours = [None] * len(params["axes"])
-    assert len(use_contours) == len(params["images"])
+    assert len(params["contours_"]) == len(params["images"])
     assert len(params["axes"]) == len(params["images"])
     assert len(data.T) == len(params["images"])
-    for cont, ax, im, d in zip(use_contours, params["axes"], params["images"], data.T):
+    Xi, Yi = interp.Xi, interp.Yi
+    for cont, ax, im, d in zip(
+        params["contours_"], params["axes"], params["images"], data.T
+    ):
         Zi = interp.set_values(d)()
         im.set_data(Zi)
-        if cont is None:
-            continue
-        # must be removed and re-added
-        cont_collections = _cont_collections(cont)
-        for col in cont_collections:
-            col.remove()
-        col = cont_collections[0]
-        lw = col.get_linewidth()
-        visible = col.get_visible()
-        patch_ = col.get_clip_path()
-        color = col.get_edgecolors()
-        cont = ax.contour(
-            interp.Xi, interp.Yi, Zi, params["contours"], colors=color, linewidths=lw
-        )
-        cont_collections = _cont_collections(cont)
-        for col in cont_collections:
-            col.set_visible(visible)
-            col.set_clip_path(patch_)
-        new_contours.append(cont)
-    params["contours_"] = new_contours
-
+        new_contours.append(_update_contours(cont, ax, Xi, Yi, Zi, params["contours"]))
+    params["contours_"][:] = new_contours
     params["fig"].canvas.draw()
+
+
+def _update_contours(cont, ax, Xi, Yi, Zi, contours):
+    if cont is None:
+        return cont
+    lw = cont.get_linewidth()
+    visible = cont.get_visible()
+    patch_ = cont.get_clip_path()
+    color = cont.get_edgecolors()
+    zorder = _TOPOMAP_ZORDER["contours"]
+    if cont in ax.collections:
+        cont.remove()
+    cont = ax.contour(Xi, Yi, Zi, contours, colors=color, linewidths=lw, zorder=zorder)
+    cont.set_visible(visible)
+    cont.set_clip_path(patch_)
+    return cont
 
 
 def _add_colorbar(
@@ -582,7 +666,11 @@ def _plot_projs_topomap(
         ) = _prepare_topomap_plot(use_info, ch_type, sphere=sphere)
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
-        if merge_channels:
+        if isinstance(merge_channels, list):
+            # OPM/NIRS: pos already holds radial-only positions; drop tangential data
+            keep_mask = np.array([not n.endswith("_MERGE-REMOVE") for n in names])
+            data = data[keep_mask]
+        elif merge_channels:
             data, _ = _merge_ch_data(data, "grad", [])
             data = data.ravel()
 
@@ -737,17 +825,20 @@ def _draw_outlines(ax, outlines):
     from matplotlib import rcParams
 
     outlines_ = {k: v for k, v in outlines.items() if k not in ["patch"]}
+    drawn_outlines = list()
     for key, (x_coord, y_coord) in outlines_.items():
         if "mask" in key or key in ("clip_radius", "clip_origin"):
             continue
-        ax.plot(
+        (line,) = ax.plot(
             x_coord,
             y_coord,
             color=rcParams["axes.edgecolor"],
             linewidth=1,
             clip_on=False,
+            zorder=_TOPOMAP_ZORDER["head_outlines"],
         )
-    return outlines_
+        drawn_outlines.append(line)
+    return drawn_outlines
 
 
 def _get_extra_points(pos, extrapolate, origin, radii):
@@ -957,17 +1048,20 @@ class _GridData:
 
 def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
     """Plot sensors."""
+    zorder = _TOPOMAP_ZORDER["sensors"]
     if sensors is True:
-        ax.scatter(
+        drawn_sensors = ax.scatter(
             pos_x,
             pos_y,
             s=0.25,
             marker="o",
             edgecolor=["k"] * len(pos_x),
             facecolor="none",
+            zorder=zorder,
         )
     else:
-        ax.plot(pos_x, pos_y, sensors)
+        drawn_sensors = ax.plot(pos_x, pos_y, sensors, zorder=zorder)[0]
+    return drawn_sensors
 
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
@@ -1165,6 +1259,7 @@ def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
         aspect="equal",
         extent=extent,
         norm=norm,
+        zorder=_TOPOMAP_ZORDER["imshow"],
     )
     rx, ry = outlines["clip_radius"]
     cx, cy = outlines.get("clip_origin", (0.0, 0.0))
@@ -1196,13 +1291,17 @@ def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
                 x *= rx / np.linalg.norm(vor.vertices[i])
                 y *= ry / np.linalg.norm(vor.vertices[i])
                 polygon.append((x, y))
-        ax.fill(*zip(*polygon), color=cmap(norm(data[point_idx])))
+        ax.fill(
+            *zip(*polygon),
+            color=cmap(norm(data[point_idx])),
+            zorder=_TOPOMAP_ZORDER["voronoi"],
+        )
     return im
 
 
-def _get_patch(outlines, extrapolate, interp, ax):
-    from matplotlib import patches
-
+def _make_head_patch(outlines, extrapolate, interp, ax):
+    # TODO: Disentangle adding the patch with creating it? Confusing flow here
+    # for "patch in outlines" and "_use_default_outlines"
     clip_radius = outlines["clip_radius"]
     clip_origin = outlines.get("clip_origin", (0.0, 0.0))
     _use_default_outlines = any(k.startswith("head") for k in outlines)
@@ -1216,11 +1315,11 @@ def _get_patch(outlines, extrapolate, interp, ax):
         ax.set_clip_path(patch_)
     if _use_default_outlines:
         if extrapolate == "local":
-            patch_ = patches.Polygon(
+            patch_ = matplotlib.patches.Polygon(
                 interp.mask_pts, clip_on=True, transform=ax.transData
             )
         else:
-            patch_ = patches.Ellipse(
+            patch_ = matplotlib.patches.Ellipse(
                 clip_origin,
                 2 * clip_radius[0],
                 2 * clip_radius[1],
@@ -1228,6 +1327,15 @@ def _get_patch(outlines, extrapolate, interp, ax):
                 transform=ax.transData,
             )
     return patch_
+
+
+_TOPOMAP_ZORDER = dict(  # keep these in order that we want to draw them, too
+    imshow=1.0,
+    voronoi=1.5,
+    contours=2.0,
+    head_outlines=2.5,
+    sensors=3.0,
+)
 
 
 def _plot_topomap(
@@ -1292,6 +1400,8 @@ def _plot_topomap(
             pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
             data, _ = _merge_ch_data(data[picks], ch_type, [])
             data = data.reshape(-1)
+            if names is not None:
+                names = [names[p] for p in picks[::2]]
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
@@ -1347,6 +1457,8 @@ def _plot_topomap(
     _prepare_topomap(pos, axes)
 
     mask_params = _handle_default("mask_params", mask_params)
+    if "zorder" not in mask_params:
+        mask_params["zorder"] = _TOPOMAP_ZORDER["sensors"]
 
     # find mask limits and setup interpolation
     extent, Xi, Yi, interp = _setup_interp(
@@ -1356,7 +1468,7 @@ def _plot_topomap(
     Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
-    patch_ = _get_patch(outlines, extrapolate, interp, axes)
+    head_patch = _make_head_patch(outlines, extrapolate, interp, axes)
 
     # get colormap normalization
     if cnorm is None:
@@ -1383,6 +1495,7 @@ def _plot_topomap(
             extent=extent,
             interpolation="bilinear",
             norm=cnorm,
+            zorder=_TOPOMAP_ZORDER["imshow"],
         )
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
@@ -1397,14 +1510,19 @@ def _plot_topomap(
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore")
             cont = axes.contour(
-                Xi, Yi, Zi, contours, colors="k", linewidths=linewidth / 2.0
+                Xi,
+                Yi,
+                Zi,
+                contours,
+                colors="k",
+                linewidths=linewidth / 2.0,
+                zorder=_TOPOMAP_ZORDER["contours"],
             )
 
-    if patch_ is not None:
-        im.set_clip_path(patch_)
+    if head_patch is not None:
+        im.set_clip_path(head_patch)
         if cont is not None:
-            for col in _cont_collections(cont):
-                col.set_clip_path(patch_)
+            cont.set_clip_path(head_patch)
 
     pos_x, pos_y = pos.T
     mask = mask.astype(bool, copy=False) if mask is not None else None
@@ -1657,7 +1775,6 @@ def plot_ica_components(
     """  # noqa E501
     from matplotlib.pyplot import Axes
 
-    from ..channels.layout import _merge_ch_data
     from ..epochs import BaseEpochs
     from ..io import BaseRaw
 
@@ -1690,9 +1807,9 @@ def plot_ica_components(
 
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
     for k, picks in enumerate(pick_groups):
-        try:  # either an iterable, 1D numpy array or others
-            _axes = axes[k * max_subplots : (k + 1) * max_subplots]
-        except TypeError:  # None or Axes
+        if axes is None:
+            _axes = None
+        else:
             _axes = axes
 
         (
@@ -1705,7 +1822,6 @@ def plot_ica_components(
             clip_origin,
         ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
         cmap = _setup_cmap(cmap, n_axes=len(picks))
-        disp_names = _prepare_sensor_names(names, show_names)
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         data = np.dot(
@@ -1714,64 +1830,96 @@ def plot_ica_components(
         data = np.atleast_2d(data)
         data = data[:, data_picks]
 
+        use_opm_orientation_groups = _should_use_opm_orientation_groups(
+            merge_channels, ch_type
+        )
+        n_group_axes = 2 if use_opm_orientation_groups else 1
+
         if title is None:
             title = "ICA components"
         user_passed_axes = _axes is not None
         if not user_passed_axes:
-            fig, _axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
+            fig, _axes, _, _ = _prepare_trellis(
+                len(data) * n_group_axes, ncols=ncols, nrows=nrows
+            )
             fig.suptitle(title)
         else:
             _axes = [_axes] if isinstance(_axes, Axes) else _axes
+            if len(_axes) != len(data) * n_group_axes:
+                raise RuntimeError(
+                    "You must provide one axis per component and orientation "
+                    "group for colocated OPM data."
+                )
             fig = _axes[0].get_figure()
 
         subplot_titles = list()
-        for ii, data_, ax in zip(picks, data, _axes):
+        for comp_offset, (ii, data_) in enumerate(zip(picks, data)):
             kwargs = dict(color="gray") if ii in ica.exclude else dict()
             comp_title = ica._ica_names[ii]
             if len(set(ica.get_channel_types())) > 1:
                 comp_title += f" ({ch_type})"
-            subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
-            if merge_channels:
-                data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
-            # ↓↓↓ NOTE: we intentionally use the default norm=False here, so that
-            # ↓↓↓ we get vlims that are symmetric-about-zero, even if the data for
-            # ↓↓↓ a given component happens to be one-sided.
-            _vlim = _setup_vmin_vmax(data_, *vlim)
-            im = plot_topomap(
-                data_.flatten(),
+
+            modality = "opm" if use_opm_orientation_groups else "other"
+            grouped_data = _compute_orientation_group_data(
+                data_[:, np.newaxis],
+                copy.copy(names),
                 pos,
                 ch_type=ch_type,
-                sensors=sensors,
-                names=disp_names,
-                contours=contours,
-                outlines=outlines,
-                sphere=sphere,
-                image_interp=image_interp,
-                extrapolate=extrapolate,
-                border=border,
-                res=res,
-                size=size,
-                cmap=cmap[0],
-                vlim=_vlim,
-                cnorm=cnorm,
-                axes=ax,
-                show=False,
-            )[0]
+                modality=modality,
+                merge_channels=merge_channels,
+                use_opm_orientation_groups=use_opm_orientation_groups,
+            )
 
-            im.axes.set_label(ica._ica_names[ii])
-            if colorbar:
-                cbar, cax = _add_colorbar(
-                    ax,
-                    im,
-                    cmap,
-                    title="AU",
-                    format_=cbar_fmt,
-                    kind="ica_comp_topomap",
+            for group_idx, (
+                group_label,
+                group_data,
+                group_pos,
+                group_names,
+                group_norm,
+            ) in enumerate(grouped_data):
+                ax_idx = comp_offset * n_group_axes + group_idx
+                ax = _axes[ax_idx]
+                plot_title = comp_title
+                if group_label is not None:
+                    plot_title += f" [{group_label}]"
+                subplot_titles.append(ax.set_title(plot_title, fontsize=12, **kwargs))
+                _vlim = _setup_vmin_vmax(group_data[:, 0], *vlim, norm=group_norm)
+                group_cmap = _setup_cmap(cmap, n_axes=len(picks), norm=group_norm)
+                im = plot_topomap(
+                    group_data[:, 0].flatten(),
+                    group_pos,
                     ch_type=ch_type,
-                )
-                cbar.ax.tick_params(labelsize=12)
-                cbar.set_ticks(_vlim)
-            _hide_frame(ax)
+                    sensors=sensors,
+                    names=_prepare_sensor_names(group_names, show_names),
+                    contours=contours,
+                    outlines=outlines,
+                    sphere=sphere,
+                    image_interp=image_interp,
+                    extrapolate=extrapolate,
+                    border=border,
+                    res=res,
+                    size=size,
+                    cmap=group_cmap[0],
+                    vlim=_vlim,
+                    cnorm=cnorm,
+                    axes=ax,
+                    show=False,
+                )[0]
+
+                im.axes.set_label(ica._ica_names[ii])
+                if colorbar:
+                    cbar, cax = _add_colorbar(
+                        ax,
+                        im,
+                        group_cmap,
+                        title="AU",
+                        format_=cbar_fmt,
+                        kind="ica_comp_topomap",
+                        ch_type=ch_type,
+                    )
+                    cbar.ax.tick_params(labelsize=12)
+                    cbar.set_ticks(_vlim)
+                _hide_frame(ax)
         del pos
         fig.canvas.draw()
 
@@ -2202,6 +2350,79 @@ def plot_evoked_topomap(
 
     * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
     """
+    fig, _params = _plot_evoked_topomap(
+        evoked=evoked,
+        times=times,
+        average=average,
+        ch_type=ch_type,
+        scalings=scalings,
+        proj=proj,
+        sensors=sensors,
+        show_names=show_names,
+        mask=mask,
+        mask_params=mask_params,
+        contours=contours,
+        outlines=outlines,
+        sphere=sphere,
+        image_interp=image_interp,
+        extrapolate=extrapolate,
+        border=border,
+        res=res,
+        size=size,
+        cmap=cmap,
+        vlim=vlim,
+        cnorm=cnorm,
+        colorbar=colorbar,
+        cbar_fmt=cbar_fmt,
+        units=units,
+        axes=axes,
+        time_unit=time_unit,
+        time_format=time_format,
+        nrows=nrows,
+        ncols=ncols,
+        interactive_colorbar=True,
+        single_time_point=False,
+    )
+    plt_show(show, block=False)
+    if axes is not None:
+        fig.canvas.draw()
+    return fig
+
+
+def _plot_evoked_topomap(
+    *,
+    evoked,
+    times,
+    average,
+    ch_type,
+    scalings,
+    proj,
+    sensors,
+    show_names,
+    mask,
+    mask_params,
+    contours,
+    outlines,
+    sphere,
+    image_interp,
+    extrapolate,
+    border,
+    res,
+    size,
+    cmap,
+    vlim,
+    cnorm,
+    colorbar,
+    cbar_fmt,
+    units,
+    axes,
+    time_unit,
+    time_format,
+    nrows,
+    ncols,
+    interactive_colorbar,
+    single_time_point,
+):
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
@@ -2235,11 +2456,20 @@ def plot_evoked_topomap(
         clip_origin,
     ) = _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
+    # single_time_point (used for animation) shows only the radial component
+    use_opm_orientation_groups = (
+        _should_use_opm_orientation_groups(merge_channels, ch_type)
+        and not single_time_point
+    )
     # check interactive
     axes_given = axes is not None
     interactive = isinstance(times, str) and times == "interactive"
     if interactive and axes_given:
         raise ValueError("User-provided axes not allowed when times='interactive'.")
+    if interactive and use_opm_orientation_groups:
+        raise NotImplementedError(
+            "times='interactive' is not supported for grouped OPM topomaps."
+        )
     # units, scalings
     key = "grad" if ch_type.startswith("planar") else ch_type
     default_scaling = _handle_default("scalings", None)[key]
@@ -2249,7 +2479,6 @@ def plot_evoked_topomap(
     unit = _handle_default("units", units)[key]
     # ch_names (required for NIRS)
     ch_names = names
-    names = _prepare_sensor_names(names, show_names)
     # apply projections before picking. NOTE: the `if proj is True`
     # anti-pattern is needed here to exclude proj='interactive'
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
@@ -2257,12 +2486,12 @@ def plot_evoked_topomap(
         evoked.apply_proj()
     elif proj == "reconstruct":
         evoked._reconstruct_proj()
-    data = evoked.data
 
     # remove compensation matrices (safe: only plotting & already made copy)
     with evoked.info._unlock():
         evoked.info["comps"] = []
     evoked = evoked._pick_drop_channels(picks, verbose=False)
+    data = evoked.data
     # determine which times to plot
     if isinstance(axes, plt.Axes):
         axes = [axes]
@@ -2275,7 +2504,9 @@ def plot_evoked_topomap(
             f"Times should be between {evoked.times[0]:0.3} and {evoked.times[-1]:0.3}."
         )
     # create axes
-    want_axes = n_times + int(colorbar)
+    n_groups = 2 if use_opm_orientation_groups else 1
+    n_cbar = int(colorbar) * n_groups
+    want_axes = (1 if single_time_point else n_times) * n_groups + n_cbar
     if interactive:
         height_ratios = [5, 1]
         nrows = 2
@@ -2289,7 +2520,7 @@ def plot_evoked_topomap(
             axes.append(plt.subplot(gs[0, ax_idx]))
     elif axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_times, ncols=ncols, nrows=nrows, size=size
+            n_times * n_groups, ncols=ncols, nrows=nrows, size=size
         )
     else:
         nrows, ncols = None, None  # Deactivate ncols when axes were passed
@@ -2302,6 +2533,12 @@ def plot_evoked_topomap(
                 f"each time{cbar_err}), got {len(axes)}."
             )
     del want_axes
+    if axes_given and colorbar:
+        plot_axes = axes[:-n_cbar]
+        cbar_axes = axes[-n_cbar:]
+    else:
+        plot_axes = axes
+        cbar_axes = []
     # find first index that's >= (to rounding error) to each time point
     time_idx = [
         np.where(
@@ -2315,10 +2552,11 @@ def plot_evoked_topomap(
         "an array-like object of the previous"
     )
 
+    all_data = data.copy()
     averaged_times = []
     if average is None:
         average = np.array([None] * n_times)
-        data = data[np.ix_(picks, time_idx)]
+        data = data[:, time_idx]
     else:
         if _is_numeric(average):
             average = np.array([average] * n_times)
@@ -2350,31 +2588,36 @@ def plot_evoked_topomap(
                 raise ValueError(msg)
 
             if this_average is None:
-                data_[:, average_idx] = data[picks][:, this_time_idx]
+                data_[:, average_idx] = data[:, this_time_idx]
                 averaged_times.append([this_time])
             else:
                 tmin_ = this_time - this_average / 2
                 tmax_ = this_time + this_average / 2
                 time_mask = (tmin_ < evoked.times) & (evoked.times < tmax_)
-                data_[:, average_idx] = data[picks][:, time_mask].mean(-1)
+                data_[:, average_idx] = data[:, time_mask].mean(-1)
                 averaged_times.append(evoked.times[time_mask])
         data = data_
 
     # apply scalings and merge channels
     data *= scaling
-    if merge_channels:
-        # check modality
-        if any(ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]):
-            modality = "opm"
-        elif ch_type in _fnirs_types:
-            modality = "fnirs"
-        else:
-            modality = "other"
-        # merge data
-        data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
-        # if ch_type in _fnirs_types:
-        if modality != "other":
-            merge_channels = False
+    all_data *= scaling
+    # check modality
+    is_opm_picks = len(evoked.info["chs"]) > 0 and all(
+        ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]
+    )
+    if is_opm_picks:
+        modality = "opm"
+    elif ch_type in _FNIRS_CH_TYPES_SPLIT:
+        modality = "fnirs"
+    else:
+        modality = "other"
+
+    if merge_channels and not use_opm_orientation_groups:
+        # merge all_data for butterfly plot (non-OPM path uses single merged map)
+        all_data, _ = _merge_ch_data(
+            all_data, ch_type, list(ch_names), modality=modality
+        )
+
     # apply mask if requested
     if mask is not None:
         mask = mask.astype(bool, copy=False)
@@ -2384,31 +2627,49 @@ def plot_evoked_topomap(
             )
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
-    # set up colormap
-    _vlim = [
-        _setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels) for i in range(n_times)
-    ]
-    _vlim = [np.min(_vlim), np.max(_vlim)]
-    cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
-    # set up contours
-    if not isinstance(contours, list | np.ndarray):
-        _, contours = _set_contour_locator(*_vlim, contours)
-    else:
-        if vlim[0] is None and np.any(contours < _vlim[0]):
-            _vlim[0] = contours[0]
-        if vlim[1] is None and np.any(contours > _vlim[1]):
-            _vlim[1] = contours[-1]
+
+    grouped_data = _compute_orientation_group_data(
+        data,
+        ch_names,
+        pos,
+        ch_type=ch_type,
+        modality=modality,
+        merge_channels=merge_channels,
+        use_opm_orientation_groups=use_opm_orientation_groups,
+    )
+
+    if modality != "other" or use_opm_orientation_groups:
+        merge_channels = False
+
+    # set up colormaps, vlims, and contours per group
+    group_vlims = []
+    group_cmaps = []
+    group_contours = []
+    for group_label, group_data, group_pos, group_names, group_norm in grouped_data:
+        group_vlim = [
+            _setup_vmin_vmax(group_data[:, i], *vlim, norm=group_norm)
+            for i in range(n_times)
+        ]
+        group_vlim = [np.min(group_vlim), np.max(group_vlim)]
+        if not isinstance(contours, list | np.ndarray):
+            _, group_contour = _set_contour_locator(*group_vlim, contours)
+        else:
+            group_contour = contours
+            if vlim[0] is None and np.any(group_contour < group_vlim[0]):
+                group_vlim[0] = group_contour[0]
+            if vlim[1] is None and np.any(group_contour > group_vlim[1]):
+                group_vlim[1] = group_contour[-1]
+        group_vlims.append(group_vlim)
+        group_cmaps.append(_setup_cmap(cmap, n_axes=n_times, norm=group_vlim[0] >= 0))
+        group_contours.append(group_contour)
 
     # prepare for main loop over times
     kwargs = dict(
         sensors=sensors,
         res=res,
-        names=names,
-        cmap=cmap[0],
         cnorm=cnorm,
         mask_params=mask_params,
         outlines=outlines,
-        contours=contours,
         image_interp=image_interp,
         show=False,
         extrapolate=extrapolate,
@@ -2416,39 +2677,54 @@ def plot_evoked_topomap(
         border=border,
         ch_type=ch_type,
     )
-    images, contours_ = [], []
-    # loop over times
-    for average_idx, (time, this_average) in enumerate(zip(times, average)):
-        tp, cn, interp = _plot_topomap(
-            data[:, average_idx],
-            pos,
-            axes=axes[average_idx],
-            mask=mask_[:, average_idx] if mask is not None else None,
-            vmin=_vlim[0],
-            vmax=_vlim[1],
-            **kwargs,
-        )
-
-        images.append(tp)
-        if cn is not None:
-            contours_.append(cn)
-        if time_format != "":
-            if this_average is None:
-                axes_title = time_format % (time * scaling_time)
-            else:
-                tmin_ = averaged_times[average_idx][0]
-                tmax_ = averaged_times[average_idx][-1]
-                from_time = time_format % (tmin_ * scaling_time)
-                from_time = from_time.split(" ")[0]  # Remove unit
-                to_time = time_format % (tmax_ * scaling_time)
-                axes_title = f"{from_time} – {to_time}"
-                del from_time, to_time, tmin_, tmax_
-            axes[average_idx].set_title(axes_title)
+    images, drawn_contours, interps = [], [], []
+    for group_idx, (
+        group_label,
+        group_data,
+        group_pos,
+        group_names,
+        _group_norm,
+    ) in enumerate(grouped_data):
+        kwargs["names"] = _prepare_sensor_names(group_names, show_names)
+        kwargs["cmap"] = group_cmaps[group_idx][0]
+        kwargs["contours"] = group_contours[group_idx]
+        group_vlim = group_vlims[group_idx]
+        for average_idx, (time, this_average) in enumerate(zip(times, average)):
+            if single_time_point and average_idx > 0:
+                break
+            ax_idx = group_idx * n_times + average_idx
+            im, cn, interp = _plot_topomap(
+                group_data[:, average_idx],
+                group_pos,
+                axes=plot_axes[ax_idx],
+                mask=mask_[:, average_idx] if mask is not None else None,
+                vmin=group_vlim[0],
+                vmax=group_vlim[1],
+                **kwargs,
+            )
+            images.append(im)
+            interps.append(interp)
+            drawn_contours.append(cn)
+            del im, cn, interp
+            if time_format != "":
+                if this_average is None:
+                    axes_title = time_format % (time * scaling_time)
+                else:
+                    tmin_ = averaged_times[average_idx][0]
+                    tmax_ = averaged_times[average_idx][-1]
+                    from_time = time_format % (tmin_ * scaling_time)
+                    from_time = from_time.split(" ")[0]  # Remove unit
+                    to_time = time_format % (tmax_ * scaling_time)
+                    axes_title = f"{from_time} – {to_time}"
+                    del from_time, to_time, tmin_, tmax_
+                if group_label is not None:
+                    axes_title = f"{group_label}\n{axes_title}"
+                plot_axes[ax_idx].set_title(axes_title)
 
     if interactive:
         # Add a slider to the figure and start publishing and subscribing to time_change
         # events.
-        kwargs.update(vlim=_vlim)
+        kwargs.update(vlim=group_vlims[0], cmap=group_cmaps[0][0])
         axes.append(fig.add_subplot(gs[1]))
         slider = Slider(
             axes[-1],
@@ -2499,17 +2775,31 @@ def plot_evoked_topomap(
         else:  # use the default behavior
             cax = None
 
-        cbar = fig.colorbar(images[-1], ax=axes, cax=cax, format=cbar_fmt, shrink=0.6)
-        if unit is not None:
-            cbar.ax.set_title(unit)
-        if cn is not None:
-            cbar.set_ticks(contours)
-        cbar.ax.tick_params(labelsize=7)
-        if cmap[1]:
-            for im in images:
-                im.axes.CB = DraggableColorbar(
-                    cbar, im, kind="evoked_topomap", ch_type=ch_type
-                )
+        for group_idx in range(n_groups):
+            n_t = 1 if single_time_point else n_times
+            group_images = images[group_idx * n_t : (group_idx + 1) * n_t]
+            group_plot_axes = plot_axes[group_idx * n_t : (group_idx + 1) * n_t]
+            if axes_given and colorbar:
+                cax = cbar_axes[group_idx]
+            else:
+                cax = None
+            cbar = fig.colorbar(
+                group_images[-1],
+                ax=group_plot_axes,
+                cax=cax,
+                format=cbar_fmt,
+                shrink=0.6,
+            )
+            if unit is not None:
+                cbar.ax.set_title(unit)
+            if drawn_contours[group_idx * n_t] is not None:
+                cbar.set_ticks(group_contours[group_idx])
+            cbar.ax.tick_params(labelsize=7)
+            if group_cmaps[group_idx][1] and interactive_colorbar:
+                for im in group_images:
+                    im.axes.CB = DraggableColorbar(
+                        cbar, im, kind="evoked_topomap", ch_type=ch_type
+                    )
 
     if proj == "interactive":
         _check_delayed_ssp(evoked)
@@ -2519,7 +2809,7 @@ def plot_evoked_topomap(
             projs=evoked.info["projs"],
             picks=picks,
             images=images,
-            contours_=contours_,
+            contours_=drawn_contours,
             pos=pos,
             time_idx=time_idx,
             res=res,
@@ -2528,7 +2818,7 @@ def plot_evoked_topomap(
             scale=scaling,
             axes=axes[: len(axes) - bool(interactive)],
             contours=contours,
-            interp=interp,
+            interp=interps[0],  # TODO: Maybe not correct for multiple axes!
             extrapolate=extrapolate,
         )
         _draw_proj_checkbox(None, params)
@@ -2538,10 +2828,22 @@ def plot_evoked_topomap(
 
         fig.mne = BrowserParams(proj_checkboxes=params["proj_checks"])
 
-    plt_show(show, block=False)
-    if axes_given:
-        fig.canvas.draw()
-    return fig
+    # Additional things that might be needed by callers (e.g., animation)
+    params = dict(
+        data=grouped_data[0][1],  # first group (radial for OPM, merged for grad/fnirs)
+        all_data=all_data,
+        all_times=evoked.times,
+        ch_type=ch_type,
+        used_times=times,
+        interps=interps,
+        images=images,
+        contours=group_contours[0],
+        drawn_contours=drawn_contours,
+        time_format=time_format,
+        scaling_time=scaling_time,
+    )
+
+    return fig, params
 
 
 def _resize_cbar(cax, n_fig_axes, size=1):
@@ -3140,298 +3442,213 @@ def _check_extrapolate(extrapolate, ch_type):
     return extrapolate
 
 
-@verbose
-def _init_anim(
-    ax,
-    ax_line,
-    ax_cbar,
-    params,
-    merge_channels,
-    sphere,
-    ch_type,
-    image_interp,
-    extrapolate,
-    verbose,
-):
-    """Initialize animated topomap."""
-    logger.info("Initializing animation...")
-    data = params["data"]
-    items = list()
-    vmin = params["vmin"] if "vmin" in params else None
-    vmax = params["vmax"] if "vmax" in params else None
-    if params["butterfly"]:
-        all_times = params["all_times"]
-        for idx in range(len(data)):
-            ax_line.plot(all_times, data[idx], color="k", lw=1)
-        vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
-        ax_line.set(
-            yticks=np.around(np.linspace(vmin, vmax, 5), -1), xlim=all_times[[0, -1]]
-        )
-        params["line"] = ax_line.axvline(all_times[0], color="r")
-        items.append(params["line"])
-    if merge_channels:
-        from mne.channels.layout import _merge_ch_data
-
-        data, _ = _merge_ch_data(data, "grad", [])
-    norm = True if np.min(data) > 0 else False
-    cmap = "Reds" if norm else "RdBu_r"
-
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
-
-    outlines = _make_head_outlines(sphere, params["pos"], "head", params["clip_origin"])
-
-    _hide_frame(ax)
-    extent, Xi, Yi, interp = _setup_interp(
-        pos=params["pos"],
-        res=64,
-        image_interp=image_interp,
-        extrapolate=extrapolate,
-        outlines=outlines,
-        border=0,
-    )
-
-    patch_ = _get_patch(outlines, extrapolate, interp, ax)
-
-    params["Zis"] = list()
-    for frame in params["frames"]:
-        params["Zis"].append(interp.set_values(data[:, frame])(Xi, Yi))
-    Zi = params["Zis"][0]
-    zi_min = np.nanmin(params["Zis"])
-    zi_max = np.nanmax(params["Zis"])
-    cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
-    params.update(
-        {
-            "vmin": vmin,
-            "vmax": vmax,
-            "Xi": Xi,
-            "Yi": Yi,
-            "Zi": Zi,
-            "extent": extent,
-            "cmap": cmap,
-            "cont_lims": cont_lims,
-        }
-    )
-    # plot map and contour
-    im = ax.imshow(
-        Zi,
-        cmap=cmap,
-        vmin=vmin,
-        vmax=vmax,
-        origin="lower",
-        aspect="equal",
-        extent=extent,
-        interpolation="bilinear",
-    )
-    ax.autoscale(enable=True, tight=True)
-    ax.figure.colorbar(im, cax=ax_cbar)
-    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors="k", linewidths=1)
-
-    im.set_clip_path(patch_)
-    text = ax.text(0.55, 0.95, "", transform=ax.transAxes, va="center", ha="right")
-    params["text"] = text
-    items.append(im)
-    items.append(text)
-    cont_collections = _cont_collections(cont)
-    for col in cont_collections:
-        col.set_clip_path(patch_)
-
-    outlines_ = _draw_outlines(ax, outlines)
-
-    params.update({"patch": patch_, "outlines": outlines_})
-    return tuple(items) + cont_collections
-
-
-def _animate(frame, ax, ax_line, params):
-    """Update animated topomap."""
-    if params["pause"]:
-        frame = params["frame"]
-    time_idx = params["frames"][frame]
-
-    if params["time_unit"] == "ms":
-        title = f"{params['times'][frame] * 1e3:6.0f} ms"
-    else:
-        title = f"{params['times'][frame]:6.3f} s"
-    if params["blit"]:
-        text = params["text"]
-    else:
-        ax.cla()  # Clear old contours.
-        text = ax.text(0.45, 1.15, "", transform=ax.transAxes)
-        for k, (x, y) in params["outlines"].items():
-            if "mask" in k:
-                continue
-            ax.plot(x, y, color="k", linewidth=1, clip_on=False)
-
-    _hide_frame(ax)
-    text.set_text(title)
-
-    vmin = params["vmin"]
-    vmax = params["vmax"]
-    Xi = params["Xi"]
-    Yi = params["Yi"]
-    Zi = params["Zis"][frame]
-    extent = params["extent"]
-    cmap = params["cmap"]
-    patch = params["patch"]
-
-    im = ax.imshow(
-        Zi,
-        cmap=cmap,
-        vmin=vmin,
-        vmax=vmax,
-        origin="lower",
-        aspect="equal",
-        extent=extent,
-        interpolation="bilinear",
-    )
-    cont_lims = params["cont_lims"]
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors="k", linewidths=1)
-
-    im.set_clip_path(patch)
-    cont_collections = _cont_collections(cont)
-    for col in cont_collections:
-        col.set_clip_path(patch)
-
-    items = [im, text]
-    if params["butterfly"]:
-        all_times = params["all_times"]
-        line = params["line"]
-        line.remove()
-        ylim = ax_line.get_ylim()
-        params["line"] = ax_line.axvline(all_times[time_idx], color="r")
-        ax_line.set_ylim(ylim)
-        items.append(params["line"])
-    params["frame"] = frame
-    return tuple(items) + cont_collections
-
-
-def _pause_anim(event, params):
-    """Pause or continue the animation on mouse click."""
-    params["pause"] = not params["pause"]
-
-
-def _key_press(event, params):
-    """Handle key presses for the animation."""
-    if event.key == "left":
-        params["pause"] = True
-        params["frame"] = max(params["frame"] - 1, 0)
-    elif event.key == "right":
-        params["pause"] = True
-        params["frame"] = min(params["frame"] + 1, len(params["frames"]) - 1)
+def _validate_artists(items):
+    items = tuple(items)
+    for ii, item in enumerate(items):
+        _validate_type(item, matplotlib.artist.Artist, f"items[{ii}]={item!r}")
+    return items
 
 
 def _topomap_animation(
+    *,
     evoked,
-    ch_type,
     times,
     frame_rate,
     butterfly,
     blit,
+    axes,
     show,
-    time_unit,
+    vmin,
+    vmax,
+    # pass-through kwargs
+    average,
+    ch_type,
+    scalings,
+    proj,
+    sensors,
+    show_names,
+    mask,
+    mask_params,
+    contours,
+    outlines,
     sphere,
     image_interp,
     extrapolate,
-    *,
-    vmin,
-    vmax,
-    verbose=None,
+    border,
+    res,
+    size,
+    cmap,
+    vlim,
+    cnorm,
+    colorbar,
+    cbar_fmt,
+    units,
+    time_unit,
+    time_format,
 ):
-    """Make animation of evoked data as topomap timeseries.
-
-    See mne.evoked.Evoked.animate_topomap.
-    """
+    """Make animation of evoked data as topomap timeseries."""
+    import matplotlib.pyplot as plt
     from matplotlib import animation
-    from matplotlib import pyplot as plt
 
-    if ch_type is None:
-        ch_type = _get_plot_ch_type(evoked, ch_type)
-
-    time_unit, _ = _check_time_unit(time_unit, evoked.times)
-    if times is None:
-        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-    times = np.array(times)
-
-    if times.ndim != 1:
-        raise ValueError(f"times must be 1D, got {times.ndim} dimensions")
-    if max(times) > evoked.times[-1] or min(times) < evoked.times[0]:
-        raise ValueError("All times must be inside the evoked time series.")
-    frames = [np.abs(evoked.times - time).argmin() for time in times]
-
-    picks, pos, merge_channels, _, ch_type, sphere, clip_origin = _prepare_topomap_plot(
-        evoked, ch_type, sphere=sphere
-    )
-    data = evoked.data[picks, :]
-    data *= _handle_default("scalings")[ch_type]
-
-    norm = np.min(data) >= 0
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
-
-    fig = plt.figure(figsize=(6, 5), layout="constrained")
-    shape = (8, 12)
-    colspan = shape[1] - 1
-    rowspan = shape[0] - bool(butterfly)
-    ax = plt.subplot2grid(shape, (0, 0), rowspan=rowspan, colspan=colspan)
-    if butterfly:
-        ax_line = plt.subplot2grid(shape, (rowspan, 0), colspan=colspan)
-    else:
-        ax_line = None
-    if isinstance(frames, Integral):
-        frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
-    ax_cbar = plt.subplot2grid(shape, (0, colspan), rowspan=rowspan)
-    ax_cbar.set_title(_handle_default("units")[ch_type], fontsize=10)
-    extrapolate = _check_extrapolate(extrapolate, ch_type)
-
-    params = dict(
-        data=data,
-        pos=pos,
-        all_times=evoked.times,
-        frame=0,
-        frames=frames,
-        butterfly=butterfly,
-        blit=blit,
-        pause=False,
-        times=times,
-        time_unit=time_unit,
-        clip_origin=clip_origin,
-        vmin=vmin,
-        vmax=vmax,
-    )
-    init_func = partial(
-        _init_anim,
-        ax=ax,
-        ax_cbar=ax_cbar,
-        ax_line=ax_line,
-        params=params,
-        merge_channels=merge_channels,
-        sphere=sphere,
-        ch_type=ch_type,
-        image_interp=image_interp,
-        extrapolate=extrapolate,
-        verbose=verbose,
-    )
-    animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
-    pause_func = partial(_pause_anim, params=params)
-    fig.canvas.mpl_connect("button_press_event", pause_func)
-    key_press_func = partial(_key_press, params=params)
-    fig.canvas.mpl_connect("key_press_event", key_press_func)
     if frame_rate is None:
         frame_rate = evoked.info["sfreq"] / 10.0
+
+    ax_line = None
+    if axes is None:
+        fig = plt.figure(figsize=(6, 5), layout="constrained")
+        shape = (8, 12)
+        colspan = shape[1] - bool(colorbar)
+        rowspan = shape[0] - bool(butterfly)
+        ax = plt.subplot2grid(shape, (0, 0), rowspan=rowspan, colspan=colspan, fig=fig)
+        if butterfly:
+            ax_line = plt.subplot2grid(shape, (rowspan, 0), colspan=colspan, fig=fig)
+        if colorbar:
+            ax_cbar = plt.subplot2grid(shape, (0, colspan), rowspan=rowspan, fig=fig)
+    else:
+        _validate_type(axes, "array-like", "axes")
+        axes = list(axes)
+        want_len = 1 + bool(colorbar) + bool(butterfly)
+        if len(axes) != want_len:
+            raise ValueError(
+                f"If axes is provided, it must have length {want_len} when "
+                f"{butterfly=} and {colorbar=}, got {len(axes)}"
+            )
+        for ai, a in enumerate(axes):
+            _validate_type(a, plt.Axes, f"axes[{ai}]")
+        ax = axes[0]
+        if colorbar:
+            ax_cbar = axes[1]
+        if butterfly:
+            ax_line = axes[2]
+        fig = ax.figure
+    axes = [ax, ax_cbar] if colorbar else [ax]
+
+    if times is None:
+        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+    if vmin is not None or vmax is not None:
+        # Once this dep is done: remove vmin and vmax, and remove vlim from explicit
+        # pass below and above as a kwarg (so it just gets absorbed by
+        # _plot_evoked_topomap_kwargs)
+        vlim = (vmin, vmax)
+        warn(
+            f"vmax and vmin are deprecated, use vlim instead; using {vlim=}",
+            FutureWarning,
+        )
+        del vmin, vmax
+    fig, topomap_params = _plot_evoked_topomap(
+        evoked=evoked,
+        # we handle these separately
+        times=times,
+        axes=axes,
+        interactive_colorbar=False,
+        single_time_point=True,
+        nrows=1,
+        ncols=1,
+        # pass-through arguments
+        average=average,
+        ch_type=ch_type,
+        scalings=scalings,
+        proj=proj,
+        sensors=sensors,
+        show_names=show_names,
+        mask=mask,
+        mask_params=mask_params,
+        contours=contours,
+        outlines=outlines,
+        sphere=sphere,
+        image_interp=image_interp,
+        extrapolate=extrapolate,
+        border=border,
+        res=res,
+        size=size,
+        cmap=cmap,
+        vlim=vlim,
+        cnorm=cnorm,
+        colorbar=colorbar,
+        cbar_fmt=cbar_fmt,
+        units=units,
+        time_unit=time_unit,
+        time_format=time_format,
+    )
+    del evoked, axes
+    data = topomap_params["data"]
+    all_data = topomap_params["all_data"]
+    all_times = topomap_params["all_times"]
+    used_times = topomap_params["used_times"]
+    assert data.ndim == 2
+    assert data.shape[1] == len(used_times)
+    contours = topomap_params["contours"]
+    im = topomap_params["images"][0]
+    interp = topomap_params["interps"][0]
+    cont = topomap_params["drawn_contours"][0]
+    ax.set_title(topomap_params["ch_type"])
+    scaling_time = topomap_params["scaling_time"]
+    time_format = topomap_params["time_format"]
+    del topomap_params
+
+    text = None
+    if time_format:
+        text = ax.text(0.5, 0.95, "", transform=ax.transAxes, va="center", ha="center")
+    Xi, Yi = interp.Xi, interp.Yi
+    Zis = [interp.set_values(d)() for d in data.T]
+    del interp
+    butterfly_vline = None
+    if butterfly:
+        ax_line.plot(all_times, all_data.T, color="k", lw=0.5, alpha=0.5)
+        ax_line.set_xlim(all_times[0], all_times[-1])
+        butterfly_vline = ax_line.axvline(used_times[0], color="r")
+
+    params = dict(frame=0, frames=list(range(len(used_times))), pause=False, cont=cont)
+    del cont
+
+    def animate(frame):
+        params["frame"] = frame
+        Zi = Zis[frame]
+        im.set_data(Zi)
+        if time_format:
+            text.set_text(time_format % (used_times[frame] * scaling_time))
+        params["cont"] = _update_contours(params["cont"], ax, Xi, Yi, Zi, contours)
+        items = [im]
+        if butterfly:
+            butterfly_vline.set_xdata([used_times[frame]])
+        return _validate_artists(items)
+
     interval = 1000 / frame_rate  # interval is in ms
     anim = animation.FuncAnimation(
         fig,
-        animate_func,
-        init_func=init_func,
-        frames=len(frames),
+        animate,
+        frames=params["frames"],
         interval=interval,
         blit=blit,
+        cache_frame_data=False,
     )
+
+    def pause_anim(event=None, *, pause=None):
+        if pause is None:
+            pause = not params["pause"]  # we need to flip the state
+        if pause:  # we need to pause
+            params["pause"] = True
+            anim.pause()
+        else:
+            params["pause"] = False
+            anim.resume()
+
+    def key_press(event):
+        if event.key not in ("left", "right"):
+            return
+        pause_anim(pause=True)  # ensure paused
+        if event.key == "left":
+            params["frame"] = max(params["frame"] - 1, 0)
+        elif event.key == "right":
+            params["frame"] = min(params["frame"] + 1, len(params["frames"]) - 1)
+        animate(params["frame"])
+        fig.canvas.draw_idle()
+
+    fig.canvas.mpl_connect("button_press_event", pause_anim)
+    fig.canvas.mpl_connect("key_press_event", key_press)
+
     fig.mne_animation = anim  # to make sure anim is not garbage collected
     plt_show(show, block=False)
-    if "line" in params:
-        # Finally remove the vertical line so it does not appear in saved fig.
-        params["line"].remove()
 
     return fig, anim
 
@@ -3705,9 +3922,14 @@ def plot_arrowmap(
         )
         data = np.dot(mapping, data)
 
-    _, pos, _, _, _, sphere, clip_origin = _prepare_topomap_plot(
+    picks, pos, merge_channels, names, _, sphere, clip_origin = _prepare_topomap_plot(
         info_to, "mag", sphere=sphere
     )
+    data = data[picks]
+    if isinstance(merge_channels, list):
+        # OPM: pos holds radial-only positions; filter data to radial channels
+        keep_mask = np.array([not n.endswith("_MERGE-REMOVE") for n in names])
+        data = data[keep_mask]
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     if axes is None:
         fig, axes = plt.subplots(layout="constrained")

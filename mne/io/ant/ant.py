@@ -2,13 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations
-
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
@@ -24,11 +23,6 @@ from ...utils import (
     warn,
 )
 from ..base import BaseRaw
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    from numpy.typing import NDArray
 
 _UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
@@ -227,13 +221,13 @@ def _parse_ch_types(
     ch_names: list[str], eog: str | None, misc: str | None, ch_refs: list[str]
 ) -> list[str]:
     """Parse the channel types."""
-    eog = re.compile(eog) if eog is not None else None
-    misc = re.compile(misc) if misc is not None else None
+    eog_re = re.compile(eog) if eog is not None else None
+    misc_re = re.compile(misc) if misc is not None else None
     ch_types = []
     for ch in ch_names:
-        if eog is not None and re.fullmatch(eog, ch):
+        if eog_re is not None and re.fullmatch(eog_re, ch):
             ch_types.append("eog")
-        elif misc is not None and re.fullmatch(misc, ch):
+        elif misc_re is not None and re.fullmatch(misc_re, ch):
             ch_types.append("misc")
         else:
             ch_types.append("eeg")

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "025c9cb43a802eddf727967a11db9e834c252e5e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13966.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/psf_volume.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 35,
+      "d": 17
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 39,
+      "d": 29
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

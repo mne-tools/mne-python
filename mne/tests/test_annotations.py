@@ -1084,6 +1084,18 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     _assert_annotations_equal(annot, annot2)
 
 
+def test_read_annotations_txt_single_channel_specific(tmp_path):
+    """Read a .txt with a SINGLE channel-specific annotation (gh-13961)."""
+    # np.loadtxt(..., unpack=True) squeezes a 1-row file to 0-D scalars;
+    # ch_names (unlike onset/duration/description) was not wrapped in
+    # np.atleast_1d, so it was iterated as bytes-ints -> AttributeError.
+    annot = Annotations([1.0], [0.5], ["BAD_x"], ch_names=[["EEG001"]])
+    fname = tmp_path / "annotations.txt"
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    assert list(annot_read.ch_names) == [("EEG001",)]
+
+
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
 def test_write_annotation_warn_heterogeneous(tmp_path, fmt):
     """Test that CSV, and TXT annotation writers warn on heterogeneous dtypes."""
@@ -1752,6 +1764,41 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa", 2.2})
 
 
+def test_setter_validation():
+    """Test that onset/duration/description/ch_names setters validate length."""
+    annots = Annotations(onset=[1, 3, 2, 4], duration=0, description="foo")
+
+    # onset mismatch should raise
+    with pytest.raises(ValueError, match="Length of onset"):
+        annots.onset = annots.onset[:2]
+
+    # duration mismatch should raise
+    with pytest.raises(ValueError, match="Length of duration"):
+        annots.duration = annots.duration[:2]
+
+    # description mismatch should raise
+    with pytest.raises(ValueError, match="Length of description"):
+        annots.description = annots.description[:2]
+
+    # scalar duration should broadcast without error
+    annots.duration = 1.0
+    assert len(annots.duration) == 4
+    assert all(annots.duration == 1.0)
+
+    # scalar description should broadcast without error
+    annots.description = "bad"
+    assert len(annots.description) == 4
+    assert all(annots.description == "bad")
+
+    # ch_names mismatch should raise
+    with pytest.raises(ValueError, match="Length of ch_names"):
+        annots.ch_names = [(), ()]
+
+    # valid ch_names assignment (correct length) should succeed
+    annots.ch_names = [("MEG 0111",), (), (), ()]
+    assert annots.ch_names[0] == ("MEG 0111",)
+
+
 @pytest.mark.parametrize("meas_date", (None, 1))
 @pytest.mark.parametrize("set_meas_date", ("before", "after"))
 @pytest.mark.parametrize("first_samp", (0, 100, 3000))
@@ -2128,6 +2175,103 @@ def test_hed_annotations():
     empty_ann.crop(tmin=5, tmax=10)
     assert len(empty_ann) == 0
     assert list(empty_ann.hed_string) == []
+
+
+def test_hed_annotations_mixed_concatenation():
+    """Test concatenation of HEDAnnotations with regular Annotations."""
+    pytest.importorskip("hed")
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, "
+        "(Tone, Frequency/550 Hz)"
+    )
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+
+    hed = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.2],
+        description=["tone", "press"],
+        hed_string=[tone, press],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    reg = Annotations(
+        onset=[2, 3],
+        duration=[0.3, 0.4],
+        description=["plain1", "plain2"],
+        extras=[{"run": 3}, {}],
+    )
+
+    # --- Annotations += HEDAnnotations ---
+    combined = reg.copy()
+    combined += hed
+    assert isinstance(combined, Annotations)
+    assert not isinstance(combined, HEDAnnotations)
+    assert len(combined) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined.extras[0]["HED"] == tone
+    assert combined.extras[1]["HED"] == press
+    assert "HED" not in combined.extras[2]
+    assert "HED" not in combined.extras[3]
+    # pre-existing extras preserved
+    assert combined.extras[0]["run"] == 1
+    assert combined.extras[1]["run"] == 2
+    assert combined.extras[2]["run"] == 3
+
+    # --- HEDAnnotations += Annotations ---
+    combined2 = hed.copy()
+    combined2 += reg
+    # result is plain Annotations (rebinding semantics)
+    assert isinstance(combined2, Annotations)
+    assert not isinstance(combined2, HEDAnnotations)
+    assert len(combined2) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined2.extras[0]["HED"] == tone
+    assert combined2.extras[1]["HED"] == press
+    assert "HED" not in combined2.extras[2]
+    assert "HED" not in combined2.extras[3]
+    # pre-existing extras preserved
+    assert combined2.extras[0]["run"] == 1
+    assert combined2.extras[2]["run"] == 3
+
+    # --- non-mutating + operators ---
+    hed_orig = hed.copy()
+    reg_orig = reg.copy()
+
+    out1 = reg + hed
+    assert isinstance(out1, Annotations)
+    assert not isinstance(out1, HEDAnnotations)
+    assert len(out1) == 4
+    assert out1.extras[0]["HED"] == tone
+    assert out1.extras[1]["HED"] == press
+
+    out2 = hed + reg
+    assert isinstance(out2, Annotations)
+    assert not isinstance(out2, HEDAnnotations)
+    assert len(out2) == 4
+    assert out2.extras[0]["HED"] == tone
+    assert out2.extras[1]["HED"] == press
+
+    # originals are not mutated
+    assert hed == hed_orig
+    assert reg == reg_orig
+
+    # --- ch_names are preserved ---
+    hed_ch = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[tone],
+        ch_names=[["EEG 001"]],
+    )
+    reg_ch = Annotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        ch_names=[["EEG 002"]],
+    )
+    out3 = reg_ch + hed_ch
+    # sorted by onset: hed_ch(0) then reg_ch(1)
+    assert out3[0]["ch_names"] == ("EEG 001",)
+    assert out3[1]["ch_names"] == ("EEG 002",)
 
 
 def test_hed_annotations_to_data_frame():

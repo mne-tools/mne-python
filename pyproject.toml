@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["pip >= 25.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
+dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
 # Dependencies for building the documentation
 doc = [
   "graphviz",
@@ -17,14 +17,14 @@ doc = [
   "numpydoc >= 0.5",
   "openneuro-py >= 2020.1",
   "psutil",
-  "pydata_sphinx_theme >= 0.15.2",
+  "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
   "pymef",
-  "pytest",
-  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
+  "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "refleak >= 0.2.1",
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
@@ -35,49 +35,52 @@ doc = [
   "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
+doc-full = ["rpy2", {include-group = "doc"}]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
-  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
 ]
 test = [
   "codespell",
   "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
-  "mypy >= 0.14",
   "numpydoc >= 1.6",
   "pillow >= 10.2",
-  "pre-commit",
-  "pytest >= 8.0",
+  "pytest >= 8.0, != 9.1.0",  # https://github.com/pytest-dev/pytest/issues/14591
   "pytest-cov >= 4.1",
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
+  "refleak >= 0.2.1",
   "ruff >= 0.1",
-  "toml-sort",
-  "tomli; python_version < '3.11'",
   "twine",
   "vulture",
-  "wheel >= 0.21",
+]
+# Move non-free-threaded dependencies into the "test_extra" superset
+# Exclusions determined 2026/06/16
+test_extra = [
+  "jupyter_client",  # requires tornado, which has no ft version
+  "nbclient",  # requires jupyter_client
+  "nitime >= 0.7",
+  "pymef",
+  "statsmodels",
+  {include-group = "test_extra_ft"},
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
-test_extra = [
+test_extra_ft = [
   "edfio >= 0.4.10",
   "eeglabio",
+  "hedtools",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
-  "jupyter_client",
   "mne-bids",
-  "nbclient",
   "nbformat",
   "neo",
-  "nitime >= 0.7",
   "pybv",
-  "pymef",
   "snirf",
   "sphinx-gallery",
-  "statsmodels",
   {include-group = "test"},
 ]
 
@@ -102,12 +105,13 @@ dependencies = [
   "decorator >= 5.1",
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.8",  # released 2023-09-15, will become 3.9 on 2026-05-15
-  "numpy >= 1.26, < 3",  # released 2023-09-16, will become 2.0 on 2026-06-16
+  "matplotlib >= 3.9",  # released 2024-05-15, will become 3.10 on 2026-12-14
+  "numpy >= 2.0, < 3",  # released 2024-06-16, will become 2.1 on 2026-08-18
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.12",  # released 2024-01-20, will become 1.13 on 2026-04-02
+  "scipy >= 1.14",  # released 2024-06-24, will become 1.15 on 2027-01-03
   "tqdm >= 4.66",
+  "typing-extensions >= 4.15; python_version < '3.11'",  # for typing.Self TODO VERSION
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
 dynamic = ["version"]
@@ -134,12 +138,11 @@ scripts = {mne = "mne.commands.utils:main"}
 [project.optional-dependencies]
 # Leave this one here for backward-compat
 data = []
-full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
+full = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for full MNE-Python functionality (other than raw/epochs export)
 # We first define a variant without any Qt bindings. The "complete" variant, mne[full],
-# makes an opinionated choice and installs PyQt6.
-# We also offter two more variants: mne[full-qt6] (which is equivalent to mne[full]),
-# and mne[full-pyside6], which will install PySide6 instead of PyQt6.
+# makes an opinionated choice and installs PySide6.
+# We also offer mne[full-pyqt6], which will install PyQt6 instead of PySide6.
 full-no-qt = [
   "antio >= 0.5.0",
   "curryreader >= 0.1.2",
@@ -158,7 +161,7 @@ full-no-qt = [
   "ipywidgets",
   "joblib >= 0.8",
   "jupyter",
-  "mffpy >= 0.5.7",
+  "mffpy >= 0.11.0",
   "mne-qt-browser",
   "mne[hdf5]",
   "neo",
@@ -167,31 +170,32 @@ full-no-qt = [
   "nilearn",
   "numba >= 0.35",
   "openmeeg >= 2.5.7",
-  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
+  "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
   "pymef",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard >= 0.4",
-  "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
-  "pyvistaqt >= 0.11",  # released 2023-06-30, no newer version available
+  "pyvista >= 0.44",  # released 2024-07-07, will become 0.45 on 2027-04-19
+  "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn >= 1.4",  # released 2024-01-18, will become 1.5 on 2026-05-21
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "sip",
   "snirf",
   "statsmodels >= 0.6",
   "threadpoolctl",
   "traitlets",
   "trame",
+  "trame-pyvista",
   "trame-vtk",
   "trame-vuetify",
   "vtk >= 9.2",
   "xlrd",
 ]
-full-pyqt6 = ["mne[full]"]
-full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
+full-pyqt6 = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
+full-pyside6 = ["mne[full]"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
 
@@ -242,42 +246,53 @@ exclude = [
 raw-options = {version_scheme = "release-branch-semver"}
 source = "vcs"
 
-[tool.mypy]
-# Avoid the conflict between mne/__init__.py and mne/__init__.pyi by ignoring the former
-exclude = '^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$'
-ignore_errors = true
-modules = ["mne"]
-scripts_are_modules = true
-strict = false
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = ['scipy.*']
-
-[[tool.mypy.overrides]]
-# Ignore "attr-defined" until we fix stuff like:
-# - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
-# - Missing __all__: 'Module "mne.io.snirf" does not explicitly export attribute "read_raw_snirf"'
-# Ignore "no-untyped-call" until we fix stuff like:
-# - 'Call to untyped function "end_block" in typed context'
-# Ignore "no-untyped-def" until we fix stuff like:
-# - 'Function is missing a type annotation'
-# Ignore "misc" until we fix stuff like:
-# - 'Cannot determine type of "_projector" in base class "ProjMixin"'
-# Ignore "assignment" until we fix stuff like:
-# - 'Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "str")'
-# Ignore "operator" until we fix stuff like:
-# - Unsupported operand types for - ("None" and "int")
-disable_error_code = [
-  'assignment',
-  'attr-defined',
-  'misc',
-  'no-untyped-call',
-  'no-untyped-def',
-  'operator',
+[tool.numpydoc_validation]
+checks = [
+  "all",  # report on all checks, except the below
+  "ES01",  # no extended summary
+  "EX01",  # no examples
+  "EX02",  # examples failed (we test them separately)
+  "GL01",  # Docstring should start in the line immediately after the quotes
+  "PR04",  # Parameter "shape (n_channels" has no type
+  "RT02",  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
+  "SA01",  # no see also
+  "SA04",  # no description in See Also
 ]
-ignore_errors = false
-module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
+exclude = [
+  # dict subclasses
+  '\.clear',
+  '\.get$',
+  '\.copy$',
+  '\.fromkeys',
+  '\.items',
+  '\.keys',
+  '\.move_to_end',
+  '\.pop',
+  '\.popitem',
+  '\.setdefault',
+  '\.update',
+  '\.values',
+  # list subclasses
+  '\.append',
+  '\.count',
+  '\.extend',
+  '\.index',
+  '\.insert',
+  '\.remove',
+  '\.sort',
+  # we currently don't document these properly (probably okay)
+  '\.__getitem__',
+  '\.__contains__',
+  '\.__hash__',
+  '\.__mul__',
+  '\.__sub__',
+  '\.__add__',
+  '\.__iter__',
+  '\.__div__',
+  '\.__neg__',
+  # copied from sklearn
+  'mne\.utils\.deprecated',
+]
 
 [tool.pytest.ini_options]
 # -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
@@ -408,6 +423,9 @@ ignore_case = true
 spaces_before_inline_comment = 2
 trailing_comma_inline_array = true
 
+[tool.tomlsort.overrides."tool.numpydoc_validation.exclude"]
+inline_arrays = false
+
 [tool.towncrier]
 directory = "doc/changes/dev/"
 filename = "doc/changes/dev.rst"
@@ -444,6 +462,21 @@ showcontent = true
 directory = "other"
 name = "Other changes"
 showcontent = true
+
+[tool.ty.environment]
+python-version = "3.10"  # minimum supported, keep in sync with requires-python
+
+# Files that are strictly type-checked with no rule overrides. A file is added
+# here only once it passes ty cleanly; grow this list as more of the codebase is
+# annotated and cleaned up.
+[tool.ty.src]
+exclude = ["mne/io/**/tests"]
+include = [
+  "mne/annotations.py",
+  "mne/epochs.py",
+  "mne/evoked.py",
+  "mne/io",
+]
 
 [tool.vulture]
 exclude = [

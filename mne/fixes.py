@@ -57,7 +57,9 @@ def _compare_version(version_a, operator, version_b):
 
 
 ###############################################################################
-# NumPy 2.5 deprecates .shape assignment, but .reshape(copy=False) requires 2.1+
+# NumPy 2.5 removes .shape assignment, but .reshape(copy=False) requires 2.1+
+
+# TODO VERSION remove on NumPy 2.1+
 
 
 def _reshape_view(arr, shape):
@@ -66,10 +68,8 @@ def _reshape_view(arr, shape):
     This function provides compatibility across NumPy versions for reshaping
     arrays as views. On NumPy >= 2.1, it uses ``reshape(copy=False)`` which
     explicitly fails if a view cannot be created. On older versions, it uses
-    direct shape assignment which has the same behavior but is deprecated in
-    NumPy 2.5+.
-
-    Can be removed once NumPy 2.1 is the minimum supported version.
+    direct shape assignment which has the same behavior but is being removed
+    as of NumPy 2.5+.
 
     Parameters
     ----------
@@ -134,19 +134,6 @@ def _safe_svd(A, **kwargs):
 
         warn(f"SVD error ({exp}), attempting to use GESVD instead of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
-
-
-def _csc_array_cast(x):
-    from scipy.sparse import csc_array
-
-    return csc_array(x)
-
-
-# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
-def _eye_array(n, *, format="csr"):  # noqa: A002
-    from scipy import sparse
-
-    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################
@@ -707,66 +694,9 @@ def _close_event(fig):
 
 
 ###############################################################################
-# SciPy 1.14+ minimum_phase half=True option
 
 
-def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
-    """Wrap scipy.signal.minimum_phase with half option."""
-    # Can be removed once
-    from scipy.fft import fft, ifft
-    from scipy.signal import minimum_phase as sp_minimum_phase
-
-    assert isinstance(method, str) and method == "homomorphic"
-
-    if "half" in inspect.getfullargspec(sp_minimum_phase).kwonlyargs:
-        return sp_minimum_phase(h, method=method, n_fft=n_fft, half=half)
-    h = np.asarray(h)
-    if np.iscomplexobj(h):
-        raise ValueError("Complex filters not supported")
-    if h.ndim != 1 or h.size <= 2:
-        raise ValueError("h must be 1-D and at least 2 samples long")
-    n_half = len(h) // 2
-    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
-        warnings.warn(
-            "h does not appear to by symmetric, conversion may fail",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-    if n_fft is None:
-        n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
-    n_fft = int(n_fft)
-    if n_fft < len(h):
-        raise ValueError(f"n_fft must be at least len(h)=={len(h)}")
-
-    # zero-pad; calculate the DFT
-    h_temp = np.abs(fft(h, n_fft))
-    # take 0.25*log(|H|**2) = 0.5*log(|H|)
-    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
-    np.log(h_temp, out=h_temp)
-    if half:  # halving of magnitude spectrum optional
-        h_temp *= 0.5
-    # IDFT
-    h_temp = ifft(h_temp).real
-    # multiply pointwise by the homomorphic filter
-    # lmin[n] = 2u[n] - d[n]
-    # i.e., double the positive frequencies and zero out the negative ones;
-    # Oppenheim+Shafer 3rd ed p991 eq13.42b and p1004 fig13.7
-    win = np.zeros(n_fft)
-    win[0] = 1
-    stop = n_fft // 2
-    win[1:stop] = 2
-    if n_fft % 2:
-        win[stop] = 1
-    h_temp *= win
-    h_temp = ifft(np.exp(fft(h_temp)))
-    h_minimum = h_temp.real
-
-    n_out = (n_half + len(h) % 2) if half else len(h)
-    return h_minimum[:n_out]
-
-
-# SciPy 1.15 deprecates sph_harm for sph_harm_y and using it will trigger a
-# DeprecationWarning. This is a backport of the new function for older SciPy versions.
+# TODO VERSION SciPy 1.15+ (sph_harm -> sph_harm_y)
 def sph_harm_y(n, m, theta, phi, *, diff_n=0):
     """Wrap scipy.special.sph_harm for sph_harm_y."""
     # Can be removed once we no longer support scipy < 1.15.0
@@ -779,9 +709,127 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
 
 
 ###############################################################################
+# TODO VERSION: Can be removed once pymatreader >= 1.2.2 is the min version
+
+
+def _whosmat(fname):
+    """List variables in a .mat file, including MATLAB v7.3 (HDF5).
+
+    Wraps ``pymatreader.whosmat`` if available (>= 1.2.2), otherwise falls back
+    to ``scipy.io.whosmat`` (non-HDF5) or a custom HDF5 reader using h5py.
+    """
+    try:
+        import pymatreader
+
+        if _compare_version(pymatreader.__version__, ">=", "1.2.2"):
+            return pymatreader.whosmat(str(fname))
+    except (ImportError, AttributeError):
+        pass
+
+    # Fall back: try scipy.io.whosmat (works for non-HDF5 .mat files)
+    from scipy.io import whosmat
+
+    try:
+        return whosmat(str(fname))
+    except NotImplementedError:
+        pass
+
+    # HDF5 file — use custom h5py-based reader
+    return _whosmat_hdf5(str(fname))
+
+
+def _whosmat_hdf5(fname):
+    """List variables in a MATLAB v7.3 (HDF5) .mat file without loading data.
+
+    This function provides similar functionality to :func:`scipy.io.whosmat` but
+    for MATLAB v7.3 files stored in HDF5 format, which are not supported by SciPy.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the MATLAB v7.3 (.mat) file.
+
+    Returns
+    -------
+    variables : list of tuple
+        A list of (name, shape, class) tuples for each variable in the file.
+        The name is a string, shape is a tuple of ints, and class is a string
+        indicating the MATLAB data type (e.g., 'double', 'int32', 'struct').
+    """
+    import h5py
+
+    variables = []
+
+    with h5py.File(str(fname), "r") as f:
+        for name in f.keys():
+            node = f[name]
+
+            # Extract shape from HDF5 object
+            if isinstance(node, h5py.Dataset):
+                shape = tuple(int(x) for x in node.shape)
+            else:
+                shape = ()
+                for attr_key in (
+                    "MATLAB_shape",
+                    "MATLAB_Size",
+                    "MATLAB_size",
+                    "dims",
+                    "MATLAB_dims",
+                ):
+                    shp = node.attrs.get(attr_key)
+                    if shp is not None:
+                        try:
+                            shape = tuple(int(x) for x in shp)
+                            break
+                        except Exception:
+                            pass
+                if not shape and "size" in node:
+                    try:
+                        shape = tuple(int(x) for x in node["size"][()])
+                    except Exception:
+                        pass
+
+            # Infer MATLAB class from HDF5 object
+            mcls = node.attrs.get("MATLAB_class", "").lower()
+            if mcls:
+                matlab_class = "char" if mcls == "string" else mcls
+            elif isinstance(node, h5py.Dataset):
+                dt = node.dtype
+                # Handle complex numbers stored as {real, imag} struct
+                if getattr(dt, "names", None) and {"real", "imag"} <= set(dt.names):
+                    matlab_class = (
+                        "double" if dt["real"].base.itemsize == 8 else "single"
+                    )
+                # Map NumPy dtype to MATLAB class
+                elif (kind := dt.kind) == "f":
+                    matlab_class = "double" if dt.itemsize == 8 else "single"
+                elif kind == "i":
+                    matlab_class = f"int{8 * dt.itemsize}"
+                elif kind == "u":
+                    matlab_class = f"uint{8 * dt.itemsize}"
+                elif kind == "b":
+                    matlab_class = "logical"
+                elif kind in ("S", "U", "O"):
+                    matlab_class = "char"
+                else:
+                    matlab_class = "unknown"
+            # Check for sparse matrix structure
+            elif {"ir", "jc", "data"}.issubset(set(node.keys())):
+                matlab_class = "sparse"
+            else:
+                matlab_class = "unknown"
+
+            variables.append((name, shape, matlab_class))
+
+    return variables
+
+
+###############################################################################
 # workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
 # we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
 # from the file-like object.
+
+
 def read_from_file_or_buffer(
     file: str | bytes | os.PathLike | io.IOBase,
     dtype: numpy.typing.DTypeLike = float,
@@ -806,3 +854,35 @@ def read_from_file_or_buffer(
         dtype = np.dtype(dtype)
         buffer = file.read(dtype.itemsize * count)
         return np.frombuffer(buffer, dtype=dtype, count=count)
+
+
+def _get_mffpy_pns_sensors(pns_obj):
+    """Safely extract PNS sensors from mffpy PNSSet object.
+
+    TODO VERSION: Remove once a mffpy release includes BEL-Public/mffpy#145.
+    mffpy <= 0.11.0 raises KeyError: 'conversion' when parsing pnsSet.xml files
+    that contain a <conversion> tag. The upstream fix was merged in
+    BEL-Public/mffpy#145 (Jun 12, 2026) but is not yet in a released version.
+    """
+    try:
+        # Try native mffpy parsing (will work once bug is patched upstream)
+        sensors = pns_obj.sensors
+        if isinstance(sensors, dict):
+            return list(sensors.values())
+        return list(sensors)
+    except Exception:
+        # Fallback: recursively iterate through the raw XML tree to bypass namespaces
+        sensors = []
+        for sensor_el in pns_obj.root.iter():
+            if sensor_el.tag.endswith("sensor"):
+                sensor_dict = {}
+                for prop in sensor_el:
+                    # Safely strip out XML namespaces
+                    # (e.g., '{http://...}name' -> 'name')
+                    tag = prop.tag.split("}")[-1] if "}" in prop.tag else prop.tag
+                    if tag == "name":
+                        sensor_dict["name"] = prop.text or ""
+                    elif tag == "unit":
+                        sensor_dict["unit"] = prop.text or ""
+                sensors.append(sensor_dict)
+        return sensors

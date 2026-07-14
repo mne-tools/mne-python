@@ -21,8 +21,10 @@ download_is_error
 exitstatus
 startdir
 pg_backend
+mpl_backend
 recwarn
 pytestmark
+_is_vtk
 nbexec
 disabled_event_channels
 ch_subset_adjacency
@@ -48,6 +50,11 @@ _.two_d_array
 _.three_d_array
 _.requires_fit
 _.regressor_tags
+
+# report
+_.grab_frame
+_.finish
+_.setup
 
 deep
 

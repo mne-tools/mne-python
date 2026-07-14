@@ -6,6 +6,7 @@ import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
+from typing import Any
 
 import numpy as np
 
@@ -548,7 +549,7 @@ def _read_config(fname):
 
             cfg["chs"] += [ch]
             _correct_offset(fid)  # before and after
-            dta = dict()
+            dta: dict[str, Any] = dict()
             if ch["ch_type"] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
                 dev = {
                     "device_info": read_dev_header(fid),
@@ -1056,7 +1057,7 @@ def _1020_names():
     from mne.channels import make_standard_montage
 
     return set(
-        ch_name.lower() for ch_name in make_standard_montage("standard_1005").ch_names
+        ch_name.lower() for ch_name in make_standard_montage("spherical_1005").ch_names
     )
 
 

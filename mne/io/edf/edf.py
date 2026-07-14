@@ -9,11 +9,11 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..._edf.open import _gdf_edf_get_fid
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
@@ -30,6 +30,7 @@ from ...utils import (
     warn,
 )
 from ..base import BaseRaw, _get_scaling
+from ._open import _gdf_edf_get_fid
 
 
 class FileType(Enum):
@@ -591,6 +592,7 @@ class RawGDF(BaseRaw):
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
+    assert dtype is not None
     # BDF
     if subtype == "bdf":
         ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
@@ -975,7 +977,7 @@ def _get_info(
         _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
         _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
 
-    if np.isnan(info["lowpass"]):
+    if np.isnan(info["lowpass"]) or info["lowpass"] <= 0:
         info["lowpass"] = info["sfreq"] / 2.0
 
     if info["highpass"] > info["lowpass"]:
@@ -1074,7 +1076,7 @@ def _read_edf_header(
     exclude_after_unique=False,
 ):
     """Read header information from EDF+ or BDF file."""
-    edf_info = {"events": []}
+    edf_info: dict[str, Any] = {"events": []}
 
     with _gdf_edf_get_fid(fname) as fid:
         fid.read(8)  # version (unused here)
@@ -1350,7 +1352,7 @@ def _check_dtype_byte(types):
 
 def _read_gdf_header(fname, exclude, include=None):
     """Read GDF 1.x and GDF 2.x header info."""
-    edf_info = dict()
+    edf_info: dict[str, Any] = dict()
     events = None
 
     with _gdf_edf_get_fid(fname) as fid:
@@ -2090,7 +2092,7 @@ def read_raw_bdf(
 
     Returns
     -------
-    raw : instance of RawEDF
+    raw : instance of RawBDF
         The raw instance.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -2277,7 +2279,9 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
             else:
                 this_chan = chan.astype(np.int64)
                 # Exploit np vectorized processing
-                tals.extend(np.uint8([this_chan % 256, this_chan // 256]).flatten("F"))
+                tals.extend(
+                    np.array([this_chan % 256, this_chan // 256], np.uint8).flatten("F")
+                )
         try:
             triggers = re.findall(pat, tals.decode(encoding))
         except UnicodeDecodeError as e:
@@ -2286,7 +2290,7 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
                 " You might want to try setting \"encoding='latin1'\"."
             ) from e
 
-    events = {}
+    events: dict[str, Any] = {}
     offset = 0.0
     for k, ev in enumerate(triggers):
         onset = float(ev[0]) + offset

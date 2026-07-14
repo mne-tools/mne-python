@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
@@ -67,6 +65,7 @@ from .utils import (
     verbose,
     warn,
 )
+from .utils._typing import Self
 from .viz import (
     plot_evoked,
     plot_evoked_field,
@@ -476,13 +475,10 @@ class Evoked(
     @repr_html
     def _repr_html_(self):
         t = _get_html_template("repr", "evoked.html.jinja")
+        fname = self.filename
         t = t.render(
             inst=self,
-            filenames=(
-                [Path(self.filename).name]
-                if getattr(self, "filename", None) is not None
-                else None
-            ),
+            filenames=[Path(fname).name] if fname is not None else None,
         )
         return t
 
@@ -616,12 +612,6 @@ class Evoked(
         select=False,
         show=True,
     ):
-        """.
-
-        Notes
-        -----
-        .. versionadded:: 0.10.0
-        """
         return plot_evoked_topo(
             self,
             layout=layout,
@@ -793,20 +783,40 @@ class Evoked(
             topomap_args=topomap_args,
         )
 
-    @fill_doc
+    @verbose
     def animate_topomap(
         self,
-        ch_type=None,
+        *,
         times=None,
+        average=None,
+        ch_type=None,
+        scalings=None,
+        proj=False,
+        sensors=True,
+        show_names=False,
+        mask=None,
+        mask_params=None,
+        contours=6,
+        outlines="head",
+        sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT,
+        res=64,
+        size=1.0,
+        cmap=None,
+        vlim=(None, None),
+        cnorm=None,
+        colorbar=True,
+        cbar_fmt="%3.1f",
+        units=None,
+        axes=None,
+        time_unit="s",
+        time_format=None,
         frame_rate=None,
         butterfly=False,
         blit=True,
         show=True,
-        time_unit="s",
-        sphere=None,
-        *,
-        image_interp=_INTERPOLATION_DEFAULT,
-        extrapolate=_EXTRAPOLATE_DEFAULT,
         vmin=None,
         vmax=None,
         verbose=None,
@@ -819,15 +829,41 @@ class Evoked(
 
         Parameters
         ----------
-        ch_type : str | None
-            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
-            'hbo', 'hbr', 'fnirs_cw_amplitude',
-            'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od'.
-            If None, first available channel type from the above list is used.
-            Defaults to None.
         times : array of float | None
-            The time points to plot. If None, 10 evenly spaced samples are
-            calculated over the evoked time series. Defaults to None.
+            The time points to plot. If None (default), 10 evenly spaced samples are
+            calculated over the evoked time series.
+        %(average_plot_evoked_topomap)s
+        %(ch_type_topomap)s
+        %(scalings_topomap)s
+        %(proj_plot)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_psd)s
+        %(cnorm)s
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(units_topomap_evoked)s
+        axes : list of matplotlib.axes.Axes | None
+            The axes to use for plotting. Must have one axis for the topomap,
+            then one for the colorbar (if ``colorbar=True``), then one for the
+            butterfly axes (if ``butterfly=True``).
+        time_unit : str
+            The units for the time axis, can be "ms" or "s" (default).
+        time_format : str | None
+            String format for topomap values. Defaults (None) to "%%01d ms" if
+            ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
+            "%%g" otherwise. Can be an empty string to omit the time label.
         frame_rate : int | None
             Frame rate for the animation in Hz. If None,
             frame rate = sfreq / 10. Defaults to None.
@@ -841,19 +877,10 @@ class Evoked(
             Defaults to True.
         show : bool
             Whether to show the animation. Defaults to True.
-        time_unit : str
-            The units for the time axis, can be "ms" (default in 0.16)
-            or "s" (will become the default in 0.17).
-
-            .. versionadded:: 0.16
-        %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
-
-            .. versionadded:: 0.22
-        %(vmin_vmax_topomap)s
-
-            .. versionadded:: 1.1.0
+        vmin : float | None
+            Deprecated, use ``vlim=(vmin, vmax)`` instead.
+        vmax : float | None
+            Deprecated, use ``vlim=(vmin, vmax)`` instead.
         %(verbose)s
 
         Returns
@@ -865,23 +892,46 @@ class Evoked(
 
         Notes
         -----
+        .. versionchanged:: 1.13.0
+           The ``vmin`` and ``vmax`` parameters were deprecated in favor of a single
+           ``vlim`` parameter, and parameters were added and reordered to follow
+           :meth:`~mne.Evoked.plot_topomap`.
         .. versionadded:: 0.12.0
         """
         return _topomap_animation(
-            self,
-            ch_type=ch_type,
+            evoked=self,
             times=times,
-            frame_rate=frame_rate,
-            butterfly=butterfly,
-            blit=blit,
-            show=show,
-            time_unit=time_unit,
+            average=average,
+            ch_type=ch_type,
+            scalings=scalings,
+            proj=proj,
+            sensors=sensors,
+            show_names=show_names,
+            mask=mask,
+            mask_params=mask_params,
+            contours=contours,
+            outlines=outlines,
             sphere=sphere,
             image_interp=image_interp,
             extrapolate=extrapolate,
+            border=border,
+            res=res,
+            size=size,
+            cmap=cmap,
+            vlim=vlim,
+            cnorm=cnorm,
+            colorbar=colorbar,
+            cbar_fmt=cbar_fmt,
+            units=units,
+            axes=axes,
+            time_unit=time_unit,
+            time_format=time_format,
+            frame_rate=frame_rate,
+            butterfly=butterfly,
+            blit=blit,
             vmin=vmin,
             vmax=vmax,
-            verbose=verbose,
+            show=show,
         )
 
     def as_type(self, ch_type="grad", mode="fast"):
@@ -939,7 +989,7 @@ class Evoked(
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
         return self
 
-    def copy(self):
+    def copy(self) -> Self:
         """Copy the instance of evoked.
 
         Returns
@@ -1551,7 +1601,7 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def _check_evokeds_ch_names_times(all_evoked):
+def _check_evokeds_ch_names_times(all_evoked, inplace=False):
     evoked = all_evoked[0]
     ch_names = evoked.ch_names
     for ii, ev in enumerate(all_evoked[1:]):
@@ -1560,7 +1610,8 @@ def _check_evokeds_ch_names_times(all_evoked):
                 raise ValueError(f"{evoked} and {ev} do not contain the same channels.")
             else:
                 warn("Order of channels differs, reordering channels ...")
-                ev = ev.copy()
+                if not inplace:
+                    ev = ev.copy()
                 ev.reorder_channels(ch_names)
                 all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
@@ -1928,6 +1979,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if first_time is not None and nsamp is not None:
             times = first_time + np.arange(nsamp) / info["sfreq"]
         elif first is not None:
+            assert last is not None  # always read together with first
             nsamp = last - first + 1
             times = np.arange(first, last + 1) / info["sfreq"]
         else:

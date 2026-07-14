@@ -1,0 +1,1 @@
+Fix bug with :meth:`mne.preprocessing.ICA.plot_properties` when using ``reject`` in :meth:`mne.preprocessing.ICA.fit`, by `Eric Larson`_.

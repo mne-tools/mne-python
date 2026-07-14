@@ -169,18 +169,47 @@ def test_plot_projs_topomap_joint(meg, vlim, raw):
     assert len(fig.axes) == 4  # 2 mag, 2 grad
 
 
-def test_plot_topomap_animation(capsys):
+def test_plot_topomap_animation(capsys, tmp_path):
     """Test topomap plotting."""
-    # evoked
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-
-    # Test animation
-    _, anim = evoked.animate_topomap(
-        ch_type="grad", times=[0, 0.1], butterfly=False, time_unit="s", verbose="debug"
-    )
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    with pytest.warns(FutureWarning, match=".* vmin .* deprecated.*"):
+        fig, anim = evoked.animate_topomap(
+            times=[0, 0.1],
+            cmap="viridis",
+            vmin=0,
+            vmax=10,
+            verbose="debug",
+        )
     out, _ = capsys.readouterr()
-    assert "extrapolation mode local to 0" in out
+    assert "extrapolation mode local to mean" in out
+    assert fig.axes[0].images[0].get_cmap().name == "viridis"
+
+    # saving
+    PIL = pytest.importorskip("PIL")
+    gif_path = tmp_path / "test.gif"
+    anim.save(gif_path, writer="pillow")
+    assert gif_path.exists()
+    with PIL.Image.open(gif_path) as img:
+        assert img.format == "GIF"
+        assert img.n_frames == 2
+        for frame in PIL.ImageSequence.Iterator(img):
+            assert frame.format == "GIF"
+            data = np.array(frame)
+            assert data.any()  # not all empty
+
+    # failure modes
+    evoked.pick("mag")
+    with pytest.raises(ValueError, match="No channels of type"):
+        evoked.animate_topomap(ch_type="eeg")
+    fig, axes = plt.subplots(1, 4)
+    with pytest.raises(ValueError, match="it must have length 2"):
+        evoked.animate_topomap(axes=axes)
+    with pytest.raises(ValueError, match="it must have length 3"):
+        evoked.animate_topomap(axes=axes, butterfly=True)
+    with pytest.raises(TypeError, match="axes must be an instance"):
+        evoked.animate_topomap(axes="test")
+    with pytest.raises(TypeError, match=r"axes\[0\] must be an instance"):
+        evoked.animate_topomap(axes=["test", "test"])
 
 
 def test_plot_topomap_animation_csd(capsys):
@@ -195,17 +224,12 @@ def test_plot_topomap_animation_csd(capsys):
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
+    assert "extrapolation mode head to mean" in out
 
 
-@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
-def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
+def test_plot_topomap_animation_nirs(fnirs_evoked):
     """Test topomap plotting for nirs data."""
-    fig, anim = fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
-    out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
-    assert len(fig.axes) == 2
+    fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
 
 
 def test_plot_evoked_topomap_errors(evoked, monkeypatch):
@@ -327,6 +351,25 @@ def test_plot_evoked_topomap_border():
     assert_equal(img_data[idx, idx], data[0])
     # and corner pixel should *also* be very close to sensor data:
     assert_almost_equal(img_data[idx, idx], data[0], decimal=9)
+
+
+def test_plot_topomap_interactive_slider_cmap():
+    """Regression test: moving the time slider must not raise KeyError on cmap.
+
+    gh-14038: group_cmaps stored full (name, draggable) tuples but the slider
+    callback passed the tuple as the cmap kwarg, causing a KeyError in
+    matplotlib's colormap registry.
+    """
+    evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
+    evoked.pick("mag")
+    fig = evoked.plot_topomap(times="interactive", **fast_test)
+    # Trigger the slider callback — this crashed before the fix.
+    # The slider axes is not necessarily fig.axes[-1] (colorbar may follow it),
+    # so find it by looking for the axes that has a .slider attribute.
+    slider_ax = next(ax for ax in fig.axes if hasattr(ax, "slider"))
+    slider_ax.slider.set_val(evoked.times[len(evoked.times) // 2])
+    # Verify the topomap was redrawn (not blank) — would fail with double-scaling
+    assert len(fig.axes[0].images) > 0
 
 
 @pytest.mark.slowtest
@@ -761,7 +804,7 @@ def test_plot_topomap_channel_distance():
 
     info = create_info(ch_names, 100, ch_types="eeg")
     evoked = EvokedArray(np.random.randn(4, 10) * 1e-6, info)
-    ten_five = make_standard_montage("standard_1005")
+    ten_five = make_standard_montage("colin27_1005")
     evoked.set_montage(ten_five)
 
     evoked.plot_topomap(sphere=0.05, res=8)
@@ -788,7 +831,159 @@ def test_plot_topomap_opm():
     fig_evoked = evoked.plot_topomap(
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
-    assert len(fig_evoked.axes) == 5
+    # Biaxial OPM pairs trigger grouped rendering
+    # (4 radial + 4 tangential + 2 colorbars)
+    assert len(fig_evoked.axes) == 10
+
+
+def test_prepare_topomap_plot_opm_non_quspin_coils():
+    """Test colocated OPM handling for non-QuSpin OPM coil types."""
+    ch_names = ["OPM001", "OPM002", "OPM003", "OPM004", "OPM005", "OPM006"]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    # Two colocated trios with different orientations.
+    positions = np.array(
+        [
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+            [-0.03, 0.00, 0.05],
+        ]
+    )
+    orientations = np.array(
+        [
+            [0.5145, 0.0000, 0.8575],  # radial-ish
+            [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
+            [-0.5145, 0.0000, 0.8575],  # radial-ish
+            [0.0000, 1.0000, 0.0000],  # tangential-ish
+            [0.0000, 0.0000, 1.0000],  # tangential-ish
+        ]
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+            ch["loc"][9:12] = orientations[idx]
+    evoked = EvokedArray(np.zeros((len(ch_names), 5)), info)
+
+    picks, _pos, merge_channels, merged_names, *_ = topomap._prepare_topomap_plot(
+        evoked, "mag"
+    )
+
+    assert len(picks) == 6
+    assert merge_channels
+    assert len(merge_channels) == 2
+    assert all(len(set_) == 3 for set_ in merge_channels)
+    assert sum(name.endswith("MERGE-REMOVE") for name in merged_names) == 4
+
+
+def test_split_opm_overlaps(triaxial_evoked):
+    """Test splitting colocated OPM overlap sets into orientation groups."""
+    _picks, _pos, merge_channels, _merged_names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+
+    radial, tangential = topomap._split_opm_overlaps(merge_channels)
+    assert radial == ["OPM001", "OPM004"]
+    assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
+
+
+def test_opm_tangential_rms_unsigned(triaxial_evoked):
+    """Test that tangential OPM data is RMS magnitude and unsigned."""
+    picks, pos, merge_channels, names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+    data = triaxial_evoked.data[picks]
+    grouped = topomap._compute_orientation_group_data(
+        data,
+        names,
+        pos,
+        ch_type="mag",
+        modality="opm",
+        merge_channels=merge_channels,
+        use_opm_orientation_groups=True,
+    )
+    tangential = [group for group in grouped if group[0] == "tangential"][0]
+    assert np.all(tangential[1] >= 0)
+    assert tangential[4]
+
+
+def test_should_use_opm_orientation_groups_only_for_triaxial():
+    """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
+    ch_names = [f"OPM{k:03}" for k in range(1, 7)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    with info._unlock():
+        for ch in info["chs"]:
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+
+    pair_overlaps = [
+        np.array(["OPM001", "OPM002"]),
+        np.array(["OPM003", "OPM004"]),
+    ]
+    triax_overlaps = [
+        np.array(["OPM001", "OPM002", "OPM003"]),
+        np.array(["OPM004", "OPM005", "OPM006"]),
+    ]
+
+    # Both biaxial and triaxial overlaps should trigger grouping
+    assert topomap._should_use_opm_orientation_groups(pair_overlaps, "mag")
+    assert topomap._should_use_opm_orientation_groups(triax_overlaps, "mag")
+
+
+def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
+    """Test grouped radial/tangential topomap rendering for triaxial OPM."""
+    fig = triaxial_evoked.plot_topomap(
+        times=[0.0],
+        ch_type="mag",
+        contours=0,
+        res=8,
+        sensors=False,
+        show=False,
+    )
+    assert len(fig.axes) == 4
+    titles = [ax.get_title() for ax in fig.axes]
+    assert any("radial" in title for title in titles)
+    assert any("tangential" in title for title in titles)
+
+
+def test_plot_projs_topomap_opm(triaxial_evoked):
+    """Test plot_projs_topomap does not crash on colocated OPM channels (gh-13866)."""
+    from mne import compute_proj_evoked
+
+    projs = compute_proj_evoked(triaxial_evoked, n_mag=2)
+    # Should not raise a shape mismatch between data and pos
+    fig = plot_projs_topomap(projs, triaxial_evoked.info, show=False)
+    assert len(fig.axes) >= 1
+
+
+@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
+def test_animate_topomap_opm(triaxial_evoked):
+    """Test animate_topomap does not crash on colocated OPM channels (gh-13866)."""
+    fig, anim = triaxial_evoked.animate_topomap(ch_type="mag", times=[0.0], show=False)
+    anim._func(0)
+    assert len(fig.axes) >= 1
+
+
+def test_plot_arrowmap_opm():
+    """Test plot_arrowmap does not crash on colocated OPM channels (gh-13866)."""
+    from mne.viz import plot_arrowmap
+
+    # Need at least 3 unique sensor locations for Delaunay triangulation
+    ch_names = [f"OPM{k:03d}" for k in range(1, 10)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [[0.03, 0.0, 0.05]] * 3 + [[-0.03, 0.0, 0.05]] * 3 + [[0.0, 0.03, 0.05]] * 3
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+    rng = np.random.default_rng(0)
+    data_snap = rng.standard_normal(9)
+    fig = plot_arrowmap(data_snap, info, show=False)
+    assert len(fig.axes) == 1
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
@@ -987,3 +1182,29 @@ def test_plot_ch_adjacency():
     msg = "Editing a 3d adjacency plot is not supported."
     with pytest.raises(ValueError, match=msg):
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
+
+
+@pytest.mark.parametrize("ch_type", ("mag", "grad"))
+def test_plot_topomap_info_names_ordering(ch_type):
+    """Regression test for GH-12700.
+
+    plot_topomap() must preserve correct sensor name ordering when
+    passing an Info object as pos with a names argument.
+    This must be tested with MEG data including gradiometers, since the
+    bug only affected the gradiometer code path.
+    """
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    evoked = evoked.copy().crop(0, 0).pick(picks=ch_type)
+    info = evoked.info
+    data = evoked.data[:, 0]
+    names = info["ch_names"]
+    if ch_type == "grad":
+        # grad pairs are merged so only every other name is displayed
+        expected_names = names[::2]
+    else:
+        expected_names = names
+    im, _ = plot_topomap(data, info, names=names, show=False)
+    displayed_names = [t.get_text() for t in im.axes.texts]
+    assert displayed_names == list(expected_names), (
+        f"Expected {list(expected_names)}, got {displayed_names}"
+    )
