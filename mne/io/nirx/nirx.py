@@ -119,7 +119,6 @@ class RawNIRX(BaseRaw):
                 "description.json",
                 "wl1",
                 "wl2",
-                "tri",
             )
         else:
             # NIRScout devices and NIRSport1 devices
@@ -382,6 +381,13 @@ class RawNIRX(BaseRaw):
             src_locs = np.array(probes["coords_s3"]) / 1000.0
             det_locs = np.array(probes["coords_d3"]) / 1000.0
             ch_locs = np.array(probes["coords_c3"]) / 1000.0
+            if _probe_json["probeInfo"]["head_circumference"] != 610.0:
+                warn(
+                    "The head circumference in the probeInfo.json file is "
+                    f"{_probe_json['probeInfo']['head_circumference']} mm, "
+                    "as opposed to standard 610.0 mm. This may cause misalignment of "
+                    "the optode locations with the subject's head in later steps."
+                )
         else:
             mat_data = loadmat(files["probeInfo"])
             probes = mat_data["probeInfo"]["probes"][0, 0]
@@ -445,11 +451,11 @@ class RawNIRX(BaseRaw):
         # The detector location is stored in the third 3 entries of loc.
         # NIRx NIRSite uses MNI coordinates.
         # Also encode the light frequency in the structure.
-        for ch_idx2 in range(requested_channels.shape[0]):
+        for ch_idx2, wl_idx in enumerate(req_ind):
             # Find source and store location
-            src = int(requested_channels[ch_idx2, 0]) - 1
+            src = int(sources[wl_idx]) - 1
             # Find detector and store location
-            det = int(requested_channels[ch_idx2, 1]) - 1
+            det = int(detectors[wl_idx]) - 1
             # Store channel location as midpoint between source and detector.
             midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
             for ii in range(2):
@@ -528,6 +534,9 @@ class RawNIRX(BaseRaw):
         # Read triggers from event file
         if not is_aurora:
             files["tri"] = files["hdr"][:-3] + "evt"
+        else:
+            tri_files = glob.glob(f"{fname}/*.tri")
+            files["tri"] = tri_files[0] if len(tri_files) == 1 else ""
         if op.isfile(files["tri"]):
             with _open(files["tri"]) as fid:
                 t = [re.findall(r"(\d+)", line) for line in fid]
@@ -617,3 +626,4 @@ def _determine_tri_idxs(trigger):
         raise RuntimeError("Unable to read trigger file.")
 
     return trigger_frame_idx, desc_idx
+
