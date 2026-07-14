@@ -97,6 +97,7 @@ from .utils import (
     check_fname,
     check_random_state,
     copy_function_doc_to_method_doc,
+    legacy,
     logger,
     object_size,
     repr_html,
@@ -417,6 +418,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -462,6 +464,7 @@ class BaseEpochs(
         metadata=None,
         event_repeated="error",
         *,
+        on_outside="warn",
         raw_sfreq=None,
         annotations=None,
         verbose=None,
@@ -533,6 +536,9 @@ class BaseEpochs(
                 self.selection,
                 self.drop_log,
             )
+
+            # Handle events outside the data range
+            self._check_events_outside_data(on_outside, raw)
 
             # then subselect
             sub = np.where(np.isin(selection, self.selection))[0]
@@ -690,6 +696,23 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
+    def _check_events_outside_data(self, on_outside, raw):
+        """Warn when events fall outside the range of the recorded data (gh-12989)."""
+        if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
+            lo = raw.first_samp
+            hi = lo + raw.n_times
+            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
+            if n_oob:
+                _on_missing(
+                    on_outside,
+                    f"{n_oob} event{_pl(n_oob)} {'is' if n_oob == 1 else 'are'} "
+                    f"outside the data range; the corresponding epoch{_pl(n_oob)} "
+                    "cannot be created. This can happen if the events were created at "
+                    "a different sampling frequency, or have entries before "
+                    "first_samp.",
+                    name="on_outside",
+                )
+
     def _check_consistency(self):
         """Check invariants of epochs object."""
         if hasattr(self, "events"):
@@ -702,6 +725,7 @@ class BaseEpochs(
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
 
+    @legacy(alt="mne.Epochs.reset_index()")
     def reset_drop_log_selection(self):
         """Reset the drop_log and selection entries.
 
@@ -710,6 +734,17 @@ class BaseEpochs(
         integers, respectively). This can be useful when concatenating
         many Epochs instances, as ``drop_log`` can accumulate many entries
         which can become problematic when saving.
+        """
+        self.reset_index()
+
+    def reset_index(self):
+        """Reset the epochs index.
+
+        This resets the epochs indexing and drop log so that ``self.selection`` becomes
+        a simple increasing sequence starting at zero and ``self.drop_log`` becomes a
+        tuple of empty tuples of the same length. The operation is in-place and is
+        useful when creating epochs from a subset of events (using ``event_id``) and the
+        original event indexes are not relevant anymore.
         """
         self.selection = np.arange(len(self.events))
         self.drop_log = (tuple(),) * len(self.events)
@@ -966,6 +1001,11 @@ class BaseEpochs(
         copy : bool
             If False copies of data and measurement info will be omitted
             to save time.
+
+        Yields
+        ------
+        evoked : instance of Evoked
+            The epochs as a sequence of Evoked objects, one per epoch.
         """
         self.__iter__()
 
@@ -1299,6 +1339,7 @@ class BaseEpochs(
         butterfly=False,
         show_scrollbars=True,
         show_scalebars=True,
+        show_zero_line=False,
         epoch_colors=None,
         event_id=None,
         group_by="type",
@@ -1308,6 +1349,8 @@ class BaseEpochs(
         theme=None,
         overview_mode=None,
         splash=True,
+        annotation_colors=None,
+        figure_class=None,
     ):
         return plot_epochs(
             self,
@@ -1326,6 +1369,7 @@ class BaseEpochs(
             butterfly=butterfly,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             epoch_colors=epoch_colors,
             event_id=event_id,
             group_by=group_by,
@@ -1334,6 +1378,8 @@ class BaseEpochs(
             theme=theme,
             overview_mode=overview_mode,
             splash=splash,
+            annotation_colors=annotation_colors,
+            figure_class=figure_class,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
@@ -1543,6 +1589,20 @@ class BaseEpochs(
         -------
         epochs : instance of Epochs
             The epochs with indices dropped. Operates in-place.
+
+        Notes
+        -----
+        This method expects zero-based indices into the currently remaining
+        epochs, not the original event indices (as found in
+        the ``selection`` attribute). If some epochs were previously dropped (possibly
+        automatically, e.g., due to rejection thresholds or being too close to recording
+        start or end), you may need to convert indices before calling this method::
+
+            # epochs.selection contains the original indices (which are also shown by
+            # epochs.plot()) of the remaining epochs
+            plot_idx = 1  # index shown in epochs.plot()
+            drop_idx = np.where(epochs.selection == plot_idx)[0]
+            epochs.drop(drop_idx)
         """
         indices = np.atleast_1d(indices)
 
@@ -1940,7 +2000,7 @@ class BaseEpochs(
 
         Parameters
         ----------
-        %(fun_applyfun)s
+        %(fun_applyfun_epochs)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
         %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
@@ -2011,7 +2071,7 @@ class BaseEpochs(
                 for run_idx, ch_idx in enumerate(picks):
                     self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:
-            self._data = _check_fun(fun, data_in, **kwargs)
+            self._data[:, picks, :] = _check_fun(fun, data_in[:, picks, :], **kwargs)
 
         return self
 
@@ -3453,6 +3513,7 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(verbose)s
 
     Attributes
@@ -3553,6 +3614,8 @@ class Epochs(BaseEpochs):
         reject_by_annotation=True,
         metadata=None,
         event_repeated="error",
+        *,
+        on_outside="warn",
         verbose=None,
     ):
         from .io import BaseRaw
@@ -3612,6 +3675,7 @@ class Epochs(BaseEpochs):
             on_missing=on_missing,
             preload_at_end=preload,
             event_repeated=event_repeated,
+            on_outside=on_outside,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
             annotations=annotations,
@@ -3694,6 +3758,7 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
+    %(on_outside_epochs)s
     %(drop_log)s
 
         .. versionadded:: 1.3
@@ -3743,6 +3808,7 @@ class EpochsArray(BaseEpochs):
         metadata=None,
         selection=None,
         *,
+        on_outside="warn",
         drop_log=None,
         raw_sfreq=None,
         verbose=None,
@@ -3779,6 +3845,7 @@ class EpochsArray(BaseEpochs):
             selection=selection,
             proj=proj,
             on_missing=on_missing,
+            on_outside=on_outside,
             drop_log=drop_log,
             raw_sfreq=raw_sfreq,
             verbose=verbose,
@@ -4584,15 +4651,26 @@ def _concatenate_epochs(
             )
 
         # compare event_id
-        common_keys = list(set(event_id).intersection(set(epochs.event_id)))
-        for key in common_keys:
-            if not event_id[key] == epochs.event_id[key]:
-                msg = (
-                    "event_id values must be the same for identical keys "
-                    'for all concatenated epochs. Key "{}" maps to {} in '
-                    "some epochs and to {} in others."
-                )
-                raise ValueError(msg.format(key, event_id[key], epochs.event_id[key]))
+        for kind in ("keys", "values"):
+            a = event_id
+            b = epochs.event_id
+            if kind == "keys":
+                other = "values"
+                what = "maps to"
+            else:
+                assert kind == "values"
+                other = "keys"
+                what = "is mapped from"
+                a = {v: k for k, v in a.items()}
+                b = {v: k for k, v in b.items()}
+            common = list(set(a).intersection(set(b)))
+            for k_v in common:
+                if not a[k_v] == b[k_v]:
+                    raise ValueError(
+                        f"event_id {other} must be the same for identical {kind} "
+                        f'for all concatenated epochs. {other} "{k_v}" {what} {a[k_v]} '
+                        f"in epochs_list[0] and to {b[k_v]} in epochs_list[{ii}]."
+                    )
 
         if with_data:
             epochs.drop_bad()

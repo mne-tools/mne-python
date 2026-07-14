@@ -482,8 +482,9 @@ def _assert_drop_log_types(drop_log):
     assert all(isinstance(log, tuple) for log in drop_log), (
         "drop_log[ii] should be tuple"
     )
-    assert all(isinstance(s, str) for log in drop_log for s in log), (
-        "drop_log[ii][jj] should be str"
+    # enforce exact built-in str (reject np.str_ and other str subclasses)
+    assert all(type(s) is str for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be built-in str"
     )
 
 
@@ -775,6 +776,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         epochs = mne.Epochs(
             raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
         )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 0
 
     # Setting `reject_tmin` to prevent rejection of epoch.
@@ -787,6 +789,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
     # Same check but bad segment overlapping from 2.5s to 3s: use `reject_tmax`
@@ -800,6 +803,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
 
@@ -3838,6 +3842,16 @@ def test_concatenate_epochs():
     epochs2.event_id = dict(a=2)
     with pytest.raises(ValueError, match="identical keys"):
         concatenate_epochs([epochs1, epochs2])
+    # corruption check
+    with pytest.raises(ValueError, match="has values that do not match any"):
+        epochs2["a"]
+    epochs2.event_id = dict(a=1, b=1)
+    with pytest.raises(ValueError, match="has duplicate values"):
+        epochs2["a"]
+    # mismatch check
+    epochs2.event_id = dict(b=1)
+    with pytest.raises(ValueError, match="identical values"):
+        concatenate_epochs([epochs1, epochs2])
 
     # check concatenating epochs where one of the objects is empty
     epochs2 = epochs.copy()[:0]
@@ -4712,7 +4726,7 @@ def test_make_fixed_length_epochs():
     assert "2" in epochs.event_id and len(epochs.event_id) == 1
 
 
-def test_epochs_huge_events(tmp_path):
+def test_epochs_huge_events(tmp_path, monkeypatch):
     """Test epochs with event numbers that are too large."""
     data = np.zeros((1, 1, 1000))
     info = create_info(1, 1000.0, "eeg")
@@ -4724,6 +4738,7 @@ def test_epochs_huge_events(tmp_path):
         EpochsArray(data, info, events)
     epochs = EpochsArray(data, info)
     epochs.events = events
+    epochs.event_id["1"] = 2147483648
     with pytest.raises(TypeError, match="exceeds maximum"):
         epochs.save(tmp_path / "temp-epo.fif")
 
@@ -4832,20 +4847,21 @@ def test_apply_function():
     info = mne.create_info(n_channels, 1000.0, "eeg")
     epochs = mne.EpochsArray(data, info, events)
     data_epochs = epochs.get_data()
+    picks = np.arange(3)
+    non_picks = np.arange(3, n_channels)
 
     # apply_function to all channels at once
     def fun(data):
         """Reverse channel order without changing values."""
         return np.eye(data.shape[1])[::-1] @ data
 
-    want = data_epochs[:, ::-1]
-    got = epochs.apply_function(fun, channel_wise=False).get_data()
+    want = np.concatenate(
+        [data_epochs[:, picks][:, ::-1], data_epochs[:, non_picks]], axis=1
+    )  # only reverse channel order of picks
+    got = epochs.apply_function(fun, picks=picks, channel_wise=False).get_data()
     assert_array_equal(want, got)
 
     # apply_function channel-wise (to first 3 channels) by replacing with mean
-    picks = np.arange(3)
-    non_picks = np.arange(3, n_channels)
-
     def fun(data):
         return np.full_like(data, data.mean())
 
@@ -5273,3 +5289,21 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+
+def test_epochs_warn_out_of_bounds_events():
+    """Warn when event sample numbers fall outside the recorded data (gh-12989)."""
+    sfreq = 100.0
+    info = create_info(3, sfreq, "eeg")
+    raw = RawArray(np.random.default_rng(0).standard_normal((3, 1000)), info)
+    oob = np.array([[2000, 0, 1]])
+    # event sample 2000 is past the 1000-sample recording -> warn (default)
+    with pytest.warns(RuntimeWarning, match="outside the data range"):
+        mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None)
+    # on_outside="raise" turns it into an error
+    with pytest.raises(ValueError, match="outside the data range"):
+        mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None, on_outside="raise")
+    # on_outside="ignore" stays silent (warnings are treated as errors in the suite)
+    mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None, on_outside="ignore")
+    # an in-range event whose epoch window merely clips the edge must NOT warn
+    mne.Epochs(raw, np.array([[990, 0, 1]]), tmin=0, tmax=0.5, baseline=None)

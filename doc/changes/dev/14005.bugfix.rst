@@ -1,0 +1,1 @@
+Fix the error message raised when a requested FIR ``filter_length`` is too short, which reported half the actual transition bandwidth, by `Cedric Conday`_.

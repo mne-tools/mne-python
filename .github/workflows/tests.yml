@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6.3.0
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - uses: pre-commit/action@v3.0.1
       - run: pip install mypy numpy scipy vulture
       - run: mypy
@@ -56,7 +56,6 @@ jobs:
       run:
         shell: bash -el {0}
     env:
-      PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -76,23 +75,23 @@ jobs:
           - os: ubuntu-latest
             python: '3.13'
             kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
+          - os: macos-latest  # arm64
+            python: '3.14'
+            kind: pip
+          - os: macos-15-intel  # Intel
             python: '3.13'
-            kind: mamba
-          - os: macos-15-intel  # intel: Sequoia
-            python: '3.13'
-            kind: mamba
-          - os: windows-latest
-            python: '3.11'
-            kind: mamba
+            kind: pip
           - os: ubuntu-latest
             python: '3.12'
             kind: minimal
           - os: ubuntu-22.04
             python: '3.10'
             kind: old
+          - os: ubuntu-latest
+            python: '3.14t'  # free-threaded
+            kind: pip-ft
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -107,7 +106,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: Warpbuilds/action-debugger@v1.3
         timeout-minutes: 80
         with:
           detached: true
@@ -119,46 +118,47 @@ jobs:
           pyvista: false
           wm: false
       # Python (if pip)
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6.3.0
         with:
           python-version: ${{ matrix.python }}
-        if: startswith(matrix.kind, 'pip')
+        if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
+        id: setup-python
+      # Workaround macOS path behavior with login shells (which puts system Python first)
+      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
+        if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
-      - name: Fixes for conda
-        run: |
-          # For some reason on Linux we get crashes
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sed -i "/numba/d" environment.yml
-          fi
-          # And on Windows and macOS PySide6.9.0 segfaults
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
-            sed -i "" "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
-
-          else
-            sed -i "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
-            sed -i "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
-            if [[ "$RUNNER_OS" == "Windows" ]]; then
-              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
-            fi
-          fi
-        if: matrix.kind == 'conda' || matrix.kind == 'mamba'
-      - uses: mamba-org/setup-micromamba@v2
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
-          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
+          log-level: 'info'
           create-args: >-
-            python=${{ env.PYTHON_VERSION }}
+            python=${{ matrix.python }}
             -v
-        if: ${{ !startswith(matrix.kind, 'pip') }}
+        if: matrix.kind == 'conda'
         timeout-minutes: 20
+      # Python (if old)
+      - uses: astral-sh/setup-uv@v8.3.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          cache-dependency-glob: |
+            **/pylock.ci-old.toml
+          python-version: ${{ matrix.python }}
+        if: matrix.kind == 'old'
+      - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
-      - run: python ./tools/github_actions_check_old.py
+        timeout-minutes: 10
+      - run: python ./tools/github_actions_check_old_env.py
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
+      - uses: actions/cache@v6.1.0
+        with:
+          key: minimal-commands-1
+          path: ~/minimal_cmds
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/get_minimal_commands.sh
-        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
       # Check Qt
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
@@ -167,13 +167,13 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6.1.0
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()

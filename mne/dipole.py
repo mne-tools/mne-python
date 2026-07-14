@@ -351,7 +351,7 @@ class Dipole(TimeMixin):
         Returns
         -------
         pos_mri : array, shape (n_pos, 3)
-            The Freesurfer surface RAS coordinates (in mm) of pos.
+            The FreeSurfer surface RAS coordinates (in mm) of pos.
         """
         mri_head_t, trans = _get_trans(trans)
         return head_to_mri(
@@ -963,7 +963,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
             f"Making a spherical guess space with radius {1000 * surf.radius:7.1f} "
             "mm..."
         )
-    logger.info("Filtering (grid = %6.f mm)..." % (1000 * grid))
+    logger.info(f"Filtering (grid = {1000 * grid:6.0f} mm)...")
     src = _make_volume_source_space(
         surf, grid, exclude, 1000 * mindist, do_neighbors=False, n_jobs=n_jobs
     )[0]
@@ -1387,12 +1387,12 @@ def _fit_dipole(
         sensors=sensors, rd=rd_final, Q=Q, ori=ori, whitener=whitener, fwd_data=fwd_data
     )
 
-    msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
+    msg = f"---- Fitted : {1000.0 * t:7.1f} ms"
     if surf is not None:
         dist_to_inner_skull = _compute_nearest(
             surf["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
-        msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
+        msg += f", distance to inner skull : {dist_to_inner_skull * 1000.0:2.4f} mm"
 
     logger.info(msg)
     return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj
@@ -1569,6 +1569,11 @@ def fit_dipole(
     safe_false = _verbose_safe_false()
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem["is_sphere"]:
+        if trans == "identity":  # = trans was passed as None
+            raise ValueError(
+                "`trans` is ``None``, but bem model is not spherical. "
+                "You must pass a valid `trans` in this case."
+            )
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
         inner_skull = inner_skull.copy()
@@ -1652,7 +1657,8 @@ def fit_dipole(
     logger.info("")
 
     _print_coord_trans(mri_head_t)
-    _print_coord_trans(info["dev_head_t"])
+    if info["dev_head_t"]:
+        _print_coord_trans(info["dev_head_t"])
     logger.info(f"{len(info['bads'])} bad channels total")
 
     # Forward model setup (setup_forward_model from setup.c)

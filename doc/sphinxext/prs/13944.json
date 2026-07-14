@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bc9419a4fca08ed943173fc08df59d1559e901e3",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/CONTRIBUTING.md": {
+      "a": 0,
+      "d": 13
+    },
+    "CONTRIBUTING.md": {
+      "a": 10,
+      "d": 4
+    }
+  }
+}

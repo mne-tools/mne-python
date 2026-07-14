@@ -28,11 +28,14 @@ from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
 REPO = "mne-tools"
-COMMIT = "e27f68cbf74dbfc5193ad429cc77900a59475181"
+COMMIT = "9ccb09d69daa8332f2e7252638ba397b60ba2502"
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_dups = (3501,)  # in both MEGIN and MNE files
+tag_dups = (  # in both MEGIN and MNE files
+    3501,  # FIFF.FIFF_XPLOTTER_LAYOUT
+    3507,  # FIFF.FIFF_MNE_CH_NAME_LIST
+)
 
 _dir_ignore_names = (
     "clear",
@@ -91,7 +94,9 @@ _missing_coil_def = (
     304,  # fNIRS frequency domain AC amplitude
     305,  # fNIRS frequency domain phase
     306,  # fNIRS time domain gated amplitude
-    307,  # fNIRS time domain moments amplitude
+    307,  # fNIRS time domain moments intensity
+    308,  # fNIRS time domain moments mean
+    309,  # fNIRS time domain moments variance
     400,  # Eye-tracking gaze position
     401,  # Eye-tracking pupil size
     1000,  # For testing the MCG software
@@ -117,8 +122,8 @@ _aliases = dict(
 )
 
 
-@pytest.mark.flaky
 @requires_good_network
+@pytest.mark.flaky(reruns=3, reruns_delay=5)
 @pytest.mark.ultraslowtest  # not that slow, just doesn't need to run very often
 def test_constants(tmp_path):
     """Test compensation."""

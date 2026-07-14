@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "00eb422cc1c7c8357763405faf895a03c5949522",
+  "authors": [
+    {
+      "n": "Martin Oberg",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13967.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/io/egi/events.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

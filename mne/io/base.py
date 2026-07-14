@@ -562,15 +562,20 @@ class BaseRaw(
             )
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith("bad"):
-                    return descr
+                    return str(descr)
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
-    def load_data(self, verbose=None):
+    def load_data(self, *, memmap=None, verbose=None):
         """Load raw data.
 
         Parameters
         ----------
+        memmap : path-like | None
+            If not ``None``, preload data into a memory-mapped file at this
+            path. If ``None`` (default), preload data into RAM.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -586,7 +591,9 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
-            self._preload_data(True)
+            if memmap is not None:
+                _validate_type(memmap, "path-like", "memmap")
+            self._preload_data(memmap if memmap is not None else True)
         return self
 
     def _preload_data(self, preload):
@@ -1568,7 +1575,15 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
+    def crop(
+        self,
+        tmin=0.0,
+        tmax=None,
+        include_tmax=True,
+        *,
+        reset_first_samp=False,
+        verbose=None,
+    ):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1585,12 +1600,51 @@ class BaseRaw(
         %(tmin_raw)s
         %(tmax_raw)s
         %(include_tmax)s
+        reset_first_samp : bool
+            If True, reset :term:`first_samp` to 0 after cropping, treating
+            the cropped segment as an independent recording. Note that this
+            can break things if you extracted events before cropping and try
+            to use them afterward. Default is False.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+
+        Notes
+        -----
+        After cropping, :term:`first_samp` is updated to reflect the new
+        start of the data, preserving the original recording timeline.
+        This means ``raw.times`` will still start at ``0.0``, but
+        ``raw.first_samp`` will reflect the offset from the original
+        recording. If you want to treat the cropped segment as an
+        independent signal with ``first_samp=0``, you can convert it
+        to a :class:`~mne.io.RawArray`::
+
+            raw_array = mne.io.RawArray(raw.get_data(), raw.info)
+
+        Examples
+        --------
+        By default, cropping preserves the original recording timeline,
+        so :term:`first_samp` remains non-zero after cropping::
+
+            >>> raw = mne.io.read_raw_fif(fname)  # doctest: +SKIP
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            25800
+            >>> raw.crop(tmin=10, tmax=20)  # doctest: +SKIP
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            27810
+
+        If you want to treat the cropped segment as an independent
+        recording, use ``reset_first_samp=True``::
+
+            >>> raw2 = raw.copy().crop(tmin=10, tmax=20,
+            ...                        reset_first_samp=True)  # doctest: +SKIP
+            >>> print(raw2.first_samp)  # doctest: +SKIP
+            0
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
         if tmax is None:
@@ -1648,7 +1702,11 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
-
+        if reset_first_samp:
+            delta = self._first_samps[0]
+            self._first_samps -= delta
+            self._last_samps -= delta
+            self._cropped_samp -= delta
         return self
 
     @verbose
@@ -1913,6 +1971,7 @@ class BaseRaw(
         bad_color="lightgray",
         event_color="cyan",
         *,
+        annotation_colors=None,
         annotation_regex=".*",
         scalings=None,
         remove_dc=True,
@@ -1934,6 +1993,7 @@ class BaseRaw(
         event_id=None,
         show_scrollbars=True,
         show_scalebars=True,
+        show_zero_line=False,
         time_format="float",
         precompute=None,
         use_opengl=None,
@@ -1942,6 +2002,7 @@ class BaseRaw(
         overview_mode=None,
         splash=True,
         verbose=None,
+        figure_class=None,
     ):
         return plot_raw(
             self,
@@ -1953,6 +2014,7 @@ class BaseRaw(
             color,
             bad_color,
             event_color,
+            annotation_colors=annotation_colors,
             annotation_regex=annotation_regex,
             scalings=scalings,
             remove_dc=remove_dc,
@@ -1974,6 +2036,7 @@ class BaseRaw(
             event_id=event_id,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
@@ -1982,6 +2045,7 @@ class BaseRaw(
             overview_mode=overview_mode,
             splash=splash,
             verbose=verbose,
+            figure_class=figure_class,
         )
 
     @property
@@ -2185,11 +2249,11 @@ class BaseRaw(
         pass  # noqa
 
     def copy(self):
-        """Return copy of Raw instance.
+        """Return copy of the instance.
 
         Returns
         -------
-        inst : instance of Raw
+        inst : same type as the input data
             A copy of the instance.
         """
         return deepcopy(self)
@@ -3114,8 +3178,11 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
-        if not isinstance(raw[ri], type(raw[0])):
-            raise ValueError(f"raw[{ri}] type must match")
+        if not isinstance(raw[ri], (BaseRaw, _RawShell)):
+            raise ValueError(
+                f"raw[{ri}] type must match raw[0]: expected BaseRaw, got "
+                f"{type(raw[ri]).__name__}"
+            )
         for key in ("nchan", "sfreq"):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
@@ -3128,7 +3195,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
+                    f"raw[{ri}].info[{kind}] must match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError(f"raw[{ri}]._cals must match")
@@ -3153,11 +3220,12 @@ def concatenate_raws(
 ):
     """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
-    .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
-              Boundaries of the raw files are annotated bad. If you wish to use
-              the data as continuous recording, you can remove the boundary
-              annotations after concatenation (see
-              :meth:`mne.Annotations.delete`).
+    .. note:: If all ``raws`` have the same type, ``raws[0]`` is modified in-place to
+              achieve the concatenation. If the types differ, a new
+              :class:`~mne.io.RawArray` is returned and all data are preloaded
+              automatically. Boundaries of the raw files are annotated bad. If you wish
+              to use the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------
@@ -3172,7 +3240,9 @@ def concatenate_raws(
     Returns
     -------
     raw : instance of Raw
-        The result of the concatenation (first Raw instance passed in).
+        The result of the concatenation. If all ``raws`` have the same type, the first
+        Raw instance passed in is returned (modified in-place). If the types differ, a
+        new :class:`~mne.io.RawArray` is returned.
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
@@ -3191,12 +3261,24 @@ def concatenate_raws(
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)
+
+    if not all(type(r) is type(raws[0]) for r in raws[1:]):
+        from .array import RawArray
+
+        raws = list(raws)  # local copy of list
+        if not raws[0].preload:
+            raws[0].load_data()
+        annotations = raws[0].annotations
+        raws[0] = RawArray(raws[0]._data, raws[0].info, first_samp=raws[0].first_samp)
+        raws[0].set_annotations(annotations)
+        preload = True
     raws[0].append(raws[1:], preload)
+    out = raws[0]
 
     if events_list is None:
-        return raws[0]
+        return out
     else:
-        return raws[0], events
+        return out, events
 
 
 @fill_doc

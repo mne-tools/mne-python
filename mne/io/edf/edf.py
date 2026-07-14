@@ -13,7 +13,6 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..._edf.open import _gdf_edf_get_fid
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
@@ -30,6 +29,7 @@ from ...utils import (
     warn,
 )
 from ..base import BaseRaw, _get_scaling
+from ._open import _gdf_edf_get_fid
 
 
 class FileType(Enum):
@@ -149,7 +149,7 @@ class RawEDF(BaseRaw):
     annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -361,7 +361,7 @@ class RawBDF(BaseRaw):
     annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -517,7 +517,7 @@ class RawGDF(BaseRaw):
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -975,7 +975,7 @@ def _get_info(
         _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
         _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
 
-    if np.isnan(info["lowpass"]):
+    if np.isnan(info["lowpass"]) or info["lowpass"] <= 0:
         info["lowpass"] = info["sfreq"] / 2.0
 
     if info["highpass"] > info["lowpass"]:
@@ -1978,7 +1978,7 @@ def read_raw_edf(
     obtain events from these annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
 
     The EDF specification allows optional storage of channel types in the
@@ -2142,7 +2142,7 @@ def read_raw_bdf(
     obtain events from these annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
     _check_args(input_fname, preload, "bdf")
@@ -2222,7 +2222,7 @@ def read_raw_gdf(
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
     _check_args(input_fname, preload, "gdf")

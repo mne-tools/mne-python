@@ -4,7 +4,6 @@
 
 
 import os
-import shutil
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,7 +19,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import object_diff
+from mne.utils import copytree_rw, object_diff
 
 base_dir = Path(__file__).parent / "data"
 egi_fname = base_dir / "test_egi.raw"
@@ -58,6 +57,12 @@ egi_pause_w1337_events = None
 egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 
 
+# The EGI simple reader technically doesn't need these, but it's only one test
+# so let's go module-level
+pytest.importorskip("mffpy", "0.5.7")
+pytest.importorskip("defusedxml")
+
+
 @requires_testing_data
 @pytest.mark.parametrize(
     "fname, skip_times, event_times",
@@ -69,7 +74,6 @@ egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 )
 def test_egi_mff_pause(fname, skip_times, event_times):
     """Test EGI MFF with pauses."""
-    pytest.importorskip("defusedxml")
     if fname == egi_pause_w1337_fname:
         # too slow to _test_raw_reader
         raw = read_raw_egi(fname, events_as_annotations=False).load_data()
@@ -131,7 +135,6 @@ def test_egi_mff_pause(fname, skip_times, event_times):
 )
 def test_egi_mff_pause_chunks(fname, tmp_path):
     """Test that on-demand of all short segments works (via I/O)."""
-    pytest.importorskip("defusedxml")
     fname_temp = tmp_path / "test_raw.fif"
     raw_data = read_raw_egi(fname, preload=True).get_data()
     raw = read_raw_egi(fname)
@@ -146,7 +149,6 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 @pytest.mark.parametrize("events_as_annotations", (True, False))
 def test_io_egi_mff(events_as_annotations):
     """Test importing EGI MFF simple binary files."""
-    pytest.importorskip("defusedxml")
     # want vars for n chans
     n_ref = 1
     n_eeg = 128
@@ -190,7 +192,11 @@ def test_io_egi_mff(events_as_annotations):
         assert "STI 014" not in raw.ch_names
         assert raw.event_id is None
         event_id = {"DIN1": 1, "DIN2": 2, "DIN3": 3, "DIN4": 4, "DIN5": 5, "DIN7": 7}
+        id_event = {v: k for k, v in event_id.items()}
         events, _ = events_from_annotations(raw, event_id=event_id)
+        labels_annot = [a["extras"]["label"] for a in raw.annotations]
+        labels_events = [id_event[int(x)] for x in events[:, 2]]
+        assert labels_annot == labels_events
     else:
         assert "STI 014" in raw.ch_names
         events = find_events(raw, stim_channel="STI 014")
@@ -292,7 +298,6 @@ def test_io_egi():
 @requires_testing_data
 def test_io_egi_pns_mff(tmp_path):
     """Test importing EGI MFF with PNS data."""
-    pytest.importorskip("defusedxml")
     raw = read_raw_egi(egi_mff_pns_fname, include=None, preload=True, verbose="error")
     assert "RawMff" in repr(raw)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
@@ -337,7 +342,7 @@ def test_io_egi_pns_mff(tmp_path):
 
     # EEG missing
     new_mff = tmp_path / "temp.mff"
-    shutil.copytree(egi_mff_pns_fname, new_mff)
+    copytree_rw(egi_mff_pns_fname, new_mff)
     read_raw_egi(new_mff, verbose="error")
     os.remove(new_mff / "info1.xml")
     os.remove(new_mff / "signal1.bin")
@@ -349,7 +354,6 @@ def test_io_egi_pns_mff(tmp_path):
 @pytest.mark.parametrize("preload", (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
-    pytest.importorskip("defusedxml")
     egi_fname_mff = testing_path / "EGI" / "test_egi_pns_bug.mff"
     with pytest.warns(RuntimeWarning, match="EGI PSG sample bug"):
         raw = read_raw_egi(
@@ -392,7 +396,6 @@ def test_io_egi_pns_mff_bug(preload):
 @requires_testing_data
 def test_io_egi_crop_no_preload():
     """Test crop non-preloaded EGI MFF data (BUG)."""
-    pytest.importorskip("defusedxml")
     raw = read_raw_egi(egi_mff_fname, preload=False)
     raw.crop(17.5, 20.5)
     raw.load_data()
@@ -418,9 +421,6 @@ def test_io_egi_crop_no_preload():
 )
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
-    pytest.importorskip("mffpy", "0.5.7")
-
-    pytest.importorskip("defusedxml")
     # expected n channels
     n_eeg = 256
     n_ref = 1
@@ -486,7 +486,6 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
     """Test errors are thrown when reading invalid input file."""
-    pytest.importorskip("mffpy", "0.5.7")
     # Test file that is not an MFF
     with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_fname)
@@ -505,7 +504,6 @@ def test_read_evokeds_mff_bad_input():
 @requires_testing_data
 def test_egi_coord_frame():
     """Test that EGI coordinate frame is changed to head."""
-    pytest.importorskip("defusedxml")
     info = read_raw_egi(egi_mff_fname).info
     want_idents = (
         FIFF.FIFFV_POINT_LPA,
@@ -543,7 +541,6 @@ def test_egi_coord_frame():
 )
 def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
-    pytest.importorskip("defusedxml")
     raw = read_raw_egi(fname, verbose="warning")
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
     measdate = dt.astimezone(timezone.utc)
@@ -565,7 +562,6 @@ def test_meas_date(fname, timestamp, utc_offset):
 )
 def test_set_standard_montage_mff(fname, standard_montage):
     """Test setting a standard montage."""
-    pytest.importorskip("defusedxml")
     raw = read_raw_egi(fname, verbose="warning")
     n_eeg = int(standard_montage.split("-")[-1])
     n_dig = n_eeg + 3
@@ -592,9 +588,8 @@ def test_set_standard_montage_mff(fname, standard_montage):
 @requires_testing_data
 def test_egi_mff_bad_xml(tmp_path):
     """Test that corrupt XML files are gracefully handled."""
-    pytest.importorskip("defusedxml")
-    mff_fname = shutil.copytree(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
-    bad_xml = mff_fname / "bad.xml"
+    mff_fname = copytree_rw(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
+    bad_xml = mff_fname / "Events_bad.xml"
     bad_xml.write_text("<foo>", encoding="utf-8")
     # Missing coordinate file
     (mff_fname / "coordinates.xml").unlink()

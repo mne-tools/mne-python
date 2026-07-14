@@ -106,7 +106,7 @@ fig = raw.plot_sensors("3d")
 # %%
 # If you're working with a standard montage like the `10–20 <ten_twenty_>`_
 # system, you can add sensor locations to the data with
-# ``raw.set_montage('standard_1020')`` (see :ref:`tut-sensor-locations` for
+# ``raw.set_montage('spherical_1020')`` (see :ref:`tut-sensor-locations` for
 # information on other standard montages included with MNE-Python).
 #
 # If you have digitized realistic sensor locations, there are dedicated
@@ -522,7 +522,7 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 #
 # If using peak measures, it is critical to visually inspect the data to
 # make sure the selected time window actually contains a peak. The
-# meth:`~mne.Evoked.get_peak` method detects the maximum or minimum voltage in
+# :meth:`~mne.Evoked.get_peak` method detects the maximum or minimum voltage in
 # the specified time range and returns the latency and amplitude of this peak.
 # There is no guarantee that this method will return an actual peak. Instead,
 # it may return a value on the rising or falling edge of a peak we are trying

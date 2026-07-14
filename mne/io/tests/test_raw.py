@@ -520,13 +520,16 @@ def _test_raw_reader(
     # make sure that dig points in head coords implies that fiducials are
     # present
     if len(raw.info["dig"] or []) > 0:
-        card_pts = [
-            d for d in raw.info["dig"] if d["kind"] == _dig_kind_dict["cardinal"]
+        card_pts_head = [
+            d
+            for d in raw.info["dig"]
+            if d["kind"] == _dig_kind_dict["cardinal"]
+            and d["coord_frame"] == FIFF.FIFFV_COORD_HEAD
         ]
         eeg_dig_head = [d for d in eeg_dig if d["coord_frame"] == FIFF.FIFFV_COORD_HEAD]
         if len(eeg_dig_head):
-            assert len(card_pts) == 3, "Cardinal points missing"
-        if len(card_pts) == 3:  # they should all be in head coords then
+            assert len(card_pts_head) == 3, "Cardinal points missing"
+        if len(card_pts_head) == 3:  # they should all be in head coords then
             assert len(eeg_dig_head) == len(eeg_dig)
 
     return raw
@@ -840,6 +843,18 @@ def _read_raw_arange(preload=False, verbose=None):
     return _RawArange(preload, verbose)
 
 
+def test_load_data_memmap(tmp_path):
+    """Test loading raw data into a memmap via load_data."""
+    raw = _read_raw_arange(preload=False)
+    memmap_fname = tmp_path / "raw-load-data-memmap.dat"
+    raw.load_data(memmap=memmap_fname)
+
+    assert raw.preload
+    assert isinstance(raw._data, np.memmap)
+    assert Path(raw._data.filename) == memmap_fname
+    assert_array_equal(raw._data[:, 0], np.arange(1, 9))
+
+
 def test_test_raw_reader():
     """Test _test_raw_reader."""
     _test_raw_reader(_read_raw_arange, test_scaling=False, test_rank="less")
@@ -1084,3 +1099,23 @@ def test_rescale():
     orig = raw.get_data()
     raw.rescale(4)  # a scalar works
     assert_allclose(raw.get_data(), orig * 4)
+
+
+def test_crop_reset_first_samp():
+    """Regression test for GH-13278.
+
+    crop(reset_first_samp=True) must reset first_samp to 0.
+    """
+    info = create_info(ch_names=["CH1"], sfreq=1000.0, ch_types=["eeg"])
+    data = np.zeros((1, 10000))
+    raw = RawArray(data, info)
+
+    # crop and reset first_samp
+    raw.crop(tmin=2.0, tmax=5.0, reset_first_samp=True)
+    assert raw.first_samp == 0
+    assert raw.times[0] == 0.0
+
+    # crop without reset_first_samp (default behaviour)
+    raw2 = RawArray(data, info)
+    raw2.crop(tmin=2.0, tmax=5.0)
+    assert raw2.first_samp != 0

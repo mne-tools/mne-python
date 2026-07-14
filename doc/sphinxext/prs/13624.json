@@ -1,0 +1,167 @@
+{
+  "merge_commit_sha": "ee8502bdf9d6fada2b0159dc1dd36ac40175cf1a",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/dev/13520.bugfix.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/13532.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13541.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/sphinxext/prs/13408.json": {
+      "a": 59,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13520.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13532.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13541.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13551.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13558.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13566.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13572.json": {
+      "a": 99,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13574.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13578.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13579.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13580.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13585.json": {
+      "a": 191,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13586.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13587.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13588.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13590.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13591.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13593.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13594.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13596.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13599.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13600.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13601.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13602.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13606.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13607.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13609.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13611.json": {
+      "a": 107,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13612.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13613.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13620.json": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

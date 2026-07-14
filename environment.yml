@@ -5,65 +5,69 @@ channels:
 dependencies:
   - python >=3.10
   - antio >=0.5.0
+  - conda
   - curryreader >=0.1.2
   - darkdetect
-  - decorator
+  - decorator >=5.1
   - defusedxml
-  - dipy
+  - dipy >=0.8
   - edfio >=0.4.10
   - eeglabio
+  - ffmpeg =8.1.2
   - filelock >=3.18.0
   - h5io >=0.2.4
-  - h5py
+  - h5py >=2.4
   - imageio >=2.6.1
   - imageio-ffmpeg >=0.4.1
   - ipyevents
   - ipympl
-  - ipython !=8.7.0
+  - ipython >=2.0,!=8.7.0
   - ipywidgets
-  - jinja2
-  - joblib
+  - jinja2 >=3.1
+  - joblib >=0.8
   - jupyter
   - lazy_loader >=0.3
   - mamba
-  - matplotlib >=3.8
-  - mffpy >=0.5.7
+  - matplotlib >=3.9
+  - mffpy >=0.11.0
   - mne-qt-browser
-  - nibabel
+  - nest-asyncio2
+  - nibabel >=2.0
   - nilearn
   - nomkl
-  - numba
-  - numpy >=1.26,<3
+  - noqt5
+  - numba >=0.35
+  - numpy >=2.0,<3
   - openmeeg >=2.5.7
   - packaging
-  - pandas >=2.2
+  - pandas >=2.2,!=3.0.4
   - pillow
   - pip
   - pooch >=1.5
   - pyarrow
   - pybv
   - pymatreader
-  - PySide6 !=6.9.1
+  - PySide6 ==6.11.1
   - python-neo
-  - python-picard
-  - pyvista >=0.43
+  - python-picard >=0.4
+  - pyvista >=0.44
   - pyvistaqt >=0.11
   - qdarkstyle !=3.2.2
   - qtpy
-  - scikit-learn >=1.4
-  - scipy >=1.12
+  - scikit-learn >=1.5
+  - scipy >=1.14
   - sip
   - snirf
-  - statsmodels
+  - statsmodels >=0.6
   - threadpoolctl
-  - tqdm
+  - tqdm >=4.66
   - traitlets
   - trame
+  - trame-pyvista
   - trame-vtk
   - trame-vuetify
-  - vtk >=9.2
+  - vtk ==9.6.2
   - xlrd
   - pip:
-      - nest-asyncio2
       - pymef
       - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'

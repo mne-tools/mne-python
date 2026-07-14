@@ -20,47 +20,87 @@ from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...channels.montage import make_dig_montage
 from ...evoked import EvokedArray
+from ...fixes import _get_mffpy_pns_sensors
 from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
 from ..base import BaseRaw
 from .events import _combine_triggers, _read_events, _triage_include_exclude
 from .general import (
-    _block_r,
-    _extract,
-    _get_blocks,
     _get_ep_info,
-    _get_gains,
     _get_signalfname,
 )
 
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
+CAL_SCALES = {"uV": 1e-6, "V": 1}
+
+
+def _get_mff_reader(input_fname):
+    """Open an mffpy.Reader for the MFF directory."""
+    mffpy = _import_mffpy("read EGI MFF data")
+    return mffpy.Reader(input_fname)
+
+
+def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
+    """Map a contiguous range of on-disk EEG samples to mffpy epoch windows.
+
+    EGI MFF signal blocks are stored back-to-back on disk with no gaps
+    between recording epochs. This generator yields, for each recording epoch,
+    the epoch index plus the relative ``(t0, dt)`` window (in seconds) and the
+    corresponding ``[out_start, out_stop)`` slice into the caller's output
+    array.
+    """
+    first_samps = np.asarray(egi_info["first_samps"])
+    last_samps = np.asarray(egi_info["last_samps"])
+    sfreq = egi_info["sfreq"]
+    epoch_lengths = last_samps - first_samps
+    epoch_disk_offsets = np.concatenate([[0], np.cumsum(epoch_lengths)])
+
+    for ei in range(len(epoch_lengths)):
+        ep_disk_start = epoch_disk_offsets[ei]
+        ep_disk_stop = epoch_disk_offsets[ei + 1]
+        ov_start = max(disk_start, ep_disk_start)
+        ov_stop = min(disk_stop, ep_disk_stop)
+        if ov_start >= ov_stop:
+            continue
+        t0 = (ov_start - ep_disk_start) / sfreq
+        dt = (ov_stop - ov_start) / sfreq
+        yield ei, t0, dt, ov_start - disk_start, ov_stop - disk_start
 
 
 def _read_mff_header(filepath):
     """Read mff header."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
+    _soft_import("mffpy", "reading EGI MFF data")
+    from mffpy import Reader
+    from mffpy.xml_files import XML
 
     all_files = _get_signalfname(filepath)
     eeg_file = all_files["EEG"]["signal"]
     eeg_info_file = all_files["EEG"]["info"]
 
-    info_filepath = op.join(filepath, "info.xml")  # add with filepath
-    tags = ["mffVersion", "recordTime"]
-    version_and_date = _extract(tags, filepath=info_filepath)
-    version = ""
-    if len(version_and_date["mffVersion"]):
-        version = version_and_date["mffVersion"][0]
+    # 1. Parse info.xml natively via absolute path
+    info_filepath = op.join(filepath, "info.xml")
+    info_obj = XML.from_file(info_filepath)
 
-    fname = op.join(filepath, eeg_file)
-    signal_blocks = _get_blocks(fname)
+    mff_vers_elem = info_obj.find("mffVersion")
+    if mff_vers_elem is None:
+        mff_vers_elem = info_obj.find("version")
+    version = str(mff_vers_elem.text) if mff_vers_elem is not None else ""
+
+    rt_elem = info_obj.find("recordTime")
+    record_time = str(rt_elem.text) if rt_elem is not None else ""
+
+    reader = Reader(filepath)
+    signal_blocks = dict(
+        n_channels=reader.num_channels["EEG"],
+        sfreq=reader.sampling_rates["EEG"],
+        n_blocks=len(reader.block_sample_counts["EEG"]),
+        samples_block=np.array(reader.block_sample_counts["EEG"]),
+        header_sizes=[],
+    )
     epochs = _get_ep_info(filepath)
     summaryinfo = dict(eeg_fname=eeg_file, info_fname=eeg_info_file)
     summaryinfo.update(signal_blocks)
+
     # sanity check and update relevant values
-    record_time = version_and_date["recordTime"][0]
-    # e.g.,
-    # 2018-07-30T10:47:01.021673-04:00
-    # 2017-09-20T09:55:44.072000000+01:00
     g = re.match(
         r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.(\d{6}(?:\d{3})?)[+-]\d{2}:\d{2}",  # noqa: E501
         record_time,
@@ -77,14 +117,6 @@ def _read_mff_header(filepath):
                 raise RuntimeError(f"Could not parse epoch time {e}")
             epochs[key][ei] = e // div
         epochs[key] = np.array(epochs[key], np.uint64)
-        # I guess they refer to times in milliseconds?
-        # What we really need to do here is:
-        # epochs[key] *= signal_blocks['sfreq']
-        # epochs[key] //= 1000
-        # But that multiplication risks an overflow, so let's only multiply
-        # by what we need to (e.g., a sample rate of 500 means we can multiply
-        # by 1 and divide by 2 rather than multiplying by 500 and dividing by
-        # 1000)
         numerator = int(signal_blocks["sfreq"])
         denominator = 1000
         this_gcd = math.gcd(numerator, denominator)
@@ -93,8 +125,6 @@ def _read_mff_header(filepath):
         with np.errstate(over="raise"):
             epochs[key] *= numerator
         epochs[key] //= denominator
-        # Should be safe to cast to int now, which makes things later not
-        # upbroadcast to float
         epochs[key] = epochs[key].astype(np.int64)
     n_samps_block = signal_blocks["samples_block"].sum()
     n_samps_epochs = (epochs["last_samps"] - epochs["first_samps"]).sum()
@@ -109,8 +139,7 @@ def _read_mff_header(filepath):
             f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
         )
     summaryinfo.update(epochs)
-    # index which samples in raw are actually readable from disk (i.e., not
-    # in a skip)
+
     disk_samps = np.full(epochs["last_samps"][-1], -1)
     offset = 0
     for first, last in zip(epochs["first_samps"], epochs["last_samps"]):
@@ -119,39 +148,37 @@ def _read_mff_header(filepath):
         offset += n_this
     summaryinfo["disk_samps"] = disk_samps
 
-    # Add the sensor info.
-    sensor_layout_file = op.join(filepath, "sensorLayout.xml")
-    sensor_layout_obj = parse(sensor_layout_file)
+    # 2. Parse sensorLayout.xml natively via absolute path
+    sensor_layout_filepath = op.join(filepath, "sensorLayout.xml")
+    sensor_layout_obj = XML.from_file(sensor_layout_filepath)
 
-    summaryinfo["device"] = sensor_layout_obj.getElementsByTagName("name")[
-        0
-    ].firstChild.data
-    sensors = sensor_layout_obj.getElementsByTagName("sensor")
+    summaryinfo["device"] = getattr(sensor_layout_obj, "name", "Unknown")
     chan_type = list()
     chan_unit = list()
     n_chans = 0
     numbers = list()  # used for identification
-    for sensor in sensors:
-        sensortype = int(sensor.getElementsByTagName("type")[0].firstChild.data)
+
+    for sensor_dict in sensor_layout_obj.sensors.values():
+        sensortype = int(sensor_dict.get("type", -1))
         if sensortype in [0, 1]:
-            sn = sensor.getElementsByTagName("number")[0].firstChild.data
-            sn = sn.encode()
+            sn = str(sensor_dict.get("number", "")).encode()
             numbers.append(sn)
             chan_type.append("eeg")
             chan_unit.append("uV")
-            n_chans = n_chans + 1
+            n_chans += 1
+
     if n_chans != summaryinfo["n_channels"]:
         raise RuntimeError(
             f"Number of defined channels ({n_chans}) did not match the "
             f"expected channels ({summaryinfo['n_channels']})."
         )
 
-    # Check presence of PNS data
     pns_names = []
     if "PNS" in all_files:
-        pns_fpath = op.join(filepath, all_files["PNS"]["signal"])
-        pns_blocks = _get_blocks(pns_fpath)
-        pns_samples = pns_blocks["samples_block"]
+        pns_sample_blocks = dict(
+            samples_block=np.array(reader.block_sample_counts["PNSData"])
+        )
+        pns_samples = pns_sample_blocks["samples_block"]
         signal_samples = signal_blocks["samples_block"]
         same_blocks = np.array_equal(
             pns_samples[:-1], signal_samples[:-1]
@@ -162,19 +189,19 @@ def _read_mff_header(filepath):
                 f"{list(pns_samples)}\nvs\n{list(signal_samples)}"
             )
 
-        pns_file = op.join(filepath, "pnsSet.xml")
-        pns_obj = parse(pns_file)
-        sensors = pns_obj.getElementsByTagName("sensor")
+        # 3. Parse pnsSet.xml using the fallback shim in fixes.py
+        pns_set_filepath = op.join(filepath, "pnsSet.xml")
+        pns_obj = XML.from_file(pns_set_filepath)
+
         pns_types = []
         pns_units = []
+
+        # Route through the shim to bypass the mffpy KeyError
+        sensors = _get_mffpy_pns_sensors(pns_obj)
+
         for sensor in sensors:
-            # sensor number:
-            # sensor.getElementsByTagName('number')[0].firstChild.data
-            name = sensor.getElementsByTagName("name")[0].firstChild.data
-            unit_elem = sensor.getElementsByTagName("unit")[0].firstChild
-            unit = ""
-            if unit_elem is not None:
-                unit = unit_elem.data
+            name = sensor.get("name", "")
+            unit = sensor.get("unit", "")
 
             if name == "ECG":
                 ch_type = "ecg"
@@ -190,12 +217,13 @@ def _read_mff_header(filepath):
             pns_types=pns_types,
             pns_units=pns_units,
             pns_fname=all_files["PNS"]["signal"],
-            pns_sample_blocks=pns_blocks,
+            pns_sample_blocks=pns_sample_blocks,
         )
+
     summaryinfo.update(
         pns_names=pns_names,
         version=version,
-        date=version_and_date["recordTime"][0],
+        date=record_time,
         chan_type=chan_type,
         chan_unit=chan_unit,
         numbers=numbers,
@@ -241,9 +269,6 @@ def _read_header(input_fname):
         version=version,
         meas_dt_local=time_n,
         utc_offset=time_n.strftime("%z"),
-        gain=0,
-        bits=0,
-        value_range=0,
     )
     info.update(
         n_categories=0,
@@ -258,71 +283,58 @@ def _read_header(input_fname):
     return info
 
 
-def _get_eeg_calibration_info(filepath, egi_info):
-    """Calculate calibration info for EEG channels."""
-    gains = _get_gains(op.join(filepath, egi_info["info_fname"]))
-    if egi_info["value_range"] != 0 and egi_info["bits"] != 0:
-        cals = [egi_info["value_range"] / 2 ** egi_info["bits"]] * len(
-            egi_info["chan_type"]
-        )
-    else:
-        cal_scales = {"uV": 1e-6, "V": 1}
-        cals = [cal_scales[t] for t in egi_info["chan_unit"]]
-    if "gcal" in gains:
-        cals *= gains["gcal"]
-    return cals
-
-
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
+    _soft_import("mffpy", "reading EGI MFF data")
+    from mffpy.xml_files import XML
 
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
         warn("File coordinates.xml not found, not setting channel locations")
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
         return ch_names, None
+
+    # 4. Parse coordinates.xml natively via absolute path
+    coordinates = XML.from_file(fname)
+
     dig_ident_map = {
         "Left periauricular point": "lpa",
         "Right periauricular point": "rpa",
         "Nasion": "nasion",
     }
     numbers = np.array(egi_info["numbers"])
-    coordinates = parse(fname)
-    sensors = coordinates.getElementsByTagName("sensor")
+
     ch_pos = OrderedDict()
     hsp = list()
     nlr = dict()
     ch_names = list()
 
-    for sensor in sensors:
-        name_element = sensor.getElementsByTagName("name")[0].firstChild
-        num_element = sensor.getElementsByTagName("number")[0].firstChild
-        name = (
-            channel_naming % int(num_element.data)
-            if name_element is None
-            else name_element.data
-        )
-        nr = num_element.data.encode()
-        coords = [
-            float(sensor.getElementsByTagName(coord)[0].firstChild.data)
-            for coord in "xyz"
-        ]
+    for sensor in coordinates.sensors.values():
+        name = sensor.get("name")
+        # Fix for MFF files that explicitly write <name>None</name>
+        if name == "None":
+            name = None
+
+        num_str = str(sensor.get("number", ""))
+
+        if not name:
+            name = channel_naming % int(num_str)
+
+        nr = num_str.encode()
+        coords = [float(sensor.get(coord, 0.0)) for coord in "xyz"]
         loc = np.array(coords) / 100  # cm -> m
+
         # create dig entry
         if name in dig_ident_map:
             nlr[dig_ident_map[name]] = loc
         else:
-            # id_ is the index of the channel in egi_info['numbers']
             id_ = np.flatnonzero(numbers == nr)
-            # if it's not in egi_info['numbers'], it's a headshape point
             if len(id_) == 0:
                 hsp.append(loc)
-            # not HSP, must be a data or reference channel
             else:
                 ch_names.append(name)
                 ch_pos[name] = loc
+
     mon = make_dig_montage(ch_pos=ch_pos, hsp=hsp, **nlr)
     return ch_names, mon
 
@@ -410,7 +422,7 @@ class RawMff(BaseRaw):
 
         logger.info("    Reading events ...")
         egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
-        cals = _get_eeg_calibration_info(input_fname, egi_info)
+        cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
         logger.info("    Assembling measurement info ...")
         event_codes = egi_info["event_codes"]
         include = _triage_include_exclude(include, exclude, egi_events, egi_info)
@@ -498,6 +510,7 @@ class RawMff(BaseRaw):
 
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events
+        egi_info["mff_path"] = input_fname
 
         # Check how many channels to read are from EEG
         keys = ("eeg", "sti", "pns")
@@ -526,7 +539,7 @@ class RawMff(BaseRaw):
         first_samps = [0]
         last_samps = [egi_info["last_samps"][-1] - 1]
 
-        annot = dict(onset=list(), duration=list(), description=list())
+        annot = dict(onset=list(), duration=list(), description=list(), extras=list())
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
@@ -566,30 +579,31 @@ class RawMff(BaseRaw):
                 annot["onset"].append((prev_last - 0.5) / egi_info["sfreq"])
                 annot["duration"].append(gap / egi_info["sfreq"])
                 annot["description"].append("BAD_ACQ_SKIP")
+                annot["extras"].append({})
 
         # create events from annotations
         if events_as_annotations:
-            for code, samples in mff_events.items():
+            for code, dicts in mff_events.items():
                 if code not in include:
                     continue
+                samples = [d["start_sample"] for d in dicts]
+                extras = [d["extras"] for d in dicts]
                 annot["onset"].extend(np.array(samples) / egi_info["sfreq"])
                 annot["duration"].extend([0.0] * len(samples))
                 annot["description"].extend([code] * len(samples))
+                annot["extras"].extend(extras)
 
+        if annot["extras"] == []:
+            annot["extras"] = None
         if len(annot["onset"]):
             self.set_annotations(Annotations(**annot))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
         logger.debug(f"Reading MFF {start:6d} ... {stop:6d} ...")
-        dtype = "<f4"  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
         one = np.zeros((egi_info["kind_bounds"][-1], stop - start))
-
-        # info about the binary file structure
-        n_channels = egi_info["n_channels"]
-        samples_block = egi_info["samples_block"]
 
         # Check how many channels to read are from each type
         bounds = egi_info["kind_bounds"]
@@ -623,128 +637,31 @@ class RawMff(BaseRaw):
         stop = disk_samps[disk_use_idx[-1]] + 1
         assert len(disk_use_idx) == stop - start
 
-        # Get starting/stopping block/samples
-        block_samples_offset = np.cumsum(samples_block)
-        offset_blocks = np.sum(block_samples_offset <= start)
-        offset_samples = start - (
-            block_samples_offset[offset_blocks - 1] if offset_blocks > 0 else 0
-        )
-
-        # TODO: Refactor this reading with the PNS reading in a single function
-        # (DRY)
-        samples_to_read = stop - start
-        with open(self.filenames[fi], "rb", buffering=0) as fid:
-            # Go to starting block
-            current_block = 0
-            current_block_info = None
-            current_data_sample = 0
-            while current_block < offset_blocks:
-                this_block_info = _block_r(fid)
-                if this_block_info is not None:
-                    current_block_info = this_block_info
-                fid.seek(current_block_info["block_size"], 1)
-                current_block += 1
-
-            # Start reading samples
-            while samples_to_read > 0:
-                logger.debug(f"    Reading from block {current_block}")
-                this_block_info = _block_r(fid)
-                current_block += 1
-                if this_block_info is not None:
-                    current_block_info = this_block_info
-
-                to_read = current_block_info["nsamples"] * current_block_info["nc"]
-                block_data = np.fromfile(fid, dtype, to_read)
-                block_data = block_data.reshape(n_channels, -1, order="C")
-
-                # Compute indexes
-                samples_read = block_data.shape[1]
-                logger.debug(f"        Read   {samples_read} samples")
-                logger.debug(f"        Offset {offset_samples} samples")
-                if offset_samples > 0:
-                    # First block read, skip to the offset:
-                    block_data = block_data[:, offset_samples:]
-                    samples_read = samples_read - offset_samples
-                    offset_samples = 0
-                if samples_to_read < samples_read:
-                    # Last block to read, skip the last samples
-                    block_data = block_data[:, :samples_to_read]
-                    samples_read = samples_to_read
-                logger.debug(f"        Keep   {samples_read} samples")
-
-                s_start = current_data_sample
-                s_end = s_start + samples_read
-
-                one[eeg_one, disk_use_idx[s_start:s_end]] = block_data[eeg_in]
-                samples_to_read = samples_to_read - samples_read
-                current_data_sample = current_data_sample + samples_read
+        if len(eeg_one):
+            mff_reader = _get_mff_reader(egi_info["mff_path"])
+            mff_epochs = mff_reader.epochs
+            for ei, t0, dt, out_start, out_stop in _disk_range_to_epochs(
+                egi_info, start, stop
+            ):
+                logger.debug(f"    Reading from epoch {ei} t0={t0} dt={dt}")
+                eeg_chunk, _ = mff_reader.get_physical_samples_from_epoch(
+                    mff_epochs[ei], t0=t0, dt=dt, channels=["EEG"]
+                )["EEG"]
+                cols = disk_use_idx[out_start:out_stop]
+                one[eeg_one, cols] = eeg_chunk[eeg_in]
 
         if len(pns_one) > 0:
-            # PNS Data is present and should be read:
-            pns_filepath = egi_info["pns_filepath"]
-            pns_info = egi_info["pns_sample_blocks"]
-            n_channels = pns_info["n_channels"]
-            samples_block = pns_info["samples_block"]
-
-            # Get starting/stopping block/samples
-            block_samples_offset = np.cumsum(samples_block)
-            offset_blocks = np.sum(block_samples_offset < start)
-            offset_samples = start - (
-                block_samples_offset[offset_blocks - 1] if offset_blocks > 0 else 0
-            )
-
-            samples_to_read = stop - start
-            with open(pns_filepath, "rb", buffering=0) as fid:
-                # Check file size
-                fid.seek(0, 2)
-                file_size = fid.tell()
-                fid.seek(0)
-                # Go to starting block
-                current_block = 0
-                current_block_info = None
-                current_data_sample = 0
-                while current_block < offset_blocks:
-                    this_block_info = _block_r(fid)
-                    if this_block_info is not None:
-                        current_block_info = this_block_info
-                    fid.seek(current_block_info["block_size"], 1)
-                    current_block += 1
-
-                # Start reading samples
-                while samples_to_read > 0:
-                    if samples_to_read == 1 and fid.tell() == file_size:
-                        # We are in the presence of the EEG bug
-                        # fill with zeros and break the loop
-                        one[pns_one, -1] = 0
-                        break
-
-                    this_block_info = _block_r(fid)
-                    if this_block_info is not None:
-                        current_block_info = this_block_info
-
-                    to_read = current_block_info["nsamples"] * current_block_info["nc"]
-                    block_data = np.fromfile(fid, dtype, to_read)
-                    block_data = block_data.reshape(n_channels, -1, order="C")
-
-                    # Compute indexes
-                    samples_read = block_data.shape[1]
-                    if offset_samples > 0:
-                        # First block read, skip to the offset:
-                        block_data = block_data[:, offset_samples:]
-                        samples_read = samples_read - offset_samples
-                        offset_samples = 0
-
-                    if samples_to_read < samples_read:
-                        # Last block to read, skip the last samples
-                        block_data = block_data[:, :samples_to_read]
-                        samples_read = samples_to_read
-
-                    s_start = current_data_sample
-                    s_end = s_start + samples_read
-
-                    one[pns_one, disk_use_idx[s_start:s_end]] = block_data[pns_in]
-                    samples_to_read = samples_to_read - samples_read
-                    current_data_sample = current_data_sample + samples_read
+            mff_reader = _get_mff_reader(egi_info["mff_path"])
+            mff_epochs = mff_reader.epochs
+            for ei, t0, dt, out_start, out_stop in _disk_range_to_epochs(
+                egi_info, start, stop
+            ):
+                logger.debug(f"    Reading PNS from epoch {ei} t0={t0} dt={dt}")
+                pns_chunk, _ = mff_reader.get_physical_samples_from_epoch(
+                    mff_epochs[ei], t0=t0, dt=dt, channels=["PNSData"]
+                )["PNSData"]
+                cols = disk_use_idx[out_start:out_stop]
+                one[pns_one, cols[: pns_chunk.shape[1]]] = pns_chunk[pns_in]
 
         # do the calibration
         _mult_cal_one(data, one, idx, cals, mult)
@@ -893,9 +810,7 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
         info["nchan"] = sum(mff.num_channels.values())
 
     # Add individual channel info
-    # Get calibration info for EEG channels
-    cals = _get_eeg_calibration_info(fname, egi_info)
-    # Initialize calibration for PNS channels, will be updated later
+    cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
     cals = np.concatenate([cals, np.repeat(1, len(egi_info["pns_names"]))])
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH

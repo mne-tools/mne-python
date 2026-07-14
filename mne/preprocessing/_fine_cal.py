@@ -595,6 +595,15 @@ def write_fine_calibration(fname, calibration):
     keys = ("ch_names", "locs", "imb_cals")
     with open(fname, "wb") as cal_file:
         for ch_name, loc, imb_cal in zip(*(calibration[key] for key in keys)):
+            # MaxFilter expects bare channel numbers, so undo the "MEG%04d"
+            # renaming that read_fine_calibration applies to Neuromag channels.
+            # Match only that 4-digit form, leaving e.g. KIT "MEG001" untouched.
+            if (
+                ch_name.startswith("MEG")
+                and len(ch_name) == 7
+                and ch_name[3:].isdigit()
+            ):
+                ch_name = str(int(ch_name[3:]))
             cal_line = np.concatenate([loc, imb_cal]).round(6)
             cal_line = " ".join(f"{c:0.6f}" for c in cal_line)
             cal_file.write(f"{ch_name} {cal_line}\n".encode("ASCII"))

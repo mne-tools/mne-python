@@ -111,7 +111,7 @@ def ttest_ind_no_p(a, b, equal_var=True, sigma=0.0):
     return t
 
 
-def f_oneway(*args):
+def f_oneway(*args, sigma=0.0, method="relative"):
     """Perform a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
@@ -125,6 +125,20 @@ def f_oneway(*args):
     ----------
     *args : array_like
         The sample measurements should be given as arguments.
+    sigma : float
+        Regularization parameter (>= 0) added to the within-group mean
+        square to mitigate F-statistic inflation under low-variance
+        conditions. ``0`` (default) disables correction.
+
+        .. versionadded:: 1.12
+    method : str
+        How *sigma* is interpreted when ``sigma > 0``. Can be
+        ``'relative'`` (default) or ``'absolute'``.
+        ``'relative'`` multiplies *sigma* by the median within-group
+        mean square (scale-invariant, recommended).
+        ``'absolute'`` uses *sigma* directly as a raw sigma squared.
+
+        .. versionadded:: 1.12
 
     Returns
     -------
@@ -151,6 +165,9 @@ def f_oneway(*args):
     ----------
     .. footbibliography::
     """
+    _check_option("method", method, ["absolute", "relative"])
+    if sigma < 0:
+        raise ValueError(f"sigma must be >= 0, got {sigma}")
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -168,6 +185,12 @@ def f_oneway(*args):
     dfwn = n_samples - n_classes
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
+    if sigma > 0.0:
+        if method == "relative":
+            sigma_sq = sigma * np.median(msw)
+        else:
+            sigma_sq = float(sigma)
+        msw = (sswn + sigma_sq) / float(dfwn)
     f = msb / msw
     return f
 

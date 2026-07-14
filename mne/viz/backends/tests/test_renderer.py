@@ -8,7 +8,9 @@ import sys
 
 import numpy as np
 import pytest
+from matplotlib.font_manager import findfont
 
+from mne.transforms import rot_to_quat
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
@@ -149,6 +151,22 @@ def test_3d_backend(renderer):
     with pytest.raises(ValueError, match="Invalid value"):
         rend.quiver3d(mode="foo", **kwargs)
 
+    # use instanced_mesh
+    inst_positions = np.array([[0.0, 0.0, 0.0], [tet_size, 0.0, 0.0]])
+    inst_quats = np.array([rot_to_quat(np.eye(3)), rot_to_quat(np.eye(3))])
+    inst_colors = np.array([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]])
+    _, inst_cloud = rend.instanced_mesh(
+        rr=sph_center * sph_scale,
+        tris=tet_indices,
+        positions=inst_positions,
+        quats=inst_quats,
+        colors=inst_colors,
+    )
+    # colors can be updated in place (e.g. for future sensor
+    # highlighting/hover) without rebuilding the actor or its geometry
+    inst_cloud.point_data["colors"][0] = [0, 0, 255, 255]
+    inst_cloud.Modified()
+
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]), destination=np.array([[0, 1, 0]]))
     _, tube = rend.tube(
@@ -167,6 +185,14 @@ def test_3d_backend(renderer):
         text=txt_text,
         size=txt_size,
         justification="right",
+    )
+    # test font_file passthrough with a real font from matplotlib
+    font_path = findfont("serif")
+    rend.text2d(
+        x_window=txt_x + 0.1,
+        y_window=txt_y + 0.1,
+        text="font test",
+        font_file=font_path,
     )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(

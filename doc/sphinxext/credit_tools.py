@@ -40,6 +40,7 @@ data_dir = doc_root / "sphinxext"
 # Allowed singletons
 single_names = """
 btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot] varshaa-1616
+Farzah11
 """.strip().split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
@@ -50,10 +51,12 @@ name_counts = dict(
     Li=2,
     Peterson=2,
     Wong=2,
+    Yadav=2,
     Zhang=3,
 )
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
+    "Athish M",
     "Natneal B",
     "T. Wang",
     "Ziyi ZENG",
@@ -63,10 +66,14 @@ manual_renames = {
     "akshay0724": "Akshay",  # 4046, TODO: Check singleton
     "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
     "alexandra": "Alexandra Corneyllie",  # 7600
+    "Akhilesh": "Akhilesh S. Yadav",  # 13639
+    "Aniket": "Aniket Singh Yadav",  # 13672
     "AnneSo": "Anne-Sophie Dubarry",  # 4910
+    "Baris": "Baris Talar",  # 13870
     "Basile": "Basile Pinsard",  # 1791
     "Bru": "Bruno Aristimunha",  # 13489
     "ChristinaZhao": "Christina Zhao",  # 9075
+    "Deep ": "Deep Kaur",  # 13846
     "Drew, J.": "Jordan Drew",  # 10861
     "enzo": "Enzo Altamiranda",  # 11351
     "Emma": "Emma Zhang",  # 13486
@@ -76,8 +83,10 @@ manual_renames = {
     "Genuster": "Gennadiy Belonosov",  # 12936
     "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
+    "Hansuja ": "Hansuja Budhiraja",  # 13765
     "jwelzel": "Julius Welzel",  # 11118
     "Katia": "Katia Al-Amir",  # 13225
+    "Lifeng": "Lifeng Qiu Lin",  # 13797
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -90,6 +99,7 @@ manual_renames = {
     "Valerii": "Valerii Chirkov",  # 9043
     "Wei": "Wei Xu",  # 13218
     "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
+    "Horizon_Architect_07": "Famous Raj Bhat",  # 13685
 }
 
 
@@ -197,6 +207,11 @@ def generate_credit_rst(app=None, *, verbose=False):
                         )
                         continue
                     name = name_map[author["e"]]
+                    if name in manual_renames:
+                        assert _good_name(manual_renames[name]), (
+                            f"Bad manual rename: {name}"
+                        )
+                        name = manual_renames[name]
                 else:
                     name = author["n"]
                     if name in manual_renames:
@@ -226,6 +241,10 @@ def generate_credit_rst(app=None, *, verbose=False):
                     if author["e"]:
                         expected_bad_names[name] += f" email {author['e']}"
                 assert name.strip(), repr(name)
+                assert name == name.strip(), (
+                    f"Un-stripped name from {commit}, "
+                    f"add to manual_renames: {repr(name)}"
+                )
                 used_authors.add(name)
                 # treat moves and permission changes like a single-line change
                 if p == m == 0:
@@ -243,7 +262,6 @@ def generate_credit_rst(app=None, *, verbose=False):
     bad_names = set()
     for these_stats in stats.values():
         for name in these_stats:
-            assert name == name.strip(), f"Un-stripped name: {repr(name)}"
             last = name.split()[-1]
             first = name.split()[0]
             last_map[last].add(name)
@@ -271,6 +289,8 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
         and "50266005+mne-bot" not in email
+        and "copilot@github.com" not in email
+        and "noreply@anthropic.com" not in email
     )
     what = "Unknown emails, consider adding to .mailmap:\n"
     assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
@@ -305,6 +325,9 @@ def generate_credit_rst(app=None, *, verbose=False):
         logo/LICENSE doc/credit.rst
     """.strip().split():
         globs[key] = "null"
+    # A few remaps
+    globs["mne/io/edf/_open.py"] = "mne.io"
+    globs["mne/_edf/open.py"] = "mne.io"
     # Now onto the actual module organization
     root_path = pathlib.Path(mne.__file__).parent
     mod_file_map = dict()
@@ -382,8 +405,12 @@ def generate_credit_rst(app=None, *, verbose=False):
             other_files.add(fname)
             mod = "other"
         for e, pm in counts.items():
-            if mod == "mne._fiff":
-                raise RuntimeError
+            # Assert no private (_-prefixed) submodules appear without a redirect
+            if mod.startswith("mne.") and mod.split(".")[-1].startswith("_"):
+                raise RuntimeError(
+                    f"Private submodule {mod!r} found in credit page for {fname!r}. "
+                    "Add an override in credit_tools.py to remap it to a public module."
+                )
             # sanity check a bit
             if mod != "null" and (".png" in fname or "/manual/" in fname):
                 raise RuntimeError(f"Unexpected {mod} {fname}")
@@ -391,6 +418,17 @@ def generate_credit_rst(app=None, *, verbose=False):
             mod_stats["mne"][e] += pm
             total_lines += pm
     mod_stats.pop("null")  # stuff we shouldn't give credit for
+    # Assert no private (_-prefixed) submodule names remain after null-removal
+    private_mods = [
+        m
+        for m in mod_stats
+        if m.startswith("mne.") and m.split(".")[-1].startswith("_")
+    ]
+    if private_mods:
+        raise RuntimeError(
+            f"Private submodule(s) {private_mods} found in credit page. "
+            "Update credit_tools.py to remap them to a public module."
+        )
     mod_stats = dict(
         (k, mod_stats[k])
         for k in sorted(
@@ -519,7 +557,7 @@ contributions by submodule as well below.
 {indent}{stat_lines}
 
 """
-    (doc_root / "code_credit.inc").write_text(content, encoding="utf-8")
+    (doc_root / "credits" / "code_credit.inc").write_text(content, encoding="utf-8")
 
 
 if __name__ == "__main__":

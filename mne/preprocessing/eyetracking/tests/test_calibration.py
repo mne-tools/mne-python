@@ -285,3 +285,31 @@ def test_calibration_newlines(fname, tmp_path):
     np.testing.assert_allclose(cals[0]["positions"], want_cals[0]["positions"])
     np.testing.assert_allclose(cals[1]["offsets"], want_cals[1]["offsets"])
     np.testing.assert_allclose(cals[0]["gaze"], want_cals[0]["gaze"])
+
+
+@requires_testing_data
+@pytest.mark.parametrize("fname", [(fname)])
+def test_calibration_non_ascii(fname, tmp_path):
+    """Test reading a calibration whose MSG lines contain non-ASCII text."""
+    # MSG lines are not guaranteed to be ASCII (users may put UTF-8 text in their
+    # messages), so reading should not raise a UnicodeDecodeError. See gh-14000.
+    want_cals = read_eyelink_calibration(fname)
+
+    lines = Path(fname).read_text().splitlines()
+    # Insert a MSG line with non-ASCII content, including the zero-width no-break
+    # space (U+FEFF, encoded as the 0xEF byte that triggered the original crash).
+    msg_idx = next(i for i, line in enumerate(lines) if line.startswith("MSG"))
+    non_ascii_msg = "MSG\t5000000\tunicode message \ufeff \u00e9\u00e8\u00ea \u2615"
+    new_lines = lines[:msg_idx] + [non_ascii_msg] + lines[msg_idx:]
+
+    out_fname = tmp_path / "non_ascii_calibration.asc"
+    out_fname.write_text("\n".join(new_lines), encoding="utf-8")
+    cals = read_eyelink_calibration(out_fname)
+
+    # The added non-ASCII MSG line should not affect the parsed values...
+    assert len(cals) == len(want_cals)
+    assert cals[1]["eye"] == want_cals[1]["eye"]
+    np.testing.assert_allclose(cals[0]["onset"], want_cals[0]["onset"])
+    np.testing.assert_allclose(cals[0]["positions"], want_cals[0]["positions"])
+    np.testing.assert_allclose(cals[1]["offsets"], want_cals[1]["offsets"])
+    np.testing.assert_allclose(cals[0]["gaze"], want_cals[0]["gaze"])
