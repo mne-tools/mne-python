@@ -327,6 +327,7 @@
 .. _Senwen Deng: https://snwn.de
 .. _Seth Bashford: https://github.com/sbashford
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
+.. _Sharif Haason: https://github.com/sharifhsn
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral

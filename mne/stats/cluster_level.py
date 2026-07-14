@@ -10,7 +10,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
-from ..fixes import _reshape_view, has_numba, jit
+from ..fixes import _reshape_view, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
@@ -28,87 +28,6 @@ from ..utils import (
 from .parametric import f_oneway, ttest_1samp_no_p
 
 
-def _get_buddies_fallback(r, s, neighbors, indices=None):
-    if indices is None:
-        buddies = np.where(r)[0]
-    else:
-        buddies = indices[r[indices]]
-    buddies = buddies[np.isin(s[buddies], neighbors, assume_unique=True)]
-    r[buddies] = False
-    return buddies.tolist()
-
-
-def _get_selves_fallback(r, s, ind, inds, t, t_border, max_step):
-    start = t_border[max(t[ind] - max_step, 0)]
-    stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
-    indices = inds[start:stop]
-    selves = indices[r[indices]]
-    selves = selves[s[ind] == s[selves]]
-    r[selves] = False
-    return selves.tolist()
-
-
-def _where_first_fallback(x):
-    # this is equivalent to np.where(r)[0] for these purposes, but it's
-    # a little bit faster. Unfortunately there's no way to tell numpy
-    # just to find the first instance (to save checking every one):
-    next_ind = int(np.argmax(x))
-    if next_ind == 0:
-        next_ind = -1
-    return next_ind
-
-
-if has_numba:  # pragma: no cover
-
-    @jit()
-    def _get_buddies(r, s, neighbors, indices=None):
-        buddies = list()
-        # At some point we might be able to use the sorted-ness of s or
-        # neighbors to further speed this up
-        if indices is None:
-            n_check = len(r)
-        else:
-            n_check = len(indices)
-        for ii in range(n_check):
-            if indices is None:
-                this_idx = ii
-            else:
-                this_idx = indices[ii]
-            if r[this_idx]:
-                this_s = s[this_idx]
-                for ni in range(len(neighbors)):
-                    if this_s == neighbors[ni]:
-                        buddies.append(this_idx)
-                        r[this_idx] = False
-                        break
-        return buddies
-
-    @jit()
-    def _get_selves(r, s, ind, inds, t, t_border, max_step):
-        selves = list()
-        start = t_border[max(t[ind] - max_step, 0)]
-        stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
-        for ii in range(start, stop):
-            this_idx = inds[ii]
-            if r[this_idx] and s[ind] == s[this_idx]:
-                selves.append(this_idx)
-                r[this_idx] = False
-        return selves
-
-    @jit()
-    def _where_first(x):
-        for ii in range(len(x)):
-            if x[ii]:
-                return ii
-        return -1
-
-else:  # pragma: no cover
-    # fastest ways we've found with NumPy
-    _get_buddies = _get_buddies_fallback
-    _get_selves = _get_selves_fallback
-    _where_first = _where_first_fallback
-
-
 @jit()
 def _masked_sum(x, c):
     return np.sum(x[c])
@@ -121,169 +40,62 @@ def _masked_sum_power(x, c, t_power):
 
 @jit()
 def _sum_cluster_data(data, tstep):
-    return np.sign(data) * np.logical_not(data == 0) * tstep
+    return np.sign(data) * tstep
 
 
-def _get_clusters_spatial(s, neighbors):
-    """Form spatial clusters using neighbor lists.
+def _get_clusters_st(x_in, adjacency, max_step=1):
+    """Find spatio-temporal clusters via SciPy connected components.
 
-    This is equivalent to _get_components with n_times = 1, with a properly
-    reconfigured adjacency matrix (formed as "neighbors" list)
+    Builds a sparse adjacency graph over only the supra-threshold vertices
+    (spatial edges from ``adjacency``, temporal edges between the same
+    source at adjacent time steps) and labels clusters with
+    ``scipy.sparse.csgraph.connected_components``.
     """
-    # s is a vector of spatial indices that are significant, like:
-    #     s = np.where(x_in)[0]
-    # for x_in representing a single time-instant
-    r = np.ones(s.shape, bool)
-    clusters = list()
-    next_ind = 0 if s.size > 0 else -1
-    while next_ind >= 0:
-        # put first point in a cluster, adjust remaining
-        t_inds = [next_ind]
-        r[next_ind] = 0
-        icount = 1  # count of nodes in the current cluster
-        while icount <= len(t_inds):
-            ind = t_inds[icount - 1]
-            # look across other vertices
-            buddies = _get_buddies(r, s, neighbors[s[ind]])
-            t_inds.extend(buddies)
-            icount += 1
-        next_ind = _where_first(r)
-        clusters.append(s[t_inds])
-    return clusters
-
-
-def _reassign(check, clusters, base, num):
-    """Reassign cluster numbers."""
-    # reconfigure check matrix
-    check[check == num] = base
-    # concatenate new values into clusters array
-    clusters[base - 1] = np.concatenate((clusters[base - 1], clusters[num - 1]))
-    clusters[num - 1] = np.array([], dtype=int)
-
-
-def _get_clusters_st_1step(keepers, neighbors):
-    """Directly calculate clusters.
-
-    This uses knowledge that time points are
-    only adjacent to immediate neighbors for data organized as time x space.
-
-    This algorithm time increases linearly with the number of time points,
-    compared to with the square for the standard (graph) algorithm.
-
-    This algorithm creates clusters for each time point using a method more
-    efficient than the standard graph method (but otherwise equivalent), then
-    combines these clusters across time points in a reasonable way.
-    """
-    n_src = len(neighbors)
-    n_times = len(keepers)
-    # start cluster numbering at 1 for diffing convenience
-    enum_offset = 1
-    check = np.zeros((n_times, n_src), dtype=int)
-    clusters = list()
-    for ii, k in enumerate(keepers):
-        c = _get_clusters_spatial(k, neighbors)
-        for ci, cl in enumerate(c):
-            check[ii, cl] = ci + enum_offset
-        enum_offset += len(c)
-        # give them the correct offsets
-        c = [cl + ii * n_src for cl in c]
-        clusters += c
-
-    # now that each cluster has been assigned a unique number, combine them
-    # by going through each time point
-    for check1, check2, k in zip(check[:-1], check[1:], keepers[:-1]):
-        # go through each one that needs reassignment
-        inds = k[check2[k] - check1[k] > 0]
-        check1_d = check1[inds]
-        n = check2[inds]
-        nexts = np.unique(n)
-        for num in nexts:
-            prevs = check1_d[n == num]
-            base = np.min(prevs)
-            for pr in np.unique(prevs[prevs != base]):
-                _reassign(check1, clusters, base, pr)
-            # reassign values
-            _reassign(check2, clusters, base, num)
-    # clean up clusters
-    clusters = [cl for cl in clusters if len(cl) > 0]
-    return clusters
-
-
-def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
-    """Directly calculate clusters.
-
-    This uses knowledge that time points are
-    only adjacent to immediate neighbors for data organized as time x space.
-
-    This algorithm time increases linearly with the number of time points,
-    compared to with the square for the standard (graph) algorithm.
-    """
-    n_src = len(neighbors)
-    n_times = len(keepers)
-    t_border = list()
-    t_border.append(0)
-    for ki, k in enumerate(keepers):
-        keepers[ki] = k + ki * n_src
-        t_border.append(t_border[ki] + len(k))
-    t_border = np.array(t_border)
-    keepers = np.concatenate(keepers)
-    v = keepers
-    t, s = divmod(v, n_src)
-
-    r = np.ones(t.shape, dtype=bool)
-    clusters = list()
-    inds = np.arange(t_border[0], t_border[n_times])
-    next_ind = 0 if s.size > 0 else -1
-    while next_ind >= 0:
-        # put first point in a cluster, adjust remaining
-        t_inds = [next_ind]
-        r[next_ind] = False
-        icount = 1  # count of nodes in the current cluster
-        # look for significant values at the next time point,
-        # same sensor, not placed yet, and add those
-        while icount <= len(t_inds):
-            ind = t_inds[icount - 1]
-            selves = _get_selves(r, s, ind, inds, t, t_border, max_step)
-
-            # look at current time point across other vertices
-            these_inds = inds[t_border[t[ind]] : t_border[t[ind] + 1]]
-            buddies = _get_buddies(r, s, neighbors[s[ind]], these_inds)
-
-            t_inds += buddies + selves
-            icount += 1
-        next_ind = _where_first(r)
-        clusters.append(v[t_inds])
-
-    return clusters
-
-
-def _get_clusters_st(x_in, neighbors, max_step=1):
-    """Choose the most efficient version."""
-    n_src = len(neighbors)
-    n_times = x_in.size // n_src
-    cl_goods = np.where(x_in)[0]
-    if len(cl_goods) > 0:
-        keepers = [np.array([], dtype=int)] * n_times
-        row, col = np.unravel_index(cl_goods, (n_times, n_src))
-        lims = [0]
-        if isinstance(row, int):
-            row = [row]
-            col = [col]
-        else:
-            order = np.argsort(row)
-            row = row[order]
-            col = col[order]
-            lims += (np.where(np.diff(row) > 0)[0] + 1).tolist()
-            lims.append(len(row))
-
-        for start, end in zip(lims[:-1], lims[1:]):
-            keepers[row[start]] = np.sort(col[start:end])
-        if max_step == 1:
-            return _get_clusters_st_1step(keepers, neighbors)
-        else:
-            return _get_clusters_st_multistep(keepers, neighbors, max_step)
-    else:
+    n_src = adjacency.shape[0]
+    n_total = len(x_in)
+    active = np.where(x_in)[0]
+    if len(active) == 0:
         return []
+
+    indptr = adjacency.indptr
+    indices = adjacency.indices
+
+    active_t, active_s = np.divmod(active, n_src)
+
+    # Spatial edges: vectorized CSR neighbor expansion
+    neighbor_counts = indptr[active_s + 1] - indptr[active_s]
+    src_flat = np.repeat(active, neighbor_counts)
+    src_t = np.repeat(active_t, neighbor_counts)
+    starts = indptr[active_s]
+    offsets = np.arange(int(np.sum(neighbor_counts))) - np.repeat(
+        np.cumsum(neighbor_counts) - neighbor_counts, neighbor_counts
+    )
+    nb_s = indices[np.repeat(starts, neighbor_counts) + offsets]
+    nb_flat = src_t * n_src + nb_s
+    mask = x_in[nb_flat]
+    rows = [src_flat[mask]]
+    cols = [nb_flat[mask]]
+
+    # Temporal edges: same source, adjacent time steps
+    for step in range(1, max_step + 1):
+        mask_t = active_t >= step
+        later = active[mask_t]
+        earlier = later - step * n_src
+        both = x_in[earlier]
+        rows.extend([later[both], earlier[both]])
+        cols.extend([earlier[both], later[both]])
+
+    # Self-loops so isolated active vertices get their own component
+    rows.append(active)
+    cols.append(active)
+    row = np.concatenate(rows)
+    col = np.concatenate(cols)
+    adj = sparse.coo_array((np.ones(len(row)), (row, col)), shape=(n_total, n_total))
+    _, labels = connected_components(adj)
+
+    # Build cluster list directly from component labels
+    cluster_labels = labels[active]
+    return [active[cluster_labels == id_] for id_ in np.unique(cluster_labels)]
 
 
 def _get_components(x_in, adjacency, return_list=True):
@@ -342,17 +154,18 @@ def _find_clusters(
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    adjacency : scipy.sparse.coo_array, None, or list
+    adjacency : scipy.sparse.coo_array, scipy.sparse.csr_array, None, or False
         Defines adjacency between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
-        If adjacency is a list, it is assumed that each entry stores the
-        indices of the spatial neighbors in a spatio-temporal dataset x.
+        If the adjacency is smaller than ``x``, it is assumed to be a
+        spatial-only adjacency that should be applied at each step along
+        the second (e.g., time) dimension of a spatio-temporal dataset x.
         Default is None, i.e, a regular lattice adjacency.
         False means no adjacency.
     max_step : int
-        If adjacency is a list, this defines the maximal number of steps
-        between vertices along the second dimension (typically time) to be
-        considered adjacent.
+        If adjacency is spatial-only (see above), this defines the maximal
+        number of steps between vertices along the second dimension
+        (typically time) to be considered adjacent.
     include : 1D bool array or None
         Mask to apply to the data of points to cluster. If None, all points
         are used.
@@ -545,15 +358,18 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             raise Exception(
                 "Data should be 1D when using a adjacency to define clusters."
             )
-        if isinstance(adjacency, sparse.spmatrix):
-            adjacency = sparse.coo_array(adjacency)
-        if sparse.issparse(adjacency) or adjacency is False:
+        if adjacency is False or adjacency.shape[0] == x_in.size:
+            # global adjacency spans the whole (flattened) data;
+            # _get_components needs COO's .row/.col attributes
+            if adjacency is not False and adjacency.format != "coo":
+                adjacency = sparse.coo_array(adjacency)
             clusters = _get_components(x_in, adjacency)
-        elif isinstance(adjacency, list):  # use temporal adjacency
+        elif sparse.issparse(adjacency):
+            # spatial-only adjacency, applied along the second (e.g. time) dim
             clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
             raise TypeError(
-                f"adjacency must be a sparse array or list, got {type(adjacency)}"
+                f"adjacency must be a sparse array or False, got {type(adjacency)}"
             )
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
@@ -631,10 +447,6 @@ def _setup_adjacency(adjacency, n_tests, n_times):
             )
         # we claim to only use upper triangular part... not true here
         adjacency = (adjacency + adjacency.transpose()).tocsr()
-        adjacency = [
-            adjacency.indices[adjacency.indptr[i] : adjacency.indptr[i + 1]]
-            for i in range(len(adjacency.indptr) - 1)
-        ]
     return adjacency
 
 
@@ -720,6 +532,31 @@ def _do_permutations(
     return max_cluster_sums
 
 
+class _TTestReordered:
+    """1-sample t-test that reuses a precomputed sum of squares.
+
+    For sign-flip permutations, s**2 == 1, so sum(X ** 2) across samples is
+    invariant to the permutation and only needs to be computed once. Each
+    call then only needs the (already sign-flipped) column sums, so this
+    can be used as a drop-in replacement for :func:`ttest_1samp_no_p` in
+    the permutation loop below.
+    """
+
+    def __init__(self, X):
+        self._n = X.shape[0]
+        self._sum_sq = np.sum(X**2, axis=0)
+        self._sqrt_n_nm1 = np.sqrt(self._n * (self._n - 1))
+
+    def __call__(self, X):
+        mean = np.sum(X, axis=0) / self._n
+        denom_sq = np.maximum(self._sum_sq - self._n * mean * mean, 0.0)
+        # avoid divide-by-zero warnings for degenerate (zero-variance) columns
+        out = np.zeros_like(mean)
+        mask = denom_sq > 0
+        out[mask] = mean[mask] / np.sqrt(denom_sq[mask]) * self._sqrt_n_nm1
+        return out
+
+
 def _do_1samp_permutations(
     X,
     slices,
@@ -739,7 +576,10 @@ def _do_1samp_permutations(
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
 
-    if buffer_size is not None and n_vars <= buffer_size:
+    # _TTestReordered is already as efficient as possible unbuffered
+    if buffer_size is not None and (
+        n_vars <= buffer_size or isinstance(stat_fun, _TTestReordered)
+    ):
         buffer_size = None  # don't use buffer for few variables
 
     # allocate space for output
@@ -751,20 +591,20 @@ def _do_1samp_permutations(
 
     for seed_idx, order in enumerate(orders):
         assert isinstance(order, np.ndarray)
-        # new surrogate data with specified sign flip
         assert order.size == n_samp  # should be guaranteed by parent
+        # new surrogate data with specified sign flip
         signs = 2 * order[:, None].astype(int) - 1
-        if not np.all(np.equal(np.abs(signs), 1)):
-            raise ValueError("signs from rng must be +/- 1")
 
         if buffer_size is None:
             # be careful about non-writable memmap (GH#1507)
             if X.flags.writeable:
                 X *= signs
-                # Recompute statistic on randomized data
-                t_obs_surr = stat_fun(X)
-                # Set X back to previous state (trade memory eff. for CPU use)
-                X *= signs
+                try:
+                    # Recompute statistic on randomized data
+                    t_obs_surr = stat_fun(X)
+                finally:
+                    # Set X back to previous state (trade memory eff. for CPU use)
+                    X *= signs
             else:
                 t_obs_surr = stat_fun(X * signs)
         else:
@@ -953,7 +793,10 @@ def _permutation_cluster_test(
     logger.info(f"stat_fun(H1): min={np.min(t_obs)} max={np.max(t_obs)}")
 
     # test if stat_fun treats variables independently
-    if buffer_size is not None:
+    # (skip for built-in stat functions which are known to be independent)
+    if buffer_size is not None and (
+        stat_fun is not ttest_1samp_no_p and stat_fun is not f_oneway
+    ):
         t_obs_buffer = np.zeros_like(t_obs)
         for pos in range(0, n_tests, buffer_size):
             t_obs_buffer[pos : pos + buffer_size] = stat_fun(
@@ -983,7 +826,7 @@ def _permutation_cluster_test(
 
     # determine if adjacency itself can be separated into disjoint sets
     if check_disjoint is True and (adjacency is not None and adjacency is not False):
-        partitions = _get_partitions_from_adjacency(adjacency, n_times)
+        partitions = _get_partitions_from_adjacency(adjacency, n_tests, n_times)
     else:
         partitions = None
     logger.info("Running initial clustering …")
@@ -1036,6 +879,10 @@ def _permutation_cluster_test(
         orders, n_permutations, extra = _get_1samp_orders(
             n_samples, n_permutations, tail, rng
         )
+        # For sign-flips, sum(X ** 2) is invariant across permutations, so
+        # precompute it once instead of recomputing it on every permutation.
+        if stat_fun is ttest_1samp_no_p:
+            stat_fun = _TTestReordered(X_full)
     else:
         n_permutations = int(n_permutations)
         do_perm_func = _do_permutations
@@ -1603,25 +1450,21 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 
 
 @verbose
-def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
+def _get_partitions_from_adjacency(adjacency, n_tests, n_times, verbose=None):
     """Specify disjoint subsets (e.g., hemispheres) based on adjacency."""
-    if isinstance(adjacency, list):
-        test = np.ones(len(adjacency))
-        test_adj = np.zeros((len(adjacency), len(adjacency)), dtype="bool")
-        for vi in range(len(adjacency)):
-            test_adj[adjacency[vi], vi] = True
-        test_adj = sparse.coo_array(test_adj, dtype="float")
-    else:
-        test = np.ones(adjacency.shape[0])
-        test_adj = adjacency
+    # adjacency is spatial-only (see _setup_adjacency) when it is smaller
+    # than the full (flattened) data; those partitions need to be tiled
+    # across the (e.g., time) dimension that adjacency doesn't cover.
+    is_spatial_only = adjacency.shape[0] != n_tests
+    test = np.ones(adjacency.shape[0])
 
-    part_clusts = _find_clusters(test, 0, 1, test_adj)[0]
+    part_clusts = _find_clusters(test, 0, 1, adjacency)[0]
     if len(part_clusts) > 1:
         logger.info(f"{len(part_clusts)} disjoint adjacency sets found")
         partitions = np.zeros(len(test), dtype="int")
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii
-        if isinstance(adjacency, list):
+        if is_spatial_only:
             partitions = np.tile(partitions, n_times)
     else:
         logger.info("No disjoint adjacency sets found")
