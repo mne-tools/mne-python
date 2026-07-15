@@ -175,12 +175,45 @@ def _read_21e_file(fname):
     return _chan_labels
 
 
+_nihon_1200a_version = "EEG-1200A V01.00"
+
+
+def _read_nihon_1200a_ext_block(fid, _chan_labels):
+    # EEG-1200A (and newer) systems no longer store the real channel count,
+    # channel order, or start-of-data address in the data block itself (that
+    # header field is left over from older systems and is not meaningful for
+    # these files, which is why large multichannel EEG-1200A recordings were
+    # previously misread as a single ~1 second channel). Instead, that info
+    # lives in a chain of "extended blocks" reached via a separate pointer.
+    # Layout reverse-engineered by the Brainstorm project, see
+    # https://github.com/brainstorm-tools/brainstorm3/blob/master/toolbox/io/in_fopen_nk.m
+    fid.seek(0x03EE)
+    ext_address = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
+    fid.seek(ext_address + 18)
+    extblock2_address = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
+    fid.seek(extblock2_address + 20)
+    extblock3_address = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
+
+    fid.seek(extblock3_address + 68)
+    n_channels = np.fromfile(fid, np.uint16, 1)[0].astype(np.int64)
+
+    channels = []
+    for i_ch in range(n_channels):
+        fid.seek(extblock3_address + 72 + (i_ch * 10))
+        t_idx = np.fromfile(fid, np.uint16, 1)[0]
+        channels.append(_chan_labels[t_idx])
+
+    data_start = extblock3_address + 72 + (n_channels * 10)
+    return dict(n_channels=n_channels, channels=channels, data_start=data_start)
+
+
 def _read_nihon_header(fname):
     # Read the Nihon Kohden EEG file header
     fname = _ensure_path(fname)
     _chan_labels = _read_21e_file(fname)
     header: dict[str, Any] = {}
     logger.info(f"Reading header from {fname}")
+    file_size = fname.stat().st_size
     with open(fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
@@ -198,6 +231,10 @@ def _read_nihon_header(fname):
         if waveform_sign != 1:
             raise ValueError("Not a valid Nihon Kohden EEG file (waveform block)")
         header["version"] = version
+
+        ext_block = None
+        if version == _nihon_1200a_version:
+            ext_block = _read_nihon_1200a_ext_block(fid, _chan_labels)
 
         fid.seek(0x0091)
         n_ctlblocks = np.fromfile(fid, np.uint8, 1)[0]
@@ -218,27 +255,51 @@ def _read_nihon_header(fname):
                 t_data_address = np.fromfile(fid, np.uint32, 1)[0]
                 t_datablock["address"] = t_data_address
 
-                fid.seek(t_data_address + 0x26)
-                t_n_channels = np.fromfile(fid, np.uint8, 1)[0].astype(np.int64)
-                t_datablock["n_channels"] = t_n_channels
-
-                t_channels = []
-                for i_ch in range(t_n_channels):
-                    fid.seek(t_data_address + 0x27 + (i_ch * 10))
-                    t_idx = np.fromfile(fid, np.uint8, 1)[0]
-                    t_channels.append(_chan_labels[t_idx])
-
-                t_datablock["channels"] = t_channels
-
-                fid.seek(t_data_address + 0x1C)
-                t_record_duration = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
-                t_datablock["duration"] = t_record_duration
-
                 fid.seek(t_data_address + 0x1A)
                 sfreq = np.fromfile(fid, np.uint16, 1)[0] & 0x3FFF
                 t_datablock["sfreq"] = sfreq.astype(np.int64)
 
-                t_datablock["n_samples"] = np.int64(t_record_duration * sfreq // 10)
+                if ext_block is not None:
+                    if n_ctlblocks != 1 or n_datablocks != 1:
+                        raise NotImplementedError(
+                            "Reading EEG-1200A files with more than one "
+                            "control block or more than one data block is "
+                            "not supported."
+                        )
+                    t_datablock["n_channels"] = ext_block["n_channels"]
+                    t_datablock["channels"] = ext_block["channels"]
+                    t_datablock["data_start"] = ext_block["data_start"]
+                    # EEG-1200A data blocks don't store a usable record
+                    # count, so the number of samples is inferred from how
+                    # much data is left in the file after the header.
+                    t_datablock["n_samples"] = np.int64(
+                        (file_size - ext_block["data_start"])
+                        // (ext_block["n_channels"] + 1)
+                        // 2
+                    )
+                else:
+                    fid.seek(t_data_address + 0x26)
+                    t_n_channels = np.fromfile(fid, np.uint8, 1)[0].astype(np.int64)
+                    t_datablock["n_channels"] = t_n_channels
+
+                    t_channels = []
+                    for i_ch in range(t_n_channels):
+                        fid.seek(t_data_address + 0x27 + (i_ch * 10))
+                        t_idx = np.fromfile(fid, np.uint8, 1)[0]
+                        t_channels.append(_chan_labels[t_idx])
+
+                    t_datablock["channels"] = t_channels
+                    t_datablock["data_start"] = (
+                        t_data_address + 0x27 + (t_n_channels * 10)
+                    )
+
+                    fid.seek(t_data_address + 0x1C)
+                    t_record_duration = np.fromfile(fid, np.uint32, 1)[0].astype(
+                        np.int64
+                    )
+                    t_datablock["duration"] = t_record_duration
+
+                    t_datablock["n_samples"] = np.int64(t_record_duration * sfreq // 10)
                 t_controlblock["datablocks"].append(t_datablock)
             controlblocks.append(t_controlblock)
         header["controlblocks"] = controlblocks
@@ -554,7 +615,7 @@ class RawNihon(BaseRaw):
             datablock = datablocks[start_block]
 
             n_channels = datablock["n_channels"] + 1
-            datastart = datablock["address"] + 0x27 + (datablock["n_channels"] * 10)
+            datastart = datablock["data_start"]
 
             # Compute start offset based on the beginning of the block
             rel_start = start
