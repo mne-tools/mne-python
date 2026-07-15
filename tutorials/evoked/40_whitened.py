@@ -21,8 +21,6 @@ that we'll consider to be noise.
 
 # %%
 
-import sys
-
 import mne
 from mne.datasets import sample
 
@@ -54,18 +52,14 @@ noise_cov = mne.compute_covariance(
 )
 
 # butterfly mode shows the differences most clearly
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
-if sys.platform != "emscripten":
-    raw.plot(events=events, butterfly=True)
-    raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
+raw.plot(events=events, butterfly=True)
+raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
 
 # %%
 # Epochs with whitening
 # ---------------------
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
-if sys.platform != "emscripten":
-    epochs.plot(events=True)
-    epochs.plot(noise_cov=noise_cov, events=True)
+epochs.plot(events=True)
+epochs.plot(noise_cov=noise_cov, events=True)
 
 # %%
 # Evoked data with whitening

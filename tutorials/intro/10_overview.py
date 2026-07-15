@@ -83,9 +83,7 @@ print(raw.info)
 
 
 raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
-if sys.platform != "emscripten":
-    raw.plot(duration=5, n_channels=30)
+raw.plot(duration=5, n_channels=30)
 
 # %%
 # Preprocessing
@@ -104,9 +102,7 @@ if sys.platform != "emscripten":
 ica = mne.preprocessing.ICA(n_components=20, random_state=97, max_iter=800)
 ica.fit(raw)
 ica.exclude = [1, 2]  # details on how we picked these are omitted here
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
-if sys.platform != "emscripten":
-    ica.plot_properties(raw, picks=ica.exclude)
+ica.plot_properties(raw, picks=ica.exclude)
 
 # %%
 # Once we're confident about which component(s) we want to remove, we pass them
@@ -145,10 +141,8 @@ chs = [
     "EEG 008",
 ]
 chan_idxs = [raw.ch_names.index(ch) for ch in chs]
-# Skipped in JupyterLite (browser): no interactive/3D rendering.
-if sys.platform != "emscripten":
-    orig_raw.plot(order=chan_idxs, start=12, duration=4)
-    raw.plot(order=chan_idxs, start=12, duration=4)
+orig_raw.plot(order=chan_idxs, start=12, duration=4)
+raw.plot(order=chan_idxs, start=12, duration=4)
 
 # %%
 # .. _overview-tut-events-section:
