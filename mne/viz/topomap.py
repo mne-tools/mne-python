@@ -1882,7 +1882,9 @@ def plot_ica_components(
                 plot_title = comp_title
                 if group_label is not None:
                     plot_title += f" [{group_label}]"
-                subplot_titles.append(ax.set_title(plot_title, fontsize=12, **kwargs))
+                subplot_titles.append(
+                    ax.set_title(plot_title, fontsize=12, pad=0, **kwargs)
+                )
                 _vlim = _setup_vmin_vmax(group_data[:, 0], *vlim, norm=group_norm)
                 group_cmap = _setup_cmap(cmap, n_axes=len(picks), norm=group_norm)
                 im = plot_topomap(
