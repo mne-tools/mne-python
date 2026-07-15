@@ -1394,8 +1394,8 @@ class _IpyWindow(_AbstractWindow):
     def _window_get_simple_canvas(self, width, height, dpi):
         return _IpyMplCanvas(width, height, dpi)
 
-    def _window_get_help_canvas(self, pairs):
-        text1, text2 = zip(*pairs)
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        text1, text2 = zip(*pairs, *(mouse_pairs or []))
         canvas = self._window_get_simple_canvas(width=5, height=2, dpi=80)
         _show_help_fig(
             col1="\n".join(text1),

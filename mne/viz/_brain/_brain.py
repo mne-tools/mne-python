@@ -1664,7 +1664,12 @@ class Brain:
             ("Left", "Decrease camera azimuth angle"),
             ("Right", "Increase camera azimuth angle"),
         ]
-        self.help_canvas = self._renderer._window_get_help_canvas(pairs)
+        mouse_pairs = [
+            ("Left-click-and-drag", "Rotate the view"),
+            ("Middle-click-and-drag", "Pan the view"),
+            ("Right-click-and-drag / scroll", "Zoom the view"),
+        ]
+        self.help_canvas = self._renderer._window_get_help_canvas(pairs, mouse_pairs)
 
     def help(self):
         """Display the help window."""

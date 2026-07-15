@@ -1585,8 +1585,12 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
-    def _window_get_help_canvas(self, pairs):
-        """Return a widget listing ``(key, description)`` keyboard-shortcut pairs."""
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        """Return a widget listing ``(key, description)`` pairs.
+
+        ``pairs`` are keyboard shortcuts; ``mouse_pairs``, if given, are
+        ``(action, description)`` pairs shown in a separate section.
+        """
         pass
 
     @abstractmethod
