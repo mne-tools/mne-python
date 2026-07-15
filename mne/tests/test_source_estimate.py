@@ -144,7 +144,7 @@ def test_stc_baseline_correction():
 
 
 @testing.requires_testing_data
-def test_spatial_inter_hemi_adjacency():
+def test_spatial_inter_hemi_adjacency(subjects_dir_temp):
     """Test spatial adjacency between hemispheres."""
     # trivial cases
     conn = spatial_inter_hemi_adjacency(fname_src_3, 5e-6)
@@ -169,7 +169,7 @@ def test_spatial_inter_hemi_adjacency():
     for hi, hemi in enumerate(("lh", "rh")):
         has_neighbors = src[hi]["vertno"][np.where(np.any(upper_right, axis=1 - hi))[0]]
         labels = read_labels_from_annot(
-            "sample", "aparc.a2009s", hemi, subjects_dir=subjects_dir
+            "sample", "aparc.a2009s", hemi, subjects_dir=subjects_dir_temp
         )
         use_labels = [
             label.name[:-3]
