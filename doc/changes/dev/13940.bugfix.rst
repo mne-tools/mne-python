@@ -1,0 +1,1 @@
+Fix :func:`mne.preprocessing.eyetracking.interpolate_blinks` so that all annotation descriptions passed via ``match`` are interpolated over, rather than only ``BAD_blink`` ones, by :newcontrib:`Vincent Gao`.

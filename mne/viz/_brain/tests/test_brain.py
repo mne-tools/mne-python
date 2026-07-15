@@ -39,7 +39,7 @@ from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
-from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
+from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
 
@@ -120,14 +120,14 @@ class TstVTKPicker:
 
 def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
-    mesh = _LayeredMesh(
+    mesh = LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
     )
     assert not mesh._is_mapped
-    mesh.map()
+    mesh._map()
     assert mesh._is_mapped
     assert mesh._current_colors is None
     assert mesh._cached_colors is None
@@ -391,6 +391,32 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                 vertices=hemi_vertices,
             )
     assert len(brain._actors["data"]) == 4
+    # exercise the public LayeredMesh API via Brain.layered_meshes
+    assert "lh" in brain.layered_meshes
+    lm = brain.layered_meshes["lh"]
+    assert isinstance(lm, LayeredMesh)
+    lm.update_overlay(name="data", rng=[fmin, fmax])
+    lm.update()
+    with pytest.raises(ValueError, match="must have shape"):
+        lm.update_overlay(name="data", scalars=np.ones(1))
+    # remove_existing=False keeps the old overlay and adds a new one alongside
+    assert list(brain._all_data.keys()) == ["data"]
+    assert "data" in lm._overlays
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert "data" in brain._all_data and "overlay2" in brain._all_data
+    assert "data" in lm._overlays and "overlay2" in lm._overlays
+    assert brain._active_data_key == "overlay2"
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
@@ -404,7 +430,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.0, color="green")
     assert isinstance(brain.labels[label.hemi], list)
-    overlays = brain._layered_meshes[label.hemi]._overlays
+    overlays = brain.layered_meshes[label.hemi]._overlays
     assert "unnamed0" in overlays
     assert np.allclose(
         overlays["unnamed0"]._colormap[0], [0, 0, 0, 0]
@@ -632,7 +658,7 @@ def test_add_sensors_scales(renderer_interactive_pyvistaqt):
         title=title,
         cortex=cortex,
         units="m",
-        silhouette=dict(decimate=0.95),
+        silhouette=dict(decimate="oct6"),
         **kwargs,
     )
 
@@ -922,12 +948,12 @@ def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
 def _assert_brain_range(brain, rng):
     __tracebackhide__ = True
     assert brain._cmap_range == rng, "brain._cmap_range == rng"
-    for hemi, layerer in brain._layered_meshes.items():
+    for hemi, layerer in brain.layered_meshes.items():
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
             assert mesh._rng == rng, (
-                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+                f"layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
             )
 
 
@@ -941,10 +967,17 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
         _create_testing_brain(
             hemi="lh", surf="white", src="volume", volume_options={"foo": "bar"}
         )
+    with pytest.raises(ValueError, match="Invalid value for"):
+        _create_testing_brain(
+            hemi="lh",
+            surf="white",
+            src="volume",
+            volume_options={"interpolation": "bar"},
+        )
     brain = _create_testing_brain(
         hemi="both",
         show_traces=False,
-        brain_kwargs=dict(silhouette=dict(decimate=0.95)),
+        brain_kwargs=dict(silhouette=dict(decimate="ico5")),
     )
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
@@ -1020,6 +1053,44 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
 
 
 @testing.requires_testing_data
+def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the Overlay dropdown widget shown when multiple overlays are active."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    # with a single overlay the selector widget should exist but be hidden
+    assert "data_key" in brain.widgets
+    assert not brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "data"
+
+    # add a second overlay — widget should become visible and list both keys
+    stc = read_source_estimate(fname_stc)
+    hemi_data = stc.data[: len(stc.vertices[0]), 0]
+    brain.add_data(
+        hemi_data,
+        fmin=stc.data.min(),
+        fmax=stc.data.max(),
+        hemi="lh",
+        colormap="Blues",
+        vertices=stc.vertices[0],
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "overlay2"
+
+    # switching the dropdown updates the active key and refreshes sliders
+    brain.widgets["data_key"].set_value("data")
+    assert brain._active_data_key == "data"
+
+    brain.widgets["data_key"].set_value("overlay2")
+    assert brain._active_data_key == "overlay2"
+
+    brain.close()
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     "hemi, src",
     [
@@ -1046,7 +1117,8 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         surf="white",
         src=src,
         show_traces="label",
-        volume_options=None,  # for speed, don't upsample
+        # for speed, don't upsample
+        volume_options=dict(resolution=None, interpolation="nearest"),
         n_time=5,
         initial_time=0,
     )
@@ -1062,7 +1134,7 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         for idx, current_hemi in enumerate(hemi_str):
             if current_hemi == "vol":
                 continue
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
             assert len(brain._picked_patches[current_hemi]) == 0
@@ -1128,7 +1200,7 @@ def test_brain_traces_vertex(
     # add foci should work for 'lh', 'rh' and 'vol'
     for current_hemi in hemi_str:
         brain.add_foci([[0, 0, 0]], hemi=current_hemi)
-        assert_array_equal(brain._data[current_hemi]["foci"], [[0, 0, 0]])
+        assert_array_equal(brain._foci_data[current_hemi]["foci"], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1163,10 +1235,10 @@ def test_brain_traces_vertex(
         if current_hemi == "vol":
             current_mesh = brain._data["vol"]["grid"]
             vertices = brain._data["vol"]["vertices"]
-            values = current_mesh.cell_data["values"][vertices]
+            values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None
@@ -1570,4 +1642,6 @@ def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo["lh"].coords[:2] + 0.01
     tiny_brain.add_foci(foci_coords, map_surface="white")
-    assert_array_equal(tiny_brain._data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
+    assert_array_equal(
+        tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2]
+    )

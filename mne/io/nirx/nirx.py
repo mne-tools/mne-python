@@ -332,7 +332,7 @@ class RawNIRX(BaseRaw):
         else:
             inf = ConfigParser(allow_no_value=True)
             inf.read(files["inf"])
-            inf = inf._sections["Subject Demographics"]
+            inf = inf._sections["Subject Demographics"]  # ty: ignore[unresolved-attribute]
 
         # Store subject information from inf file in mne format
         # Note: NIRX also records "Study Type", "Experiment History",
@@ -426,9 +426,11 @@ class RawNIRX(BaseRaw):
         # subset requested in the probe file
         req_ind = np.array([], int)
         for req_idx in range(requested_channels.shape[0]):
-            sd_idx = np.where(
-                (sources == requested_channels[req_idx][0])
-                & (detectors == requested_channels[req_idx][1])
+            sd_idx = np.nonzero(
+                np.asarray(
+                    (sources == requested_channels[req_idx][0])
+                    & (detectors == requested_channels[req_idx][1])
+                )
             )
             req_ind = np.concatenate((req_ind, sd_idx[0]))
         req_ind = req_ind.astype(int)

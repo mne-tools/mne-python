@@ -5,6 +5,7 @@
 import copy
 import os.path as op
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -335,7 +336,9 @@ class Raw(BaseRaw):
 
         # reformat raw_extras to be a dict of list/ndarray rather than
         # list of dict (faster access)
-        raw_extras = {key: [r[key] for r in raw_extras] for key in raw_extras[0]}
+        raw_extras: dict[str, Any] = {
+            key: [r[key] for r in raw_extras] for key in raw_extras[0]
+        }
         for key in raw_extras:
             if key != "ent":  # dict or None
                 raw_extras[key] = np.array(raw_extras[key], int)

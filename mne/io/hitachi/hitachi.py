@@ -95,7 +95,7 @@ class RawHitachi(BaseRaw):
             info = infos[0]
         if len(set(last_samps)) != 1:
             raise RuntimeError(
-                "All files must have the same number of samples, got: {last_samps}"
+                f"All files must have the same number of samples, got: {last_samps}"
             )
         last_samps = [last_samps[0]]
         raw_extras = [dict(probes=probes)]
@@ -233,7 +233,9 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         elif kind == "Wave Length":
             ch_regex = re.compile(r"^(.*)\(([0-9\.]+)\)$")
             for ent in parts:
-                _, v = ch_regex.match(ent).groups()
+                m = ch_regex.match(ent)
+                assert m is not None
+                _, v = m.groups()
                 ch_wavelengths[ent] = float(v)
         elif kind == "Data":
             break
@@ -268,6 +270,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         "3x11": "ETG-4000",
     }
     _check_option("Hitachi mode", mode, sorted(names))
+    assert mode is not None
     n_row, n_col = (int(x) for x in mode.split("x"))
     logger.info(f"Constructing pairing matrix for {names[mode]} ({mode})")
     pairs = _compute_pairs(n_row, n_col, n=1 + (mode == "3x3"))

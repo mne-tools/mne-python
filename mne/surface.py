@@ -953,7 +953,7 @@ def read_curvature(filepath, binary=True):
 def read_surface(
     fname, read_metadata=False, return_dict=False, file_format="auto", verbose=None
 ):
-    """Load a Freesurfer surface mesh in triangular format.
+    """Load a FreeSurfer surface mesh in triangular format.
 
     Parameters
     ----------
@@ -1269,6 +1269,20 @@ def _tessellate_sphere(mylevel):
     return rr, tris
 
 
+def _decimate_surface_ico_oct(subject, subjects_dir, hemi, surf, spacing):
+    from .source_space._source_space import _check_spacing
+
+    stype, _, ico_surf, _ = _check_spacing(spacing, verbose=False)
+    subjects_dir = Path(subjects_dir)
+    surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surf}"
+    dec = _create_surf_spacing(surf_fname, hemi, subject, stype, ico_surf, subjects_dir)
+    vertno, use_tris = dec["vertno"], dec["use_tris"]
+    lut = np.zeros(dec["np"], int)
+    lut[vertno] = np.arange(len(vertno))
+    tris = lut[use_tris]
+    return vertno, tris
+
+
 def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
@@ -1386,7 +1400,7 @@ def write_surface(
     *,
     verbose=None,
 ):
-    """Write a triangular Freesurfer surface mesh.
+    """Write a triangular FreeSurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
 
@@ -1510,7 +1524,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     )
     func_map = dict(ico=_get_ico_surface, oct=_tessellate_sphere_surf)
     kind, level = map_[n_triangles]
-    logger.info(f"Decimating using Freesurfer spherical {kind}{level} downsampling")
+    logger.info(f"Decimating using FreeSurfer spherical {kind}{level} downsampling")
     ico_surf = func_map[kind](level)
     assert len(ico_surf["tris"]) == n_triangles
     tempdir = _TempDir()
@@ -1555,7 +1569,7 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
         The desired number of triangles.
     method : str
         Can be "quadric" or "sphere". "sphere" will inflate the surface to a
-        sphere using Freesurfer and downsample to an icosahedral or
+        sphere using FreeSurfer and downsample to an icosahedral or
         octahedral mesh.
 
         .. versionadded:: 0.20
@@ -1579,7 +1593,7 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
 
     **"sphere" mode**
 
-    This requires Freesurfer to be installed and available in the
+    This requires FreeSurfer to be installed and available in the
     environment. The destination number of triangles must be one of
     ``[20, 80, 320, 1280, 5120, 20480]`` for ico (0-5) downsampling or one of
     ``[8, 32, 128, 512, 2048, 8192, 32768]`` for oct (1-7) downsampling.
@@ -1957,7 +1971,7 @@ def dig_mri_distances(
         The name of the subject.
     subjects_dir : str | None
         Directory containing subjects data. If None use
-        the Freesurfer SUBJECTS_DIR environment variable.
+        the FreeSurfer SUBJECTS_DIR environment variable.
     %(dig_kinds)s
     %(exclude_frontal)s
         Default is False.
@@ -2100,7 +2114,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     return out
 
 
-def _vtk_smooth(pd, smooth):
+@verbose
+def _vtk_smooth(pd, smooth, *, verbose=None):
     _validate_type(smooth, "numeric", smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:
@@ -2138,7 +2153,7 @@ _VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 @fill_doc
 def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", dist=2):
-    """Get regions of interest near channels from a Freesurfer parcellation.
+    """Get regions of interest near channels from a FreeSurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain
               (intracranial electrodes).
@@ -2157,7 +2172,7 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", 
     labels : dict
         The regions of interest labels within ``dist`` of each channel.
     colors : dict
-        The Freesurfer lookup table colors for the labels.
+        The FreeSurfer lookup table colors for the labels.
     """
     from ._freesurfer import _get_aseg, read_freesurfer_lut
     from .channels import DigMontage

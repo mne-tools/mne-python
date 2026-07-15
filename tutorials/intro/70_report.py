@@ -192,6 +192,7 @@ ecg_evoked = mne.Epochs(
     tmin=-0.5,
     tmax=0.5,
     baseline=(None, None),
+    on_outside="ignore",
 ).average()
 report.img_max_width = None  # do not constrain image width
 report.add_projs(

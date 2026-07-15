@@ -10,6 +10,7 @@ import platform
 import re
 import shutil
 import sys
+import sysconfig
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
@@ -21,6 +22,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
+from refleak.testing import Snapshot, assert_no_instances, gc_collect_once
 
 # Any `assert` statements in our testing functions should be verbose versions
 register_assert_rewrite("mne.utils._testing")
@@ -34,12 +36,11 @@ from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
 from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
-from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
-    _assert_no_instances,
     _check_qt_version,
     _chmod_rw_R,
+    _is_vtk,
     _pl,
     _record_warnings,
     _TempDir,
@@ -202,6 +203,7 @@ def pytest_configure(config: pytest.Config):
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
+    ignore:Passing a non-Collection iterable to parametrize[.\n]*:
     # matplotlib<->nilearn
     ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
     # matplotlib<->pyparsing
@@ -232,6 +234,18 @@ def pytest_configure(config: pytest.Config):
                 ".+ is deprecated and will be removed in a future version.*:"
                 "pandas.errors.Pandas4Warning",
             )
+
+    # Deal with pytest-qt -- everything should already be skipped for example by not
+    # having pyvistaqt installed, so we just need to take care of defining dummy
+    # fixture(s)
+    if not config.pluginmanager.hasplugin("pytest-qt"):  # just 3.14t for now
+
+        @pytest.fixture(scope="session")
+        def qtbot():
+            pytest.skip("Requires pytest-qt")
+
+        globals()["qtbot"] = qtbot
+        globals()["qapp"] = qtbot
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]):
@@ -266,6 +280,30 @@ def close_all():
 
     yield
     plt.close("all")
+
+
+# Only need to check GIL status if it's on a freethreaded build
+_NEED_CHECK_GIL = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+
+
+@pytest.fixture(autouse=True)
+def gil_disabled(request):
+    """Check to see if the GIL is enabled when it shouldn't be."""
+    # only fail once, as soon as possible
+    yield
+
+    global _NEED_CHECK_GIL
+
+    if not _NEED_CHECK_GIL:
+        return
+
+    if sys._is_gil_enabled():
+        _NEED_CHECK_GIL = False  # only fail once, as soon as possible
+        pytest.fail(
+            f"{request.module.__name__}.{request.function.__name__}: "
+            "The GIL has been re-enabled during. A C extension that does not declare "
+            "Py_MOD_GIL_NOT_USED was loaded during the test session."
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -590,10 +628,10 @@ def triaxial_evoked(triaxial_raw):
 
 
 @pytest.fixture
-def garbage_collect():
+def garbage_collect(request):
     """Garbage collect on exit."""
     yield
-    gc.collect()
+    gc_collect_once(request)
 
 
 @pytest.fixture
@@ -631,10 +669,6 @@ def _check_pyqtgraph(request):
             pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
-    else:
-        ver = mne_qt_browser.__version__
-        if api != "PyQt5" and _compare_version(ver, "<=", "0.2.6"):
-            pytest.skip(f"mne_qt_browser {ver} requires PyQt5, API is {api}")
 
 
 @pytest.fixture
@@ -653,7 +687,9 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         if not _test_passed(request):
             return
-        _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
+        assert_no_instances(
+            MNEQtBrowser, f"Closure of {request.node.name}", request=request
+        )
 
 
 @pytest.fixture(
@@ -1041,37 +1077,40 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
-    ignore = set(id(o) for o in gc.get_objects())
-    vtk_ignores = ("vtkBuffer_IhE",)
+    # Snapshot stores only ids (pins nothing alive) so VTK objects that
+    # pre-date the test (e.g. held by module-level state) are never reported.
+    snap = Snapshot(_is_vtk, label="VTK")
     yield
     close_func()
+    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+    # (deleteLater) on close; until Qt processes it, the C++ window object
+    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is not None:
+        for _ in range(2):
+            app.processEvents()
+            app.sendPostedEvents(None, QEvent.DeferredDelete)
     if not _test_passed(request):
         return
-    _assert_no_instances(Brain, "after")
-    # Check VTK
-    objs = gc.get_objects()
-    bad = list()
-    for o in objs:
-        try:
-            name = o.__class__.__name__
-        except Exception:  # old Python, probably
-            pass
-        else:
-            if (
-                name.startswith("vtk")
-                and name not in vtk_ignores
-                and id(o) not in ignore
-            ):
-                bad.append(name)
-        del o
-    del objs, ignore, Brain
-    assert len(bad) == 0, "VTK objects linger:\n" + "\n".join(bad)
+    # The collect must happen *before* list(Brain._instances) is evaluated:
+    # a Brain in a dead reference cycle is still in the WeakSet until
+    # collected, and the list would pin it alive and falsely report it.
+    gc_collect_once(request)
+    # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
+    # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
+    # scan of the whole process to check for lingering Brain instances.
+    assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
+    # VTK objects aren't individually tracked, so this one is a full heap scan.
+    snap.assert_no_new("after", request=request)
 
 
 _files = list()
 
 
-def pytest_sessionfinish(session, exitstatus):
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Handle the end of the session."""
     n = session.config.option.durations
     if n is None:
@@ -1079,6 +1118,7 @@ def pytest_sessionfinish(session, exitstatus):
     print("\n")
     # get the number to print
     files = defaultdict(lambda: 0.0)
+    bad_skip = False
     for item in session.items:
         if _phase_report_key not in item.stash:
             continue
@@ -1094,9 +1134,19 @@ def pytest_sessionfinish(session, exitstatus):
             parts = parts + ("",)
         file_key = "/".join(parts)
         files[file_key] += dur
+        # detect if there were any bad skips
+        for _phase, result in report.items():
+            if (
+                result.outcome in ("error", "failed")
+                and "UNEXPECTED SKIP" in result.longreprtext
+            ):
+                bad_skip = True
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
+    # Now handle exit status modification
+    if exitstatus == pytest.ExitCode.OK and bad_skip:
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -1114,9 +1164,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             writer.line(f"{timing.ljust(15)}{name}")
 
 
-def pytest_report_header(config, startdir=None):
+def pytest_report_header(config, startdir=None) -> list[str]:
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
+    out = [f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"]
+    if MNE_TEST_ALLOW_SKIP is not None:
+        out += [f"    Allowed skips: {MNE_TEST_ALLOW_SKIP!r}"]
+    return out
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
@@ -1124,15 +1177,6 @@ def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
     assert request.param in ("Numba", "NumPy")
     if request.param == "NumPy" and has_numba:
-        monkeypatch.setattr(
-            cluster_level, "_get_buddies", cluster_level._get_buddies_fallback
-        )
-        monkeypatch.setattr(
-            cluster_level, "_get_selves", cluster_level._get_selves_fallback
-        )
-        monkeypatch.setattr(
-            cluster_level, "_where_first", cluster_level._where_first_fallback
-        )
         monkeypatch.setattr(numerics, "_arange_div", numerics._arange_div_fallback)
     if request.param == "Numba" and not has_numba:
         pytest.skip("Numba not installed")
@@ -1261,12 +1305,21 @@ def nirx_snirf(request):
 def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    qapp.processEvents()
+    from qtpy.QtCore import QEvent
+
+    # pyvistaqt >= 0.11.3 deletes plotter windows via deleteLater on close;
+    # processEvents alone never dispatches those DeferredDelete events, so
+    # drain them symmetrically before counting and before re-counting (a
+    # pending deletion from an earlier test must not inflate n_before)
+    for _ in range(2):
+        qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     n_before = len(qapp.topLevelWidgets())
     yield
     for _ in range(2):
         qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     # Don't check when the test fails
     if not _test_passed(request):
@@ -1281,43 +1334,43 @@ _phase_report_key = StashKey()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    """Stash the status of each item and turn unexpected skips into errors."""
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
+    """Stash the status of each item."""
     outcome = yield
     rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
-    if rep.outcome == "passed":  # only check for skips etc. if otherwise green
-        _modify_report_skips(rep)
-    return rep
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_make_collect_report(collector: pytest.Collector):
-    """Turn unexpected skips during collection (e.g., module-level) into errors."""
-    outcome = yield
-    rep: pytest.CollectReport = outcome.get_result()
-    _modify_report_skips(rep)
-    return rep
+def pytest_report_teststatus(
+    report: pytest.TestReport | pytest.CollectReport,
+    config: pytest.Config,
+):
+    """Turn unexpected skips into errors."""
+    if report.outcome == "skipped":
+        return _modify_report_skips(report)
 
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
-_valid_skips_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", None)
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL)
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
 # (for decorated tests) and the call phase (for things like `importorskip`
 # within the test body). code adapted from pytest-error-for-skips
 def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
-    if not report.skipped:
+    if not report.skipped and report.outcome != "skipped":
         return
+    if MNE_TEST_ALLOW_SKIP is None:
+        return
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if isinstance(report.longrepr, tuple):
         file, lineno, reason = report.longrepr
     else:
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _valid_skips_re.match(reason):
         return
-    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
     # xfail tests aren't true "skips" but show up as skipped in reports
@@ -1329,9 +1382,10 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         return
     if reason.startswith("Skipped: "):
         reason = reason[9:]
-    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
+    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason!r}"
     # Make it show up as an error in the report
     report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
+    return report.outcome, report.outcome[0].upper(), "UNEXPECTED SKIP"
 
 
 @pytest.fixture(scope="function")

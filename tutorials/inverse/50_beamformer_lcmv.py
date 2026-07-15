@@ -23,11 +23,10 @@ from mne.datasets import fetch_fsaverage, sample
 # %%
 # Introduction to beamformers
 # ---------------------------
-# A beamformer is a spatial filter that reconstructs source activity by
-# scanning through a grid of pre-defined source points and estimating activity
-# at each of those source points independently. A set of weights is
-# constructed for each defined source location which defines the contribution
-# of each sensor to this source.
+# A beamformer is a spatial filter that reconstructs source activity by scanning through
+# a grid of pre-defined source points and estimating activity at each of those source
+# points independently. A set of weights is constructed for each defined source location
+# which defines the contribution of each sensor to this source.
 #
 # Beamformers are often used for their focal reconstructions and their ability
 # to reconstruct deeper sources. They can also suppress external noise sources.
@@ -328,13 +327,22 @@ morph = mne.compute_source_morph(
 stc_fs = morph.apply(stc)
 del stc
 
-stc_fs.plot(
+kwargs = dict(
     src=src_fs,
-    mode="stat_map",
-    initial_time=0.085,
     subjects_dir=subjects_dir,
+    initial_time=0.085,
     clim=dict(kind="value", pos_lims=lims),
     verbose=True,
+)
+stc_fs.plot(mode="stat_map", **kwargs)
+
+# %%
+# We can also plot this in interactive 3D mode:
+
+stc_fs.plot_3d(
+    brain_kwargs=dict(silhouette=True),
+    volume_options=dict(alpha=0.5, interpolation="nearest"),
+    **kwargs,
 )
 
 # %%

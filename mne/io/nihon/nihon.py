@@ -5,6 +5,7 @@
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -178,7 +179,7 @@ def _read_nihon_header(fname):
     # Read the Nihon Kohden EEG file header
     fname = _ensure_path(fname)
     _chan_labels = _read_21e_file(fname)
-    header = {}
+    header: dict[str, Any] = {}
     logger.info(f"Reading header from {fname}")
     with open(fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
@@ -266,7 +267,7 @@ def _read_nihon_header(fname):
             "I dont know how to read more than one "
             "control block for this type of file :("
         )
-    if header["controlblocks"][0]["n_datablocks"] > 1:
+    if header["controlblocks"][0]["n_datablocks"] > 1:  # ty: ignore[unsupported-operator]
         # Multiple blocks, check that they all have the same kind of data
         datablocks = header["controlblocks"][0]["datablocks"]
         block_0 = datablocks[0]

@@ -125,7 +125,7 @@ def test_compute_nearest():
 
 @testing.requires_testing_data
 def test_io_surface(tmp_path):
-    """Test reading and writing of Freesurfer surface mesh files."""
+    """Test reading and writing of FreeSurfer surface mesh files."""
     pytest.importorskip("nibabel")
     fname_quad = data_path / "subjects" / "bert" / "surf" / "lh.inflated.nofix"
     fname_tri = data_path / "subjects" / "sample" / "bem" / "inner_skull.surf"
@@ -206,7 +206,7 @@ def test_decimate_surface_sphere():
                 rr, tris, n_tri, method="sphere", verbose=True
             )
         log = log.getvalue()
-        assert "Freesurfer" in log
+        assert "FreeSurfer" in log
         assert kind in log
         assert len(tris_new) == n_tri
 

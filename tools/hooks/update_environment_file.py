@@ -14,8 +14,9 @@ with open(repo_root / "pyproject.toml", "rb") as fid:
     pyproj = tomllib.load(fid)
 
 # Get our "full" dependences from `pyproject.toml`, but actually ignore the
-# "full" section as it's just "full-noqt" plus PyQt6, and for conda we need PySide
-ignore = ("full", "full-pyqt6")
+# "full-pyqt6" section as it's just "full-noqt" plus PyQt6. Also ignore "full-pyside6"
+# as it's just a redirect to "full".
+ignore = ("full-pyqt6", "full-pyside6")
 deps = set(pyproj["project"]["dependencies"])
 for section, section_deps in pyproj["project"]["optional-dependencies"].items():
     if section not in ignore:
@@ -24,8 +25,13 @@ recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
 deps |= {"pip", "mamba", "conda", "nomkl", "noqt5"}
 # not on conda-forge
-pip_deps = {"pymef"}
+pip_deps = {
+    "pymef",  # not on conda-forge
+}
 deps -= pip_deps
+deps -= {
+    "typing-extensions >= 4.15; python_version < '3.11'"
+}  # for typing.Self TODO VERSION
 
 
 def remove_spaces(version_spec):
@@ -52,8 +58,8 @@ translations = dict(neo="python-neo")
 conda_dep_lines = set()
 version_spec_overrides = {
     # Help the solver work faster by specifying these (should be updated periodically):
-    "PySide6": "==6.10.2",
-    "vtk": "==9.6.0",
+    "PySide6": "==6.11.1",
+    "vtk": "==9.6.2",
 }
 for key in version_spec_overrides:
     assert any(dep.startswith(key) for dep in deps), (
@@ -70,8 +76,9 @@ for dep in deps:
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
         pip_deps.add(line[4:])
-    else:
+    elif package_name not in pip_deps:
         conda_dep_lines.add(line)
+conda_dep_lines.add("  - ffmpeg =8.1.2")  # try to fix conda issue
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string

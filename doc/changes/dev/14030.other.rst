@@ -1,0 +1,1 @@
+Replace the manual PNS binary block reader in :func:`mne.io.read_raw_egi` with ``mffpy``-backed reading via ``get_physical_samples_from_epoch``, by `Pragnya Khandelwal`_.

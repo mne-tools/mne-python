@@ -97,7 +97,7 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
+    def legend(self, labels, size=0.1, face="triangle", loc="upper left"):
         """Add a legend to the scene.
 
         Parameters
@@ -106,9 +106,6 @@ class _AbstractRenderer(ABC):
             Each entry must contain two strings, (label, color),
             where ``label`` is the name of the item to add, and
             ``color`` is the color of the label to add.
-        border : bool
-            Controls if there will be a border around the legend.
-            The default is False.
         size : float
             The size of the entire figure window.
         loc : str
@@ -144,7 +141,6 @@ class _AbstractRenderer(ABC):
         representation="surface",
         line_width=1.0,
         normals=None,
-        polygon_offset=None,
         name=None,
         **kwargs,
     ):
@@ -190,8 +186,6 @@ class _AbstractRenderer(ABC):
             The width of the lines when representation='wireframe'.
         normals : array, shape (n_vertices, 3)
             The array containing the normal of each vertex.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             The name of the mesh.
         kwargs : args
@@ -266,7 +260,6 @@ class _AbstractRenderer(ABC):
         normalized_colormap=False,
         scalars=None,
         backface_culling=False,
-        polygon_offset=None,
         *,
         name=None,
     ):
@@ -294,8 +287,6 @@ class _AbstractRenderer(ABC):
             The scalar valued associated to the vertices.
         backface_culling : bool
             If True, enable backface culling on the surface.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             Name of the surface.
         """
@@ -407,7 +398,6 @@ class _AbstractRenderer(ABC):
         color,
         scale,
         mode,
-        resolution=8,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -447,10 +437,6 @@ class _AbstractRenderer(ABC):
             The given value specifies the maximum glyph size in drawing units.
         mode : 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
-        resolution : int
-            The resolution of the glyph created. Depending on the type of
-            glyph, it represents the number of divisions in its geometric
-            representation.
         glyph_height : float
             The height of the glyph used with the quiver.
         glyph_center : tuple
@@ -482,6 +468,73 @@ class _AbstractRenderer(ABC):
             The actor in the scene.
         surface :
             Handle of the quiver in the scene.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def instanced_mesh(
+        self,
+        rr,
+        tris,
+        positions,
+        quats,
+        colors,
+        scales=None,
+        opacity=1.0,
+        backface_culling=False,
+        name=None,
+    ):
+        """Add one mesh GPU-instanced at multiple positions/orientations.
+
+        Unlike :meth:`quiver3d` or :meth:`sphere`, which bake a merged,
+        static glyph mesh, this draws one copy of a single template mesh at
+        each of ``n_instances`` locations using per-instance position,
+        orientation, and color that can be changed later without rebuilding
+        the geometry (see ``mesh`` in "Returns" below).
+
+        Parameters
+        ----------
+        rr : array, shape (n_vertices, 3)
+            The vertices of the template mesh, in the local (object) frame
+            shared by all instances.
+        tris : array, shape (n_tris, 3)
+            The triangles of the template mesh.
+        positions : array, shape (n_instances, 3)
+            The position of each instance.
+        quats : array, shape (n_instances, 3)
+            The orientation of each instance as a unit quaternion, given as
+            only the ``(x, y, z)`` vector part (``w`` omitted, recoverable
+            as ``sqrt(max(1 - x**2 - y**2 - z**2, 0))``) -- the same
+            convention used by :func:`~mne.transforms.rot_to_quat` /
+            :func:`~mne.transforms.quat_to_rot`.
+        colors : array, shape (n_instances, 4)
+            The per-instance RGBA color (float values between 0 and 1) to
+            use for each instance. Per-instance alpha (the fourth column)
+            is respected.
+        scales : array, shape (n_instances,) | None
+            The per-instance isotropic scale factor applied to the template
+            geometry. If ``None`` (the default), no per-instance scaling is
+            applied and the size baked into ``rr`` is used as-is (e.g. for
+            MEG coils).
+        opacity : float
+            A uniform opacity multiplier applied on top of the per-instance
+            alpha values in ``colors``.
+        backface_culling : bool
+            If True, enable backface culling on the mesh.
+        name : str | None
+            Name of the mesh.
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        mesh :
+            The point cloud (one point per instance) backing the glyph
+            mapper. Its per-instance color and orientation arrays can be
+            mutated in place (followed by a render update) to recolor or
+            re-orient individual instances live, without rebuilding the
+            actor or its geometry.
         """
         pass
 
@@ -1338,6 +1391,10 @@ class _AbstractWdgt(ABC):
         pass
 
     @abstractmethod
+    def is_visible(self):
+        pass
+
+    @abstractmethod
     def update(self, repaint=True):
         pass
 
@@ -1351,6 +1408,10 @@ class _AbstractWdgt(ABC):
 
     @abstractmethod
     def set_style(self, style):
+        pass
+
+    @abstractmethod
+    def set_items(self, items):
         pass
 
 

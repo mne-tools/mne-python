@@ -6,11 +6,13 @@ bycycle
 curryreader
 dcm2niix
 eeg_positions
+eelbrain
 emd
 fooof
 hedtools
 meegkit
 meggie
+mffpy
 mne-ari
 mne-bids-pipeline
 mne-denoise
@@ -21,6 +23,7 @@ mne-lsl
 mne-microstates
 mne-nirs
 mne-rsa
+mne-rt
 mnelab
 neurodsp
 neurokit2
