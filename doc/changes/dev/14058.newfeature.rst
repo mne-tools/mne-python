@@ -1,0 +1,1 @@
+Added ``regularize="in_argmax"`` to :func:`mne.preprocessing.maxwell_filter` to allow component selection more similar to that of MaxFilter™-2.2, by `Eric Larson`_.
