@@ -544,6 +544,14 @@ def fname_src_small(tmp_path, small_surf_src):
 def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     """Test making a forward solution with a sphere model."""
     out_name = tmp_path / "tmp-fwd.fif"
+    # Use a slightly larger-than-default head radius (keeping mne_forward_solution's
+    # default relative_radii/sigmas, matched here via make_sphere_model's own
+    # defaults) so that all source points of the small oct2-derived source space
+    # below safely fall within the innermost shell: mne_forward_solution only
+    # excludes out-of-sphere points when given a --bem file (which we don't use
+    # here), so any point outside the sphere would silently produce bogus MNE-C
+    # values instead of being omitted like MNE-Python does.
+    head_radius = 0.103
     run_subprocess(
         [
             "mne_forward_solution",
@@ -557,14 +565,12 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
             fname_trans,
             "--fwd",
             out_name,
+            "--eegrad",
+            str(1000 * head_radius),
         ]
     )
     fwd = read_forward_solution(out_name)
-    sphere = make_sphere_model(
-        head_radius=0.1,
-        relative_radii=(0.95, 0.97, 0.98, 1),
-        verbose=True,
-    )
+    sphere = make_sphere_model(head_radius=head_radius, verbose=True)
     src = read_source_spaces(fname_src_small)
     fwd_py = make_forward_solution(
         fname_raw, fname_trans, src, sphere, meg=True, eeg=True, verbose=True
@@ -582,7 +588,7 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     # Since the above is pretty lax, let's check a different way
     for meg, eeg in zip([True, False], [False, True]):
         fwd_ = pick_types_forward(fwd, meg=meg, eeg=eeg)
-        fwd_py_ = pick_types_forward(fwd, meg=meg, eeg=eeg)
+        fwd_py_ = pick_types_forward(fwd_py, meg=meg, eeg=eeg)
         assert_allclose(
             np.corrcoef(fwd_["sol"]["data"].ravel(), fwd_py_["sol"]["data"].ravel())[
                 0, 1
