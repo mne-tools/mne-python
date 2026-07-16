@@ -521,6 +521,10 @@ if src_sample_data.exists():
         "MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif",
         "MEG/sample/sample_audvis-meg-oct-6-fwd.fif",
         "MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif",
+        "MEG/sample/ernoise_raw.fif",
+        "MEG/sample/sample_audvis-no-filter-ave.fif",
+        "MEG/sample/sample_audvis_raw-trans.fif",
+        "MEG/sample/sample_audvis-shrunk-cov.fif",
         "subjects/sample/mri/T1.mgz",
         "subjects/sample/bem/sample-oct-6-src.fif",
         "subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif",
@@ -710,6 +714,10 @@ sphinx_gallery_conf = {
         "    'MEG/sample/sample_audvis_filt-0-40_raw.fif',\n"
         "    'MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif',\n"
         "    'MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif',\n"
+        "    'MEG/sample/ernoise_raw.fif',\n"
+        "    'MEG/sample/sample_audvis-no-filter-ave.fif',\n"
+        "    'MEG/sample/sample_audvis_raw-trans.fif',\n"
+        "    'MEG/sample/sample_audvis-shrunk-cov.fif',\n"
         "    'subjects/sample/mri/T1.mgz',\n"
         "    'subjects/sample/bem/sample-oct-6-src.fif',\n"
         "    'subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif',\n"
