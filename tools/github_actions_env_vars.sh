@@ -8,13 +8,13 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
         # We should test an eager import somewhere, might as well be here
         echo "EAGER_IMPORT=true" | tee -a $GITHUB_ENV
         # Make sure nothing unexpected is skipped
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|EAGER_IMPORT|CUDA not|Numba not|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|EAGER_IMPORT|CUDA not|Numba not|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     elif [[ "$MNE_CI_KIND" == "pip" ]]; then
         if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|SCIPY_ARRAY_API|FreeSurfer|MNE-C|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
+            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|FreeSurfer|MNE-C|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         else
-            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|SCIPY_ARRAY_API|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
+            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         fi
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     elif [[ "$MNE_CI_KIND" == "pip-ft" ]]; then
@@ -33,7 +33,7 @@ elif [[ "$MNE_CI_KIND" == "conda" ]]; then
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
-    echo "MNE_TEST_ALLOW_SKIP=.*(on conda|Requires (spm|brainstorm) dataset|CUDA not|Flakey verbose behavior|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
+    echo "MNE_TEST_ALLOW_SKIP=.*(on conda|Requires (spm|brainstorm|misc) dataset|CUDA not|Flakey verbose behavior|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
     # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
     if [[ "$CI_OS_NAME" == "macos"* ]]; then
         echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
