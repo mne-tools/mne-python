@@ -555,7 +555,7 @@ def test_nirx_aurora_2021_9_6():
 @requires_testing_data
 @pytest.mark.filterwarnings("ignore:.*Extraction of measurement.*:")
 def test_nirx_aurora_2025_2():
-    """Test reading Aurora dataset with probeInfo.json"""
+    """Test reading Aurora dataset with probeInfo.json."""
     raw = read_raw_nirx(nirsport2_2025_2, preload=True)
 
     # 50 channels × 2 wavelengths
