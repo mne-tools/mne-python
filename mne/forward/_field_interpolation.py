@@ -30,9 +30,7 @@ def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
-    # "fast" uses a coarser (n_coeff=50) Legendre series than "accurate"
-    # (n_coeff=100); both are now computed directly rather than via an
-    # interpolated lookup table.
+    # "fast" uses a coarser (n_coeff=50) Legendre series than "accurate" (n_coeff=100)
     n_coeff = 50 if mode == "fast" else 100
     leg_fun, n_fact = _get_legen_fun(ch_type, False, n_coeff)
     return int_rad, noise, leg_fun, n_fact
