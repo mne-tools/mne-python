@@ -38,9 +38,7 @@ jobs:
       run:
         shell: bash -el {0}
     env:
-      MKL_NUM_THREADS: '1'
-      OPENBLAS_NUM_THREADS: '1'
-      OMP_NUM_THREADS: '1'
+      PYTHON_VERSION: '${{ matrix.python }}'  # used by github_actions_env_vars.sh
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -146,7 +144,7 @@ jobs:
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
-        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
       - uses: actions/cache@v6.1.0

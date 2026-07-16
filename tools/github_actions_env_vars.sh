@@ -1,6 +1,21 @@
 #!/bin/bash
 set -eo pipefail
 
+# Use the faster sys.monitoring-based coverage backend on Python >= 3.12. The
+# matrix Python isn't installed yet at this step
+case "$PYTHON_VERSION" in
+    3.10 | 3.11) ;;  # keep the default (C tracer) backend
+    *) echo "COVERAGE_CORE=sysmon" | tee -a $GITHUB_ENV ;;
+esac
+
+# Number of pytest-xdist workers -- explicit ints (in the spirit of SciPy's CI)
+# rather than "auto". macOS has  fewer cores and less RAM
+if [[ "$CI_OS_NAME" == "macos"* ]]; then
+    echo "PYTEST_XDIST_N=2" | tee -a $GITHUB_ENV
+else
+    echo "PYTEST_XDIST_N=4" | tee -a $GITHUB_ENV
+fi
+
 # old and minimal use conda
 echo "::group::Setting pip env vars for $MNE_CI_KIND"
 if [[ "$MNE_CI_KIND" == "pip"* ]]; then

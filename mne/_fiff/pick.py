@@ -457,13 +457,14 @@ def _check_meg_type(meg, allow_auto=False):
 
 
 def _check_info_exclude(info, exclude):
+    # do not call info._check_consistency() here, it is called very frequently via
+    # _picks_to_idx
     _validate_type(info, "info")
-    info._check_consistency()
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == "bads":
         exclude = info.get("bads", [])
-    elif not isinstance(exclude, list | tuple):
+    elif not isinstance(exclude, (list, tuple)):
         raise ValueError(
             'exclude must either be "bads" or a list of strings.'
             " If only one channel is to be excluded, use "
@@ -660,6 +661,10 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     # avoid circular imports
     from .meas_info import _bad_chans_comp
 
+    # Validate the *input* (a user may have corrupted `info` despite our
+    # safeguards). This is a no-op inside an `info._skip_checks()` block, which
+    # internal callers use when they know `info` is already consistent. We do not
+    # re-check the picked result below: picking here is trusted to be correct.
     info._check_consistency()
     info = info.copy() if copy else info
     if sel is None:
@@ -714,7 +719,6 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         if len(projs) != len(info["projs"]):
             with info._unlock():
                 info["projs"] = projs
-    info._check_consistency()
 
     return info
 

@@ -42,8 +42,8 @@ stages:
           vmImage: 'ubuntu-latest'
         variables:
           DISPLAY: ':99'
-          OPENBLAS_NUM_THREADS: '1'
-          OMP_NUM_THREADS: '1'
+          PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
+          COVERAGE_CORE: 'sysmon'  # faster coverage backend (Python >= 3.12)
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing
           MNE_BROWSER_PRECOMPUTE: 'false'
         steps:
@@ -82,7 +82,7 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
+          - script: pytest -m "ultraslowtest or pgtest" -n $(PYTEST_XDIST_N) --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: slow and mne-qt-browser tests
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
@@ -95,7 +95,8 @@ stages:
           vmImage: 'ubuntu-latest'
         variables:
           DISPLAY: ':99'
-          OPENBLAS_NUM_THREADS: '1'
+          PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
+          COVERAGE_CORE: 'sysmon'  # faster coverage backend (Python >= 3.12)
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/gui mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/report"
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
         steps:
@@ -134,7 +135,7 @@ stages:
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
               export MNE_TEST_ALLOW_SKIP="^.*PySide6 causes segfaults.*$"
-              PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
+              PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" -n $(PYTEST_XDIST_N) ${TEST_OPTIONS}
               python -m pip uninstall -yq PySide6
             displayName: PySide6
           - bash: |
@@ -142,7 +143,7 @@ stages:
               python -m pip install PyQt6
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
-              PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
+              PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" -n $(PYTEST_XDIST_N) ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
             displayName: PyQt6
           - bash: bash <(curl -s https://codecov.io/bash)
@@ -157,7 +158,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: '2'
+          PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           AZURE_CI_WINDOWS: 'true'
@@ -174,6 +175,7 @@ stages:
             3.13 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.13'
+              COVERAGE_CORE: 'sysmon'  # faster coverage backend (Python >= 3.12)
               MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
         steps:
           - task: UsePythonVersion@0
@@ -205,7 +207,7 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml -vv mne
+          - script: pytest -m "not (slowtest or pgtest)" -n $(PYTEST_XDIST_N) --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: Run tests
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov

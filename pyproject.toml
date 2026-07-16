@@ -52,8 +52,10 @@ test = [
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
+  "pytest-xdist",
   "refleak >= 0.2.1",
   "ruff >= 0.1",
+  "threadpoolctl",
   "twine",
   "vulture",
 ]
