@@ -70,6 +70,7 @@ from .utils import (
     _prepare_trellis,
     _process_times,
     _set_3d_axes_equal,
+    _set_window_title,
     _setup_cmap,
     _setup_vmin_vmax,
     _validate_if_list_of_axes,
@@ -1743,8 +1744,8 @@ def plot_ica_components(
         with the number of subplots per figure controlled by ``nrows`` and
         ``ncols``.
     title : str | None
-        The title of the generated figure. If ``None`` (default) and
-        ``axes=None``, a default title of "ICA Components" will be used.
+        The window title of the generated figure. If ``None`` (default) and
+        ``axes=None``, a default title of "Independent Components" will be used.
     %(nrows_ncols_ica_components)s
 
         .. versionadded:: 1.3
@@ -1836,13 +1837,13 @@ def plot_ica_components(
         n_group_axes = 2 if use_opm_orientation_groups else 1
 
         if title is None:
-            title = "ICA components"
+            title = "Independent Components"
         user_passed_axes = _axes is not None
         if not user_passed_axes:
             fig, _axes, _, _ = _prepare_trellis(
                 len(data) * n_group_axes, ncols=ncols, nrows=nrows
             )
-            fig.suptitle(title)
+            _set_window_title(fig, title)
         else:
             _axes = [_axes] if isinstance(_axes, Axes) else _axes
             if len(_axes) != len(data) * n_group_axes:
