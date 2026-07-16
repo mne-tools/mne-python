@@ -644,7 +644,27 @@ def _plot_lines(
             need_draw=False,
             path_effects=path_effects,
         )
-        fig.canvas.mpl_connect("pick_event", partial(_butterfly_onpick, params=params))
+
+        def _cursor_vline(event):
+            if not event.inaxes:
+                return
+            for ax in axes:
+                line = getattr(ax, "_cursorline", None)
+                if line is None:
+                    ax._cursorline = ax.axvline(event.xdata, color="black", alpha=0.2)
+                else:
+                    line.set_xdata([event.xdata, event.xdata])
+            ax.figure.canvas.draw()
+
+        def _rm_cursor(event):
+            for ax in axes:
+                if ax._cursorline is not None:
+                    ax._cursorline.remove()
+                    ax._cursorline = None
+            ax.figure.canvas.draw()
+
+        fig.canvas.mpl_connect("motion_notify_event", _cursor_vline)
+        fig.canvas.mpl_connect("figure_leave_event", _rm_cursor)
         fig.canvas.mpl_connect(
             "button_press_event", partial(_butterfly_on_button_press, params=params)
         )
