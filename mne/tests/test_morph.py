@@ -263,7 +263,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
 
 
 @testing.requires_testing_data
-def test_surface_source_morph_shortcut():
+def test_surface_source_morph_shortcut(subjects_dir_tmp):
     """Test that our shortcut for smooth=0 works."""
     stc = mne.read_source_estimate(fname_smorph)
     morph_identity = compute_source_morph(
@@ -272,7 +272,7 @@ def test_surface_source_morph_shortcut():
         "sample",
         spacing=stc.vertices,
         smooth=0,
-        subjects_dir=subjects_dir,
+        subjects_dir=subjects_dir_tmp,
     )
     stc_back = morph_identity.apply(stc)
     assert_allclose(stc_back.data, stc.data, rtol=1e-4)
