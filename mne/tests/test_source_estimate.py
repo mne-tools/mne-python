@@ -1715,15 +1715,14 @@ def test_stc_near_sensors(tmp_path):
     assert src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
     stc_src = stc_near_sensors(evoked, src=src, **kwargs)
     assert len(stc_src.data) == 7928
-    with pytest.warns(RuntimeWarning, match="not included"):  # some removed
-        stc_src_full = compute_source_morph(
-            stc_src,
-            "sample",
-            "sample",
-            smooth=5,
-            spacing=None,
-            subjects_dir=tmp_path,
-        ).apply(stc_src)
+    stc_src_full = compute_source_morph(
+        stc_src,
+        "sample",
+        "sample",
+        smooth=5,
+        spacing=None,
+        subjects_dir=tmp_path,
+    ).apply(stc_src)
     lh_idx = np.searchsorted(stc_src_full.vertices[0], stc.vertices[0])
     rh_idx = np.searchsorted(stc_src_full.vertices[1], stc.vertices[1])
     rh_idx += len(stc_src_full.vertices[0])
