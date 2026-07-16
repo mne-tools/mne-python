@@ -2227,8 +2227,7 @@ def estimate_snr(evoked, inv, verbose=None):
     val = chi2.isf(1e-3, n_ch_eff)
     for n_iter in range(1000):
         # get_mne_weights (ew=error_weights)
-        # (split newaxis creation here for old numpy)
-        f = sing2 / (sing2 + lambda2_est[np.newaxis][:, remaining])
+        f = sing2 / (sing2 + lambda2_est[np.newaxis, remaining])
         f[inv["sing"] == 0] = 0
         ew = data_white_ef[:, remaining] * (1.0 - f)
         # check condition

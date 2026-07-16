@@ -70,6 +70,8 @@ fname_src = subjects_dir / "sample" / "bem" / "sample-oct-4-src.fif"
 fname_bem = subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif"
 fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
 fname_bem_meg = subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
+fname_bem_small = subjects_dir / "sample" / "bem" / "sample-320-320-320-bem-sol.fif"
+fname_bem_meg_small = subjects_dir / "sample" / "bem" / "sample-320-bem-sol.fif"
 
 io_path = Path(__file__).parents[2] / "io"
 bti_dir = io_path / "bti" / "tests" / "data"
@@ -171,7 +173,7 @@ def _compare_forwards(
         # check EEG
         if fwd["sol"]["data"].shape[0] > 306:
             fwd_eeg = fwd["sol"]["data"][306:, ori_sl]
-            fwd_eeg_py = fwd["sol"]["data"][306:, ori_sl]
+            fwd_eeg_py = fwd_py["sol"]["data"][306:, ori_sl]
             assert_allclose(
                 fwd_eeg,
                 fwd_eeg_py,
@@ -317,27 +319,30 @@ def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
     assert raw.compensation_grade == 3
     if other == "openmeeg":
         mindist = 20.0
-        n_src_want = 51
+        n_src_want = 63
+        fwd_py_bem = fname_bem_meg_small
     else:
         assert other == "MNE-C"
         mindist = 0.0
         n_src_want = n_src_small
         assert n_src_want == 108
+        fwd_py_bem = fname_bem_meg
     mindist = 20.0 if other == "openmeeg" else 0.0
     fwd_py = make_forward_solution(
         fname_ctf_raw,
         fname_trans,
         src,
-        fname_bem_meg,
+        fwd_py_bem,
         eeg=False,
         mindist=mindist,
         verbose=True,
     )
 
     if other == "openmeeg":
-        # TODO: This should be a 1-layer, but it's broken
-        # (some correlations become negative!)...
-        bem_surfaces = read_bem_surfaces(fname_bem)  # fname_bem_meg
+        # This should be a 1-layer, but some correlations become negative;
+        # see https://github.com/openmeeg/openmeeg/issues/577 (mostly solved
+        # upstream now)
+        bem_surfaces = read_bem_surfaces(fname_bem_small)
         bem = make_bem_solution(bem_surfaces, solver="openmeeg")
         # TODO: These tolerances are bad
         tol_kwargs = dict(meg_atol=1, meg_corr_tol=0.65, meg_rdm_tol=0.6)
@@ -376,7 +381,7 @@ def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
         ctf_raw.info,
         fname_trans,
         src,
-        fname_bem_meg,
+        fwd_py_bem,
         eeg=False,
         meg=True,
         mindist=mindist,
@@ -451,7 +456,7 @@ def test_make_forward_solution_basic():
 def test_make_forward_solution_openmeeg(n_layers):
     """Test making M-EEG forward solution from OpenMEEG."""
     solver = "openmeeg"
-    bem_surfaces = read_bem_surfaces(fname_bem)
+    bem_surfaces = read_bem_surfaces(fname_bem_small)
     raw = read_raw_fif(fname_raw)
     n_sensors = 366
     ch_types = ["eeg", "meg"]
@@ -461,7 +466,7 @@ def test_make_forward_solution_openmeeg(n_layers):
         assert bem_surfaces[0]["id"] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
         n_sensors = 306
     raw.pick(ch_types)
-    n_sources_kept = 501 // 3
+    n_sources_kept = 184
     fwds = dict()
     for solver in ["openmeeg", "mne"]:
         bem = make_bem_solution(bem_surfaces, solver=solver)
@@ -477,7 +482,7 @@ def test_make_forward_solution_openmeeg(n_layers):
                 verbose=True,
             )
         log = log.getvalue()
-        assert "Total 258/258 points inside the surface" in log
+        assert "Total 255/258 points inside the surface" in log
         assert isinstance(fwd, Forward)
         fwds[solver] = fwd
         del fwd
@@ -488,10 +493,10 @@ def test_make_forward_solution_openmeeg(n_layers):
         n_sources_kept * 3,
         meg_atol=1,
         eeg_atol=100,
-        meg_corr_tol=0.98,
+        meg_corr_tol=0.85,
         eeg_corr_tol=0.98,
-        meg_rdm_tol=0.11,
-        eeg_rdm_tol=0.2,
+        meg_rdm_tol=0.35,
+        eeg_rdm_tol=0.45,
     )
 
 

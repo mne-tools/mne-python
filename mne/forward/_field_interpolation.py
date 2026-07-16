@@ -9,7 +9,6 @@ import inspect
 from copy import deepcopy
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _simplify_info
@@ -23,12 +22,7 @@ from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
 from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
-from ._lead_dots import (
-    _do_cross_dots,
-    _do_self_dots,
-    _do_surface_dots,
-    _get_legen_table,
-)
+from ._lead_dots import _do_cross_dots, _do_self_dots, _do_surface_dots, _get_legen_fun
 from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
 
 
@@ -36,10 +30,12 @@ def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
-    n_coeff, interp = (50, "nearest") if mode == "fast" else (100, "linear")
-    lut, n_fact = _get_legen_table(ch_type, False, n_coeff, verbose=False)
-    lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp, axis=0)
-    return int_rad, noise, lut_fun, n_fact
+    # "fast" uses a coarser (n_coeff=50) Legendre series than "accurate"
+    # (n_coeff=100); both are now computed directly rather than via an
+    # interpolated lookup table.
+    n_coeff = 50 if mode == "fast" else 100
+    leg_fun, n_fact = _get_legen_fun(ch_type, False, n_coeff)
+    return int_rad, noise, leg_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
@@ -185,20 +181,20 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info_from, coils_from, kind)
+    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info_from, coils_from, kind)
     logger.info(
         f"    Computing dot products for {len(coils_from)} "
         f"{kind.upper()} channel{_pl(coils_from)}..."
     )
     self_dots = _do_self_dots(
-        int_rad, False, coils_from, origin, kind, lut_fun, n_fact, n_jobs=None
+        int_rad, False, coils_from, origin, kind, leg_fun, n_fact, n_jobs=None
     )
     logger.info(
         f"    Computing cross products for {len(coils_from)} → "
         f"{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}..."
     )
     cross_dots = _do_cross_dots(
-        int_rad, False, coils_from, coils_to, origin, kind, lut_fun, n_fact
+        int_rad, False, coils_from, coils_to, origin, kind, leg_fun, n_fact
     ).T
 
     ch_names = [c["ch_name"] for c in info_from["chs"]]
@@ -397,15 +393,15 @@ def _make_surface_mapping(
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
+    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
     logger.info("Computing dot products for %i %s...", len(coils), type_str)
     self_dots = _do_self_dots(
-        int_rad, False, coils, origin, ch_type, lut_fun, n_fact, n_jobs
+        int_rad, False, coils, origin, ch_type, leg_fun, n_fact, n_jobs
     )
     sel = np.arange(len(surf["rr"]))  # eventually we should do sub-selection
     logger.info("Computing dot products for %i surface locations...", len(sel))
     surface_dots = _do_surface_dots(
-        int_rad, False, coils, surf, sel, origin, ch_type, lut_fun, n_fact, n_jobs
+        int_rad, False, coils, surf, sel, origin, ch_type, leg_fun, n_fact, n_jobs
     )
 
     #
