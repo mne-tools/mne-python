@@ -3129,8 +3129,6 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_equal(a, b, str(a ^ b))
         for name in ["nuse", "ntri", "np", "type", "id"]:
             a, b = s0[name], s1[name]
-            if name == "id":  # workaround for old NumPy bug
-                a, b = int(a), int(b)
             assert_equal(a, b, name)
         for name in ["subject_his_id"]:
             if name in s0 or name in s1:
