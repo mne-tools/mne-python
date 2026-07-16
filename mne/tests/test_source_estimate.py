@@ -1722,7 +1722,7 @@ def test_stc_near_sensors(tmp_path):
             "sample",
             smooth=5,
             spacing=None,
-            subjects_dir=subjects_dir,
+            subjects_dir=tmp_path,
         ).apply(stc_src)
     lh_idx = np.searchsorted(stc_src_full.vertices[0], stc.vertices[0])
     rh_idx = np.searchsorted(stc_src_full.vertices[1], stc.vertices[1])
