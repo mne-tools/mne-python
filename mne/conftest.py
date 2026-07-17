@@ -1179,8 +1179,50 @@ def brain_gc(request):
 _files = list()
 
 
+def _shutdown_worker_children():
+    # Shut down anything that could outlive this pytest-xdist worker: CI logs
+    # show loky resource_tracker warnings about leaked semlocks and memmapping
+    # folders at worker exit, i.e. executors/pools are still alive here. A
+    # child that survives (or wedges) worker shutdown can keep the execnet
+    # pipe open so the controller never sees EOF and the session hangs
+    # (macOS; see pytest-dev/pytest-xdist#1313). Shut down loky cleanly
+    # first, then terminate whatever remains, naming each process so CI logs
+    # identify the culprit.
+    with suppress(Exception):
+        from joblib.externals.loky import get_reusable_executor
+
+        get_reusable_executor().shutdown(kill_workers=True)
+    import psutil
+
+    with suppress(psutil.Error):
+        reap = list()
+        for child in psutil.Process().children(recursive=True):
+            try:
+                cmdline = " ".join(child.cmdline())
+            except psutil.Error:
+                cmdline = "<unknown>"
+            # resource_tracker exits by itself once its clients are gone, and
+            # killing it would skip its cleanup of leaked semlocks/folders
+            if "resource_tracker" in cmdline:
+                continue
+            print(
+                f"xdist worker reaping leftover child {child.pid}: {cmdline}",
+                file=sys.stderr,
+                flush=True,
+            )
+            with suppress(psutil.Error):
+                child.terminate()
+            reap.append(child)
+        _, alive = psutil.wait_procs(reap, timeout=3)
+        for child in alive:
+            with suppress(psutil.Error):
+                child.kill()
+
+
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Handle the end of the session."""
+    if os.getenv("PYTEST_XDIST_WORKER") is not None:
+        _shutdown_worker_children()
     n = session.config.option.durations
     if n is None:
         return
