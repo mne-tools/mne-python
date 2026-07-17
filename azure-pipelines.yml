@@ -81,7 +81,7 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - script: pytest -m "ultraslowtest or pgtest" -n $(PYTEST_XDIST_N) --tb=short --cov=mne --cov-report=xml -vv mne
+          - script: pytest -m "ultraslowtest or pgtest" -n $(PYTEST_XDIST_N) --dist loadscope --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: slow and mne-qt-browser tests
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
@@ -133,7 +133,7 @@ stages:
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
               export MNE_TEST_ALLOW_SKIP="^.*PySide6 causes segfaults.*$"
-              PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" -n $(PYTEST_XDIST_N) ${TEST_OPTIONS}
+              PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" -n $(PYTEST_XDIST_N) --dist loadscope ${TEST_OPTIONS}
               python -m pip uninstall -yq PySide6
             displayName: PySide6
           - bash: |
@@ -141,7 +141,7 @@ stages:
               python -m pip install PyQt6
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
-              PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" -n $(PYTEST_XDIST_N) ${TEST_OPTIONS}
+              PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" -n $(PYTEST_XDIST_N) --dist loadscope ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
             displayName: PyQt6
           - bash: bash <(curl -s https://codecov.io/bash)
@@ -204,7 +204,7 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - script: pytest -m "not (slowtest or pgtest)" -n $(PYTEST_XDIST_N) --tb=short --cov=mne --cov-report=xml -vv mne
+          - script: pytest -m "not (slowtest or pgtest)" -n $(PYTEST_XDIST_N) --dist loadscope --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: Run tests
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: Codecov
