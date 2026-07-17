@@ -15,6 +15,7 @@ pytest.importorskip("nibabel")
 def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     """Test GUI API."""
     import contextlib
+    import os
     import warnings
     from unittest import mock
 
