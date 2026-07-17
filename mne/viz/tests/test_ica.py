@@ -82,6 +82,15 @@ def test_plot_ica_components():
         )
     plt.close("all")
 
+    # window title shows the component range when picks are contiguous
+    fig = ica.plot_components(None, **fast_test)
+    assert fig.canvas.manager.get_window_title() == "Independent Components (0-7)"
+    fig = ica.plot_components([3], **fast_test)  # single component
+    assert fig.canvas.manager.get_window_title() == "Independent Components (3)"
+    fig = ica.plot_components([0, 1] * 2, **fast_test)  # not contiguous
+    assert fig.canvas.manager.get_window_title() == "Independent Components"
+    plt.close("all")
+
     # test interactive mode (passing 'inst' arg)
     with catch_logging() as log:
         ica.plot_components(
