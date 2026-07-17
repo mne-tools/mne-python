@@ -138,6 +138,19 @@ def pytest_configure(config: pytest.Config):
             with suppress(Exception):
                 threadpool_limits(threads_per_worker, user_api="blas")
 
+    # Never allow multiprocessing's fork start method, adapted from SciPy:
+    # fork() from a threaded process (every pytest-xdist worker is one) can
+    # deadlock, and a forked-without-exec child inherits the worker's execnet
+    # pipe descriptors, which can keep the controller from ever seeing EOF if
+    # the child outlives the worker (shutdown hang). Python >= 3.14 already
+    # defaults to a safe method everywhere (forkserver on Linux, spawn on
+    # macOS/Windows).
+    if sys.version_info < (3, 14):
+        import multiprocessing
+
+        if "forkserver" in multiprocessing.get_all_start_methods():
+            multiprocessing.set_start_method("forkserver", force=True)
+
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
     #   we should remove them from here.
