@@ -1129,7 +1129,13 @@ def brain_gc(request):
 
     # Snapshot stores only ids (pins nothing alive) so VTK objects that
     # pre-date the test (e.g. held by module-level state) are never reported.
-    snap = Snapshot(_is_vtk, label="VTK")
+    # collect=False: a gc.collect() here would cost as much as the one that
+    # actually matters at teardown, and we only care about objects going *up*
+    # (new ones surviving), not down. Skipping it just means some snapshotted
+    # objects are already garbage and vanish by teardown, which is fine; the
+    # only cost is a slightly wider id-reuse window (a missed leak at worst,
+    # never a false report).
+    snap = Snapshot(_is_vtk, label="VTK", collect=False)
     yield
     close_func()
     # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
