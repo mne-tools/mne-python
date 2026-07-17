@@ -787,16 +787,28 @@ def renderer_interactive(request, options_3d):
 
 @contextmanager
 def _use_backend(backend_name, interactive):
+    import matplotlib
+
     from mne.viz.backends.renderer import _use_test_3d_backend
 
+    # Capture the matplotlib backend up front: for the notebook backend,
+    # _check_skip_backend() imports ipympl, which switches matplotlib to
+    # module://ipympl.backend_nbagg (and does not switch it back). Under that
+    # backend pyplot mis-tracks figures in Gcf, so every later matplotlib
+    # figure-count test (in other modules) fails. Restore it on teardown.
+    mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
-    with _use_test_3d_backend(backend_name, interactive=interactive):
-        from mne.viz.backends import renderer
+    try:
+        with _use_test_3d_backend(backend_name, interactive=interactive):
+            from mne.viz.backends import renderer
 
-        try:
-            yield renderer
-        finally:
-            renderer.backend._close_all()
+            try:
+                yield renderer
+            finally:
+                renderer.backend._close_all()
+    finally:
+        if matplotlib.get_backend() != mpl_backend:
+            matplotlib.use(mpl_backend, force=True)
 
 
 def _check_skip_backend(name):
