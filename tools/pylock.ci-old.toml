@@ -307,9 +307,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/e2/3e/abfdb7319d71a17
 
 [[packages]]
 name = "pytest-xdist"
-version = "0.0.0"
-sdist = { url = "https://files.pythonhosted.org/packages/f0/58/12fa53959908f1af6260dd910c1b1e094b82a25f039bf75bc8a068329d58/pytest-xdist-0.0.0.tar.gz", upload-time = 2022-10-25T11:15:59Z, size = 28432, hashes = { sha256 = "c1a83baa6bb12bb82c365d51f4cdd763b89d2196a1d68ac8354775dbd799cd5d" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/5d/b0/4e3f7d5ff07c1b5bae927226f7329bcd960c6c137f920d071be86a8b6a32/pytest_xdist-0.0.0-py3-none-any.whl", upload-time = 2022-10-25T11:15:57Z, size = 36245, hashes = { sha256 = "149758c1b027b25dc4ce331b684adac889d4e2fb713b5ebb8871eecd9b2e40fa" } }]
+version = "3.6.1"
+sdist = { url = "https://files.pythonhosted.org/packages/41/c4/3c310a19bc1f1e9ef50075582652673ef2bfc8cd62afef9585683821902f/pytest_xdist-3.6.1.tar.gz", upload-time = 2024-04-28T19:29:54Z, size = 84060, hashes = { sha256 = "ead156a4db231eec769737f57668ef58a2084a34b2e55c4a8fa20d861107300d" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/6d/82/1d96bf03ee4c0fdc3c0cbe61470070e659ca78dc0086fb88b66c185e2449/pytest_xdist-3.6.1-py3-none-any.whl", upload-time = 2024-04-28T19:29:52Z, size = 46108, hashes = { sha256 = "9ed4adfb68a016610848639bb7e02c9352d5d9f03d04809919e2dafc3be4cca7" } }]
 
 [[packages]]
 name = "python-dateutil"
