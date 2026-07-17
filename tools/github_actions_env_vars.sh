@@ -23,6 +23,10 @@ echo "COV_ARGS=$COV_ARGS" | tee -a $GITHUB_ENV
 # rather than "auto". macOS has  fewer cores and less RAM
 if [[ "$CI_OS_NAME" == "macos"* ]]; then
     echo "PYTEST_XDIST_N=2" | tee -a $GITHUB_ENV
+    # macOS spawns (rather than forks) child processes; nesting MNE's own
+    # joblib/multiprocessing inside an xdist worker can deadlock, so force
+    # serial execution -- xdist already provides the test-level parallelism.
+    echo "MNE_FORCE_SERIAL=true" | tee -a $GITHUB_ENV
 else
     echo "PYTEST_XDIST_N=4" | tee -a $GITHUB_ENV
 fi

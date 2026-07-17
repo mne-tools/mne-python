@@ -46,5 +46,5 @@ fi
 
 set -x
 # $COV_ARGS is set in github_actions_env_vars.sh (coverage only on Python >= 3.14)
-pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope ${COV_ARGS} --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
+pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread ${COV_ARGS} --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
 echo "Exited with code $?"

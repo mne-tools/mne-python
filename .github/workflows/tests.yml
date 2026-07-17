@@ -144,7 +144,7 @@ jobs:
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
-        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope $COV_ARGS --tb=short -vv -rfE mne/
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread $COV_ARGS --tb=short -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
       - uses: actions/cache@v6.1.0
