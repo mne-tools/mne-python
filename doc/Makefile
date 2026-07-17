@@ -7,7 +7,7 @@ SPHINXBUILD   = sphinx-build
 MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 
 # Internal variables.
-ALLSPHINXOPTS   = -d _build/doctrees $(SPHINXOPTS) $(NJOBS) .
+ALLSPHINXOPTS   = -d _build/doctrees $(SPHINXOPTS) .
 
 .PHONY: help clean html html-noplot html-pattern linkcheck linkcheck-grep doctest
 
