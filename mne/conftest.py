@@ -704,6 +704,14 @@ def pg_backend(request, garbage_collect):
 
     with use_browser_backend("qt") as backend:
         backend._close_all()
+        # Snapshot rather than assert_no_instances: when a test fails, pytest
+        # keeps its traceback (for reporting), which keeps that test's frame
+        # and hence its browser alive. Requiring *zero* browsers would then
+        # blame the next test that uses this fixture for a browser it never
+        # created, turning one real failure into a cascade of errors. Only
+        # report browsers this test itself leaked. Snapshot stores only ids,
+        # so it pins nothing alive.
+        snap = Snapshot(MNEQtBrowser, collect=False)
         yield backend
         backend._close_all()
         # This shouldn't be necessary, but let's make sure nothing is stale
@@ -712,9 +720,7 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         if not _test_passed(request):
             return
-        assert_no_instances(
-            MNEQtBrowser, f"Closure of {request.node.name}", request=request
-        )
+        snap.assert_no_new(f"Closure of {request.node.name}", request=request)
 
 
 @pytest.fixture(
@@ -731,6 +737,10 @@ def browser_backend(request, garbage_collect, monkeypatch):
     with use_browser_backend(backend_name) as backend:
         backend._close_all()
         monkeypatch.setenv("MNE_BROWSE_RAW_SIZE", "10,10")
+        # Otherwise the theme is auto-detected from the OS, so tests that assert
+        # on colors (e.g. that a channel is drawn black) fail for developers
+        # running a dark desktop.
+        monkeypatch.setenv("MNE_BROWSER_THEME", "light")
         yield backend
         backend._close_all()
         if backend_name == "qt":
@@ -1061,6 +1071,9 @@ def options_3d():
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+            # Otherwise the theme is auto-detected from the OS, so tests that
+            # assert on colors fail for developers running a dark desktop.
+            "MNE_3D_OPTION_THEME": "light",
         },
     ):
         yield
