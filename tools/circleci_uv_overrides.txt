@@ -1,14 +1,14 @@
-# uv override list for the CircleCI doc build (used by circleci_dependencies.sh).
+# uv override list for the CircleCI doc build (used by tools/circleci_dependencies.sh,
+# which runs from the repo root).
 #
-# Unlike pip, uv rejects a resolution when a (transitive) dependency pins a
-# package to a direct URL that conflicts with the one we install -- e.g.
-# mne-nirs declares `mne @ git+https://github.com/jcrdubois/mne-python...`,
-# which clashes with our local editable `-e .` install of mne. Listing the
-# packages we install from a specific source here forces uv to use *our*
-# version and ignore such conflicting pins from related-software packages.
-mne
-mne-bids
-mne-qt-browser
-pyvista
-pyvistaqt
-sphinx-gallery
+# Some related-software packages pin `mne` to a conflicting direct URL -- e.g.
+# mne-nirs declares `mne @ git+https://github.com/jcrdubois/mne-python...` --
+# which uv (unlike pip) rejects against our own install of mne. Overriding mne to
+# our local editable checkout forces every mne requirement to resolve to it.
+#
+# Notes:
+# - `.` is relative to the working directory (the repo root), not to this file.
+# - Keep `-e` so mne stays *editable*, and keep the `[full-pyside6]` extra so uv
+#   does not drop those dependencies (the override takes precedence over the
+#   command line, including its extras).
+-e .[full-pyside6]

@@ -60,10 +60,6 @@ elif [[ "$MNE_CI_KIND" == "conda" ]]; then
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
     echo "MNE_TEST_ALLOW_SKIP=.*(on conda|Requires (spm|brainstorm|misc) dataset|CUDA not|Flakey verbose behavior|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
-    # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
-    if [[ "$CI_OS_NAME" == "macos"* ]]; then
-        echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
-    fi
     echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
 else
     echo "✕ ERROR: Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
