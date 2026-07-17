@@ -1427,7 +1427,7 @@ def test_pickle(fname_info, unlocked, protocol):
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked
     assert isinstance(info_un["bads"], MNEBadsList)
-    assert info_un["bads"]._mne_info is info_un
+    assert info_un["bads"]._mne_info() is info_un  # weakref back to its Info
 
 
 def test_info_bad():
