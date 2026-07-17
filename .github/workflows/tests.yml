@@ -32,7 +32,8 @@ jobs:
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
-    timeout-minutes: 120
+    # macOS spawns children and runs slowtests, so it needs a bit more headroom
+    timeout-minutes: ${{ startsWith(matrix.os, 'macos') && 40 || 30 }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:

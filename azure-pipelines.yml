@@ -38,6 +38,7 @@ stages:
       AZURE_CI: 'true'
     jobs:
       - job: Linux_Ultraslow_PG
+        timeoutInMinutes: 40
         pool:
           vmImage: 'ubuntu-latest'
         variables:
@@ -90,6 +91,7 @@ stages:
               CODECOV_TOKEN: $(CODECOV_TOKEN)
 
       - job: Linux_Qt_Bindings
+        timeoutInMinutes: 30
         pool:
           vmImage: 'ubuntu-latest'
         variables:
@@ -162,7 +164,7 @@ stages:
           AZURE_CI_WINDOWS: 'true'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
-        timeoutInMinutes: 95
+        timeoutInMinutes: 40
         strategy:
           maxParallel: 4
           matrix:
