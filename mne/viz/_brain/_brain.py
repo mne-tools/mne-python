@@ -398,6 +398,7 @@ class Brain:
         else:
             self.silhouette = silhouette
         self._scalar_bar = None
+        self._scalar_bar_ticks = None
         # for now only one time label can be added
         # since it is the same for all figures
         self._time_label_added = False
@@ -589,6 +590,8 @@ class Brain:
         self._picked_patches = {key: list() for key in all_keys}
         self._picked_points = dict()
         self._mouse_no_mvt = -1
+        self._show_hover_info = False
+        self._hover_caption = None
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -624,6 +627,7 @@ class Brain:
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
+        self._configure_hover()
         self._configure_dock()
         self._configure_tool_bar()
         self._configure_status_bar()
@@ -685,6 +689,8 @@ class Brain:
             "picked_renderer",
             "act_data_smooth",
             "_scalar_bar",
+            "_scalar_bar_ticks",
+            "_hover_caption",
             "actions",
             "widgets",
             "geo",
@@ -773,6 +779,8 @@ class Brain:
             self._scalar_bar.SetHeight(0.6)
             self._scalar_bar.SetWidth(0.05)
             self._scalar_bar.SetPosition(0.02, 0.2)
+            # the tick actor repositions itself on every render (see
+            # _add_scalarbar_ticks), so no explicit update is needed here
 
     def _configure_dock_playback_widget(self, name):
         len_time = len(self._data["time"]) - 1
@@ -1196,6 +1204,74 @@ class Brain:
         )
         subscribe(self, "vertex_select", self._on_vertex_select)
 
+    def _configure_hover(self):
+        self._hover_caption = self._create_caption()
+        self.plotter.add_actor(
+            self._hover_caption,
+            name=None,
+            culling=False,
+            pickable=False,
+            reset_camera=False,
+            render=False,
+        )
+
+        @_auto_weakref
+        def on_surface_hover(iren, event):
+            self._on_surface_hover(iren, event)
+
+        self.plotter.AddObserver("MouseMoveEvent", on_surface_hover)
+
+    def _on_surface_hover(self, iren, event):  # event == "MouseMoveEvent"
+        if not self._show_hover_info:
+            return
+        from pyvista import DataSetMapper
+
+        x, y = iren.GetEventPosition()
+        picked_renderer = iren.FindPokedRenderer(x, y)
+        vtk_picker = self._renderer._picker
+        vtk_picker.Pick(x, y, 0, picked_renderer)
+        cell_id = vtk_picker.GetCellId()
+        mapper = vtk_picker.GetMapper()
+        if not isinstance(mapper, DataSetMapper) or cell_id == -1:
+            if self._hover_caption.GetVisibility():
+                self._hover_caption.SetVisibility(False)
+                self._renderer._update()
+            return  # didn't find a mesh
+        for _, this_mesh in self.layered_meshes.items():
+            if this_mesh._polydata is mapper.dataset:
+                mesh = this_mesh._polydata
+                break
+        else:
+            return
+        pos = np.array(vtk_picker.GetPickPosition())
+        vtk_cell = mesh.GetCell(cell_id)
+        cell = [
+            vtk_cell.GetPointId(point_id)
+            for point_id in range(vtk_cell.GetNumberOfPoints())
+        ]
+        vert_pos = mesh.points[cell]
+        vertex_id = cell[np.argmin(np.linalg.norm(vert_pos - pos, axis=1))]
+        _, _, azimuth, elevation, _ = self._renderer.get_camera(rigid=self._rigid)
+        text = (
+            f"vertex {vertex_id}\n"
+            f"({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}) mm\n"
+            f"az {azimuth:.0f}\N{DEGREE SIGN}  el {elevation:.0f}\N{DEGREE SIGN}"
+        )
+        self._hover_caption.SetCaption(text)
+        self._hover_caption.SetAttachmentPoint(*pos)
+        self._hover_caption.SetVisibility(True)
+        actor = self._hover_caption.GetTextActor()
+        wh = np.zeros(2)
+        actor.GetSize(self.plotter.renderer, wh)
+        self._hover_caption.SetPosition2(wh)
+        self._renderer._update()
+
+    def _toggle_hover_info(self):
+        self._show_hover_info = not self._show_hover_info
+        if not self._show_hover_info and self._hover_caption is not None:
+            self._hover_caption.SetVisibility(False)
+            self._renderer._update()
+
     def _configure_tool_bar(self):
         if not hasattr(self._renderer, "_tool_bar") or self._renderer._tool_bar is None:
             self._renderer._tool_bar_initialize(name="Toolbar")
@@ -1238,6 +1314,12 @@ class Brain:
             desc="Clear traces",
             func=self.clear_glyphs,
         )
+        self._renderer._tool_bar_add_button(
+            name="hover_info",
+            desc="Toggle vertex/camera hover info",
+            func=self._toggle_hover_info,
+            icon_name="information",
+        )
         self._renderer._tool_bar_add_spacer()
         self._renderer._tool_bar_add_button(
             name="help",
@@ -1261,13 +1343,14 @@ class Brain:
 
     def _configure_shortcuts(self):
         # Remove the default key binding
-        if getattr(self, "iren", None) is not None:
+        if getattr(self.plotter, "iren", None) is not None:
             self.plotter.iren.clear_key_event_callbacks()
         # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event("v", self._toggle_hover_info)
         for key, which, amt in (
             ("Left", "azimuth", 10),
             ("Right", "azimuth", -10),
@@ -1656,6 +1739,7 @@ class Brain:
             ("s", "Apply auto-scaling"),
             ("r", "Restore original clim"),
             ("c", "Clear all traces"),
+            ("v", "Toggle vertex/camera hover info"),
             ("n", "Shift the time forward by the playback speed"),
             ("b", "Shift the time backward by the playback speed"),
             ("Space", "Start/Pause playback"),
@@ -2011,6 +2095,9 @@ class Brain:
         self._all_data[key]["fmid"] = fmid
         self._all_data[key]["fmax"] = fmax
         self._all_data[key]["colorbar_fmt"] = (colorbar_kwargs or {}).get("fmt")
+        self._all_data[key]["colorbar_title"] = (colorbar_kwargs or {}).get(
+            "title", key if key != "data" else None
+        )
         self.set_time_interpolation(self.time_interpolation)
         self._update_colormap_range()
 
@@ -2065,7 +2152,9 @@ class Brain:
                     fmt=_auto_scalar_bar_fmt(self._cmap_range),
                 )
                 kwargs.update(colorbar_kwargs or {})
-                self._scalar_bar = self._renderer.scalarbar(**kwargs)
+                self._scalar_bar, self._scalar_bar_ticks = self._renderer.scalarbar(
+                    **kwargs
+                )
             self._set_camera(**views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity (and render)
@@ -3575,6 +3664,10 @@ class Brain:
         rng = self._cmap_range
         ctable = self._data["ctable"]
         fmt = self._data["colorbar_fmt"] or _auto_scalar_bar_fmt(rng)
+        if self._scalar_bar is not None:
+            self._renderer.set_scalarbar_title(
+                self._scalar_bar, self._data["colorbar_title"]
+            )
         for hemi in ["lh", "rh", "vol"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:

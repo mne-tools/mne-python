@@ -799,6 +799,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         source,
         color="white",
+        title=None,
         n_labels=4,
         bgcolor=None,
         **extra_kwargs,
@@ -811,7 +812,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             mapper = None
         kwargs = dict(
             color=color,
-            title="",
+            title=_truncate_scalar_bar_title(title),
             n_labels=n_labels,
             use_opacity=False,
             n_colors=256,
@@ -826,12 +827,57 @@ class _PyVistaRenderer(_AbstractRenderer):
             background_color=bgcolor,
             mapper=mapper,
         )
-        extra_kwargs.pop("title", None)
         kwargs.update(extra_kwargs)
         actor = self.plotter.add_scalar_bar(**kwargs)
         actor.SetTextPad(10)
         _hide_testing_actor(actor)
-        return actor
+        tick_actor = self._add_scalarbar_ticks(actor, kwargs["n_labels"])
+        return actor, tick_actor
+
+    def _add_scalarbar_ticks(self, bar_actor, n_labels):
+        from vtkmodules.vtkRenderingAnnotation import vtkAxisActor2D
+
+        axis = vtkAxisActor2D()
+        axis.GetPositionCoordinate().SetCoordinateSystemToDisplay()
+        axis.GetPosition2Coordinate().SetCoordinateSystemToDisplay()
+        axis.SetNumberOfLabels(n_labels)
+        # otherwise VTK rounds the tick count to "nice" values, desyncing the
+        # marks from the scalar bar's own label positions
+        axis.SetAdjustLabels(False)
+        axis.SetTickLength(5)
+        axis.SetLabelVisibility(False)
+        axis.SetTitleVisibility(False)
+        axis.SetAxisVisibility(False)  # only the tick marks, no connecting line
+        axis.SetTickVisibility(True)
+        axis.GetProperty().SetColor(*bar_actor.GetLabelTextProperty().GetColor())
+
+        def reposition(caller, event):
+            self.reposition_scalarbar_ticks(bar_actor, axis)
+
+        self.plotter.iren.add_observer(vtkCommand.RenderEvent, reposition)
+        self.plotter.renderer.AddActor(axis)
+        _hide_testing_actor(axis)
+        return axis
+
+    def set_scalarbar_title(self, bar_actor, title):
+        bar_actor.SetTitle(_truncate_scalar_bar_title(title))
+
+    def reposition_scalarbar_ticks(self, bar_actor, tick_actor):
+        rect = [0, 0, 0, 0]
+        bar_actor.GetScalarBarRect(rect, self.plotter.renderer)
+        x0, y0, width, height = rect
+        horizontal = bar_actor.GetOrientation() == 0
+        inset_low, inset_high = 4, 22
+        if horizontal:
+            tick_actor.GetPositionCoordinate().SetValue(x0 + inset_low, y0 + height)
+            tick_actor.GetPosition2Coordinate().SetValue(
+                x0 + width - inset_high, y0 + height
+            )
+        else:
+            tick_actor.GetPositionCoordinate().SetValue(x0 + width, y0 + inset_low)
+            tick_actor.GetPosition2Coordinate().SetValue(
+                x0 + width, y0 + height - inset_high
+            )
 
     def show(self):
         self.plotter.show()
@@ -1136,6 +1182,12 @@ def _hide_testing_actor(actor):
 
     if renderer.MNE_3D_BACKEND_TESTING:
         actor.SetVisibility(False)
+
+
+def _truncate_scalar_bar_title(title, max_chars=20):
+    if title is None or len(title) <= max_chars:
+        return title
+    return title[: max_chars - 1] + "…"
 
 
 def _to_pos(azimuth, elevation):

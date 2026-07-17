@@ -1572,6 +1572,7 @@ class _QtWindow(_AbstractWindow):
         self._icons["visibility_on"] = _qicon("visibility_on")
         self._icons["visibility_off"] = _qicon("visibility_off")
         self._icons["folder"] = _qicon("folder")
+        self._icons["information"] = _qicon("information")
 
     def _window_clean(self):
         self.figure._plotter = None
