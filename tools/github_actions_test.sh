@@ -7,7 +7,10 @@ if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
 elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
   # detect arch and run slowtest on arm64 only (pgtest is already ultraslow on macOS)
   if [[ "$(uname -m)" == "arm64" ]]; then
-    CONDITION="not (ultraslowtest or pgtest)"
+    # TODO: diagnostic for the intermittent shutdown hang -- skip PyVista/VTK
+    # 3D rendering tests to see if the hang disappears (macos-15-intel, which
+    # skips slowtest, does not hang)
+    CONDITION="not (ultraslowtest or pgtest or pvtest)"
   else
     CONDITION="not (slowtest or pgtest)"
   fi
