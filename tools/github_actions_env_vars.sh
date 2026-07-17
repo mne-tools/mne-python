@@ -1,10 +1,10 @@
 #!/bin/bash
 set -eo pipefail
 
-# Use the faster sys.monitoring-based coverage backend on Python >= 3.12. The
-# matrix Python isn't installed yet at this step
+# Use the faster sys.monitoring-based coverage backend on Python >= 3.12, and branches
+# don't work on 3.12. The matrix Python isn't installed yet at this step
 case "$PYTHON_VERSION" in
-    3.10 | 3.11) ;;  # keep the default (C tracer) backend
+    3.10 | 3.11 | 3.12) ;;  # keep the default (C tracer) backend
     *) echo "COVERAGE_CORE=sysmon" | tee -a $GITHUB_ENV ;;
 esac
 
