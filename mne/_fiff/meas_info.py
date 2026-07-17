@@ -1962,9 +1962,17 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 # we know it's list of str, shallow okay and saves ~100 µs
                 result[k] = v.copy()
             elif k == "dig":
-                # DigPoint has a fast __deepcopy__ (only copies its "r" array); calling
-                # it directly avoids the generic list-deepcopy dispatch overhead
-                result[k] = None if v is None else [d.__deepcopy__(memodict) for d in v]
+                # DigPoint has a fast __deepcopy__ (only copies its "r" array);
+                # calling it directly avoids the generic list-deepcopy dispatch.
+                # dig is almost always DigPoints, but can hold plain dicts (e.g.
+                # appended directly), which lack __deepcopy__; fall back for those.
+                if v is None:
+                    result[k] = None
+                else:
+                    try:
+                        result[k] = [d.__deepcopy__(memodict) for d in v]
+                    except AttributeError:
+                        result[k] = deepcopy(v, memodict)
             elif k == "hpi_meas":
                 hms = list()
                 for hm in v:

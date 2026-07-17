@@ -809,6 +809,7 @@ def sys_info(
         "",
         "# Numerical (optional)",
         "scikit-learn",
+        "threadpoolctl",
         "numba",
         "nibabel",
         "nilearn",
