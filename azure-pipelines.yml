@@ -166,11 +166,11 @@ stages:
         strategy:
           maxParallel: 4
           matrix:
-            3.11 pip:
+            3.14 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.14'
               MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
-            3.13 pip pre:
+            3.14 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.14'
               MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
