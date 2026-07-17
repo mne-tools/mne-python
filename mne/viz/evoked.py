@@ -73,6 +73,51 @@ from .utils import (
 )
 
 
+def _butterfly_onpick(event, params):
+    """Add a channel name on click."""
+    params["need_draw"] = True
+    ax = event.artist.axes
+    ax_idx = np.where([ax is a for a in params["axes"]])[0]
+    if len(ax_idx) == 0:  # this can happen if ax param is used
+        return  # let the other axes handle it
+    else:
+        ax_idx = ax_idx[0]
+    lidx = np.where([line is event.artist for line in params["lines"][ax_idx]])[0][0]
+    ch_name = params["ch_names"][params["idxs"][ax_idx][lidx]]
+    text = params["texts"][ax_idx]
+    x = event.artist.get_xdata()[event.ind[0]]
+    y = event.artist.get_ydata()[event.ind[0]]
+    text.set_x(x)
+    text.set_y(y)
+    text.set_text(ch_name)
+    text.set_color(event.artist.get_color())
+    text.set_alpha(1.0)
+    text.set_zorder(len(ax.lines))  # to make sure it goes on top of the lines
+    text.set_path_effects(params["path_effects"])
+    # do NOT redraw here, since for butterfly plots hundreds of lines could
+    # potentially be picked -- use on_button_press (happens once per click)
+    # to do the drawing
+
+
+def _butterfly_on_button_press(event, params):
+    """Only draw once for picking."""
+    if params["need_draw"]:
+        event.canvas.draw()
+    else:
+        idx = np.where([event.inaxes is ax for ax in params["axes"]])[0]
+        if len(idx) == 1:
+            text = params["texts"][idx[0]]
+            text.set_alpha(0.0)
+            text.set_path_effects([])
+            event.canvas.draw()
+    params["need_draw"] = False
+
+    for ax in params["axes"]:
+        if event.inaxes is ax:
+            publish(ax.figure, TimeChange(time=event.xdata))
+            break
+
+
 def _line_plot_onselect(
     xmin,
     xmax,
