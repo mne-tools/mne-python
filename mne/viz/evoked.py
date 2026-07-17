@@ -73,51 +73,6 @@ from .utils import (
 )
 
 
-def _butterfly_onpick(event, params):
-    """Add a channel name on click."""
-    params["need_draw"] = True
-    ax = event.artist.axes
-    ax_idx = np.where([ax is a for a in params["axes"]])[0]
-    if len(ax_idx) == 0:  # this can happen if ax param is used
-        return  # let the other axes handle it
-    else:
-        ax_idx = ax_idx[0]
-    lidx = np.where([line is event.artist for line in params["lines"][ax_idx]])[0][0]
-    ch_name = params["ch_names"][params["idxs"][ax_idx][lidx]]
-    text = params["texts"][ax_idx]
-    x = event.artist.get_xdata()[event.ind[0]]
-    y = event.artist.get_ydata()[event.ind[0]]
-    text.set_x(x)
-    text.set_y(y)
-    text.set_text(ch_name)
-    text.set_color(event.artist.get_color())
-    text.set_alpha(1.0)
-    text.set_zorder(len(ax.lines))  # to make sure it goes on top of the lines
-    text.set_path_effects(params["path_effects"])
-    # do NOT redraw here, since for butterfly plots hundreds of lines could
-    # potentially be picked -- use on_button_press (happens once per click)
-    # to do the drawing
-
-
-def _butterfly_on_button_press(event, params):
-    """Only draw once for picking."""
-    if params["need_draw"]:
-        event.canvas.draw()
-    else:
-        idx = np.where([event.inaxes is ax for ax in params["axes"]])[0]
-        if len(idx) == 1:
-            text = params["texts"][idx[0]]
-            text.set_alpha(0.0)
-            text.set_path_effects([])
-            event.canvas.draw()
-    params["need_draw"] = False
-
-    for ax in params["axes"]:
-        if event.inaxes is ax:
-            publish(ax.figure, TimeChange(time=event.xdata))
-            break
-
-
 def _line_plot_onselect(
     xmin,
     xmax,
@@ -634,40 +589,64 @@ def _plot_lines(
                 selectables[type_idx] = False
 
     if selectable:
-        # Parameters for butterfly interactive plots
-        params = dict(
-            axes=axes,
-            texts=texts,
-            lines=lines,
-            ch_names=info["ch_names"],
-            idxs=idxs,
-            need_draw=False,
-            path_effects=path_effects,
-        )
 
-        def _cursor_vline(event):
+        def _on_hover(event):
             if not event.inaxes:
                 return
+
+            # pop up channel name on hover
+            ax = event.inaxes
+            ax_idx = np.where([ax is a for a in axes])[0]
+            if len(ax_idx):  # do nothing if ax is used instead
+                ax_idx = ax_idx[0]
+                text = texts[ax_idx]
+                hovered = None
+                for line_idx, line in enumerate(lines[ax_idx]):
+                    hit, details = line.contains(event)
+                    if hit:
+                        hovered = (line_idx, line, details["ind"][0])
+                        break  # stop recursion at first hit
+                if hovered is not None:
+                    line_idx, line, ind = hovered
+                    ch_name = info["ch_names"][idxs[ax_idx][line_idx]]
+                    text.set_position((line.get_xdata()[ind], line.get_ydata()[ind]))
+                    text.set_text(ch_name)
+                    text.set_color(line.get_color())
+                    text.set_alpha(1.0)
+                    text.set_zorder(
+                        len(ax.lines)
+                    )  # to make sure it goes on top of the lines
+                    text.set_path_effects(path_effects)
+                else:
+                    text.set_alpha(0.0)
+                    text.set_path_effects(path_effects)
+
+            # vertical line to indicate time point
             for ax in axes:
                 line = getattr(ax, "_cursorline", None)
                 if line is None:
                     ax._cursorline = ax.axvline(event.xdata, color="black", alpha=0.2)
                 else:
                     line.set_xdata([event.xdata, event.xdata])
-            ax.figure.canvas.draw()
+            ax.figure.canvas.draw_idle()
 
         def _rm_cursor(event):
             for ax in axes:
                 if ax._cursorline is not None:
                     ax._cursorline.remove()
                     ax._cursorline = None
-            ax.figure.canvas.draw()
+            ax.figure.canvas.draw_idle()
 
-        fig.canvas.mpl_connect("motion_notify_event", _cursor_vline)
+        def _select_time(event):
+            for ax in axes:
+                if event.inaxes is ax:
+                    publish(ax.figure, TimeChange(time=event.xdata))
+                    break
+
+        fig.canvas.mpl_connect("motion_notify_event", _on_hover)
         fig.canvas.mpl_connect("figure_leave_event", _rm_cursor)
-        fig.canvas.mpl_connect(
-            "button_press_event", partial(_butterfly_on_button_press, params=params)
-        )
+        fig.canvas.mpl_connect("button_press_event", _select_time)
+
     for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
         line_list = list()  # 'line_list' contains the lines for this axes
         if unit is False:
