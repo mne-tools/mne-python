@@ -43,7 +43,6 @@ stages:
         variables:
           DISPLAY: ':99'
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
-          COVERAGE_CORE: 'sysmon'  # faster coverage backend (Python >= 3.12)
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing
           MNE_BROWSER_PRECOMPUTE: 'false'
         steps:
@@ -58,7 +57,7 @@ stages:
             displayName: Get minimal commands
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: '3.12'
+              versionSpec: '3.14'
               architecture: 'x64'
               addToPath: true
           - bash: |
@@ -96,7 +95,6 @@ stages:
         variables:
           DISPLAY: ':99'
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
-          COVERAGE_CORE: 'sysmon'  # faster coverage backend (Python >= 3.12)
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/gui mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/report"
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
         steps:
@@ -170,12 +168,11 @@ stages:
           matrix:
             3.11 pip:
               TEST_MODE: 'pip'
-              PYTHON_VERSION: '3.11'
+              PYTHON_VERSION: '3.14'
               MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
             3.13 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.13'
-              COVERAGE_CORE: 'sysmon'  # faster coverage backend (Python >= 3.12)
+              PYTHON_VERSION: '3.14'
               MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
         steps:
           - task: UsePythonVersion@0

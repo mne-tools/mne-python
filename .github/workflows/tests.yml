@@ -144,7 +144,7 @@ jobs:
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
-        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" $COV_ARGS --tb=short -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
       - uses: actions/cache@v6.1.0
@@ -156,4 +156,5 @@ jobs:
       - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        if: success() || failure()
+        # COV_ARGS is empty on jobs where we don't measure coverage (Python < 3.14)
+        if: (success() || failure()) && env.COV_ARGS != ''

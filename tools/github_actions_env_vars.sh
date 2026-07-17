@@ -1,12 +1,23 @@
 #!/bin/bash
 set -eo pipefail
 
-# Use the faster sys.monitoring-based coverage backend on Python >= 3.12, and branches
-# don't work on 3.12. The matrix Python isn't installed yet at this step
-case "$PYTHON_VERSION" in
-    3.10 | 3.11 | 3.12) ;;  # keep the default (C tracer) backend
-    *) echo "COVERAGE_CORE=sysmon" | tee -a $GITHUB_ENV ;;
+# Only measure coverage where it is cheap or uniquely valuable. On Python >= 3.14
+# sys.monitoring is coverage's default core and can measure branches, making it
+# nearly free. Below 3.14 coverage falls back to the C tracer (sys.monitoring
+# cannot do branch coverage there), which roughly doubles Python-heavy test time,
+# so we skip it -- except for the "minimal" and "old" kinds, which exercise code
+# paths (missing optional dependencies, old pins) that no other job covers.
+# The matrix Python isn't installed yet at this step, so key off $PYTHON_VERSION.
+COV_ARGS="--cov=mne --cov-report=xml"
+case "$MNE_CI_KIND" in
+    minimal | old) ;;  # unique code paths, worth the slower C tracer
+    *)
+        case "$PYTHON_VERSION" in
+            3.10 | 3.11 | 3.12 | 3.13) COV_ARGS="" ;;
+        esac
+        ;;
 esac
+echo "COV_ARGS=$COV_ARGS" | tee -a $GITHUB_ENV
 
 # Number of pytest-xdist workers -- explicit ints (in the spirit of SciPy's CI)
 # rather than "auto". macOS has  fewer cores and less RAM
