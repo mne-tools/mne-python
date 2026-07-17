@@ -1,0 +1,14 @@
+# uv override list for the CircleCI doc build (used by circleci_dependencies.sh).
+#
+# Unlike pip, uv rejects a resolution when a (transitive) dependency pins a
+# package to a direct URL that conflicts with the one we install -- e.g.
+# mne-nirs declares `mne @ git+https://github.com/jcrdubois/mne-python...`,
+# which clashes with our local editable `-e .` install of mne. Listing the
+# packages we install from a specific source here forces uv to use *our*
+# version and ignore such conflicting pins from related-software packages.
+mne
+mne-bids
+mne-qt-browser
+pyvista
+pyvistaqt
+sphinx-gallery
