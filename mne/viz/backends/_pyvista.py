@@ -8,6 +8,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import functools
 import os
 import platform
 import re
@@ -1402,6 +1403,9 @@ def _disabled_depth_peeling():
         depth_peeling["enabled"] = depth_peeling_enabled
 
 
+_GPU_REPORT = None
+
+
 def _is_osmesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
@@ -1411,7 +1415,19 @@ def _is_osmesa(plotter):
         return False
     if os.getenv("MNE_IS_OSMESA", "").lower() == "true":
         return True
-    gpu_info_full = plotter.ren_win.ReportCapabilities()
+    global _GPU_REPORT
+    if _GPU_REPORT is None:
+        # Ask at most once per process: the GL driver cannot change while the
+        # process is alive, every report costs ~13 ms (and a GL context
+        # realization the first time), and asking VTK has segfaulted before.
+        # This cannot be a plotter-keyed cache: each figure is a new plotter,
+        # so it would miss every time and keep every plotter alive forever.
+        _GPU_REPORT = plotter.ren_win.ReportCapabilities()
+    return _is_osmesa_from_report(_GPU_REPORT)
+
+
+@functools.cache
+def _is_osmesa_from_report(gpu_info_full):
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",
         gpu_info_full,
