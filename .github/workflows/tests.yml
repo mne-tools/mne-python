@@ -57,9 +57,7 @@ jobs:
             python: '3.13'
             kind: conda
           - os: macos-latest  # arm64
-            # 3.14 intermittently hangs at xdist shutdown on macOS arm64 (dead
-            # worker pipes not detected by execnet); see pytest-xdist#1313.
-            python: '3.13'
+            python: '3.14'
             kind: pip
           - os: macos-15-intel  # Intel
             python: '3.13'

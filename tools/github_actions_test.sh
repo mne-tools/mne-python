@@ -3,19 +3,23 @@
 set -eo pipefail
 
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
-  CONDITION="not (ultraslowtest or pgtest)"
+  CONDITIONS=("not (ultraslowtest or pgtest)")
 elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
   # detect arch and run slowtest on arm64 only (pgtest is already ultraslow on macOS)
   if [[ "$(uname -m)" == "arm64" ]]; then
-    # TODO: diagnostic for the intermittent shutdown hang -- run ONLY the
-    # PyVista/VTK tests under xdist to confirm they cause the hang ("not
-    # pvtest" came back green); SSH in and py-spy when it wedges
-    CONDITION="pvtest and not ultraslowtest"
+    # Split the PyVista/VTK ("pvtest") tests into their own xdist invocation.
+    # Run together with everything else, accumulated VTK/Qt state makes an
+    # xdist worker's final interpreter shutdown intermittently hang on macOS
+    # (dead worker pipes not detected by execnet; see pytest-xdist#1313).
+    # Isolating them in a fresh, short-lived set of workers avoids the hang
+    # while keeping parallelism -- pvtest alone under xdist does not hang, so
+    # there is no need to force serial execution here.
+    CONDITIONS=("not (ultraslowtest or pgtest or pvtest)" "pvtest and not ultraslowtest")
   else
-    CONDITION="not (slowtest or pgtest)"
+    CONDITIONS=("not (slowtest or pgtest)")
   fi
 elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
-  CONDITION="not (slowtest or pgtest)"
+  CONDITIONS=("not (slowtest or pgtest)")
 else
   echo "✕ ERROR: Unrecognized CI_OS_NAME=${CI_OS_NAME}"
   exit 1
@@ -47,7 +51,30 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_C
   echo "::endgroup::"
 fi
 
-set -x
 # $COV_ARGS is set in github_actions_env_vars.sh (coverage only on Python >= 3.14)
-pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 ${COV_ARGS} --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
-echo "Exited with code $?"
+# Run each marker expression as its own pytest invocation (usually just one; on
+# macOS arm64 the pvtest tests are split out, see above). Later runs append
+# coverage, each gets its own junit file, and we run them all before exiting
+# with the first nonzero code so one failing split does not mask the other.
+set +e  # capture each pytest's exit code manually rather than aborting on it
+CODE=0
+COV_APPEND=""
+i=0
+for CONDITION in "${CONDITIONS[@]}"; do
+  if [ "${#CONDITIONS[@]}" -gt 1 ]; then
+    THIS_JUNIT="${JUNIT_PATH%.xml}-${i}.xml"
+  else
+    THIS_JUNIT="$JUNIT_PATH"
+  fi
+  set -x
+  pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 ${COV_ARGS} ${COV_APPEND} --color=yes --continue-on-collection-errors --junit-xml="$THIS_JUNIT" -vv ${USE_DIRS}
+  THIS_CODE=$?
+  set +x
+  echo "Exited with code $THIS_CODE for: ${CONDITION}"
+  if [ "$THIS_CODE" -ne 0 ] && [ "$CODE" -eq 0 ]; then
+    CODE=$THIS_CODE
+  fi
+  COV_APPEND="--cov-append"
+  i=$((i + 1))
+done
+exit $CODE
