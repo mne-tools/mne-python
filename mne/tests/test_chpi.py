@@ -451,6 +451,7 @@ def test_warn_maxwell_filtered():
     assert len(amps["times"]) > 0  # but for this file, it does work!
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_initial_fit_redo():
     """Test that initial fits can be redone based on moments."""
