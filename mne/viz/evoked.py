@@ -664,7 +664,7 @@ def _plot_lines(
                     text.set_path_effects(path_effects)
                 else:
                     text.set_alpha(0.0)
-                    text.set_path_effects(path_effects)
+                    text.set_path_effects([])
 
             # vertical line to indicate time point
             for ax in axes:
