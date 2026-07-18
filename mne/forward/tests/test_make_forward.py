@@ -307,7 +307,7 @@ def test_make_forward_solution_bti(fname_src_small):
         pytest.param("MNE-C", marks=requires_mne_mark()),
         pytest.param(
             "openmeeg",
-            marks=[requires_openmeeg_mark(), pytest.mark.slowtest],
+            marks=[requires_openmeeg_mark(), pytest.mark.ultraslowtest],
         ),
     ],
 )
@@ -443,7 +443,7 @@ def test_make_forward_solution_basic():
         make_forward_solution(fname_raw, fname_trans, fname_src, fname_bem_meg)
 
 
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @requires_openmeeg_mark()
 @pytest.mark.parametrize(
     "n_layers",

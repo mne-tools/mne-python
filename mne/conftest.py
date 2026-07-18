@@ -373,27 +373,38 @@ def azure_windows():
     )
 
 
-@pytest.fixture(scope="function")
-def raw_orig():
-    """Get raw data without any change to it from mne.io.tests.data."""
-    raw = read_raw_fif(fname_raw_io, preload=True)
-    return raw
+# Read the raw file only once per session; the ``raw_orig``/``raw`` fixtures hand
+# out independent ``.copy()``s (much faster than re-reading, esp. after picking).
+@pytest.fixture(scope="session")
+def _raw_orig_session():
+    return read_raw_fif(fname_raw_io, preload=True)
 
 
-@pytest.fixture(scope="function")
-def raw():
-    """
-    Get raw data and pick channels to reduce load for testing.
-
-    (from mne.io.tests.data)
-    """
-    raw = read_raw_fif(fname_raw_io, preload=True)
+@pytest.fixture(scope="session")
+def _raw_session(_raw_orig_session):
+    raw = _raw_orig_session.copy()
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match="unit"):
         raw.set_channel_types({raw.ch_names[0]: "ias"})
     raw.pick(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
+
+
+@pytest.fixture(scope="function")
+def raw_orig(_raw_orig_session):
+    """Get raw data without any change to it from mne.io.tests.data."""
+    return _raw_orig_session.copy()
+
+
+@pytest.fixture(scope="function")
+def raw(_raw_session):
+    """
+    Get raw data and pick channels to reduce load for testing.
+
+    (from mne.io.tests.data)
+    """
+    return _raw_session.copy()
 
 
 @pytest.fixture(scope="function")
@@ -679,6 +690,14 @@ def pg_backend(request, garbage_collect):
 
     with use_browser_backend("qt") as backend:
         backend._close_all()
+        # Snapshot rather than assert_no_instances: when a test fails, pytest
+        # keeps its traceback (for reporting), which keeps that test's frame
+        # and hence its browser alive. Requiring *zero* browsers would then
+        # blame the next test that uses this fixture for a browser it never
+        # created, turning one real failure into a cascade of errors. Only
+        # report browsers this test itself leaked. Snapshot stores only ids,
+        # so it pins nothing alive.
+        snap = Snapshot(MNEQtBrowser, collect=False)
         yield backend
         backend._close_all()
         # This shouldn't be necessary, but let's make sure nothing is stale
@@ -687,9 +706,7 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         if not _test_passed(request):
             return
-        assert_no_instances(
-            MNEQtBrowser, f"Closure of {request.node.name}", request=request
-        )
+        snap.assert_no_new(f"Closure of {request.node.name}", request=request)
 
 
 @pytest.fixture(
@@ -752,16 +769,28 @@ def renderer_interactive(request, options_3d):
 
 @contextmanager
 def _use_backend(backend_name, interactive):
+    import matplotlib
+
     from mne.viz.backends.renderer import _use_test_3d_backend
 
+    # Capture the matplotlib backend up front: for the notebook backend,
+    # _check_skip_backend() imports ipympl, which switches matplotlib to
+    # module://ipympl.backend_nbagg (and does not switch it back). Under that
+    # backend pyplot mis-tracks figures in Gcf, so every later matplotlib
+    # figure-count test (in other modules) fails. Restore it on teardown.
+    mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
-    with _use_test_3d_backend(backend_name, interactive=interactive):
-        from mne.viz.backends import renderer
+    try:
+        with _use_test_3d_backend(backend_name, interactive=interactive):
+            from mne.viz.backends import renderer
 
-        try:
-            yield renderer
-        finally:
-            renderer.backend._close_all()
+            try:
+                yield renderer
+            finally:
+                renderer.backend._close_all()
+    finally:
+        if matplotlib.get_backend() != mpl_backend:
+            matplotlib.use(mpl_backend, force=True)
 
 
 def _check_skip_backend(name):
@@ -1079,7 +1108,13 @@ def brain_gc(request):
 
     # Snapshot stores only ids (pins nothing alive) so VTK objects that
     # pre-date the test (e.g. held by module-level state) are never reported.
-    snap = Snapshot(_is_vtk, label="VTK")
+    # collect=False: a gc.collect() here would cost as much as the one that
+    # actually matters at teardown, and we only care about objects going *up*
+    # (new ones surviving), not down. Skipping it just means some snapshotted
+    # objects are already garbage and vanish by teardown, which is fine; the
+    # only cost is a slightly wider id-reuse window (a missed leak at worst,
+    # never a false report).
+    snap = Snapshot(_is_vtk, label="VTK", collect=False)
     yield
     close_func()
     # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
