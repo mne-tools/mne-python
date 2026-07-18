@@ -119,8 +119,6 @@ class RawNIRX(BaseRaw):
                 "description.json",
                 "wl1",
                 "wl2",
-                "probeInfo.mat",
-                "tri",
             )
         else:
             # NIRScout devices and NIRSport1 devices
@@ -132,7 +130,6 @@ class RawNIRX(BaseRaw):
                 "wl1",
                 "wl2",
                 "config.txt",
-                "probeInfo.mat",
             )
             n_dat = len(glob.glob(f"{fname}/*{'dat'}"))
             if n_dat != 1:
@@ -175,6 +172,21 @@ class RawNIRX(BaseRaw):
                     nan_mask[key] = files[key][0 if noidx == 1 else 1]
             files[key] = files[key][fidx]
 
+        # Locate probeInfo file — either .mat (legacy) or .json (newer Aurora)
+        probe_mat = glob.glob(f"{fname}/*probeInfo.mat")
+        probe_json = glob.glob(f"{fname}/*probeInfo.json")
+        if len(probe_json) == 1:
+            files["probeInfo"] = probe_json[0]
+            probe_format = "json"
+        elif len(probe_mat) == 1:
+            files["probeInfo"] = probe_mat[0]
+            probe_format = "mat"
+        else:
+            raise RuntimeError(
+                f"Need one probeInfo.mat or probeInfo.json file, "
+                f"got {len(probe_mat)} .mat and {len(probe_json)} .json"
+            )
+
         # Read number of rows/samples of wavelength data
         with _open(files["wl1"]) as fid:
             last_sample = fid.read().count("\n") - 1
@@ -197,6 +209,7 @@ class RawNIRX(BaseRaw):
                 "2021.4.0-34-ge9fdbbc8",
                 "2021.9.0-5-g3eb32851",
                 "2021.9.0-6-g14ef4a71",
+                "2025.2.0-17-geea6971f",
             ]:
                 warn(
                     "MNE has not been tested with Aurora version "
@@ -361,12 +374,28 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        mat_data = loadmat(files["probeInfo.mat"])
-        probes = mat_data["probeInfo"]["probes"][0, 0]
-        requested_channels = probes["index_c"][0, 0]
-        src_locs = probes["coords_s3"][0, 0] / 100.0
-        det_locs = probes["coords_d3"][0, 0] / 100.0
-        ch_locs = probes["coords_c3"][0, 0] / 100.0
+        if probe_format == "json":
+            with open(files["probeInfo"], encoding="utf-8") as _f:
+                _probe_json = json.load(_f)
+            probes = _probe_json["probeInfo"]["probes"]
+            requested_channels = np.array(probes["index_c"])
+            src_locs = np.array(probes["coords_s3"]) / 1000.0
+            det_locs = np.array(probes["coords_d3"]) / 1000.0
+            ch_locs = np.array(probes["coords_c3"]) / 1000.0
+            if _probe_json["probeInfo"]["head_circumference"] != 610.0:
+                warn(
+                    "The head circumference in the probeInfo.json file is "
+                    f"{_probe_json['probeInfo']['head_circumference']} mm, "
+                    "as opposed to standard 610.0 mm. This may cause misalignment of "
+                    "the optode locations with the subject's head in later steps."
+                )
+        else:
+            mat_data = loadmat(files["probeInfo"])
+            probes = mat_data["probeInfo"]["probes"][0, 0]
+            requested_channels = probes["index_c"][0, 0]
+            src_locs = probes["coords_s3"][0, 0] / 100.0
+            det_locs = probes["coords_d3"][0, 0] / 100.0
+            ch_locs = probes["coords_c3"][0, 0] / 100.0
 
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame
@@ -425,11 +454,11 @@ class RawNIRX(BaseRaw):
         # The detector location is stored in the third 3 entries of loc.
         # NIRx NIRSite uses MNI coordinates.
         # Also encode the light frequency in the structure.
-        for ch_idx2 in range(requested_channels.shape[0]):
+        for ch_idx2, wl_idx in enumerate(req_ind):
             # Find source and store location
-            src = int(requested_channels[ch_idx2, 0]) - 1
+            src = int(sources[wl_idx]) - 1
             # Find detector and store location
-            det = int(requested_channels[ch_idx2, 1]) - 1
+            det = int(detectors[wl_idx]) - 1
             # Store channel location as midpoint between source and detector.
             midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
             for ii in range(2):
@@ -508,6 +537,9 @@ class RawNIRX(BaseRaw):
         # Read triggers from event file
         if not is_aurora:
             files["tri"] = files["hdr"][:-3] + "evt"
+        else:
+            tri_files = glob.glob(f"{fname}/*.tri")
+            files["tri"] = tri_files[0] if len(tri_files) == 1 else ""
         if op.isfile(files["tri"]):
             with _open(files["tri"]) as fid:
                 t = [re.findall(r"(\d+)", line) for line in fid]
