@@ -66,7 +66,8 @@ def _export_epochs(fname, epochs):
     else:
         annot = None
 
-    # EEGLAB stores event latencies in the concatenated epochs array.
+    # eeglabio uses column 0 as latency in the concatenated epochs array and
+    # column 2 as event type; the original recording sample is not stored here.
     events = epochs.events.copy()
     events[:, 0] = (
         np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
@@ -75,6 +76,7 @@ def _export_epochs(fname, epochs):
     # https://github.com/jackz314/eeglabio/pull/18
     kwargs = dict()
     if "epoch_indices" in getfullargspec(eeglabio.epochs.export_set).kwonlyargs:
+        # This also handles zero time falling on the final sample (tmax=0).
         kwargs["epoch_indices"] = np.arange(1, len(epochs) + 1)
 
     eeglabio.epochs.export_set(
