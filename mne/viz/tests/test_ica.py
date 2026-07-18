@@ -23,7 +23,7 @@ from mne import (
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import _record_warnings, catch_logging
+from mne.utils import _record_warnings, catch_logging, check_version
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
@@ -81,6 +81,19 @@ def test_plot_ica_components():
             components, image_interp="cubic", colorbar=True, **fast_test
         )
     plt.close("all")
+
+    # TODO VERSION: non-GUI get_window_title() always returned "image" before
+    # matplotlib 3.10.3; simplify once that's the minimum supported version (currently
+    # the "old" job pins matplotlib 3.9.0)
+    if check_version("matplotlib", "3.10.3"):
+        # window title shows the component range when picks are contiguous
+        fig = ica.plot_components(None, **fast_test)
+        assert fig.canvas.manager.get_window_title() == "Independent Components (0-7)"
+        fig = ica.plot_components([3], **fast_test)  # single component
+        assert fig.canvas.manager.get_window_title() == "Independent Components (3)"
+        fig = ica.plot_components([0, 1] * 2, **fast_test)  # not contiguous
+        assert fig.canvas.manager.get_window_title() == "Independent Components"
+        plt.close("all")
 
     # test interactive mode (passing 'inst' arg)
     with catch_logging() as log:
