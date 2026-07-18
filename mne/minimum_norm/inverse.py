@@ -891,7 +891,8 @@ def _check_reference(inst, ch_names=None):
         picks = [
             ci for ci, ch_name in enumerate(info["ch_names"]) if ch_name in ch_names
         ]
-        info = pick_info(info, sel=picks)
+        with info._skip_checks():  # info is already consistent
+            info = pick_info(info, sel=picks)
     if _needs_eeg_average_ref_proj(info):
         raise ValueError(
             "EEG average reference (using a projector) is mandatory for "
@@ -1644,7 +1645,8 @@ def apply_inverse_cov(
     _validate_type(inverse_operator, InverseOperator, "inverse_operator")
     sel = _pick_channels_inverse_operator(cov["names"], inverse_operator)
     use_names = [cov["names"][idx] for idx in sel]
-    info = pick_info(info, pick_channels(info["ch_names"], use_names, ordered=True))
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, pick_channels(info["ch_names"], use_names, ordered=True))
     evoked = EvokedArray(np.eye(len(info["ch_names"])), info, nave=nave, comment="cov")
     is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
     _check_option("pick_ori", pick_ori, (None, "normal"))
