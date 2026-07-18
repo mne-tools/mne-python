@@ -50,7 +50,6 @@ _.two_d_array
 _.three_d_array
 _.requires_fit
 _.regressor_tags
-_.__signature__
 
 # report
 _.grab_frame

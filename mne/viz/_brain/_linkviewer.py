@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import weakref
-
 import numpy as np
 
 from ...utils import warn
@@ -89,17 +87,9 @@ class _LinkViewer:
     def link_cameras(self):
         from ..backends._pyvista import _add_camera_callback
 
-        # Use weak references to the brains: the callback is retained by VTK on
-        # the (shared) camera, so capturing the brains strongly (via ``self``)
-        # would keep the whole scene alive after the brains are closed -- a leak
-        # that Python's gc cannot break through the C++ observer.
-        brain_refs = [weakref.ref(brain) for brain in self.brains]
-
         def _update_camera(vtk_picker, event):
-            for brain_ref in brain_refs:
-                brain = brain_ref()
-                if brain is not None:
-                    brain.plotter.update()
+            for brain in self.brains:
+                brain.plotter.update()
 
         camera = self.leader.plotter.camera
         _add_camera_callback(camera, _update_camera)

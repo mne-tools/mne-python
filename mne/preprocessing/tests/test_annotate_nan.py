@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_array_equal
 
 import mne
 from mne.preprocessing import annotate_nan
@@ -18,7 +18,9 @@ raw_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 def test_annotate_nan(meas_date):
     """Tests automatic NaN annotation generation."""
     # Load data
-    raw = mne.io.read_raw_fif(raw_fname).crop(0, 5).load_data()
+    raw = mne.io.read_raw_fif(raw_fname)
+    sfreq = 100
+    raw.resample(sfreq)
     if meas_date is None:
         raw.set_meas_date(None)
 
@@ -32,16 +34,15 @@ def test_annotate_nan(meas_date):
 
     # insert block of NaN from 1s to 3s for one channel
     nan_ch_idx = 0
-    one_s = int(round(raw.info["sfreq"]))
-    raw._data[nan_ch_idx, one_s : 3 * one_s] = np.nan
+    raw._data[nan_ch_idx, 1 * sfreq : 3 * sfreq] = np.nan
 
     # annotate_nan accurately finds this
     annot_nan = annotate_nan(raw)
     onset = np.array([1.0])
     if raw.info["meas_date"]:
         onset += raw.first_time
-    assert_allclose(annot_nan.onset, onset, rtol=1e-3)
-    assert_allclose(annot_nan.duration, np.array([2]), rtol=1e-3)
+    assert_array_equal(annot_nan.onset, onset)
+    assert_array_equal(annot_nan.duration, np.array([2]))
     assert_array_equal(annot_nan.description, np.array(["BAD_NAN"]))
     assert len(annot_nan.ch_names) == 1
     assert annot_nan.ch_names[0] == (raw.ch_names[nan_ch_idx],)

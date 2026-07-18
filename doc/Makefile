@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    = -nWT --keep-going -j auto
+SPHINXOPTS    = -nWT --keep-going
 SPHINXBUILD   = sphinx-build
 MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 

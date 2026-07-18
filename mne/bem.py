@@ -12,7 +12,7 @@ import os.path as op
 import shutil
 from collections import OrderedDict
 from copy import deepcopy
-from functools import cache, partial
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -791,44 +791,23 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
-    # The fit depends only on the relative radii and conductivities of the
-    # layers, not the absolute head radius or origin, so cache on those
-    # Using the exact relative-radius ratio also keeps scipy's COBYLA out of a
-    # near-degenerate regime where it fails to converge
-    rel_rads = tuple(float(layer["rel_rad"]) for layer in m["layers"])
-    sigmas = tuple(float(layer["sigma"]) for layer in m["layers"])
-    mu, lambda_, rv = _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit)
-
-    m["mu"] = np.array(mu)
-    # This division takes into account the actual conductivities
-    m["lambda"] = np.array(lambda_) / m["layers"][-1]["sigma"]
-    m["nfit"] = nfit
-    return rv
-
-
-@cache
-def _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit):
-    """Fit Berg-Scherg params (pure function of relative radii and sigmas)."""
     assert nfit >= 2
-    # Only rel_rad and sigma are read to compute the coefficients and weighting.
-    m = dict(layers=[dict(rel_rad=r, sigma=s) for r, s in zip(rel_rads, sigmas)])
     u = dict(nfit=nfit, nterms=nterms)
 
     # (1) Calculate the coefficients of the true expansion
     u["fn"] = _fwd_eeg_get_multi_sphere_model_coeffs(m, nterms + 1)
 
-    # (2) Calculate the weighting from the relative-radius ratio
-    f = min(rel_rads) / max(rel_rads)
+    # (2) Calculate the weighting
+    f = min([layer["rad"] for layer in m["layers"]]) / max(
+        [layer["rad"] for layer in m["layers"]]
+    )
 
     # correct weighting
     k = np.arange(1, nterms + 1)
     u["w"] = np.sqrt((2.0 * k + 1) * (3.0 * k + 1.0) / k) * np.power(f, (k - 1.0))
     u["w"][-1] = 0
 
-    # rhobeg (initial trust-region radius) is ~half the (-1, 1) variable range
-    # rhoend (final radius) sets the resolution of mu. The dipoles sit at radii
-    # proportional to mu (order 1) while the fit's residual var is ~1e-4, so resolving
-    # below that gains nothing and can prevent convergence
+    # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
     mu_0 = np.zeros(3)
     fun = partial(_one_step, u=u)
     catol = 1e-6
@@ -837,13 +816,18 @@ def _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit):
     def cons(x):
         return max_ - np.abs(x)
 
-    mu = fmin_cobyla(fun, mu_0, [cons], rhobeg=0.5, rhoend=1e-4, catol=catol)
+    mu = fmin_cobyla(fun, mu_0, [cons], rhobeg=0.5, rhoend=1e-5, catol=catol)
 
     # (6) Do the final step: calculation of the linear parameters
     rv, lambda_ = _compute_linear_parameters(mu, u)
     order = np.argsort(mu)[::-1]
     mu, lambda_ = mu[order], lambda_[order]  # sort: largest mu first
-    return tuple(mu), tuple(lambda_), rv
+
+    m["mu"] = mu
+    # This division takes into account the actual conductivities
+    m["lambda"] = lambda_ / m["layers"][-1]["sigma"]
+    m["nfit"] = nfit
+    return rv
 
 
 @verbose

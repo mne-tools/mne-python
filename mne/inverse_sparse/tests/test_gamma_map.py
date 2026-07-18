@@ -152,7 +152,7 @@ def test_gamma_map_standard():
     _check_stc(stc, evoked, 85739, "lh", fwd=forward, ratio=20.0, res=res)
 
 
-@pytest.mark.ultraslowtest
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_gamma_map_vol_sphere():
     """Gamma MAP with a sphere forward and volumic source space."""

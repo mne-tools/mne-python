@@ -4,7 +4,7 @@
 
 import re
 from contextlib import contextmanager
-from functools import cache, partial
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -186,19 +186,9 @@ def _assert_mag_coil_type(info, coil_type):
     assert coil_types == {coil_type}
 
 
-@cache
-def _read_raw_maxshield(fname, _mtime, _size):
-    # Cache the (unloaded) raw so files read many times (e.g. raw_fname, ~14x)
-    # are parsed only once. Keyed on (path, mtime, size) so a rewritten temp file
-    # is not served stale. read_crop() returns an independent copy of this.
-    return read_raw_fif(fname, allow_maxshield="yes")
-
-
 def read_crop(fname, lims=(0, None)):
-    """Read (cached) and crop a copy."""
-    st = Path(fname).stat()
-    raw = _read_raw_maxshield(str(fname), st.st_mtime, st.st_size)
-    return raw.copy().crop(*lims)
+    """Read and crop."""
+    return read_raw_fif(fname, allow_maxshield="yes").crop(*lims)
 
 
 # For backward compat and to be most like MaxFilter, we make "maxwell_filter"

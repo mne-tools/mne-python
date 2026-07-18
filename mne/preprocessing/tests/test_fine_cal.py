@@ -240,7 +240,7 @@ def test_compute_fine_cal(kind):
         pytest.param("kit", marks=[pytest.mark.ultraslowtest]),  # ~6s
         pytest.param("ctf", marks=[td_mark, pytest.mark.ultraslowtest]),  # ~13s
         pytest.param("fil", marks=[td_mark]),  # ~3s
-        pytest.param("triux", marks=[td_mark, pytest.mark.ultraslowtest]),  # ~7s
+        pytest.param("triux", marks=[td_mark, pytest.mark.slowtest]),  # ~7s
     ],
 )
 def test_fine_cal_systems(system, tmp_path):

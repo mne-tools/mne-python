@@ -31,4 +31,4 @@ def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # 
 
 def setup(app):
     app.add_role("unit", unit_role)
-    return {"parallel_read_safe": True, "parallel_write_safe": True}
+    return

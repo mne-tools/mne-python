@@ -15,9 +15,7 @@ pytest.importorskip("nibabel")
 def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     """Test GUI API."""
     import contextlib
-    import os
     import warnings
-    from unittest import mock
 
     import mne
 
@@ -33,14 +31,8 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
         mne.viz.set_3d_backend("notebook")
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
 
-    # theme -- drop the MNE_3D_OPTION_THEME that the options_3d fixture pins to
-    # "light" (it takes precedence via get_config), so the bad path is actually
-    # used and warns.
-    with (
-        mock.patch.dict(os.environ),
-        warnings.catch_warnings(record=True) as w,
-    ):
-        os.environ.pop("MNE_3D_OPTION_THEME", None)
+    # theme
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         renderer._window_set_theme("/does/not/exist")
     if backend == "qt":

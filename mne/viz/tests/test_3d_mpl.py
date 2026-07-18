@@ -153,7 +153,6 @@ def test_plot_volume_source_estimates_morph():
         )
 
 
-@pytest.mark.slowtest  # can be slow on Windows
 @testing.requires_testing_data
 def test_plot_volume_source_estimates_on_vol_labels():
     """Test plot of source estimate on srcs setup on 2 labels."""
