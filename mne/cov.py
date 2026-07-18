@@ -1148,8 +1148,7 @@ def compute_covariance(
             for n_epoch, mean in zip(n_epochs, data_mean)
         ]
 
-    with info._skip_checks():  # info is already consistent
-        info = pick_info(info, picks_meeg)
+    info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
     epochs = [ee.get_data(picks=picks_meeg)[..., tslice] for ee in epochs]
     picks_meeg = np.arange(len(picks_meeg))
@@ -2147,8 +2146,7 @@ def regularize(
                     )
         else:
             this_picks = pick_channels(info["ch_names"], this_ch_names)
-            with info._skip_checks():  # info is already consistent
-                this_info = pick_info(info, this_picks)
+            this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
             _, eigvec, mask = _smart_eigh(this_C, this_info, rank)

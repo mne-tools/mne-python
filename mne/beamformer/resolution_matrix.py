@@ -67,8 +67,7 @@ def _get_matrix_from_lcmv(filters, forward, info, verbose=None):
         Inverse matrix associated with LCMV beamformer filters.
     """
     # number of channels for identity matrix
-    with info._skip_checks():  # info is already consistent
-        info = pick_info(info, pick_channels(info["ch_names"], filters["ch_names"]))
+    info = pick_info(info, pick_channels(info["ch_names"], filters["ch_names"]))
     n_chs = len(info["ch_names"])
 
     # create identity matrix as input for inverse operator

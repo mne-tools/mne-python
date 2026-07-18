@@ -11,7 +11,6 @@ from mne.utils import ArgvSetter, _replace_md5
 
 def setup(app):
     app.connect("builder-inited", generate_commands_rst)
-    return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 
 def setup_module():

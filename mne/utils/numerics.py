@@ -29,6 +29,7 @@ from ..fixes import (
 )
 from ._logging import logger, verbose, warn
 from .check import (
+    _check_pandas_installed,
     _ensure_int,
     _validate_type,
     check_random_state,
@@ -776,6 +777,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) is not type(b):
         # Deal with NamedInt and NamedFloat
@@ -836,11 +838,7 @@ def object_diff(a, b, pre="", *, allclose=False):
             c.eliminate_zeros()
             if c.nnz > 0:
                 out += pre + (f" sparse matrix a and b differ on {c.nnz} elements")
-    elif (pd := sys.modules.get("pandas")) is not None and isinstance(a, pd.DataFrame):
-        # Detect a DataFrame via sys.modules rather than importing pandas: if
-        # ``a`` is a DataFrame then pandas is necessarily already imported. This
-        # avoids a (sometimes very slow) first-time ``import pandas`` on the hot
-        # object_diff path when no DataFrame is present.
+    elif pd and isinstance(a, pd.DataFrame):
         try:
             pd.testing.assert_frame_equal(a, b)
         except AssertionError:

@@ -8,7 +8,6 @@ from os import path as op
 
 def setup(app):
     app.connect("builder-inited", generate_name_links_rst)
-    return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 
 def setup_module():

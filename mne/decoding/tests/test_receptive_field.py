@@ -264,7 +264,6 @@ def test_receptive_field_basic(n_jobs):
         ReceptiveField(tmin, tmax, 1.0, scoring="foo").fit(X, y)
 
 
-@pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 def test_time_delaying_fast_calc(n_jobs):
     """Test time delaying and fast calculations."""

@@ -32,14 +32,15 @@ jobs:
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
-    # macOS spawns children and runs slowtests, so it needs a bit more headroom
-    timeout-minutes: ${{ startsWith(matrix.os, 'macos') && 40 || 30 }}
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -el {0}
     env:
-      PYTHON_VERSION: '${{ matrix.python }}'  # used by github_actions_env_vars.sh
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -145,7 +146,7 @@ jobs:
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
-        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
       - uses: actions/cache@v6.1.0
@@ -157,5 +158,4 @@ jobs:
       - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        # COV_ARGS is empty on jobs where we don't measure coverage (Python < 3.14)
-        if: (success() || failure()) && env.COV_ARGS != ''
+        if: success() || failure()

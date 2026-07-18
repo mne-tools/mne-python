@@ -48,8 +48,7 @@ def _apply_rap_music(
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     """
-    with info._skip_checks():  # info is already consistent
-        info = pick_info(info, picks)
+    info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation
     align = forward["source_nn"].copy()

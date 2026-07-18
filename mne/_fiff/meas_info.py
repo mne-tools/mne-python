@@ -7,7 +7,6 @@ import datetime
 import operator
 import re
 import string
-import weakref
 from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
@@ -1153,17 +1152,18 @@ class MNEBadsList(list):
 
     def __init__(self, *, bads, info):
         _check_bads_info_compat(bads, info)
-        # avoid an info <-> bads reference cycle
-        self._mne_info = weakref.ref(info)
+        self._mne_info = info
         super().__init__(bads)
 
     def extend(self, iterable):
         if not isinstance(iterable, list):
             iterable = list(iterable)
-        # info may be absent (during unpickling) or already gone (dead weakref)
-        info_ref = getattr(self, "_mne_info", None)
-        info = info_ref() if info_ref is not None else None
-        if info is not None:
+        # can happen during pickling
+        try:
+            info = self._mne_info
+        except AttributeError:
+            pass  # can happen during pickling
+        else:
             _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
@@ -1173,11 +1173,6 @@ class MNEBadsList(list):
     def __iadd__(self, x):
         self.extend(x)
         return self
-
-    def __reduce__(self):
-        # The weakref is not picklable, and the parent Info re-wraps it as an
-        # MNEBadsList (via __setitem__) on load.
-        return (list, (list(self),))
 
 
 # As options are added here, test_meas_info.py:test_info_bad should be updated
@@ -1822,19 +1817,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         finally:
             self._unlocked = state
 
-    @contextlib.contextmanager
-    def _skip_checks(self):
-        """Skip ``_check_consistency()`` on this instance within the block."""
-        # dominates frequently used pick/copy operations an already-consistent info
-        # flag is transient: not pickled (see ``__getstate__``) and ``__deepcopy__``
-        # builds a fresh instance
-        prev = getattr(self, "_no_check", False)
-        self._no_check = True
-        try:
-            yield
-        finally:
-            self._no_check = prev
-
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
 
@@ -1961,18 +1943,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "ch_names":
                 # we know it's list of str, shallow okay and saves ~100 µs
                 result[k] = v.copy()
-            elif k == "dig":
-                # DigPoint has a fast __deepcopy__ (only copies its "r" array);
-                # calling it directly avoids the generic list-deepcopy dispatch.
-                # dig is almost always DigPoints, but can hold plain dicts (e.g.
-                # appended directly), which lack __deepcopy__; fall back for those.
-                if v is None:
-                    result[k] = None
-                else:
-                    try:
-                        result[k] = [d.__deepcopy__(memodict) for d in v]
-                    except AttributeError:
-                        result[k] = deepcopy(v, memodict)
             elif k == "hpi_meas":
                 hms = list()
                 for hm in v:
@@ -1996,8 +1966,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def _check_consistency(self, prepend_error=""):
         """Do some self-consistency checks and datatype tweaks."""
-        if getattr(self, "_no_check", False):
-            return
         meas_date = self.get("meas_date")
         if meas_date is not None:
             if (

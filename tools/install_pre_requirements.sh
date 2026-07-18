@@ -6,12 +6,6 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
-# Many deps below are pulled from GitHub/GitLab archives (codeload.github.com),
-# which intermittently stalls mid-download and yields a fatal pip ReadTimeoutError.
-# Give every pip call a longer socket timeout and extra retries so these
-# transient network hiccups don't fail the whole job.
-export PIP_DEFAULT_TIMEOUT=60
-export PIP_RETRIES=10
 STD_ARGS="--progress-bar off --upgrade --pre"
 if [[ "$MNE_QT_BACKEND" == "" ]]; then
 	MNE_QT_BACKEND="PySide6"
@@ -30,7 +24,7 @@ python -m pip install $STD_ARGS pip setuptools packaging \
 python -m pip uninstall -yq numpy
 echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
-python -m pip install $STD_ARGS --only-binary ":all:" \
+python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.5.0.dev0" \
 	"scipy>=1.18.0.dev0" \

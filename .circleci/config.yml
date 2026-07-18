@@ -110,10 +110,10 @@ jobs:
             curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
             fc-cache -f
 
-      # Load uv cache
+      # Load pip cache
       - restore_cache:
           keys:
-            - uv-cache-0
+            - pip-cache-1
       - restore_cache:
           keys:
             - user-install-bin-cache-310
@@ -125,9 +125,9 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: uv-cache-0
+          key: pip-cache-1
           paths:
-            - ~/.cache/uv
+            - ~/.cache/pip
       - save_cache:
           key: user-install-bin-cache-310
           paths:
@@ -442,7 +442,7 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - uv-cache-0
+            - pip-cache-1
       - run:
           name: Get Python running
           command: |
