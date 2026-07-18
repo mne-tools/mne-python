@@ -588,10 +588,10 @@ def test_export_epochs_eeglab(tmp_path, preload):
 
 
 def test_export_epochs_eeglab_after_drop(tmp_path):
-    """Test EEGLAB event mapping after dropping epochs."""
+    """Test EEGLAB event mapping after dropping epochs with tmax=0."""
     pytest.importorskip("eeglabio", minversion="0.1.2")
     sfreq = 100.0
-    n_epochs, n_times = 5, 31
+    n_epochs, n_times = 5, 11
     info = create_info(["Cz"], sfreq, "eeg")
     data = np.zeros((n_epochs, 1, n_times))
     events = np.column_stack(
@@ -605,6 +605,7 @@ def test_export_epochs_eeglab_after_drop(tmp_path):
     epochs = EpochsArray(
         data, info, events=events, event_id=event_id, tmin=-0.1, verbose=False
     )
+    assert epochs.tmax == 0
     epochs.drop([1, 3])
     assert_array_equal(epochs.selection, [0, 2, 4])
 
