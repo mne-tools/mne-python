@@ -7,12 +7,15 @@ if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
 elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
   # detect arch and run slowtest on arm64 only (pgtest is already ultraslow on macOS)
   if [[ "$(uname -m)" == "arm64" ]]; then
-    # DIAGNOSTIC (do not merge): single invocation with pvtest INCLUDED, to
-    # reproduce the shutdown hang for SSH + py-spy analysis
-    # (tools/macos_hang_diag.sh). The real fix splits pvtest into its own
-    # invocation (see git history). Pair this with `[actions ssh]` and
-    # timeout-minutes: 60 on the macOS job so there is a ~40 min live window.
-    CONDITIONS=("not (ultraslowtest or pgtest)")
+    # Split the PyVista/VTK ("pvtest") tests into their own xdist invocation.
+    # Run all together, a worker that accumulates heavy state (loky pools,
+    # leftover ipykernel/jupyter_client asyncio loops, tqdm monitors) creates
+    # the scheduling jitter that trips an xdist loadscope dispatch deadlock at
+    # end-of-run: workers idle in TestQueue.get, controller loops forever in
+    # dsession.loop_once without dispatching the remaining scopes or SHUTDOWN
+    # (see pytest-xdist#1313). Two shorter, lighter invocations avoid it while
+    # keeping parallelism; pvtest alone under xdist does not hang.
+    CONDITIONS=("not (ultraslowtest or pgtest or pvtest)" "pvtest and not ultraslowtest")
   else
     CONDITIONS=("not (slowtest or pgtest)")
   fi

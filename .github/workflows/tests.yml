@@ -33,8 +33,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     # macOS spawns children and runs slowtests, so it needs a bit more headroom
-    # (DIAGNOSTIC: 60 not 40, to leave a live SSH window while the hang is held)
-    timeout-minutes: ${{ startsWith(matrix.os, 'macos') && 60 || 30 }}
+    timeout-minutes: ${{ startsWith(matrix.os, 'macos') && 40 || 30 }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
