@@ -1153,10 +1153,7 @@ class MNEBadsList(list):
 
     def __init__(self, *, bads, info):
         _check_bads_info_compat(bads, info)
-        # Weak ref to avoid an info <-> bads reference cycle. A strong ref made
-        # copying the (usually tiny) bads list drag the whole Info along -- e.g.
-        # in Info.__deepcopy__, dominating info.copy() -- and kept the cycle alive
-        # for the garbage collector.
+        # avoid an info <-> bads reference cycle
         self._mne_info = weakref.ref(info)
         super().__init__(bads)
 
@@ -1178,9 +1175,8 @@ class MNEBadsList(list):
         return self
 
     def __reduce__(self):
-        # The weakref is not picklable, and we don't want to drag the whole Info
-        # into pickles/copies, so serialize as a plain list. The parent Info
-        # re-wraps it as an MNEBadsList (via __setitem__) on load.
+        # The weakref is not picklable, and the parent Info re-wraps it as an
+        # MNEBadsList (via __setitem__) on load.
         return (list, (list(self),))
 
 
@@ -1828,16 +1824,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     @contextlib.contextmanager
     def _skip_checks(self):
-        """Skip ``_check_consistency()`` on this instance within the block.
-
-        Consistency checking is ``O(n_channels)`` and dominates hot paths that
-        pick/copy an already-consistent info repeatedly (see ``pick_info``). Wrap
-        such work in this context manager when the info is known to be consistent.
-        The flag is transient: it is not pickled (see ``__getstate__``) and not
-        propagated to copies (``__deepcopy__`` builds a fresh instance), so any
-        info produced *inside* the block (e.g. the copy returned by ``pick_info``)
-        is still validated normally.
-        """
+        """Skip ``_check_consistency()`` on this instance within the block."""
+        # dominates frequently used pick/copy operations an already-consistent info
+        # flag is transient: not pickled (see ``__getstate__``) and ``__deepcopy__``
+        # builds a fresh instance
         prev = getattr(self, "_no_check", False)
         self._no_check = True
         try:
@@ -1973,9 +1963,16 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 result[k] = v.copy()
             elif k == "dig":
                 # DigPoint has a fast __deepcopy__ (only copies its "r" array);
-                # calling it directly avoids the generic list-deepcopy dispatch
-                # overhead (~2x faster when there are many points).
-                result[k] = None if v is None else [d.__deepcopy__(memodict) for d in v]
+                # calling it directly avoids the generic list-deepcopy dispatch.
+                # dig is almost always DigPoints, but can hold plain dicts (e.g.
+                # appended directly), which lack __deepcopy__; fall back for those.
+                if v is None:
+                    result[k] = None
+                else:
+                    try:
+                        result[k] = [d.__deepcopy__(memodict) for d in v]
+                    except AttributeError:
+                        result[k] = deepcopy(v, memodict)
             elif k == "hpi_meas":
                 hms = list()
                 for hm in v:
