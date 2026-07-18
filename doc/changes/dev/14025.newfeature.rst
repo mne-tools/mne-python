@@ -1,1 +1,1 @@
-Add ``TimeChange`` behaviour for :func:`mne.viz.plot_evoked`, where time is marked with solid vertical line, by `Lifeng Qiu Lin`_.
+Add ``TimeChange`` behaviour for :func:`mne.viz.plot_evoked`, where vertical time cursor is previewed on hover and marked on click. Also change previous channel names pop-up on click to on hover, by `Lifeng Qiu Lin`_.
