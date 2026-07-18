@@ -82,7 +82,7 @@ def test_plot_ica_components():
         )
     plt.close("all")
 
-    # TODO: non-GUI FigureManagerBase.get_window_title() always returned "image" before
+    # TODO VERSION: non-GUI get_window_title() always returned "image" before
     # matplotlib 3.10.3; simplify once that's the minimum supported version (currently
     # the "old" job pins matplotlib 3.9.0)
     if check_version("matplotlib", "3.10.3"):
