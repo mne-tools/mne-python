@@ -1219,7 +1219,7 @@ class Brain:
         def on_surface_hover(iren, event):
             self._on_surface_hover(iren, event)
 
-        self.plotter.AddObserver("MouseMoveEvent", on_surface_hover)
+        self.plotter.iren.add_observer("MouseMoveEvent", on_surface_hover)
 
     def _on_surface_hover(self, iren, event):  # event == "MouseMoveEvent"
         if not self._show_hover_info:

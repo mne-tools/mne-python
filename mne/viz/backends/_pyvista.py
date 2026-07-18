@@ -851,10 +851,12 @@ class _PyVistaRenderer(_AbstractRenderer):
         axis.SetTickVisibility(True)
         axis.GetProperty().SetColor(*bar_actor.GetLabelTextProperty().GetColor())
 
-        def reposition(caller, event):
+        def reposition(_caller, _event):
             self.reposition_scalarbar_ticks(bar_actor, axis)
 
-        self.plotter.iren.add_observer(vtkCommand.RenderEvent, reposition)
+        self.reposition_scalarbar_ticks(bar_actor, axis)
+        if self.plotter.iren is not None:
+            self.plotter.iren.add_observer(vtkCommand.RenderEvent, reposition)
         self.plotter.renderer.AddActor(axis)
         _hide_testing_actor(axis)
         return axis
