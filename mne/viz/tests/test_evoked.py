@@ -229,12 +229,33 @@ def test_plot_evoked():
     line_clr = [x.get_color() for x in fig.axes[0].get_lines()]
     assert not np.all(np.isnan(line_clr) & (line_clr == 0))
 
-    # test time selection by clicking on the plot
+    # test hover and click functions
     epochs = _get_epochs()
     evoked = epochs.average()
     fig = evoked.plot(picks="mag")
     ax = fig.axes[0]
 
+    # test hover
+    # check cursorline is created on hover
+    assert not hasattr(ax, "_cursorline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="motion")
+    assert hasattr(ax, "_cursorline")
+    assert ax._cursorline.get_xdata()[0] == 0.0
+    # check if text of channel name is displayed due to hover
+    text = ax.texts[0]
+    assert text.get_alpha() == 0.0
+    traces = [
+        line
+        for line in ax.get_lines()
+        if line.get_picker() and len(line.get_xdata()) > 3
+    ]
+    trace = traces[0]  # pick the first trace (MEG 0111)
+    x, y = trace.get_xdata(), trace.get_ydata()
+    i = len(x) // 2
+    _fake_click(fig, ax, (x[i], y[i]), xform="data", kind="motion")
+    assert text.get_alpha() == 1.0
+
+    # test click
     assert not hasattr(ax, "_selectline")
     _fake_click(fig, ax, (0.5, 0.5), kind="press")
     assert hasattr(ax, "_selectline")
