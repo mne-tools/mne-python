@@ -58,7 +58,8 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     # on Darwin these checks get complicated, so don't bother for now
     if platform.system() == "Darwin":
         pytest.skip("Problems on macOS")
-    if theme == "light" and darkdetect.theme().lower() != "light":
+    real_theme = darkdetect.theme()
+    if theme == "light" and real_theme is not None and real_theme.lower() != "light":
         # Below we fake darkdetect reporting "light" so that no stylesheet
         # override gets applied and we can check that Qt's native rendering
         # is light by default. But on some desktop environments (e.g.,
