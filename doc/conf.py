@@ -2148,8 +2148,25 @@ def rstjinja(app, docname, source):
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
+def _mark_jupyterlite_parallel_safe(app):
+    """Declare jupyterlite_sphinx safe for Sphinx's parallel (-j) read phase.
+
+    The jupyterlite-sphinx version pinned by our JupyterLite/Pyodide stack
+    (0.9.3) predates the ``parallel_read_safe`` metadata that newer releases
+    declare, so the doc build's ``-j auto`` emits a "does not declare if it is
+    safe for parallel reading" warning that ``-W`` turns into a build error.
+    Newer jupyterlite-sphinx marks it read-safe; set the same flag here rather
+    than bumping the pin (which would drag the whole pinned Pyodide stack
+    forward and risk the browser build).
+    """
+    ext = app.extensions.get("jupyterlite_sphinx")
+    if ext is not None and ext.parallel_read_safe is None:
+        ext.parallel_read_safe = True
+
+
 def setup(app):
     """Set up the Sphinx app."""
+    app.connect("builder-inited", _mark_jupyterlite_parallel_safe, priority=1)
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
