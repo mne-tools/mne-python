@@ -1,0 +1,1 @@
+Fix :class:`mne.io.RawArray` constructor metadata retaining stale array data after operations replace the active data, by :newcontrib:`Floze`.
