@@ -1790,10 +1790,8 @@ def _sensor_shape(coil):
     else:
         # 3D convex hull (will fail for 2D geometry). This depends on the full
         # (per-channel) integration geometry, so it is not cached.
-        try:
-            from scipy.spatial import QhullError
-        except ImportError:  # scipy < 1.8
-            from scipy.spatial.qhull import QhullError
+        from scipy.spatial import QhullError
+
         rrs = coil["rmag_orig"].copy()
         try:
             tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
