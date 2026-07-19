@@ -866,7 +866,6 @@ def sys_info(
             "refleak",
             "codespell",
             "ipython",
-            "mypy",
             "pillow",
             "pre-commit",
             "ruff",

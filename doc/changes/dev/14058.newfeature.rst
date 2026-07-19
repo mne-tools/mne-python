@@ -1,0 +1,1 @@
+:func:`mne.viz.plot_ica_components` and :meth:`mne.preprocessing.ICA.plot_components` now set the window title to "Independent Components" instead of adding a suptitle and append the plotted component range when it is contiguous, by `Clemens Brunner`_.

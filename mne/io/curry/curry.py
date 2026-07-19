@@ -42,6 +42,13 @@ CURRY_SUFFIX_HDR = [".cdt.dpa", ".cdt.dpo", ".dap"]
 CURRY_SUFFIX_LABELS = [".cdt.dpa", ".cdt.dpo", ".rs3"]
 
 
+def _search(pattern, text):
+    """Search ``text`` for ``pattern`` and return the (guaranteed) match."""
+    match = re.compile(pattern).search(text)
+    assert match is not None
+    return match
+
+
 def _get_curry_version(fname):
     """Check out the curry file version."""
     fname_hdr = _check_curry_header_filename(_check_curry_filename(fname))
@@ -50,16 +57,10 @@ def _get_curry_version(fname):
         "Curry 7"
         if ".dap" in str(fname_hdr)
         else "Curry 8"
-        if re.compile(r"FileVersion\s*=\s*[0-9]+")
-        .search(content_hdr)
-        .group(0)
-        .split()[-1][0]
+        if _search(r"FileVersion\s*=\s*[0-9]+", content_hdr).group(0).split()[-1][0]
         == "8"
         else "Curry 9"
-        if re.compile(r"FileVersion\s*=\s*[0-9]+")
-        .search(content_hdr)
-        .group(0)
-        .split()[-1][0]
+        if _search(r"FileVersion\s*=\s*[0-9]+", content_hdr).group(0).split()[-1][0]
         == "9"
         else None
     )
@@ -123,12 +124,8 @@ def _check_curry_labels_filename(fname):
 
 def _check_curry_sfreq_consistency(fname_hdr):
     content_hdr = fname_hdr.read_text()
-    stime = float(
-        re.compile(r"SampleTimeUsec\s*=\s*.+").search(content_hdr).group(0).split()[-1]
-    )
-    sfreq = float(
-        re.compile(r"SampleFreqHz\s*=\s*.+").search(content_hdr).group(0).split()[-1]
-    )
+    stime = float(_search(r"SampleTimeUsec\s*=\s*.+", content_hdr).group(0).split()[-1])
+    sfreq = float(_search(r"SampleFreqHz\s*=\s*.+", content_hdr).group(0).split()[-1])
     if stime == 0:
         raise ValueError("Header file indicates a sampling interval of 0µs.")
     if not np.isclose(1e6 / stime, sfreq):
@@ -150,7 +147,7 @@ def _get_curry_meas_info(fname):
 
     # read meas_date
     meas_date = [
-        int(re.compile(rf"{v}\s*=\s*-?\d+").search(content_hdr).group(0).split()[-1])
+        int(_search(rf"{v}\s*=\s*-?\d+", content_hdr).group(0).split()[-1])
         for v in [
             "StartYear",
             "StartMonth",
@@ -162,21 +159,15 @@ def _get_curry_meas_info(fname):
         ]
     ]
     try:
+        year, month, day, hour, minute, second, millisec = meas_date
         meas_date = datetime(
-            *meas_date[:-1],
-            meas_date[-1] * 1000,  # -> microseconds
-            timezone.utc,
+            year, month, day, hour, minute, second, millisec * 1000, timezone.utc
         )
     except Exception:
         meas_date = None
 
     # read datatype
-    byteorder = (
-        re.compile(r"DataByteOrder\s*=\s*[A-Z]+")
-        .search(content_hdr)
-        .group()
-        .split()[-1]
-    )
+    byteorder = _search(r"DataByteOrder\s*=\s*[A-Z]+", content_hdr).group().split()[-1]
     is_ascii = byteorder == "ASCII"
 
     # amplifier info
@@ -186,8 +177,7 @@ def _get_curry_meas_info(fname):
     # TODO - FUTURE ENHANCEMENT
     # # there can be filter details in AmplifierInfo, too
     amp_info = (
-        re.compile(r"AmplifierInfo\s*=.*\n")
-        .search(content_hdr)
+        _search(r"AmplifierInfo\s*=.*\n", content_hdr)
         .group()
         .strip("\n")
         .split("= ")[-1]
@@ -573,6 +563,7 @@ def _set_chanloc_curry(
             # transform mode
             pos = ch_loc[:3]  # just the inner coil for MEG
             pos = apply_trans(curry_dev_dev_t, pos)
+            assert ch_normals_meg is not None
             nn = ch_normals_meg[i]
             assert np.isclose(np.linalg.norm(nn), 1.0, atol=1e-4)
             nn /= np.linalg.norm(nn)
@@ -748,7 +739,7 @@ def read_raw_curry(
         inst = Epochs(inst, **curry_epoch_info)
         if rectype == "evoked":
             raise NotImplementedError  # not sure this is even supported format
-    return inst
+    return inst  # ty: ignore[invalid-return-type]  # epochs branch
 
 
 class RawCurry(BaseRaw):
@@ -863,9 +854,9 @@ class RawCurry(BaseRaw):
         if self._raw_extras[fi]["is_ascii"]:
             if isinstance(idx, slice):
                 idx = np.arange(idx.start, idx.stop)
-            block = np.loadtxt(
-                self.filenames[0], skiprows=start, max_rows=stop - start, ndmin=2
-            ).T
+            fname = self.filenames[0]
+            assert fname is not None
+            block = np.loadtxt(fname, skiprows=start, max_rows=stop - start, ndmin=2).T
             _mult_cal_one(data, block, idx, cals, mult)
 
         else:

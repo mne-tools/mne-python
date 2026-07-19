@@ -21,6 +21,7 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 # of :class:`mne.viz.Brain` for plotting data on a brain.
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
@@ -208,3 +209,62 @@ brain.add_data(
     smoothing_steps=5,
 )
 brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
+
+# %%
+# Composite two overlays simultaneously
+# --------------------------------------
+#
+# Pass ``remove_existing=False`` and a distinct ``key`` to keep the first
+# overlay visible while adding a second one on top.  The two layers are
+# alpha-composited by :class:`~mne.viz.LayeredMesh` so both datasets appear
+# at the same time.
+#
+# Here we simulate two focal patches of activity evolving over time in
+# different brain regions: a temporal source (red/hot) that peaks early and
+# a frontal source (blue) that peaks later.  In the interactive viewer an
+# "Overlay" drop-down appears in the *Color Limits* panel — use it to switch
+# which overlay's limits and smoothing the sliders control.
+
+brain = mne.viz.Brain(
+    "sample",
+    subjects_dir=subjects_dir,
+    hemi="lh",
+    alpha=0.1,
+    background="white",
+    cortex="low_contrast",
+)
+coords = brain.geo["lh"].coords  # vertex positions in mm
+
+
+def gaussian_patch(coords, center, sigma=15.0):
+    """Gaussian blob of activity centred on a surface coordinate (mm)."""
+    d = np.linalg.norm(coords - center, axis=1)
+    return np.exp(-(d**2) / (2 * sigma**2))
+
+
+temporal = gaussian_patch(coords, center=np.array([-52.0, -18.0, -8.0]))
+brain.add_data(
+    temporal,
+    hemi="lh",
+    fmin=0.1,
+    fmax=1.5,
+    colormap="hot",
+    transparent=True,
+    key="temporal",
+    smoothing_steps=5,
+)
+
+frontal = gaussian_patch(coords, center=np.array([-38.0, 28.0, 46.0]))
+brain.add_data(
+    frontal,
+    hemi="lh",
+    fmin=0.1,
+    fmax=0.6,
+    colormap="Blues",
+    transparent=True,
+    alpha=0.5,
+    key="frontal",
+    remove_existing=False,
+    smoothing_steps=5,
+)
+brain.show_view(azimuth=180, elevation=70, distance=380, focalpoint=(0, 10, 20))

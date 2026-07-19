@@ -5,6 +5,8 @@
 import importlib
 import inspect
 import re
+import types
+import typing
 from pathlib import Path
 from pkgutil import walk_packages
 
@@ -61,6 +63,14 @@ pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
 numpydoc_checks = pyproject["tool"]["numpydoc_validation"]["checks"]
 assert numpydoc_checks[0] == "all"
 error_ignores = set(numpydoc_checks[1:])
+
+# The modules that ty type-checks strictly (see ``[tool.ty.src]`` in pyproject.toml);
+# here we also enforce that their type hints agree with the rendered docstrings.
+typed_modules = tuple(
+    path.removesuffix(".py").replace("/", ".")
+    for path in pyproject["tool"]["ty"]["src"]["include"]
+)
+assert typed_modules, "Could not find typed modules in [tool.ty.src] include"
 
 
 def _func_name(func, cls=None):
@@ -352,6 +362,117 @@ def test_documented():
         raise AssertionError(
             f"{len(missing)} new public member{_pl(missing)} missing from "
             "doc/python_reference.rst:\n" + "\n".join(missing)
+        )
+
+
+def _annotation_to_str(ann):
+    """Render a type annotation as a module-stripped string."""
+    origin = typing.get_origin(ann)
+    if origin in (typing.Union, getattr(types, "UnionType", None)):
+        return " | ".join(_annotation_to_str(a) for a in typing.get_args(ann))
+    if origin is not None:  # e.g. list[Evoked], dict[str, int], tuple[int, ...]
+        args = typing.get_args(ann)
+        name = getattr(origin, "__name__", str(origin))
+        if args:
+            return f"{name}[{', '.join(_annotation_to_str(a) for a in args)}]"
+        return name
+    if isinstance(ann, str):  # unevaluated forward reference, e.g. "EpochsFIF"
+        return ann
+    if ann is type(None):
+        return "None"
+    return getattr(ann, "__name__", str(ann))
+
+
+def _type_atoms(type_str):
+    """Reduce a type string to a canonical set of union members.
+
+    Handles both numpydoc docstring types (``instance of X``, ``A or B``,
+    ``list of X``) and annotation strings (``A | B``, ``list[X]``) so the two
+    can be compared, stripping any module qualifiers (``mne.evoked.Evoked`` and
+    ``numpy.ndarray`` become ``Evoked`` and ``ndarray``).
+    """
+    s = re.sub(r"\binstance of\b", "", type_str)
+    s = re.sub(r"\blist of (\w+)\b", r"list[\1]", s)  # -> same shape as list[X]
+    s = s.replace(" or ", "|")
+    atoms = set()
+    for part in s.split("|"):
+        part = re.sub(r"[\w\.]*\.(\w+)", r"\1", part.strip())  # drop module paths
+        part = part.strip(" .,;:")  # drop stray surrounding punctuation
+        if part:
+            atoms.add(part)
+    return atoms
+
+
+def _defined_under(obj, name):
+    """Return whether ``obj`` is defined in the ``name`` module or a submodule."""
+    module_name = inspect.getmodule(obj).__name__
+    return module_name == name or module_name.startswith(f"{name}.")
+
+
+def _check_type_hints(func, *, cls, where, incorrect):
+    """Compare a callable's type hints against its numpydoc docstring types."""
+    from numpydoc.docscrape import FunctionDoc
+
+    name = _func_name(func, cls)
+    sig = inspect.signature(func)
+    doc = FunctionDoc(func)
+    # documented types, keyed by parameter name (and "return")
+    doc_types = {p.name: p.type for p in doc["Parameters"] if p.name and p.type}
+    returns = [r.type for r in doc["Returns"] if r.type]
+    if len(returns) == 1:  # skip multi-value (tuple) returns for simplicity
+        doc_types["return"] = returns[0]
+
+    checks = [
+        (pname, param.annotation)
+        for pname, param in sig.parameters.items()
+        if pname not in ("self", "cls")
+        and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+        and param.annotation is not inspect.Parameter.empty
+    ]
+    if sig.return_annotation is not inspect.Signature.empty:
+        checks.append(("return", sig.return_annotation))
+
+    for target, annotation in checks:
+        if target not in doc_types:  # not documented (or not comparably); skip
+            continue
+        # ``Self`` describes the (sub)class, which docstrings spell out concretely
+        if _annotation_to_str(annotation) == "Self":
+            continue
+        ann_atoms = {a.lower() for a in _type_atoms(_annotation_to_str(annotation))}
+        doc_atoms = {d.lower() for d in _type_atoms(doc_types[target])}
+        if ann_atoms != doc_atoms:
+            incorrect.append(
+                f"{where} : {name} : {target} : type hint "
+                f"{sorted(ann_atoms)} != docstring {sorted(doc_atoms)}"
+            )
+
+
+@pytest.mark.slowtest
+def test_type_hints_match_docstrings():
+    """Test that type hints agree with numpydoc-rendered docstring types."""
+    pytest.importorskip("numpydoc")
+    pytest.importorskip("sklearn")
+
+    incorrect = []
+    for name in typed_modules:
+        module = __import__(name, globals())
+        for submod in name.split(".")[1:]:
+            module = getattr(module, submod)
+        for cname, cls in inspect.getmembers(module, inspect.isclass):
+            if cname.startswith("_") or not _defined_under(cls, name):
+                continue
+            for mname, method in inspect.getmembers(cls, inspect.isfunction):
+                if not mname.startswith("_"):
+                    _check_type_hints(method, cls=cls, where=name, incorrect=incorrect)
+        for fname, func in inspect.getmembers(module, inspect.isfunction):
+            if not fname.startswith("_") and _defined_under(func, name):
+                _check_type_hints(func, cls=None, where=name, incorrect=incorrect)
+
+    incorrect = sorted(set(incorrect))
+    if incorrect:
+        raise AssertionError(
+            f"{len(incorrect)} type hint / docstring mismatch{_pl(incorrect)} "
+            f"found:\n" + "\n".join(incorrect)
         )
 
 

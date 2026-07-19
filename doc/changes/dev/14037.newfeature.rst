@@ -1,0 +1,1 @@
+When multiple overlays are active (via ``remove_existing=False`` in :meth:`~mne.viz.Brain.add_data`), the interactive Brain viewer now shows an "Overlay" drop-down in the *Color Limits* dock panel that lets the user switch which overlay's color limits and smoothing the sliders control. By `Payam Sadeghi-Shabestari`_.

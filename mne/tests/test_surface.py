@@ -19,10 +19,13 @@ from mne import (
 from mne._fiff.constants import FIFF
 from mne.channels import make_dig_montage
 from mne.datasets import testing
+from mne.fixes import has_numba
 from mne.io import read_info
 from mne.surface import (
     _compute_nearest,
     _get_ico_surface,
+    _get_solids,
+    _get_solids_numpy,
     _marching_cubes,
     _normal_orth,
     _project_onto_surface,
@@ -95,6 +98,31 @@ def test_fast_cross_3d():
     # broadcasting and non-2D
     zz = fast_cross_3d(x[:, np.newaxis], y[0])
     assert_array_equal(z, zz[:, 0])
+
+
+def test_get_solids():
+    """Test the (total) solid angle calculation used to check surface interior."""
+    # the fast (numba) path is only used when numba is actually available
+    assert (_get_solids is _get_solids_numpy) == (not has_numba)
+
+    surf = _get_ico_surface(1)  # a unit-radius icosphere
+    tri_rrs = surf["rr"][surf["tris"]]
+    local_rng = np.random.RandomState(0)
+    inside_pts = np.concatenate(
+        [np.zeros((1, 3)), local_rng.uniform(-0.3, 0.3, (10, 3))]
+    )
+    outside_pts = local_rng.uniform(2, 3, (10, 3))
+    fros = np.concatenate([inside_pts, outside_pts])
+
+    result = _get_solids(tri_rrs, fros)
+    result_numpy = _get_solids_numpy(tri_rrs, fros)
+    assert_allclose(result, result_numpy, atol=1e-10)
+
+    # a fully enclosed point has solid angles summing to 2π; an exterior
+    # point's solid angles cancel out to (approximately) zero
+    outside = np.abs(result / (2 * np.pi) - 1.0) > 1e-5
+    assert not outside[: len(inside_pts)].any()
+    assert outside[len(inside_pts) :].all()
 
 
 def test_compute_nearest():

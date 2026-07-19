@@ -105,6 +105,7 @@ from .utils import (
     verbose,
     warn,
 )
+from .utils._typing import Self
 from .utils.docs import fill_doc
 from .viz import plot_drop_log, plot_epochs, plot_epochs_image, plot_topo_image_epochs
 
@@ -418,6 +419,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -463,6 +465,7 @@ class BaseEpochs(
         metadata=None,
         event_repeated="error",
         *,
+        on_outside="warn",
         raw_sfreq=None,
         annotations=None,
         verbose=None,
@@ -534,6 +537,9 @@ class BaseEpochs(
                 self.selection,
                 self.drop_log,
             )
+
+            # Handle events outside the data range
+            self._check_events_outside_data(on_outside, raw)
 
             # then subselect
             sub = np.where(np.isin(selection, self.selection))[0]
@@ -682,6 +688,7 @@ class BaseEpochs(
             # requested
             # we could do this with np.einsum, but iteration should be
             # more memory safe in most instances
+            assert self._data is not None
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self.filename = filename if filename is not None else filename
@@ -690,6 +697,23 @@ class BaseEpochs(
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
+
+    def _check_events_outside_data(self, on_outside, raw):
+        """Warn when events fall outside the range of the recorded data (gh-12989)."""
+        if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
+            lo = raw.first_samp
+            hi = lo + raw.n_times
+            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
+            if n_oob:
+                _on_missing(
+                    on_outside,
+                    f"{n_oob} event{_pl(n_oob)} {'is' if n_oob == 1 else 'are'} "
+                    f"outside the data range; the corresponding epoch{_pl(n_oob)} "
+                    "cannot be created. This can happen if the events were created at "
+                    "a different sampling frequency, or have entries before "
+                    "first_samp.",
+                    name="on_outside",
+                )
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
@@ -1169,6 +1193,7 @@ class BaseEpochs(
         n_times = len(self.times)
 
         if self.preload:
+            assert self._data is not None
             n_events = len(self.events)
             fun = _check_combine(mode, valid=("mean", "median", "std"))
             data = fun(self._data)
@@ -1317,6 +1342,7 @@ class BaseEpochs(
         butterfly=False,
         show_scrollbars=True,
         show_scalebars=True,
+        show_zero_line=False,
         epoch_colors=None,
         event_id=None,
         group_by="type",
@@ -1346,6 +1372,7 @@ class BaseEpochs(
             butterfly=butterfly,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             epoch_colors=epoch_colors,
             event_id=event_id,
             group_by=group_by,
@@ -1704,6 +1731,7 @@ class BaseEpochs(
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
+            assert self._data is not None
             data = self._data
         else:
             # we start out with an empty array, allocate only if necessary
@@ -1772,6 +1800,7 @@ class BaseEpochs(
                 detrend_picks = self._detrend_picks
             for idx, sel in enumerate(self.selection):
                 if self.preload:  # from memory
+                    assert self._data is not None
                     if self._do_delayed_proj:
                         epoch_noproj = self._data[idx]
                         epoch = self._project_epoch(epoch_noproj)
@@ -1795,6 +1824,7 @@ class BaseEpochs(
                 good_idx.append(idx)
 
                 # store the epoch if there is a reason to (output or update)
+                assert epoch_out is not None
                 if out or self.preload:
                     # faster to pre-allocate, then trim as necessary
                     if n_out == 0 and not self.preload:
@@ -1991,6 +2021,7 @@ class BaseEpochs(
             The epochs object with transformed data.
         """
         _check_preload(self, "epochs.apply_function")
+        assert self._data is not None
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -2122,19 +2153,16 @@ class BaseEpochs(
             event_strings = None
 
         t = _get_html_template("repr", "epochs.html.jinja")
+        fname = self.filename
         t = t.render(
             inst=self,
-            filenames=(
-                [Path(self.filename).name]
-                if getattr(self, "filename", None) is not None
-                else None
-            ),
+            filenames=[Path(fname).name] if fname is not None else None,
             event_counts=event_strings,
         )
         return t
 
     @verbose
-    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None) -> Self:
         """Crop a time interval from the epochs.
 
         Parameters
@@ -2175,7 +2203,7 @@ class BaseEpochs(
             self.reject_tmax = self.tmax
         return self
 
-    def copy(self):
+    def copy(self) -> Self:
         """Return copy of Epochs instance.
 
         Returns
@@ -3489,6 +3517,7 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(verbose)s
 
     Attributes
@@ -3589,6 +3618,8 @@ class Epochs(BaseEpochs):
         reject_by_annotation=True,
         metadata=None,
         event_repeated="error",
+        *,
+        on_outside="warn",
         verbose=None,
     ):
         from .io import BaseRaw
@@ -3648,6 +3679,7 @@ class Epochs(BaseEpochs):
             on_missing=on_missing,
             preload_at_end=preload,
             event_repeated=event_repeated,
+            on_outside=on_outside,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
             annotations=annotations,
@@ -3730,6 +3762,7 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
+    %(on_outside_epochs)s
     %(drop_log)s
 
         .. versionadded:: 1.3
@@ -3779,6 +3812,7 @@ class EpochsArray(BaseEpochs):
         metadata=None,
         selection=None,
         *,
+        on_outside="warn",
         drop_log=None,
         raw_sfreq=None,
         verbose=None,
@@ -3815,6 +3849,7 @@ class EpochsArray(BaseEpochs):
             selection=selection,
             proj=proj,
             on_missing=on_missing,
+            on_outside=on_outside,
             drop_log=drop_log,
             raw_sfreq=raw_sfreq,
             verbose=verbose,
@@ -3827,6 +3862,7 @@ class EpochsArray(BaseEpochs):
         ):
             raise ValueError("The events must only contain event numbers from event_id")
         detrend_picks = self._detrend_picks
+        assert self._data is not None
         for e in self._data:
             # This is safe without assignment b/c there is no decim
             self._detrend_offset_decim(e, detrend_picks)
@@ -4275,7 +4311,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
 
     Returns
     -------
-    epochs : instance of Epochs
+    epochs : instance of EpochsFIF
         The epochs.
     """
     return EpochsFIF(fname, proj, preload, verbose)
@@ -4480,6 +4516,7 @@ class EpochsFIF(BaseEpochs):
         """Load one epoch from disk."""
         # Find the right file and offset to use
         event_samp = self.events[idx, 0]
+        assert self._raw is not None
         for raw in self._raw:
             idx = np.where(raw.event_samps == event_samp)[0]
             if len(idx) == 1:
@@ -4620,15 +4657,26 @@ def _concatenate_epochs(
             )
 
         # compare event_id
-        common_keys = list(set(event_id).intersection(set(epochs.event_id)))
-        for key in common_keys:
-            if not event_id[key] == epochs.event_id[key]:
-                msg = (
-                    "event_id values must be the same for identical keys "
-                    'for all concatenated epochs. Key "{}" maps to {} in '
-                    "some epochs and to {} in others."
-                )
-                raise ValueError(msg.format(key, event_id[key], epochs.event_id[key]))
+        for kind in ("keys", "values"):
+            a = event_id
+            b = epochs.event_id
+            if kind == "keys":
+                other = "values"
+                what = "maps to"
+            else:
+                assert kind == "values"
+                other = "keys"
+                what = "is mapped from"
+                a = {v: k for k, v in a.items()}
+                b = {v: k for k, v in b.items()}
+            common = list(set(a).intersection(set(b)))
+            for k_v in common:
+                if not a[k_v] == b[k_v]:
+                    raise ValueError(
+                        f"event_id {other} must be the same for identical {kind} "
+                        f'for all concatenated epochs. {other} "{k_v}" {what} {a[k_v]} '
+                        f"in epochs_list[0] and to {b[k_v]} in epochs_list[{ii}]."
+                    )
 
         if with_data:
             epochs.drop_bad()

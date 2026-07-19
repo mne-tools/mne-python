@@ -1,0 +1,1 @@
+Document how to check and tune the OpenBLAS thread count when decomposition-heavy operations are unexpectedly slow, by :newcontrib:`Daria Agafonova`.
