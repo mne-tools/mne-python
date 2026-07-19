@@ -50,6 +50,29 @@ class RawArray(BaseRaw):
     * AU: misc
     """
 
+    _extra_attributes = ("_init_kwargs_without_data",)
+
+    @property
+    def _init_kwargs(self):
+        """Return constructor arguments without retaining stale data."""
+        try:
+            kwargs = self._init_kwargs_without_data
+        except AttributeError:
+            # Support instances serialized before ``data`` was stored dynamically.
+            kwargs = self.__dict__.pop("_init_kwargs")
+            self._init_kwargs = kwargs
+            kwargs = self._init_kwargs_without_data
+        if kwargs is None:
+            return None
+        return dict(data=self._data, **kwargs)
+
+    @_init_kwargs.setter
+    def _init_kwargs(self, kwargs):
+        if kwargs is not None:
+            kwargs = kwargs.copy()
+            kwargs.pop("data", None)
+        self._init_kwargs_without_data = kwargs
+
     @verbose
     def __init__(self, data, info, first_samp=0, copy="auto", verbose=None):
         _validate_type(info, "info", "info")

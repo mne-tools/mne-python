@@ -2,6 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import gc
+import pickle
+import weakref
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -72,6 +75,37 @@ def test_array_copy():
     assert raw.info is info
     with pytest.raises(ValueError, match="data copying was not .* copy=None"):
         RawArray(data.astype(np.float32), info, copy=None)
+
+
+def test_array_init_kwargs():
+    """Test that constructor arguments do not retain stale array data."""
+    data = np.zeros((1, 1000))
+    data_ref = weakref.ref(data)
+    raw = RawArray(data, create_info(1, 1000.0, "eeg"))
+
+    init_kwargs = raw._init_kwargs
+    assert isinstance(init_kwargs, dict)
+    assert tuple(init_kwargs) == ("data", "info", "first_samp", "copy", "verbose")
+    assert init_kwargs["data"] is raw._data
+    del init_kwargs, data
+
+    raw.resample(500)
+    gc.collect()
+    assert data_ref() is None
+    assert raw._init_kwargs["data"] is raw._data
+
+    raw_copy = raw.copy()
+    assert raw_copy._init_kwargs["data"] is raw_copy._data
+    assert raw_copy._data is not raw._data
+
+    raw_reconstructed = RawArray(**raw._init_kwargs)
+    assert_allclose(raw_reconstructed.get_data(), raw.get_data())
+    assert repr(raw_reconstructed) == repr(raw)
+
+    raw_unpickled = pickle.loads(pickle.dumps(raw))
+    assert raw_unpickled._init_kwargs["data"] is raw_unpickled._data
+    assert_allclose(raw_unpickled.get_data(), raw.get_data())
+    assert repr(raw_unpickled) == repr(raw)
 
 
 @pytest.mark.slowtest
