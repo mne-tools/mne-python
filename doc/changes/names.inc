@@ -72,6 +72,7 @@
 .. _Daniel McCloy: https://dan.mccloy.info
 .. _Daniel Strohmeier: https://github.com/joewalter
 .. _Daniel Tse: https://github.com/Xiezhibin
+.. _Daria Agafonova: https://github.com/viranovskaya
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
