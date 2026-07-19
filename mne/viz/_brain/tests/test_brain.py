@@ -660,8 +660,8 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
-def test_scalar_bar_ticks_and_title(renderer_interactive_pyvistaqt, brain_gc):
-    """Test scalar bar tick marks and title truncation."""
+def test_scalar_bar_ticks_title_and_hover(renderer_interactive_pyvistaqt, brain_gc):
+    """Test scalar bar tick marks, title truncation, and hover info toggle."""
     long_title = "a" * 40
     brain = _create_testing_brain(
         hemi="lh",
@@ -676,13 +676,7 @@ def test_scalar_bar_ticks_and_title(renderer_interactive_pyvistaqt, brain_gc):
     title = brain._scalar_bar.GetTitle()
     assert title.endswith("…")
     assert len(title) <= 20
-    brain.close()
 
-
-@testing.requires_testing_data
-def test_surface_hover(renderer_interactive_pyvistaqt, brain_gc):
-    """Test vertex/camera hover info toggle."""
-    brain = _create_testing_brain(hemi="lh", show_traces=False)
     assert brain._show_hover_info is False
 
     class MockIren:
