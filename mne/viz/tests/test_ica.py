@@ -66,6 +66,23 @@ def _get_epochs():
     return epochs
 
 
+def _trace_click_xy(fig, trace_idx, sample_idx):
+    """Get data-coordinates to click on a browser trace at a given sample."""
+    trace = fig.mne.traces[trace_idx]
+    x = trace.get_xdata()[sample_idx]
+    y = trace.get_ydata()[sample_idx]
+    if hasattr(trace, "mapToScene"):  # pyqtgraph DataTrace (a QGraphicsItem)
+        # can have a per-trace y-scaling transform that get_ydata() alone misses
+        from pyqtgraph import Point
+
+        scene_pt = trace.mapToScene(
+            Point(trace.xData[sample_idx], trace.yData[sample_idx])
+        )
+        view_pt = fig.mne.viewbox.mapSceneToView(scene_pt)
+        x, y = view_pt.x(), view_pt.y()
+    return x, y
+
+
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     res = 8
@@ -334,7 +351,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica_picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )
-    ica = ICA(n_components=2)
+    ica = ICA(n_components=2, random_state=0)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     if sys.platform == "darwin":  # unknown transformation bug
@@ -346,8 +363,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     fig._redraw()
     assert_array_equal(ica.exclude, [1])
     assert fig.mne.info["bads"] == [ica._ica_names[1]]
-    x = fig.mne.traces[1].get_xdata()[5]
-    y = fig.mne.traces[1].get_ydata()[5]
+    x, y = _trace_click_xy(fig, 1, 5)
     fig._fake_click((x, y), xform="data")  # exclude = []
     assert fig.mne.info["bads"] == []
     assert_array_equal(ica.exclude, [1])  # unchanged
