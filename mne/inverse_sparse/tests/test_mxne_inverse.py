@@ -48,7 +48,7 @@ def forward():
 
 @testing.requires_testing_data
 @pytest.mark.timeout(150)  # ~30 s on Travis Linux
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 def test_mxne_inverse_standard(forward):
     """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
