@@ -10,6 +10,7 @@ from mne_doc_utils import sphinx_logger
 def setup(app):
     app.connect("source-read", check_directive_formatting)
     app.connect("autodoc-process-docstring", check_directive_formatting)
+    return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 
 def setup_module():

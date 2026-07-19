@@ -1,0 +1,7 @@
+# uv override list for the CircleCI doc build (used by tools/circleci_dependencies.sh,
+# which runs from the repo root). Overriding mne to our local editable checkout forces
+# every mne requirement to resolve to it. `.` is relative to the working directory
+# (the repo root when this is used), not to this file. Keep the `[full-pyside6]` extra
+# so uv does not drop those dependencies (the override takes precedence over the
+# command line, including its extras).
+-e .[full-pyside6]
