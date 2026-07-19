@@ -157,7 +157,10 @@ def plt_show(show=True, fig=None, **kwargs):
         backend = get_backend()
     if show and backend != "agg":
         logger.debug(f"Showing plot for backend {repr(backend)}")
-        (fig or plt).show(**kwargs)
+        if "inline" in str(backend).lower():
+            plt.show(**kwargs)
+        else:
+            (fig or plt).show(**kwargs)
 
 
 def _show_browser(show=True, block=True, fig=None, **kwargs):

@@ -30,6 +30,7 @@ from mne.viz.utils import (
     centers_to_edges,
     compare_fiff,
     concatenate_images,
+    plt_show,
 )
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -44,6 +45,24 @@ def test_setup_vmin_vmax_warns():
     expected_msg = r"\(min=0.0, max=1\) range.*minimum of data is -1"
     with pytest.warns(UserWarning, match=expected_msg):
         _setup_vmin_vmax(data=[-1, 0], vmin=None, vmax=None, norm=True)
+
+
+@pytest.mark.parametrize(
+    ("backend", "expected"),
+    (("module://Matplotlib_Inline.backend_inline", "pyplot"), ("QtAgg", "figure")),
+)
+def test_plt_show_backend(monkeypatch, backend, expected):
+    """Test backend-specific show paths."""
+    calls = []
+
+    class Figure:
+        def show(self, **kwargs):
+            calls.append(("figure", kwargs))
+
+    monkeypatch.setattr("matplotlib.get_backend", lambda: backend)
+    monkeypatch.setattr(plt, "show", lambda **kwargs: calls.append(("pyplot", kwargs)))
+    plt_show(fig=Figure(), block=True)
+    assert calls == [(expected, {"block": True})]
 
 
 def test_get_color_list():
