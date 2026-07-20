@@ -40,6 +40,7 @@ from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
 from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
+from mne.viz._brain._brain import _auto_scalar_bar_fmt
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
 
@@ -391,6 +392,8 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                 vertices=hemi_vertices,
             )
     assert len(brain._actors["data"]) == 4
+    assert not brain._scalar_bar.GetTitle()
+    assert brain._scalar_bar.GetLabelFormat() == _auto_scalar_bar_fmt([fmin, fmax])
     # exercise the public LayeredMesh API via Brain.layered_meshes
     assert "lh" in brain.layered_meshes
     lm = brain.layered_meshes["lh"]
@@ -417,6 +420,21 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert "data" in brain._all_data and "overlay2" in brain._all_data
     assert "data" in lm._overlays and "overlay2" in lm._overlays
     assert brain._active_data_key == "overlay2"
+    assert brain._all_data["overlay2"]["colorbar_fmt"] is None
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay3",
+        remove_existing=False,
+        colorbar_kwargs=dict(fmt="%.1f"),
+    )
+    assert brain._all_data["overlay3"]["colorbar_fmt"] == "%.1f"
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
@@ -1036,9 +1054,13 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.reset()
 
     assert brain.help_canvas is not None
-    assert not brain.help_canvas.canvas.isVisible()
+    assert not brain.help_canvas.isVisible()
     brain.help()
-    assert brain.help_canvas.canvas.isVisible()
+    assert brain.help_canvas.isVisible()
+    brain.help_canvas.hide()
+    assert not brain.help_canvas.isVisible()
+    brain.status_msg.widget.mousePressEvent(None)
+    assert brain.help_canvas.isVisible()
 
     # screenshot
     # Need to turn the interface back on otherwise the window is too wide
@@ -1529,6 +1551,15 @@ def test_calculate_lut():
 
     with pytest.raises(ValueError, match=r".*fmin \(1\) <= fmid \(0\) <= fma"):
         calculate_lut(colormap, alpha, 1, 0, 2)
+
+
+def test_auto_scalar_bar_fmt():
+    """Test the automatic scalar bar tick-label format."""
+    assert _auto_scalar_bar_fmt([0, 1]) == "%.3g"
+    assert _auto_scalar_bar_fmt([-5, 5]) == "%.3g"
+    assert _auto_scalar_bar_fmt([0, 0]) == "%.3g"
+    assert _auto_scalar_bar_fmt([0, 4.2e-10]) == "%.2e"
+    assert _auto_scalar_bar_fmt([-1e6, 1e6]) == "%.2e"
 
 
 def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
