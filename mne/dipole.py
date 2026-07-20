@@ -1354,10 +1354,11 @@ def _fit_dipole(
     )
 
     # Tested minimizers:
-    #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
+    #    Simplex, BFGS, CG, COBYLA, COBYQA, L-BFGS-B, Powell, SLSQP, TNC
     # Several were similar, but COBYLA won for having a handy constraint
     # function we can use to ensure we stay inside the inner skull /
-    # smallest sphere
+    # smallest sphere. COBYQA needs ~10x more constraint evaluations, and the
+    # inner-skull constraint is a surface search rather than a cheap formula
     # rhobeg (initial trust-region radius) is a few times the 2 cm guess grid so the fit
     # can leave a poorly chosen grid cell. rhoend (final radius, the ``tol`` argument)
     # sets the position resolution; loosening it to 1e-4 already shifts fits by ~2 mm
