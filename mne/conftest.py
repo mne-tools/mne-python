@@ -737,6 +737,8 @@ def browser_backend(request, garbage_collect, monkeypatch):
     with use_browser_backend(backend_name) as backend:
         backend._close_all()
         monkeypatch.setenv("MNE_BROWSE_RAW_SIZE", "10,10")
+        # Unify theme across dev setups (regardless of current light/dark mode)
+        monkeypatch.setenv("MNE_BROWSER_THEME", "light")
         yield backend
         backend._close_all()
         if backend_name == "qt":
@@ -1079,6 +1081,7 @@ def options_3d():
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+            "MNE_3D_OPTION_THEME": "light",  # unify colors across setups
         },
     ):
         yield
