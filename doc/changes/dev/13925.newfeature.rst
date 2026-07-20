@@ -1,1 +1,3 @@
 Added a JupyterLite GitHub Actions workflow to automatically build a Wasm-compatible interactive documentation site by Natneal Belete.
+
+Added :func:`mne.datasets.lite_data.data_path` to fetch the curated subset of dataset files used by the interactive JupyterLite documentation by Natneal Belete.

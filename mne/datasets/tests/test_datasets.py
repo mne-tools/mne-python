@@ -322,3 +322,20 @@ def test_fetch_uncompressed_file(tmp_path):
     )
     fetch_dataset(dataset_dict, path=None, force_update=True)
     assert (tmp_path / "foo" / "LICENSE.foo").is_file()
+
+
+def test_lite_data_registry():
+    """Test the lite_data curated registry and URL map stay consistent."""
+    from mne.datasets import lite_data
+    from mne.datasets.lite_data.lite_data import _load_registry, _load_urls
+
+    registry = _load_registry()
+    urls = _load_urls()
+    assert len(registry) > 0
+    # every curated file has both a checksum and a download URL
+    assert set(registry) == set(urls)
+    for relpath, known_hash in registry.items():
+        assert known_hash.startswith("md5:")
+        assert len(known_hash) == len("md5:") + 32
+        assert urls[relpath].startswith("https://osf.io/")
+    assert isinstance(lite_data.get_version(), str)

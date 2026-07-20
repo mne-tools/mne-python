@@ -30,6 +30,7 @@ Datasets
    hf_sef.data_path
    kiloword.data_path
    limo.load_data
+   lite_data.data_path
    misc.data_path
    mtrf.data_path
    multimodal.data_path

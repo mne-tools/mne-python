@@ -170,6 +170,7 @@ _known_config_types = {
     "MNE_DATASETS_TESTING_PATH": "str, path for testing data",
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
+    "MNE_DATASETS_LITE_DATA_PATH": "str, path for lite_data data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
     "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
