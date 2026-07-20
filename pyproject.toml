@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["pip >= 25.1", "pyside6 >= 6.11.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
+dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
 # Dependencies for building the documentation
 doc = [
   "graphviz",
@@ -23,7 +23,7 @@ doc = [
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
-  "refleak >=0.2.1",
+  "refleak >= 0.2.1",
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
@@ -45,16 +45,14 @@ lockfile_extras = [
 test = [
   "codespell",
   "ipython >= 8.20",  # for testing notebook backend; also in "full-no-qt" and "doc"
-  "mypy >= 0.14",
   "numpydoc >= 1.6",
   "pillow >= 10.2",
-  "pre-commit",
   "pytest >= 8.0, != 9.1.0",  # https://github.com/pytest-dev/pytest/issues/14591
   "pytest-cov >= 4.1",
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
-  "refleak >=0.2.1",
+  "refleak >= 0.2.1",
   "ruff >= 0.1",
   "twine",
   "vulture",
@@ -113,6 +111,7 @@ dependencies = [
   "pooch >= 1.5",
   "scipy >= 1.14",  # released 2024-06-24, will become 1.15 on 2027-01-03
   "tqdm >= 4.66",
+  "typing-extensions >= 4.15; python_version < '3.11'",  # for typing.Self TODO VERSION
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
 dynamic = ["version"]
@@ -178,7 +177,7 @@ full-no-qt = [
   "pymef",
   "pyobjc-framework-Cocoa >= 5.2.0; platform_system == 'Darwin'",
   "python-picard >= 0.4",
-  "pyvista >= 0.43",  # released 2023-12-07, will become 0.44 on 2026-07-07
+  "pyvista >= 0.44",  # released 2024-07-07, will become 0.45 on 2027-04-19
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "qdarkstyle != 3.2.2",
   "qtpy",
@@ -246,43 +245,6 @@ exclude = [
 [tool.hatch.version]
 raw-options = {version_scheme = "release-branch-semver"}
 source = "vcs"
-
-[tool.mypy]
-# Avoid the conflict between mne/__init__.py and mne/__init__.pyi by ignoring the former
-exclude = '^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$'
-ignore_errors = true
-modules = ["mne"]
-scripts_are_modules = true
-strict = false
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = ['scipy.*']
-
-[[tool.mypy.overrides]]
-# Ignore "attr-defined" until we fix stuff like:
-# - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
-# - Missing __all__: 'Module "mne.io.snirf" does not explicitly export attribute "read_raw_snirf"'
-# Ignore "no-untyped-call" until we fix stuff like:
-# - 'Call to untyped function "end_block" in typed context'
-# Ignore "no-untyped-def" until we fix stuff like:
-# - 'Function is missing a type annotation'
-# Ignore "misc" until we fix stuff like:
-# - 'Cannot determine type of "_projector" in base class "ProjMixin"'
-# Ignore "assignment" until we fix stuff like:
-# - 'Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "str")'
-# Ignore "operator" until we fix stuff like:
-# - Unsupported operand types for - ("None" and "int")
-disable_error_code = [
-  'assignment',
-  'attr-defined',
-  'misc',
-  'no-untyped-call',
-  'no-untyped-def',
-  'operator',
-]
-ignore_errors = false
-module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 
 [tool.numpydoc_validation]
 checks = [
@@ -500,6 +462,21 @@ showcontent = true
 directory = "other"
 name = "Other changes"
 showcontent = true
+
+[tool.ty.environment]
+python-version = "3.10"  # minimum supported, keep in sync with requires-python
+
+# Files that are strictly type-checked with no rule overrides. A file is added
+# here only once it passes ty cleanly; grow this list as more of the codebase is
+# annotated and cleaned up.
+[tool.ty.src]
+exclude = ["mne/io/**/tests"]
+include = [
+  "mne/annotations.py",
+  "mne/epochs.py",
+  "mne/evoked.py",
+  "mne/io",
+]
 
 [tool.vulture]
 exclude = [

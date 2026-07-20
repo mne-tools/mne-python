@@ -572,7 +572,7 @@ def test_simulate_raw_chpi():
     # test localization based on cHPI information
     chpi_amplitudes = compute_chpi_amplitudes(raw, t_step_min=10.0)
     coil_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
-    quats_sim = compute_head_pos(raw_chpi.info, coil_locs)
+    quats_sim = compute_head_pos(raw_chpi.info, coil_locs, weighted=False)
     quats = read_head_pos(pos_fname)
     _assert_quats(
         quats, quats_sim, dist_tol=5e-3, angle_tol=3.5, vel_atol=0.03

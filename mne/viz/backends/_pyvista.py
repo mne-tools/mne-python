@@ -211,7 +211,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         from .._3d import _get_3d_option
 
         # TODO VERSION change whenever PyVista min gets updated:
-        _require_version("pyvista", "use 3D rendering", "0.43")
+        _require_version("pyvista", "use 3D rendering", "0.44")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         if platform.system() == "Darwin":
@@ -799,7 +799,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         source,
         color="white",
-        title=None,
         n_labels=4,
         bgcolor=None,
         **extra_kwargs,
@@ -827,6 +826,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             background_color=bgcolor,
             mapper=mapper,
         )
+        extra_kwargs.pop("title", None)
         kwargs.update(extra_kwargs)
         actor = self.plotter.add_scalar_bar(**kwargs)
         actor.SetTextPad(10)

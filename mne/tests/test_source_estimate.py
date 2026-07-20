@@ -77,6 +77,7 @@ from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform
 from mne.utils import (
+    _chmod_rw_R,
     _record_warnings,
     catch_logging,
 )
@@ -144,7 +145,7 @@ def test_stc_baseline_correction():
 
 
 @testing.requires_testing_data
-def test_spatial_inter_hemi_adjacency():
+def test_spatial_inter_hemi_adjacency(subjects_dir_tmp):
     """Test spatial adjacency between hemispheres."""
     # trivial cases
     conn = spatial_inter_hemi_adjacency(fname_src_3, 5e-6)
@@ -169,7 +170,7 @@ def test_spatial_inter_hemi_adjacency():
     for hi, hemi in enumerate(("lh", "rh")):
         has_neighbors = src[hi]["vertno"][np.where(np.any(upper_right, axis=1 - hi))[0]]
         labels = read_labels_from_annot(
-            "sample", "aparc.a2009s", hemi, subjects_dir=subjects_dir
+            "sample", "aparc.a2009s", hemi, subjects_dir=subjects_dir_tmp
         )
         use_labels = [
             label.name[:-3]
@@ -1686,6 +1687,11 @@ def test_stc_near_sensors(tmp_path):
             subjects_dir / "sample" / "surf" / f"{hemi}.white",
             tmp_path / "sample" / "surf" / f"{hemi}.pial",
         )
+        copyfile(
+            subjects_dir / "sample" / "surf" / f"{hemi}.sphere.reg",
+            tmp_path / "sample" / "surf" / f"{hemi}.sphere.reg",
+        )
+    _chmod_rw_R(tmp_path / "sample" / "surf")  # for read-only FSes
     # here we use a distance is smaller than the inter-sensor distance
     kwargs = dict(
         subject="sample",
@@ -1720,7 +1726,7 @@ def test_stc_near_sensors(tmp_path):
             "sample",
             smooth=5,
             spacing=None,
-            subjects_dir=subjects_dir,
+            subjects_dir=tmp_path,
         ).apply(stc_src)
     lh_idx = np.searchsorted(stc_src_full.vertices[0], stc.vertices[0])
     rh_idx = np.searchsorted(stc_src_full.vertices[1], stc.vertices[1])
