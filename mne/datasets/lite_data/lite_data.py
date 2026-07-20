@@ -27,7 +27,6 @@ from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_si
 # Each file's absolute download URL lives in ``lite_data_urls.txt`` and
 # overrides ``base_url`` per file in ``pooch.create``; ``base_url`` is only a
 # nominal fallback (OSF download links are opaque IDs, not path-based).
-LITE_DATA_OSF_NODE = "u6pej"
 LITE_DATA_BASE_URL = "https://osf.io/download/"
 
 LITE_DATA_VERSION = "0.1"
