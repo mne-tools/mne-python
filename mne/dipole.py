@@ -1358,6 +1358,9 @@ def _fit_dipole(
     # Several were similar, but COBYLA won for having a handy constraint
     # function we can use to ensure we stay inside the inner skull /
     # smallest sphere
+    # rhobeg (initial trust-region radius) is a few times the 2 cm guess grid so the fit
+    # can leave a poorly chosen grid cell. rhoend (final radius, the ``tol`` argument)
+    # sets the position resolution; loosening it to 1e-4 already shifts fits by ~2 mm
     rd_final = fmin_cobyla(
         fun, x0, (constraint,), consargs=(), rhobeg=5e-2, rhoend=rhoend, disp=False
     )
