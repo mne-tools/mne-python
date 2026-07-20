@@ -17,7 +17,7 @@ from inspect import signature
 
 import numpy as np
 import pyvista
-from pyvista import Line, Plotter, PolyData, close_all
+from pyvista import Line, Plotter, PolyData, close_all  # noqa: F401  # re-exported
 from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk
@@ -131,7 +131,9 @@ class PyVistaFigure(Figure3D):
 
                 self.store["app_window_class"] = _MNEMainWindow
         else:
-            self._plotter_class = Plotter
+            from ._notebook import _NotebookPlotter
+
+            self._plotter_class = _NotebookPlotter
 
         self._nrows, self._ncols = self.store["shape"]
 
