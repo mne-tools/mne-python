@@ -82,6 +82,6 @@ jobs:
           extras: full,full-no-qt,hdf5
           additional-dependencies: pip,mamba,conda,nomkl,noqt5
           pip-dependencies: pymef
-          requirements-overrides: PySide6==6.10.2,vtk==9.6.0
+          requirements-overrides: PySide6==6.11.1,vtk==9.6.2
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
