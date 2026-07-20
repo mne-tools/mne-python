@@ -1216,6 +1216,55 @@ sphinx_gallery_conf = {
     "parallel": sphinx_gallery_parallel,
 }
 assert is_serializable(sphinx_gallery_conf)
+
+# ---------------------------------------------------------------------------
+# Drop the "Open in JupyterLite" launch badge from gallery pages whose
+# notebooks cannot run in the browser kernel at all: they need the R runtime
+# (rpy2), a compiled package Pyodide does not ship (antio), or multi-GB
+# datasets that cannot be bundled/slimmed. sphinx-gallery adds the badge to
+# every example unconditionally, so we wrap its badge generator and return an
+# empty string for these files. This only removes the badge/link — the
+# notebook source is untouched (no in-code guard). Files that merely need data
+# bundled, a pure-Python package installed, or pyvista 3D are NOT listed here
+# (they are fixable, not impossible).
+JUPYTERLITE_EXCLUDE = (
+    # Tier 1 — impossible: R runtime / compiled package / huge single dataset
+    "examples/stats/r_interop.py",  # rpy2 -> needs the R runtime
+    "examples/io/read_impedances.py",  # antio (compiled, not in Pyodide)
+    "examples/decoding/decoding_rsa_sgskip.py",  # visual_92_categories ~6 GB
+    "examples/decoding/decoding_spoc_CMC.py",  # fieldtrip_cmc ~700 MB
+    "examples/decoding/ssd_spatial_filters.py",  # fieldtrip_cmc ~700 MB
+    # Tier 2 — multi-GB datasets (brainstorm / spm_face / opm / hf_sef)
+    "examples/datasets/brainstorm_data.py",
+    "examples/datasets/hf_sef_data.py",
+    "examples/datasets/opm_data.py",
+    "examples/datasets/spm_faces_dataset.py",
+    "examples/preprocessing/movement_detection.py",
+    "examples/preprocessing/muscle_detection.py",
+    "examples/preprocessing/otp.py",
+    "examples/time_frequency/source_power_spectrum_opm.py",
+    "examples/visualization/evoked_arrowmap.py",
+    "examples/visualization/meg_sensors.py",
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py",
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py",
+    "tutorials/io/60_ctf_bst_auditory.py",
+    "tutorials/preprocessing/80_opm_processing.py",
+)
+
+import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
+
+_orig_gen_jupyterlite_rst = _sg_gen_rst.gen_jupyterlite_rst
+
+
+def _lite_badge_filtered(fpath, gallery_conf):
+    """Return the JupyterLite badge reST, or "" for excluded notebooks."""
+    _p = str(fpath).replace(os.sep, "/")
+    if any(_p.endswith(_ex) for _ex in JUPYTERLITE_EXCLUDE):
+        return ""
+    return _orig_gen_jupyterlite_rst(fpath, gallery_conf)
+
+
+_sg_gen_rst.gen_jupyterlite_rst = _lite_badge_filtered
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
