@@ -3228,6 +3228,15 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.20.1
 """
 
+docdict["on_outside_epochs"] = """
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["on_rank_mismatch"] = """
 on_rank_mismatch : str
     If an explicit MEG value is passed, what to do when it does not match
@@ -4277,6 +4286,17 @@ show_traces : bool | str | float
     equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
+"""
+
+docdict["show_zero_line"] = """
+show_zero_line : bool
+    Whether to show the zero line for each channel trace when the plot is
+    initialized. The line always marks the true zero of the channel, even
+    if the currently-visible window's mean has been subtracted for display
+    (see ``remove_dc``). Can be toggled after initialization by pressing
+    :kbd:`0` while the plot window is focused. Default is ``False``.
+
+    .. versionadded:: 1.13
 """
 
 docdict["size_topomap"] = """

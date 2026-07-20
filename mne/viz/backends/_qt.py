@@ -28,15 +28,17 @@ from qtpy.QtCore import (
     # non-object-based-abstraction-only, remove
     Signal,
 )
-from qtpy.QtGui import QCursor, QIcon, QKeyEvent
+from qtpy.QtGui import QCursor, QGuiApplication, QIcon, QKeyEvent
 from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDialog,
     # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
+    QFormLayout,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -1285,6 +1287,11 @@ class QFloatSlider(QSlider):
         """Set the maximum."""
         super().setMaximum(int(value * self._precision))
 
+    def setRange(self, minimum, maximum):
+        """Set the range using float values."""
+        self.setMinimum(minimum)
+        self.setMaximum(maximum)
+
     def value(self):
         """Get the current value."""
         return super().value() / self._precision
@@ -1395,8 +1402,17 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
 
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         widget = QLabel(value)
+        if on_click is not None:
+            widget.setCursor(QCursor(Qt.PointingHandCursor))
+            widget.setToolTip("Click for help")
+
+            @safe_event
+            def mousePressEvent(event):
+                on_click()
+
+            widget.mousePressEvent = mousePressEvent
         self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
@@ -1443,6 +1459,57 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
         else:
             self.canvas.setParent(brain._renderer._window)
         self._connect()
+
+
+class _QtHelpDialog(QDialog):
+    """Non-modal dialog listing keyboard shortcuts.
+
+    Styled after :class:`mne_qt_browser._dialogs.HelpDialog` (a bold
+    section header plus a plain :class:`~qtpy.QtWidgets.QFormLayout` in a
+    scroll area, no button box) so MNE-Python's Qt-based viewers share a
+    consistent help-dialog look.
+    """
+
+    def __init__(self, pairs, mouse_pairs=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("MNE Key Bindings")
+        layout = QVBoxLayout(self)
+
+        scroll_area = QScrollArea(self)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        self._add_help_section(scroll_layout, "Keyboard Shortcuts", pairs)
+        if mouse_pairs:
+            self._add_help_section(
+                scroll_layout, "Mouse Interaction", mouse_pairs, suffix=":"
+            )
+        scroll_area.setWidget(scroll_widget)
+        layout.addWidget(scroll_area)
+
+        # avoid clipping/horizontal scrolling of the longer rows
+        scroll_area.setMinimumWidth(
+            scroll_widget.minimumSizeHint().width()
+            + scroll_area.verticalScrollBar().width()
+        )
+        self.resize(scroll_area.minimumWidth() + 40, 420)
+
+    @staticmethod
+    def _add_help_section(layout, title, pairs, suffix=""):
+        header = QLabel(title)
+        font = header.font()
+        font.setPointSize(16)
+        font.setBold(True)
+        header.setFont(font)
+        layout.addWidget(header)
+
+        form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignLeft)
+        form_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
+        for key, description in pairs:
+            form_layout.addRow(f"{key}{suffix}", QLabel(description))
+        layout.addLayout(form_layout)
 
 
 class _QtWindow(_AbstractWindow):
@@ -1523,7 +1590,13 @@ class _QtWindow(_AbstractWindow):
             self._window_before_close_callbacks.clear()
 
     def _window_get_dpi(self):
-        return self._window.windowHandle().screen().logicalDotsPerInch()
+        # windowHandle() is None until the window is realized (e.g. when the
+        # figure has not been shown yet), so fall back to the primary screen
+        handle = self._window.windowHandle()
+        screen = None if handle is None else handle.screen()
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
+        return screen.logicalDotsPerInch()
 
     def _window_get_size(self):
         w = self._interactor.geometry().width()
@@ -1532,6 +1605,9 @@ class _QtWindow(_AbstractWindow):
 
     def _window_get_simple_canvas(self, width, height, dpi):
         return _QtMplCanvas(width, height, dpi)
+
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        return _QtHelpDialog(pairs, mouse_pairs=mouse_pairs, parent=self._window)
 
     def _window_get_mplcanvas(
         self, brain, interactor_fraction, show_traces, separate_canvas
@@ -1694,6 +1770,9 @@ class _QtWidget(_AbstractWdgt):
     def is_enabled(self):
         return self._widget.isEnabled()
 
+    def is_visible(self):
+        return self._widget.isVisible()
+
     def update(self, repaint=True):
         self._widget.update()
         if repaint:
@@ -1712,6 +1791,12 @@ class _QtWidget(_AbstractWdgt):
         for key, val in style.items():
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
+
+    def set_items(self, items):
+        self._widget.blockSignals(True)
+        self._widget.clear()
+        self._widget.addItems(items)
+        self._widget.blockSignals(False)
 
 
 class _QtDialogCommunicator(QObject):

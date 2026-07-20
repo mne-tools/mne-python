@@ -220,6 +220,14 @@ class MNEFigure(Figure):
         """Handle buttonpress events."""
         pass
 
+    def _buttonrelease(self, event):
+        """Handle button release events."""
+        pass
+
+    def _mouse_move(self, event):
+        """Handle mouse motion events."""
+        pass
+
     def _scroll(self, event):
         """Handle scroll wheel events."""
         pass
@@ -245,6 +253,8 @@ class MNEFigure(Figure):
             resize_event=self._resize,
             key_press_event=self._keypress,
             button_press_event=self._buttonpress,
+            button_release_event=self._buttonrelease,
+            motion_notify_event=self._mouse_move,
             scroll_event=self._scroll,
             close_event=self._close,
             pick_event=self._pick,
@@ -645,6 +655,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.traces = ax_main.plot(
             np.full((1, self.mne.n_channels), np.nan), **self.mne.trace_kwargs
         )
+        self.mne.zero_line_kwargs = dict(
+            color=self.mne.fgcolor,
+            alpha=0.5,
+            linewidth=0.5,
+            zorder=self.mne.zorder["zero_line"],
+        )
 
         # SAVE UI ELEMENT HANDLES
         vars(self.mne).update(
@@ -655,6 +671,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch,
             hsel_patch=hsel_patch,
+            vscroll_drag_offset=None,
+            hscroll_drag_offset=None,
             vline=vline,
             vline_hscroll=vline_hscroll,
             vline_text=vline_text,
@@ -874,6 +892,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     checkbox.set_active(0)
         elif key == "s":  # scalebars
             self._toggle_scalebars(event)
+        elif key == "0":  # zero line
+            self._toggle_zero_line(event)
         elif key == "w":  # toggle noise cov whitening
             self._toggle_whitening()
         elif key == "z":  # zen mode: hide scrollbars and buttons
@@ -916,12 +936,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
                     self._change_selection_vscroll(event)
-                elif self._check_update_vscroll_clicked(event):
-                    self._redraw()
+                else:
+                    if self._check_update_vscroll_clicked(event):
+                        self._redraw()
+                    self.mne.vscroll_drag_offset = event.ydata - self.mne.ch_start
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
                     self._redraw(annotations=True)
+                self.mne.hscroll_drag_offset = event.xdata - self.mne.t_start
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -962,6 +985,46 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.canvas.draw_idle()
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
+
+    def _buttonrelease(self, event):
+        """Handle mouse button releases (end scrollbar handle drags)."""
+        self.mne.vscroll_drag_offset = None
+        self.mne.hscroll_drag_offset = None
+
+    def _mouse_move(self, event):
+        """Handle mouse motion (drag the scrollbar handles)."""
+        if self.mne.vscroll_drag_offset is not None:
+            if event.y is None:
+                return
+            ydata = self.mne.ax_vscroll.transData.inverted().transform((0, event.y))[1]
+            new_ch_start = np.clip(
+                int(round(ydata - self.mne.vscroll_drag_offset)),
+                0,
+                len(self.mne.ch_order) - self.mne.n_channels,
+            )
+            if self.mne.ch_start != new_ch_start:
+                self.mne.ch_start = new_ch_start
+                self._update_picks()
+                self._update_vscroll()
+                self._redraw()
+        elif self.mne.hscroll_drag_offset is not None:
+            if event.x is None:
+                return
+            xdata = self.mne.ax_hscroll.transData.inverted().transform((event.x, 0))[0]
+            time = xdata - self.mne.hscroll_drag_offset
+            max_time = (
+                self.mne.n_times / self.mne.info["sfreq"]
+                + self.mne.first_time
+                - self.mne.duration
+            )
+            time = np.clip(time, self.mne.first_time, max_time)
+            if self.mne.is_epochs:
+                ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
+                time = self.mne.boundary_times[ix]
+            if self.mne.t_start != time:
+                self.mne.t_start = time
+                self._update_hscroll()
+                self._redraw(annotations=True)
 
     def _scroll(self, event):
         """Handle scroll wheel events for channel navigation."""
@@ -1124,6 +1187,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ("shift+j", "Toggle all SSPs"),
                 ("p", "Toggle draggable annotations" if is_raw else None),
                 ("s", "Toggle scalebars" if not is_ica else None),
+                ("0", "Toggle zero line"),
                 ("z", "Toggle scrollbars"),
                 ("t", "Toggle time format" if not is_epo else None),
                 ("F11", "Toggle fullscreen" if not is_mac else None),
@@ -1993,6 +2057,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.scalebars_visible = not self.mne.scalebars_visible
         self._redraw(update_data=False)
 
+    def _toggle_zero_line(self, event):
+        """Show/hide the zero line for each channel trace."""
+        self.mne.zero_line_visible = not self.mne.zero_line_visible
+        self._redraw(update_data=False)
+
     def _draw_one_scalebar(self, x, y, ch_type):
         """Draw a scalebar."""
         from .utils import _simplify_float
@@ -2213,6 +2282,24 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             trace.remove()
         self.mne.traces = self.mne.traces[:n_picks]
 
+        # add/remove zero lines if needed
+        if self.mne.zero_line_visible:
+            if n_picks > len(self.mne.zero_lines):
+                n_new_chs = n_picks - len(self.mne.zero_lines)
+                new_zero_lines = [
+                    self.mne.ax_main.axhline(np.nan, **self.mne.zero_line_kwargs)
+                    for _ in range(n_new_chs)
+                ]
+                self.mne.zero_lines.extend(new_zero_lines)
+            extra_zero_lines = self.mne.zero_lines[n_picks:]
+            for zero_line in extra_zero_lines:
+                zero_line.remove()
+            self.mne.zero_lines = self.mne.zero_lines[:n_picks]
+        elif self.mne.zero_lines:
+            for zero_line in self.mne.zero_lines:
+                zero_line.remove()
+            self.mne.zero_lines = list()
+
         # check for bad epochs
         time_range = (self.mne.times + self.mne.first_time)[[0, -1]]
         if self.mne.instance_type == "epochs":
@@ -2248,6 +2335,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             this_name = ch_names[ii]
             this_type = ch_types[ii]
             this_offset = offsets[ii]
+            if self.mne.zero_line_visible:
+                zero_line_offset = (
+                    0
+                    if self.mne.zero_line_offset is None
+                    else self.mne.zero_line_offset[ii] * self.mne.scale_factor
+                )
+                true_zero = this_offset + zero_line_offset
+                self.mne.zero_lines[ii].set_ydata((true_zero, true_zero))
             this_times = decim_times[decim[ii]]
             this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
             this_data = this_data[..., :: decim[ii]]

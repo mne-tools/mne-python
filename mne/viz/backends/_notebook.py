@@ -6,6 +6,7 @@
 
 import os
 import os.path as op
+import warnings
 from contextlib import contextmanager, nullcontext
 
 from ipyevents import Event
@@ -37,6 +38,7 @@ from ipywidgets import (
 )
 
 from ...utils import _soft_import
+from ..utils import _show_help_fig
 from ._abstract import (
     _AbstractAction,
     _AbstractAppWindow,
@@ -110,6 +112,37 @@ _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
 
 _JUPYTER_BACKEND = "trame"
+
+
+class _NotebookPlotter(Plotter):
+    """PyVista ``Plotter`` for the notebook backend.
+
+    Validate the object returned by show, as PyVista silently falls back static PIL
+    when the trame Jupyter backend cannot be loaded.
+    """
+
+    def show(self, *args, **kwargs):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            viewer = super().show(*args, **kwargs)
+        if not isinstance(viewer, Widget):
+            reasons = "\n".join(
+                f"- {w.message}"
+                for w in caught
+                if any(key in str(w.message) for key in ("backend", "trame", "static"))
+            )
+            raise RuntimeError(
+                f'The notebook 3D backend is not functional: the "{_JUPYTER_BACKEND}" '
+                "PyVista Jupyter backend returned a "
+                f"{type(viewer).__module__}.{type(viewer).__qualname__} instead of an "
+                "interactive widget. This usually means the installed trame packages "
+                "(trame, trame-vtk, trame-vuetify, trame-pyvista) are missing or "
+                "mutually incompatible."
+                + (f"\n\nPyVista reported:\n{reasons}" if reasons else "")
+            )
+        if kwargs["return_viewer"]:
+            return viewer
+
 
 # %%
 # Widgets
@@ -1311,7 +1344,7 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
         self._status_bar = HBox()
         self._layout_initialize(None)
 
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(self._status_bar, widget)
         return _IpyWidget(widget)
@@ -1392,6 +1425,18 @@ class _IpyWindow(_AbstractWindow):
 
     def _window_get_simple_canvas(self, width, height, dpi):
         return _IpyMplCanvas(width, height, dpi)
+
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        text1, text2 = zip(*pairs, *(mouse_pairs or []))
+        canvas = self._window_get_simple_canvas(width=5, height=2, dpi=80)
+        _show_help_fig(
+            col1="\n".join(text1),
+            col2="\n".join(text2),
+            fig_help=canvas.fig,
+            ax=canvas.axes,
+            show=False,
+        )
+        return canvas
 
     def _window_get_mplcanvas(
         self, brain, interactor_fraction, show_traces, separate_canvas
@@ -1486,6 +1531,9 @@ class _IpyWidget(_AbstractWdgt):
     def is_enabled(self):
         return not self._widget.disabled
 
+    def is_visible(self):
+        return self._widget.layout.visibility != "hidden"
+
     def update(self, repaint=True):
         pass
 
@@ -1500,6 +1548,9 @@ class _IpyWidget(_AbstractWdgt):
     def set_style(self, style):
         for key, val in style.items():
             setattr(self._widget.layout, key, val)
+
+    def set_items(self, items):
+        self._widget.options = tuple(items)
 
 
 class _IpyAction(_AbstractAction):

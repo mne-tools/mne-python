@@ -3,8 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+from typing import Any
 
-DEFAULTS = dict(
+DEFAULTS: dict[str, Any] = dict(
     color=dict(
         mag="darkblue",
         grad="b",

@@ -20,25 +20,8 @@ permissions:
   contents: read
 
 jobs:
-  style:
-    name: Style
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - uses: actions/checkout@v7.0.0
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v6.3.0
-        with:
-          python-version: '3.14'
-      - uses: pre-commit/action@v3.0.1
-      - run: pip install mypy numpy scipy vulture
-      - run: mypy
-      - run: vulture
-
   bandit:
     name: Bandit
-    needs: style
     runs-on: ubuntu-latest
     steps:
       - uses: davidslusser/actions_python_bandit@v1.0.1
@@ -49,16 +32,14 @@ jobs:
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
-    needs: style
-    timeout-minutes: 120
+    # macOS spawns children and runs slowtests, so it needs a bit more headroom
+    timeout-minutes: ${{ startsWith(matrix.os, 'macos') && 40 || 30 }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -el {0}
     env:
-      MKL_NUM_THREADS: '1'
-      OPENBLAS_NUM_THREADS: '1'
-      OMP_NUM_THREADS: '1'
+      PYTHON_VERSION: '${{ matrix.python }}'  # used by github_actions_env_vars.sh
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
@@ -138,7 +119,7 @@ jobs:
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v8.3.2
         with:
           version: ">=0.9"
           activate-environment: true
@@ -172,7 +153,7 @@ jobs:
           ./check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
-        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
       - uses: actions/cache@v6.1.0
@@ -184,4 +165,5 @@ jobs:
       - uses: codecov/codecov-action@v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        if: success() || failure()
+        # COV_ARGS is empty on jobs where we don't measure coverage (Python < 3.14)
+        if: (success() || failure()) && env.COV_ARGS != ''

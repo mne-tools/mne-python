@@ -5,11 +5,10 @@
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================
 
-This example tests if the evoked response is significantly different between
-two conditions across subjects. Here just for demonstration purposes
-we simulate data from multiple subjects using one subject's data.
-The multiple comparisons problem is addressed with a cluster-level
-permutation test across space and time.
+This example tests if the evoked response is significantly different between two
+conditions across subjects. Here just for demonstration purposes we simulate data from
+multiple subjects using one subject's data. The multiple comparisons problem is
+addressed with a cluster-level permutation test across space and time.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
