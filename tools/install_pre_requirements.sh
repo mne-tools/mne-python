@@ -67,7 +67,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
-	trame trame-vtk trame-vuetify trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
+	trame trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
 	filelock
 echo "::endgroup::"
