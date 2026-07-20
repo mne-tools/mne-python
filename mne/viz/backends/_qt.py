@@ -186,12 +186,6 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
         if repaint:
             self.repaint()
 
-    def _get_tooltip(self):
-        return self.toolTip()
-
-    def _set_tooltip(self, tooltip):
-        self.setToolTip(tooltip)
-
     def _set_style(self, style):
         stylesheet = ""
         for key, val in style.items():
@@ -214,9 +208,6 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
 
     def _set_focus(self):
         self.setFocus()
-
-    def _set_layout(self, layout):
-        self.setLayout(_get_layout(layout))
 
     def _set_theme(self, theme=None):
         if theme is None:
@@ -280,9 +271,6 @@ class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
     def _click(self):
         self.click()
 
-    def _set_icon(self, icon):
-        self.setIcon(_qicon(icon))
-
 
 class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, rng, callback, horizontal=True):
@@ -302,9 +290,6 @@ class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
 
     def _get_value(self):
         return self.value()
-
-    def _set_range(self, rng):
-        self.setRange(int(rng[0]), int(rng[1]))
 
 
 class _ProgressBar(QProgressBar, _AbstractProgressBar, _Widget, metaclass=_BaseWidget):
@@ -615,9 +600,6 @@ class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget, metaclass=_BaseWidg
                 widget.setMaximumHeight(self._height)
             self.addWidget(widget)
 
-    def _add_stretch(self, amount=1):
-        self.addStretch(amount)
-
 
 class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget, metaclass=_BaseWidget):
     def __init__(self, width=None, scroll=None):
@@ -644,9 +626,6 @@ class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget, metaclass=_BaseWidg
                 widget.setMinimumWidth(self._width)
                 widget.setMaximumWidth(self._width)
             self.addWidget(widget)
-
-    def _add_stretch(self, amount=1):
-        self.addStretch(amount)
 
 
 class _GridLayout(QGridLayout, _AbstractGridLayout, _Widget, metaclass=_BaseWidget):
@@ -740,29 +719,12 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget, metaclass=_BaseWid
         self._set_theme()
         self.setLocale(QLocale(QLocale.Language.English))
         self.signal_close.connect(self._clean)
-        self._before_close_callbacks = list()
-        self._after_close_callbacks = list()
 
         # patch closeEvent
         def closeEvent(event):
-            # functions to call before closing
-            accept_close_event = True
-            for callback in self._before_close_callbacks:
-                ret = callback()
-                # check if one of the callbacks ignores the close event
-                if isinstance(ret, bool) and not ret:
-                    accept_close_event = False
-
-            if accept_close_event:
-                self.signal_close.emit()
-                self._clean()
-                event.accept()
-            else:
-                event.ignore()
-
-            # functions to call after closing
-            for callback in self._after_close_callbacks:
-                callback()
+            self.signal_close.emit()
+            self._clean()
+            event.accept()
 
         self.closeEvent = closeEvent
 
@@ -771,32 +733,8 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget, metaclass=_BaseWid
         central_widget.setLayout(_get_layout(central_layout))
         self.setCentralWidget(central_widget)
 
-    def _get_dpi(self):
-        return self.windowHandle().screen().logicalDotsPerInch()
-
     def _get_size(self):
         return (self.width(), self.height())
-
-    def _get_cursor(self):
-        return self.cursor()
-
-    def _set_cursor(self, cursor):
-        self.setCursor(cursor)
-
-    def _new_cursor(self, name):
-        return QCursor(getattr(Qt, name))
-
-    def _close_connect(self, callback, *, after=True):
-        if after:
-            self._after_close_callbacks.append(callback)
-        else:
-            self._before_close_callbacks.append(callback)
-
-    def _close_disconnect(self, after=True):
-        if after:
-            self._after_close_callbacks.clear()
-        else:
-            self._before_close_callbacks.clear()
 
     def _clean(self):
         self._app = None
