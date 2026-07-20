@@ -157,6 +157,7 @@ def plt_show(show=True, fig=None, **kwargs):
         backend = get_backend()
     if show and backend != "agg":
         logger.debug(f"Showing plot for backend {repr(backend)}")
+        # if backend is inline and therefore non-interactive, fig.show() fails. See PR gh-14076
         if "inline" in str(backend).lower():
             plt.show(**kwargs)
         else:
