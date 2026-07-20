@@ -6,6 +6,7 @@
 
 import os
 import os.path as op
+import warnings
 from contextlib import contextmanager, nullcontext
 
 from ipyevents import Event
@@ -111,6 +112,37 @@ _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
 
 _JUPYTER_BACKEND = "trame"
+
+
+class _NotebookPlotter(Plotter):
+    """PyVista ``Plotter`` for the notebook backend.
+
+    Validate the object returned by show, as PyVista silently falls back static PIL
+    when the trame Jupyter backend cannot be loaded.
+    """
+
+    def show(self, *args, **kwargs):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            viewer = super().show(*args, **kwargs)
+        if not isinstance(viewer, Widget):
+            reasons = "\n".join(
+                f"- {w.message}"
+                for w in caught
+                if any(key in str(w.message) for key in ("backend", "trame", "static"))
+            )
+            raise RuntimeError(
+                f'The notebook 3D backend is not functional: the "{_JUPYTER_BACKEND}" '
+                "PyVista Jupyter backend returned a "
+                f"{type(viewer).__module__}.{type(viewer).__qualname__} instead of an "
+                "interactive widget. This usually means the installed trame packages "
+                "(trame, trame-vtk, trame-vuetify, trame-pyvista) are missing or "
+                "mutually incompatible."
+                + (f"\n\nPyVista reported:\n{reasons}" if reasons else "")
+            )
+        if kwargs["return_viewer"]:
+            return viewer
+
 
 # %%
 # Widgets
