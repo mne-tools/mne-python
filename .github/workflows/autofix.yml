@@ -21,6 +21,6 @@ jobs:
       - run: python ./tools/dev/ensure_headers.py
       - run: vulture
       # Run this last, since it can fail the job if moved up
-      - uses: j178/prek-action@v2
+      - uses: j178/prek-action@v2.0.5
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
