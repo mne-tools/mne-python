@@ -121,10 +121,17 @@ class _NotebookPlotter(Plotter):
     when the trame Jupyter backend cannot be loaded.
     """
 
-    def show(self, *args, **kwargs):
+    def show(
+        self, *args, jupyter_backend=_JUPYTER_BACKEND, return_viewer=False, **kwargs
+    ):
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
-            viewer = super().show(*args, **kwargs)
+            viewer = super().show(
+                *args,
+                jupyter_backend=jupyter_backend,
+                return_viewer=return_viewer,
+                **kwargs,
+            )
         if not isinstance(viewer, Widget):
             reasons = "\n".join(
                 f"- {w.message}"
@@ -132,7 +139,7 @@ class _NotebookPlotter(Plotter):
                 if any(key in str(w.message) for key in ("backend", "trame", "static"))
             )
             raise RuntimeError(
-                f'The notebook 3D backend is not functional: the "{_JUPYTER_BACKEND}" '
+                f'The notebook 3D backend is not functional: the "{jupyter_backend}" '
                 "PyVista Jupyter backend returned a "
                 f"{type(viewer).__module__}.{type(viewer).__qualname__} instead of an "
                 "interactive widget. This usually means the installed trame packages "
@@ -140,7 +147,7 @@ class _NotebookPlotter(Plotter):
                 "mutually incompatible."
                 + (f"\n\nPyVista reported:\n{reasons}" if reasons else "")
             )
-        if kwargs["return_viewer"]:
+        if return_viewer:
             return viewer
 
 
@@ -166,10 +173,6 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
         # issue since each subclass __init__s it's own (e.g. Label)
         # Widget.__init__(self)
 
-    def _set_range(self, rng):
-        self.min = rng[0]
-        self.max = rng[1]
-
     def _show(self):
         self.layout.visibility = "visible"
 
@@ -184,12 +187,6 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
 
     def _update(self, repaint=True):
         pass
-
-    def _get_tooltip(self):
-        return self.tooltip
-
-    def _set_tooltip(self, tooltip):
-        self.tooltip = tooltip
 
     def _set_style(self, style):
         for key, val in style.items():
@@ -210,9 +207,6 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
     def _set_focus(self):
         if hasattr(self, "focus"):  # added in ipywidgets 8.0
             self.focus()
-
-    def _set_layout(self, layout):
-        self.children = (layout,)
 
     def _set_theme(self, theme):
         pass
@@ -257,9 +251,6 @@ class _Button(_Widget, _AbstractButton, Button, metaclass=_BaseWidget):
 
     def _click(self):
         self.click()
-
-    def _set_icon(self, icon):
-        self.icon = _ICON_LUT[icon]
 
 
 class _Slider(_Widget, _AbstractSlider, IntSlider, metaclass=_BaseWidget):
@@ -680,7 +671,7 @@ class _BoxLayout:
     def _add_widget(self, widget):
         # if pyvista plotter, needs to be shown
         if isinstance(widget, Plotter):
-            widget = widget.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+            widget = widget.show(return_viewer=True)
         if hasattr(widget, "layout"):
             widget.layout.width = None  # unlock the fixed layout
             widget.layout.margin = "2px 0px 2px 0px"
@@ -705,12 +696,6 @@ class _HBoxLayout(
             for child in self.children:
                 child.layout.height = f"{int(self._height / len(self.children))}px"
 
-    def _add_stretch(self, amount=1):
-        self.children += (
-            self,
-            _Label(" " * 4),
-        )
-
 
 class _VBoxLayout(
     _AbstractVBoxLayout, _BoxLayout, _Widget, VBox, metaclass=_BaseWidget
@@ -727,12 +712,6 @@ class _VBoxLayout(
         if self._width is not None:
             for child in self.children:
                 child.layout.width = f"{int(self._width / len(self.children))}px"
-
-    def _add_stretch(self, amount=1):
-        self.children += (
-            self,
-            _Label(" " * 4),
-        )
 
 
 class _GridLayout(_AbstractGridLayout, _Widget, GridBox, metaclass=_BaseWidget):
@@ -772,31 +751,13 @@ class _AppWindow(_AbstractAppWindow, _Widget, VBox, metaclass=_BaseWidget):
     def _set_central_layout(self, central_layout):
         self.children = (central_layout,)
 
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    def _close_disconnect(self, after=True):
-        pass
-
     def _clean(self):
         pass
-
-    def _get_dpi(self):
-        return 96
 
     def _get_size(self):
         # CSS objects don't have explicit widths and heights
         # https://github.com/jupyter-widgets/ipywidgets/issues/1639
         return (256, 256)
-
-    def _get_cursor(self):
-        pass
-
-    def _set_cursor(self, cursor):
-        pass
-
-    def _new_cursor(self, name):
-        pass
 
     def _show(self, block=False):
         display(self)
@@ -819,7 +780,7 @@ class _3DRenderer(_PyVistaRenderer):
         yield
 
     def show(self):
-        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        viewer = self.plotter.show(return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         display(viewer)
 
@@ -1617,7 +1578,7 @@ class _Renderer(
         else:
             self._display_default_tool_bar()
         # viewer
-        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        viewer = self.plotter.show(return_viewer=True)
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])

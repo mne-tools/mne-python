@@ -739,14 +739,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _get_tooltip(self):
-        pass
-
-    @abstractmethod
-    def _set_tooltip(self, tooltip: str):
-        pass
-
-    @abstractmethod
     def _add_keypress(self, callback):
         pass
 
@@ -756,10 +748,6 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def _set_focus(self):
-        pass
-
-    @abstractmethod
-    def _set_layout(self, layout):
         pass
 
     @abstractmethod
@@ -799,10 +787,6 @@ class _AbstractButton(_AbstractWidget):
     def _click(self):
         pass
 
-    @abstractmethod
-    def _set_icon(self, icon):
-        pass
-
 
 class _AbstractSlider(_AbstractWidget):
     @classmethod
@@ -816,10 +800,6 @@ class _AbstractSlider(_AbstractWidget):
 
     @abstractmethod
     def _get_value(self):
-        pass
-
-    @abstractmethod
-    def _set_range(self, rng):
         pass
 
 
@@ -985,10 +965,6 @@ class _AbstractBoxLayout(ABC):
     def _add_widget(self, widget):
         pass
 
-    @abstractmethod
-    def _add_stretch(self, amount=1):
-        pass
-
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
     @abstractmethod
@@ -1021,31 +997,7 @@ class _AbstractAppWindow(ABC):
         pass
 
     @abstractmethod
-    def _get_dpi(self):
-        pass
-
-    @abstractmethod
     def _get_size(self):
-        pass
-
-    @abstractmethod
-    def _get_cursor(self):
-        pass
-
-    @abstractmethod
-    def _set_cursor(self, cursor):
-        pass
-
-    @abstractmethod
-    def _new_cursor(self, name):
-        pass
-
-    @abstractmethod
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    @abstractmethod
-    def _close_disconnect(self, after=True):
         pass
 
     @abstractmethod
