@@ -88,7 +88,7 @@ def test_plot_ica_components():
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8, random_state=0)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match="(projection)|(unstable mixing matrix)"):
         ica.fit(raw, picks=ica_picks)

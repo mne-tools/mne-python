@@ -13,7 +13,7 @@ import sys
 import sysconfig
 import warnings
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
@@ -123,6 +123,20 @@ def pytest_configure(config: pytest.Config):
     # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
     if "NUMBA_CAPTURED_ERRORS" not in os.environ:
         os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
+
+    # Cap the number of threads each pytest-xdist worker uses, adapted from SciPy
+    if os.getenv("OMP_NUM_THREADS") is None:
+        try:
+            from threadpoolctl import threadpool_limits
+        except Exception:
+            pass
+        else:
+            xdist_worker_count = int(os.getenv("PYTEST_XDIST_WORKER_COUNT", "1"))
+            max_threads = (os.cpu_count() or 2) // 2  # number of physical cores
+            threads_per_worker = max(max_threads // xdist_worker_count, 1)
+            # suppress e.g. AttributeError raised by older versions of OpenBLAS
+            with suppress(Exception):
+                threadpool_limits(threads_per_worker, user_api="blas")
 
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
