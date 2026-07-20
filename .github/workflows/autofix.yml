@@ -54,6 +54,7 @@ jobs:
         with:
           version: ">=0.9"
           activate-environment: true
+          enable-cache: false
           python-version: "3.12"
       - name: Update 'old' CI lockfile
         # uv pip compile requires setting the python version for the environment explicitly in the command :(
