@@ -172,7 +172,7 @@ def test_permutation_large_n_samples(numba_conditional):
         tails = (0, 1) if n_samples <= 20 else (0,)
         for tail in tails:
             H0 = permutation_cluster_1samp_test(
-                X[:n_samples], threshold=1e-4, tail=tail, out_type="mask"
+                X[:n_samples], threshold=1e-4, tail=tail, seed=0, out_type="mask"
             )[-1]
             assert H0.shape == (1024,)
             assert len(np.unique(H0)) >= 1024 - (H0 == 0).sum()

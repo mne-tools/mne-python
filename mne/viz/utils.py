@@ -1402,7 +1402,9 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
-            ixs_epochs = np.random.choice(range(len(inst)), n_epochs, False)
+            ixs_epochs = np.random.default_rng().choice(
+                len(inst), n_epochs, replace=False
+            )
             inst = inst.copy()[ixs_epochs].load_data()
     else:
         data = inst._data

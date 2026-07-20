@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import ast
 import importlib
 import inspect
 import re
@@ -233,6 +234,74 @@ def test_tabs():
             assert "\t" not in source, (
                 f'"{modname}" has tabs, please remove them or add it to the ignore list'
             )
+
+
+# These files still use the global RNG (should shrink over time)
+global_rng_ok = ("default_rng", "RandomState", "Generator", "mtrand")
+global_rng_ignores = {
+    "mne/_fiff/tests/test_reference.py",
+    "mne/channels/tests/test_montage.py",
+    "mne/channels/tests/test_standard_montage.py",
+    "mne/decoding/tests/test_base.py",
+    "mne/decoding/tests/test_csp.py",
+    "mne/decoding/tests/test_search_light.py",
+    "mne/decoding/tests/test_spatial_filter.py",
+    "mne/decoding/tests/test_time_frequency.py",
+    "mne/decoding/tests/test_transformer.py",
+    "mne/forward/tests/test_make_forward.py",
+    "mne/inverse_sparse/tests/test_mxne_optim.py",
+    "mne/io/array/tests/test_array.py",
+    "mne/io/eeglab/tests/test_eeglab.py",
+    "mne/io/fiff/tests/test_raw_fiff.py",
+    "mne/io/tests/test_raw.py",
+    "mne/preprocessing/nirs/tests/test_nirs.py",
+    "mne/preprocessing/tests/test_interpolate.py",
+    "mne/stats/tests/test_cluster_level.py",
+    "mne/stats/tests/test_permutations.py",
+    "mne/tests/test_annotations.py",
+    "mne/tests/test_epochs.py",
+    "mne/tests/test_evoked.py",
+    "mne/tests/test_source_estimate.py",
+    "mne/time_frequency/tests/test_ar.py",
+    "mne/time_frequency/tests/test_csd.py",
+    "mne/time_frequency/tests/test_spectrum.py",
+    "mne/time_frequency/tests/test_stft.py",
+    "mne/time_frequency/tests/test_tfr.py",
+    "mne/viz/tests/test_3d.py",
+    "mne/viz/tests/test_raw.py",
+    "mne/viz/tests/test_topomap.py",
+    "mne/viz/tests/test_utils.py",
+}
+
+
+def test_no_global_rng():
+    """Test that we use local generators rather than the global numpy RNG."""
+    root = pyproject_path.parent  # only available in a dev/editable checkout
+    bad = []
+    for sub in ("mne", "examples", "tutorials"):
+        base = root / sub
+        if not base.is_dir():  # e.g. examples/tutorials absent from a wheel
+            continue
+        for path in sorted(base.rglob("*.py")):
+            rel = path.relative_to(root).as_posix()
+            if rel in global_rng_ignores:
+                continue
+            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
+                # match ``np.random.<attr>`` / ``numpy.random.<attr>``
+                if (
+                    isinstance(node, ast.Attribute)
+                    and node.attr not in global_rng_ok
+                    and isinstance(node.value, ast.Attribute)
+                    and node.value.attr == "random"
+                    and isinstance(node.value.value, ast.Name)
+                    and node.value.value.id in ("np", "numpy")
+                ):
+                    bad.append(f"{rel}:{node.lineno}: np.random.{node.attr}")
+    if bad:
+        raise AssertionError(
+            f"{len(bad)} global numpy RNG use{_pl(bad)} found; use "
+            "np.random.default_rng (or RandomState) instead:\n" + "\n".join(bad)
+        )
 
 
 documented_ignored_mods = (
