@@ -138,6 +138,17 @@ def _get_layout(layout):
     return layout
 
 
+def _set_item_visible(item, visible):
+    widget = item.widget()
+    if widget is not None:
+        widget.setVisible(visible)
+        return
+    sub_layout = item.layout()
+    if sub_layout is not None:
+        for i in range(sub_layout.count()):
+            _set_item_visible(sub_layout.itemAt(i), visible)
+
+
 # -------
 # Widgets
 # -------
@@ -1124,6 +1135,18 @@ class _QtDock(_AbstractDock, _QtLayout):
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
         widget.setLayout(hlayout)
+        widget.setStyleSheet("QGroupBox::title { font-size: 11pt; font-weight: bold; }")
+        if collapse is not None:
+            assert isinstance(collapse, bool)
+
+            def _toggle_visibility(checked, hlayout=hlayout):
+                for i in range(hlayout.count()):
+                    _set_item_visible(hlayout.itemAt(i), checked)
+
+            widget.setCheckable(True)
+            widget.setChecked(not collapse)
+            widget.toggled.connect(_toggle_visibility)
+            _toggle_visibility(widget.isChecked())
         self._layout_add_widget(layout, widget)
         return hlayout
 

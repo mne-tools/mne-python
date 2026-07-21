@@ -135,6 +135,8 @@ class Brain:
            Add support for non-string arguments.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
+
+        See :meth:`set_cortex_alpha` to change this after creation.
     size : int | array-like, shape (2,)
         The size of the window, in pixels. can be one number to specify
         a square window, or a length-2 sequence to specify (width, height).
@@ -180,6 +182,9 @@ class Brain:
 
        .. versionchanged:: 1.13
           The default ``decimate`` value changed from ``0.9`` to ``"ico5"``.
+
+       See :meth:`set_silhouette_line_width` to change the line width (or
+       show/hide the silhouette) after creation.
     %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
@@ -397,6 +402,7 @@ class Brain:
             self.silhouette = True
         else:
             self.silhouette = silhouette
+        self._silhouette_actors = []
         self._scalar_bar = None
         # for now only one time label can be added
         # since it is the same for all figures
@@ -471,34 +477,10 @@ class Brain:
                 else:
                     actor = self.layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor, render=False)
-                if self.silhouette:
-                    mesh = self.layered_meshes[h]
-                    decimate = self._silhouette["decimate"]
-                    if isinstance(decimate, str):
-                        import pyvista as pv
-
-                        vertno, tris = _decimate_surface_ico_oct(
-                            self._subject,
-                            self._subjects_dir,
-                            h,
-                            self.geo[h].surf,
-                            decimate,
-                        )
-                        sil_mesh = pv.PolyData(
-                            self.geo[h].coords[vertno],
-                            np.c_[np.full(len(tris), 3), tris],
-                        )
-                        decimate = None  # already decimated
-                    else:
-                        sil_mesh = mesh._polydata
-                    self._renderer._silhouette(
-                        mesh=sil_mesh,
-                        color=self._silhouette["color"],
-                        line_width=self._silhouette["line_width"],
-                        alpha=self._silhouette["alpha"],
-                        decimate=decimate,
-                    )
                 self._set_camera(**views_dicts[h][v])
+
+        if self.silhouette:
+            self._add_silhouette()
 
         self.interaction = interaction
         self._closed = False
@@ -652,6 +634,9 @@ class Brain:
         # clear init actors
         for hemi in self.layered_meshes:
             self.layered_meshes[hemi]._clean()
+        for actor in getattr(self, "_silhouette_actors", None) or ():
+            self.plotter.remove_actor(actor)
+        self._silhouette_actors = None
         self._clear_callbacks()
         self._clear_widgets()
         if getattr(self, "mpl_canvas", None) is not None:
@@ -810,7 +795,7 @@ class Brain:
         del current_time
 
     def _configure_dock_orientation_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
+        layout = self._renderer._dock_add_group_box(name, collapse=False)
         # Renderer widget
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
@@ -866,13 +851,31 @@ class Brain:
             layout=layout,
         )
 
+    def _configure_dock_surface_widget(self, name):
+        layout = self._renderer._dock_add_group_box(name, collapse=False)
+        self.widgets["cortex_alpha"] = self._renderer._dock_add_slider(
+            name="Alpha",
+            value=self._alpha,
+            rng=[0.0, 1.0],
+            callback=self.set_cortex_alpha,
+            double=True,
+            layout=layout,
+        )
+        self.widgets["silhouette"] = self._renderer._dock_add_spin_box(
+            name="Silhouette",
+            value=self._silhouette["line_width"] if self.silhouette else 0.0,
+            rng=[0.0, 10.0],
+            callback=self.set_silhouette_line_width,
+            layout=layout,
+        )
+
     def _configure_dock_colormap_widget(self, name):
         self._active_data_key = next(iter(self._all_data))
         fmax, fscale, fscale_power = _get_range(self)
         rng = [0, fmax * fscale]
         self._data["fscale"] = fscale
 
-        layout = self._renderer._dock_add_group_box(name)
+        layout = self._renderer._dock_add_group_box(name, collapse=False)
 
         @_auto_weakref
         def select_data_key(value):
@@ -959,6 +962,16 @@ class Brain:
             style="toolbutton",
         )
         self._renderer._layout_add_widget(layout, hlayout)
+
+        self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
+            name="Smoothing",
+            value=self._data["smoothing_steps"],
+            rng=self.default_smoothing_range,
+            callback=self.set_data_smoothing,
+            double=False,
+            layout=layout,
+        )
+
         self._update_colormap_range()
 
     def _refresh_colormap_widgets(self):
@@ -996,7 +1009,7 @@ class Brain:
             self._configure_vertex_time_course()
             return
 
-        layout = self._renderer._dock_add_group_box(name)
+        layout = self._renderer._dock_add_group_box(name, collapse=False)
 
         # setup candidate annots
         @_auto_weakref
@@ -1069,18 +1082,9 @@ class Brain:
         self._renderer._dock_initialize()
         self._configure_dock_playback_widget(name="Playback")
         self._configure_dock_orientation_widget(name="Orientation")
+        self._configure_dock_surface_widget(name="Surface")
         self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_trace_widget(name="Trace")
-
-        # Smoothing widget
-        self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
-            name="Smoothing",
-            value=self._data["smoothing_steps"],
-            rng=self.default_smoothing_range,
-            callback=self.set_data_smoothing,
-            double=False,
-        )
-
         self._renderer._dock_finalize()
 
     def _configure_mplcanvas(self):
@@ -3525,6 +3529,73 @@ class Brain:
                 [img, trace_img], bgcolor=bgcolor, n_channels=n_channels
             )
         return img
+
+    def set_cortex_alpha(self, alpha):
+        """Set the opacity of the cortical surface.
+
+        Parameters
+        ----------
+        alpha : float
+            The opacity of the cortical surface, between 0 and 1.
+        """
+        self._alpha = float(alpha)
+        for hemi in self._hemis:
+            self.layered_meshes[hemi].update_overlay("curv", opacity=self._alpha)
+        self._renderer._update()
+
+    def _add_silhouette(self):
+        self._silhouette_actors = []
+        for h in self._hemis:
+            mesh = self.layered_meshes[h]
+            for _, _, v in self._iter_views(h):
+                self._set_camera(**views_dicts[h][v])
+                decimate = self._silhouette["decimate"]
+                if isinstance(decimate, str):
+                    import pyvista as pv
+
+                    vertno, tris = _decimate_surface_ico_oct(
+                        self._subject, self._subjects_dir, h, self.geo[h].surf, decimate
+                    )
+                    sil_mesh = pv.PolyData(
+                        self.geo[h].coords[vertno],
+                        np.c_[np.full(len(tris), 3), tris],
+                    )
+                    decimate = None  # already decimated
+                else:
+                    sil_mesh = mesh._polydata
+                actor = self._renderer._silhouette(
+                    mesh=sil_mesh,
+                    color=self._silhouette["color"],
+                    line_width=self._silhouette["line_width"],
+                    alpha=self._silhouette["alpha"],
+                    decimate=decimate,
+                )
+                self._silhouette_actors.append(actor)
+
+    def set_silhouette_line_width(self, line_width):
+        """Set the width of the cortical surface silhouette outline.
+
+        Parameters
+        ----------
+        line_width : float
+            The silhouette line width. A value of ``0`` hides the
+            silhouette entirely.
+        """
+        line_width = float(line_width)
+        self._silhouette["line_width"] = line_width
+        if line_width <= 0:
+            self.silhouette = False
+            for actor in self._silhouette_actors:
+                actor.SetVisibility(False)
+        else:
+            self.silhouette = True
+            if not self._silhouette_actors:
+                self._add_silhouette()
+            else:
+                for actor in self._silhouette_actors:
+                    actor.GetProperty().SetLineWidth(line_width)
+                    actor.SetVisibility(True)
+        self._renderer._update()
 
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):

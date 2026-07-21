@@ -450,7 +450,7 @@ class _TimeInteraction:
                 TimeChange(time=np.interp(time_index, np.arange(len(times)), times)),
             )
 
-        layout = self._dock_add_group_box("")
+        layout = self._dock_add_group_box("Playback", collapse=False)
         self._widgets["time_slider"] = self._dock_add_slider(
             name="Time (s)",
             value=np.interp(current_time_func(), times, np.arange(len(times))),

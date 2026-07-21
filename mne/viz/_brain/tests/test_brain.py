@@ -585,6 +585,32 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
 
+@testing.requires_testing_data
+def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
+    """Test live cortex alpha and silhouette line width."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    brain.set_cortex_alpha(0.5)
+    assert brain._alpha == 0.5
+
+    assert not brain.silhouette
+    brain.set_silhouette_line_width(3.0)
+    assert brain.silhouette
+    actors = brain._silhouette_actors
+    assert len(actors) > 0
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(0.0)
+    assert not brain.silhouette
+    assert all(not a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(5.0)
+    assert brain._silhouette_actors is actors
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.close()
+
+
 def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
     """Test add_annotation."""
     annots = [
