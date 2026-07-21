@@ -492,6 +492,9 @@ class BrowserBase(ABC):
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
+        # As specified by PEP 567: https://peps.python.org/pep-0567/#asyncio
+        # we explicitly retain the python Context used to create the figure
+        # in order to route stdout on close within IPykernel. See gh #14077
         self._close_context.run(self._close_impl, event)
 
     def _close_impl(self, event=None):
