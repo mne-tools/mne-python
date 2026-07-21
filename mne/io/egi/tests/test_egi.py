@@ -18,7 +18,6 @@ from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
 from mne.io.egi.egi import _combine_triggers
-from mne.io.egi.events import _read_mff_events
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import copytree_rw, object_diff
 
@@ -599,6 +598,7 @@ def test_egi_mff_bad_xml(tmp_path):
             raw = read_raw_egi(mff_fname)
     # little check that the bad XML doesn't affect the parsing of other xml files
     assert "DIN1" in raw.annotations.description
+
 
 @requires_testing_data
 @pytest.mark.parametrize(
