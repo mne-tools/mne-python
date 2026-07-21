@@ -16,6 +16,7 @@ import numpy as np
 from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
@@ -67,7 +68,9 @@ class _AnnotationsExtrasDict(UserDict):
     strings, integers, floats, or None.
     """
 
-    def __setitem__(self, key: str, value: str | int | float | None) -> None:
+    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
+        self, key: str, value: str | int | float | None
+    ) -> None:
         _validate_type(key, str, "key")
         if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
@@ -112,7 +115,7 @@ class _AnnotationsExtrasList(UserList):
             initlist = [self._validate_value(v) for v in initlist]
         super().__init__(initlist)
 
-    def __setitem__(  # type: ignore[override]
+    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
         self,
         key: int | slice,
         value,
@@ -624,7 +627,7 @@ class Annotations:
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
         """Propagate indexing and slicing to the underlying numpy structure."""
-        if isinstance(key, int_like):
+        if isinstance(key, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             out_keys = ("onset", "duration", "description", "orig_time")
             out_vals = (
                 self.onset[key],
@@ -647,7 +650,7 @@ class Annotations:
                 description=self.description[key],
                 orig_time=self.orig_time,
                 ch_names=self.ch_names[key],
-                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
+                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],  # ty: ignore[invalid-argument-type]
             )
 
     @fill_doc
@@ -722,7 +725,7 @@ class Annotations:
         self._duration = np.delete(self._duration, idx)
         self._description = np.delete(self._description, idx)
         self._ch_names = np.delete(self._ch_names, idx)
-        if isinstance(idx, int_like):
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.extras[idx]
         elif len(idx) > 0:
             # convert slice-like idx to ints, and delete list items in reverse order
@@ -1389,7 +1392,7 @@ class HEDAnnotations(Annotations):
             indices.
         """
         super().delete(idx)
-        if isinstance(idx, int_like):
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.hed_string._objs[idx]
             del self.hed_string[idx]
         else:
@@ -1487,6 +1490,14 @@ class HEDAnnotations(Annotations):
 class EpochAnnotationsMixin:
     """Mixin class for Annotations in Epochs."""
 
+    # Attributes provided by the host class (BaseEpochs), declared here so the
+    # mixin methods type-check.
+    info: Info
+    events: np.ndarray
+    times: np.ndarray
+    _raw_sfreq: float
+    _annotations: Annotations | None
+
     @property
     def annotations(self):  # noqa: D102
         return self._annotations
@@ -1575,6 +1586,7 @@ class EpochAnnotationsMixin:
         # check if annotations exist
         if self.annotations is None:
             return epoch_annot_list
+        assert self._annotations is not None
 
         # when each epoch and annotation starts/stops
         # no need to account for first_samp here...
@@ -1676,8 +1688,8 @@ class EpochAnnotationsMixin:
             return self
 
         # get existing metadata DataFrame or instantiate an empty one
-        if self._metadata is not None:
-            metadata = self._metadata
+        if self._metadata is not None:  # ty: ignore[unresolved-attribute]  # host pandas attr
+            metadata = self._metadata  # ty: ignore[unresolved-attribute]  # host pandas attr
         else:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
@@ -2269,9 +2281,9 @@ def _read_annotations_fif(fid, tree):
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:
-                    orig_time = float(orig_time)  # old way
+                    orig_time = float(tag.data)  # old way
                 except TypeError:
-                    orig_time = tuple(orig_time)  # new way
+                    orig_time = tuple(tag.data)  # new way
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
             elif kind == FIFF.FIFF_FREE_LIST:

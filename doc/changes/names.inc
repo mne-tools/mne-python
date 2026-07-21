@@ -72,6 +72,7 @@
 .. _Daniel McCloy: https://dan.mccloy.info
 .. _Daniel Strohmeier: https://github.com/joewalter
 .. _Daniel Tse: https://github.com/Xiezhibin
+.. _Daria Agafonova: https://github.com/viranovskaya
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
@@ -90,7 +91,7 @@
 .. _Eberhard Eich: https://github.com/ebeich
 .. _Eduard Ort: https://github.com/eort
 .. _Emily Stephen: https://github.com/emilyps14
-.. _Emma Bailey: https://www.cbs.mpg.de/employees/bailey
+.. _Emma Bailey: https://github.com/emma-bailey
 .. _Emma Zhang: https://portfolio-production-ed03.up.railway.app/
 .. _Emmanuel Ferdman: https://github.com/emmanuel-ferdman
 .. _Emrecan Çelik: https://github.com/emrecncelik
@@ -327,6 +328,7 @@
 .. _Senwen Deng: https://snwn.de
 .. _Seth Bashford: https://github.com/sbashford
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
+.. _Sharif Haason: https://github.com/sharifhsn
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral

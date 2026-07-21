@@ -10,7 +10,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from itertools import cycle
 from pathlib import Path
 
@@ -1768,13 +1768,53 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    try:
-        from scipy.spatial import QhullError
-    except ImportError:  # scipy < 1.8
-        from scipy.spatial.qhull import QhullError
     id_ = coil["type"] & 0xFFFF
-    add_z_coord = True  # almost all geometry is planar
-    extra_z = 0.0
+    # Offset for visibility (using heuristic for sanely named Neuromag coils).
+    # It depends on the channel name, so keep it out of the cached template.
+    if id_ in (
+        FIFF.FIFFV_COIL_NM_122,
+        FIFF.FIFFV_COIL_VV_PLANAR_W,
+        FIFF.FIFFV_COIL_VV_PLANAR_T1,
+        FIFF.FIFFV_COIL_VV_PLANAR_T2,
+    ):
+        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
+    else:
+        extra_z = 0.0
+    # The template geometry depends only on the coil id/size/base, so it is
+    # cached: a real system has only a handful of coil types but often hundreds
+    # of channels sharing them.
+    base = coil["base"] if id_ in (5004, 4005) else 0.0
+    out = _sensor_template(id_, float(coil["size"]), float(base))
+    if out is not None:
+        rrs, tris = out
+    else:
+        # 3D convex hull (will fail for 2D geometry). This depends on the full
+        # (per-channel) integration geometry, so it is not cached.
+        from scipy.spatial import QhullError
+
+        rrs = coil["rmag_orig"].copy()
+        try:
+            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
+        except QhullError:  # 2D geometry likely
+            logger.debug("Falling back to planar geometry")
+            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
+            u[:, 2] = 0
+            rr_rot = rrs @ u
+            tris = Delaunay(rr_rot[:, :2]).simplices
+            tris = np.concatenate((tris, tris[:, ::-1]))
+    assert rrs.ndim == 2 and rrs.shape[1] == 3
+    return rrs, tris, extra_z
+
+
+@cache
+def _sensor_template(id_, size, base):
+    """Get the local sensor template geometry for a coil type.
+
+    Returns the ``(x, y, z)`` vertices and triangles in the coil's local frame,
+    or ``None`` for coil types without an explicit 2D template (handled by the
+    caller via a convex hull). Pure function of the coil id/size/base, so the
+    result is cached and shared across all channels of the same type.
+    """
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1783,7 +1823,7 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_VV_PLANAR_T2,
     ):
         # wound by right hand rule such that +x side is "up" (+z)
-        long_side = coil["size"]  # length of long side (meters)
+        long_side = size  # length of long side (meters)
         offset = 0.0025  # offset of the center portion of planar grad coil
         rrs = np.array(
             [
@@ -1800,8 +1840,6 @@ def _sensor_shape(coil):
         tris = np.concatenate(
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
-        # Offset for visibility (using heuristic for sanely named Neuromag coils)
-        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1811,8 +1849,8 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_KIT_REF_MAG,
     ):
         # square magnetometer (potentially point-type)
-        size = 0.001 if id_ == 2000 else (coil["size"] / 2.0)
-        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * size
+        half = 0.001 if id_ == 2000 else (size / 2.0)
+        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * half
         tris = _make_tris_fan(4)
     # Circle
     elif id_ in (
@@ -1826,7 +1864,7 @@ def _sensor_shape(coil):
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
         circle = np.concatenate(([0.0], circle))
-        circle *= coil["size"] / 2.0  # radius of coil
+        circle *= size / 2.0  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
     # Circle
@@ -1843,12 +1881,12 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ):
         # round coil 1st order (off-diagonal) gradiometer
-        baseline = coil["base"] if id_ in (5004, 4005) else 0.0
+        baseline = base if id_ in (5004, 4005) else 0.0
         n_pts = 16  # number of points for circle
         # This time, go all the way around circle to close it fully
         circle = np.exp(2j * np.pi * np.arange(-1, n_pts) / float(n_pts - 1))
         circle[0] = 0  # center pt for triangulation
-        circle *= coil["size"] / 2.0
+        circle *= size / 2.0
         rrs = np.array(
             [  # first, second coil
                 np.concatenate(
@@ -1861,24 +1899,16 @@ def _sensor_shape(coil):
             [_make_tris_fan(n_pts + 1), _make_tris_fan(n_pts + 1) + n_pts + 1]
         )
     else:
-        # 3D convex hull (will fail for 2D geometry)
-        rrs = coil["rmag_orig"].copy()
-        try:
-            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
-        except QhullError:  # 2D geometry likely
-            logger.debug("Falling back to planar geometry")
-            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
-            u[:, 2] = 0
-            rr_rot = rrs @ u
-            tris = Delaunay(rr_rot[:, :2]).simplices
-            tris = np.concatenate((tris, tris[:, ::-1]))
-        add_z_coord = False
+        return None
 
     # Go from (x,y) -> (x,y,z)
-    if add_z_coord:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
-    assert rrs.ndim == 2 and rrs.shape[1] == 3
-    return rrs, tris, extra_z
+    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
+    # The cached arrays are shared across channels, so make them read-only to
+    # guard against accidental in-place mutation by callers.
+    tris = np.ascontiguousarray(tris)
+    rrs.flags.writeable = False
+    tris.flags.writeable = False
+    return rrs, tris
 
 
 def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):

@@ -33,10 +33,12 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDialog,
     # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
+    QFormLayout,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -184,12 +186,6 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
         if repaint:
             self.repaint()
 
-    def _get_tooltip(self):
-        return self.toolTip()
-
-    def _set_tooltip(self, tooltip):
-        self.setToolTip(tooltip)
-
     def _set_style(self, style):
         stylesheet = ""
         for key, val in style.items():
@@ -212,9 +208,6 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
 
     def _set_focus(self):
         self.setFocus()
-
-    def _set_layout(self, layout):
-        self.setLayout(_get_layout(layout))
 
     def _set_theme(self, theme=None):
         if theme is None:
@@ -278,9 +271,6 @@ class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
     def _click(self):
         self.click()
 
-    def _set_icon(self, icon):
-        self.setIcon(_qicon(icon))
-
 
 class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, rng, callback, horizontal=True):
@@ -300,9 +290,6 @@ class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
 
     def _get_value(self):
         return self.value()
-
-    def _set_range(self, rng):
-        self.setRange(int(rng[0]), int(rng[1]))
 
 
 class _ProgressBar(QProgressBar, _AbstractProgressBar, _Widget, metaclass=_BaseWidget):
@@ -613,9 +600,6 @@ class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget, metaclass=_BaseWidg
                 widget.setMaximumHeight(self._height)
             self.addWidget(widget)
 
-    def _add_stretch(self, amount=1):
-        self.addStretch(amount)
-
 
 class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget, metaclass=_BaseWidget):
     def __init__(self, width=None, scroll=None):
@@ -642,9 +626,6 @@ class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget, metaclass=_BaseWidg
                 widget.setMinimumWidth(self._width)
                 widget.setMaximumWidth(self._width)
             self.addWidget(widget)
-
-    def _add_stretch(self, amount=1):
-        self.addStretch(amount)
 
 
 class _GridLayout(QGridLayout, _AbstractGridLayout, _Widget, metaclass=_BaseWidget):
@@ -738,29 +719,12 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget, metaclass=_BaseWid
         self._set_theme()
         self.setLocale(QLocale(QLocale.Language.English))
         self.signal_close.connect(self._clean)
-        self._before_close_callbacks = list()
-        self._after_close_callbacks = list()
 
         # patch closeEvent
         def closeEvent(event):
-            # functions to call before closing
-            accept_close_event = True
-            for callback in self._before_close_callbacks:
-                ret = callback()
-                # check if one of the callbacks ignores the close event
-                if isinstance(ret, bool) and not ret:
-                    accept_close_event = False
-
-            if accept_close_event:
-                self.signal_close.emit()
-                self._clean()
-                event.accept()
-            else:
-                event.ignore()
-
-            # functions to call after closing
-            for callback in self._after_close_callbacks:
-                callback()
+            self.signal_close.emit()
+            self._clean()
+            event.accept()
 
         self.closeEvent = closeEvent
 
@@ -769,32 +733,8 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget, metaclass=_BaseWid
         central_widget.setLayout(_get_layout(central_layout))
         self.setCentralWidget(central_widget)
 
-    def _get_dpi(self):
-        return self.windowHandle().screen().logicalDotsPerInch()
-
     def _get_size(self):
         return (self.width(), self.height())
-
-    def _get_cursor(self):
-        return self.cursor()
-
-    def _set_cursor(self, cursor):
-        self.setCursor(cursor)
-
-    def _new_cursor(self, name):
-        return QCursor(getattr(Qt, name))
-
-    def _close_connect(self, callback, *, after=True):
-        if after:
-            self._after_close_callbacks.append(callback)
-        else:
-            self._before_close_callbacks.append(callback)
-
-    def _close_disconnect(self, after=True):
-        if after:
-            self._after_close_callbacks.clear()
-        else:
-            self._before_close_callbacks.clear()
 
     def _clean(self):
         self._app = None
@@ -1400,8 +1340,17 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
 
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         widget = QLabel(value)
+        if on_click is not None:
+            widget.setCursor(QCursor(Qt.PointingHandCursor))
+            widget.setToolTip("Click for help")
+
+            @safe_event
+            def mousePressEvent(event):
+                on_click()
+
+            widget.mousePressEvent = mousePressEvent
         self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
@@ -1448,6 +1397,57 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
         else:
             self.canvas.setParent(brain._renderer._window)
         self._connect()
+
+
+class _QtHelpDialog(QDialog):
+    """Non-modal dialog listing keyboard shortcuts.
+
+    Styled after :class:`mne_qt_browser._dialogs.HelpDialog` (a bold
+    section header plus a plain :class:`~qtpy.QtWidgets.QFormLayout` in a
+    scroll area, no button box) so MNE-Python's Qt-based viewers share a
+    consistent help-dialog look.
+    """
+
+    def __init__(self, pairs, mouse_pairs=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("MNE Key Bindings")
+        layout = QVBoxLayout(self)
+
+        scroll_area = QScrollArea(self)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        self._add_help_section(scroll_layout, "Keyboard Shortcuts", pairs)
+        if mouse_pairs:
+            self._add_help_section(
+                scroll_layout, "Mouse Interaction", mouse_pairs, suffix=":"
+            )
+        scroll_area.setWidget(scroll_widget)
+        layout.addWidget(scroll_area)
+
+        # avoid clipping/horizontal scrolling of the longer rows
+        scroll_area.setMinimumWidth(
+            scroll_widget.minimumSizeHint().width()
+            + scroll_area.verticalScrollBar().width()
+        )
+        self.resize(scroll_area.minimumWidth() + 40, 420)
+
+    @staticmethod
+    def _add_help_section(layout, title, pairs, suffix=""):
+        header = QLabel(title)
+        font = header.font()
+        font.setPointSize(16)
+        font.setBold(True)
+        header.setFont(font)
+        layout.addWidget(header)
+
+        form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignLeft)
+        form_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
+        for key, description in pairs:
+            form_layout.addRow(f"{key}{suffix}", QLabel(description))
+        layout.addLayout(form_layout)
 
 
 class _QtWindow(_AbstractWindow):
@@ -1543,6 +1543,9 @@ class _QtWindow(_AbstractWindow):
 
     def _window_get_simple_canvas(self, width, height, dpi):
         return _QtMplCanvas(width, height, dpi)
+
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        return _QtHelpDialog(pairs, mouse_pairs=mouse_pairs, parent=self._window)
 
     def _window_get_mplcanvas(
         self, brain, interactor_fraction, show_traces, separate_canvas

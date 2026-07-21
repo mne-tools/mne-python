@@ -385,7 +385,7 @@ def read_epochs_eeglab(
 
     Returns
     -------
-    EpochsEEGLAB : instance of BaseEpochs
+    EpochsEEGLAB : instance of EpochsEEGLAB
         The epochs.
 
     See Also
@@ -697,6 +697,7 @@ class EpochsEEGLAB(BaseEpochs):
 
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
+            assert event_id is not None
             for idx in range(0, eeg.trials):
                 if idx == 0:
                     prev_stim = 0
@@ -711,6 +712,8 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info(f"Extracting parameters from {input_fname}...")
         info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
+        assert event_id is not None
+        assert events is not None
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(f"No matching events found for {key} (event id {val})")

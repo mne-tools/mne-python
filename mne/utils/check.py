@@ -582,6 +582,9 @@ _multi = {
     "array-like": (list, tuple, set, np.ndarray),
     "sparse": (_Sparse(),),
 }
+# Precomputed for isinstance() -- `list | tuple` rebuilds a UnionType on every
+# call (~11x slower), which matters in hot validation paths.
+_list_or_tuple = (list, tuple)
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""):
@@ -610,7 +613,18 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     elif types == "info":
         from .._fiff.meas_info import Info as types
 
-    if not isinstance(types, list | tuple):
+    # Fast path for the common single-type / single-string-spec calls: avoids
+    # rebuilding `check_types` (and the `list | tuple` union) on every call.
+    # `_validate_type` is one of the hottest functions in MNE (e.g. it runs per
+    # channel inside Info._check_consistency). Only returns early on success;
+    # failures fall through to the general path below to build the error message.
+    if isinstance(types, type):
+        if isinstance(item, types):
+            return
+    elif isinstance(types, str) and isinstance(item, _multi[types]):
+        return
+
+    if not isinstance(types, _list_or_tuple):
         types = [types]
 
     check_types = sum(

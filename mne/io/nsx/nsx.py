@@ -4,6 +4,7 @@
 
 import os
 from datetime import datetime, timezone
+from typing import Any
 
 import numpy as np
 
@@ -113,7 +114,7 @@ def read_raw_nsx(
 
     Returns
     -------
-    raw : instance of RawEDF
+    raw : instance of RawNSX
         The raw instance.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -436,7 +437,7 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
 
     orig_format = ORIG_FORMAT
 
-    raw_extras = {
+    raw_extras: dict[str, Any] = {
         key: [r[key] for r in nsx_info["data_header"]]
         for key in nsx_info["data_header"][0]
     }
