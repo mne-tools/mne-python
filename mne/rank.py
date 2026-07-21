@@ -316,19 +316,21 @@ def _get_rank_sss(
     info = inst if isinstance(inst, Info) else inst.info
     del inst
 
-    proc_info = info.get("proc_history", [])
-    if len(proc_info) > 1:
-        logger.info("Found multiple SSS records. Using the first.")
-    if (
-        len(proc_info) == 0
-        or "max_info" not in proc_info[0]
-        or "in_order" not in proc_info[0]["max_info"]["sss_info"]
-    ):
+    # Take the first record that actually holds an SSS expansion. MaxFilter 2.2
+    # writes it first, but 3.0 emits an empty sss_info ahead of the populated
+    # one, so we cannot just use proc_history[0].
+    proc_info = [
+        pp
+        for pp in info.get("proc_history", [])
+        if "in_order" in pp.get("max_info", {}).get("sss_info", {})
+    ]
+    if len(proc_info) == 0:
         raise ValueError(
             f'Could not find Maxfilter information in info["proc_history"]. {msg}'
         )
-    proc_info = proc_info[0]
-    max_info = proc_info["max_info"]
+    if len(proc_info) > 1:
+        logger.info("Found multiple SSS records. Using the first.")
+    max_info = proc_info[0]["max_info"]
     inside = max_info["sss_info"]["in_order"]
     nfree = (inside + 1) ** 2 - 1
     nfree -= (

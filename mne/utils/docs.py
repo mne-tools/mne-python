@@ -3872,9 +3872,21 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict["regularize_maxwell_reg"] = """
 regularize : str | None
-    Basis regularization type, must be ``"in"`` or None.
-    ``"in"`` is the same algorithm as the ``-regularize in`` option in
-    MaxFilter™.
+    Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+    Both ``"in"`` options use the same information-theoretic component ordering
+    as the ``-regularize in`` option in MaxFilter™, and differ only in where
+    the total-information curve is cut:
+
+    ``"in"`` (default)
+      Keeps the components giving at least 98% of the peak total information. The curve
+      can be quite flat, so this errs on the side of including rather than excluding
+      components. This is the criterion MaxFilter™ 3.0 uses.
+    ``"in_argmax"``
+      Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+      Use this to match MaxFilter™ 2.2 output more closely; it generally excludes more
+      components than ``"in"``.
+
+      .. versionadded:: 1.13
 """
 
 
