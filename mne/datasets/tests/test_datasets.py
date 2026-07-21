@@ -333,7 +333,7 @@ def test_lite_data():
     cfg = MNE_DATASETS["lite_data"]
     assert cfg["archive_name"] == "MNE-lite-data.tar.gz"
     assert cfg["hash"].startswith("md5:")
-    assert "osf.io" in cfg["url"]
+    assert cfg["url"].startswith("https://osf.io/")
     assert cfg["config_key"] == "MNE_DATASETS_LITE_DATA_PATH"
     assert callable(lite_data.data_path)
     assert callable(lite_data.get_version)
