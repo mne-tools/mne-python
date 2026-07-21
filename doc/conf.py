@@ -529,7 +529,6 @@ if src_sample_data.exists():
         "MEG/sample/sample_audvis-meg-rh.stc",
         "subjects/sample/mri/T1.mgz",
         "subjects/sample/bem/sample-oct-6-src.fif",
-        "subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif",
         "subjects/sample/surf/rh.pial",
         "subjects/sample/surf/lh.pial",
         "subjects/sample/surf/rh.white",
@@ -724,7 +723,6 @@ sphinx_gallery_conf = {
         "    'MEG/sample/sample_audvis-meg-rh.stc',\n"
         "    'subjects/sample/mri/T1.mgz',\n"
         "    'subjects/sample/bem/sample-oct-6-src.fif',\n"
-        "    'subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif',\n"
         "    'subjects/sample/surf/rh.pial',\n"
         "    'subjects/sample/surf/lh.pial',\n"
         "    'subjects/sample/surf/rh.white',\n"

@@ -249,21 +249,17 @@ jobs:
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
-      # Ensure the datasets the JupyterLite notebooks need are on disk so
-      # conf.py can copy the required subset for the build. circleci_download.sh
-      # only fetches them when the changed files reference them, so a cache miss
-      # on a PR that touches only doc/conf.py would leave them absent and the
-      # notebooks would fail at runtime with FileNotFoundError. kiloword and
-      # erp_core back the Epochs metadata tutorials (30 & 40); mtrf and eegbci
-      # back the decoding examples (receptive_field_mtrf, decoding_csp_*).
+      # Ensure the data the JupyterLite notebooks need is on disk so conf.py can
+      # copy the required subset for the build. lite_data fetches only the
+      # curated files the browser notebooks use (from the MNE-lite-data OSF
+      # project) instead of the full sample/kiloword/erp_core/mtrf/eegbci
+      # datasets, which slims the build. The curated files share hashes with the
+      # full datasets, so on a full build that already downloaded them nothing
+      # extra is fetched.
       - run:
           name: Ensure MNE data for JupyterLite
           command: |
-            python -c "import mne; mne.datasets.sample.data_path(update_path=True)"
-            python -c "import mne; mne.datasets.kiloword.data_path(update_path=True)"
-            python -c "import mne; mne.datasets.erp_core.data_path(update_path=True)"
-            python -c "import mne; mne.datasets.mtrf.data_path(update_path=True)"
-            python -c "import mne; mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True)"
+            python -c "import mne; mne.datasets.lite_data.data_path(update_path=True)"
       # Build the dev MNE wheel the JupyterLite browser kernel installs, once,
       # before Sphinx runs. conf.py reuses it and only builds it itself if this
       # step did not run (e.g. a local build).
