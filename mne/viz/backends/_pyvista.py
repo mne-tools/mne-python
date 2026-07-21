@@ -799,6 +799,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         source,
         color="white",
+        title=None,
         n_labels=4,
         bgcolor=None,
         **extra_kwargs,
@@ -826,7 +827,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             background_color=bgcolor,
             mapper=mapper,
         )
-        extra_kwargs.pop("title", None)
         kwargs.update(extra_kwargs)
         actor = self.plotter.add_scalar_bar(**kwargs)
         actor.SetTextPad(10)
