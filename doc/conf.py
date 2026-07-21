@@ -499,7 +499,10 @@ jupyterlite_bind_ipynb_suffix = False
 # files over HTTP into the Pyodide kernel — the /drive virtual-filesystem
 # bridge needs cross-origin-isolation (COOP/COEP) headers that static
 # artifact servers (e.g. CircleCI) do not send, so it is unusable there.
-src_sample_data = Path(os.path.expanduser("~/mne_data/MNE-sample-data"))
+# lite_data (mne.datasets.lite_data) extracts the curated subset here, with the
+# files under their original dataset folders (MNE-sample-data/, ...).
+lite_root = Path(os.path.expanduser("~/mne_data/MNE-lite-data"))
+src_sample_data = lite_root / "MNE-sample-data"
 lite_extra_base = (
     Path(os.path.abspath(os.path.dirname(__file__))) / "lite_extra" / "mne_data"
 )
@@ -588,7 +591,7 @@ for _folder, _ds_files in (
         ],
     ),
 ):
-    _src_ds = mne_data_base / _folder
+    _src_ds = lite_root / _folder
     _dst_ds = lite_data_base / _folder
     print(f"[JupyterLite] {_folder} source exists: {_src_ds.exists()}")
     for _ds_file in _ds_files:

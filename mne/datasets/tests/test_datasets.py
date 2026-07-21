@@ -324,18 +324,16 @@ def test_fetch_uncompressed_file(tmp_path):
     assert (tmp_path / "foo" / "LICENSE.foo").is_file()
 
 
-def test_lite_data_registry():
-    """Test the lite_data curated registry and URL map stay consistent."""
+def test_lite_data():
+    """Test the lite_data curated dataset is registered correctly."""
     from mne.datasets import lite_data
-    from mne.datasets.lite_data.lite_data import _load_registry, _load_urls
+    from mne.datasets.config import MNE_DATASETS
 
-    registry = _load_registry()
-    urls = _load_urls()
-    assert len(registry) > 0
-    # every curated file has both a checksum and a download URL
-    assert set(registry) == set(urls)
-    for relpath, known_hash in registry.items():
-        assert known_hash.startswith("md5:")
-        assert len(known_hash) == len("md5:") + 32
-        assert urls[relpath].startswith("https://osf.io/")
-    assert isinstance(lite_data.get_version(), str)
+    assert "lite_data" in MNE_DATASETS
+    cfg = MNE_DATASETS["lite_data"]
+    assert cfg["archive_name"] == "MNE-lite-data.tar.gz"
+    assert cfg["hash"].startswith("md5:")
+    assert "osf.io" in cfg["url"]
+    assert cfg["config_key"] == "MNE_DATASETS_LITE_DATA_PATH"
+    assert callable(lite_data.data_path)
+    assert callable(lite_data.get_version)
