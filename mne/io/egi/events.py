@@ -10,7 +10,7 @@ import numpy as np
 from ...utils import _soft_import, _validate_type, logger, warn
 
 
-def _read_events(input_fname, info):
+def _read_events(input_fname, info, *, event_key=None):
     """Read events for the record.
 
     Parameters
@@ -22,7 +22,7 @@ def _read_events(input_fname, info):
     """
     n_samples = info["last_samps"][-1]
     mff_events, event_codes = _read_mff_events(
-        input_fname, info["sfreq"], info["meas_dt_local"]
+        input_fname, info["sfreq"], info["meas_dt_local"], event_key=event_key
     )
     info["n_events"] = len(event_codes)
     info["event_codes"] = event_codes
@@ -36,7 +36,7 @@ def _read_events(input_fname, info):
     return events, info, mff_events
 
 
-def _read_mff_events(filename, sfreq, start_time):
+def _read_mff_events(filename, sfreq, start_time, *, event_key=None):
     """Extract the events with mffpy."""
     mffpy = _soft_import("mffpy", purpose="reading EGI MFF data", min_version="0.11")
     from mffpy.xml_files import XML
@@ -69,9 +69,10 @@ def _read_mff_events(filename, sfreq, start_time):
     for track in tracks:
         for event in track.events:
             code_str = event["code"]
-            cel = event.get("keys", {}).get("cel#")
-            if cel is not None:
-                code_str = f"{code_str}_{int(cel)}"
+            keys = event.get("keys", {})
+            key_value = keys.get(event_key) if event_key is not None else None
+            if key_value is not None:
+                code_str = f"{code_str}_{key_value}"
             if code_str not in code:
                 code.append(code_str)
 
@@ -86,6 +87,14 @@ def _read_mff_events(filename, sfreq, start_time):
                 )
             else:
                 extras = {}
+            extras.update(
+                {
+                    f"event_key_{key}": value.item()
+                    if isinstance(value, np.generic)
+                    else value
+                    for key, value in keys.items()
+                }
+            )
 
             markers.append(
                 {
