@@ -52,6 +52,7 @@ fname_raw_testing = sample_dir / "sample_audvis_trunc_raw.fif"
 fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
 fname_stc = sample_dir / "sample_audvis_trunc-meg"
 fname_label = sample_dir / "labels" / "Vis-lh.label"
+fname_label_rh = sample_dir / "labels" / "Vis-rh.label"
 fname_cov = sample_dir / "sample_audvis_trunc-cov.fif"
 fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
 fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
@@ -590,10 +591,11 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
     annots = [
         "aparc",
         subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
+        [read_label(fname_label, "fsaverage"), read_label(fname_label_rh, "fsaverage")],
     ]
-    borders = [True, 2]
-    alphas = [1, 0.5]
-    colors = [None, "r"]
+    borders = [True, 1, 2]
+    alphas = [1, 0.5, 0]
+    colors = [None, "r", "b"]
     size = (100, 100)
     brain = Brain(
         subject="fsaverage",
@@ -655,7 +657,7 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
         subjects_dir=subjects_dir,
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
-        brain.add_annotation(str(a), b, p, color=color)
+        brain.add_annotation(a, b, p, color=color)
     brain.close()
 
 

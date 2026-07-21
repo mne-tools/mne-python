@@ -48,6 +48,7 @@ from ...utils import (
     _auto_weakref,
     _check_option,
     _ensure_int,
+    _path_like,
     _ReuseCycle,
     _to_rgb,
     _validate_type,
@@ -3082,8 +3083,14 @@ class Brain:
 
         Parameters
         ----------
-        annot : str
-            Either path to annotation file or annotation name.
+        annot : str | list of Label | tuple
+            Either path to annotation file or annotation name. Alternatively,
+            a list of :class:`mne.Label` objects. Deprecated alternative: the annotation
+            can be specified as a ``(labels, ctab)`` tuple per hemisphere, i.e.
+            ``annot=(labels, ctab)`` for a single hemisphere or ``annot=((lh_labels,
+            lh_ctab), (rh_labels, rh_ctab))`` for both hemispheres. ``labels`` and
+            ``ctab`` should be arrays as returned by
+            :func:`nibabel.freesurfer.io.read_annot`.
         borders : bool | int
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
@@ -3103,37 +3110,73 @@ class Brain:
 
             .. versionadded:: 1.13
         """
-        from ...label import read_labels_from_annot
+        from ...label import Label, read_labels_from_annot
 
         hemis = self._check_hemis(hemi)
         kwargs = dict()
-        if os.path.isfile(annot):
-            kwargs["annot_fname"] = annot
-        else:
-            kwargs["parc"] = annot
 
-        for hemi in hemis:
-            labels = read_labels_from_annot(
-                self._subject, hemi=hemi, subjects_dir=self._subjects_dir, **kwargs
-            )
-            n_labels = len(labels)
-            ids = np.zeros(self.geo[hemi].coords.shape[0], dtype=int)
-            cmap = np.zeros((len(labels) + 1, 4))
-            cmap[:, 3] = 1
-            cmap[0] = np.array(self._brain_color)
-            cmap[0, 3] = 0.0
-            centroids = np.zeros((len(labels) + 1, 3))
-            for li, label in enumerate(labels):
-                ids[label.vertices] = li  # will have one added later
-                cmap[li + 1] = label.color
-                label.values[:] = 1
-                centroids[li] = self.geo[hemi].coords[
-                    label.center_of_mass(subjects_dir=self._subjects_dir)
-                ]
-            self._annots[hemi].append(
-                dict(name=annot, labels=labels, ids=ids, centroids=centroids)
-            )
-            del labels
+        for hemi_idx, hemi in enumerate(hemis):
+            if not _path_like(annot) and len(annot[hemi_idx]) == 2:
+                # Old-style labels + cmap combination (deprecated)
+                ids, cmap = annot[hemi_idx]
+
+                # Set label ids sensibly
+                order = np.argsort(cmap[:, -1])
+                cmap = cmap[order]
+                cmap = np.insert(cmap, 0, np.zeros(5), axis=0)
+                ids = np.searchsorted(cmap[:, -1], ids) - 1
+                cmap = cmap[:, :4] / 255
+
+                n_labels = len(cmap)
+                name = "annotation"
+                self._annots[hemi].append(
+                    dict(name=name, labels=None, ids=ids, centroids=None)
+                )
+                hover = False  # hover behavior not supported in this case
+                warn(
+                    "Passing a tuple as the `annot` parameter is deprecated and will "
+                    "be removed in version 1.14. Instead, use a list of mne.Label "
+                    "objects as returned by mne.read_annotations.",
+                    FutureWarning,
+                )
+            else:
+                if _path_like(annot):
+                    if os.path.isfile(annot):
+                        kwargs["annot_fname"] = annot
+                    else:
+                        kwargs["parc"] = annot
+                    labels = read_labels_from_annot(
+                        self._subject,
+                        hemi=hemi,
+                        subjects_dir=self._subjects_dir,
+                        **kwargs,
+                    )
+                    name = annot
+                elif isinstance(annot[0], Label):
+                    labels = [label for label in annot if label.hemi == hemi]
+                    name = "annotation"  # placeholder name for the annotation
+                else:
+                    raise TypeError(
+                        f"Invalid type for `annot` parameter: {type(annot)}"
+                    )
+                n_labels = len(labels)
+                ids = -1 * np.ones(self.geo[hemi].coords.shape[0], dtype=int)
+                cmap = np.zeros((len(labels) + 1, 4))
+                cmap[:, 3] = 1
+                cmap[0] = np.array(self._brain_color)
+                cmap[0, 3] = 0.0
+                centroids = np.zeros((len(labels) + 1, 3))
+                for li, label in enumerate(labels):
+                    ids[label.vertices] = li  # will have one added later
+                    cmap[li + 1] = label.color
+                    label.values[:] = 1
+                    centroids[li] = self.geo[hemi].coords[
+                        label.center_of_mass(subjects_dir=self._subjects_dir)
+                    ]
+                self._annots[hemi].append(
+                    dict(name=name, labels=labels, ids=ids, centroids=centroids)
+                )
+                del labels
 
             # Maybe zero-out the non-border vertices
             scalars = ids + 1  # make a copy and reindex
@@ -3151,7 +3194,7 @@ class Brain:
                     colormap=ctable * 255,
                     rng=[0, n_labels],
                     opacity=alpha,
-                    name=annot,
+                    name=name,
                 )
 
         if hover:
