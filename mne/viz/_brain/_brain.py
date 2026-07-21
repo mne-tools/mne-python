@@ -3591,10 +3591,9 @@ class Brain:
             self.silhouette = True
             if not self._silhouette_actors:
                 self._add_silhouette()
-            else:
-                for actor in self._silhouette_actors:
-                    actor.GetProperty().SetLineWidth(line_width)
-                    actor.SetVisibility(True)
+            for actor in self._silhouette_actors:
+                actor.GetProperty().SetLineWidth(line_width)
+                actor.SetVisibility(True)
         self._renderer._update()
 
     @fill_doc
