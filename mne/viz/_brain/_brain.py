@@ -3136,7 +3136,7 @@ class Brain:
                 warn(
                     "Passing a tuple as the `annot` parameter is deprecated and will "
                     "be removed in version 1.14. Instead, use a list of mne.Label "
-                    "objects as returned by mne.read_annotations.",
+                    "objects as returned by mne.read_labels_from_annot.",
                     FutureWarning,
                 )
             else:
