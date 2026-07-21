@@ -69,6 +69,9 @@ def _read_mff_events(filename, sfreq, start_time):
     for track in tracks:
         for event in track.events:
             code_str = event["code"]
+            cel = event.get("keys", {}).get("cel#")
+            if cel is not None:
+                code_str = f"{code_str}_{int(cel)}"
             if code_str not in code:
                 code.append(code_str)
 

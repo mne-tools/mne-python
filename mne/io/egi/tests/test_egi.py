@@ -18,6 +18,7 @@ from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
 from mne.io.egi.egi import _combine_triggers
+from mne.io.egi.events import _read_mff_events
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import copytree_rw, object_diff
 
@@ -598,3 +599,40 @@ def test_egi_mff_bad_xml(tmp_path):
             raw = read_raw_egi(mff_fname)
     # little check that the bad XML doesn't affect the parsing of other xml files
     assert "DIN1" in raw.annotations.description
+
+
+@requires_testing_data
+def test_egi_mff_cel_condition_codes():
+    """Test that cel# compound codes are only generated for repeated trial events.
+
+    EGI records a ``cel#`` key on each event to identify the experimental
+    condition.  When a code appears multiple times per condition (e.g. ``stm+``
+    firing on every trial) ``read_raw_egi`` should append the cel# value and
+    produce codes like ``stm+_1`` / ``stm+_2``.
+
+    However, some files use a once-per-condition-block ``CELL`` marker where
+    each cel# value (1–5) fires exactly once.  Splitting those into separate
+    channels would create consecutive-sample trigger values that confuse
+    ``find_events`` and prevent ``STI 014`` from being synthesised.  The reader
+    must leave such codes unsplit.
+    """
+    import mffpy
+
+    for fname in (egi_pause_fname, egi_eprime_pause_fname):
+        r = mffpy.Reader(str(fname))
+        _, codes = _read_mff_events(str(fname), 250.0, r.startdatetime)
+        assert "CELL" in codes, f"CELL missing in {fname.name}"
+        assert not any(c.startswith("CELL_") for c in codes), (
+            f"CELL should not be split into per-condition channels in "
+            f"{fname.name}; got {codes}"
+        )
+
+    # Also verify end-to-end: STI 014 must be synthesised and CELL must appear
+    # in raw.event_id (not split) when reading the full file.
+    for fname in (egi_pause_fname, egi_eprime_pause_fname):
+        raw = read_raw_egi(fname, events_as_annotations=False)
+        assert "CELL" in raw.event_id, f"CELL missing from event_id in {fname.name}"
+        assert not any(k.startswith("CELL_") for k in raw.event_id), (
+            f"CELL should not be split in {fname.name}; got {list(raw.event_id)}"
+        )
+        assert "STI 014" in raw.ch_names, f"STI 014 not synthesised in {fname.name}"
