@@ -138,17 +138,6 @@ def _get_layout(layout):
     return layout
 
 
-def _set_item_visible(item, visible):
-    widget = item.widget()
-    if widget is not None:
-        widget.setVisible(visible)
-        return
-    sub_layout = item.layout()
-    if sub_layout is not None:
-        for i in range(sub_layout.count()):
-            _set_item_visible(sub_layout.itemAt(i), visible)
-
-
 # -------
 # Widgets
 # -------
@@ -955,13 +944,18 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._dock, self._dock_layout = _create_dock_widget(
             window, name, qt_area, max_width=max_width
         )
+        self._dock_collapsibles = []
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
         else:
             window.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
 
     def _dock_finalize(self):
+        for content, _ in self._dock_collapsibles:
+            content.setVisible(True)
         self._dock.setMinimumSize(self._dock.sizeHint().width(), 0)
+        for content, expanded in self._dock_collapsibles:
+            content.setVisible(expanded)
         self._dock_add_stretch(self._dock_layout)
 
     def _dock_show(self):
@@ -1133,20 +1127,49 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
-        widget = QGroupBox(name)
-        widget.setLayout(hlayout)
-        widget.setStyleSheet("QGroupBox::title { font-size: 11pt; font-weight: bold; }")
-        if collapse is not None:
-            assert isinstance(collapse, bool)
+        if collapse is None:
+            widget = QGroupBox(name)
+            widget.setLayout(hlayout)
+            widget.setStyleSheet(
+                "QGroupBox::title { font-size: 11pt; font-weight: bold; }"
+            )
+            self._layout_add_widget(layout, widget)
+            return hlayout
 
-            def _toggle_visibility(checked, hlayout=hlayout):
-                for i in range(hlayout.count()):
-                    _set_item_visible(hlayout.itemAt(i), checked)
+        assert isinstance(collapse, bool)
+        content = QGroupBox()
+        content.setLayout(hlayout)
+        content.setVisible(not collapse)
+        self._dock_collapsibles.append((content, not collapse))
 
-            widget.setCheckable(True)
-            widget.setChecked(not collapse)
-            widget.toggled.connect(_toggle_visibility)
-            _toggle_visibility(widget.isChecked())
+        toggle = QToolButton()
+        toggle.setText(f"{'▾' if not collapse else '▸'}  {name}")
+        toggle.setCheckable(True)
+        toggle.setChecked(not collapse)
+        toggle.setCursor(Qt.PointingHandCursor)
+        toggle.setStyleSheet(
+            "QToolButton {"
+            " border: none;"
+            " font-size: 13pt;"
+            " font-weight: 600;"
+            " color: palette(mid);"
+            " }"
+            "QToolButton:hover { color: palette(text); }"
+        )
+
+        def _toggle_visibility(checked, content=content, toggle=toggle, name=name):
+            content.setVisible(checked)
+            toggle.setText(f"{'▾' if checked else '▸'}  {name}")
+
+        toggle.toggled.connect(_toggle_visibility)
+
+        outer = QVBoxLayout()
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        outer.addWidget(toggle)
+        outer.addWidget(content)
+        widget = QWidget()
+        widget.setLayout(outer)
         self._layout_add_widget(layout, widget)
         return hlayout
 
