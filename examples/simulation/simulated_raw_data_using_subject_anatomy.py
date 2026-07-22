@@ -136,7 +136,8 @@ def data_fun(times, latency, duration):
     sigma = 0.375 * duration
     sinusoid = np.sin(2 * np.pi * f * (times - latency))
     gf = np.exp(
-        -((times - latency - (sigma / 4.0) * rng.rand(1)) ** 2) / (2 * (sigma**2))
+        -((times - latency - rng.uniform(high=sigma / 4.0, size=1)) ** 2)
+        / (2 * (sigma**2))
     )
     return 1e-9 * sinusoid * gf
 
@@ -162,7 +163,7 @@ def data_fun(times, latency, duration):
 
 times = np.arange(150, dtype=np.float64) / info["sfreq"]
 duration = 0.03
-rng = np.random.RandomState(7)
+rng = np.random.default_rng(7)
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
 
 for region_id, region_name in enumerate(region_names, 1):

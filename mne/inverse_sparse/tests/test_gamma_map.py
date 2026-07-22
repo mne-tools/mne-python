@@ -200,7 +200,7 @@ def test_gamma_map_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(
-        50e-9 * np.random.RandomState(42).randn(1, 4),
+        50e-9 * np.random.default_rng(42).standard_normal((1, 4)),
         vertices=[stc.vertices[0][:1]],
         tmin=stc.tmin,
         tstep=stc.tstep,

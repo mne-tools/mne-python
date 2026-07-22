@@ -62,10 +62,12 @@ n_permutations = "all"  # run an exact test
 n_src = width * width
 
 # For each "subject", make a smoothed noisy signal with a centered peak
-rng = np.random.RandomState(2)
-X = noise_sd * rng.randn(n_subjects, width, width)
+rng = np.random.default_rng(2)
+X = rng.normal(scale=noise_sd, size=(n_subjects, width, width))
 # Add a signal at the center
-X[:, width // 2, width // 2] = signal_mean + rng.randn(n_subjects) * signal_sd
+X[:, width // 2, width // 2] = rng.normal(
+    loc=signal_mean, scale=signal_sd, size=n_subjects
+)
 # Spatially smooth with a 2D Gaussian kernel
 size = width // 2 - 1
 gaussian = np.exp(-(np.arange(-size, size + 1) ** 2 / float(gaussian_sd**2)))

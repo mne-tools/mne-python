@@ -45,7 +45,7 @@ raw.set_eeg_reference(projection=True)
 n_dipoles = 4  # number of dipoles to create
 epoch_duration = 2.0  # duration of each epoch/event
 n = 0  # harmonic number
-rng = np.random.RandomState(0)  # random state (make reproducible)
+rng = np.random.default_rng(0)  # random state (make reproducible)
 
 
 def data_fun(times):

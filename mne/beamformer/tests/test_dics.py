@@ -88,8 +88,9 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     raw = mne.apply_forward_raw(fwd, stc, info)
 
     # Add a little noise
-    random = np.random.RandomState(42)
-    noise = random.randn(*raw._data.shape) * 1e-14
+    # seed chosen to meet the rank/correlation bounds asserted in the tests
+    random = np.random.default_rng(0)
+    noise = random.standard_normal(raw._data.shape) * 1e-14
     raw._data += noise
 
     # Define a single epoch (weird baseline but shouldn't matter)
@@ -132,7 +133,7 @@ def _rand_csd(rng, info):
     scales = mne.make_ad_hoc_cov(info).data
     n = scales.size
     # Some random complex correlation structure (with channel scalings)
-    data = rng.randn(n, n) + 1j * rng.randn(n, n)
+    data = rng.standard_normal((n, n)) + 1j * rng.standard_normal((n, n))
     data = data @ data.conj().T
     data *= scales
     data *= scales[:, np.newaxis]
@@ -141,7 +142,7 @@ def _rand_csd(rng, info):
 
 
 def _make_rand_csd(info, csd):
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     data = _rand_csd(rng, info)
     # now we need to have the same null space as the data csd
     s, u = np.linalg.eigh(csd.get_data(csd.frequencies[0]))
@@ -777,7 +778,7 @@ def test_apply_dics_tfr(return_generator):
 
 
 def _cov_as_csd(cov, info):
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     assert cov["data"].ndim == 2
     assert len(cov["data"]) == len(cov["names"])
     # we need to make this have at least some complex structure

@@ -10,9 +10,10 @@ from mne.inverse_sparse.mxne_debiasing import compute_bias
 
 def test_compute_debiasing():
     """Test source amplitude debiasing."""
+    # RandomState (not default_rng): the reference values below assume this stream
     rng = np.random.RandomState(42)
-    G = rng.randn(10, 4)
-    X = rng.randn(4, 20)
+    G = rng.standard_normal((10, 4))
+    X = rng.standard_normal((4, 20))
     debias_true = np.arange(1, 5, dtype=np.float64)
     M = np.dot(G, X * debias_true[:, np.newaxis])
     debias = compute_bias(M, G, X, max_iter=10000, n_orient=1, tol=1e-7)

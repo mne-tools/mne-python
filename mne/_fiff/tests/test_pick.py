@@ -474,9 +474,9 @@ def test_pick_forward_seeg_ecog():
 
 def test_picks_by_channels():
     """Test creating pick_lists."""
-    rng = np.random.RandomState(909)
+    rng = np.random.default_rng(909)
 
-    test_data = rng.random_sample((4, 2000))
+    test_data = rng.random((4, 2000))
     ch_names = [f"MEG {i:03d}" for i in [1, 2, 3, 4]]
     ch_types = ["grad", "mag", "mag", "eeg"]
     sfreq = 250.0
@@ -495,7 +495,7 @@ def test_picks_by_channels():
     assert len(pick_list) == len(pick_list2) + 1
     assert pick_list2[0][0] == "meg"
 
-    test_data = rng.random_sample((4, 2000))
+    test_data = rng.random((4, 2000))
     ch_names = [f"MEG {i:03d}" for i in [1, 2, 3, 4]]
     ch_types = ["mag", "mag", "mag", "mag"]
     sfreq = 250.0
@@ -754,7 +754,7 @@ def test_get_channel_types_equiv(meg, eeg, ordered):
     pick_types(raw.info, meg=meg, eeg=eeg)
     picks = pick_types(raw.info, meg=meg, eeg=eeg)
     if not ordered:
-        picks = np.random.RandomState(0).permutation(picks)
+        picks = np.random.default_rng(0).permutation(picks)
     if not meg and not eeg:
         with pytest.raises(ValueError, match="No appropriate channels"):
             raw.get_channel_types(picks=picks)

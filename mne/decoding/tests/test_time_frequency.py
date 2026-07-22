@@ -22,7 +22,8 @@ def test_timefrequency_basic():
     freqs = [20, 21, 22]
     tf = TimeFrequency(freqs, sfreq=100)
     n_epochs, n_chans, n_times = 10, 2, 100
-    X = np.random.rand(n_epochs, n_chans, n_times)
+    rng = np.random.default_rng(0)
+    X = rng.random((n_epochs, n_chans, n_times))
     for output in ["avg_power", "foo", None]:
         tf = TimeFrequency(freqs, output=output)
         with pytest.raises(ValueError, match="Invalid value"):

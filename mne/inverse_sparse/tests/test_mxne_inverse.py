@@ -358,7 +358,7 @@ def test_mxne_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(
-        50e-9 * np.random.RandomState(42).randn(1, 4),
+        50e-9 * np.random.default_rng(42).standard_normal((1, 4)),
         vertices=[stc.vertices[0][:1]],
         tmin=stc.tmin,
         tstep=stc.tstep,
@@ -510,16 +510,16 @@ def test_mxne_inverse_sure_synthetic(
     n_sensors, n_dipoles, n_times, nnz, corr, n_orient, snr=4
 ):
     """Tests SURE criterion for automatic alpha selection on synthetic data."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     sigma = np.sqrt(1 - corr**2)
-    U = rng.randn(n_sensors)
+    U = rng.standard_normal(n_sensors)
     # generate gain matrix
     G = np.empty([n_sensors, n_dipoles], order="F")
     G[:, :n_orient] = np.expand_dims(U, axis=-1)
     n_dip_per_pos = n_dipoles // n_orient
     for j in range(1, n_dip_per_pos):
         U *= corr
-        U += sigma * rng.randn(n_sensors)
+        U += sigma * rng.standard_normal(n_sensors)
         G[:, j * n_orient : (j + 1) * n_orient] = np.expand_dims(U, axis=-1)
     # generate coefficient matrix
     support = rng.choice(n_dip_per_pos, nnz, replace=False)
@@ -528,7 +528,7 @@ def test_mxne_inverse_sure_synthetic(
         X[k * n_orient : (k + 1) * n_orient, :] = rng.normal(size=(n_orient, n_times))
     # generate measurement matrix
     M = G @ X
-    noise = rng.randn(n_sensors, n_times)
+    noise = rng.standard_normal((n_sensors, n_times))
     sigma = 1 / np.linalg.norm(noise) * np.linalg.norm(M) / snr
     M += sigma * noise
     # inverse modeling with sure

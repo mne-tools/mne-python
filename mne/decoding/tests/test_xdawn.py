@@ -22,10 +22,10 @@ def test_sklearn_compliance(estimator, check):
 def test_xdawn_save_load(tmp_path):
     """Test that XdawnTransformer can be saved to disk and loaded correctly."""
     h5io = pytest.importorskip("h5io")
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     n_epochs, n_channels, n_times = 40, 10, 50
-    X = rng.randn(n_epochs, n_channels, n_times)
-    y = rng.randint(0, 2, n_epochs)
+    X = rng.standard_normal((n_epochs, n_channels, n_times))
+    y = rng.integers(0, 2, n_epochs)
 
     xdawn = XdawnTransformer(n_components=2)
     xdawn.fit(X, y)

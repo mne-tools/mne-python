@@ -127,7 +127,7 @@ def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
     pytest.importorskip("nibabel")
     amp = 100e-9
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     fname_dtemp = tmp_path / "test.dip"
     fname_sim = tmp_path / "test-ave.fif"
     fwd = convert_forward_solution(
