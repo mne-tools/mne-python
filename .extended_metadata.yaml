@@ -1,3 +1,5 @@
+# This file contains additional metadata about MNE-Python, beyond what is contained in `pyproject.toml`.
+# This information is used by the actions in MNE-Tools to generate `CITATION.cff` and `codemeta.json`.
 package_name: MNE-Python
 date_created: '2010-12-26'
 date_published: '2014-08-04'
