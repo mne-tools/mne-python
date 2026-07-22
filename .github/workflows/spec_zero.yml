@@ -41,13 +41,13 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v8.3.2
         with:
           version: ">=0.9"
           activate-environment: true
           python-version: "3.12"
       - name: Install dependencies
-        run: uv pip install -e . packaging requests tomlkit
+        run: uv pip install -e . packaging requests tomlkit prek
       - name: Update tracked dependencies
         run: python ./tools/dev/spec_zero_update_versions.py
       - name: Sync updated dependencies to README
@@ -55,8 +55,13 @@ jobs:
       - name: Create lockfile for old CI
         # uv pip compile requires setting the python version explicitly in the command :(
         run: |
-          uv pip compile pyproject.toml --python "3.10" --python-platform "x86_64-unknown-linux-gnu" --group test --group lockfile_extras --resolution lowest-direct --format pylock.toml --output-file tools/pylock.ci-old.toml
+          uv pip compile pyproject.toml \
+            --python "3.10" --python-platform "x86_64-unknown-linux-gnu" \
+            --group test --group lockfile_extras \
+            --resolution lowest-direct \
+            --format pylock.toml --output-file tools/pylock.ci-old.toml
           python tools/github_actions_check_old_lockfile.py
+      - run: prek auto-update
       - name: check if files changed
         run: |
           git diff && git status --porcelain
@@ -72,10 +77,7 @@ jobs:
           pixi run python tools/write-pixi-toml.py
           pixi lock --no-install --manifest-path tools/ci/macos-intel/
         if: steps.status.outputs.dirty == 'true'
-      - name: Run pre-commit hooks to update other files
-        run: |
-          uv pip install pre-commit
-          pre-commit run --all || true
+      - uses: j178/prek-action@v2.0.5
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         run: |
@@ -91,4 +93,4 @@ jobs:
           git push origin spec_zero
           PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` and elswhere in this or another PR. \`make -C tools/dev dep\` is a good starting point for finding potential updates.*")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
-        if: steps.status.outputs.dirty == 'true'
+        if: steps.status.outputs.dirty == 'true' && (success() || failure())

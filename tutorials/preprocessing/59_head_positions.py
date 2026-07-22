@@ -63,7 +63,7 @@ chpi_locs = mne.chpi.compute_chpi_locs(raw.info, chpi_amplitudes)
 # %%
 # Lastly, compute head positions from the coil locations:
 
-head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
+head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, weighted=True, verbose=True)
 
 # %%
 # Note that these can then be written to disk or read from disk with

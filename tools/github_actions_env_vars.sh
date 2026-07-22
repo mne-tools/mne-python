@@ -1,6 +1,32 @@
 #!/bin/bash
 set -eo pipefail
 
+# Only measure coverage where it is cheap or uniquely valuable. On Python >= 3.14
+# sys.monitoring is coverage's default core and can measure branches, making it
+# nearly free. Below 3.14 coverage falls back to the C tracer (sys.monitoring
+# cannot do branch coverage there), which roughly doubles Python-heavy test time,
+# so we skip it -- except for the "minimal" and "old" kinds, which exercise code
+# paths (missing optional dependencies, old pins) that no other job covers.
+# The matrix Python isn't installed yet at this step, so key off $PYTHON_VERSION.
+COV_ARGS="--cov=mne --cov-report=xml"
+case "$MNE_CI_KIND" in
+    minimal | old) ;;  # unique code paths, worth the slower C tracer
+    *)
+        case "$PYTHON_VERSION" in
+            3.10 | 3.11 | 3.12 | 3.13) COV_ARGS="" ;;
+        esac
+        ;;
+esac
+echo "COV_ARGS=$COV_ARGS" | tee -a $GITHUB_ENV
+
+# Number of pytest-xdist workers -- explicit ints (in the spirit of SciPy's CI)
+# rather than "auto". macOS has  fewer cores and less RAM
+if [[ "$CI_OS_NAME" == "macos"* ]]; then
+    echo "PYTEST_XDIST_N=2" | tee -a $GITHUB_ENV
+else
+    echo "PYTEST_XDIST_N=4" | tee -a $GITHUB_ENV
+fi
+
 # old and minimal use conda
 echo "::group::Setting pip env vars for $MNE_CI_KIND"
 if [[ "$MNE_CI_KIND" == "pip"* ]]; then
@@ -8,13 +34,13 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
         # We should test an eager import somewhere, might as well be here
         echo "EAGER_IMPORT=true" | tee -a $GITHUB_ENV
         # Make sure nothing unexpected is skipped
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|EAGER_IMPORT|CUDA not|Numba not|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|EAGER_IMPORT|CUDA not|Numba not|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     elif [[ "$MNE_CI_KIND" == "pip" ]]; then
         if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|SCIPY_ARRAY_API|FreeSurfer|MNE-C|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
+            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|FreeSurfer|MNE-C|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         else
-            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|SCIPY_ARRAY_API|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
+            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         fi
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     elif [[ "$MNE_CI_KIND" == "pip-ft" ]]; then
@@ -33,11 +59,7 @@ elif [[ "$MNE_CI_KIND" == "conda" ]]; then
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" | tee -a $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
-    echo "MNE_TEST_ALLOW_SKIP=.*(on conda|Requires (spm|brainstorm) dataset|CUDA not|Flakey verbose behavior|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
-    # Our cache_dir test has problems when the path is too long, so prevent it from getting too long
-    if [[ "$CI_OS_NAME" == "macos"* ]]; then
-        echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
-    fi
+    echo "MNE_TEST_ALLOW_SKIP=.*(on conda|Requires (spm|brainstorm|misc) dataset|CUDA not|Flakey verbose behavior|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
     echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
 # NON-DRY but just gonna get it working and then refactor.
 elif [[ "$MNE_CI_KIND" == "pixi" ]]; then

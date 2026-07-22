@@ -9,14 +9,18 @@ permissions:
 
 jobs:
   autofix:
-    name: Autoupdate changelog entry and headers
+    name: Autofix and style
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.0
         with:
           persist-credentials: false
       - uses: actions/setup-python@v6.3.0
-      - run: pip install --upgrade towncrier pygithub gitpython numpy
+      - run: pip install --upgrade towncrier pygithub gitpython numpy vulture
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - run: python ./tools/dev/ensure_headers.py
+      - run: vulture
+      # Run this last, since it can fail the job if moved up
+      - uses: j178/prek-action@v2.0.5
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
+        if: success() || failure()

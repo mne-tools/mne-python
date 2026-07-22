@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.15.22
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -21,9 +21,34 @@ repos:
       - id: ruff-format
         files: ^mne/|^doc/|^tutorials/|^examples/|^tools/
 
+  # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
+  # pyproject.toml for the checked modules and silenced rules
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.62
+    hooks:
+      - id: ty
+        additional_dependencies:
+          - antio  # for mne/io/ant
+          - curryreader  # for mne/io/curry
+          - edfio  # for mne/io/edf
+          - eeglabio  # for mne/io/eeglab
+          - h5py  # for mne/io/snirf
+          - lazy_loader  # for mne/io/__init__.py
+          - matplotlib
+          - mffpy  # for mne/io/egi
+          - neo  # for mne/io/neuralynx
+          - numpy
+          - pandas  # for mne/io/base
+          - pymatreader  # for mne/io/eeglab
+          - pymef  # for mne/io/mef
+          - quantities  # for mne/io/neuralynx
+          - scipy
+          - typing_extensions  # TODO VERSION remove once we require Python 3.11
+        args: [--no-python-downloads, --no-project]
+
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
         additional_dependencies:
@@ -75,19 +100,14 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.26.1
+    rev: v1.28.0
     hooks:
       - id: zizmor
         args: [--fix]
         # We correctly use pull_request_trigger, and need Zizmor 2.0+ to configure the ignore
         exclude: ^.github/workflows/automerge.yml
 
-# The following are too slow to run on local commits, so let's only run on CIs:
-#
-#   - repo: https://github.com/pre-commit/mirrors-mypy
-#     rev: v1.9.0
-#     hooks:
-#       - id: mypy
+# The following is too slow to run on local commits, so let's only run on CIs:
 #
 #   - repo: https://github.com/jendrikseipp/vulture
 #     rev: 'v2.11'  # or any later Vulture version

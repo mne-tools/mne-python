@@ -4,9 +4,11 @@
 
 1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
    remain, abandon fitting for the chunk.
-2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
-   iteratively dropping coils (as long as 3 remain) to find the best GOF
-   (using ``_fit_chpi_quat``).
+2. Fit dev_head_t quaternion. With ``weighted=False`` this uses
+   ``_fit_chpi_quat_subset``, iteratively dropping coils (as long as 3 remain)
+   to find the best GOF. With ``weighted=True`` all remaining coils are fit at
+   once, smoothly down-weighting each coil by its GOF and inter-coil distance error
+   so that coils do not switch in and out of the fit discontinuously (see :gh:`11330`).
 3. If fewer than 3 coils meet the ``dist_limit`` criteria following
    projection of the fitted device coil locations into the head frame,
    abandon fitting for the chunk.
@@ -522,7 +524,7 @@ def _magnetic_dipole_objective(
     out, u, s, one = _magnetic_dipole_delta(fwd, whitener, B, B2)
     if return_moment:
         one /= s
-        Q = np.dot(one, u.T)
+        Q = one @ u.T
         out = (out, Q)
     return out
 
@@ -530,24 +532,24 @@ def _magnetic_dipole_objective(
 @jit()
 def _magnetic_dipole_delta(fwd, whitener, B, B2):
     # Here we use .T to get whitener to Fortran order, which speeds things up
-    fwd = np.dot(fwd, whitener.T)
+    fwd = fwd @ whitener.T
     u, s, v = np.linalg.svd(fwd, full_matrices=False)
-    one = np.dot(v, B)
-    Bm2 = np.dot(one, one)
+    one = v @ B
+    Bm2 = one @ one
     return B2 - Bm2, u, s, one
 
 
 def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
     # Here we use .T to get whitener to Fortran order, which speeds things up
-    one = np.matmul(whitened_fwd_svd, B)
+    one = whitened_fwd_svd @ B
     Bm2 = np.sum(one * one, axis=1)
     return B2 - Bm2
 
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
-    B = np.dot(whitener, B_orig)
-    B2 = np.dot(B, B)
+    B = whitener @ B_orig
+    B2 = B @ B
     objective = partial(
         _magnetic_dipole_objective,
         B=B,
@@ -563,6 +565,10 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
         idx = np.argmin(res)
         if res[idx] < res0:
             x0 = guesses["rr"][idx]
+    # x0 is the previous time point's coil position (or a better guess-grid point), so a
+    # rhobeg (initial trust-region radius) of 1 mm covers typical between-window motion.
+    # rhoend (final radius) sets the position resolution; 10 um is finer than cHPI
+    # accuracy but still converges in a few dozen evaluations
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
     gof, moment = objective(x, return_moment=True)
     gof = 1.0 - gof / B2
@@ -570,25 +576,32 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
 
 
 @jit()
-def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
+def _chpi_objective(x, coil_dev_rrs, coil_head_rrs, weights):
     """Compute objective function."""
-    d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
+    d = coil_dev_rrs @ quat_to_rot(x[:3]).T
     d += x[3:]
     d -= coil_head_rrs
     d *= d
-    return d.sum()
+    return d.sum(axis=1) @ weights  # sum over coils, weighted
 
 
-def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, quat=None):
-    """Fit rotation and translation (quaternion) parameters for cHPI coils."""
-    denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
-    denom *= denom
-    # We could try to solve it the analytic way:
-    # TODO someday we could choose to weight these points by their goodness
-    # of fit somehow, see also https://github.com/mne-tools/mne-python/issues/11330
+def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, weights=None, quat=None):
+    """Fit rotation and translation (quaternion) parameters for cHPI coils.
+
+    ``weights`` optionally down-weights individual coils (e.g. by goodness of fit
+    and inter-coil distance error) so that coils can smoothly enter or leave the
+    fit rather than switching in and out discontinuously; see :gh:`11330`.
+    """
+    if weights is None:
+        weights = np.ones(len(coil_head_rrs))
+    # The GOF ratio is invariant to the overall weight scale, so we can pass the
+    # (possibly zero-containing) weights through unnormalized to keep the
+    # unweighted case bit-for-bit identical to before.
+    mu = (weights @ coil_head_rrs) / weights.sum()
+    denom = ((coil_head_rrs - mu) ** 2).sum(axis=1) @ weights
     if quat is None:
-        quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)[0]
-    gof = 1.0 - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
+        quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs, weights=weights)[0]
+    gof = 1.0 - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs, weights) / denom
     return quat, gof
 
 
@@ -954,7 +967,14 @@ def _check_chpi_param(chpi_, name):
 
 @verbose
 def compute_head_pos(
-    info, chpi_locs, dist_limit=0.005, gof_limit=0.98, adjust_dig=False, verbose=None
+    info,
+    chpi_locs,
+    dist_limit=0.005,
+    gof_limit=0.98,
+    adjust_dig=False,
+    *,
+    weighted=None,
+    verbose=None,
 ):
     """Compute time-varying head positions.
 
@@ -969,6 +989,15 @@ def compute_head_pos(
     gof_limit : float
         Minimum goodness of fit to accept for each coil.
     %(adjust_dig_chpi)s
+    weighted : bool
+        If ``True``, fit all coils that pass the ``gof_limit`` and ``dist_limit``
+        criteria simultaneously, weighting each coil by its goodness of fit and its
+        inter-coil distance error. If ``False``, subselect the three coils that yield
+        the best fit. Weighting avoids discontinuous jumps in the estimated head
+        position caused by coils switching in and out of the fit (see :gh:`11330`).
+        The default (False) will change to True in 1.14.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -990,8 +1019,17 @@ def compute_head_pos(
     """
     _check_chpi_param(chpi_locs, "chpi_locs")
     _validate_type(info, Info, "info")
+    if weighted is None:
+        warn(
+            "The default for weighted will change from False to True in 1.14, set it "
+            "explicitly to avoid this warning. Using False.",
+            FutureWarning,
+        )
+        weighted = False
     hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig, verbose="error")
     n_coils = len(hpi_dig_head_rrs)
+    # reference inter-coil distances (rigid, so invariant to the dev_head_t we fit)
+    hpi_coil_dists = cdist(hpi_dig_head_rrs, hpi_dig_head_rrs)
     coil_dev_rrs = apply_trans(invert_transform(info["dev_head_t"]), hpi_dig_head_rrs)
     dev_head_t = info["dev_head_t"]["trans"]
     pos_0 = dev_head_t[:3, 3]
@@ -1021,12 +1059,38 @@ def compute_head_pos(
 
         #
         # 2. Fit the head translation and rotation params (minimize error
-        #    between coil positions and the head coil digitization
-        #    positions) iteratively using different sets of coils.
+        #    between coil positions and the head coil digitization positions).
         #
-        this_quat, g, use_idx = _fit_chpi_quat_subset(
-            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx
-        )
+        if weighted:
+            # Fit all good coils at once, smoothly down-weighting each coil by its
+            # GOF and its inter-coil distance error, so that coils enter and leave
+            # the fit continuously rather than switching in and out (gh-11330).
+            these_dists = cdist(this_coil_dev_rrs, this_coil_dev_rrs)
+            dist_err = np.abs(hpi_coil_dists - these_dists).sum(axis=1) / max(
+                n_coils - 1, 1
+            )
+            w_gof = np.clip(
+                (g_coils - gof_limit) / max(1.0 - gof_limit, 1e-12), 0.0, 1.0
+            )
+            w_dist = np.clip(1.0 - dist_err / dist_limit, 0.0, 1.0)
+            weights = w_gof * w_dist
+            use_idx = np.where(weights > 0)[0]
+            if len(use_idx) < 3:
+                gofs = ", ".join(f"{g:0.2f}" for g in g_coils)
+                warn(
+                    f"{_time_prefix(fit_time)}{len(use_idx)}/{n_coils} "
+                    "usable HPI coils, cannot determine the transformation "
+                    f"({gofs} GOF)!"
+                )
+                continue
+            this_quat, g = _fit_chpi_quat(
+                this_coil_dev_rrs, hpi_dig_head_rrs, weights=weights
+            )
+        else:
+            # iteratively drop coils (keeping the best-GOF subset of >= 3)
+            this_quat, g, use_idx = _fit_chpi_quat_subset(
+                this_coil_dev_rrs, hpi_dig_head_rrs, use_idx
+            )
 
         #
         # 3. Stop if < 3 good
@@ -1293,7 +1357,6 @@ def _compute_chpi_amp_or_snr(
             # note that mean residual is a scalar (same for all HPI freqs) but
             # is returned as a (tiled) vector (again, because Numba) so that's
             # why below we take amps_or_snrs[0, 2] instead of [:, 2]
-            ch_types = raw.get_channel_types()
             if "mag" in ch_types:
                 sin_fits["mag_snr"][mi] = amps_or_snrs[:, 0]  # SNR
                 sin_fits["mag_power"][mi] = amps_or_snrs[:, 1]  # mean power
@@ -1389,7 +1452,7 @@ def compute_chpi_locs(
         f"(1 cm grid in a {R * 100:.1f} cm sphere)"
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
-    fwd = np.dot(fwd, whitener.T)
+    fwd = fwd @ whitener.T
     fwd = _reshape_view(fwd, (guesses.shape[0], 3, -1))
     fwd = np.linalg.svd(fwd, full_matrices=False)[2]
     guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
@@ -1556,7 +1619,7 @@ def filter_chpi(
         msg += f" and {len(hpi['line_freqs'])} line harmonic"
     msg += f" frequencies from {len(meg_picks)} MEG channels"
 
-    recon = np.dot(hpi["model"][:, :n_remove], hpi["inv_model"][:n_remove]).T
+    recon = (hpi["model"][:, :n_remove] @ hpi["inv_model"][:n_remove]).T
     logger.info(msg)
     chunks = list()  # the chunks to subtract
     last_endpt = 0
@@ -1572,13 +1635,13 @@ def filter_chpi(
         else:  # first or last window
             model = hpi["model"][:this_len]
             inv_model = np.linalg.pinv(model)
-            this_recon = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
+            this_recon = (model[:, :n_remove] @ inv_model[:n_remove]).T
         this_data = raw._data[meg_picks, time_sl]
         subt_pt = min(midpt + n_step, n_times)
         if last_endpt != subt_pt:
             fit_left_edge = left_edge - time_sl.start + hpi["n_window"] // 2
             fit_sl = slice(fit_left_edge, fit_left_edge + (subt_pt - last_endpt))
-            chunks.append((subt_pt, np.dot(this_data, this_recon[:, fit_sl])))
+            chunks.append((subt_pt, this_data @ this_recon[:, fit_sl]))
         last_endpt = subt_pt
 
         # Consume (trailing) chunks that are now safe to remove because
@@ -1948,7 +2011,7 @@ def refit_hpi(
     # entry. At some point we should try recording data where multiple fits are stored
     # (maybe there actually aren't any...)
     info["hpi_meas"][-1] = meas
-    info["hpi_results"][-1] = result
+    info["hpi_results"][-1] = results
     return info
 
 

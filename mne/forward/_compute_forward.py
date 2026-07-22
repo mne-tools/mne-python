@@ -130,9 +130,14 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
     coeff : ndarray, shape (n_MEG_sensors, n_BEM_vertices)
         Linear coefficients with effect of each BEM vertex on each sensor (?)
     """
-    coeff = np.zeros((bins[-1] + 1, len(bem_rr)))
+    n_bem_rr = len(bem_rr)
+    coeff = np.zeros((bins[-1] + 1, n_bem_rr))
     w_cosmags = ws.reshape(-1, 1) * cosmags
-    diff = rmags.reshape(rmags.shape[0], 1, rmags.shape[1]) - bem_rr
+    # Store as (n_BEM_vertices, n_sensor_pts, 3): below we repeatedly index
+    # a single BEM vertex out of this array, and this layout makes that a
+    # contiguous slice along the leading axis instead of a strided gather
+    # along a middle axis, which is ~2x faster in practice.
+    diff = rmags.reshape(1, -1, 3) - bem_rr.reshape(n_bem_rr, 1, 3)
     den = np.sum(diff * diff, axis=-1)
     den *= np.sqrt(den)
     den *= 3
@@ -149,14 +154,14 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
         #              tri_rr, tri_nn, tri_area)
         #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
         #     coeff[j][tri + off] += mult * res
-
-        c = np.empty((diff.shape[0], tri.shape[0], diff.shape[2]))
-        _jit_cross(c, diff[:, tri], tri_nn)
-        c *= w_cosmags.reshape(w_cosmags.shape[0], 1, w_cosmags.shape[1])
-        for ti in range(3):
-            x = np.sum(c[:, ti], axis=-1)
-            x /= den[:, tri[ti]] / tri_area
-            coeff[:, tri[ti]] += bincount(bins, weights=x, minlength=bins[-1] + 1)
+        for vi in range(3):
+            idx = tri[vi]
+            c = np.empty((diff.shape[1], 3))
+            _jit_cross(c, diff[idx], tri_nn)
+            c *= w_cosmags
+            x = np.sum(c, axis=-1)
+            x /= den[idx] / tri_area
+            coeff[:, idx] += bincount(bins, weights=x, minlength=bins[-1] + 1)
     return coeff
 
 
@@ -454,7 +459,7 @@ def _do_prim_curr(rr, coils):
     n_coils = bins[-1] + 1
     del coils
     pc = np.empty((len(rr) * 3, n_coils))
-    for start, stop in _rr_bounds(rr, chunk=1):
+    for start, stop in _rr_bounds(rr):
         pp = _bem_inf_fields(rr[start:stop], rmags, cosmags)
         pp *= ws
         pp = _reshape_view(pp, (3 * (stop - start), -1))
@@ -537,18 +542,18 @@ def _do_sphere_field(rrs, rmags, cosmags, ws, bins, r0):
     n_coils = bins[-1] + 1
     # Shift to the sphere model coordinates
     rrs = rrs - r0
+    # this_poss and r don't depend on the dipole (ri), so compute once
+    this_poss = rmags - r0
+    r = np.sqrt(np.sum(this_poss * this_poss, axis=1))
     B = np.zeros((3 * len(rrs), n_coils))
     for ri in range(len(rrs)):
         rr = rrs[ri]
         # Check for a dipole at the origin
         if np.sqrt(np.dot(rr, rr)) <= 1e-10:
             continue
-        this_poss = rmags - r0
-
         # Vector from dipole to the field point
         a_vec = this_poss - rr
         a = np.sqrt(np.sum(a_vec * a_vec, axis=1))
-        r = np.sqrt(np.sum(this_poss * this_poss, axis=1))
         rr0 = np.sum(this_poss * rr, axis=1)
         ar = (r * r) - rr0
         ar0 = ar / a
@@ -577,35 +582,46 @@ def _do_sphere_field(rrs, rmags, cosmags, ws, bins, r0):
 
 def _eeg_spherepot_coil(rrs, coils, sphere):
     """Calculate the EEG in the sphere model."""
-    rmags, cosmags, ws, bins = _triage_coils(coils)
-    n_coils = bins[-1] + 1
-    del coils
+    rmags, _, ws, bins = _triage_coils(coils)
+    return _do_eeg_spherepot_coil(
+        rrs,
+        rmags,
+        ws,
+        bins,
+        sphere["r0"],
+        sphere["layers"][0]["rad"],
+        sphere["mu"],
+        sphere["lambda"],
+    )
 
-    # Shift to the sphere model coordinates
-    rrs = rrs - sphere["r0"]
+
+@jit()
+def _do_eeg_spherepot_coil(rrs, rmags, ws, bins, r0, rad, mu, lams):
+    n_coils = bins[-1] + 1
+
+    # Shift to the sphere model coordinates. This part (unlike the Berg-Scherg
+    # equivalent-dipole loop below) does not depend on the dipole or fit
+    # term, so it is computed only once rather than on every (ri, eq) pair.
+    rrs = rrs - r0
+    this_pos = rmags - r0
+    r2 = np.sum(this_pos * this_pos, axis=1)
+    r = np.sqrt(r2)
 
     B = np.zeros((3 * len(rrs), n_coils))
-    for ri, rr in enumerate(rrs):
+    for ri in range(len(rrs)):
+        rr = rrs[ri]
         # Only process dipoles inside the innermost sphere
-        if np.sqrt(np.dot(rr, rr)) >= sphere["layers"][0]["rad"]:
+        if np.sqrt(np.dot(rr, rr)) >= rad:
             continue
         # fwd_eeg_spherepot_vec
         vval_one = np.zeros((len(rmags), 3))
 
         # Make a weighted sum over the equivalence parameters
-        for eq in range(sphere["nfit"]):
+        for eq in range(len(mu)):
             # Scale the dipole position
-            rd = sphere["mu"][eq] * rr
+            rd = mu[eq] * rr
             rd2 = np.sum(rd * rd)
             rd2_inv = 1.0 / rd2
-            # Go over all electrodes
-            this_pos = rmags - sphere["r0"]
-
-            # Scale location onto the surface of the sphere (not used)
-            # if sphere['scale_pos']:
-            #     pos_len = (sphere['layers'][-1]['rad'] /
-            #                np.sqrt(np.sum(this_pos * this_pos, axis=1)))
-            #     this_pos *= pos_len
 
             # Vector from dipole to the field point
             a_vec = this_pos - rd
@@ -613,8 +629,6 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
             # Compute the dot products needed
             a = np.sqrt(np.sum(a_vec * a_vec, axis=1))
             a3 = 2.0 / (a * a * a)
-            r2 = np.sum(this_pos * this_pos, axis=1)
-            r = np.sqrt(r2)
             rrd = np.sum(this_pos * rd, axis=1)
             ra = r2 - rrd
             rda = rrd - rd2
@@ -629,15 +643,15 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
             m2 = c2 * rd2
 
             vval_one += (
-                sphere["lambda"][eq]
+                lams[eq]
                 * rd2_inv
-                * (m1[:, np.newaxis] * rd + m2[:, np.newaxis] * this_pos)
+                * (m1.reshape(-1, 1) * rd + m2.reshape(-1, 1) * this_pos)
             )
 
-            # compute total result
-            xx = vval_one * ws[:, np.newaxis]
-            zz = np.array([bincount(bins, x, bins[-1] + 1) for x in xx.T])
-            B[3 * ri : 3 * ri + 3, :] = zz
+        # compute total result
+        xx = vval_one * ws.reshape(-1, 1)
+        for jj in range(3):
+            B[3 * ri + jj] = bincount(bins, xx[:, jj], n_coils)
     # finishing by scaling by 1/(4*M_PI)
     B *= 0.25 / np.pi
     return B

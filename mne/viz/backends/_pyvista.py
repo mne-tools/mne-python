@@ -8,6 +8,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import functools
 import os
 import platform
 import re
@@ -17,7 +18,7 @@ from inspect import signature
 
 import numpy as np
 import pyvista
-from pyvista import Line, Plotter, PolyData, close_all
+from pyvista import Line, Plotter, PolyData, close_all  # noqa: F401  # re-exported
 from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk
@@ -131,7 +132,9 @@ class PyVistaFigure(Figure3D):
 
                 self.store["app_window_class"] = _MNEMainWindow
         else:
-            self._plotter_class = Plotter
+            from ._notebook import _NotebookPlotter
+
+            self._plotter_class = _NotebookPlotter
 
         self._nrows, self._ncols = self.store["shape"]
 
@@ -211,7 +214,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         from .._3d import _get_3d_option
 
         # TODO VERSION change whenever PyVista min gets updated:
-        _require_version("pyvista", "use 3D rendering", "0.43")
+        _require_version("pyvista", "use 3D rendering", "0.44")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         if platform.system() == "Darwin":
@@ -799,7 +802,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         source,
         color="white",
-        title=None,
         n_labels=4,
         bgcolor=None,
         **extra_kwargs,
@@ -812,22 +814,25 @@ class _PyVistaRenderer(_AbstractRenderer):
             mapper = None
         kwargs = dict(
             color=color,
-            title=title,
+            title="",
             n_labels=n_labels,
             use_opacity=False,
             n_colors=256,
             position_x=0.15,
             position_y=0.05,
             width=0.7,
+            height=0.10,
             shadow=False,
-            bold=True,
-            label_font_size=22,
+            bold=False,
+            label_font_size=16,
             font_family=self.font_family,
             background_color=bgcolor,
             mapper=mapper,
         )
+        extra_kwargs.pop("title", None)
         kwargs.update(extra_kwargs)
         actor = self.plotter.add_scalar_bar(**kwargs)
+        actor.SetTextPad(10)
         _hide_testing_actor(actor)
         return actor
 
@@ -932,7 +937,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._picker.SetVolumeOpacityIsovalue(0.0)
 
     def _set_colormap_range(
-        self, actor, ctable, scalar_bar, rng=None, background_color=None
+        self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
     ):
         if rng is not None:
             mapper = actor.GetMapper()
@@ -946,8 +951,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                 ctable = _alpha_blend_background(ctable, background_color)
             lut.SetTable(numpy_to_vtk(ctable, array_type=VTK_UNSIGNED_CHAR))
             lut.SetRange(*rng)
+            if fmt is not None:
+                scalar_bar.SetLabelFormat(fmt)
 
-    def _set_volume_range(self, volume, ctable, alpha, scalar_bar, rng):
+    def _set_volume_range(self, volume, ctable, alpha, scalar_bar, rng, fmt=None):
         color_tf = vtkColorTransferFunction()
         opacity_tf = vtkPiecewiseFunction()
         for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
@@ -963,6 +970,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             lut.SetRange(*rng)
             lut.SetTable(numpy_to_vtk(ctable))
             scalar_bar.SetLookupTable(lut)
+            if fmt is not None:
+                scalar_bar.SetLabelFormat(fmt)
 
     def _sphere(self, center, color, radius):
         mesh = pyvista.Sphere(
@@ -1394,6 +1403,9 @@ def _disabled_depth_peeling():
         depth_peeling["enabled"] = depth_peeling_enabled
 
 
+_GPU_REPORT = None
+
+
 def _is_osmesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
@@ -1403,7 +1415,19 @@ def _is_osmesa(plotter):
         return False
     if os.getenv("MNE_IS_OSMESA", "").lower() == "true":
         return True
-    gpu_info_full = plotter.ren_win.ReportCapabilities()
+    global _GPU_REPORT
+    if _GPU_REPORT is None:
+        # Ask at most once per process: the GL driver cannot change while the
+        # process is alive, every report costs ~13 ms (and a GL context
+        # realization the first time), and asking VTK has segfaulted before.
+        # This cannot be a plotter-keyed cache: each figure is a new plotter,
+        # so it would miss every time and keep every plotter alive forever.
+        _GPU_REPORT = plotter.ren_win.ReportCapabilities()
+    return _is_osmesa_from_report(_GPU_REPORT)
+
+
+@functools.cache
+def _is_osmesa_from_report(gpu_info_full):
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",
         gpu_info_full,

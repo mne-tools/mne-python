@@ -739,14 +739,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _get_tooltip(self):
-        pass
-
-    @abstractmethod
-    def _set_tooltip(self, tooltip: str):
-        pass
-
-    @abstractmethod
     def _add_keypress(self, callback):
         pass
 
@@ -756,10 +748,6 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def _set_focus(self):
-        pass
-
-    @abstractmethod
-    def _set_layout(self, layout):
         pass
 
     @abstractmethod
@@ -799,10 +787,6 @@ class _AbstractButton(_AbstractWidget):
     def _click(self):
         pass
 
-    @abstractmethod
-    def _set_icon(self, icon):
-        pass
-
 
 class _AbstractSlider(_AbstractWidget):
     @classmethod
@@ -816,10 +800,6 @@ class _AbstractSlider(_AbstractWidget):
 
     @abstractmethod
     def _get_value(self):
-        pass
-
-    @abstractmethod
-    def _set_range(self, rng):
         pass
 
 
@@ -985,10 +965,6 @@ class _AbstractBoxLayout(ABC):
     def _add_widget(self, widget):
         pass
 
-    @abstractmethod
-    def _add_stretch(self, amount=1):
-        pass
-
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
     @abstractmethod
@@ -1021,31 +997,7 @@ class _AbstractAppWindow(ABC):
         pass
 
     @abstractmethod
-    def _get_dpi(self):
-        pass
-
-    @abstractmethod
     def _get_size(self):
-        pass
-
-    @abstractmethod
-    def _get_cursor(self):
-        pass
-
-    @abstractmethod
-    def _set_cursor(self, cursor):
-        pass
-
-    @abstractmethod
-    def _new_cursor(self, name):
-        pass
-
-    @abstractmethod
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    @abstractmethod
-    def _close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -1277,7 +1229,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         pass
 
     @abstractmethod
@@ -1391,6 +1343,10 @@ class _AbstractWdgt(ABC):
         pass
 
     @abstractmethod
+    def is_visible(self):
+        pass
+
+    @abstractmethod
     def update(self, repaint=True):
         pass
 
@@ -1404,6 +1360,10 @@ class _AbstractWdgt(ABC):
 
     @abstractmethod
     def set_style(self, style):
+        pass
+
+    @abstractmethod
+    def set_items(self, items):
         pass
 
 
@@ -1574,6 +1534,15 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_get_simple_canvas(self, width, height, dpi):
+        pass
+
+    @abstractmethod
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        """Return a widget listing ``(key, description)`` pairs.
+
+        ``pairs`` are keyboard shortcuts; ``mouse_pairs``, if given, are
+        ``(action, description)`` pairs shown in a separate section.
+        """
         pass
 
     @abstractmethod

@@ -13,7 +13,7 @@ import sys
 import sysconfig
 import warnings
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
-from refleak.testing import assert_no_instances, gc_collect_once
+from refleak.testing import Snapshot, assert_no_instances, gc_collect_once
 
 # Any `assert` statements in our testing functions should be verbose versions
 register_assert_rewrite("mne.utils._testing")
@@ -36,11 +36,11 @@ from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import _compare_version, has_numba
 from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
-from mne.stats import cluster_level
 from mne.utils import (
     Bunch,
     _check_qt_version,
     _chmod_rw_R,
+    _is_vtk,
     _pl,
     _record_warnings,
     _TempDir,
@@ -123,6 +123,20 @@ def pytest_configure(config: pytest.Config):
     # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
     if "NUMBA_CAPTURED_ERRORS" not in os.environ:
         os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
+
+    # Cap the number of threads each pytest-xdist worker uses, adapted from SciPy
+    if os.getenv("OMP_NUM_THREADS") is None:
+        try:
+            from threadpoolctl import threadpool_limits
+        except Exception:
+            pass
+        else:
+            xdist_worker_count = int(os.getenv("PYTEST_XDIST_WORKER_COUNT", "1"))
+            max_threads = (os.cpu_count() or 2) // 2  # number of physical cores
+            threads_per_worker = max(max_threads // xdist_worker_count, 1)
+            # suppress e.g. AttributeError raised by older versions of OpenBLAS
+            with suppress(Exception):
+                threadpool_limits(threads_per_worker, user_api="blas")
 
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
@@ -373,27 +387,38 @@ def azure_windows():
     )
 
 
-@pytest.fixture(scope="function")
-def raw_orig():
-    """Get raw data without any change to it from mne.io.tests.data."""
-    raw = read_raw_fif(fname_raw_io, preload=True)
-    return raw
+# Read the raw file only once per session; the ``raw_orig``/``raw`` fixtures hand
+# out independent ``.copy()``s (much faster than re-reading, esp. after picking).
+@pytest.fixture(scope="session")
+def _raw_orig_session():
+    return read_raw_fif(fname_raw_io, preload=True)
 
 
-@pytest.fixture(scope="function")
-def raw():
-    """
-    Get raw data and pick channels to reduce load for testing.
-
-    (from mne.io.tests.data)
-    """
-    raw = read_raw_fif(fname_raw_io, preload=True)
+@pytest.fixture(scope="session")
+def _raw_session(_raw_orig_session):
+    raw = _raw_orig_session.copy()
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match="unit"):
         raw.set_channel_types({raw.ch_names[0]: "ias"})
     raw.pick(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
+
+
+@pytest.fixture(scope="function")
+def raw_orig(_raw_orig_session):
+    """Get raw data without any change to it from mne.io.tests.data."""
+    return _raw_orig_session.copy()
+
+
+@pytest.fixture(scope="function")
+def raw(_raw_session):
+    """
+    Get raw data and pick channels to reduce load for testing.
+
+    (from mne.io.tests.data)
+    """
+    return _raw_session.copy()
 
 
 @pytest.fixture(scope="function")
@@ -679,6 +704,14 @@ def pg_backend(request, garbage_collect):
 
     with use_browser_backend("qt") as backend:
         backend._close_all()
+        # Snapshot rather than assert_no_instances: when a test fails, pytest
+        # keeps its traceback (for reporting), which keeps that test's frame
+        # and hence its browser alive. Requiring *zero* browsers would then
+        # blame the next test that uses this fixture for a browser it never
+        # created, turning one real failure into a cascade of errors. Only
+        # report browsers this test itself leaked. Snapshot stores only ids,
+        # so it pins nothing alive.
+        snap = Snapshot(MNEQtBrowser, collect=False)
         yield backend
         backend._close_all()
         # This shouldn't be necessary, but let's make sure nothing is stale
@@ -687,9 +720,7 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         if not _test_passed(request):
             return
-        assert_no_instances(
-            MNEQtBrowser, f"Closure of {request.node.name}", request=request
-        )
+        snap.assert_no_new(f"Closure of {request.node.name}", request=request)
 
 
 @pytest.fixture(
@@ -706,6 +737,8 @@ def browser_backend(request, garbage_collect, monkeypatch):
     with use_browser_backend(backend_name) as backend:
         backend._close_all()
         monkeypatch.setenv("MNE_BROWSE_RAW_SIZE", "10,10")
+        # Unify theme across dev setups (regardless of current light/dark mode)
+        monkeypatch.setenv("MNE_BROWSER_THEME", "light")
         yield backend
         backend._close_all()
         if backend_name == "qt":
@@ -752,16 +785,28 @@ def renderer_interactive(request, options_3d):
 
 @contextmanager
 def _use_backend(backend_name, interactive):
+    import matplotlib
+
     from mne.viz.backends.renderer import _use_test_3d_backend
 
+    # Capture the matplotlib backend up front: for the notebook backend,
+    # _check_skip_backend() imports ipympl, which switches matplotlib to
+    # module://ipympl.backend_nbagg (and does not switch it back). Under that
+    # backend pyplot mis-tracks figures in Gcf, so every later matplotlib
+    # figure-count test (in other modules) fails. Restore it on teardown.
+    mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
-    with _use_test_3d_backend(backend_name, interactive=interactive):
-        from mne.viz.backends import renderer
+    try:
+        with _use_test_3d_backend(backend_name, interactive=interactive):
+            from mne.viz.backends import renderer
 
-        try:
-            yield renderer
-        finally:
-            renderer.backend._close_all()
+            try:
+                yield renderer
+            finally:
+                renderer.backend._close_all()
+    finally:
+        if matplotlib.get_backend() != mpl_backend:
+            matplotlib.use(mpl_backend, force=True)
 
 
 def _check_skip_backend(name):
@@ -1036,6 +1081,7 @@ def options_3d():
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+            "MNE_3D_OPTION_THEME": "light",  # unify colors across setups
         },
     ):
         yield
@@ -1077,36 +1123,40 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
-    ignore = set(id(o) for o in gc.get_objects())
-    vtk_ignores = ("vtkBuffer_IhE",)
+    # Snapshot stores only ids (pins nothing alive) so VTK objects that
+    # pre-date the test (e.g. held by module-level state) are never reported.
+    # collect=False: a gc.collect() here would cost as much as the one that
+    # actually matters at teardown, and we only care about objects going *up*
+    # (new ones surviving), not down. Skipping it just means some snapshotted
+    # objects are already garbage and vanish by teardown, which is fine; the
+    # only cost is a slightly wider id-reuse window (a missed leak at worst,
+    # never a false report).
+    snap = Snapshot(_is_vtk, label="VTK", collect=False)
     yield
     close_func()
+    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+    # (deleteLater) on close; until Qt processes it, the C++ window object
+    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is not None:
+        for _ in range(2):
+            app.processEvents()
+            app.sendPostedEvents(None, QEvent.DeferredDelete)
     if not _test_passed(request):
         return
+    # The collect must happen *before* list(Brain._instances) is evaluated:
+    # a Brain in a dead reference cycle is still in the WeakSet until
+    # collected, and the list would pin it alive and falsely report it.
     gc_collect_once(request)
     # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
     # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
     # scan of the whole process to check for lingering Brain instances.
     assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
-    # Check VTK -- these aren't individually tracked, so we still need a full
-    # heap scan here.
-    objs = gc.get_objects()
-    bad = list()
-    for o in objs:
-        try:
-            name = o.__class__.__name__
-        except Exception:  # old Python, probably
-            pass
-        else:
-            if (
-                name.startswith("vtk")
-                and name not in vtk_ignores
-                and id(o) not in ignore
-            ):
-                bad.append(name)
-        del o
-    del objs, ignore, Brain
-    assert len(bad) == 0, "VTK objects linger:\n" + "\n".join(bad)
+    # VTK objects aren't individually tracked, so this one is a full heap scan.
+    snap.assert_no_new("after", request=request)
 
 
 _files = list()
@@ -1179,15 +1229,6 @@ def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
     assert request.param in ("Numba", "NumPy")
     if request.param == "NumPy" and has_numba:
-        monkeypatch.setattr(
-            cluster_level, "_get_buddies", cluster_level._get_buddies_fallback
-        )
-        monkeypatch.setattr(
-            cluster_level, "_get_selves", cluster_level._get_selves_fallback
-        )
-        monkeypatch.setattr(
-            cluster_level, "_where_first", cluster_level._where_first_fallback
-        )
         monkeypatch.setattr(numerics, "_arange_div", numerics._arange_div_fallback)
     if request.param == "Numba" and not has_numba:
         pytest.skip("Numba not installed")
@@ -1316,12 +1357,21 @@ def nirx_snirf(request):
 def qt_windows_closed(request, qapp):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
-    qapp.processEvents()
+    from qtpy.QtCore import QEvent
+
+    # pyvistaqt >= 0.11.3 deletes plotter windows via deleteLater on close;
+    # processEvents alone never dispatches those DeferredDelete events, so
+    # drain them symmetrically before counting and before re-counting (a
+    # pending deletion from an earlier test must not inflate n_before)
+    for _ in range(2):
+        qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     n_before = len(qapp.topLevelWidgets())
     yield
     for _ in range(2):
         qapp.processEvents()
+        qapp.sendPostedEvents(None, QEvent.DeferredDelete)
     gc.collect()
     # Don't check when the test fails
     if not _test_passed(request):

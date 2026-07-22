@@ -1721,6 +1721,14 @@ fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background. Defaults to black.
 """
 
+docdict["figure_class"] = """
+figure_class : class
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
+    to pass a subclass in order to customize the plot. This parameter requires
+    cooperation from the backend, and is currently only supported by the
+    ``matplotlib`` backend.
+"""
+
 docdict["filter_length"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
@@ -3220,6 +3228,15 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.20.1
 """
 
+docdict["on_outside_epochs"] = """
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["on_rank_mismatch"] = """
 on_rank_mismatch : str
     If an explicit MEG value is passed, what to do when it does not match
@@ -3855,9 +3872,21 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict["regularize_maxwell_reg"] = """
 regularize : str | None
-    Basis regularization type, must be ``"in"`` or None.
-    ``"in"`` is the same algorithm as the ``-regularize in`` option in
-    MaxFilter™.
+    Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+    Both ``"in"`` options use the same information-theoretic component ordering
+    as the ``-regularize in`` option in MaxFilter™, and differ only in where
+    the total-information curve is cut:
+
+    ``"in"`` (default)
+      Keeps the components giving at least 98% of the peak total information. The curve
+      can be quite flat, so this errs on the side of including rather than excluding
+      components. This is the criterion MaxFilter™ 3.0 uses.
+    ``"in_argmax"``
+      Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+      Use this to match MaxFilter™ 2.2 output more closely; it generally excludes more
+      components than ``"in"``.
+
+      .. versionadded:: 1.13
 """
 
 
@@ -4269,6 +4298,17 @@ show_traces : bool | str | float
     equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
+"""
+
+docdict["show_zero_line"] = """
+show_zero_line : bool
+    Whether to show the zero line for each channel trace when the plot is
+    initialized. The line always marks the true zero of the channel, even
+    if the currently-visible window's mean has been subtracted for display
+    (see ``remove_dc``). Can be toggled after initialization by pressing
+    :kbd:`0` while the plot window is focused. Default is ``False``.
+
+    .. versionadded:: 1.13
 """
 
 docdict["size_topomap"] = """

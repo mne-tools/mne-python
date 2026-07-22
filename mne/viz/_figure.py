@@ -10,6 +10,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
+from contextvars import copy_context
 from copy import deepcopy
 from itertools import cycle
 
@@ -56,6 +57,7 @@ class BrowserBase(ABC):
         from ..preprocessing import ICA
 
         self.backend_name = None
+        self._close_context = copy_context()
 
         self._data = None
         self._times = None
@@ -105,6 +107,7 @@ class BrowserBase(ABC):
             patch=0,
             grid=1,
             ann=2,
+            zero_line=3,
             events=10003,
             bads=10004,
             data=10005,
@@ -140,6 +143,8 @@ class BrowserBase(ABC):
             self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.0
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
+        self.mne.zero_lines = list()
+        self.mne.zero_line_offset = None
         # ancillary child figures
         self.mne.child_figs = list()
         self.mne.fig_help = None
@@ -399,10 +404,12 @@ class BrowserBase(ABC):
         # get only the channels we're displaying
         data = data[picks]
         # remove DC
+        dc_offset = None
         if self.mne.remove_dc:
             if thread:
                 thread.processText.emit("Removing DC...")
-            data -= np.nanmean(data[..., time_slice], axis=1, keepdims=True)
+            dc_offset = np.nanmean(data[..., time_slice], axis=1, keepdims=True)
+            data -= dc_offset
         # apply filter
         if self.mne.filter_coefs is not None:
             if thread:
@@ -424,6 +431,9 @@ class BrowserBase(ABC):
         norms[white] = self.mne.scalings["whitened"]
         norms[norms == 0] = 1
         data /= 2 * norms[:, np.newaxis]
+        self.mne.zero_line_offset = (
+            dc_offset[:, 0] / (2 * norms) if dc_offset is not None else None
+        )
 
         return data
 
@@ -482,6 +492,13 @@ class BrowserBase(ABC):
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
+        # As specified by PEP 567: https://peps.python.org/pep-0567/#asyncio
+        # we explicitly retain the python Context used to create the figure
+        # in order to route stdout on close within IPykernel. See gh #14077
+        self._close_context.run(self._close_impl, event)
+
+    def _close_impl(self, event=None):
+        """Handle close events in the context that created the browser."""
         from matplotlib.pyplot import close
 
         logger.debug(f"Closing {self.mne.instance_type} browser...")

@@ -40,6 +40,7 @@ from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
 from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
+from mne.viz._brain._brain import _auto_scalar_bar_fmt
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
 
@@ -391,12 +392,49 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                 vertices=hemi_vertices,
             )
     assert len(brain._actors["data"]) == 4
+    assert not brain._scalar_bar.GetTitle()
+    assert brain._scalar_bar.GetLabelFormat() == _auto_scalar_bar_fmt([fmin, fmax])
     # exercise the public LayeredMesh API via Brain.layered_meshes
     assert "lh" in brain.layered_meshes
     lm = brain.layered_meshes["lh"]
     assert isinstance(lm, LayeredMesh)
     lm.update_overlay(name="data", rng=[fmin, fmax])
     lm.update()
+    with pytest.raises(ValueError, match="must have shape"):
+        lm.update_overlay(name="data", scalars=np.ones(1))
+    # remove_existing=False keeps the old overlay and adds a new one alongside
+    assert list(brain._all_data.keys()) == ["data"]
+    assert "data" in lm._overlays
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert "data" in brain._all_data and "overlay2" in brain._all_data
+    assert "data" in lm._overlays and "overlay2" in lm._overlays
+    assert brain._active_data_key == "overlay2"
+    assert brain._all_data["overlay2"]["colorbar_fmt"] is None
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay3",
+        remove_existing=False,
+        colorbar_kwargs=dict(fmt="%.1f"),
+    )
+    assert brain._all_data["overlay3"]["colorbar_fmt"] == "%.1f"
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
@@ -1016,9 +1054,13 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.reset()
 
     assert brain.help_canvas is not None
-    assert not brain.help_canvas.canvas.isVisible()
+    assert not brain.help_canvas.isVisible()
     brain.help()
-    assert brain.help_canvas.canvas.isVisible()
+    assert brain.help_canvas.isVisible()
+    brain.help_canvas.hide()
+    assert not brain.help_canvas.isVisible()
+    brain.status_msg.widget.mousePressEvent(None)
+    assert brain.help_canvas.isVisible()
 
     # screenshot
     # Need to turn the interface back on otherwise the window is too wide
@@ -1029,6 +1071,44 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     img = brain.screenshot(mode="rgb")
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
     assert_allclose(img.shape, want_shape, atol=30)
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the Overlay dropdown widget shown when multiple overlays are active."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    # with a single overlay the selector widget should exist but be hidden
+    assert "data_key" in brain.widgets
+    assert not brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "data"
+
+    # add a second overlay — widget should become visible and list both keys
+    stc = read_source_estimate(fname_stc)
+    hemi_data = stc.data[: len(stc.vertices[0]), 0]
+    brain.add_data(
+        hemi_data,
+        fmin=stc.data.min(),
+        fmax=stc.data.max(),
+        hemi="lh",
+        colormap="Blues",
+        vertices=stc.vertices[0],
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "overlay2"
+
+    # switching the dropdown updates the active key and refreshes sliders
+    brain.widgets["data_key"].set_value("data")
+    assert brain._active_data_key == "data"
+
+    brain.widgets["data_key"].set_value("overlay2")
+    assert brain._active_data_key == "overlay2"
+
     brain.close()
 
 
@@ -1142,7 +1222,7 @@ def test_brain_traces_vertex(
     # add foci should work for 'lh', 'rh' and 'vol'
     for current_hemi in hemi_str:
         brain.add_foci([[0, 0, 0]], hemi=current_hemi)
-        assert_array_equal(brain._data[current_hemi]["foci"], [[0, 0, 0]])
+        assert_array_equal(brain._foci_data[current_hemi]["foci"], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1473,6 +1553,15 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
+def test_auto_scalar_bar_fmt():
+    """Test the automatic scalar bar tick-label format."""
+    assert _auto_scalar_bar_fmt([0, 1]) == "%.3g"
+    assert _auto_scalar_bar_fmt([-5, 5]) == "%.3g"
+    assert _auto_scalar_bar_fmt([0, 0]) == "%.3g"
+    assert _auto_scalar_bar_fmt([0, 4.2e-10]) == "%.2e"
+    assert _auto_scalar_bar_fmt([-1e6, 1e6]) == "%.2e"
+
+
 def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     """Test responding to Brain related UI events."""
     brain = _create_testing_brain(hemi="lh", show_traces="vertex")
@@ -1584,4 +1673,6 @@ def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo["lh"].coords[:2] + 0.01
     tiny_brain.add_foci(foci_coords, map_surface="white")
-    assert_array_equal(tiny_brain._data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
+    assert_array_equal(
+        tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2]
+    )

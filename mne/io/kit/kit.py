@@ -1021,7 +1021,7 @@ def read_epochs_kit(
 
     Returns
     -------
-    EpochsKIT : instance of BaseEpochs
+    EpochsKIT : instance of EpochsKIT
         The epochs.
 
     See Also
