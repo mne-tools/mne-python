@@ -10,8 +10,7 @@ from mne.inverse_sparse.mxne_debiasing import compute_bias
 
 def test_compute_debiasing():
     """Test source amplitude debiasing."""
-    # RandomState (not default_rng): the reference values below assume this stream
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     G = rng.standard_normal((10, 4))
     X = rng.standard_normal((4, 20))
     debias_true = np.arange(1, 5, dtype=np.float64)
@@ -19,4 +18,4 @@ def test_compute_debiasing():
     debias = compute_bias(M, G, X, max_iter=10000, n_orient=1, tol=1e-7)
     assert_almost_equal(debias, debias_true, decimal=5)
     debias = compute_bias(M, G, X, max_iter=10000, n_orient=2, tol=1e-5)
-    assert_almost_equal(debias, [1.8, 1.8, 3.72, 3.72], decimal=2)
+    assert_almost_equal(debias, [1.63, 1.63, 3.33, 3.33], decimal=2)
