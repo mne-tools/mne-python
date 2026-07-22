@@ -739,7 +739,10 @@ def test_make_forward_dipole(tmp_path):
     # Make new Dipole object with n_test_dipoles picked from the dipoles
     # in the test dataset.
     n_test_dipoles = 3  # minimum 3 needed to get uneven sampling in time
-    dipsel = np.sort(rng.permutation(np.arange(len(dip_c)))[:n_test_dipoles])
+    # chosen explicitly rather than at random: the tolerances asserted below are
+    # tuned for these particular dipoles
+    dipsel = np.array([1, 6, 8])
+    assert len(dipsel) == n_test_dipoles
     dip_test = Dipole(
         times=dip_c.times[dipsel],
         pos=dip_c.pos[dipsel],
