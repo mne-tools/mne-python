@@ -9,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from matplotlib.colors import PowerNorm, TwoSlopeNorm
+from matplotlib.colors import PowerNorm, TwoSlopeNorm, to_rgba
 from matplotlib.patches import Circle
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
@@ -1125,7 +1125,7 @@ def test_plot_ch_adjacency():
     assert len(collections) == 2
 
     # make sure the point is green
-    green = matplotlib.colors.to_rgba("tab:green")
+    green = to_rgba("tab:green")
     assert (collections[1].get_facecolor() == green).all()
 
     # make sure adjacency entry is modified after second click on another node
@@ -1208,3 +1208,84 @@ def test_plot_topomap_info_names_ordering(ch_type):
     assert displayed_names == list(expected_names), (
         f"Expected {list(expected_names)}, got {displayed_names}"
     )
+
+
+def test_plot_topomap_mask_label_params():
+    """Test that mask_label_params styles the masked-sensor labels."""
+    evoked = read_evokeds(evoked_fname)[0]
+
+    significant = (
+        "EEG 001",
+        "EEG 002",
+        "EEG 003",
+        "EEG 004",
+        "EEG 005",
+        "EEG 006",
+        "EEG 007",
+        "EEG 008",
+    )
+    sig = np.isin(evoked.ch_names, significant)
+    mask = np.zeros(evoked.data.shape, dtype=bool)
+    mask[sig, :] = True
+
+    # test non-default
+    mask_label_params = dict(
+        fontsize="medium",
+        color="green",
+        fontweight="bold",
+        bbox=dict(facecolor="red", alpha=0.3),
+    )
+
+    fig = evoked.plot_topomap(
+        times=0.1,
+        ch_type="eeg",
+        mask=mask,
+        show_names=True,
+        mask_label_params=mask_label_params,
+        show=False,
+    )
+
+    fig.canvas.draw()  # important for the bbox patches
+
+    sig_labels = [t for ax in fig.axes for t in ax.texts if t.get_text() in significant]
+
+    assert sig_labels, "there are no masked-channel labels"
+
+    # non masked channels should not be green
+    nonsig_labels = [
+        t
+        for ax in fig.axes
+        for t in ax.texts
+        if t.get_text() in evoked.ch_names and t.get_text() not in significant
+    ]
+
+    for ns in nonsig_labels:
+        assert to_rgba(ns.get_color()) != to_rgba("green")
+
+    # loop over significant labels and check text attributes
+    for sl in sig_labels:
+        assert to_rgba(sl.get_color()) == to_rgba("green")
+        assert sl.get_fontweight() == "bold"
+        patch = sl.get_bbox_patch()
+        assert patch is not None
+        assert np.allclose(patch.get_facecolor()[:3], (1.0, 0.0, 0.0))  # red
+
+    # test default mask labels
+    # should be dict(fontsize="medium", fontweight="bold")
+    fig = evoked.plot_topomap(
+        times=0.1,
+        ch_type="eeg",
+        mask=mask,
+        show_names=True,
+        mask_label_params=None,
+        show=False,
+    )
+
+    sig_labels = [t for ax in fig.axes for t in ax.texts if t.get_text() in significant]
+
+    assert sig_labels, "there are no masked-channel labels"
+
+    # masked labels should be bold and colored the same as unmasked labels
+    for sl in sig_labels:
+        assert sl.get_fontweight() == "bold"
+        assert to_rgba(sl.get_color()) == to_rgba(nonsig_labels[0].get_color())
