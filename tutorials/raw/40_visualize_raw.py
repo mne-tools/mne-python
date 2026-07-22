@@ -156,7 +156,7 @@ spectrum.plot_topomap()
 spectrum.plot_topo()
 
 # %%
-# This plot is also interactive; hovering over each "thumbnail" plot will
+# This plot is also interactive if an interactive backend is enabled; hovering
 # display the channel name in the bottom left of the plot window, and clicking
 # on a thumbnail plot will create a second figure showing a larger version of
 # the selected channel's spectral density (as if you had called
