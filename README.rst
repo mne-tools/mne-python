@@ -70,7 +70,7 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓
+.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↓↓↓
 
 - `Python <https://www.python.org>`__ ≥ 3.10
 - `NumPy <https://numpy.org>`__ ≥ 2.0
@@ -83,7 +83,7 @@ The minimum required dependencies to run MNE-Python are:
 - `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
 - `packaging <https://packaging.pypa.io/en/stable/>`__
 
-.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑
+.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↑↑↑
 
 Contributing
 ^^^^^^^^^^^^
