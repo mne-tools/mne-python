@@ -1153,8 +1153,6 @@ def test_plot_topomap_mask_label_params():
         assert patch is not None
         assert np.allclose(patch.get_facecolor()[:3], (1.0, 0.0, 0.0))  # red
 
-    plt.close(fig)
-
     # test default mask labels
     # should be dict(fontsize="medium", fontweight="bold")
     fig = evoked.plot_topomap(
@@ -1174,5 +1172,3 @@ def test_plot_topomap_mask_label_params():
     for sl in sig_labels:
         assert sl.get_fontweight() == "bold"
         assert to_rgba(sl.get_color()) == to_rgba(nonsig_labels[0].get_color())
-
-    plt.close(fig)

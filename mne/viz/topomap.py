@@ -1475,36 +1475,19 @@ def _plot_topomap(
         _draw_outlines(axes, outlines)
 
     if names is not None and sensors:
-        if mask is None:
-            for _pos, _name in zip(pos, names):
-                axes.text(
-                    _pos[0],
-                    _pos[1],
-                    _name,
-                    horizontalalignment="center",
-                    verticalalignment="center",
-                    size="x-small",
-                )
-        else:
-            for i, (_pos, _name) in enumerate(zip(pos, names)):
-                if mask[i]:
-                    axes.text(
-                        _pos[0],
-                        _pos[1],
-                        _name,
-                        horizontalalignment="center",
-                        verticalalignment="center",
-                        **mask_label_params,
-                    )
-                else:
-                    axes.text(
-                        _pos[0],
-                        _pos[1],
-                        _name,
-                        horizontalalignment="center",
-                        verticalalignment="center",
-                        size="x-small",
-                    )
+        for i, (_pos, _name) in enumerate(zip(pos, names)):
+            if mask is None or not mask[i]:
+                kwargs = dict(size="x-small")
+            else:  # mask[i]
+                kwargs = mask_label_params
+            axes.text(
+                _pos[0],
+                _pos[1],
+                _name,
+                horizontalalignment="center",
+                verticalalignment="center",
+                **kwargs,
+            )
 
     if onselect is not None:
         lim = axes.dataLim
