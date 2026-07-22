@@ -33,12 +33,12 @@ jobs:
   #       with:
   #         persist-credentials: false
   #     - name: Generate citation
-  #       uses: tsbinns/mne-tools/actions/generate-citation@add_tools
+  #       uses: mne-tools/mne-tools/actions/generate-citation
   #       with:
   #         project-root: ${{ github.workspace }}
   #         release-version: "1.13.0"
   #     - name: Generate codemeta
-  #       uses: tsbinns/mne-tools/actions/generate-codemeta@add_tools
+  #       uses: mne-tools/mne-tools/actions/generate-codemeta
   #       with:
   #         project-root: ${{ github.workspace }}
   #         release-version: "1.13.0"
@@ -66,18 +66,18 @@ jobs:
           --format pylock.toml --output-file tools/pylock.ci-old.toml \
           --no-cache
       - name: Validate 'old' CI lockfile
-        uses: tsbinns/mne-tools/actions/check-lockfile@add_tools
+        uses: mne-tools/mne-tools/actions/check-lockfile
         with:
           project-root: ${{ github.workspace }}
           lockfile-path: tools/pylock.ci-old.toml
           groups: lockfile_extras
       - name: Sync dependencies to README
-        uses: tsbinns/mne-tools/actions/sync-dependencies-to-readme@add_tools
+        uses: mne-tools/mne-tools/actions/sync-dependencies-to-readme
         with:
           project-root: ${{ github.workspace }}
           ignore-upper-pins: numpy
       - name: Sync dependencies to environment file
-        uses: tsbinns/mne-tools/actions/sync-dependencies-to-environment-file@add_tools
+        uses: mne-tools/mne-tools/actions/sync-dependencies-to-environment-file
         with:
           project-root: ${{ github.workspace }}
           extras: full,full-no-qt,hdf5

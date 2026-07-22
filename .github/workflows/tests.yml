@@ -131,7 +131,7 @@ jobs:
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
       - name: Check 'old' CI environment
-        uses: tsbinns/mne-tools/actions/check-environment@add_tools
+        uses: mne-tools/mne-tools/actions/check-environment
         with:
           project-root: ${{ github.workspace }}
           groups: lockfile_extras
@@ -148,7 +148,7 @@ jobs:
       # Check Qt
       - run: |
           set -xeo pipefail
-          curl https://raw.githubusercontent.com/tsbinns/mne-tools/add_tools/tools/check_qt_import.sh -o check_qt_import.sh
+          curl https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh -o check_qt_import.sh
           chmod +x check_qt_import.sh
           ./check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
