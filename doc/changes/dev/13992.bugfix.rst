@@ -1,0 +1,1 @@
+Add ``recover_epochs`` parameter to :func:`~mne.io.read_raw_egi` to gracefully recover epoch structure from binary signal data when ``epochs.xml`` metadata is inconsistent (e.g., improperly closed or interrupted EGI recordings), by :newcontrib:`Krishnaveni Parvataneni`.

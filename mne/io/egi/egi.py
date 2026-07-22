@@ -100,6 +100,7 @@ def read_raw_egi(
     preload=False,
     channel_naming="E%d",
     *,
+    recover_epochs=False,
     events_as_annotations=True,
     verbose=None,
 ) -> "RawEGI":
@@ -133,6 +134,15 @@ def read_raw_egi(
         effective default prior to 0.14.0 was ``'EEG %%03d'``.
 
         .. versionadded:: 0.14.0
+
+    recover_epochs : bool
+        If True and an MFF file has inconsistent epoch metadata (e.g., from an
+        improperly closed recording or interrupted acquisition), attempt to recover
+        the epoch structure from the binary signal data instead of raising an error.
+        A :class:`RuntimeWarning` is emitted when recovery is performed.
+        Default is False.
+
+        .. versionadded:: 1.13.0
 
     events_as_annotations : bool
         If True, annotations are created from experiment events. If False (default),
@@ -181,6 +191,7 @@ def read_raw_egi(
             exclude,
             preload,
             channel_naming,
+            recover_epochs=recover_epochs,
             events_as_annotations=events_as_annotations,
             verbose=verbose,
         )
