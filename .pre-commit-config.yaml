@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.21
+    rev: v0.15.22
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,7 +24,7 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.55
+    rev: v0.0.62
     hooks:
       - id: ty
         additional_dependencies:
@@ -48,7 +48,7 @@ repos:
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
         additional_dependencies:
@@ -100,7 +100,7 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.26.1
+    rev: v1.28.0
     hooks:
       - id: zizmor
         args: [--fix]
