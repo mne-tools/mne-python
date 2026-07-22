@@ -86,6 +86,7 @@ def test_basics():
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat("test", 10)
+    extras = [dict(foo=i) for i in range(10)]
     dt = raw.info["meas_date"]
     assert isinstance(dt, datetime)
     stamp = _dt_to_stamp(dt)
@@ -110,7 +111,7 @@ def test_basics():
     offset = offset[0] + offset[1] * 1e-6
     offset = orig_time - offset
     assert_allclose(offset, raw._first_time)
-    annot = Annotations(onset, duration, description, orig_time)
+    annot = Annotations(onset, duration, description, orig_time, extras=extras)
     assert annot.orig_time is not None
     assert " segments" in repr(annot)
     raw2.set_annotations(annot)
@@ -122,6 +123,7 @@ def test_basics():
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat("test", 10))
+    assert raw.annotations.extras == extras
 
 
 def test_annot_sanitizing(tmp_path):
