@@ -39,11 +39,11 @@ def _get_conditions():
     n_time_2 = 13
     normfactor = np.hanning(20).sum()
     rng = np.random.default_rng(42)
-    condition1_1d = rng.standard_normal((n_time_1, n_space)) * noise_level
+    condition1_1d = rng.normal(scale=noise_level, size=(n_time_1, n_space))
     for c in condition1_1d:
         c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
-    condition2_1d = rng.standard_normal((n_time_2, n_space)) * noise_level
+    condition2_1d = rng.normal(scale=noise_level, size=(n_time_2, n_space))
     for c in condition2_1d:
         c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
@@ -62,7 +62,7 @@ def test_thresholds(numba_conditional):
     # seed chosen so both the 1-sample and between-subjects data are only
     # marginally significant (0.03 < p < 0.05), as the asserts below require
     rng = np.random.default_rng(426)
-    X = rng.standard_normal((10, 1, 1)) + 0.08
+    X = rng.normal(loc=0.08, size=(10, 1, 1))
     want_thresh = -stats.t.ppf(0.025, len(X) - 1)
     assert 0.03 < stats.ttest_1samp(X[:, 0, 0], 0)[1] < 0.05
     my_fun = partial(ttest_1samp_no_p)
@@ -77,7 +77,7 @@ def test_thresholds(numba_conditional):
     assert_allclose(out[2], 0.046875, atol=1e-6)
     # between subjects
     Y = rng.standard_normal((10, 1, 1))
-    Z = rng.standard_normal((10, 1, 1)) - 0.7
+    Z = rng.normal(loc=-0.7, size=(10, 1, 1))
     X = [X, Y, Z]
     want_thresh = stats.f.ppf(1.0 - 0.05, 2, sum(len(a) for a in X) - len(X))
     p = stats.f_oneway(*X)[1]
@@ -170,7 +170,7 @@ def test_cache_dir(tmp_path, numba_conditional):
 
 def test_permutation_large_n_samples(numba_conditional):
     """Test that non-replacement works with large N."""
-    X = np.random.default_rng(0).standard_normal((72, 1)) + 1
+    X = np.random.default_rng(0).normal(loc=1, size=(72, 1))
     for n_samples in (11, 72):
         tails = (0, 1) if n_samples <= 20 else (0,)
         for tail in tails:
@@ -549,7 +549,7 @@ def test_permutation_cluster_signs(threshold, kind):
         assert kind == "ind"
         func = permutation_cluster_test
         stat_fun = ttest_ind_no_p
-        use_X = [X, np.random.default_rng(0).standard_normal(X.shape) * 0.1]
+        use_X = [X, np.random.default_rng(0).normal(scale=0.1, size=X.shape)]
     tobs, clu, clu_pvalues, _ = func(
         use_X,
         n_permutations=n_permutations,
@@ -660,7 +660,7 @@ def test_spatio_temporal_cluster_chain_merge():
     # seed chosen to produce the cluster-merge chain described above
     rng = np.random.default_rng(1)
     n_subjects, n_times, n_space = 3, 2, 6
-    X = rng.standard_normal((n_subjects, n_times, n_space)) * 0.01
+    X = rng.normal(scale=0.01, size=(n_subjects, n_times, n_space))
     active = [(0, 0), (0, 2), (0, 3), (0, 4), (1, 0), (1, 1), (1, 2), (1, 4), (1, 5)]
     for t, s in active:
         X[:, t, s] += 10
@@ -888,7 +888,7 @@ def test_permutation_test_H0(numba_conditional):
 def test_tfce_thresholds(numba_conditional):
     """Test TFCE thresholds."""
     rng = np.random.default_rng(0)
-    data = rng.standard_normal((7, 10, 1)) - 0.5
+    data = rng.normal(loc=-0.5, size=(7, 10, 1))
 
     # if tail==-1, step must also be negative
     with pytest.raises(ValueError, match="must be < 0 for tail == -1"):

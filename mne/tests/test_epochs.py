@@ -4350,7 +4350,7 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
 
     # Generate raw data, attach the annotations, and convert to events
     rng = np.random.default_rng()
-    data = 1e-5 * rng.standard_normal((n_chs, sfreq * duration))
+    data = rng.normal(scale=1e-5, size=(n_chs, sfreq * duration))
     info = mne.create_info(
         ch_names=[f"EEG {i}" for i in range(n_chs)], sfreq=sfreq, ch_types="eeg"
     )
@@ -4957,7 +4957,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, with_extras, tmp_pa
     from pandas.testing import assert_frame_equal
 
     rng = np.random.default_rng(0)
-    data = rng.standard_normal((2, 400)) * 10e-12
+    data = rng.normal(scale=10e-12, size=(2, 400))
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types="grad", sfreq=100.0)
 
     # create a Raw object with a first_samp

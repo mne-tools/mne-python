@@ -1085,7 +1085,7 @@ def _rand_affine(rng):
     quat = rng.standard_normal(3)
     quat /= 5 * np.linalg.norm(quat)
     affine = np.eye(4)
-    affine[:3, 3] = rng.standard_normal(3) / 5.0
+    affine[:3, 3] = rng.normal(scale=1 / 5.0, size=3)
     affine[:3, :3] = quat_to_rot(quat)
     return affine
 

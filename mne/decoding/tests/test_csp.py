@@ -401,7 +401,7 @@ def test_ajd():
     n_times, n_channels = 10, 3
     # RandomState (not default_rng): V_matlab below was computed from this exact stream
     seed = np.random.RandomState(0)
-    diags = 2.0 + 0.1 * seed.standard_normal((n_times, n_channels))
+    diags = seed.normal(loc=2.0, scale=0.1, size=(n_times, n_channels))
     A = 2 * seed.random((n_channels, n_channels)) - 1
     A /= np.atleast_2d(np.sqrt(np.sum(A**2, 1))).T
     covmats = np.empty((n_times, n_channels, n_channels))

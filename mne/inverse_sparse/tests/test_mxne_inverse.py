@@ -358,7 +358,7 @@ def test_mxne_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(
-        50e-9 * np.random.default_rng(42).standard_normal((1, 4)),
+        np.random.default_rng(42).normal(scale=50e-9, size=(1, 4)),
         vertices=[stc.vertices[0][:1]],
         tmin=stc.tmin,
         tstep=stc.tstep,
@@ -519,7 +519,7 @@ def test_mxne_inverse_sure_synthetic(
     n_dip_per_pos = n_dipoles // n_orient
     for j in range(1, n_dip_per_pos):
         U *= corr
-        U += sigma * rng.standard_normal(n_sensors)
+        U += rng.normal(scale=sigma, size=n_sensors)
         G[:, j * n_orient : (j + 1) * n_orient] = np.expand_dims(U, axis=-1)
     # generate coefficient matrix
     support = rng.choice(n_dip_per_pos, nnz, replace=False)

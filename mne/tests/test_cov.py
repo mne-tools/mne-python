@@ -622,7 +622,7 @@ def test_auto_low_rank():
         X = np.dot(X, U[:, :rank].T)
 
         sigmas = sigma * rng.random(n_features) + sigma / 2.0
-        X += rng.standard_normal((n_samples, n_features)) * sigmas
+        X += rng.normal(scale=sigmas, size=(n_samples, n_features))
         return X
 
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank, sigma=sigma)

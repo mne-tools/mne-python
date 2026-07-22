@@ -327,7 +327,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
         0.7e-6 * (epoch_times - tmax) * np.sin(2 * np.pi * (epoch_times - 0.1))
     )
 
-    epoch_data = rng.standard_normal((n_epochs, n_channels, n_times)) * 5e-7
+    epoch_data = rng.normal(scale=5e-7, size=(n_epochs, n_channels, n_times))
     epoch_data[y == 0, informative_ch_idx, :] += nontarget_template
     epoch_data[y == 1, informative_ch_idx, :] += target_template
 

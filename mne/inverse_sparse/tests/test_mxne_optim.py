@@ -40,7 +40,7 @@ def _generate_tf_data():
     X[4, times <= np.pi / 2] = 0
     X[4, times >= np.pi] = 0
     M = np.dot(G, X)
-    M += 1 * rng.standard_normal(M.shape)
+    M += rng.normal(scale=1, size=M.shape)
     return M, G, active_set
 
 

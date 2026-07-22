@@ -90,7 +90,7 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     # Add a little noise
     # seed chosen to meet the rank/correlation bounds asserted in the tests
     random = np.random.default_rng(0)
-    noise = random.standard_normal(raw._data.shape) * 1e-14
+    noise = random.normal(scale=1e-14, size=raw._data.shape)
     raw._data += noise
 
     # Define a single epoch (weird baseline but shouldn't matter)

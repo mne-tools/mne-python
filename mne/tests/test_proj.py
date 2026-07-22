@@ -336,7 +336,7 @@ def test_proj_raw_duration(duration, sfreq):
     n_ch, n_dim = 30, 3
     rng = np.random.default_rng(0)
     signals = rng.standard_normal((n_dim, 10000))
-    mixing = rng.standard_normal((n_ch, n_dim)) + [0, 1, 2]
+    mixing = rng.normal(loc=[0, 1, 2], size=(n_ch, n_dim))
     data = np.dot(mixing, signals)
     raw = RawArray(data, create_info(n_ch, sfreq, "eeg"))
     raw.set_eeg_reference(projection=True)

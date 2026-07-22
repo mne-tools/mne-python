@@ -98,7 +98,7 @@ def test_rank_deficiency():
     win = np.hanning(N // 8)
     win /= win.mean()
     y = np.apply_along_axis(np.convolve, 0, eeg, win, mode="same")
-    y += rng.standard_normal(y.shape) * 100
+    y += rng.normal(scale=100, size=y.shape)
 
     for est in (Ridge(reg), reg):
         rf = ReceptiveField(tmin, tmax, fs, estimator=est, patterns=True)

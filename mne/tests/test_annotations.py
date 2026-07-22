@@ -140,7 +140,7 @@ def test_annot_sanitizing(tmp_path):
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
     rng = np.random.default_rng(0)
-    data = rng.standard_normal((2, 1000)) * 10e-12
+    data = rng.normal(scale=10e-12, size=(2, 1000))
     sfreq = 100.0
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types=["grad"] * 2, sfreq=sfreq)
     meas_date = _handle_meas_date(np.pi)

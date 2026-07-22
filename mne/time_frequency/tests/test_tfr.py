@@ -465,7 +465,7 @@ def test_tfr_multitaper():
     n_epochs = 3
     seed = 42
     rng = np.random.default_rng(seed)
-    noise = 0.1 * rng.standard_normal((n_epochs, len(ch_names), n_times))
+    noise = rng.normal(scale=0.1, size=(n_epochs, len(ch_names), n_times))
     t = np.arange(n_times, dtype=np.float64) / sfreq
     signal = np.sin(np.pi * 2.0 * 50.0 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # Hard windowing

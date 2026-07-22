@@ -805,7 +805,7 @@ def test_plot_topomap_channel_distance():
 
     info = create_info(ch_names, 100, ch_types="eeg")
     rng = np.random.default_rng(0)
-    evoked = EvokedArray(rng.standard_normal((4, 10)) * 1e-6, info)
+    evoked = EvokedArray(rng.normal(scale=1e-6, size=(4, 10)), info)
     ten_five = make_standard_montage("colin27_1005")
     evoked.set_montage(ten_five)
 

@@ -409,7 +409,7 @@ def test_concatenate_raws(on_mismatch):
 
 def _create_toy_data(n_channels=3, sfreq=250, seed=None):
     rng = np.random.default_rng(seed)
-    data = rng.standard_normal(size=(n_channels, 50 * sfreq)) * 5e-6
+    data = rng.normal(scale=5e-6, size=(n_channels, 50 * sfreq))
     info = create_info(n_channels, sfreq, "eeg")
     return RawArray(data, info)
 
