@@ -24,25 +24,6 @@ jobs:
       - uses: j178/prek-action@v2.0.5
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
-  # autofix-citation-codemeta:
-  #   ### TODO: Remove before merging ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  #   name: Autoupdate CITATION.cff and codemeta.json
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v7.0.0
-  #       with:
-  #         persist-credentials: false
-  #     - name: Generate citation
-  #       uses: mne-tools/mne-tools/actions/generate-citation@main
-  #       with:
-  #         project-root: ${{ github.workspace }}
-  #         release-version: "1.13.0"
-  #     - name: Generate codemeta
-  #       uses: mne-tools/mne-tools/actions/generate-codemeta@main
-  #       with:
-  #         project-root: ${{ github.workspace }}
-  #         release-version: "1.13.0"
-  #     - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
   autofix-dependencies:
     name: Autoupdate 'old' CI lockfile, README dependencies, and environment file
     runs-on: ubuntu-latest
