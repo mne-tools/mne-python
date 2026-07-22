@@ -1590,8 +1590,9 @@ class _QtWindow(_AbstractWindow):
             # 1. Settle the layout
             self._window.ensurePolished()
             _qt_activate_layouts(self._window, self._interactor)
-            # 2. Get the window size that works
+            # 2. Get the window and interactor sizes that work
             win_sz = self._window.size()
+            ren_sz = self._interactor.size()
             # 3. Undo the min size setting and re-settle
             self._interactor.setMinimumSize(0, 0)
             if adjust_mpl:
@@ -1602,9 +1603,22 @@ class _QtWindow(_AbstractWindow):
             win_h = win_sz.height()
             if adjust_mpl:
                 win_h += max(self._mpl_dock.widget().size().height() - mpl_h, 0)
-            # 5. Resize the window to that size
+            # 5. Resize the window to the size that gave us ren_sz
             self._interactor.window_size = (win_sz.width(), win_h)
             _qt_activate_layouts(self._window, self._interactor)
+            # 6. Zeroing the frame's layout margins above avoids the interactor
+            #    drifting on most platforms, but not always (e.g. CI's macOS
+            #    runners), so nudge the window until the render area is back
+            #    to ren_sz as a safety net (usually converges in one pass).
+            for _ in range(3):
+                err_w = ren_sz.width() - self._interactor.width()
+                err_h = ren_sz.height() - self._interactor.height()
+                if not (err_w or err_h):
+                    break
+                self._window.resize(
+                    self._window.width() + err_w, self._window.height() + err_h
+                )
+                _qt_activate_layouts(self._window, self._interactor)
 
     def _window_set_theme(self, theme=None):
         if theme is None:
