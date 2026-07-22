@@ -795,7 +795,7 @@ class Brain:
         del current_time
 
     def _configure_dock_orientation_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name, collapse=False)
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
         # Renderer widget
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
@@ -852,7 +852,7 @@ class Brain:
         )
 
     def _configure_dock_surface_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name, collapse=False)
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
         self.widgets["cortex_alpha"] = self._renderer._dock_add_slider(
             name="Alpha",
             value=self._alpha,
@@ -1009,7 +1009,7 @@ class Brain:
             self._configure_vertex_time_course()
             return
 
-        layout = self._renderer._dock_add_group_box(name, collapse=False)
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
 
         # setup candidate annots
         @_auto_weakref
@@ -1081,9 +1081,9 @@ class Brain:
     def _configure_dock(self):
         self._renderer._dock_initialize()
         self._configure_dock_playback_widget(name="Playback")
+        self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_surface_widget(name="Surface")
-        self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_trace_widget(name="Trace")
         self._renderer._dock_finalize()
 
