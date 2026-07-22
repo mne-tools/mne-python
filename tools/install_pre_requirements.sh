@@ -26,7 +26,7 @@ python -m pip install $STD_ARGS pip setuptools packaging \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr \
 	"$MNE_QT_BACKEND!=6.9.1" \
 	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
-	scikit-learn
+	scikit-learn tables
 python -m pip uninstall -yq numpy
 echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
@@ -36,13 +36,14 @@ python -m pip install $STD_ARGS --only-binary ":all:" \
 	"scipy>=1.18.0.dev0" \
 	"pandas>=3.1.0.dev0" \
 	"dipy>=1.12.0.dev0" \
-	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
 	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
 # https://github.com/scikit-learn/scikit-learn/issues/34458
 #	"scikit-learn>=1.9.dev0" \
+# https://github.com/PyTables/PyTables/issues/1338
+#	"tables>=3.10.3.dev0" \
 echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
