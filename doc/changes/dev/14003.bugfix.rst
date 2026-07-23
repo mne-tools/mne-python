@@ -1,0 +1,1 @@
+Fix :func:`mne.time_frequency.psd_array_welch` (and Welch-method ``compute_psd``) so that good data spans shorter than ``n_per_seg`` no longer raise ``noverlap must be less than nperseg``; such spans are now zero-padded up to ``n_per_seg`` (with a warning) instead of being lost, by :newcontrib:`Cedric Conday`.
