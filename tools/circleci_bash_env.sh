@@ -4,7 +4,6 @@ set -e
 set -o pipefail
 
 curl https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/setup_xvfb.sh -o setup_xvfb.sh
-chmod +x setup_xvfb.sh
 ./setup_xvfb.sh
 # Need different installs for 24.04 and 26.04
 if [[ $(lsb_release -rs) == "26.04" ]]; then

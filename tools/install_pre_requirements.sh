@@ -78,6 +78,5 @@ echo "::endgroup::"
 
 echo "::group::Check Qt import"
 curl https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh -o check_qt_import.sh
-chmod +x check_qt_import.sh
 ./check_qt_import.sh "$MNE_QT_BACKEND"
 echo "::endgroup::"
