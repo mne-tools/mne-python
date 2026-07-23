@@ -3089,7 +3089,7 @@ class Brain:
             :class:`mne.Label` objects.
 
             DEPRECATED: The annotation can be specified as a ``(labels, ctab)`` tuple
-            per hemisphere, i.e. `annot=(labels, ctab)`` for a single hemisphere or
+            per hemisphere, i.e. ``annot=(labels, ctab)`` for a single hemisphere or
             ``annot=((lh_labels, lh_ctab), (rh_labels, rh_ctab))`` for both hemispheres.
 
             .. versionadded:: 1.13
@@ -3123,7 +3123,7 @@ class Brain:
                 "will be removed in MNE-Python version 1.14.",
                 FutureWarning,
             )
-            return self._old_add_annotation(
+            self._old_add_annotation(
                 annot,
                 borders=borders,
                 alpha=alpha,
