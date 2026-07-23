@@ -334,10 +334,16 @@ def _lite_stc_plot(self, *_a, **_kw):
             _ti = int(_np.argmin(_np.abs(self.times - _init)))
         _hot = _cmaps['hot']
         _N = 10
+        # xeus-python's WASM heap is capped at 2 GiB (see bin/xpython.js:
+        # WebAssembly.Memory maximum=32768 pages), and this runs at the end
+        # of a notebook that is already holding raw/epochs/stc. Every band
+        # below is a separate mesh, so keep the geometry in the narrowest
+        # dtypes VTK accepts: int32 face indices and float32 points. That
+        # halves the two biggest arrays and does not change the render.
         def _flat(_t):
             return _np.hstack([
-                _np.full((len(_t), 1), 3, dtype=_np.int64),
-                _t.astype(_np.int64)]).ravel()
+                _np.full((len(_t), 1), 3, dtype=_np.int32),
+                _t.astype(_np.int32)]).ravel()
         def _sub(_pts, _tris, _mask, _lift=0.0, _cen=None):
             _sel = _tris[_mask]
             if len(_sel) == 0:
@@ -346,7 +352,7 @@ def _lite_stc_plot(self, *_a, **_kw):
             _p = _pts[_u]
             if _lift and _cen is not None:
                 _p = _cen + (_p - _cen) * (1.0 + _lift)
-            return _p, _iv.reshape(-1, 3)
+            return _p.astype(_np.float32, copy=False), _iv.reshape(-1, 3)
         _plotter = _pv.Plotter()
         _plotter.background_color = 'black'
         # even lighting so the surface isn't black when rotated
@@ -373,20 +379,25 @@ def _lite_stc_plot(self, *_a, **_kw):
             # color each surface vertex from the nearest ACTIVE source
             # within a small radius, so single-vertex (point) sources
             # show as visible blobs and dense sources fill in as usual
-            _sv = _hdata[:, _ti].astype(float)
+            _sv = _hdata[:, _ti].astype(_np.float32)
             _act = _sv != 0
-            _scal = _np.zeros(len(_rr))
+            _scal = _np.zeros(len(_rr), dtype=_np.float32)
             if _act.any():
                 _atree = _KDTree(_rr[_vno][_act])
                 _ad, _ai = _atree.query(_rr)
                 _scal = _np.where(_ad <= 12.0, _sv[_act][_ai], 0.0)
+                # the tree and its query results are the largest temporaries
+                # here; drop them before building any meshes
+                del _atree, _ad, _ai
             # offset hemispheres along x so they do not overlap
             _off = -60.0 if _h == 'lh' else 60.0
-            _pts = _np.round(_rr, 2)
+            _pts = _np.round(_rr, 2).astype(_np.float32, copy=False)
             _pts[:, 0] = _pts[:, 0] + _off
             _cen = _pts.mean(0)
+            del _rr
             # curvature base: light gyri (curv<0) + dark sulci (curv>=0)
-            _fc = _cv[_tris].mean(1)
+            _fc = _cv[_tris].astype(_np.float32, copy=False).mean(1)
+            del _cv
             for _cm, _col in (
                     (_fc < 0, (0.68, 0.68, 0.68)),
                     (_fc >= 0, (0.38, 0.38, 0.38))):
@@ -395,6 +406,7 @@ def _lite_stc_plot(self, *_a, **_kw):
                     _plotter.add_mesh(
                         _pv.PolyData(points=_s[0], faces=_flat(_s[1])),
                         color=_col, smooth_shading=True)
+            del _fc
             # activation as a smooth hot gradient in N value bands,
             # each lifted 2% off the surface to avoid z-fighting
             _fv = _scal[_tris].mean(1)
