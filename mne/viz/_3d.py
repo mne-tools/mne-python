@@ -2854,7 +2854,7 @@ def _click_to_cut_coords(event, params):
         # We don't care about directionality, just which is which dim
         codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
         idx = codes.index(dict(x="R", y="A", z="S")[ax])
-        img_data = np.abs(_get_img_fdata(params["img_idx"]))
+        img_data = _get_img_fdata(params["img_idx"])
         ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
         if idx == 0:
             ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
@@ -2978,6 +2978,8 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
+    if mode == "glass_brain":
+        plot_kwargs["plot_abs"] = False
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
@@ -3210,7 +3212,7 @@ def plot_volume_source_estimates(
     lx = ax_time.axvline(stc.times[time_idx], color="g")
     params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
-    allow_pos_lims = mode != "glass_brain"
+    allow_pos_lims = True
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]

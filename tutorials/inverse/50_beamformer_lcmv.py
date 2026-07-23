@@ -252,7 +252,7 @@ stc.plot(mode="stat_map", clim=dict(kind="value", pos_lims=lims), **kwargs)
 # On MNI glass brain (orthoview; 2D)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-stc.plot(mode="glass_brain", clim=dict(kind="value", lims=lims), **kwargs)
+stc.plot(mode="glass_brain", clim=dict(kind="value", pos_lims=lims), **kwargs)
 
 # %%
 # Volumetric rendering (3D) with vectors
