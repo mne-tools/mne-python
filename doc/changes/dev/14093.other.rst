@@ -1,0 +1,1 @@
+Added a xeus-python kernel environment and setup cell for the JupyterLite documentation, by `Natneal B`_.

@@ -9,6 +9,7 @@ doc = [
   "graphviz",
   "intersphinx_registry >= 0.2405.27",
   "ipython != 8.7.0",  # also in "full-no-qt" and "test"
+  "jupyterlite-xeus",
   "memory_profiler >= 0.16",
   "mne-bids",
   "mne-connectivity",
