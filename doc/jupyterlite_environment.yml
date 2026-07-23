@@ -39,3 +39,6 @@ dependencies:
   # the development MNE from this checkout (pure Python, installed w/o deps)
   - pip:
       - ..
+      # pyvista-js renders 3D through vtk.js in the browser; MNE's normal
+      # VTK stack cannot load in WASM. Pure Python, so pip is fine here.
+      - pyvista-js
