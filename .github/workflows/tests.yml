@@ -148,6 +148,7 @@ jobs:
       - name: Check Qt import
         uses: tsbinns/mne-tools/actions/check-qt-import@tools-actions
         with:
+          project-root: ${{ github.workspace }}
           qt-backend: ${{ env.MNE_QT_BACKEND }}
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
