@@ -61,7 +61,7 @@ python -m pip install $STD_ARGS \
 	"git+https://github.com/the-siesta-group/edfio" \
 	"https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip" \
 	git+https://github.com/pyqtgraph/pyqtgraph \
-	"mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
+	"mne-qt-browser @ https://github.com/larsoner/mne-qt-browser/archive/refs/heads/fix-276.zip" \
 	"mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
 	"nibabel @ https://github.com/nipy/nibabel/archive/refs/heads/master.zip" \
 	git+https://github.com/joblib/joblib \
