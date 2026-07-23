@@ -32,6 +32,7 @@ from mne._fiff.constants import FIFF
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
 from mne.defaults import DEFAULTS
+from mne.fixes import _reshape_view
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate
@@ -97,7 +98,7 @@ coil_3d = """# custom cube coil def
 def test_plot_head_positions():
     """Test plotting of head positions."""
     info = read_info(evoked_fname)
-    pos = np.random.RandomState(0).randn(4, 10)
+    pos = np.random.default_rng(0).standard_normal((4, 10))
     pos[:, 0] = np.arange(len(pos))
     destination = (0.0, 0.0, 0.04)
     fig = plot_head_positions(pos)
@@ -133,10 +134,11 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
-        np.random.RandomState(0).rand(stc_data.size // 20)
+    rng = np.random.default_rng(0)
+    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data.shape = (n_verts, n_time)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"
@@ -191,6 +193,7 @@ def test_plot_evoked_field(renderer):
                 n_jobs=None,
                 ch_type=t,
                 upsampling=up,
+                origin="auto",
                 verbose=True,
             )
         log = log.getvalue()
@@ -456,6 +459,19 @@ def test_plot_alignment_meg(renderer, system):
     pytest.importorskip("nibabel")
     if system == "Neuromag":
         this_info = read_info(evoked_fname)
+        # Test regression for somato dataset, which has less than ideal rot encoded
+        idx = this_info["ch_names"].index("MEG 0322")
+        this_info["chs"][idx]["loc"][3:] = [
+            -0.351594,
+            0.118898,
+            -0.92858398,
+            -0.370994,
+            -0.92838401,
+            0.0216,
+            -0.85886598,
+            0.37848499,
+            0.34239799,
+        ]
     elif system == "CTF":
         this_info = read_raw_ctf(ctf_fname).info
     elif system == "BTi":
@@ -484,13 +500,27 @@ def test_plot_alignment_meg(renderer, system):
         sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
-    # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
-    use_info = pick_info(
-        this_info,
-        pick_types(this_info, meg=True, eeg=False, ref_meg="ref" in meg, exclude=()),
-    )
-    n_actors = use_info["nchan"] + 2
-    _assert_n_actors(fig, renderer, n_actors)
+    # one actor per distinct coil shape + helmet + head
+    # Neuromag has 2 shapes, CTF and BTi expose only mags, KIT's mag + ref mag are same
+    n_shapes = 1 if system in ("CTF", "BTi") else 2
+    _assert_n_actors(fig, renderer, n_shapes + 2)
+
+    if system == "Neuromag":
+        # Passing fully-random per-channel colors should not blow up the
+        # actor count (proves per-channel MEG coil coloring no longer
+        # requires one actor per unique color).
+        rng = np.random.default_rng(0)
+        n_meg = len(pick_types(this_info, meg=True))
+        fig2 = plot_alignment(
+            this_info,
+            read_trans(trans_fname),
+            subject="sample",
+            subjects_dir=subjects_dir,
+            meg=meg,
+            eeg=False,
+            sensor_colors=dict(meg=rng.random((n_meg, 4))),
+        )
+        _assert_n_actors(fig2, renderer, n_shapes + 2)
 
 
 @testing.requires_testing_data
@@ -941,8 +971,8 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.random.RandomState(0).rand(n_verts * n_time)
-    stc_data.shape = (n_verts, n_time)
+    stc_data = np.random.default_rng(0).random(n_verts * n_time)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
     # Test for simple use cases
@@ -1064,7 +1094,7 @@ def test_stc_mpl():
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.ones(n_verts * n_time)
-    stc_data.shape = (n_verts, n_time)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
     stc.plot(
         subjects_dir=subjects_dir,
@@ -1365,8 +1395,8 @@ def test_mixed_sources_plot_surface(renderer_interactive):
     T = 2  # number of time points
     S = 3  # number of source spaces
 
-    rng = np.random.RandomState(0)
-    data = rng.randn(N, T)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((N, T))
     vertno = S * [np.arange(N // S)]
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
@@ -1393,10 +1423,11 @@ def test_link_brains(renderer_interactive):
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
-        np.random.RandomState(0).rand(stc_data.size // 20)
+    rng = np.random.default_rng(0)
+    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data.shape = (n_verts, n_time)
+    stc_data = _reshape_view(stc_data, (n_verts, n_time))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"

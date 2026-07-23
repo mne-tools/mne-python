@@ -26,7 +26,6 @@ across space and time.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.random import randn
 
 import mne
 from mne.datasets import sample
@@ -123,8 +122,8 @@ n_subjects = 6
 print(f"Simulating data for {n_subjects} subjects.")
 
 #    Let's make sure our results replicate, so set the seed.
-np.random.seed(0)
-X = randn(n_vertices_sample, n_times, n_subjects, 4) * 10
+rng = np.random.default_rng(0)
+X = rng.normal(scale=10, size=(n_vertices_sample, n_times, n_subjects, 4))
 for ii, condition in enumerate(conditions):
     X[:, :, :, ii] += condition.lh_data[:, :, np.newaxis]
 
@@ -246,6 +245,7 @@ F_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_test(
     stat_fun=stat_fun,
     n_permutations=n_permutations,
     buffer_size=None,
+    seed=0,
 )
 # Now select the clusters that are sig. at p < 0.05 (note that this value
 # is multiple-comparisons corrected).

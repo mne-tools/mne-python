@@ -1,1 +1,0 @@
-Restore ``clipping=3`` in :meth:`~mne.io.Raw.plot` (which was mistakenly changed to ``1.5``) to reduce excessive clipping of raw data, by `Clemens Brunner`_.

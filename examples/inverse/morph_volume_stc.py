@@ -19,7 +19,6 @@ Afterwards the transformation will be applied to the volumetric source estimate.
 result will be plotted, showing the fsaverage T1 weighted anatomical MRI, overlaid with
 the morphed volumetric source estimate.
 """
-
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD-3-Clause

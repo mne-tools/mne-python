@@ -5,6 +5,7 @@
 import copy
 import os.path as op
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -17,6 +18,7 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
+from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,
@@ -334,7 +336,9 @@ class Raw(BaseRaw):
 
         # reformat raw_extras to be a dict of list/ndarray rather than
         # list of dict (faster access)
-        raw_extras = {key: [r[key] for r in raw_extras] for key in raw_extras[0]}
+        raw_extras: dict[str, Any] = {
+            key: [r[key] for r in raw_extras] for key in raw_extras[0]
+        }
         for key in raw_extras:
             if key != "ent":  # dict or None
                 raw_extras[key] = np.array(raw_extras[key], int)
@@ -356,11 +360,7 @@ class Raw(BaseRaw):
         raw.orig_format = orig_format
 
         #   Add the calibration factors
-        cals = np.zeros(info["nchan"])
-        for k in range(info["nchan"]):
-            cals[k] = info["chs"][k]["range"] * info["chs"][k]["cal"]
-
-        raw._cals = cals
+        raw._cals = info._cals
         raw._raw_extras = raw_extras
         logger.info(
             "    Range : %d ... %d =  %9.3f ... %9.3f secs",
@@ -428,7 +428,7 @@ class Raw(BaseRaw):
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
                 try:
-                    one.shape = (nsamp, nchan)
+                    one = _reshape_view(one, (nsamp, nchan))
                 except AttributeError:  # one is None
                     n_bad += picksamp
                 else:

@@ -17,15 +17,29 @@ from sklearn.base import (  # noqa: F401
     TransformerMixin,
     clone,
     is_classifier,
+    is_regressor,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, check_X_y, indexable
+from sklearn.utils import indexable
 from sklearn.utils.validation import check_is_fitted
 
+from .._fiff.meas_info import Info
 from ..parallel import parallel_func
-from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
+from ..utils import (
+    _check_fname,
+    _check_option,
+    _import_h5io_funcs,
+    _pl,
+    _validate_type,
+    logger,
+    pinv,
+    verbose,
+    warn,
+)
+from ..utils.check import check_fname
+from ._fixes import validate_data
 from ._ged import (
     _handle_restr_mat,
     _is_cov_pos_semidef,
@@ -34,7 +48,7 @@ from ._ged import (
     _smart_ged,
 )
 from ._mod_ged import _no_op_mod
-from .transformer import MNETransformerMixin
+from .transformer import MNETransformerMixin, Vectorizer
 
 
 class _GEDTransformer(MNETransformerMixin, BaseEstimator):
@@ -124,6 +138,65 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._is_base_ged = False
+
+    def __getstate__(self):
+        """Prepare state for serialization."""
+        state = self.__dict__.copy()
+        state.pop("cov_callable", None)
+        state.pop("mod_ged_callable", None)
+        state.pop("R_func", None)
+        return state
+
+    def _restore_callables(self):
+        """Restore callables after loading serialized state."""
+        # Expected to be implemented in child classes
+        pass
+
+    def __setstate__(self, state):
+        """Restore state from serialization."""
+        required_state_keys = getattr(self, "_required_state_keys", ())
+        missing = [k for k in required_state_keys if k not in state]
+        if missing:
+            raise ValueError(
+                f"Cannot read file as type {type(self).__name__}, "
+                f"it is missing required keys: {missing}. "
+                "Please report this to MNE developers "
+                "(https://github.com/mne-tools/mne-python/issues/new) "
+                "and include a copy of this entire traceback and a link "
+                "to the problematic file with your report."
+            )
+        if "info" in state and isinstance(state["info"], dict):
+            state["info"] = Info(**state["info"])
+        self.__dict__.update(state)
+        self._restore_callables()
+
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the object to disk (in HDF5 format).
+
+        Parameters
+        ----------
+        fname : path-like
+            The file path to save to. Should end with ``'.h5'`` or
+            ``'.hdf5'``.
+        %(overwrite)s
+        %(verbose)s
+
+        Notes
+        -----
+        .. versionadded:: 1.12
+        """
+        _, write_hdf5 = _import_h5io_funcs()
+        class_name = getattr(self, "_save_fname_type", type(self).__name__.lower())
+        check_fname(fname, class_name, (".h5", ".hdf5"))
+        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
+        write_hdf5(
+            fname,
+            self.__getstate__(),
+            overwrite=overwrite,
+            title="mnepython",
+            slash="replace",
+        )
 
     def fit(self, X, y=None):
         """..."""
@@ -324,7 +397,20 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         tags.target_tags.one_d_labels = True
         tags.input_tags.two_d_array = True
         tags.input_tags.three_d_array = True
+        tags.requires_fit = True
         return tags
+
+
+@verbose
+def _read_ged(fname, ged_class, *, verbose=None):
+    """Load a saved GED transformer object from disk."""
+    read_hdf5, _ = _import_h5io_funcs()
+    _validate_type(fname, "path-like", "fname")
+    fname = _check_fname(fname, overwrite=True, must_exist=True, verbose=verbose)
+    state = read_hdf5(fname, title="mnepython", slash="replace")
+    inst = object.__new__(ged_class)
+    inst.__setstate__(state)
+    return inst
 
 
 class LinearModel(MetaEstimatorMixin, BaseEstimator):
@@ -340,7 +426,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     model : object | None
         A linear model from scikit-learn with a fit method
         that updates a ``coef_`` attribute.
-        If None the model will be LogisticRegression.
+        If None the model will be
+        :class:`sklearn.linear_model.LogisticRegression`.
 
     Attributes
     ----------
@@ -364,45 +451,65 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     .. footbibliography::
     """
 
-    # TODO: Properly refactor this using
-    # https://github.com/scikit-learn/scikit-learn/issues/30237#issuecomment-2465572885
     _model_attr_wrap = (
         "transform",
+        "fit_transform",
         "predict",
         "predict_proba",
-        "_estimator_type",
-        "__tags__",
+        "predict_log_proba",
+        "_estimator_type",  # remove after sklearn 1.6
         "decision_function",
         "score",
         "classes_",
     )
 
     def __init__(self, model=None):
-        # TODO: We need to set this to get our tag checking to work properly
-        if model is None:
-            model = LogisticRegression(solver="liblinear")
         self.model = model
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
-        from sklearn.utils import get_tags  # added in 1.6
-
-        # fit method below does not allow sparse data via check_data, we could
-        # eventually make it smarter if we had to
-        tags = get_tags(self.model)
-        tags.input_tags.sparse = False
+        tags = super().__sklearn_tags__()
+        model = self.model if self.model is not None else LogisticRegression()
+        model_tags = model.__sklearn_tags__()
+        tags.estimator_type = model_tags.estimator_type
+        if tags.estimator_type is not None:
+            model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
+            setattr(tags, f"{tags.estimator_type}_tags", model_type_tags)
         return tags
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
         if attr in LinearModel._model_attr_wrap:
-            return getattr(self.model, attr)
-        elif attr == "fit_transform" and hasattr(self.model, "fit_transform"):
-            return super().__getattr__(self, "_fit_transform")
-        return super().__getattr__(self, attr)
+            model = self.model_ if "model_" in self.__dict__ else self.model
+            if attr == "fit_transform" and hasattr(model, "fit_transform"):
+                return self._fit_transform
+            else:
+                return getattr(model, attr)
+        else:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{attr}'"
+            )
 
     def _fit_transform(self, X, y):
         return self.fit(X, y).transform(X)
+
+    def _validate_params(self, X):
+        if self.model is not None:
+            model = self.model
+            if isinstance(model, MetaEstimatorMixin):
+                model = model.estimator
+            is_predictor = is_regressor(model) or is_classifier(model)
+            if not is_predictor:
+                raise ValueError(
+                    "Linear model should be a supervised predictor "
+                    "(classifier or regressor)"
+                )
+
+        # For sklearn < 1.6
+        try:
+            self._check_n_features(X, reset=True)
+        except AttributeError:
+            pass
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -424,25 +531,18 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        if y is not None:
-            X = check_array(X)
-        else:
-            X, y = check_X_y(X, y)
-        self.n_features_in_ = X.shape[1]
-        if y is not None:
-            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
-            if y.ndim > 2:
-                raise ValueError(
-                    f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
-                    "instead."
-                )
+        self._validate_params(X)
+        X, y = validate_data(self, X, y, multi_output=True)
 
         # fit the Model
-        self.model.fit(X, y, **fit_params)
-        self.model_ = self.model  # for better sklearn compat
+        self.model_ = (
+            clone(self.model)
+            if self.model is not None
+            else LogisticRegression(solver="liblinear")
+        )
+        self.model_.fit(X, y, **fit_params)
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
-
         inv_Y = 1.0
         X = X - X.mean(0, keepdims=True)
         if y.ndim == 2 and y.shape[1] != 1:
@@ -454,12 +554,17 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     @property
     def filters_(self):
-        if hasattr(self.model, "coef_"):
+        if hasattr(self.model_, "coef_"):
             # Standard Linear Model
-            filters = self.model.coef_
-        elif hasattr(self.model.best_estimator_, "coef_"):
+            filters = self.model_.coef_
+        elif hasattr(self.model_, "estimators_"):
+            # Linear model with OneVsRestClassifier
+            filters = np.vstack([est.coef_ for est in self.model_.estimators_])
+        elif hasattr(self.model_, "best_estimator_") and hasattr(
+            self.model_.best_estimator_, "coef_"
+        ):
             # Linear Model with GridSearchCV
-            filters = self.model.best_estimator_.coef_
+            filters = self.model_.best_estimator_.coef_
         else:
             raise ValueError("model does not have a `coef_` attribute.")
         if filters.ndim == 2 and filters.shape[0] == 1:
@@ -556,8 +661,32 @@ def _get_inverse_funcs(estimator, terminal=True):
     return inverse_func
 
 
+def _get_inverse_funcs_before_step(estimator, step_name):
+    """Get the inverse_transform methods for all steps before a target step."""
+    # in case step_name is nested with __
+    parts = step_name.split("__")
+    inverse_funcs = list()
+    current_pipeline = estimator
+    for part_name in parts:
+        all_names = [name for name, _ in current_pipeline.steps]
+        part_idx = all_names.index(part_name)
+        # get all preceding steps for the current step
+        for prec_name, prec_step in current_pipeline.steps[:part_idx]:
+            if hasattr(prec_step, "inverse_transform"):
+                inverse_funcs.append(prec_step.inverse_transform)
+            else:
+                warn(
+                    f"Preceding step '{prec_name}' is not invertible "
+                    f"and will be skipped."
+                )
+        current_pipeline = current_pipeline.named_steps[part_name]
+    return inverse_funcs
+
+
 @verbose
-def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=None):
+def get_coef(
+    estimator, attr="filters_", inverse_transform=False, *, step_name=None, verbose=None
+):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
 
     This is typically useful to retrieve "spatial filters" or "spatial
@@ -573,6 +702,13 @@ def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=Non
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.
+    step_name : str | None
+        Name of the sklearn's pipeline step to get the coef from.
+        If inverse_transform is True, the inverse transformations
+        will be applied using transformers before this step.
+        If None, the last step will be used. Defaults to None.
+
+        .. versionadded:: 1.11
     %(verbose)s
 
     Returns
@@ -587,8 +723,17 @@ def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=Non
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
     logger.debug(f"Getting coefficients from estimator: {est.__class__.__name__}")
-    while hasattr(est, "steps"):
-        est = est.steps[-1][1]
+
+    if step_name is not None:
+        if not hasattr(estimator, "named_steps"):
+            raise ValueError("step_name can only be used with a pipeline estimator.")
+        try:
+            est = est.get_params(deep=True)[step_name]
+        except KeyError:
+            raise ValueError(f"Step '{step_name}' is not part of the pipeline.")
+    else:
+        while hasattr(est, "steps"):
+            est = est.steps[-1][1]
 
     squeeze_first_dim = False
 
@@ -617,15 +762,31 @@ def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=Non
             raise ValueError(
                 "inverse_transform can only be applied onto pipeline estimators."
             )
+        if step_name is None:
+            inverse_funcs = _get_inverse_funcs(estimator)
+        else:
+            inverse_funcs = _get_inverse_funcs_before_step(estimator, step_name)
+
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
-        for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+        for inverse_func in inverse_funcs[::-1]:
             logger.debug(f"  Applying inverse transformation: {inverse_func}.")
             coef = inverse_func(coef)
 
     if squeeze_first_dim:
         logger.debug("  Squeezing first dimension of coefficients.")
         coef = coef[0]
+
+    # inverse_transform with Vectorizer returns shape (n_channels, n_components).
+    # we should transpose to be consistent with how spatial filters
+    # store filters and patterns: (n_components, n_channels)
+    if inverse_transform and hasattr(estimator, "steps"):
+        is_vectorizer = any(
+            isinstance(param_value, Vectorizer)
+            for param_value in estimator.get_params(deep=True).values()
+        )
+        if is_vectorizer and coef.ndim == 2:
+            coef = coef.T
 
     return coef
 

@@ -29,7 +29,6 @@ from ..fixes import (
 )
 from ._logging import logger, verbose, warn
 from .check import (
-    _check_pandas_installed,
     _ensure_int,
     _validate_type,
     check_random_state,
@@ -566,9 +565,11 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR, Spectrum
 
+    _validate_type(all_inst, (list, tuple), "all_inst")
     if not all_inst:
         raise ValueError(
-            "Please pass a list of Evoked, AverageTFR, or Spectrum objects."
+            "Please pass a list of Evoked, AverageTFR, or Spectrum objects, "
+            "got an empty list."
         )
     elif len(all_inst) == 1:
         warn("Only a single dataset was passed to mne.grand_average().")
@@ -775,7 +776,6 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
-    pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) is not type(b):
         # Deal with NamedInt and NamedFloat
@@ -836,7 +836,11 @@ def object_diff(a, b, pre="", *, allclose=False):
             c.eliminate_zeros()
             if c.nnz > 0:
                 out += pre + (f" sparse matrix a and b differ on {c.nnz} elements")
-    elif pd and isinstance(a, pd.DataFrame):
+    elif (pd := sys.modules.get("pandas")) is not None and isinstance(a, pd.DataFrame):
+        # Detect a DataFrame via sys.modules rather than importing pandas: if
+        # ``a`` is a DataFrame then pandas is necessarily already imported. This
+        # avoids a (sometimes very slow) first-time ``import pandas`` on the hot
+        # object_diff path when no DataFrame is present.
         try:
             pd.testing.assert_frame_equal(a, b)
         except AssertionError:

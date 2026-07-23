@@ -3,22 +3,23 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc as abc
-import copy as cp
 from functools import partial
 
 import numpy as np
 
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..evoked import EvokedArray
 from ..utils import (
     _check_option,
     _validate_type,
     fill_doc,
+    legacy,
+    verbose,
 )
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
+from .spatial_filter import get_spatial_filter_from_estimator
 
 
 @fill_doc
@@ -165,6 +166,43 @@ class CSP(_GEDTransformer):
             R_func=sum,
         )
 
+    _save_fname_type = "csp"
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = True
+        tags.target_tags.multi_output = True
+        return tags
+
+    _required_state_keys = (
+        "component_order",
+        "cov_est",
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "norm_trace",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
+    )
+
+    def _restore_callables(self):
+        """Restore CSP-specific callables after loading state."""
+        self.cov_callable = partial(
+            _csp_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            cov_est=self.cov_est,
+            info=self.info,
+            rank=self.rank,
+            norm_trace=self.norm_trace,
+        )
+        self.mod_ged_callable = partial(_csp_mod, evecs_order=self.component_order)
+        self.R_func = sum
+
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
         if hasattr(self, "cov_est"):
@@ -192,7 +230,10 @@ class CSP(_GEDTransformer):
         self.classes_ = np.unique(y)
         n_classes = len(self.classes_)
         if n_classes < 2:
-            raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
+            raise ValueError(
+                "y should be a 1d array with more than two classes, "
+                f"but got {n_classes} class from {y}"
+            )
         elif n_classes > 2 and self.component_order == "alternate":
             raise ValueError(
                 "component_order='alternate' requires two classes, but data contains "
@@ -316,6 +357,7 @@ class CSP(_GEDTransformer):
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_patterns()")
     @fill_doc
     def plot_patterns(
         self,
@@ -328,6 +370,7 @@ class CSP(_GEDTransformer):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -367,6 +410,9 @@ class CSP(_GEDTransformer):
         %(show_names_topomap)s
         %(mask_patterns_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -402,26 +448,16 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        patterns = EvokedArray(self.patterns_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = patterns.plot_topomap(
-            times=components,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_patterns(
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -437,13 +473,13 @@ class CSP(_GEDTransformer):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
         )
-        return fig
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_filters()")
     @fill_doc
     def plot_filters(
         self,
@@ -456,6 +492,7 @@ class CSP(_GEDTransformer):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -495,6 +532,9 @@ class CSP(_GEDTransformer):
         %(show_names_topomap)s
         %(mask_patterns_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -530,26 +570,16 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        filters = EvokedArray(self.filters_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = filters.plot_topomap(
-            times=components,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_filters(
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -565,12 +595,11 @@ class CSP(_GEDTransformer):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
         )
-        return fig
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
@@ -783,6 +812,37 @@ class SPoC(CSP):
         delattr(self, "cov_est")
         delattr(self, "norm_trace")
 
+    _save_fname_type = "spoc"
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.multi_output = False
+        return tags
+
+    _required_state_keys = (
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
+    )
+
+    def _restore_callables(self):
+        """Restore SPoC-specific callables after loading state."""
+        self.cov_callable = partial(
+            _spoc_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            rank=self.rank,
+        )
+        self.mod_ged_callable = _spoc_mod
+        self.R_func = None
+
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
 
@@ -859,3 +919,57 @@ class SPoC(CSP):
         """
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
+
+
+@verbose
+def read_csp(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.CSP` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a CSP file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    csp : instance of :class:`~mne.decoding.CSP`
+        The loaded CSP object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.CSP.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, CSP, verbose=verbose)
+
+
+@verbose
+def read_spoc(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.SPoC` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a SPoC file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    spoc : instance of :class:`~mne.decoding.SPoC`
+        The loaded SPoC object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.SPoC.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, SPoC, verbose=verbose)

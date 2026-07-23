@@ -6,9 +6,11 @@
 
 import importlib
 import inspect
+import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
+from contextvars import copy_context
 from copy import deepcopy
 from itertools import cycle
 
@@ -55,6 +57,7 @@ class BrowserBase(ABC):
         from ..preprocessing import ICA
 
         self.backend_name = None
+        self._close_context = copy_context()
 
         self._data = None
         self._times = None
@@ -74,6 +77,11 @@ class BrowserBase(ABC):
         else:
             raise TypeError(
                 f"Expected an instance of Raw, Epochs, or ICA, got {type(inst)}."
+            )
+
+        if len(inst.times) < 2:
+            raise ValueError(
+                "Data from at least two time points are required to open the browser."
             )
 
         logger.debug(f"Opening {self.mne.instance_type} browser...")
@@ -99,6 +107,7 @@ class BrowserBase(ABC):
             patch=0,
             grid=1,
             ann=2,
+            zero_line=3,
             events=10003,
             bads=10004,
             data=10005,
@@ -106,6 +115,7 @@ class BrowserBase(ABC):
             grad=10007,
             scalebar=10008,
             vline=10009,
+            ann_text=10010,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
@@ -133,6 +143,8 @@ class BrowserBase(ABC):
             self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.0
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
+        self.mne.zero_lines = list()
+        self.mne.zero_line_offset = None
         # ancillary child figures
         self.mne.child_figs = list()
         self.mne.fig_help = None
@@ -165,16 +177,24 @@ class BrowserBase(ABC):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
+        from matplotlib.colors import to_hex
+
         segment_colors = getattr(self.mne, "annotation_segment_colors", dict())
         labels = self._get_annotation_labels()
+        user_colors = {
+            k: to_hex(v)
+            for k, v in (getattr(self.mne, "annotation_colors", None) or {}).items()
+        }
         red = "#ff0000"
         colors = _get_color_list(remove=("#fa8174", "#d62728", "#ff0000"))
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != red and key in labels:
+            if color != red and key in labels and key not in user_colors:
                 next(color_cycle)
         for idx, key in enumerate(labels):
-            if key.lower().startswith("bad") or key.lower().startswith("edge"):
+            if key in user_colors:
+                segment_colors[key] = user_colors[key]
+            elif key.lower().startswith("bad") or key.lower().startswith("edge"):
                 segment_colors[key] = red
             elif key in segment_colors:
                 continue
@@ -182,7 +202,10 @@ class BrowserBase(ABC):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        self.mne.visible_annotations = {label: True for label in labels}
+        annot_regex = re.compile(self.mne.annotation_regex)
+        self.mne.visible_annotations = {
+            label: True if annot_regex.findall(label) else False for label in labels
+        }
         self.mne.show_hide_annotation_checkboxes = None
 
     def _update_annotation_segments(self):
@@ -381,10 +404,12 @@ class BrowserBase(ABC):
         # get only the channels we're displaying
         data = data[picks]
         # remove DC
+        dc_offset = None
         if self.mne.remove_dc:
             if thread:
                 thread.processText.emit("Removing DC...")
-            data -= np.nanmean(data[..., time_slice], axis=1, keepdims=True)
+            dc_offset = np.nanmean(data[..., time_slice], axis=1, keepdims=True)
+            data -= dc_offset
         # apply filter
         if self.mne.filter_coefs is not None:
             if thread:
@@ -406,6 +431,9 @@ class BrowserBase(ABC):
         norms[white] = self.mne.scalings["whitened"]
         norms[norms == 0] = 1
         data /= 2 * norms[:, np.newaxis]
+        self.mne.zero_line_offset = (
+            dc_offset[:, 0] / (2 * norms) if dc_offset is not None else None
+        )
 
         return data
 
@@ -464,6 +492,13 @@ class BrowserBase(ABC):
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
+        # As specified by PEP 567: https://peps.python.org/pep-0567/#asyncio
+        # we explicitly retain the python Context used to create the figure
+        # in order to route stdout on close within IPykernel. See gh #14077
+        self._close_context.run(self._close_impl, event)
+
+    def _close_impl(self, event=None):
+        """Handle close events in the context that created the browser."""
         from matplotlib.pyplot import close
 
         logger.debug(f"Closing {self.mne.instance_type} browser...")
@@ -869,7 +904,7 @@ def get_browser_backend():
 
 
 @contextmanager
-def use_browser_backend(backend_name):
+def use_browser_backend(backend_name):  # numpydoc ignore=YD01
     """Create a 2D browser visualization context using the designated backend.
 
     See :func:`mne.viz.set_browser_backend` for more details on the available

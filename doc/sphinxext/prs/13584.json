@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "651bcadf0235c2c163cb72b6e864de64d842bd3c",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com"
+    },
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/forward.rst": {
+      "a": 1,
+      "d": 3
+    },
+    "doc/changes/dev/13584.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 164,
+      "d": 97
+    }
+  }
+}

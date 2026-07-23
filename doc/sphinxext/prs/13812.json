@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dbee6790cd04ff40e88fe9863ddd1d5e702aa9e1",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

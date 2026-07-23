@@ -3,8 +3,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import json
 import math
 import warnings
@@ -891,6 +889,9 @@ class ICA(ContainsMixin):
 
     def _fit(self, data, fit_type):
         """Aux function."""
+        if not np.isfinite(data).all():
+            raise ValueError("Input data contains non-finite values (NaN/Inf). ")
+
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
         self._compute_pre_whitener(data)
@@ -1244,7 +1245,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        sources : instance of Raw, Epochs or Evoked
+        sources : same type as the input data
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
@@ -1295,8 +1296,10 @@ class ICA(ContainsMixin):
             picks = pick_channels(raw.ch_names, add_channels)
             data_ = np.concatenate([data_, raw.get_data(picks, start=start, stop=stop)])
         out._data = data_
-        out._first_samps = [out.first_samp]
-        out._last_samps = [out.last_samp]
+        out_first_samp = out.first_samp
+        out_last_samp = out.last_samp
+        out._first_samps = [out_first_samp]
+        out._last_samps = [out_last_samp]
         out.filenames = [None]
         out.preload = True
         out._projector = None
@@ -2216,7 +2219,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        out : instance of Raw, Epochs or Evoked
+        out : same type as the input data
             The processed data.
 
         Notes
@@ -2286,7 +2289,7 @@ class ICA(ContainsMixin):
         start, stop = _check_start_stop(raw, start, stop)
 
         picks = pick_types(
-            raw.info, meg=False, include=self.ch_names, exclude="bads", ref_meg=False
+            raw.info, meg=False, include=self.ch_names, exclude=[], ref_meg=False
         )
 
         data = raw[picks, start:stop][0]
@@ -2300,7 +2303,7 @@ class ICA(ContainsMixin):
         _check_preload(epochs, "ica.apply")
 
         picks = pick_types(
-            epochs.info, meg=False, ref_meg=False, include=self.ch_names, exclude="bads"
+            epochs.info, meg=False, ref_meg=False, include=self.ch_names, exclude=[]
         )
 
         # special case where epochs come picked but fit was 'unpicked'.
@@ -2323,7 +2326,7 @@ class ICA(ContainsMixin):
     def _apply_evoked(self, evoked, include, exclude, n_pca_components):
         """Aux method."""
         picks = pick_types(
-            evoked.info, meg=False, ref_meg=False, include=self.ch_names, exclude="bads"
+            evoked.info, meg=False, ref_meg=False, include=self.ch_names, exclude=[]
         )
 
         # special case where evoked come picked but fit was 'unpicked'.
@@ -2576,6 +2579,7 @@ class ICA(ContainsMixin):
         picks=None,
         start=None,
         stop=None,
+        n_components=20,
         title=None,
         show=True,
         block=False,
@@ -2585,6 +2589,7 @@ class ICA(ContainsMixin):
         precompute=None,
         use_opengl=None,
         *,
+        annotation_regex=".*",
         psd_args=None,
         theme=None,
         overview_mode=None,
@@ -2596,9 +2601,11 @@ class ICA(ContainsMixin):
             picks=picks,
             start=start,
             stop=stop,
+            n_components=n_components,
             title=title,
             show=show,
             block=block,
+            annotation_regex=annotation_regex,
             psd_args=psd_args,
             show_first_samp=show_first_samp,
             show_scrollbars=show_scrollbars,
@@ -2919,7 +2926,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
                         if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
-        for cls in (np.random.RandomState, Covariance):
+        for cls in (np.random.RandomState, np.random.Generator, Covariance):
             if isinstance(value, cls):
                 value = cls.__name__
 

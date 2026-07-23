@@ -104,14 +104,14 @@ instructions for installing from a ``git clone`` in the :ref:`contributing`.
 Choosing the Qt framework
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``conda-forge`` version of MNE-Python ships with PyQt5. If you would like to
+The ``conda-forge`` version of MNE-Python ships with PySide6. If you would like to
 use a different binding, you can instead install MNE-Python via ``pip``:
 
 .. code-block:: console
 
-    $ pip install "mne[full]"          # uses PyQt6
-    $ pip install "mne[full-pyqt6]"    # same as above
-    $ pip install "mne[full-pyside6]"  # use PySide6
+    $ pip install "mne[full]"          # uses PySide6
+    $ pip install "mne[full-pyside6]"  # same as above
+    $ pip install "mne[full-pyqt6]"    # uses PyQt6
     $ pip install "mne[full-no-qt]"    # don't install any Qt binding
 
 .. _CUDA:
@@ -224,7 +224,7 @@ in certain operating systems, for example CentOS. This may lead to incomplete
 rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.
 It boils down to building a newer version (e.g., 18.3.6)
 locally following a variant of `these instructions <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
-If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/sp9qg/download>`_ we made.
+If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/download/sp9qg>`_ we made.
 After downloading the files, untar them and add them to the appropriate library paths
 using the following commands:
 

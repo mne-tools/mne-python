@@ -9,7 +9,6 @@ import inspect
 from copy import deepcopy
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _simplify_info
@@ -23,12 +22,7 @@ from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
 from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
-from ._lead_dots import (
-    _do_cross_dots,
-    _do_self_dots,
-    _do_surface_dots,
-    _get_legen_table,
-)
+from ._lead_dots import _do_cross_dots, _do_self_dots, _do_surface_dots, _get_legen_fun
 from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
 
 
@@ -36,10 +30,10 @@ def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
-    n_coeff, interp = (50, "nearest") if mode == "fast" else (100, "linear")
-    lut, n_fact = _get_legen_table(ch_type, False, n_coeff, verbose=False)
-    lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp, axis=0)
-    return int_rad, noise, lut_fun, n_fact
+    # "fast" uses a coarser (n_coeff=50) Legendre series than "accurate" (n_coeff=100)
+    n_coeff = 50 if mode == "fast" else 100
+    leg_fun, n_fact = _get_legen_fun(ch_type, False, n_coeff)
+    return int_rad, noise, leg_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
@@ -116,7 +110,7 @@ def _pinv_tikhonov(x, reg):
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
+def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -132,13 +126,15 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
-        fit. Default is ``(0., 0., 0.04)``.
+        fit.
 
     Returns
     -------
     mapping : array, shape (n_to, n_from)
         A mapping matrix.
     """
+    assert origin is not None  # should be assured elsewhere
+
     # no need to apply trans because both from and to coils are in device
     # coordinates
     info_kinds = set(ch["kind"] for ch in info_to["chs"])
@@ -183,20 +179,20 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info_from, coils_from, kind)
+    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info_from, coils_from, kind)
     logger.info(
         f"    Computing dot products for {len(coils_from)} "
         f"{kind.upper()} channel{_pl(coils_from)}..."
     )
     self_dots = _do_self_dots(
-        int_rad, False, coils_from, origin, kind, lut_fun, n_fact, n_jobs=None
+        int_rad, False, coils_from, origin, kind, leg_fun, n_fact, n_jobs=None
     )
     logger.info(
         f"    Computing cross products for {len(coils_from)} → "
         f"{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}..."
     )
     cross_dots = _do_cross_dots(
-        int_rad, False, coils_from, coils_to, origin, kind, lut_fun, n_fact
+        int_rad, False, coils_from, coils_to, origin, kind, leg_fun, n_fact
     ).T
 
     ch_names = [c["ch_name"] for c in info_from["chs"]]
@@ -314,7 +310,8 @@ def _make_surface_mapping(
     trans=None,
     mode="fast",
     n_jobs=None,
-    origin=(0.0, 0.0, 0.04),
+    *,
+    origin,
     verbose=None,
 ):
     """Re-map M/EEG data to a surface.
@@ -337,8 +334,6 @@ def _make_surface_mapping(
     %(n_jobs)s
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
-        The default is ``'auto'``, which means a head-digitization-based
-        origin fit.
     %(verbose)s
 
     Returns
@@ -347,6 +342,8 @@ def _make_surface_mapping(
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
+    assert origin is not None  # should be assured elsewhere
+
     if not all(key in surf for key in ["rr", "nn"]):
         raise KeyError('surf must have both "rr" and "nn"')
     if "coord_frame" not in surf:
@@ -394,15 +391,15 @@ def _make_surface_mapping(
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
+    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
     logger.info("Computing dot products for %i %s...", len(coils), type_str)
     self_dots = _do_self_dots(
-        int_rad, False, coils, origin, ch_type, lut_fun, n_fact, n_jobs
+        int_rad, False, coils, origin, ch_type, leg_fun, n_fact, n_jobs
     )
     sel = np.arange(len(surf["rr"]))  # eventually we should do sub-selection
     logger.info("Computing dot products for %i surface locations...", len(sel))
     surface_dots = _do_surface_dots(
-        int_rad, False, coils, surf, sel, origin, ch_type, lut_fun, n_fact, n_jobs
+        int_rad, False, coils, surf, sel, origin, ch_type, leg_fun, n_fact, n_jobs
     )
 
     #
@@ -441,11 +438,11 @@ def make_field_map(
     subject=None,
     subjects_dir=None,
     ch_type=None,
+    *,
     mode="fast",
     meg_surf="helmet",
-    origin=(0.0, 0.0, 0.04),
+    origin="auto",
     n_jobs=None,
-    *,
     upsampling=1,
     head_source=("bem", "head"),
     verbose=None,
@@ -466,7 +463,7 @@ def make_field_map(
         variable SUBJECT. If None, map for EEG data will not be available.
     subjects_dir : path-like
         The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
     ch_type : None | ``'eeg'`` | ``'meg'``
         If None, a map for each available channel type will be returned.
         Else only the specified type will be used.
@@ -483,6 +480,9 @@ def make_field_map(
         fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
+        .. versionchanged:: 1.12
+           In 1.12 the default value is "auto".
+           In 1.11 and prior versions, it is ``(0., 0., 0.04)``.
     %(n_jobs)s
     %(helmet_upsampling)s
 

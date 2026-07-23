@@ -5,11 +5,11 @@
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx, pick_info
+from .._fiff.proj import _needs_eeg_average_ref_proj
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..io import BaseRaw
-from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
 from ..utils import (
     _check_fname,
     _check_option,
@@ -63,7 +63,7 @@ def regress_artifact(
 
     Returns
     -------
-    inst : instance of Epochs | Raw
+    inst : same type as the input data
         The processed data.
     betas : ndarray, shape (n_picks, n_picks_ref)
         The betas used during regression.
@@ -271,6 +271,7 @@ class EOGRegression:
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -295,6 +296,7 @@ class EOGRegression:
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,

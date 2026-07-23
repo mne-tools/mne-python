@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f337a0ddf6f6543748122e793a775c4b55822f60",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13591.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 1
+    },
+    "tutorials/preprocessing/60_maxwell_filtering_sss.py": {
+      "a": 31,
+      "d": 0
+    }
+  }
+}

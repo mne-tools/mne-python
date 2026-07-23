@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ce94c0577b4ec0ee50bee00dddf82f062deb1bb3",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/limo_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

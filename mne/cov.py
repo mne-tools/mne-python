@@ -327,6 +327,7 @@ class Covariance(dict):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -362,6 +363,9 @@ class Covariance(dict):
         %(show_names_topomap)s
         %(mask_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -435,6 +439,7 @@ class Covariance(dict):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             outlines=outlines,
             contours=contours,
             image_interp=image_interp,
@@ -553,16 +558,17 @@ def make_ad_hoc_cov(info, std=None, *, verbose=None):
     return Covariance(data, ch_names, info["bads"], info["projs"], nfree=0)
 
 
-def _check_n_samples(n_samples, n_chan):
+def _check_n_samples(n_samples, n_chan, on_few_samples="warn"):
     """Check to see if there are enough samples for reliable cov calc."""
     n_samples_min = 10 * (n_chan + 1) // 2
     if n_samples <= 0:
         raise ValueError("No samples found to compute the covariance matrix")
     if n_samples < n_samples_min:
-        warn(
-            f"Too few samples (required : {n_samples_min} got : {n_samples}), "
-            "covariance estimate may be unreliable"
+        msg = (
+            f"Too few samples (required {n_samples_min} but got {n_samples} for "
+            f"{n_chan} channels), covariance estimate may be unreliable"
         )
+        _on_missing(on_few_samples, msg, "on_few_samples")
 
 
 @verbose
@@ -574,6 +580,8 @@ def compute_raw_covariance(
     reject=None,
     flat=None,
     picks=None,
+    *,
+    on_few_samples="warn",
     method="empirical",
     method_params=None,
     cv=3,
@@ -623,6 +631,12 @@ def compute_raw_covariance(
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     %(picks_good_data_noref)s
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate
+        covariance or rank estimates.
+
+        .. versionadded:: 1.11
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -736,7 +750,7 @@ def compute_raw_covariance(
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
-        _check_n_samples(n_samples, len(picks))
+        _check_n_samples(n_samples, len(picks), on_few_samples)
         data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= n_samples - 1.0
         logger.info("Number of samples used : %d", n_samples)
@@ -864,6 +878,8 @@ def compute_covariance(
     tmin=None,
     tmax=None,
     projs=None,
+    *,
+    on_few_samples="warn",
     method="empirical",
     method_params=None,
     cv=3,
@@ -909,6 +925,12 @@ def compute_covariance(
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate
+        covariance or rank estimates.
+
+        .. versionadded:: 1.11
     method : str | list | None (default 'empirical')
         The method used for covariance estimation. If 'empirical' (default),
         the sample covariance will be computed. A list can be passed to
@@ -1131,7 +1153,8 @@ def compute_covariance(
             for n_epoch, mean in zip(n_epochs, data_mean)
         ]
 
-    info = pick_info(info, picks_meeg)
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
     epochs = [ee.get_data(picks=picks_meeg)[..., tslice] for ee in epochs]
     picks_meeg = np.arange(len(picks_meeg))
@@ -1144,7 +1167,7 @@ def compute_covariance(
 
     epochs = np.hstack(epochs)
     n_samples_tot = epochs.shape[-1]
-    _check_n_samples(n_samples_tot, len(picks_meeg))
+    _check_n_samples(n_samples_tot, len(picks_meeg), on_few_samples)
 
     epochs = epochs.T  # sklearn | C-order
     cov_data = _compute_covariance_auto(
@@ -1158,6 +1181,7 @@ def compute_covariance(
         picks_list=picks_list,
         scalings=scalings,
         rank=rank,
+        on_few_samples=on_few_samples,
     )
 
     if keep_sample_mean is False:
@@ -1221,7 +1245,7 @@ def _eigvec_subspace(eig, eigvec, mask):
 
 @verbose
 def _compute_rank_raw_array(
-    data, info, rank, scalings, *, log_ch_type=None, verbose=None
+    data, info, rank, scalings, *, log_ch_type=None, on_few_samples="warn", verbose=None
 ):
     from .io import RawArray
 
@@ -1231,6 +1255,7 @@ def _compute_rank_raw_array(
         scalings,
         info,
         log_ch_type=log_ch_type,
+        on_few_samples=on_few_samples,
     )
 
 
@@ -1249,6 +1274,7 @@ def _compute_covariance_auto(
     cov_kind="",
     log_ch_type=None,
     log_rank=True,
+    on_few_samples="warn",
 ):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
@@ -1258,6 +1284,7 @@ def _compute_covariance_auto(
         info,
         rank=rank,
         scalings=scalings,
+        on_few_samples=on_few_samples,
         verbose=_verbose_safe_false(),
     )
     with _scaled_array(data.T, picks_list, scalings):
@@ -1517,6 +1544,7 @@ class _RegCovariance(_EstimatorMixin):
         grad=0.1,
         mag=0.1,
         eeg=0.1,
+        *,
         seeg=0.1,
         ecog=0.1,
         hbo=0.1,
@@ -1525,6 +1553,10 @@ class _RegCovariance(_EstimatorMixin):
         fnirs_fd_ac_amplitude=0.1,
         fnirs_fd_phase=0.1,
         fnirs_od=0.1,
+        fnirs_td_gated_amplitude=0.1,
+        fnirs_td_moments_intensity=0.1,
+        fnirs_td_moments_mean=0.1,
+        fnirs_td_moments_variance=0.1,
         csd=0.1,
         dbs=0.1,
         store_precision=False,
@@ -1545,6 +1577,10 @@ class _RegCovariance(_EstimatorMixin):
         self.fnirs_fd_ac_amplitude = fnirs_fd_ac_amplitude
         self.fnirs_fd_phase = fnirs_fd_phase
         self.fnirs_od = fnirs_od
+        self.fnirs_td_gated_amplitude = fnirs_td_gated_amplitude
+        self.fnirs_td_moments_intensity = fnirs_td_moments_intensity
+        self.fnirs_td_moments_mean = fnirs_td_moments_mean
+        self.fnirs_td_moments_variance = fnirs_td_moments_variance
         self.csd = csd
         self.store_precision = store_precision
         self.assume_centered = assume_centered
@@ -1577,6 +1613,15 @@ class _RegCovariance(_EstimatorMixin):
             dbs=self.dbs,
             hbo=self.hbo,
             hbr=self.hbr,
+            fnirs_cw_amplitude=self.fnirs_cw_amplitude,
+            fnirs_fd_ac_amplitude=self.fnirs_fd_ac_amplitude,
+            fnirs_fd_phase=self.fnirs_fd_phase,
+            fnirs_od=self.fnirs_od,
+            fnirs_td_gated_amplitude=self.fnirs_td_gated_amplitude,
+            fnirs_td_moments_intensity=self.fnirs_td_moments_intensity,
+            fnirs_td_moments_mean=self.fnirs_td_moments_mean,
+            fnirs_td_moments_variance=self.fnirs_td_moments_variance,
+            csd=self.csd,
             rank="full",
         )
         self.estimator_.covariance_ = self.covariance_ = cov_.data
@@ -1729,6 +1774,7 @@ def prepare_noise_cov(
     rank=None,
     scalings=None,
     on_rank_mismatch="ignore",
+    *,
     verbose=None,
 ):
     """Prepare noise covariance matrix.
@@ -1904,6 +1950,7 @@ def regularize(
     eeg=0.1,
     exclude="bads",
     proj=True,
+    *,
     seeg=0.1,
     ecog=0.1,
     hbo=0.1,
@@ -1912,6 +1959,10 @@ def regularize(
     fnirs_fd_ac_amplitude=0.1,
     fnirs_fd_phase=0.1,
     fnirs_od=0.1,
+    fnirs_td_gated_amplitude=0.1,
+    fnirs_td_moments_intensity=0.1,
+    fnirs_td_moments_mean=0.1,
+    fnirs_td_moments_variance=0.1,
     csd=0.1,
     dbs=0.1,
     rank=None,
@@ -1963,6 +2014,14 @@ def regularize(
         Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
+    fnirs_td_gated_amplitude : float (default 0.1)
+        Regularization factor for fNIRS time domain gated amplitude signals.
+    fnirs_td_moments_intensity : float (default 0.1)
+        Regularization factor for fNIRS time domain moments amplitude signals.
+    fnirs_td_moments_mean : float (default 0.1)
+        Regularization factor for fNIRS time domain moments mean signals.
+    fnirs_td_moments_variance : float (default 0.1)
+        Regularization factor for fNIRS time domain moments variance signals.
     csd : float (default 0.1)
         Regularization factor for EEG-CSD signals.
     dbs : float (default 0.1)
@@ -2003,6 +2062,10 @@ def regularize(
         fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
         fnirs_fd_phase=fnirs_fd_phase,
         fnirs_od=fnirs_od,
+        fnirs_td_gated_amplitude=fnirs_td_gated_amplitude,
+        fnirs_td_moments_intensity=fnirs_td_moments_intensity,
+        fnirs_td_moments_mean=fnirs_td_moments_mean,
+        fnirs_td_moments_variance=fnirs_td_moments_variance,
         csd=csd,
     )
 
@@ -2089,7 +2152,8 @@ def regularize(
                     )
         else:
             this_picks = pick_channels(info["ch_names"], this_ch_names)
-            this_info = pick_info(info, this_picks)
+            with info._skip_checks():  # info is already consistent
+                this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
             _, eigvec, mask = _smart_eigh(this_C, this_info, rank)
@@ -2119,6 +2183,9 @@ def _regularized_covariance(
     log_ch_type=None,
     log_rank=None,
     cov_kind="",
+    # backward-compat default for decoding (maybe someday we want to expose this but
+    # it's likely too invasive and since it's usually regularized, unnecessary):
+    on_few_samples="ignore",
     verbose=None,
 ):
     """Compute a regularized covariance from data using sklearn.
@@ -2166,6 +2233,7 @@ def _regularized_covariance(
         cov_kind=cov_kind,
         log_ch_type=log_ch_type,
         log_rank=log_rank,
+        on_few_samples=on_few_samples,
     )[reg]["data"]
     return cov
 
@@ -2501,7 +2569,7 @@ def _write_cov(fid, cov):
     #   Channel names
     if cov["names"] is not None and len(cov["names"]) > 0:
         write_name_list_sanitized(
-            fid, FIFF.FIFF_MNE_ROW_NAMES, cov["names"], 'cov["names"]'
+            fid, FIFF.FIFF_MNE_ROW_NAMES, cov["names"], name='cov["names"]'
         )
 
     #   Data

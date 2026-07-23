@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "34e2743d7f1a1684f6359520392fd437bf2cd92f",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 13,
+      "d": 7
+    },
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 0,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

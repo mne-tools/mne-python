@@ -6,10 +6,9 @@ Decoding sensor space data with generalization across time and conditions
 =========================================================================
 
 This example runs the analysis described in :footcite:`KingDehaene2014`. It
-illustrates how one can
-fit a linear classifier to identify a discriminatory topography at a given time
-instant and subsequently assess whether this linear model can accurately
-predict all of the time samples of a second set of conditions.
+illustrates how one can fit a linear classifier to identify a discriminatory
+topography at a given time instant and subsequently assess whether this linear
+model can accurately predict all of the time samples of a second set of conditions.
 """
 # Authors: Jean-Rémi King <jeanremi.king@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -28,8 +27,6 @@ from sklearn.preprocessing import StandardScaler
 import mne
 from mne.datasets import sample
 from mne.decoding import GeneralizingEstimator
-
-print(__doc__)
 
 # Preprocess data
 data_path = sample.data_path()

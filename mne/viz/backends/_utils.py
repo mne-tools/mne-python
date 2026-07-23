@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _compare_version
+from ...fixes import _compare_version, _reshape_view
 from ...utils import _check_qt_version, _validate_type, logger, warn
 from ..utils import _get_cmap
 
@@ -193,7 +193,9 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     out = app
     if splash:
         pixmap = QPixmap(f"{icons_path}/mne_splash.png")
-        pixmap.setDevicePixelRatio(QGuiApplication.primaryScreen().devicePixelRatio())
+        screen = QGuiApplication.primaryScreen()
+        ratio = screen.devicePixelRatio() if screen else 1
+        pixmap.setDevicePixelRatio(ratio)
         args = (pixmap,)
         if _should_raise_window():
             args += (Qt.WindowStaysOnTopHint,)
@@ -355,7 +357,7 @@ def _pixmap_to_ndarray(pixmap):
     if hasattr(ptr, "setsize"):  # PyQt
         ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
-    data.shape = (img.height(), img.width(), 4)
+    data = _reshape_view(data, (img.height(), img.width(), 4))
     return data / 255.0
 
 
@@ -386,6 +388,8 @@ def _qt_safe_window(
         def func(self, *args, **kwargs):
             close_splash = always_close
             error = False
+            if not self:
+                return
             try:
                 meth(self, *args, **kwargs)
             except Exception:
@@ -400,7 +404,9 @@ def _qt_safe_window(
                     try:
                         for n in attr.split(".")[:-1]:
                             parent = getattr(parent, n)
-                        if name:
+                            if not parent:
+                                break
+                        if parent and name:
                             widget = getattr(parent, name, False)
                         else:  # empty string means "self"
                             widget = parent
@@ -414,6 +420,8 @@ def _qt_safe_window(
                             delattr(parent, name)
                         except Exception:
                             pass
+                        finally:
+                            del parent, attr, do_close
 
         return func
 

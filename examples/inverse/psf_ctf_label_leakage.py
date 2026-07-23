@@ -97,7 +97,7 @@ rh_labels = [label[:-2] + "rh" for label in lh_labels]
 # spatial extents of labels.
 n_comp = 5
 stcs_psf_mne, pca_vars_mne = get_point_spread(
-    rm_mne, src, labels, mode="pca", n_comp=n_comp, norm=None, return_pca_vars=True
+    rm_mne, src, labels, mode="svd", n_comp=n_comp, norm=None, return_pca_vars=True
 )
 n_verts = rm_mne.shape[0]
 del rm_mne

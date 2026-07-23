@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "741dafa3d0e525931ef5daf20c247f942404e1b7",
+  "authors": [
+    {
+      "n": "Aniket",
+      "e": null
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 46,
+      "d": 0
+    }
+  }
+}

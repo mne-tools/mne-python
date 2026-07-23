@@ -1,1 +1,0 @@
-Handle scenario where an Eyelink recording switched from binocular to monocular mode during a trial by `Scott Huberty`_

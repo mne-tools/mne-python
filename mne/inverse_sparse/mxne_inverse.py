@@ -6,7 +6,7 @@ import numpy as np
 
 from .._fiff.proj import deactivate_proj
 from ..dipole import Dipole
-from ..fixes import _safe_svd
+from ..fixes import _reshape_view, _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import (
     _check_reference,
@@ -253,7 +253,9 @@ def _make_dipoles_sparse(
         _, keep = np.unique(active_idx, return_index=True)
         keep.sort()  # maintain old order
         active_idx = active_idx[keep]
-        gof_split.shape = (len(active_idx), n_dip_per_pos, len(times))
+        gof_split = _reshape_view(
+            gof_split, (len(active_idx), n_dip_per_pos, len(times))
+        )
         gof_split = gof_split.sum(1)
         assert (gof_split < 100).all()
     assert gof_split.shape == (len(active_idx), len(times))
@@ -1073,7 +1075,7 @@ def _compute_mxne_sure(
     rng = check_random_state(random_state)
     # See Deledalle et al. 20214 Sec. 5.1
     eps = 2 * sigma / (M.shape[0] ** 0.3)
-    delta = rng.randn(*M.shape)
+    delta = rng.standard_normal(M.shape)
 
     coefs_grid_1, coefs_grid_2, active_sets = _fit_on_grid(gain, M, eps, delta)
 

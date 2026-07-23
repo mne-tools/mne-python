@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path
-from mne.decoding import SSD
+from mne.decoding import SSD, get_spatial_filter_from_estimator
 
 # %%
 # Define parameters
@@ -70,8 +70,8 @@ ssd.fit(X=raw.get_data())
 # (W^{-1}) or by multiplying the noise cov with the filters Eq. (22) (C_n W)^t.
 # We rely on the inversion approach here.
 
-pattern = mne.EvokedArray(data=ssd.patterns_[:4].T, info=ssd.info)
-pattern.plot_topomap(units=dict(mag="A.U."), time_format="")
+spf = get_spatial_filter_from_estimator(ssd, info=ssd.info)
+spf.plot_patterns(components=list(range(4)))
 
 # The topographies suggest that we picked up a parietal alpha generator.
 
@@ -150,8 +150,8 @@ ssd_epochs = SSD(
 ssd_epochs.fit(X=epochs.get_data(copy=False))
 
 # Plot topographies.
-pattern_epochs = mne.EvokedArray(data=ssd_epochs.patterns_[:4].T, info=ssd_epochs.info)
-pattern_epochs.plot_topomap(units=dict(mag="A.U."), time_format="")
+spf = get_spatial_filter_from_estimator(ssd_epochs, info=ssd_epochs.info)
+spf.plot_patterns(components=list(range(4)))
 # %%
 # References
 # ----------

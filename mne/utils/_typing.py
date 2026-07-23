@@ -9,6 +9,7 @@ import sys
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
-    from typing import TypeVar
+    # TODO VERSION: Remove this when Python 3.11+ is required (use typing.Self)
+    from typing_extensions import Self
 
-    Self = TypeVar("Self")
+__all__ = ["Self"]

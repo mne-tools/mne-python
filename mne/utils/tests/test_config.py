@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import importlib.metadata
 import json
 import os
 import platform
@@ -13,7 +14,6 @@ from pathlib import Path
 from urllib.error import URLError
 
 import pytest
-from flaky import flaky
 
 import mne
 import mne.utils.config
@@ -115,7 +115,7 @@ def test_sys_info_basic():
     assert "numpy" in out
     # replace all in-line whitespace with single space
     out = "\n".join(" ".join(o.split()) for o in out.splitlines())
-    assert "? GiB" not in out
+    assert "?" not in out
     if platform.system() == "Darwin":
         assert "Platform macOS-" in out
     elif platform.system() == "Linux":
@@ -132,10 +132,23 @@ def test_sys_info_complete():
     sys_info(fid=out, check_version=False, dependencies="developer")
     out = out.getvalue()
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
-    deps = pyproject["project"]["optional-dependencies"]["test_extra"]
+    deps = [
+        dep
+        for dep in (
+            pyproject["dependency-groups"]["test"]
+            + pyproject["dependency-groups"]["test_extra"]
+            + pyproject["dependency-groups"]["test_extra_ft"]
+        )
+        if not isinstance(dep, dict)
+    ]
+    missing = []
     for dep in deps:
         dep = dep.split("[")[0].split(">")[0].strip()
-        assert f" {dep}" in out, f"Missing in dev config: {dep}"
+        if f" {dep}" not in out:
+            missing.append(dep)
+    if missing:
+        missing_str = "\n".join(missing)
+        raise AssertionError(f"Missing in dev config:\n{missing_str}")
 
 
 def test_sys_info_qt_browser():
@@ -175,13 +188,13 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
         get_subjects_dir(raise_error=True)
 
 
-@flaky(max_runs=3)
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.ultraslowtest  # not ultraslow, just flaky and not changed often
 @requires_good_network
 def test_sys_info_check_outdated(monkeypatch):
     """Test sys info checking."""
     # Old (actually ping GitHub)
-    monkeypatch.setattr(mne, "__version__", "0.1")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "0.1.0")
     out = ClosingStringIO()
     sys_info(fid=out, check_version=10)
     out = out.getvalue()
@@ -225,14 +238,14 @@ def test_sys_info_check_other(monkeypatch):
         "_get_latest_version",
         lambda timeout: "1.5.1",
     )
-    monkeypatch.setattr(mne, "__version__", "1.5.1")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "1.5.1")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
     assert " 1.5.1 (latest release)" in out
 
     # Development version
-    monkeypatch.setattr(mne, "__version__", "1.6.dev0")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "1.6.0.dev0")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()

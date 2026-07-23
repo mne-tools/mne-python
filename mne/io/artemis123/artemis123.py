@@ -5,6 +5,7 @@
 import calendar
 import datetime
 import os.path as op
+from typing import Any
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -43,7 +44,7 @@ def read_raw_artemis123(
 
     Returns
     -------
-    raw : instance of Raw
+    raw : instance of RawArtemis123
         A Raw object containing the data.
 
     See Also
@@ -77,7 +78,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         "FLL_ResetLock",
     ]
 
-    header_info = dict()
+    header_info: dict[str, Any] = dict()
     header_info["filter_hist"] = []
     header_info["comments"] = ""
     header_info["channels"] = []
@@ -434,13 +435,13 @@ class RawArtemis123(BaseRaw):
                         )
 
                     # compute initial head to dev transform and hpi ordering
-                    head_to_dev_t, order, trans_g = _fit_coil_order_dev_head_trans(
+                    dev_head_t, order, trans_g = _fit_coil_order_dev_head_trans(
                         hpi_dev, hpi_head
                     )
 
                     # set the device to head transform
                     self.info["dev_head_t"] = Transform(
-                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, head_to_dev_t
+                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, dev_head_t
                     )
 
                     # add hpi_meg_dev to dig...

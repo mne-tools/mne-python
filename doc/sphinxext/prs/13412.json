@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3a46357c0fa1c2723e43e7b107f129f155c6ae0e",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/_regress.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

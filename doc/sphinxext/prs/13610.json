@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "ab6346ecf025f6bdd3fbe5c83f92564fdfea9496",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_includes/data_formats.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/api/reading_raw_data.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13610.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/_read_raw.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/mef/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/mef/_utils.py": {
+      "a": 345,
+      "d": 0
+    },
+    "mne/io/mef/mef.py": {
+      "a": 300,
+      "d": 0
+    },
+    "mne/io/mef/tests/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/mef/tests/test_mef.py": {
+      "a": 193,
+      "d": 0
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

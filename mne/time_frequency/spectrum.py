@@ -46,7 +46,11 @@ from ..utils.check import (
     check_fname,
 )
 from ..utils.misc import _pl
-from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
+from ..utils.spectrum import (
+    _convert_old_birthday_format,
+    _get_instance_type_string,
+    _split_psd_kwargs,
+)
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
@@ -209,6 +213,7 @@ class SpectrumMixin:
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=0,
         outlines="head",
         sphere=None,
@@ -245,6 +250,9 @@ class SpectrumMixin:
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -391,7 +399,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = state["freqs"]
         self._dims = state["dims"]
         self._sfreq = state["sfreq"]
-        self.info = Info(**state["info"])
+        self.info = Info(**_convert_old_birthday_format(state["info"]))
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
         self._weights = state.get("weights")  # objs saved before #12747 won't have
@@ -502,6 +510,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @property
     def nave(self):
         return self._nave
+
+    @nave.setter
+    def nave(self, nave):
+        self._nave = nave
 
     @property
     def weights(self):
@@ -781,6 +793,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -811,6 +824,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -873,6 +889,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             names=names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -1748,7 +1765,7 @@ def read_spectrum(fname):
         n_jobs=None,
         verbose=None,
     )
-    Klass = EpochsSpectrum if hdf5_dict["inst_type_str"] == "Epochs" else Spectrum
+    Klass = EpochsSpectrum if "epoch" in hdf5_dict["dims"] else Spectrum
     return Klass(hdf5_dict, **defaults)
 
 

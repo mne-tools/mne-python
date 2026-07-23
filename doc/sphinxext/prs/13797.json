@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d862945d849a817cfa0fc457d0d99d6e96e3dab0",
+  "authors": [
+    {
+      "n": "Lifeng",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13797.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

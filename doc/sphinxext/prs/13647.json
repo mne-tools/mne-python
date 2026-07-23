@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8f75a7da57f8eac5159a8a0201b4a3f847585a99",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13647.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 19,
+      "d": 5
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 45,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 8
+    }
+  }
+}

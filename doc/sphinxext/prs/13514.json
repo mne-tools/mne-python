@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "002d04fcecd07fdde40f14d836b87baaa3cbce82",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/ssd.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

@@ -173,7 +173,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug(f"    ~   {self.name} Right ZOH %s" % n_use)
+                logger.debug(f"    ~   {self.name} Right ZOH {n_use}")
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True
@@ -309,7 +309,7 @@ class _COLA:
         # Create our window boundaries
         window_name = window if isinstance(window, str) else "custom"
         self._window = get_window(
-            window, self._n_samples, fftbins=(self._n_samples - 1) % 2
+            window, self._n_samples, fftbins=bool((self._n_samples - 1) % 2)
         )
         self._window /= _check_cola(
             self._window, self._n_samples, self._step, window_name, tol=tol

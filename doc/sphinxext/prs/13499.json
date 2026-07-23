@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "90e5232cd8353ae4e3dc792c5c153e55b77296f4",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Wouter Kroot",
+      "e": "wouter@Wouters-MacBook-Pro.local"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13499.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 44,
+      "d": 4
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 44,
+      "d": 4
+    }
+  }
+}

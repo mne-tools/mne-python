@@ -137,7 +137,7 @@ class RawNeuralynx(BaseRaw):
 
         info = create_info(
             ch_types="seeg",
-            ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),
+            ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),  # ty: ignore  # neo header
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
 
@@ -197,7 +197,7 @@ class RawNeuralynx(BaseRaw):
             info["lowpass"] = np.min(lowpass_freqs)
 
         # Neo reads only valid contiguous .ncs samples grouped as segments
-        n_segments = nlx_reader.header["nb_segment"][0]
+        n_segments = nlx_reader.header["nb_segment"][0]  # ty: ignore  # neo header
         block_id = 0  # assumes there's only one block of recording
 
         # get segment start/stop times
@@ -418,7 +418,7 @@ class RawNeuralynx(BaseRaw):
         ).T
 
         all_data *= 1e-6  # Convert uV to V
-        n_channels = len(nlx_reader.header["signal_channels"]["name"])
+        n_channels = len(nlx_reader.header["signal_channels"]["name"])  # ty: ignore  # neo header
         block = np.zeros((n_channels, stop - start), dtype=data.dtype)
         block[idx] = all_data  # shape = (n_channels, n_samples)
 

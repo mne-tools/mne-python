@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b259e590401b9743e09fcf41ffb97c0f3ab56342",
+  "authors": [
+    {
+      "n": "Beige Jerry Jin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13068.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 19,
+      "d": 0
+    }
+  }
+}

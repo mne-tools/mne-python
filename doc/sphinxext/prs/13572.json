@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "98afbb2cc61931bdb57158b68249164c2d568f59",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/credit_tools.py": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/sphinxext/prs/13516.json": {
+      "a": 63,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13517.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13519.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13521.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13525.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13526.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13527.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13528.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13534.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13536.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13539.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13540.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13542.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13545.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13546.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13549.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13557.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13559.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13561.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13563.json": {
+      "a": 55,
+      "d": 0
+    }
+  }
+}

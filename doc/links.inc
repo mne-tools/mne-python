@@ -20,6 +20,7 @@
 .. _`MNE-HCP`: http://mne.tools/mne-hcp
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
 .. _`MNE-LSL`: https://mne.tools/mne-lsl
+.. _`MNE-RT`: https://mne-rt-org.github.io/mne-rt/
 .. _`MNE-gui-addons`: https://mne.tools/mne-gui-addons
 .. _`MNE-MATLAB`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
@@ -40,7 +41,7 @@
 .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
 .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
 .. _ft_cluster: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test
-.. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/024644.html
+.. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/011773.html
 .. _ft_exch: https://mailman.science.ru.nl/pipermail/fieldtrip/2008-October/001794.html
 
 
@@ -72,6 +73,8 @@
 .. _python: http://www.python.org
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
 .. _SPEC0: https://scientific-python.org/specs/spec-0000
+.. _mri_watershed: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_watershed
+.. _recon-all: https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all
 
 .. python packages
 

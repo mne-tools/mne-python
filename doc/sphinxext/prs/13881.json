@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9755cbf071d4cb079b8a2faf3a9c73ef7024bbb0",
+  "authors": [
+    {
+      "n": "Seth Bashford",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13881.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

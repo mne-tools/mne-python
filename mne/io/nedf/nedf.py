@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 from datetime import datetime, timezone
+from typing import Any
 
 import numpy as np
 
@@ -119,7 +120,7 @@ def _parse_nedf_header(header):
 
     n_samples = int(_getsubnodetext(eegset, "NumberOfRecordsOfEEG"))
     n_full, n_last = divmod(n_samples, 5)
-    dt_last = deepcopy(dt)
+    dt_last: list[Any] = deepcopy(dt)
     assert dt_last[-1][-1] == (5,)
     dt_last[-1] = list(dt_last[-1])
     dt_last[-1][-1] = (n_last,)

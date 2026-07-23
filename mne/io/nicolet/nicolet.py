@@ -5,6 +5,7 @@
 import calendar
 import datetime
 from os import path
+from typing import Any
 
 import numpy as np
 
@@ -21,7 +22,7 @@ def read_raw_nicolet(
 ) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
-    ..note:: This reader takes data files with the extension ``.data`` as an
+    .. note:: This reader takes data files with the extension ``.data`` as an
              input. The header file with the same file name stem and an
              extension ``.head`` is expected to be found in the same
              directory.
@@ -53,7 +54,7 @@ def read_raw_nicolet(
 
     Returns
     -------
-    raw : instance of Raw
+    raw : instance of RawNicolet
         A Raw object containing the data.
 
     See Also
@@ -82,7 +83,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     header = fname + ".head"
 
     logger.info("Reading header...")
-    header_info = dict()
+    header_info: dict[str, Any] = dict()
     with open(header) as fid:
         for line in fid:
             var, value = line.split("=")

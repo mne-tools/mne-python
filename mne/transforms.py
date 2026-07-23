@@ -25,6 +25,7 @@ from .utils import (
     _ensure_int,
     _import_nibabel,
     _path_like,
+    _record_warnings,
     _require_version,
     _validate_type,
     check_fname,
@@ -54,7 +55,7 @@ _str_to_frame = dict(
     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
     unknown=FIFF.FIFFV_COORD_UNKNOWN,
 )
-_frame_to_str = {val: key for key, val in _str_to_frame.items()}
+_frame_to_str: dict[int, str] = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {
     FIFF.FIFFV_COORD_UNKNOWN: "unknown",
@@ -1295,12 +1296,12 @@ def quat_to_rot(quat):
 
 
 @jit()
-def _one_rot_to_quat(rot):
+def _one_rot_to_quat(rot, *, tol=1e-3):
     """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
     #                 conversions/matrixToQuaternion/
     det = np.linalg.det(np.reshape(rot, (3, 3)))
-    if np.abs(det - 1.0) > 1e-3:
+    if np.abs(det - 1.0) > tol:
         raise ValueError("Matrix is not a pure rotation, got determinant != 1")
     t = 1.0 + rot[0] + rot[4] + rot[8]
     if t > np.finfo(rot.dtype).eps:
@@ -1330,13 +1331,16 @@ def _one_rot_to_quat(rot):
     return np.array((qx, qy, qz))
 
 
-def rot_to_quat(rot):
+def rot_to_quat(rot, *, tol=1e-3):
     """Convert a set of rotations to quaternions.
 
     Parameters
     ----------
     rot : array, shape (..., 3, 3)
         The rotation matrices to convert.
+    tol : float
+        Tolerance for the determinant checking that the rotation matrices are valid.
+        The default (1e-3) should be suitable for most cases.
 
     Returns
     -------
@@ -1349,28 +1353,54 @@ def rot_to_quat(rot):
     quat_to_rot
     """
     rot = rot.reshape(rot.shape[:-2] + (9,))
-    return np.apply_along_axis(_one_rot_to_quat, -1, rot)
+    return np.apply_along_axis(_one_rot_to_quat, -1, rot, tol=tol)
 
 
 def _quat_to_affine(quat):
-    assert quat.shape == (6,)
+    assert quat.shape == (6,), quat.shape
     affine = np.eye(4)
     affine[:3, :3] = quat_to_rot(quat[:3])
     affine[:3, 3] = quat[3:]
     return affine
 
 
-def _affine_to_quat(affine):
-    assert affine.shape[-2:] == (4, 4)
+def _affine_to_quat(affine, *, name="affine"):
+    _validate_type(affine, np.ndarray, name)
+    if affine.shape[-2:] != (4, 4):
+        raise ValueError(f"{name} must be of shape (..., 4, 4), got {affine.shape}")
     return np.concatenate(
         [rot_to_quat(affine[..., :3, :3]), affine[..., :3, 3]],
         axis=-1,
     )
 
 
-def _angle_dist_between_rigid(a, b=None, *, angle_units="rad", distance_units="m"):
-    a = _affine_to_quat(a)
-    b = np.zeros(6) if b is None else _affine_to_quat(b)
+def angle_distance_between_rigid(a, b=None, *, angle_units="rad", distance_units="m"):
+    """Compute the angle and distance between two rigid transforms.
+
+    Parameters
+    ----------
+    a : array, shape (..., 4, 4)
+        First rigid transform.
+    b : array, shape (..., 4, 4) | None
+        Second rigid transform. If None, the identity transform is used.
+    angle_units : str
+        Units for the angle output, either "rad" or "deg".
+    distance_units : str
+        Units for the distance output, either "m" or "mm".
+
+    Returns
+    -------
+    angles : array, shape (...)
+        The angles between the two transforms.
+    distances : array, shape (...)
+        The distances between the two transforms.
+
+    Notes
+    -----
+    .. versionadded:: 1.11
+    """
+    a = _affine_to_quat(a, name="a")
+    b = np.zeros(6) if b is None else _affine_to_quat(b, name="b")
     ang = _angle_between_quats(a[..., :3], b[..., :3])
     dist = np.linalg.norm(a[..., 3:] - b[..., 3:], axis=-1)
     assert isinstance(angle_units, str) and angle_units in ("rad", "deg")
@@ -1437,6 +1467,8 @@ def _find_vector_rotation(a, b):
     # Rodrigues' rotation formula:
     #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
     #   http://math.stackexchange.com/a/476311
+    assert np.isclose(np.linalg.norm(a), 1.0), np.linalg.norm(a)
+    assert np.isclose(np.linalg.norm(b), 1.0), np.linalg.norm(b)
     R = np.eye(3)
     v = np.cross(a, b)
     if np.allclose(v, 0.0):  # identical
@@ -1445,6 +1477,7 @@ def _find_vector_rotation(a, b):
     c = np.dot(a, b)  # cosine of the angle between them
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
+    # Now we have: np.allclose(R @ a, b)
     return R
 
 
@@ -1579,7 +1612,7 @@ def read_ras_mni_t(subject, subjects_dir=None):
 
 
 def _read_fs_xfm(fname):
-    """Read a Freesurfer transform from a .xfm file."""
+    """Read a FreeSurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
     with open(fname) as fid:
         logger.debug(f"Reading FreeSurfer talairach.xfm file:\n{fname}")
@@ -1614,7 +1647,7 @@ def _read_fs_xfm(fname):
 
 
 def _write_fs_xfm(fname, xfm, kind):
-    """Write a Freesurfer transform to a .xfm file."""
+    """Write a FreeSurfer transform to a .xfm file."""
     with open(fname, "wb") as fid:
         fid.write((kind + "\n\nTtransform_Type = Linear;\n").encode("ascii"))
         fid.write("Linear_Transform =\n".encode("ascii"))
@@ -1786,7 +1819,7 @@ def _compute_volume_registration(
 ):
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
-    with np.testing.suppress_warnings():
+    with _record_warnings():
         from dipy.align import (
             affine,
             affine_registration,
@@ -1876,7 +1909,9 @@ def _compute_volume_registration(
 
             # report some useful information
             if step in ("translation", "rigid"):
-                angle, dist = _angle_dist_between_rigid(reg_affine, angle_units="deg")
+                angle, dist = angle_distance_between_rigid(
+                    reg_affine, angle_units="deg"
+                )
                 logger.info(f"    Translation: {dist:6.1f} mm")
                 if step == "rigid":
                     logger.info(f"    Rotation:    {angle:6.1f}°")

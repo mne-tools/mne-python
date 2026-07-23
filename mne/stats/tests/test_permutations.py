@@ -5,9 +5,8 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
-from scipy import stats
+from scipy import sparse, stats
 
-from mne.fixes import _eye_array
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (
     _ci,
@@ -19,9 +18,10 @@ from mne.stats.permutations import (
 def test_permutation_t_test():
     """Test T-test based on permutations."""
     # 1 sample t-test
-    np.random.seed(10)
+    # seed chosen so the injected effects are detected at the asserted rate
+    rng = np.random.default_rng(5)
     n_samples, n_tests = 30, 5
-    X = np.random.randn(n_samples, n_tests)
+    X = rng.standard_normal((n_samples, n_tests))
     X[:, :2] += 1
 
     t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=0, seed=0)
@@ -48,7 +48,7 @@ def test_permutation_t_test():
     assert_array_equal(is_significant, [True, True, False, False, False])
 
     # check equivalence with spatio_temporal_cluster_test
-    for adjacency in (_eye_array(n_tests), False):
+    for adjacency in (sparse.eye_array(n_tests), False):
         t_obs_clust, _, p_values_clust, _ = permutation_cluster_1samp_test(
             X, n_permutations=999, seed=0, adjacency=adjacency, out_type="mask"
         )
@@ -72,7 +72,9 @@ def test_permutation_t_test():
 )
 def test_permutation_t_test_tail(tail_name, tail_code):
     """Test that tails work properly."""
-    X = np.random.randn(18, 1)
+    # seed chosen so the injected effects are detected at the asserted rate
+    rng = np.random.default_rng(1)
+    X = rng.standard_normal((18, 1))
 
     t_obs, p_values, _ = permutation_t_test(X, n_permutations="all", tail=tail_code)
     t_obs_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0, alternative=tail_name)

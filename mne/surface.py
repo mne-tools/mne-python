@@ -7,7 +7,6 @@
 
 import json
 import time
-import warnings
 from collections import OrderedDict
 from copy import deepcopy
 from functools import lru_cache, partial
@@ -23,7 +22,7 @@ from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
-from .fixes import bincount, jit, prange
+from .fixes import bincount, has_numba, jit, prange
 from .parallel import parallel_func
 from .transforms import (
     Transform,
@@ -760,14 +759,14 @@ class _CheckInside:
 
     def _init_old(self):
         self.inner_r = None
-        self.cm = self.surf["rr"].mean(0)
+        self.center = self.surf["rr"].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
         # to construct but faster to evaluate
         # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
         self.del_tri = Delaunay(self.surf["rr"])
-        if self.del_tri.find_simplex(self.cm) >= 0:
+        if self.del_tri.find_simplex(self.center) >= 0:
             # Immediately cull some points from the checks
-            dists = np.linalg.norm(self.surf["rr"] - self.cm, axis=-1)
+            dists = np.linalg.norm(self.surf["rr"] - self.center, axis=-1)
             self.inner_r = dists.min()
             self.outer_r = dists.max()
 
@@ -779,7 +778,7 @@ class _CheckInside:
             self.pdata = _surface_to_polydata(self.surf).clean()
 
     @verbose
-    def __call__(self, rr, n_jobs=None, verbose=None):
+    def __call__(self, rr, *, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
             f"Checking surface interior status for {n_orig} point{_pl(n_orig, ' ')}..."
@@ -794,10 +793,25 @@ class _CheckInside:
         logger.info(f"Interior check completed in {(time.time() - t0) * 1000:0.1f} ms")
         return inside
 
+    def query(self, rr):
+        """Get the distance to the nearest point."""
+        if not hasattr(self, "_tree"):  # compute on the fly only when needed
+            from scipy.spatial import KDTree
+
+            self._tree = KDTree(self.surf["rr"])
+        return self._tree.query(rr)
+
     def _call_pyvista(self, rr):
         pdata = _surface_to_polydata(dict(rr=rr))
-        out = pdata.select_enclosed_points(self.pdata, check_surface=False)
-        return out["SelectedPoints"].astype(bool)
+        # TODO VERSION PyVista 0.47+
+        if hasattr(pdata, "select_interior_points"):
+            meth = pdata.select_interior_points
+            key = "selected_points"
+        else:
+            meth = pdata.select_enclosed_points
+            key = "SelectedPoints"
+        out = meth(self.pdata, check_surface=False)
+        return out[key].astype(bool)
 
     def _call_old(self, rr, n_jobs):
         n_orig = len(rr)
@@ -807,7 +821,7 @@ class _CheckInside:
         # Limit to indices that can plausibly be outside the surf
         # but are not definitely outside it
         if self.inner_r is not None:
-            dists = np.linalg.norm(rr - self.cm, axis=-1)
+            dists = np.linalg.norm(rr - self.center, axis=-1)
             in_mask = dists < self.inner_r
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
@@ -855,6 +869,46 @@ class _CheckInside:
         return inside
 
 
+class _CheckInsideSphere:
+    def __init__(self, sphere, *, check="inner"):
+        from .bem import ConductorModel
+
+        assert isinstance(sphere, ConductorModel) and sphere["is_sphere"]
+        self.center = sphere["r0"]
+        assert isinstance(check, str) and check in ("inner", "outer"), check
+        self.check = check
+        # for a sphere, our closest point and farthest are the same
+        if len(sphere["layers"]):
+            self.inner_r = sphere["layers"][0]["rad"]
+            self.outer_r = sphere["layers"][-1]["rad"]
+        else:
+            self.inner_r = self.outer_r = None
+
+    # No need for verbose dec here because no MNE code is called that would log
+    def __call__(self, rr, *, n_jobs=None, verbose=None):
+        assert isinstance(rr, np.ndarray), type(rr)
+        assert rr.ndim == 2 and rr.shape[1] == 3
+        if self.inner_r is None:
+            return np.ones(rr.shape[0], bool)
+        else:
+            return np.linalg.norm(rr - self.center, axis=-1) <= self._check_r
+
+    @property
+    def _check_r(self):
+        return self.inner_r if self.check == "inner" else self.outer_r
+
+    def query(self, rr):
+        """Return the distance to the sphere surface for each point."""
+        assert isinstance(rr, np.ndarray), type(rr)
+        assert rr.ndim == 2 and rr.shape[1] == 3, rr.shape
+        idx = np.zeros(rr.shape[0], int)
+        if self.inner_r is None:
+            dists = np.full(rr.shape[0], np.inf)
+        else:
+            dists = np.abs(np.linalg.norm(rr - self.center, axis=-1) - self._check_r)
+        return dists, idx
+
+
 ###############################################################################
 # Handle freesurfer
 
@@ -899,7 +953,7 @@ def read_curvature(filepath, binary=True):
 def read_surface(
     fname, read_metadata=False, return_dict=False, file_format="auto", verbose=None
 ):
-    """Load a Freesurfer surface mesh in triangular format.
+    """Load a FreeSurfer surface mesh in triangular format.
 
     Parameters
     ----------
@@ -1215,6 +1269,20 @@ def _tessellate_sphere(mylevel):
     return rr, tris
 
 
+def _decimate_surface_ico_oct(subject, subjects_dir, hemi, surf, spacing):
+    from .source_space._source_space import _check_spacing
+
+    stype, _, ico_surf, _ = _check_spacing(spacing, verbose=False)
+    subjects_dir = Path(subjects_dir)
+    surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surf}"
+    dec = _create_surf_spacing(surf_fname, hemi, subject, stype, ico_surf, subjects_dir)
+    vertno, use_tris = dec["vertno"], dec["use_tris"]
+    lut = np.zeros(dec["np"], int)
+    lut[vertno] = np.arange(len(vertno))
+    tris = lut[use_tris]
+    return vertno, tris
+
+
 def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
@@ -1332,7 +1400,7 @@ def write_surface(
     *,
     verbose=None,
 ):
-    """Write a triangular Freesurfer surface mesh.
+    """Write a triangular FreeSurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
 
@@ -1424,16 +1492,12 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
         )
     src = vtkPolyData()
     vtkpoints = vtkPoints()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
     src.SetPoints(vtkpoints)
     vtkcells = vtkCellArray()
     triangles_ = np.pad(triangles, ((0, 0), (1, 0)), "constant", constant_values=3)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
-    vtkcells.SetCells(triangles.shape[0], idarr)
+    idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.ImportLegacyFormat(idarr)
     src.SetPolys(vtkcells)
     # vtkDecimatePro was not very good, even with SplittingOff and
     # PreserveTopologyOn
@@ -1460,7 +1524,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     )
     func_map = dict(ico=_get_ico_surface, oct=_tessellate_sphere_surf)
     kind, level = map_[n_triangles]
-    logger.info(f"Decimating using Freesurfer spherical {kind}{level} downsampling")
+    logger.info(f"Decimating using FreeSurfer spherical {kind}{level} downsampling")
     ico_surf = func_map[kind](level)
     assert len(ico_surf["tris"]) == n_triangles
     tempdir = _TempDir()
@@ -1505,7 +1569,7 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
         The desired number of triangles.
     method : str
         Can be "quadric" or "sphere". "sphere" will inflate the surface to a
-        sphere using Freesurfer and downsample to an icosahedral or
+        sphere using FreeSurfer and downsample to an icosahedral or
         octahedral mesh.
 
         .. versionadded:: 0.20
@@ -1529,7 +1593,7 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
 
     **"sphere" mode**
 
-    This requires Freesurfer to be installed and available in the
+    This requires FreeSurfer to be installed and available in the
     environment. The destination number of triangles must be one of
     ``[20, 80, 320, 1280, 5120, 20480]`` for ico (0-5) downsampling or one of
     ``[8, 32, 128, 512, 2048, 8192, 32768]`` for oct (1-7) downsampling.
@@ -1644,9 +1708,20 @@ def _find_nearest_tri_pts(
         p, q, pt = np.float64(0.0), np.float64(1.0), np.int64(0)
         found = False
         for ii in range(len(drs)):
-            pqs[ii] = np.dot(mats[ii], np.dot(r1213s[ii], drs[ii]))
-            dists[ii] = np.dot(drs[ii], tri_nn[ii])
-            pp, qq = pqs[ii]
+            # Inlined as scalar arithmetic rather than np.dot on the tiny
+            # (2, 3)/(2, 2)/(3,) arrays: much faster under numba, which
+            # doesn't optimize away the overhead of these tiny matrix ops.
+            dr0, dr1, dr2 = drs[ii, 0], drs[ii, 1], drs[ii, 2]
+            v1 = (
+                r1213s[ii, 0, 0] * dr0 + r1213s[ii, 0, 1] * dr1 + r1213s[ii, 0, 2] * dr2
+            )
+            v2 = (
+                r1213s[ii, 1, 0] * dr0 + r1213s[ii, 1, 1] * dr1 + r1213s[ii, 1, 2] * dr2
+            )
+            pp = mats[ii, 0, 0] * v1 + mats[ii, 0, 1] * v2
+            qq = mats[ii, 1, 0] * v1 + mats[ii, 1, 1] * v2
+            pqs[ii, 0], pqs[ii, 1] = pp, qq
+            dists[ii] = dr0 * tri_nn[ii, 0] + dr1 * tri_nn[ii, 1] + dr2 * tri_nn[ii, 2]
             if pp >= 0 and qq >= 0 and pp <= 1 and qq <= 1 and pp + qq < 1:
                 found = True
                 use[ii] = False
@@ -1842,9 +1917,8 @@ def read_tri(fname_in, swap=False, verbose=None):
     return (rr, tris)
 
 
-@jit()
-def _get_solids(tri_rrs, fros):
-    """Compute _sum_solids_div total angle in chunks."""
+def _get_solids_numpy(tri_rrs, fros):
+    """Compute _sum_solids_div total angle in chunks (NumPy fallback)."""
     # NOTE: This incorporates the division by 4PI that used to be separate
     tot_angle = np.zeros(len(fros))
     for ti in range(len(tri_rrs)):
@@ -1866,6 +1940,54 @@ def _get_solids(tri_rrs, fros):
         )
         tot_angle -= np.arctan2(triple, s)
     return tot_angle
+
+
+if has_numba:
+
+    @jit()
+    def _get_solids(tri_rrs, fros):
+        """Compute _sum_solids_div total angle in chunks.
+
+        Written as an explicit double loop (points outer, triangles inner)
+        with scalar arithmetic rather than per-triangle array ops over all
+        points (see ``_get_solids_numpy``): inside a numba nopython function,
+        the array form allocates and walks several full (n_points, 3)-shaped
+        temporaries per triangle, which is much slower than keeping a
+        point's running total in a scalar register. This is ~5x faster than
+        ``_get_solids_numpy`` but, lacking numba's JIT, ~5x slower if run
+        as plain Python, hence the two separate implementations.
+        """
+        n_tris = len(tri_rrs)
+        tot_angle = np.zeros(len(fros))
+        for pi in range(len(fros)):
+            fx, fy, fz = fros[pi, 0], fros[pi, 1], fros[pi, 2]
+            angle = 0.0
+            for ti in range(n_tris):
+                tri_rr = tri_rrs[ti]
+                v1x, v1y, v1z = fx - tri_rr[0, 0], fy - tri_rr[0, 1], fz - tri_rr[0, 2]
+                v2x, v2y, v2z = fx - tri_rr[1, 0], fy - tri_rr[1, 1], fz - tri_rr[1, 2]
+                v3x, v3y, v3z = fx - tri_rr[2, 0], fy - tri_rr[2, 1], fz - tri_rr[2, 2]
+                # v4 = cross(v1, v2); triple = dot(v4, v3)
+                triple = (
+                    (v1y * v2z - v1z * v2y) * v3x
+                    + (v1z * v2x - v1x * v2z) * v3y
+                    + (v1x * v2y - v1y * v2x) * v3z
+                )
+                l1 = np.sqrt(v1x * v1x + v1y * v1y + v1z * v1z)
+                l2 = np.sqrt(v2x * v2x + v2y * v2y + v2z * v2z)
+                l3 = np.sqrt(v3x * v3x + v3y * v3y + v3z * v3z)
+                s = (
+                    l1 * l2 * l3
+                    + (v1x * v2x + v1y * v2y + v1z * v2z) * l3
+                    + (v1x * v3x + v1y * v3y + v1z * v3z) * l2
+                    + (v2x * v3x + v2y * v3y + v2z * v3z) * l1
+                )
+                angle -= np.arctan2(triple, s)
+            tot_angle[pi] = angle
+        return tot_angle
+
+else:  # pragma: no cover
+    _get_solids = _get_solids_numpy
 
 
 def _complete_sphere_surf(sphere, idx, level, complete=True):
@@ -1907,7 +2029,7 @@ def dig_mri_distances(
         The name of the subject.
     subjects_dir : str | None
         Directory containing subjects data. If None use
-        the Freesurfer SUBJECTS_DIR environment variable.
+        the FreeSurfer SUBJECTS_DIR environment variable.
     %(dig_kinds)s
     %(exclude_frontal)s
         Default is False.
@@ -2050,7 +2172,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     return out
 
 
-def _vtk_smooth(pd, smooth):
+@verbose
+def _vtk_smooth(pd, smooth, *, verbose=None):
     _validate_type(smooth, "numeric", smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:
@@ -2088,7 +2211,7 @@ _VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 @fill_doc
 def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", dist=2):
-    """Get regions of interest near channels from a Freesurfer parcellation.
+    """Get regions of interest near channels from a FreeSurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain
               (intracranial electrodes).
@@ -2107,7 +2230,7 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", 
     labels : dict
         The regions of interest labels within ``dist`` of each channel.
     colors : dict
-        The Freesurfer lookup table colors for the labels.
+        The FreeSurfer lookup table colors for the labels.
     """
     from ._freesurfer import _get_aseg, read_freesurfer_lut
     from .channels import DigMontage

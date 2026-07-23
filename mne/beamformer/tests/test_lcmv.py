@@ -42,6 +42,7 @@ from mne.beamformer import (
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
+from mne.fixes import _reshape_view
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
@@ -563,6 +564,20 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     make_lcmv(epochs.info, forward_fixed, data_cov_grad, reg=0.01, noise_cov=noise_cov)
 
 
+@pytest.fixture(scope="module")
+def evoked_fwd_noise_data():
+    """Fixture to supply reusable data."""
+    _, _, evoked, data_cov, noise_cov, _, _, _, _, _ = _get_data(proj=True)
+    assert "eeg" not in evoked
+    assert "meg" in evoked
+    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
+    src = mne.setup_volume_source_space(
+        pos=25.0, sphere=sphere, mindist=5.0, exclude=2.0
+    )
+    fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
+    return evoked, fwd_sphere, noise_cov, data_cov
+
+
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
@@ -575,24 +590,16 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
         (None, "max-power"),
     ],
 )
-def test_make_lcmv_sphere(pick_ori, weight_norm):
+def test_make_lcmv_sphere(pick_ori, weight_norm, evoked_fwd_noise_data):
     """Test LCMV with sphere head model."""
     # unit-noise gain beamformer and orientation
     # selection and rank reduction of the leadfield
-    _, _, evoked, data_cov, noise_cov, _, _, _, _, _ = _get_data(proj=True)
-    assert "eeg" not in evoked
-    assert "meg" in evoked
-    sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)
-    src = mne.setup_volume_source_space(
-        pos=25.0, sphere=sphere, mindist=5.0, exclude=2.0
-    )
-    fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
-
+    evoked, fwd_sphere, noise_cov, data_cov = evoked_fwd_noise_data
     # Test that we get an error if not reducing rank
     with (
         pytest.raises(ValueError, match="Singular matrix detected"),
         _record_warnings(),
-        pytest.warns(RuntimeWarning, match="positive semidefinite"),
+        pytest.warns(RuntimeWarning, match="(positive semidefinite|largest eigenvalu)"),
     ):
         make_lcmv(
             evoked.info,
@@ -809,6 +816,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
         assert_allclose(stc_cov.data.std(), 0.187, rtol=0.2)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, weight_norm, use_cov, depth, lower, upper",
     [
@@ -851,6 +859,7 @@ def test_localization_bias_fixed(
 
 
 # Changes here should be synced with test_dics.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
@@ -1044,7 +1053,7 @@ def test_orientation_max_power(
     "weight_norm, pick_ori",
     [
         pytest.param("nai", "max-power", marks=pytest.mark.slowtest),
-        ("unit-noise-gain", "vector"),
+        pytest.param("unit-noise-gain", "vector", marks=pytest.mark.slowtest),
         ("unit-noise-gain", "max-power"),
         pytest.param("unit-noise-gain", None, marks=pytest.mark.slowtest),
     ],
@@ -1183,7 +1192,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     )
     n_channels, n_sources = G.shape
     n_sources //= 3
-    G.shape = (n_channels, n_sources, 3)
+    G = _reshape_view(G, (n_channels, n_sources, 3))
     G = G.transpose(1, 2, 0)  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

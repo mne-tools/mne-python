@@ -15,7 +15,9 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
+from ..fixes import _reshape_view
 from ..utils import _validate_type, fill_doc, pinv
+from ._fixes import _check_n_features_3d, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -125,7 +127,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self.tmax = tmax
         self.sfreq = sfreq
         self.feature_names = feature_names
-        self.estimator = 0.0 if estimator is None else estimator
+        self.estimator = estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
         self.patterns = patterns
@@ -152,6 +154,19 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             s += f"scored ({self.scoring})"
         return f"<ReceptiveField | {s}>"
 
+    def __sklearn_tags__(self):
+        """..."""
+        from sklearn.utils import RegressorTags
+
+        tags = super().__sklearn_tags__()
+        tags.estimator_type = "regressor"
+        tags.regressor_tags = RegressorTags()
+        tags.input_tags.three_d_array = True
+        tags.target_tags.one_d_labels = True
+        tags.target_tags.multi_output = True
+        tags.target_tags.required = True
+        return tags
+
     def _delay_and_reshape(self, X, y=None):
         """Delay and reshape the variables."""
         if not isinstance(self.estimator_, TimeDelayingRidge):
@@ -169,6 +184,32 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order="F")
         return X, y
 
+    def _check_data(self, X, y=None, reset=False):
+        if reset:
+            X, y = validate_data(
+                self,
+                X=X,
+                y=y,
+                reset=reset,
+                validate_separately=(  # to take care of 3D y
+                    dict(allow_nd=True, ensure_2d=False),
+                    dict(allow_nd=True, ensure_2d=False),
+                ),
+            )
+        else:
+            X = validate_data(self, X=X, allow_nd=True, ensure_2d=False, reset=reset)
+        _check_n_features_3d(self, X, reset)
+        return X, y
+
+    def _validate_params(self, X):
+        if self.scoring not in _SCORERS.keys():
+            raise ValueError(
+                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring}"
+            )
+        self.sfreq_ = float(self.sfreq)
+        if self.tmin > self.tmax:
+            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
+
     def fit(self, X, y):
         """Fit a receptive field model.
 
@@ -184,22 +225,18 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
-        if self.scoring not in _SCORERS.keys():
-            raise ValueError(
-                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
-            )
-        self.sfreq_ = float(self.sfreq)
+        X, y = self._check_data(X, y, reset=True)
+        self._validate_params(X)
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
-        if self.tmin > self.tmax:
-            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq_)
 
         # Define the slice that we should use in the middle
         self.valid_samples_ = _delays_to_slice(self.delays_)
 
-        if isinstance(self.estimator, numbers.Real):
+        if self.estimator is None or isinstance(self.estimator, numbers.Real):
+            alpha = self.estimator if self.estimator is not None else 0.0
             if self.fit_intercept is None:
                 self.fit_intercept_ = True
             else:
@@ -208,7 +245,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 self.tmin,
                 self.tmax,
                 self.sfreq_,
-                alpha=self.estimator,
+                alpha=alpha,
                 fit_intercept=self.fit_intercept_,
                 n_jobs=self.n_jobs,
                 edge_correction=self.edge_correction,
@@ -259,6 +296,12 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
         # Inverse-transform model weights
         if self.patterns:
+            n_total_samples = n_times * n_epochs
+            if n_total_samples < 2:
+                raise ValueError(
+                    "Cannot compute patterns with only one sample; "
+                    f"got n_samples = {n_total_samples}."
+                )
             if isinstance(self.estimator_, TimeDelayingRidge):
                 cov_ = self.estimator_.cov_ / float(n_times * n_epochs - 1)
                 y = y.reshape(-1, y.shape[-1], order="F")
@@ -300,7 +343,10 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         """
         if not hasattr(self, "delays_"):
             raise NotFittedError("Estimator has not been fit yet.")
+
+        X, _ = self._check_data(X)
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
+
         del _
         # convert to sklearn and back
         pred_shape = X.shape[:-1]
@@ -316,7 +362,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         else:
             extra = 1
         shape = shape[: self._y_dim + extra]
-        y_pred.shape = shape
+        y_pred = _reshape_view(y_pred, shape)
         return y_pred
 
     def score(self, X, y):
@@ -384,7 +430,10 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                     )
         else:
             raise ValueError(
-                f"X must be shape (n_times[, n_epochs], n_features), got {X.shape}"
+                "X must be shape (n_times[, n_epochs], n_features), "
+                f"got {X.shape}. Reshape your data to 2D or 3D "
+                "(e.g., array.reshape(-1, 1) for a single feature, "
+                "or array.reshape(1, -1) for a single sample)."
             )
         if y is not None:
             if X.shape[0] != y.shape[0]:

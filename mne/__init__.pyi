@@ -11,6 +11,7 @@ __all__ = [
     "Evoked",
     "EvokedArray",
     "Forward",
+    "HEDAnnotations",
     "Info",
     "Label",
     "MixedSourceEstimate",
@@ -31,6 +32,7 @@ __all__ = [
     "apply_forward_raw",
     "average_forward_solutions",
     "beamformer",
+    "bem",
     "channel_indices_by_type",
     "channel_type",
     "channels",
@@ -203,6 +205,7 @@ __all__ = [
 ]
 from . import (
     beamformer,
+    bem,
     channels,
     chpi,
     commands,
@@ -260,6 +263,7 @@ from ._freesurfer import (
 )
 from .annotations import (
     Annotations,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     events_from_annotations,

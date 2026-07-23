@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "0474b499fd5ede62db4f8673989fe24e1945f2d1",
+  "authors": [
+    {
+      "n": "Genuster",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/ged.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/decoding.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/dev/13332.newfeature.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 6,
+      "d": 4
+    },
+    "examples/decoding/decoding_spoc_CMC.py": {
+      "a": 11,
+      "d": 2
+    },
+    "examples/decoding/decoding_xdawn_eeg.py": {
+      "a": 42,
+      "d": 35
+    },
+    "examples/decoding/linear_model_patterns.py": {
+      "a": 53,
+      "d": 18
+    },
+    "examples/decoding/ssd_spatial_filters.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/__init__.pyi": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 61,
+      "d": 5
+    },
+    "mne/decoding/csp.py": {
+      "a": 12,
+      "d": 39
+    },
+    "mne/decoding/spatial_filter.py": {
+      "a": 639,
+      "d": 0
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 123,
+      "d": 16
+    },
+    "mne/decoding/tests/test_spatial_filter.py": {
+      "a": 190,
+      "d": 0
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 9,
+      "d": 4
+    }
+  }
+}

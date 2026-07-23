@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "18350ce173cf5a0769389cb5bbd2b3b840c0e82d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Christian O'Reilly",
+      "e": "christian.oreilly@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13494.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/montage.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

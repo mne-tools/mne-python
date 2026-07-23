@@ -34,7 +34,12 @@ nirsport2_raw_path = (
 snirf_nirsport2_raw_path = (
     data_path / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"
 )
-
+# PyVista <-> NumPy 2.4 dev (https://github.com/pyvista/pyvista/issues/8484)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Setting the dtype on a NumPy array.*:DeprecationWarning"
+    ),
+]
 
 pytest.importorskip("nibabel")
 
@@ -45,7 +50,6 @@ class TstVTKPicker:
     def __init__(self, mesh, cell_id, event_pos):
         self.mesh = mesh
         self.cell_id = cell_id
-        self.point_id = None
         self.event_pos = event_pos
 
     def GetCellId(self):
@@ -59,12 +63,7 @@ class TstVTKPicker:
     def GetPickPosition(self):
         """Return the picked position."""
         vtk_cell = self.mesh.GetCell(self.cell_id)
-        cell = [
-            vtk_cell.GetPointId(point_id)
-            for point_id in range(vtk_cell.GetNumberOfPoints())
-        ]
-        self.point_id = cell[0]
-        return self.mesh.points[self.point_id]
+        return self.mesh.points[vtk_cell.GetPointId(0)]
 
     def GetEventPosition(self):
         """Return event position."""
@@ -264,7 +263,10 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._redraw(verbose="debug")
     assert "Drawing meg sensors" in log.getvalue()
     assert coreg._actors["helmet"] is not None
-    assert len(coreg._actors["sensors"]) == 306
+    # coil surfaces sharing a shape are GPU-instanced into a single
+    # mesh/actor; this Neuromag sample dataset has 2 distinct MEG coil
+    # shapes (magnetometer + planar gradiometer)
+    assert len(coreg._actors["sensors"]) == 2
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside

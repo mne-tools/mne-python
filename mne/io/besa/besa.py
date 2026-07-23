@@ -61,6 +61,7 @@ def _read_evoked_besa_avr(fname, verbose):
 
     # Consolidate channel names
     if new_style:
+        assert ch_names is not None
         if len(ch_names) != len(data):
             raise RuntimeError(
                 "Mismatch between the number of channel names defined in "
@@ -85,6 +86,7 @@ def _read_evoked_besa_avr(fname, verbose):
             ch_names = [f"CH{i + 1:02d}" for i in range(len(data))]
 
     # Consolidate channel types
+    assert ch_names is not None
     if ch_types is None:
         logger.info("Marking all channels as EEG.")
         ch_types = ["eeg"] * len(ch_names)
@@ -96,14 +98,14 @@ def _read_evoked_besa_avr(fname, verbose):
     if "Npts" in fields:
         fields["Npts"] = int(fields["Npts"])
         if fields["Npts"] != data.shape[1]:
-            logger.warn(
+            logger.warning(
                 f"The size of the data matrix ({data.shape}) does not "
                 f'match the "Npts" field ({fields["Npts"]}).'
             )
     if "Nchan" in fields:
         fields["Nchan"] = int(fields["Nchan"])
         if fields["Nchan"] != data.shape[0]:
-            logger.warn(
+            logger.warning(
                 f"The size of the data matrix ({data.shape}) does not "
                 f'match the "Nchan" field ({fields["Nchan"]}).'
             )
@@ -166,14 +168,14 @@ def _read_evoked_besa_mul(fname, verbose):
     if "TimePoints" in fields:
         fields["TimePoints"] = int(fields["TimePoints"])
         if fields["TimePoints"] != data.shape[0]:
-            logger.warn(
+            logger.warning(
                 f"The size of the data matrix ({data.shape}) does not "
                 f'match the "TimePoints" field ({fields["TimePoints"]}).'
             )
     if "Channels" in fields:
         fields["Channels"] = int(fields["Channels"])
         if fields["Channels"] != data.shape[1]:
-            logger.warn(
+            logger.warning(
                 f"The size of the data matrix ({data.shape}) does not "
                 f'match the "Channels" field ({fields["Channels"]}).'
             )

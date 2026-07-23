@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 from pathlib import Path
-from shutil import copytree
 
 import numpy as np
 import pytest
@@ -43,7 +42,7 @@ from mne.source_space import (
 )
 from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.utils import _record_warnings, requires_mne, run_subprocess
+from mne.utils import _record_warnings, copytree_rw, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -67,7 +66,7 @@ trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 
 @testing.requires_testing_data
@@ -371,7 +370,7 @@ def test_volume_source_space(tmp_path):
     src = setup_volume_source_space(pos=10, sphere=(0.0, 0.0, 0.0, 0.09))
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode="exact")
-    with pytest.raises(ValueError, match="sphere, if str"):
+    with pytest.raises(ValueError, match="Invalid value for the 'sphere' parameter"):
         setup_volume_source_space(sphere="foo")
     # Need a radius
     sphere = make_sphere_model(head_radius=None)
@@ -464,9 +463,9 @@ def test_accumulate_normals():
     n_tris = int(3.2e5)
     # use all positive to make a worst-case for cumulative summation
     # (real "nn" vectors will have both positive and negative values)
-    tris = (rng.rand(n_tris, 1) * (n_pts - 2)).astype(int)
+    tris = (rng.random((n_tris, 1)) * (n_pts - 2)).astype(int)
     tris = np.c_[tris, tris + 1, tris + 2]
-    tri_nn = rng.rand(n_tris, 3)
+    tri_nn = rng.random((n_tris, 3))
     this = dict(tris=tris, np=n_pts, ntri=n_tris, tri_nn=tri_nn)
 
     # cut-and-paste from original code in surface.py:
@@ -563,7 +562,7 @@ def test_setup_source_space(tmp_path):
 def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
     pytest.importorskip("nibabel")
-    copytree(subjects_dir / "sample", tmp_path / "sample")
+    copytree_rw(subjects_dir / "sample", tmp_path / "sample")
     args = [] if spacing == 7 else ["--spacing", str(spacing)]
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
     monkeypatch.setenv("SUBJECT", "sample")
@@ -760,7 +759,7 @@ def test_read_volume_from_src():
 def test_combine_source_spaces(tmp_path):
     """Test combining source spaces."""
     nib = pytest.importorskip("nibabel")
-    rng = np.random.RandomState(2)
+    rng = np.random.default_rng(2)
     volume_labels = ["Brain-Stem", "Right-Hippocampus"]  # two fairly large
 
     # create a sparse surface source space to ensure all get mapped
@@ -779,7 +778,7 @@ def test_combine_source_spaces(tmp_path):
     )
 
     # setup a discrete source space
-    rr = rng.randint(0, 11, (20, 3)) * 5e-3
+    rr = rng.integers(0, 11, (20, 3)) * 5e-3
     nn = np.zeros(rr.shape)
     nn[:, -1] = 1
     pos = {"rr": rr, "nn": nn}
@@ -909,7 +908,7 @@ def test_morphed_source_space_return():
     """Test returning a morphed source space to the original subject."""
     # let's create some random data on fsaverage
     pytest.importorskip("nibabel")
-    data = rng.randn(20484, 1)
+    data = rng.standard_normal((20484, 1))
     tmin, tstep = 0, 1.0
     src_fs = read_source_spaces(fname_fs)
     stc_fs = SourceEstimate(

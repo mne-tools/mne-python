@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "15c1c1bb48ac62bef286e0498d2b6da88647ae77",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13787.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

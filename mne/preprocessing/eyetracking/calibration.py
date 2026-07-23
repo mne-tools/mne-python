@@ -28,7 +28,7 @@ class Calibration(dict):
     ----------
     onset : float
         The onset of the calibration in seconds. If the calibration was
-        performed before the recording started, the the onset can be
+        performed before the recording started, the onset can be
         negative.
     model : str
         A string, which is the model of the eye-tracking calibration that was applied.
@@ -169,6 +169,10 @@ class Calibration(dict):
 
         # Invert y-axis because the origin is in the top left corner
         ax.invert_yaxis()
+        if self["screen_resolution"] is not None:
+            w, h = self["screen_resolution"]
+            ax.set_xlim(0, w)
+            ax.set_ylim(h, 0)
         ax.scatter(px, py, color="gray")
         ax.scatter(gaze_x, gaze_y, color="red", alpha=0.5)
 
@@ -218,5 +222,8 @@ def read_eyelink_calibration(
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
     logger.info(f"Reading calibration data from {fname}")
-    lines = fname.read_text(encoding="ASCII").splitlines()
+    # ASCII is a subset of UTF-8 for the eyetracking/calibration data itself, but
+    # "MSG" lines may contain non-ASCII characters (e.g. UTF-8 text in user
+    # messages), so decode as UTF-8 to avoid a UnicodeDecodeError. See #14000.
+    lines = fname.read_text(encoding="utf-8").splitlines()
     return _parse_calibration(lines, screen_size, screen_distance, screen_resolution)

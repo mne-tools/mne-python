@@ -552,7 +552,7 @@ def mixed_norm_solver(
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
 
-    logger.info("Final active set size: %s" % (np.sum(active_set) // n_orient))
+    logger.info(f"Final active set size: {np.sum(active_set) // n_orient}")
 
     if return_gap:
         return X, active_set, E, gap

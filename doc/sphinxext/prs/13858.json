@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c08a2c7664410d20998e4e74db081bad8279ae07",
+  "authors": [
+    {
+      "n": "Aniket",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13858.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

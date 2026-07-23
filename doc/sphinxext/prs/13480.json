@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1b921f4af5154bad40202d87428a2583ef896a00",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
