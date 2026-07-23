@@ -145,10 +145,12 @@ jobs:
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
+      - name: Get Python env root
+        run: echo "PYTHON_ENV_ROOT=$(dirname $(dirname $(which python)))" | tee -a $GITHUB_ENV
       - name: Check Qt import
         uses: tsbinns/mne-tools/actions/check-qt-import@tools-actions
         with:
-          python-env-root: "$(dirname $(dirname $(which python)))"
+          python-env-root: ${{ env.PYTHON_ENV_ROOT }}
           qt-backend: ${{ env.MNE_QT_BACKEND }}
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
