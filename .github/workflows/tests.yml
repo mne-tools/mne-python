@@ -148,7 +148,7 @@ jobs:
       - name: Check Qt import
         uses: tsbinns/mne-tools/actions/check-qt-import@tools-actions
         with:
-          python-env-root: $(dirname $(dirname $(which python)))
+          python-env-root: "$(dirname $(dirname $(which python)))"
           qt-backend: ${{ env.MNE_QT_BACKEND }}
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
