@@ -3290,7 +3290,7 @@ class Brain:
 
             ctable = cmap.astype(np.float64)
             for _ in self._iter_views(hemi):
-                mesh = self._layered_meshes[hemi]
+                mesh = self.layered_meshes[hemi]
                 mesh.add_overlay(
                     scalars=ids,
                     colormap=ctable,
