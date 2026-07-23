@@ -190,6 +190,34 @@ def test_muscle_annotation_without_meeg_data(meas_date):
         annotate_muscle_zscore(raw, threshold=10)
 
 
+@testing.requires_testing_data
+def test_muscle_annotation_n_jobs_cuda():
+    """Test annotate_muscle_zscore with separate n_jobs for filter and Hilbert."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes").load_data()
+    raw.notch_filter([50, 110, 150])
+
+    annot_cuda, scores_cuda = annotate_muscle_zscore(
+        raw, ch_type="mag", threshold=10, n_jobs="cuda", n_jobs_hilbert=1
+    )
+    assert annot_cuda.duration.size == 2
+    assert scores_cuda.shape == (raw.n_times,)
+
+    annot_default, scores_default = annotate_muscle_zscore(
+        raw, ch_type="mag", threshold=10
+    )
+    annot_int, scores_int = annotate_muscle_zscore(
+        raw, ch_type="mag", threshold=10, n_jobs=1, n_jobs_hilbert=1
+    )
+    assert annot_int.duration.size == annot_default.duration.size
+    assert_array_equal(scores_int, scores_default)
+
+    annot_jobs, scores_jobs = annotate_muscle_zscore(
+        raw, ch_type="mag", threshold=10, n_jobs=4, n_jobs_hilbert=2
+    )
+    assert annot_jobs.duration.size == annot_default.duration.size
+    assert_array_equal(scores_jobs, scores_default)
+
+
 @pytest.mark.parametrize("meas_date", (None, "orig"))
 @testing.requires_testing_data
 def test_annotate_breaks(meas_date):

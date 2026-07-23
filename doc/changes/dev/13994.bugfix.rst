@@ -1,0 +1,1 @@
+Fix crash in :func:`mne.preprocessing.annotate_muscle_zscore` when ``n_jobs='cuda'`` by adding ``n_jobs_hilbert`` for the Hilbert transform, by :newcontrib:`Krishnaveni Parvataneni`.
