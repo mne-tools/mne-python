@@ -101,6 +101,7 @@
 .. _Erica Peterson: https://github.com/nordme
 .. _Erkka Heinila: https://github.com/Teekuningas
 .. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+.. _Eva Safi: https://github.com/evasafi 
 .. _Evan Hathaway: https://github.com/ephathaway
 .. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
