@@ -2,6 +2,7 @@
 
 set -eo pipefail
 
+
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITIONS=("not (ultraslowtest or pgtest)")
 elif [[ "${CI_OS_NAME}" == "macos"* ]]; then

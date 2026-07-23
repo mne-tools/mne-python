@@ -69,6 +69,14 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.9.4
+        if: steps.status.outputs.dirty == 'true'
+      - name: Update pixi.toml and pixi.lock for macos-intel CI job
+        run: |
+          pixi run python tools/write-pixi-toml.py
+          pixi lock --no-install --manifest-path tools/ci/macos-intel/
+        if: steps.status.outputs.dirty == 'true'
       - uses: j178/prek-action@v2.0.5
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
