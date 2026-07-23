@@ -46,6 +46,7 @@ from ...transforms import (
 from ...utils import (
     Bunch,
     _auto_weakref,
+    _check_fname,
     _check_option,
     _ensure_int,
     _path_like,
@@ -3110,7 +3111,12 @@ class Brain:
 
             .. versionadded:: 1.13
         """
-        if not _path_like(annot) and len(annot) == len(hemi) and len(annot[0]) == 2:
+
+        from ...label import read_labels_from_annot
+
+        if (isinstance(annot, tuple) and isinstance(annot[0], np.ndarray)) or (
+            isinstance(annot, (tuple, list)) and isinstance(annot[0], tuple)
+        ):
             # Deprecated old style of passing a (labels, cmap) pair per hemisphere.
             # Shortcut to old code that can be removed in version 1.14.
             warn(
@@ -3126,8 +3132,6 @@ class Brain:
                 remove_existing=remove_existing,
                 color=color,
             )
-
-        from ...label import read_labels_from_annot
 
         _validate_type(annot, ("path-like", str, list), "annot")
 
@@ -3209,7 +3213,8 @@ class Brain:
                     )
         self._renderer._update()
 
-    # DEPRECATED: Can be removed in version 1.14
+    # DEPRECATED: Can be removed in version 1.14. Also remove _read_annot from
+    # mne/labels.py.
     def _old_add_annotation(
         self, annot, borders=True, alpha=1, hemi=None, remove_existing=True, color=None
     ):
