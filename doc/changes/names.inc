@@ -74,6 +74,7 @@
 .. _Daniel Tse: https://github.com/Xiezhibin
 .. _Daria Agafonova: https://github.com/viranovskaya
 .. _Darin Erat Sleiter: https://github.com/dsleiter
+.. _Dariush Karamati: https://github.com/eulerleibniz
 .. _David Haslacher: https://github.com/davidhaslacher
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
