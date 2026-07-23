@@ -1,0 +1,52 @@
+name: Build JupyterLite
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - jupyterlite-xeus
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build JupyterLite Site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # jupyterlite-xeus solves the emscripten-wasm32 environment with
+      # micromamba, so it has to be on PATH before the build runs.
+      - name: Setup micromamba
+        uses: mamba-org/setup-micromamba@v3
+        with:
+          micromamba-version: latest
+          init-shell: bash
+
+      - name: Install JupyterLite and the xeus kernel
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyterlite-core jupyterlite-xeus jupyter-server
+
+      # The browser kernel (including the MNE from this checkout) is built from
+      # doc/jupyterlite_environment.yml, so there is no wheel to pass in.
+      - name: Build JupyterLite Site
+        run: |
+          jupyter lite build \
+            --contents examples/ \
+            --output-dir dist_lite/ \
+            --XeusAddon.environment_file=doc/jupyterlite_environment.yml
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jupyterlite-build
+          path: dist_lite/

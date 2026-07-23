@@ -1,1 +1,1 @@
-Added a xeus-python kernel environment and setup cell for the JupyterLite documentation, by `Natneal B`_.
+Added a JupyterLite version of the documentation that runs in the browser using the xeus-python kernel, by `Natneal B`_.

@@ -11,10 +11,10 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import faulthandler
 import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
-from importlib.metadata import metadata
 from pathlib import Path
 
 import matplotlib
@@ -53,6 +53,7 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from credit_tools import generate_credit_rst  # noqa: E402
+from jupyterlite_xeus_setup_cell import XEUS_FIRST_NOTEBOOK_CELL  # noqa: E402
 from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
 
 # -- Project information -----------------------------------------------------
@@ -116,6 +117,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
+    "jupyterlite_sphinx",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     "sphinxcontrib.towncrier.ext",
@@ -139,7 +141,14 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/dev"]
+exclude_patterns = [
+    "_includes",
+    "changes/dev",
+    "jupyterlite_contents",
+    "lite_extra",
+    "pypi",
+    "corrupt_*",
+]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -481,7 +490,139 @@ if sys.platform.startswith("win"):
         compress_images = ()
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
+jupyterlite_contents = ["jupyterlite_contents"]
+jupyterlite_bind_ipynb_suffix = False
+
+# Build the browser kernel from the xeus environment file: packages are installed
+# at build time (see doc/jupyterlite_environment.yml) rather than at runtime, and
+# the served JupyterLite content is mounted into the kernel filesystem so the
+# notebooks can read the bundled MNE data without downloading anything.
+jupyterlite_build_command_options = {
+    "XeusAddon.environment_file": "jupyterlite_environment.yml",
+    "XeusAddon.mount_jupyterlite_content": True,
+}
+
+# Inject the required subset of MNE-sample-data for JupyterLite. The data is
+# placed under doc/lite_extra/mne_data and served at the docs root via
+# html_extra_path (added below). lite_data (mne.datasets.lite_data) extracts
+# the curated subset here, with the files under their original dataset folders
+# (MNE-sample-data/, ...).
+#
+# NOTE (xeus): the setup cell probes for this data inside the kernel filesystem
+# (/files, /drive). Getting the served copy visible to the kernel is the next
+# step and needs care: embedding the whole set would bloat the kernel, while
+# the /drive service-worker bridge needs cross-origin-isolation (COOP/COEP)
+# headers that static artifact servers (e.g. CircleCI) do not send.
+lite_root = Path(os.path.expanduser("~/mne_data/MNE-lite-data"))
+src_sample_data = lite_root / "MNE-sample-data"
+lite_extra_base = (
+    Path(os.path.abspath(os.path.dirname(__file__))) / "lite_extra" / "mne_data"
+)
+dst_sample_data = lite_extra_base / "MNE-sample-data"
+dst_sample_data.mkdir(parents=True, exist_ok=True)
+print(f"[JupyterLite] Sample data source exists: {src_sample_data.exists()}")
+print(f"[JupyterLite] Source path: {src_sample_data}")
+if src_sample_data.exists():
+    required_files = [
+        "version.txt",
+        "MEG/sample/sample_audvis_raw.fif",
+        "MEG/sample/sample_audvis_filt-0-40_raw.fif",
+        "MEG/sample/sample_audvis_raw-eve.fif",
+        "MEG/sample/sample_audvis_filt-0-40_raw-eve.fif",
+        "MEG/sample/sample_audvis_ecg-proj.fif",
+        "MEG/sample/sample_audvis-ave.fif",
+        "MEG/sample/sample_audvis-cov.fif",
+        "MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-fwd.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif",
+        "MEG/sample/ernoise_raw.fif",
+        "MEG/sample/sample_audvis-no-filter-ave.fif",
+        "MEG/sample/sample_audvis_raw-trans.fif",
+        "MEG/sample/sample_audvis-shrunk-cov.fif",
+        "MEG/sample/sample_audvis-meg-lh.stc",
+        "MEG/sample/sample_audvis-meg-rh.stc",
+        "subjects/sample/mri/T1.mgz",
+        "subjects/sample/bem/sample-oct-6-src.fif",
+        "subjects/sample/surf/rh.pial",
+        "subjects/sample/surf/lh.pial",
+        "subjects/sample/surf/rh.white",
+        "subjects/sample/surf/lh.white",
+        "subjects/sample/surf/rh.inflated",
+        "subjects/sample/surf/lh.inflated",
+        "subjects/sample/surf/rh.curv",
+        "subjects/sample/surf/lh.curv",
+        "subjects/sample/label/lh.aparc.annot",
+        "subjects/sample/label/rh.aparc.annot",
+    ]
+    for req in required_files:
+        s = src_sample_data / req
+        d = dst_sample_data / req
+        if s.exists():
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied: {req}")
+        else:
+            print(f"[JupyterLite]   MISSING: {req}")
+
+
+# Also inject SSVEP and EEGLAB testing datasets for JupyterLite
+mne_data_base = Path(os.path.expanduser("~/mne_data"))
+lite_data_base = lite_extra_base
+lite_data_base.mkdir(parents=True, exist_ok=True)
+
+src_ssvep = mne_data_base / "ssvep-example-data"
+dst_ssvep = lite_data_base / "ssvep-example-data"
+print(f"[JupyterLite] SSVEP data source exists: {src_ssvep.exists()}")
+if src_ssvep.exists() and not dst_ssvep.exists():
+    shutil.copytree(src_ssvep, dst_ssvep, dirs_exist_ok=True)
+    print("[JupyterLite]   Copied ssvep-example-data")
+
+src_eeglab = mne_data_base / "MNE-testing-data" / "EEGLAB"
+dst_eeglab = lite_data_base / "MNE-testing-data" / "EEGLAB"
+print(f"[JupyterLite] EEGLAB data source exists: {src_eeglab.exists()}")
+if src_eeglab.exists() and not dst_eeglab.exists():
+    shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
+    print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
+
+# Inject the single needed file(s) from extra datasets used by the Epochs and
+# decoding examples. Sizes are all within what we already serve
+# (sample_audvis_raw.fif is 128.5 MB): kiloword 28.7 MB, erp_core 123.6 MB,
+# mtrf speech_data.mat 17.2 MB, eegbci 3x2.6 MB. The CI "Ensure ... data" step
+# downloads them so the sources exist here.
+for _folder, _ds_files in (
+    ("MNE-kiloword-data", ["kword_metadata-epo.fif"]),
+    ("MNE-ERP-CORE-data", ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"]),
+    ("mTRF_1.5", ["speech_data.mat"]),
+    (
+        "MNE-eegbci-data",
+        [
+            "files/eegmmidb/1.0.0/S001/S001R06.edf",
+            "files/eegmmidb/1.0.0/S001/S001R10.edf",
+            "files/eegmmidb/1.0.0/S001/S001R14.edf",
+        ],
+    ),
+):
+    _src_ds = lite_root / _folder
+    _dst_ds = lite_data_base / _folder
+    print(f"[JupyterLite] {_folder} source exists: {_src_ds.exists()}")
+    for _ds_file in _ds_files:
+        s = _src_ds / _ds_file
+        d = _dst_ds / _ds_file
+        if s.exists():
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied: {_folder}/{_ds_file}")
+        else:
+            print(f"[JupyterLite]   MISSING: {_folder}/{_ds_file}")
+
+
 sphinx_gallery_conf = {
+    "jupyterlite": {
+        "use_jupyter_lab": True,
+        "jupyterlite_contents": "jupyterlite_contents",
+    },
+    "first_notebook_cell": XEUS_FIRST_NOTEBOOK_CELL,
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
     "examples_dirs": examples_dirs,
@@ -583,6 +724,55 @@ sphinx_gallery_conf = {
     "parallel": sphinx_gallery_parallel,
 }
 assert is_serializable(sphinx_gallery_conf)
+
+# ---------------------------------------------------------------------------
+# Drop the "Open in JupyterLite" launch badge from gallery pages whose
+# notebooks cannot run in the browser kernel at all: they need the R runtime
+# (rpy2), a compiled package the browser kernel does not ship (antio), or
+# datasets that cannot be bundled/slimmed. sphinx-gallery adds the badge to
+# every example unconditionally, so we wrap its badge generator and return an
+# empty string for these files. This only removes the badge/link — the
+# notebook source is untouched (no in-code guard). Files that merely need data
+# bundled, a pure-Python package installed, or pyvista 3D are NOT listed here
+# (they are fixable, not impossible).
+JUPYTERLITE_EXCLUDE = (
+    # Tier 1 — impossible: R runtime / compiled package / huge single dataset
+    "examples/stats/r_interop.py",  # rpy2 -> needs the R runtime
+    "examples/io/read_impedances.py",  # antio (compiled, unavailable in WASM)
+    "examples/decoding/decoding_rsa_sgskip.py",  # visual_92_categories ~6 GB
+    "examples/decoding/decoding_spoc_CMC.py",  # fieldtrip_cmc ~700 MB
+    "examples/decoding/ssd_spatial_filters.py",  # fieldtrip_cmc ~700 MB
+    # Tier 2 — multi-GB datasets (brainstorm / spm_face / opm / hf_sef)
+    "examples/datasets/brainstorm_data.py",
+    "examples/datasets/hf_sef_data.py",
+    "examples/datasets/opm_data.py",
+    "examples/datasets/spm_faces_dataset.py",
+    "examples/preprocessing/movement_detection.py",
+    "examples/preprocessing/muscle_detection.py",
+    "examples/preprocessing/otp.py",
+    "examples/time_frequency/source_power_spectrum_opm.py",
+    "examples/visualization/evoked_arrowmap.py",
+    "examples/visualization/meg_sensors.py",
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py",
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py",
+    "tutorials/io/60_ctf_bst_auditory.py",
+    "tutorials/preprocessing/80_opm_processing.py",
+)
+
+import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
+
+_orig_gen_jupyterlite_rst = _sg_gen_rst.gen_jupyterlite_rst
+
+
+def _lite_badge_filtered(fpath, gallery_conf):
+    """Return the JupyterLite badge reST, or "" for excluded notebooks."""
+    _p = str(fpath).replace(os.sep, "/")
+    if any(_p.endswith(_ex) for _ex in JUPYTERLITE_EXCLUDE):
+        return ""
+    return _orig_gen_jupyterlite_rst(fpath, gallery_conf)
+
+
+_sg_gen_rst.gen_jupyterlite_rst = _lite_badge_filtered
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
@@ -884,6 +1074,9 @@ html_extra_path = [
     "documentation.html",
     "getting_started.html",
     "install_mne_python.html",
+    # Serve the pre-bundled JupyterLite sample data at the docs root
+    # (e.g. /mne_data/...). The lite setup cell fetches it over HTTP.
+    "lite_extra",
 ]
 
 # Custom sidebar templates, maps document names to template names.
@@ -1106,10 +1299,9 @@ rst_prolog += """
 
 # -- Dependency info ----------------------------------------------------------
 
-min_py = metadata("mne")["Requires-Python"].lstrip(" =<>")
+min_py = "3.10"
+min_py_minor = "10"
 rst_prolog += f"\n.. |min_python_version| replace:: {min_py}\n"
-
-# -- website redirects --------------------------------------------------------
 
 # Static list created 2021/04/13 based on what we needed to redirect,
 # since we don't need to add redirects for examples added after this date.
@@ -1513,8 +1705,25 @@ def rstjinja(app, docname, source):
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
+def _mark_jupyterlite_parallel_safe(app):
+    """Declare jupyterlite_sphinx safe for Sphinx's parallel (-j) read phase.
+
+    The jupyterlite-sphinx version pinned by our JupyterLite stack
+    (0.9.3) predates the ``parallel_read_safe`` metadata that newer releases
+    declare, so the doc build's ``-j auto`` emits a "does not declare if it is
+    safe for parallel reading" warning that ``-W`` turns into a build error.
+    Newer jupyterlite-sphinx marks it read-safe; set the same flag here rather
+    than bumping the pin (which would drag the whole pinned JupyterLite stack
+    forward and risk the browser build).
+    """
+    ext = app.extensions.get("jupyterlite_sphinx")
+    if ext is not None and ext.parallel_read_safe is None:
+        ext.parallel_read_safe = True
+
+
 def setup(app):
     """Set up the Sphinx app."""
+    app.connect("builder-inited", _mark_jupyterlite_parallel_safe, priority=1)
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
