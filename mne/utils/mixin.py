@@ -512,16 +512,25 @@ def _check_decim(info, decim, offset, check_filter=True):
 class TimeMixin:
     """Class for time operations on any MNE object that has a time axis."""
 
-    def time_as_index(self, times, use_rounding=False):
+    def time_as_index(self, times, *, use_rounding=None):
         """Convert time to indices.
 
         Parameters
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_rounding : bool
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
+        use_rounding : bool | None
+            If True, use rounding when converting times to indices. This can
+            help avoid non-unique indices.
+            If False, use truncation when converting times to indices.
+            If None (the default), rounding is used but a FutureWarning is
+            emitted. Pass ``True`` or ``False`` explicitly to silence the
+            warning.
+
+            .. versionchanged:: 2.0
+                The default changed from ``False`` to ``None``, which will
+                round and emit a warning. In a future release the default
+                will change to ``True``.
 
         Returns
         -------
@@ -535,6 +544,25 @@ class TimeMixin:
         else:
             sfreq = self.info["sfreq"]
         index = (np.atleast_1d(times) - self.times[0]) * sfreq
+
+        if use_rounding is None:
+            # Turned off temporarily to see the impact of the change without
+            # crashing on a FutureWarning. Only crash, explicitly, if the
+            # values with and without rounding are different.
+            #
+            # warn(
+            # "The default of use_rounding=False is being changed to True "
+            # "in a future release. Pass use_rounding=True or "
+            # "use_rounding=False explicitly to silence this warning.",
+            # FutureWarning,
+            # )
+            if not np.array_equal(index.astype(int), np.round(index)):
+                raise RuntimeError(
+                    f"Would have returned a different value: {index=}, "
+                    f"different from {np.round(index)=}."
+                )
+            use_rounding = True
+
         if use_rounding:
             index = np.round(index)
         return index.astype(int)
