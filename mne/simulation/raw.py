@@ -576,7 +576,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         nn = np.zeros_like(exg_rr)
         nn[:, 0] = 1  # arbitrarily rightward
     del meg_picks, meeg_picks
-    noise = rng.standard_normal(exg_data.shape[1]) * 5e-6
+    noise = rng.normal(scale=5e-6, size=exg_data.shape[1])
     if len(ch) >= 1:
         ch = ch[-1]
         data[ch, :] = exg_data * 1e3 + noise

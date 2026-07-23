@@ -923,10 +923,10 @@ def tiny(tmp_path):
     subject_dir = tmp_path / subject
     (subject_dir / "surf").mkdir()
     surf_dir = subject_dir / "surf"
-    rng = np.random.RandomState(0)
-    rr = rng.randn(4, 3)
+    rng = np.random.default_rng(0)
+    rr = rng.standard_normal((4, 3))
     tris = np.array([[0, 1, 2], [2, 1, 3]])
-    curv = rng.randn(len(rr))
+    curv = rng.standard_normal(len(rr))
     with open(surf_dir / "lh.curv", "wb") as fid:
         fid.write(np.array([255, 255, 255], dtype=np.uint8))
         fid.write(np.array([len(rr), 0, 1], dtype=">i4"))
@@ -934,7 +934,7 @@ def tiny(tmp_path):
     write_surface(surf_dir / "lh.white", rr, tris)
     write_surface(surf_dir / "rh.white", rr, tris)  # needed for vertex tc
     vertices = [np.arange(len(rr)), []]
-    data = rng.randn(len(rr), 10)
+    data = rng.standard_normal((len(rr), 10))
     stc = SourceEstimate(data, vertices, 0, 1, subject)
     brain = stc.plot(subjects_dir=tmp_path, hemi="lh", surface="white", size=_TINY_SIZE)
     # in principle this should be sufficient:
@@ -1152,12 +1152,12 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         brain.widgets["extract_mode"].set_value("max")
 
         # test picking a cell at random
-        rng = np.random.RandomState(0)
+        rng = np.random.default_rng(0)
         for idx, current_hemi in enumerate(hemi_str):
             if current_hemi == "vol":
                 continue
             current_mesh = brain.layered_meshes[current_hemi]._polydata
-            cell_id = rng.randint(0, current_mesh.n_cells)
+            cell_id = rng.integers(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
             assert len(brain._picked_patches[current_hemi]) == 0
             brain._on_pick(test_picker, None)
@@ -1251,7 +1251,7 @@ def test_brain_traces_vertex(
         assert len(picked_points[key]) == 0
 
     # test picking a cell at random
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     for idx, current_hemi in enumerate(hemi_str):
         assert len(spheres) == 0
         if current_hemi == "vol":
@@ -1261,7 +1261,7 @@ def test_brain_traces_vertex(
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain.layered_meshes[current_hemi]._polydata
-            cell_id = rng.randint(0, current_mesh.n_cells)
+            cell_id = rng.integers(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None
         test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
@@ -1636,12 +1636,12 @@ def _create_testing_brain(
     assert sample_src.kind == src
 
     # dense version
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices = [s["vertno"] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
+    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = rng.random(
         stc_data.size // 20
     )
     stc_data = _reshape_view(stc_data, (n_verts, n_time))

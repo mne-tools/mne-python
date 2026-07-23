@@ -358,7 +358,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
     # so we don't need to create those from scratch. Just reorder them,
     # then try to apply the original inverse operator
     new_order = np.arange(len(evoked.info["ch_names"]))
-    randomiser = np.random.RandomState(42)
+    randomiser = np.random.default_rng(42)
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
     with evoked.info._unlock(update_redundant=True, check_after=True):

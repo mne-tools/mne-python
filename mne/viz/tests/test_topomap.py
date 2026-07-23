@@ -395,7 +395,8 @@ def test_plot_topomap_basic():
     # ---------------------------------------------------
     info_grad = evoked.copy().pick("grad").info
     n_grads = len(info_grad["ch_names"])
-    data = np.random.randn(n_grads)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal(n_grads)
     img, _ = plot_topomap(data, info_grad)
 
     # check that channels are scattered around x == 0
@@ -638,10 +639,10 @@ def test_plot_tfr_topomap():
     res = 8
     n_freqs = 3
     nave = 1
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     picks = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
     info = pick_info(raw.info, picks)
-    data = rng.randn(len(picks), n_freqs, len(times))
+    data = rng.standard_normal((len(picks), n_freqs, len(times)))
 
     # test complex numbers
     tfr = AverageTFRArray(
@@ -657,7 +658,7 @@ def test_plot_tfr_topomap():
 
     # test data with taper dimension (real)
     data = np.expand_dims(data, axis=1)
-    weights = np.random.rand(1, n_freqs)
+    weights = rng.random((1, n_freqs))
     tfr = AverageTFRArray(
         info=info,
         data=data,
@@ -712,7 +713,7 @@ def test_plot_tfr_topomap():
     fig, axes = plt.subplots()
     freqs = np.arange(3.0, 9.5)
     bands = [(4, 8, "Theta")]
-    psd = np.random.rand(len(info["ch_names"]), freqs.shape[0])
+    psd = rng.random((len(info["ch_names"]), freqs.shape[0]))
     plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
 
 
@@ -783,7 +784,7 @@ def test_plot_topomap_neuromag122():
 
 def test_plot_topomap_bads():
     """Test plotting topomap with bad channels (gh-7213)."""
-    data = np.random.RandomState(0).randn(3, 1000)
+    data = np.random.default_rng(0).standard_normal((3, 1000))
     raw = RawArray(data, create_info(3, 1000.0, "eeg"))
     ch_pos_dict = {name: pos for name, pos in zip(raw.ch_names, np.eye(3))}
     raw.info.set_montage(make_dig_montage(ch_pos_dict, coord_frame="head"))
@@ -803,7 +804,8 @@ def test_plot_topomap_channel_distance():
     ch_names = ["TP9", "AF7", "AF8", "TP10"]
 
     info = create_info(ch_names, 100, ch_types="eeg")
-    evoked = EvokedArray(np.random.randn(4, 10) * 1e-6, info)
+    rng = np.random.default_rng(0)
+    evoked = EvokedArray(rng.normal(scale=1e-6, size=(4, 10)), info)
     ten_five = make_standard_montage("colin27_1005")
     evoked.set_montage(ten_five)
 
@@ -812,7 +814,7 @@ def test_plot_topomap_channel_distance():
 
 def test_plot_topomap_bads_grad():
     """Test plotting topomap with bad gradiometer channels (gh-8802)."""
-    data = np.random.RandomState(0).randn(203)
+    data = np.random.default_rng(0).standard_normal(203)
     info = read_info(evoked_fname)
     info["bads"] = ["MEG 2242"]
     picks = pick_types(info, meg="grad")
@@ -1004,7 +1006,7 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
         fnirs_epochs.info["highpass"] = 1.0
     fnirs_epochs.baseline = None
 
-    ica = ICA().fit(fnirs_epochs)
+    ica = ICA(random_state=0).fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
 

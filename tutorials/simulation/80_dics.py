@@ -46,7 +46,7 @@ cov_fname = meg_path / "sample_audvis-cov.fif"
 fwd = mne.read_forward_solution(fwd_fname)
 
 # Seed for the random number generator
-rand = np.random.RandomState(42)
+rand = np.random.default_rng(42)
 
 # %%
 # Data simulation
@@ -81,12 +81,12 @@ def coh_signal_gen():
         * np.pi
         * (
             base_freq * np.arange(n_times) / sfreq
-            + np.cumsum(t_rand * rand.randn(n_times))
+            + np.cumsum(rand.normal(scale=t_rand, size=n_times))
         )
     )
 
     # Add some random fluctuations to the signal.
-    signal += std * rand.randn(n_times)
+    signal += rand.normal(scale=std, size=n_times)
 
     # Scale the signal to be in the right order of magnitude (~100 nAm)
     # for MEG data.

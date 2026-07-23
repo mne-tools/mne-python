@@ -30,7 +30,7 @@ subjects_dir = data_path / "subjects"
 fname_mri = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
 aseg_fname = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 
 @testing.requires_testing_data
@@ -113,8 +113,8 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     pytest.importorskip("nibabel")
     n_check = 1000
     subject = "sample"
-    vertices = rng.randint(0, 100000, n_check)
-    hemis = rng.randint(0, 1, n_check)
+    vertices = rng.integers(0, 100000, n_check)
+    hemis = rng.integers(0, 1, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     read_mri = mne._freesurfer._read_mri_info
     monkeypatch.setattr(

@@ -44,8 +44,8 @@ info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 n_times = 1024  # Just over 1 second epochs
 n_epochs = 40
 seed = 42
-rng = np.random.RandomState(seed)
-data = rng.randn(len(ch_names), n_times * n_epochs + 200)  # buffer
+rng = np.random.default_rng(seed)
+data = rng.standard_normal((len(ch_names), n_times * n_epochs + 200))  # buffer
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
 t = np.arange(n_times, dtype=np.float64) / sfreq

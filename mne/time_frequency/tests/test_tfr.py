@@ -464,8 +464,8 @@ def test_tfr_multitaper():
     n_times = int(sfreq)  # Second long epochs
     n_epochs = 3
     seed = 42
-    rng = np.random.RandomState(seed)
-    noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
+    rng = np.random.default_rng(seed)
+    noise = rng.normal(scale=0.1, size=(n_epochs, len(ch_names), n_times))
     t = np.arange(n_times, dtype=np.float64) / sfreq
     signal = np.sin(np.pi * 2.0 * 50.0 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # Hard windowing
@@ -892,12 +892,13 @@ def test_plot_multitaper_complex_phase(output):
     """Test TFR plotting of data with a taper dimension."""
     # Create example data with a taper dimension
     n_chans, n_tapers, n_freqs, n_times = (3, 4, 2, 3)
-    data = np.random.rand(n_chans, n_tapers, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_chans, n_tapers, n_freqs, n_times))
     if output == "complex":
-        data = data + np.random.rand(*data.shape) * 1j  # add imaginary data
+        data = data + rng.random(data.shape) * 1j  # add imaginary data
     times = np.arange(n_times)
     freqs = np.arange(n_freqs)
-    weights = np.random.rand(n_tapers, n_freqs)
+    weights = rng.random((n_tapers, n_freqs))
     info = mne.create_info(n_chans, 1000.0, "eeg")
     tfr = AverageTFRArray(
         info=info, data=data, times=times, freqs=freqs, weights=weights
@@ -1350,7 +1351,8 @@ def test_to_data_frame():
     n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_epos, n_picks, n_tapers, n_freqs, n_times))
     times = np.arange(n_times)
     srate = 1000.0
     freqs = np.arange(n_freqs)
@@ -1463,7 +1465,8 @@ def test_to_data_frame_index(index):
     n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_epos, n_picks, n_tapers, n_freqs, n_times))
     times = np.arange(n_times)
     freqs = np.arange(n_freqs)
     weights = np.ones((n_tapers, n_freqs))
@@ -1502,7 +1505,8 @@ def test_to_data_frame_time_format(time_format):
     ch_types = ["eeg"] * n_picks
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_epos, n_picks, n_freqs, n_times))
     times = np.arange(6, dtype=float)
     freqs = np.arange(5)
     events = np.zeros((n_epos, 3), dtype=int)
@@ -1674,10 +1678,11 @@ def test_tfrarray_tapered_spectra(obj_type):
     data_shape = (n_chans, n_tapers, n_freqs, n_times)
     if obj_type == "epochs":
         data_shape = (n_epochs,) + data_shape
-    data = np.random.rand(*data_shape)
+    rng = np.random.default_rng(0)
+    data = rng.random(data_shape)
     times = np.arange(n_times)
     freqs = np.arange(n_freqs)
-    weights = np.random.rand(n_tapers, n_freqs)
+    weights = rng.random((n_tapers, n_freqs))
     info = mne.create_info(n_chans, 1000.0, "eeg")
     # Prepare for TFRArray object instantiation
     defaults = dict(info=info, data=data, times=times, freqs=freqs)

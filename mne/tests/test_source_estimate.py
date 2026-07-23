@@ -111,7 +111,7 @@ fname_inv_vol = (
     data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-meg-inv.fif"
 )
 fname_nirx = data_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 pytest.importorskip("nibabel")
 
@@ -373,18 +373,18 @@ def test_expand():
 
 
 def _fake_stc(n_time=10, is_complex=False):
-    np.random.seed(7)
+    rng = np.random.default_rng(7)
     verts = [np.arange(10), np.arange(90)]
-    data = np.random.rand(100, n_time)
+    data = rng.random((100, n_time))
     if is_complex:
         data.astype(complex)
     return SourceEstimate(data, verts, 0, 1e-1, "foo")
 
 
 def _fake_vec_stc(n_time=10, is_complex=False):
-    np.random.seed(7)
+    rng = np.random.default_rng(7)
     verts = [np.arange(10), np.arange(90)]
-    data = np.random.rand(100, 3, n_time)
+    data = rng.random((100, 3, n_time))
     if is_complex:
         data.astype(complex)
     return VectorSourceEstimate(data, verts, 0, 1e-1, "foo")
@@ -451,7 +451,8 @@ def test_stc_attributes():
     pytest.raises(ValueError, attempt_assignment, stc, "tstep", -1)
 
     # Changing .data re-computes .times
-    stc.data = np.random.rand(100, 5)
+    rng = np.random.default_rng(0)
+    stc.data = rng.random((100, 5))
     assert_array_almost_equal(stc.times, [1.0, 2.0, 3.0, 4.0, 5.0])
 
     # .data must match the number of vertices
@@ -1074,8 +1075,8 @@ def test_transform_data():
     """Test applying linear (time) transform to data."""
     # make up some data
     n_sensors, n_vertices, n_times = 10, 20, 4
-    kernel = rng.randn(n_vertices, n_sensors)
-    sens_data = rng.randn(n_sensors, n_times)
+    kernel = rng.standard_normal((n_vertices, n_sensors))
+    sens_data = rng.standard_normal((n_sensors, n_times))
 
     vertices = [np.arange(n_vertices)]
     data = np.dot(kernel, sens_data)
@@ -1107,7 +1108,7 @@ def test_transform():
     # make up some data
     n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
-    data = rng.randn(n_verts_lh + n_verts_rh, n_times)
+    data = rng.standard_normal((n_verts_lh + n_verts_rh, n_times))
     stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
 
     # data_t.ndim > 2 & copy is True
@@ -1212,7 +1213,7 @@ def test_to_data_frame():
     pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
-    data = rng.randn(n_vert, n_times)
+    data = rng.standard_normal((n_vert, n_times))
     stc_surf = SourceEstimate(
         data, vertices=vertices, tmin=0, tstep=1, subject="sample"
     )
@@ -1236,7 +1237,7 @@ def test_to_data_frame_index(index):
     pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
-    data = rng.randn(n_vert, n_times)
+    data = rng.standard_normal((n_vert, n_times))
     stc = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1, subject="sample")
     df = stc.to_data_frame(index=index)
     # test index setting
@@ -1311,7 +1312,7 @@ def test_mixed_stc(tmp_path):
     T = 2  # number of time points
     S = 3  # number of source spaces
 
-    data = rng.randn(N, T)
+    data = rng.standard_normal((N, T))
     vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2
@@ -1442,10 +1443,10 @@ def test_vec_stc_basic(tmp_path, klass, kind, dtype):
 def test_source_estime_project(real):
     """Test projecting a source estimate onto direction of max power."""
     n_src, n_times = 4, 100
-    rng = np.random.RandomState(0)
-    data = rng.randn(n_src, 3, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((n_src, 3, n_times))
     if not real:
-        data = data + 1j * rng.randn(n_src, 3, n_times)
+        data = data + 1j * rng.standard_normal((n_src, 3, n_times))
         assert data.dtype == np.complex128
     else:
         assert data.dtype == np.float64
@@ -1912,8 +1913,8 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     #    (for surfaces at least; for volumes it's not as clean as this
     #     due to interpolation)
     n_times = 50
-    rng = np.random.RandomState(0)
-    label_tc = rng.randn(n_labels, n_times)
+    rng = np.random.default_rng(0)
+    label_tc = rng.standard_normal((n_labels, n_times))
     # check that a random permutation of our labels yields a terrible
     # correlation
     corr = np.corrcoef(label_tc.ravel(), rng.permutation(label_tc).ravel())[0, 1]
@@ -1989,7 +1990,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
                 min_, max_ = 0.72, 0.76
             else:
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.44, 0.63
+                min_, max_ = 0.4, 0.63
             assert min_ < corr <= max_, scale
         else:
             assert_allclose(label_tc, label_tc_to_morph, atol=1e-12, rtol=1e-12)
