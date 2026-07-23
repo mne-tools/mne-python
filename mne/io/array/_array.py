@@ -4,8 +4,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from typing import Literal
+
 import numpy as np
 
+from ..._fiff.meas_info import Info
 from ...utils import _check_option, _validate_type, fill_doc, logger, verbose
 from ..base import BaseRaw
 
@@ -51,7 +54,14 @@ class RawArray(BaseRaw):
     """
 
     @verbose
-    def __init__(self, data, info, first_samp=0, copy="auto", verbose=None):
+    def __init__(
+        self,
+        data: np.ndarray,
+        info: Info,
+        first_samp: int = 0,
+        copy: Literal["data", "info", "both", "auto"] | None = "auto",
+        verbose: bool | str | int | None = None,
+    ):
         _validate_type(info, "info", "info")
         _check_option("copy", copy, ("data", "info", "both", "auto", None))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64

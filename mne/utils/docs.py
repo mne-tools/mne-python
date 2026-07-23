@@ -809,7 +809,7 @@ clim : str | dict
 """
 
 _cmap_template = """
-cmap : matplotlib colormap | str{allowed}
+cmap : str | matplotlib.colors.Colormap{allowed}
         The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
         valid Matplotlib colormap name. Default is {default}.
 """
@@ -821,7 +821,7 @@ docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
 docdict["cmap_topomap"] = """\
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
     interactive mode the colors are adjustable by clicking and dragging the
@@ -838,7 +838,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 """
 
 docdict["cmap_topomap_simple"] = """
-cmap : matplotlib colormap | None
+cmap : str | matplotlib.colors.Colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """

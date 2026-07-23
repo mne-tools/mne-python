@@ -8,13 +8,15 @@ from pathlib import Path
 import numpy as np
 
 from ..._fiff.meas_info import create_info
-from ...evoked import EvokedArray
+from ...evoked import Evoked, EvokedArray
 from ...utils import fill_doc, logger, verbose
 
 
 @fill_doc
 @verbose
-def read_evoked_besa(fname, verbose=None):
+def read_evoked_besa(
+    fname: Path | str, verbose: bool | str | int | None = None
+) -> Evoked:
     """Reader function for BESA ``.avr`` or ``.mul`` files.
 
     When a ``.elp`` sidecar file is present, it will be used to determine

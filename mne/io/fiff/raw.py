@@ -29,6 +29,7 @@ from ...utils import (
     verbose,
     warn,
 )
+from ...utils._typing import FileLike, Self
 from ..base import (
     BaseRaw,
     _check_maxshield,
@@ -92,11 +93,11 @@ class Raw(BaseRaw):
     @verbose
     def __init__(
         self,
-        fname,
-        allow_maxshield=False,
-        preload=False,
-        on_split_missing="raise",
-        verbose=None,
+        fname: Path | str | FileLike | None,
+        allow_maxshield: bool | str = False,
+        preload: bool | str = False,
+        on_split_missing: str = "raise",
+        verbose: bool | str | int | None = None,
     ):
         raws = []
         do_check_ext = not _file_like(fname)
@@ -449,7 +450,7 @@ class Raw(BaseRaw):
                 )
             assert offset == stop - start
 
-    def fix_mag_coil_types(self):
+    def fix_mag_coil_types(self) -> Self:
         """Fix Elekta magnetometer coil types.
 
         Returns
@@ -501,7 +502,11 @@ def _check_entry(first, nent):
 
 @fill_doc
 def read_raw_fif(
-    fname, allow_maxshield=False, preload=False, on_split_missing="raise", verbose=None
+    fname: Path | str | FileLike,
+    allow_maxshield: bool | str = False,
+    preload: bool | str = False,
+    on_split_missing: str = "raise",
+    verbose: bool | str | int | None = None,
 ) -> Raw:
     """Reader function for Raw FIF data.
 

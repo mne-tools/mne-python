@@ -12,6 +12,7 @@ from math import cos, sin
 from os import SEEK_CUR, PathLike
 from os import path as op
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -911,20 +912,20 @@ def _read_name(fid, ch_type=None, n=None):
 
 @fill_doc
 def read_raw_kit(
-    input_fname,
-    mrk=None,
-    elp=None,
-    hsp=None,
-    stim=">",
-    slope="-",
-    stimthresh=1,
-    preload=False,
-    stim_code="binary",
-    allow_unknown_format=False,
-    standardize_names=False,
+    input_fname: Path | str,
+    mrk: Path | str | np.ndarray | list | None = None,
+    elp: Path | str | np.ndarray | None = None,
+    hsp: Path | str | np.ndarray | None = None,
+    stim: list[int] | Literal["<", ">"] | None = ">",
+    slope: Literal["+", "-"] = "-",
+    stimthresh: float | None = 1,
+    preload: bool | str = False,
+    stim_code: Literal["binary", "channel"] = "binary",
+    allow_unknown_format: bool = False,
+    standardize_names: bool = False,
     *,
-    bad_coils=(),
-    verbose=None,
+    bad_coils: np.ndarray | tuple | None = (),
+    verbose: bool | str | int | None = None,
 ) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
 
@@ -986,15 +987,15 @@ def read_raw_kit(
 
 @fill_doc
 def read_epochs_kit(
-    input_fname,
-    events,
-    event_id=None,
-    mrk=None,
-    elp=None,
-    hsp=None,
-    allow_unknown_format=False,
-    standardize_names=False,
-    verbose=None,
+    input_fname: Path | str,
+    events: np.ndarray | Path | str,
+    event_id: int | list[int] | dict | str | list[str] | None = None,
+    mrk: Path | str | np.ndarray | list | None = None,
+    elp: Path | str | np.ndarray | None = None,
+    hsp: Path | str | np.ndarray | None = None,
+    allow_unknown_format: bool = False,
+    standardize_names: bool = False,
+    verbose: bool | str | int | None = None,
 ) -> EpochsKIT:
     """Reader function for Ricoh/KIT epochs files.
 
