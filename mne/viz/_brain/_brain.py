@@ -3111,7 +3111,6 @@ class Brain:
 
             .. versionadded:: 1.13
         """
-
         from ...label import read_labels_from_annot
 
         if (isinstance(annot, tuple) and isinstance(annot[0], np.ndarray)) or (
