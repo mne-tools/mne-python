@@ -262,7 +262,17 @@ jobs:
             python -c "import mne; mne.datasets.lite_data.data_path(update_path=True)"
       # No wheel-building step here: the xeus kernel installs MNE and its
       # dependencies at build time from doc/jupyterlite_environment.yml, so
-      # there is nothing to hand to the browser kernel at runtime.
+      # there is nothing to hand to the browser kernel at runtime. It does need
+      # micromamba though, which jupyterlite-xeus shells out to in order to
+      # solve the emscripten-wasm32 environment; it is not on the image, so
+      # fetch the static binary and put it on PATH for the build below.
+      - run:
+          name: Install micromamba for the JupyterLite xeus kernel
+          command: |
+            curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
+              | tar -xj -C "$HOME" bin/micromamba
+            echo 'export PATH="$HOME/bin:$PATH"' >> "$BASH_ENV"
+            "$HOME/bin/micromamba" --version
       # Build docs
       - run:
           name: make html
