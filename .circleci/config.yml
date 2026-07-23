@@ -279,6 +279,27 @@ jobs:
           command: |  # we have -o pipefail in #BASH_ENV so we should be okay
             set -x
             PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
+      # TEMPORARY EXPERIMENT - revert before this PR leaves draft.
+      # emscripten-forge builds xeus-python with MAXIMUM_MEMORY=2GB while
+      # pyodide ships 4GB, and 10_overview dies with Aborted(OOM) inside
+      # ica.plot_properties. Raise both caps to find out whether that 2 GiB is
+      # the only thing stopping it. This is NOT a fix: the wasm itself was
+      # compiled for a 2 GiB heap, so it is only trustworthy far enough to
+      # answer the question. The real fix is an emscripten-forge rebuild.
+      - run:
+          name: EXPERIMENT raise the xeus wasm heap cap to 4 GiB
+          command: |
+            set -x
+            f=doc/_build/html/lite/xeus/xeus-python/bin/xpython.js
+            test -f "$f"
+            grep -c 'maximum:32768' "$f"
+            grep -c 'getHeapMax=()=>2147483648' "$f"
+            sed -i \
+              -e 's/maximum:32768/maximum:65536/' \
+              -e 's/getHeapMax=()=>2147483648/getHeapMax=()=>4294967296/' \
+              "$f"
+            grep -c 'maximum:65536' "$f"
+            grep -c 'getHeapMax=()=>4294967296' "$f"
       - run:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
