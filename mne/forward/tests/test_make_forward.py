@@ -666,12 +666,14 @@ def test_forward_mixed_source_space(tmp_path):
     """Test making the forward solution for a mixed source space."""
     pytest.importorskip("nibabel")
     # get the surface source space
-    rng = np.random.RandomState(0)
     surf = read_source_spaces(fname_src)
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
-    vol_labels = rng.choice(label_names, 2)
+    # chosen explicitly rather than at random: the first label has no usable
+    # vertices (exercising the warning path below), the second one does
+    vol_labels = ["CC_Mid_Anterior", "Unknown"]
+    assert all(name in label_names for name in vol_labels)
     with pytest.warns(RuntimeWarning, match="Found no usable.*CC_Mid_Ant.*"):
         vol1 = setup_volume_source_space(
             "sample",
@@ -721,7 +723,7 @@ def test_forward_mixed_source_space(tmp_path):
 @testing.requires_testing_data
 def test_make_forward_dipole(tmp_path):
     """Test forward-projecting dipoles."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
 
     evoked = read_evokeds(fname_evo)[0]
     cov = read_cov(fname_cov)
@@ -737,7 +739,10 @@ def test_make_forward_dipole(tmp_path):
     # Make new Dipole object with n_test_dipoles picked from the dipoles
     # in the test dataset.
     n_test_dipoles = 3  # minimum 3 needed to get uneven sampling in time
-    dipsel = np.sort(rng.permutation(np.arange(len(dip_c)))[:n_test_dipoles])
+    # chosen explicitly rather than at random: the tolerances asserted below are
+    # tuned for these particular dipoles
+    dipsel = np.array([1, 6, 8])
+    assert len(dipsel) == n_test_dipoles
     dip_test = Dipole(
         times=dip_c.times[dipsel],
         pos=dip_c.pos[dipsel],
@@ -812,8 +817,8 @@ def test_make_forward_dipole(tmp_path):
     # Now make an evenly sampled set of dipoles, some simultaneous,
     # should return a VolSourceEstimate regardless
     times = [0.0, 0.0, 0.0, 0.001, 0.001, 0.002]
-    pos = np.random.rand(6, 3) * 0.020 + np.array([0.0, 0.0, 0.040])[np.newaxis, :]
-    amplitude = np.random.rand(6) * 100e-9
+    pos = rng.random((6, 3)) * 0.020 + np.array([0.0, 0.0, 0.040])[np.newaxis, :]
+    amplitude = rng.random(6) * 100e-9
     ori = np.eye(6, 3) + np.eye(6, 3, -3)
     gof = np.arange(len(times)) / len(times)  # arbitrary
 

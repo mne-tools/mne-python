@@ -1923,7 +1923,7 @@ def test_find_bad_channels_maxwell(
         # Fake a bad one, otherwise we don't find any
         assert 42 in pick_types(raw.info, meg=True, ref_meg=False)
         assert raw.ch_names[42:43] == want_bads
-        raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
+        raw._data[42] += np.random.default_rng(0).standard_normal(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     if annot:
         # do a problematic one (gh-7741): exactly one "step" unit

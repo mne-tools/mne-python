@@ -25,7 +25,7 @@ def fnirs_evoked():
     ch_names = montage.ch_names
     ch_types = ["eeg"] * 16
     info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
-    evoked_data = np.random.randn(16, 30)
+    evoked_data = np.random.default_rng(0).standard_normal((16, 30))
     evoked = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
     evoked.set_montage(montage)
     evoked.set_channel_types(

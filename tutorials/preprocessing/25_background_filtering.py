@@ -363,8 +363,8 @@ n_onset = int(center * sfreq) - len(blip) // 2
 x[n_onset : n_onset + len(blip)] += blip
 x_orig = x.copy()
 
-rng = np.random.RandomState(0)
-x += rng.randn(len(x)) / 1000.0
+rng = np.random.default_rng(0)
+x += rng.normal(scale=1e-3, size=len(x))
 x += np.sin(2.0 * np.pi * 60.0 * np.arange(len(x)) / sfreq) / 2000.0
 
 # %%

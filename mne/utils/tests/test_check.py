@@ -74,7 +74,7 @@ def test_check(tmp_path):
     # smoke tests for permitted types
     check_random_state(None).choice(1)
     check_random_state(0).choice(1)
-    check_random_state(np.random.RandomState(0)).choice(1)
+    check_random_state(np.random.default_rng(0)).choice(1)
     check_random_state(np.random.default_rng(0)).choice(1)
 
 

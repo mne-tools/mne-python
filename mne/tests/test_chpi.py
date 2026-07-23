@@ -500,7 +500,7 @@ def test_initial_fit_redo():
 def test_fit_chpi_quat_weighted():
     """Test weighted cHPI quaternion fitting (gh-11330)."""
     rng = np.random.default_rng(0)
-    head_rrs = rng.standard_normal((5, 3)) * 0.05
+    head_rrs = rng.normal(scale=0.05, size=(5, 3))
     quat = np.array([0.05, -0.03, 0.02, 0.01, -0.02, 0.03])
     rot = quat_to_rot(quat[:3])
     # device coil positions such that ``rot @ dev + trans == head``

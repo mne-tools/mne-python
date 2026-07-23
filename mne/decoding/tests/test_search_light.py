@@ -32,10 +32,11 @@ NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 def make_data():
     """Make data."""
     n_epochs, n_chan, n_time = 50, 32, 10
-    X = np.random.rand(n_epochs, n_chan, n_time)
+    rng = np.random.default_rng(0)
+    X = rng.random((n_epochs, n_chan, n_time))
     y = np.arange(n_epochs) % 2
     for ii in range(n_time):
-        coef = np.random.randn(n_chan)
+        coef = rng.standard_normal(n_chan)
         X[y == 0, :, ii] += coef
         X[y == 1, :, ii] -= coef
     return X, y
@@ -128,8 +129,8 @@ def test_search_light_basic():
     # Now use string as scoring
     sl1 = SlidingEstimator(logreg, scoring="roc_auc")
     sl1.fit(X, y)
-    rng = np.random.RandomState(0)
-    X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal(X.shape)  # randomize X to avoid AUCs in [0, 1]
     score_sl = sl1.score(X, y)
     assert_array_equal(score_sl.shape, [n_time])
     assert score_sl.dtype == np.dtype(float)
@@ -169,7 +170,7 @@ def test_search_light_basic():
     pipe.predict(X)
 
     # n-dimensional feature space
-    X = np.random.rand(10, 3, 4, 2)
+    X = rng.random((10, 3, 4, 2))
     y = np.arange(10) % 2
     y_preds = list()
     for n_jobs in [1, 2]:
@@ -180,7 +181,7 @@ def test_search_light_basic():
     assert_array_equal(y_preds[0], y_preds[1])
 
     # Bagging classifiers
-    X = np.random.rand(10, 3, 4)
+    X = rng.random((10, 3, 4))
     for n_jobs in (1, 2):
         pipe = SlidingEstimator(BaggingClassifier(None, 2), n_jobs=n_jobs)
         pipe.fit(X, y)
@@ -283,7 +284,8 @@ def test_generalization_light(metadata_routing):
     gl.predict(X[..., [0]])
 
     # n-dimensional feature space
-    X = np.random.rand(10, 3, 4, 2)
+    rng = np.random.default_rng(0)
+    X = rng.random((10, 3, 4, 2))
     y = np.arange(10) % 2
     y_preds = list()
     for n_jobs in [1, 2]:
@@ -310,9 +312,9 @@ def test_generalization_light(metadata_routing):
 def test_gl_score_branches(scoring, est_name, method):
     """Test _gl_score against its own can_batch=False nested-loop fallback."""
     n_trials, n_sensors, n_iter = 12, 3, 4
-    rng = np.random.RandomState(0)
-    X = rng.randn(n_trials, n_sensors, n_iter)
-    y = rng.randint(0, 3 if scoring == "roc_auc_multiclass" else 2, n_trials)
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((n_trials, n_sensors, n_iter))
+    y = rng.integers(0, 3 if scoring == "roc_auc_multiclass" else 2, n_trials)
     per_slice = scoring in ("neg_log_loss", "roc_auc_multiclass", "accuracy_kwargs")
     # liblinear is binary-only, switch to lbfgs for the multi-class case.
     solver = "lbfgs" if scoring == "roc_auc_multiclass" else "liblinear"
@@ -391,9 +393,9 @@ def test_verbose_arg(capsys, n_jobs, verbose):
 
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    rng = np.random.RandomState(42)
-    X = rng.randn(10, 1, 3)
-    y = rng.randint(0, 2, 10)
+    rng = np.random.default_rng(42)
+    X = rng.standard_normal((10, 1, 3))
+    y = rng.integers(0, 2, 10)
 
     estimator = SlidingEstimator(LinearRegression())
     cross_val_predict(estimator, X, y, cv=2)

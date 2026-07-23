@@ -26,7 +26,7 @@ skip_fname = data_path / "misc" / "intervalrecording_raw.fif"
 def test_annotate_amplitude(meas_date, first_samp):
     """Test automatic annotation for segments based on peak-to-peak value."""
     n_ch, n_times = 11, 1000
-    data = np.random.RandomState(0).randn(n_ch, n_times)
+    data = np.random.default_rng(0).standard_normal((n_ch, n_times))
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000.0, "eeg")
     # from annotate_flat: test first_samp != for gh-6295
@@ -136,7 +136,7 @@ def test_annotate_amplitude(meas_date, first_samp):
 def test_annotate_amplitude_with_overlap(meas_date, first_samp):
     """Test cases with overlap between annotations."""
     n_ch, n_times = 11, 1000
-    data = np.random.RandomState(0).randn(n_ch, n_times)
+    data = np.random.default_rng(0).standard_normal((n_ch, n_times))
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000.0, "eeg")
     # from annotate_flat: test first_samp != for gh-6295
@@ -187,7 +187,7 @@ def test_annotate_amplitude_with_overlap(meas_date, first_samp):
 def test_annotate_amplitude_multiple_ch_types(meas_date, first_samp):
     """Test cases with several channel types."""
     n_ch, n_times = 11, 1000
-    data = np.random.RandomState(0).randn(n_ch, n_times)
+    data = np.random.default_rng(0).standard_normal((n_ch, n_times))
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(
         n_ch, 1000.0, ["eeg"] * 3 + ["mag"] * 2 + ["grad"] * 4 + ["eeg"] * 2
@@ -254,7 +254,7 @@ def test_flat_bad_acq_skip():
 
     # -- overlap of flat segment with bad_acq_skip --
     n_ch, n_times = 11, 1000
-    data = np.random.RandomState(0).randn(n_ch, n_times)
+    data = np.random.default_rng(0).standard_normal((n_ch, n_times))
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000.0, "eeg")
     raw = RawArray(data, info, first_samp=0)
@@ -315,7 +315,7 @@ def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
 def test_invalid_arguments():
     """Test error messages raised by invalid arguments."""
     n_ch, n_times = 2, 100
-    data = np.random.RandomState(0).randn(n_ch, n_times)
+    data = np.random.default_rng(0).standard_normal((n_ch, n_times))
     info = create_info(n_ch, 100.0, "eeg")
     raw = RawArray(data, info, first_samp=0)
 

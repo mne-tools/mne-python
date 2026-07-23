@@ -289,6 +289,7 @@ report.save("report_projs.html", overwrite=True)
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
     fit_params=dict(tol=0.01),  # assume very early on that ICA has converged
+    random_state=97,
 )
 
 ica.fit(inst=raw)

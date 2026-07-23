@@ -141,7 +141,8 @@ def test_annot_sanitizing(tmp_path):
 
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
-    data = np.random.randn(2, 1000) * 10e-12
+    rng = np.random.default_rng(0)
+    data = rng.normal(scale=10e-12, size=(2, 1000))
     sfreq = 100.0
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types=["grad"] * 2, sfreq=sfreq)
     meas_date = _handle_meas_date(np.pi)
@@ -341,7 +342,7 @@ def test_events_from_annotation_orig_time_none():
     """Tests events_from_annotation with orig_time None and first_sampe > 0."""
     # Create fake data
     sfreq, duration_s = 100, 10
-    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    data = np.random.default_rng(42).standard_normal((1, sfreq * duration_s))
     info = mne.create_info(ch_names=["EEG1"], ch_types=["eeg"], sfreq=sfreq)
     raw = mne.io.RawArray(data, info)
 
@@ -368,7 +369,7 @@ def test_events_from_annotation_orig_time_none():
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
-    raw._data[:] = np.random.RandomState(0).randn(*raw._data.shape)
+    raw._data[:] = np.random.default_rng(0).standard_normal(raw._data.shape)
     onset = np.array([0.47058824, 2.49773765, 6.67873287, 9.15837097])
     duration = np.array([0.89592767, 1.13574672, 1.09954739, 0.48868752])
     annotations = mne.Annotations(onset, duration, "BAD")
@@ -1395,7 +1396,8 @@ def test_date_none(tmp_path):
     # Regression test for gh-5908
     n_chans = 139
     n_samps = 20
-    data = np.random.random_sample((n_chans, n_samps))
+    rng = np.random.default_rng(0)
+    data = rng.random((n_chans, n_samps))
     ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
@@ -1956,7 +1958,7 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     sfreq = 1000.0
     info = mne.create_info(1, sfreq, "eeg")
     raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(1, 3000), info, first_samp=first_samp
+        np.random.default_rng(0).standard_normal((1, 3000)), info, first_samp=first_samp
     )
     raw.set_meas_date(meas_date)
     onset = np.array([0, 1, 2], float)
