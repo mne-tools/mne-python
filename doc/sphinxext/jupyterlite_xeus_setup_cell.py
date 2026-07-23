@@ -332,6 +332,12 @@ def _lite_stc_plot(self, *_a, **_kw):
             _ti = int(_np.argmax(_np.abs(self.data).mean(0)))
         else:
             _ti = int(_np.argmin(_np.abs(self.times - _init)))
+        # Honour hemi (MNE defaults to 'lh'). This matters for memory as
+        # much as for correctness: pyvista-js serialises every mesh to JSON
+        # via .tolist(), which turns ~7 MB of surface into ~70 MB of Python
+        # floats + text, so rendering a hemisphere nobody asked for is the
+        # single most expensive mistake we can make under the 2 GiB cap.
+        _hemi = _kw.get('hemi', 'lh')
         _hot = _cmaps['hot']
         _N = 10
         # xeus-python's WASM heap is capped at 2 GiB (see bin/xpython.js:
@@ -365,6 +371,8 @@ def _lite_stc_plot(self, *_a, **_kw):
         _nlh = len(self.vertices[0])
         _hemis = (('lh', 0, self.vertices[0]),
                   ('rh', 1, self.vertices[1]))
+        if _hemi in ('lh', 'rh'):
+            _hemis = tuple(_x for _x in _hemis if _x[0] == _hemi)
         for _h, _hi, _vno in _hemis:
             if len(_vno) == 0:
                 continue
@@ -389,8 +397,9 @@ def _lite_stc_plot(self, *_a, **_kw):
                 # the tree and its query results are the largest temporaries
                 # here; drop them before building any meshes
                 del _atree, _ad, _ai
-            # offset hemispheres along x so they do not overlap
-            _off = -60.0 if _h == 'lh' else 60.0
+            # offset hemispheres along x so they do not overlap; a single
+            # hemisphere stays centred
+            _off = 0.0 if len(_hemis) == 1 else (-60.0 if _h == 'lh' else 60.0)
             _pts = _np.round(_rr, 2).astype(_np.float32, copy=False)
             _pts[:, 0] = _pts[:, 0] + _off
             _cen = _pts.mean(0)
