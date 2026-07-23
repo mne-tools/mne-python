@@ -3131,6 +3131,7 @@ class Brain:
                 remove_existing=remove_existing,
                 color=color,
             )
+            return
 
         _validate_type(annot, ("path-like", str, list), "annot")
 
@@ -3154,7 +3155,7 @@ class Brain:
                 labels = [label for label in annot if label.hemi == hemi]
                 name = "annotation"  # placeholder name for the annotation
             n_labels = len(labels)
-            ids = -1 * np.ones(self.geo[hemi].coords.shape[0], dtype=int)
+            ids = np.full(self.geo[hemi].coords.shape[0], -1, dtype=int)
             cmap = np.zeros((len(labels) + 1, 4))
             cmap[:, 3] = 1
             cmap[0] = np.array(self._brain_color)
