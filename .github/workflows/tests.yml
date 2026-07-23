@@ -131,7 +131,7 @@ jobs:
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
       - name: Check 'old' CI environment
-        uses: mne-tools/mne-tools/actions/check-environment@main
+        uses: tsbinns/mne-tools/actions/check-environment@tools-actions
         with:
           project-root: ${{ github.workspace }}
           groups: lockfile_extras
@@ -146,7 +146,8 @@ jobs:
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
       - name: Get Python env root
-        run: echo "PYTHON_ENV_ROOT=$(dirname $(dirname $(which python)))" | tee -a $GITHUB_ENV
+        run: |
+          echo "PYTHON_ENV_ROOT=$(python -c 'import pathlib, sys; print(pathlib.Path(sys.executable).resolve().parent.parent)')" >> "$GITHUB_ENV"
       - name: Check Qt import
         uses: tsbinns/mne-tools/actions/check-qt-import@tools-actions
         with:
