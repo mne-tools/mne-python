@@ -145,12 +145,10 @@ jobs:
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
-      # Check Qt
-      - run: |
-          set -xeo pipefail
-          curl https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh -o check_qt_import.sh
-          chmod +x check_qt_import.sh
-          ./check_qt_import.sh $MNE_QT_BACKEND
+      - name: Check Qt import
+        uses: tsbinns/mne-tools/actions/check-qt-import@tools-actions
+        with:
+          qt-backend: ${{ env.MNE_QT_BACKEND }}
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/
