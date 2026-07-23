@@ -137,6 +137,8 @@ def test_import_nesting_hierarchy():
             super().generic_visit(node)
 
         def visit_If(self, node):
+            # The capital "I" is intentional: ``ast.NodeVisitor`` dispatches on the
+            # node class name (``ast.If``), so the method must be ``visit_If``.
             # Imports guarded by ``if TYPE_CHECKING:`` never execute at runtime,
             # so they are exempt from the import-nesting hierarchy.
             test = node.test

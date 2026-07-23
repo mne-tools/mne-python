@@ -458,23 +458,26 @@ def _type_atoms(type_str):
     s = type_str.replace("``", "").replace("`", "")  # drop reST inline literals
     s = re.sub(r":\w+:", "", s)  # drop sphinx roles, e.g. :class:
     s = s.replace("~", "")  # drop the sphinx "abbreviate" marker
+    # TODO: neither ``default X`` nor ``optional`` belongs in a numpydoc *type* --
+    # MNE style puts the default in the parameter description prose instead. Drop
+    # these three normalizations to find (and then fix) the docstrings doing it.
     s = re.sub(r"\s*\(\s*default[^)]*\)", "", s, flags=re.I)  # (default X)
     s = re.sub(r"\s*,\s*default[:=]?\s*[^,|]+", "", s, flags=re.I)  # , default X
     s = re.sub(r"\s*,?\s*optional\b", "", s, flags=re.I)  # , optional
     s = re.sub(r"\binstance of\b", "", s)
     s = re.sub(r",?\s*(?:of )?shape\s*\(?[^)|]*\)?", "", s)  # shape (n, m) suffixes
     s = re.sub(r"\btuple of length \d+\b", "tuple", s, flags=re.I)
-    s = re.sub(
-        r"\b(list|tuple|dict|set) of [\w.]+", r"\1", s, flags=re.I
-    )  # list of X -> list
+    s = re.sub(  # list of X -> list ("X" may be hyphenated, e.g. "list of path-like")
+        r"\b(list|tuple|dict|set) of [\w.-]+", r"\1", s, flags=re.I
+    )
     s = re.sub(r"\barray(?:-?like)?\s+of\s+\w+", "array", s, flags=re.I)
     s = re.sub(r"\barray-?like\b", "array", s, flags=re.I)
     s = re.sub(  # textual Literal["a", "b"] (from string annotations) -> a | b
-        r"\bLiteral\[([^\]]*)\]", lambda m: m.group(1).replace(",", "|"), s
+        r"\bLiteral\[([^\]]*)\]", lambda m: m.group(1).replace(",", " | "), s
     )
     s = re.sub(
-        r"\{([^}]*)\}", lambda m: m.group(1).replace(",", "|"), s
-    )  # {a, b} -> a|b
+        r"\{([^}]*)\}", lambda m: m.group(1).replace(",", " | "), s
+    )  # {a, b} -> a | b
     s = s.replace(" or ", "|")
     atoms = set()
     for part in _split_union(s):
@@ -492,6 +495,8 @@ def _type_atoms(type_str):
             atoms |= _PSEUDO_ALIAS_ATOMS[low]
         elif low in ("path-like", "pathlike", "path_like"):
             atoms |= {"path", "str"}
+        elif low == "list-like":
+            atoms |= {"list", "array"}
         elif "array" in low or low == "ndarray":
             atoms.add("array")
         elif low == "class":  # the ``class`` pseudo-type is a Python ``type`` object
@@ -502,8 +507,32 @@ def _type_atoms(type_str):
 
 
 def _is_type_like(atom):
-    """Whether a normalized atom looks like a comparable type (not free prose)."""
-    return re.fullmatch(r"[a-z0-9_]+(\[[a-z0-9_,.\s\[\]]*\])?", atom) is not None
+    """Whether a normalized atom is a comparable type/value rather than free prose.
+
+    A single token (``int``, ``'+'``, ``'mm/dd/yy'``) can be compared; anything
+    with an internal space ("matplotlib colormap", "Raw object") is prose.
+    """
+    return bool(atom) and not re.search(r"\s", atom)
+
+
+# Malformed numpydoc types (comma-unions, prose, parenthesized sub-unions) that
+# can't be compared to annotations. The test fails on both unlisted prose and stale
+# entries, so this can only shrink.
+# TODO: whittle down by fixing the docstrings.
+unparseable_docstring_types = {
+    "Evoked instance, or list of Evoked instances",
+    "None | colormap | (colormap, bool) | 'interactive'",
+    "Raw object",
+    "bool, str, or None (default None)",
+    "instance of matplotlib Axes | None",
+    "list of (int | str) | tuple of (int | str)",
+    "list of (int | str) | tuple of (int | str) | ``'auto'``",
+    "list of (n_epochs) list (of n_channels) | None",
+    "list of Axes | dict of list of Axes | None",
+    "list, or Raw instance",
+    "matplotlib colormap | (colormap, bool) | 'interactive'",
+    "str, {'power', 'amplitude'}",
+}
 
 
 _PSEUDO_ALIAS_ATOMS.update(
@@ -514,10 +543,11 @@ _PSEUDO_ALIAS_ATOMS.update(
 )
 
 
-def _check_type_hints(func, *, cls, incorrect):
-    """Compare a callable's type hints against its numpydoc docstring types."""
+def _check_type_hints(func, *, cls):
+    """Compare type hints against docstring types; return (errors, allowlist hits)."""
     from numpydoc.docscrape import FunctionDoc
 
+    incorrect, allowed = [], set()
     name = _func_name(func, cls)
     sig = inspect.signature(func)
     doc = FunctionDoc(func)
@@ -549,9 +579,17 @@ def _check_type_hints(func, *, cls, incorrect):
         if _annotation_to_str(annotation) == "Self":
             continue
         doc_atoms = {d.lower() for d in _type_atoms(doc_types[target])}
-        # free-form docstring types (e.g. "matplotlib colormap | (colormap, bool)")
-        # cannot be matched mechanically, so only validate comparable ones
+        # Prose types cannot be matched mechanically. They are docstring bugs, so
+        # only the known (allowlisted) ones are tolerated; anything new is an error.
         if not doc_atoms or not all(_is_type_like(d) for d in doc_atoms):
+            if doc_types[target] in unparseable_docstring_types:
+                allowed.add(doc_types[target])
+            else:
+                incorrect.append(
+                    f"{name} : {target} : docstring type {doc_types[target]!r} is not "
+                    "machine-checkable; fix it to MNE style (``a | b | None``, "
+                    "``instance of X``)"
+                )
             continue
         ann_atoms = {a.lower() for a in _type_atoms(_annotation_to_str(annotation))}
         # The annotation must cover every documented type, but may be broader:
@@ -563,6 +601,7 @@ def _check_type_hints(func, *, cls, incorrect):
                 f"{name} : {target} : type hint "
                 f"{sorted(ann_atoms)} does not cover docstring {sorted(doc_atoms)}"
             )
+    return incorrect, allowed
 
 
 @pytest.mark.slowtest
@@ -572,15 +611,24 @@ def test_type_hints_match_docstrings():
     pytest.importorskip("sphinx")
     pytest.importorskip("sklearn")
 
-    incorrect = []
+    incorrect, allowed = [], set()
     for func, cls in _documented_callables():
-        _check_type_hints(func, cls=cls, incorrect=incorrect)
+        errors, hits = _check_type_hints(func, cls=cls)
+        incorrect.extend(errors)
+        allowed |= hits
 
     incorrect = sorted(set(incorrect))
     if incorrect:
         raise AssertionError(
             f"{len(incorrect)} type hint / docstring mismatch{_pl(incorrect)} "
             f"found:\n" + "\n".join(incorrect)
+        )
+    # keep the allowlist honest: a fixed docstring must be removed from it
+    stale = sorted(unparseable_docstring_types - allowed)
+    if stale:
+        raise AssertionError(
+            f"{len(stale)} entr{'y is' if len(stale) == 1 else 'ies are'} no longer "
+            "needed in unparseable_docstring_types; remove:\n" + "\n".join(stale)
         )
 
 

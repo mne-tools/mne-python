@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..._fiff.meas_info import Info
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _import_pymatreader_funcs
@@ -20,7 +21,7 @@ from .utils import (
 
 
 def read_raw_fieldtrip(
-    fname: Path | str, info: dict | None, data_name: str = "data"
+    fname: Path | str, info: Info | None, data_name: str = "data"
 ) -> RawArray:
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
@@ -38,8 +39,9 @@ def read_raw_fieldtrip(
     ----------
     fname : path-like
         Path and filename of the ``.mat`` file containing the data.
-    info : dict or None
-        The info dict of the raw data file corresponding to the data to import.
+    info : mne.Info | None
+        The :class:`mne.Info` of the raw data file corresponding to the data to
+        import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     data_name : str
@@ -86,7 +88,7 @@ def read_raw_fieldtrip(
 
 def read_epochs_fieldtrip(
     fname: Path | str,
-    info: dict | None,
+    info: Info | None,
     data_name: str = "data",
     trialinfo_column: int = 0,
 ) -> EpochsArray:
@@ -109,8 +111,9 @@ def read_epochs_fieldtrip(
     ----------
     fname : path-like
         Path and filename of the ``.mat`` file containing the data.
-    info : dict or None
-        The info dict of the raw data file corresponding to the data to import.
+    info : mne.Info | None
+        The :class:`mne.Info` of the raw data file corresponding to the data to
+        import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     data_name : str
@@ -149,7 +152,7 @@ def read_epochs_fieldtrip(
 
 def read_evoked_fieldtrip(
     fname: Path | str,
-    info: dict | None,
+    info: Info | None,
     comment: str | None = None,
     data_name: str = "data",
 ) -> "EvokedArray":
@@ -169,8 +172,9 @@ def read_evoked_fieldtrip(
     ----------
     fname : path-like
         Path and filename of the ``.mat`` file containing the data.
-    info : dict or None
-        The info dict of the raw data file corresponding to the data to import.
+    info : mne.Info | None
+        The :class:`mne.Info` of the raw data file corresponding to the data to
+        import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     comment : str
