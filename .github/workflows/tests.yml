@@ -109,6 +109,7 @@ jobs:
         if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
+        id: setup-micromamba
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
@@ -118,6 +119,9 @@ jobs:
             -v
         if: matrix.kind == 'conda'
         timeout-minutes: 20
+      - name: Make conda python available to later steps
+        run: echo "${{ steps.setup-micromamba.outputs.environment-path }}/bin" >> "$GITHUB_PATH"
+        if: matrix.kind == 'conda'
       # Python (if old)
       - uses: astral-sh/setup-uv@v8.3.2
         with:
