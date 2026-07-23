@@ -80,12 +80,12 @@ def test_sourcemorph_consistency():
 @testing.requires_testing_data
 def test_sparse_morph():
     """Test sparse morphing."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices_fs = [
         np.sort(rng.permutation(np.arange(10242))[:4]),
         np.sort(rng.permutation(np.arange(10242))[:6]),
     ]
-    data = rng.randn(10, 1)
+    data = rng.standard_normal((10, 1))
     stc_fs = SourceEstimate(data, vertices_fs, 1, 1, "fsaverage")
     spheres_fs = [
         mne.read_surface(subjects_dir / "fsaverage" / "surf" / f"{hemi}.sphere.reg")[0]
@@ -263,7 +263,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
 
 
 @testing.requires_testing_data
-def test_surface_source_morph_shortcut():
+def test_surface_source_morph_shortcut(subjects_dir_tmp):
     """Test that our shortcut for smooth=0 works."""
     stc = mne.read_source_estimate(fname_smorph)
     morph_identity = compute_source_morph(
@@ -272,7 +272,7 @@ def test_surface_source_morph_shortcut():
         "sample",
         spacing=stc.vertices,
         smooth=0,
-        subjects_dir=subjects_dir,
+        subjects_dir=subjects_dir_tmp,
     )
     stc_back = morph_identity.apply(stc)
     assert_allclose(stc_back.data, stc.data, rtol=1e-4)
@@ -1082,10 +1082,10 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
 
 
 def _rand_affine(rng):
-    quat = rng.randn(3)
+    quat = rng.standard_normal(3)
     quat /= 5 * np.linalg.norm(quat)
     affine = np.eye(4)
-    affine[:3, 3] = rng.randn(3) / 5.0
+    affine[:3, 3] = rng.normal(scale=1 / 5.0, size=3)
     affine[:3, :3] = quat_to_rot(quat)
     return affine
 
@@ -1113,8 +1113,8 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine, order, see
     """Test resampling equivalences."""
     pytest.importorskip("nibabel")
     pytest.importorskip("dipy")
-    rng = np.random.RandomState(seed)
-    from_data = rng.randn(*from_shape)
+    rng = np.random.default_rng(seed)
+    from_data = rng.standard_normal(from_shape)
     is_rand = False
     if isinstance(to_affine, str):
         assert to_affine == "rand"

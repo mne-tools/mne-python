@@ -88,14 +88,14 @@ def test_interp_2pt():
 def test_cola(ndim):
     """Test COLA processing."""
     sfreq = 1000.0
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
 
     def processor(x, *, start, stop):
         return (x / 2.0,)  # halve the signal
 
     for n_total in (999, 1000, 1001):
-        signal = rng.randn(n_total)
-        out = rng.randn(n_total)  # shouldn't matter
+        signal = rng.standard_normal(n_total)
+        out = rng.standard_normal(n_total)  # shouldn't matter
         for _ in range(ndim - 1):
             signal = signal[np.newaxis]
             out = out[np.newaxis]
@@ -122,7 +122,7 @@ def test_cola(ndim):
                         n_input = 0
                         # feed data in an annoying way
                         while n_input < n_total:
-                            next_len = min(rng.randint(1, 30), n_total - n_input)
+                            next_len = min(rng.integers(1, 30), n_total - n_input)
                             cola.feed(signal[..., n_input : n_input + next_len])
                             n_input += next_len
                         assert_allclose(out, signal / 2.0, atol=1e-7)

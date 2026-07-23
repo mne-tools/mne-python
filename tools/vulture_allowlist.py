@@ -50,6 +50,7 @@ _.two_d_array
 _.three_d_array
 _.requires_fit
 _.regressor_tags
+_.__signature__
 
 # report
 _.grab_frame
@@ -168,3 +169,4 @@ _.fake_keypress
 _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
+_show_help_fig

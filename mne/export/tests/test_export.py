@@ -168,7 +168,7 @@ def test_export_raw_eeglab_annotations(tmp_path, tmin):
 
 
 def _create_raw_for_edf_tests(stim_channel_index=None):
-    rng = np.random.RandomState(12345)
+    rng = np.random.default_rng(12345)
     ch_types = [
         "eeg",
         "eeg",
@@ -518,7 +518,7 @@ def test_export_raw_edf(tmp_path, input_path, warning_msg):
 @edfio_mark()
 def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
     """Test writing a Raw instance with empty header fields to EDF."""
-    rng = np.random.RandomState(123456)
+    rng = np.random.default_rng(123456)
 
     ch_types = ["eeg"]
     info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)

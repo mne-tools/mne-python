@@ -95,14 +95,14 @@ def test_iterable():
     trans = None
     sphere = make_sphere_model(head_radius=None, info=raw.info)
     tstep = 1.0 / raw.info["sfreq"]
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices = [np.array([1])]
-    data = rng.randn(1, 2)
+    data = rng.standard_normal((1, 2))
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
     with pytest.raises(ValueError, match="at least three time points"):
         simulate_raw(raw.info, stc, trans, src, sphere, None)
-    data = rng.randn(1, 1000)
+    data = rng.standard_normal((1, 1000))
     n_events = (len(raw.times) - 1) // 1000 + 1
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
@@ -176,7 +176,7 @@ def test_iterable():
 
     # Forward omission
     vertices = [np.array([0, 1])]
-    data = rng.randn(2, 1000)
+    data = rng.standard_normal((2, 1000))
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
     # XXX eventually we should support filtering based on sphere radius, too,
@@ -572,7 +572,7 @@ def test_simulate_raw_chpi():
     # test localization based on cHPI information
     chpi_amplitudes = compute_chpi_amplitudes(raw, t_step_min=10.0)
     coil_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
-    quats_sim = compute_head_pos(raw_chpi.info, coil_locs)
+    quats_sim = compute_head_pos(raw_chpi.info, coil_locs, weighted=False)
     quats = read_head_pos(pos_fname)
     _assert_quats(
         quats, quats_sim, dist_tol=5e-3, angle_tol=3.5, vel_atol=0.03

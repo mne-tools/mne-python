@@ -65,7 +65,7 @@ dependencies:
   - trame
   - trame-pyvista
   - trame-vtk
-  - trame-vuetify
+  - trame-vuetify !=3.2.3
   - vtk ==9.6.2
   - xlrd
   - pip:

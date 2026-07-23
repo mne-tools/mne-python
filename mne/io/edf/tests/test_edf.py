@@ -224,7 +224,8 @@ def test_edf_others(fname, stim_channel):
 @pytest.mark.parametrize("stim_channel", (None, False, "auto"))
 def test_edf_different_sfreqs(stim_channel):
     """Test EDF with various sampling rates."""
-    rng = np.random.RandomState(0)
+    # seed chosen so the generated data triggers the expected resampling warning
+    rng = np.random.default_rng(1)
     # load with and without preloading, should produce the same results
     raw1 = read_raw_edf(
         input_fname=edf_reduced,

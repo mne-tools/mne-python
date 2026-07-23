@@ -206,7 +206,7 @@ def test_label_subject():
 
 def test_label_addition():
     """Test label addition."""
-    pos = np.random.RandomState(0).rand(10, 3)
+    pos = np.random.default_rng(0).random((10, 3))
     values = np.arange(10.0) / 10
     idx0 = list(range(7))
     idx1 = list(range(7, 10))  # non-overlapping
@@ -449,7 +449,7 @@ def test_labels_to_stc():
     """Test labels_to_stc."""
     pytest.importorskip("nibabel")
     labels = read_labels_from_annot("sample", "aparc", subjects_dir=subjects_dir)
-    values = np.random.RandomState(0).randn(len(labels))
+    values = np.random.default_rng(0).standard_normal(len(labels))
     with pytest.raises(ValueError, match="1 or 2 dim"):
         labels_to_stc(labels, values[:, np.newaxis, np.newaxis])
     with pytest.raises(ValueError, match=r"values\.shape"):
@@ -1025,7 +1025,7 @@ def test_random_parcellation():
     n_parcel = 50
     surface = "sphere.reg"
     subject = "sample_ds"
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
 
     # Parcellation
     labels = random_parcellation(

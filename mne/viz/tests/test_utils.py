@@ -30,6 +30,7 @@ from mne.viz.utils import (
     centers_to_edges,
     compare_fiff,
     concatenate_images,
+    plt_show,
 )
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -44,6 +45,24 @@ def test_setup_vmin_vmax_warns():
     expected_msg = r"\(min=0.0, max=1\) range.*minimum of data is -1"
     with pytest.warns(UserWarning, match=expected_msg):
         _setup_vmin_vmax(data=[-1, 0], vmin=None, vmax=None, norm=True)
+
+
+@pytest.mark.parametrize(
+    ("backend", "expected"),
+    (("module://Matplotlib_Inline.backend_inline", "pyplot"), ("QtAgg", "figure")),
+)
+def test_plt_show_backend(monkeypatch, backend, expected):
+    """Test backend-specific show paths."""
+    calls = []
+
+    class Figure:
+        def show(self, **kwargs):
+            calls.append(("figure", kwargs))
+
+    monkeypatch.setattr("matplotlib.get_backend", lambda: backend)
+    monkeypatch.setattr(plt, "show", lambda **kwargs: calls.append(("pyplot", kwargs)))
+    plt_show(fig=Figure(), block=True)
+    assert calls == [(expected, {"block": True})]
 
 
 def test_get_color_list():
@@ -74,7 +93,7 @@ def test_compare_fiff():
 def test_clickable_image():
     """Test the ClickableImage class."""
     # Gen data and create clickable image
-    im = np.random.RandomState(0).randn(100, 100)
+    im = np.random.default_rng(0).standard_normal((100, 100))
     clk = ClickableImage(im)
     clicks = [(12, 8), (46, 48), (10, 24)]
 
@@ -94,11 +113,11 @@ def test_clickable_image():
 
 def test_add_background_image():
     """Test adding background image to a figure."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     for ii in range(2):
         f, axs = plt.subplots(1, 2)
-        x, y = rng.randn(2, 10)
-        im = rng.randn(10, 10)
+        x, y = rng.standard_normal((2, 10))
+        im = rng.standard_normal((10, 10))
         axs[0].scatter(x, y)
         axs[1].scatter(y, x)
         for ax in axs:
@@ -128,7 +147,8 @@ def test_auto_scale():
     """Test auto-scaling of channels for quick plotting."""
     raw = read_raw_fif(raw_fname)
     epochs = Epochs(raw, read_events(ev_fname))
-    rand_data = np.random.randn(10, 100)
+    rng = np.random.default_rng(0)
+    rand_data = rng.standard_normal((10, 100))
     # make a stim channel all zeros (gh 13376)
     ix = raw.get_channel_types().index("stim")
     raw.load_data()

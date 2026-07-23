@@ -1750,7 +1750,10 @@ def _combine_annotations(
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
     ch_names = np.concatenate([one.ch_names, two.ch_names])
-    return Annotations(onset, duration, description, one.orig_time, ch_names)
+    extras = one.extras + two.extras
+    return Annotations(
+        onset, duration, description, one.orig_time, ch_names, extras=extras
+    )
 
 
 def _handle_meas_date(meas_date):

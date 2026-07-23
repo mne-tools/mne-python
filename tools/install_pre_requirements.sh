@@ -6,6 +6,12 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
+# Many deps below are pulled from GitHub/GitLab archives (codeload.github.com),
+# which intermittently stalls mid-download and yields a fatal pip ReadTimeoutError.
+# Give every pip call a longer socket timeout and extra retries so these
+# transient network hiccups don't fail the whole job.
+export PIP_DEFAULT_TIMEOUT=60
+export PIP_RETRIES=10
 STD_ARGS="--progress-bar off --upgrade --pre"
 if [[ "$MNE_QT_BACKEND" == "" ]]; then
 	MNE_QT_BACKEND="PySide6"
@@ -20,23 +26,24 @@ python -m pip install $STD_ARGS pip setuptools packaging \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr \
 	"$MNE_QT_BACKEND!=6.9.1" \
 	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
-	scikit-learn
+	scikit-learn tables
 python -m pip uninstall -yq numpy
 echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
-python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
+python -m pip install $STD_ARGS --only-binary ":all:" \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.5.0.dev0" \
 	"scipy>=1.18.0.dev0" \
 	"pandas>=3.1.0.dev0" \
 	"dipy>=1.12.0.dev0" \
-	"tables>=3.10.3.dev0" \
 	"pyarrow>=22.0.0.dev0" \
 	"matplotlib>=3.11.0.dev0" \
 	"statsmodels>=0.15.0.dev0" \
 	"h5py>=3.13.0"
 # https://github.com/scikit-learn/scikit-learn/issues/34458
 #	"scikit-learn>=1.9.dev0" \
+# https://github.com/PyTables/PyTables/issues/1338
+#	"tables>=3.10.3.dev0" \
 echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
@@ -61,7 +68,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
-	trame trame-vtk trame-vuetify trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
+	trame trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
 	filelock
 echo "::endgroup::"

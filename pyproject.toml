@@ -52,8 +52,10 @@ test = [
   "pytest-qt >= 4.3",
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
+  "pytest-xdist >= 3.6.1",
   "refleak >= 0.2.1",
   "ruff >= 0.1",
+  "threadpoolctl",
   "twine",
   "vulture",
 ]
@@ -191,7 +193,7 @@ full-no-qt = [
   "trame",
   "trame-pyvista",
   "trame-vtk",
-  "trame-vuetify",
+  "trame-vuetify != 3.2.3",
   "vtk >= 9.2",
   "xlrd",
 ]

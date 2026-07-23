@@ -456,7 +456,7 @@ def test_make_fixed_length_events():
     pytest.raises(TypeError, make_fixed_length_events, raw, 23, tmin, tmax, "abc")
 
     # Let's try some ugly sample rate/sample count combos
-    data = np.random.RandomState(0).randn(1, 27768)
+    data = np.random.default_rng(0).standard_normal((1, 27768))
 
     # This breaks unless np.round() is used in make_fixed_length_events
     info = create_info(1, 155.4499969482422)

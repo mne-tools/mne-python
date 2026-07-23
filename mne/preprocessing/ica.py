@@ -2926,7 +2926,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
                         if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
-        for cls in (np.random.RandomState, Covariance):
+        for cls in (np.random.RandomState, np.random.Generator, Covariance):
             if isinstance(value, cls):
                 value = cls.__name__
 

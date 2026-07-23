@@ -165,9 +165,9 @@ def test_ica_simple(method):
     _skip_check_picard(method)
     n_components = 3
     n_samples = 1000
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     S = rng.laplace(size=(n_components, n_samples))
-    A = rng.randn(n_components, n_components)
+    A = rng.standard_normal((n_components, n_components))
     data = np.dot(A, S)
     info = create_info(data.shape[-2], 1000.0, "eeg")
     cov = make_ad_hoc_cov(info)
@@ -222,7 +222,7 @@ def test_warnings():
 @pytest.mark.filterwarnings("ignore:FastICA did not converge.*:UserWarning")
 def test_ica_noop(n_components, n_pca_components, tmp_path):
     """Test that our ICA is stable even with a bad max_pca_components."""
-    data = np.random.RandomState(0).randn(10, 1000)
+    data = np.random.default_rng(0).standard_normal((10, 1000))
     info = create_info(10, 1000.0, "eeg")
     raw = RawArray(data, info)
     raw.set_eeg_reference()
@@ -1290,10 +1290,10 @@ def test_bad_channels(method, allow_ref_meg):
     _skip_check_picard(method)
     chs = list(get_channel_type_constants())
     info = create_info(len(chs), 500, chs)
-    rng = np.random.RandomState(0)
-    data = rng.rand(len(chs), 50)
+    rng = np.random.default_rng(0)
+    data = rng.random((len(chs), 50))
     raw = RawArray(data, info)
-    data = rng.rand(100, len(chs), 50)
+    data = rng.random((100, len(chs), 50))
     epochs = EpochsArray(data, info)
 
     # fake high-pass filtering
@@ -1647,7 +1647,7 @@ def test_read_ica_eeglab_mismatch(tmp_path):
     fname = tmp_path / base
     data = loadmat(fname_orig)
     w = data["EEG"]["icaweights"][0][0]
-    w[:] = np.random.RandomState(0).randn(*w.shape)
+    w[:] = np.random.default_rng(0).standard_normal(w.shape)
     savemat(fname, data, appendmat=False)
     assert fname.is_file()
     with pytest.warns(RuntimeWarning, match="Mismatch.*removal.*icawinv.*"):
@@ -1720,7 +1720,7 @@ def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
 def test_ica_ch_types(ch_type):
     """Test ica with different channel types."""
     # gh-8739
-    data = np.random.RandomState(0).randn(10, 1000)
+    data = np.random.default_rng(0).standard_normal((10, 1000))
     info = create_info(10, 1000.0, ch_type)
     raw = RawArray(data, info)
     events = make_fixed_length_events(raw, 99999, start=0, stop=0.3, duration=0.1)
@@ -1768,7 +1768,7 @@ def test_ica_get_sources_concatenated():
 def test_ica_rejects_nonfinite():
     """ICA.fit should fail early on NaN/Inf in the input data."""
     info = create_info(["Fz", "Cz", "Pz", "Oz"], sfreq=100.0, ch_types="eeg")
-    rng = np.random.RandomState(1)
+    rng = np.random.default_rng(1)
     data = rng.standard_normal(size=(4, 1000))
 
     # Case 1: NaN

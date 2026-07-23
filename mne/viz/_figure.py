@@ -10,6 +10,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
+from contextvars import copy_context
 from copy import deepcopy
 from itertools import cycle
 
@@ -56,6 +57,7 @@ class BrowserBase(ABC):
         from ..preprocessing import ICA
 
         self.backend_name = None
+        self._close_context = copy_context()
 
         self._data = None
         self._times = None
@@ -490,6 +492,13 @@ class BrowserBase(ABC):
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
+        # As specified by PEP 567: https://peps.python.org/pep-0567/#asyncio
+        # we explicitly retain the python Context used to create the figure
+        # in order to route stdout on close within IPykernel. See gh #14077
+        self._close_context.run(self._close_impl, event)
+
+    def _close_impl(self, event=None):
+        """Handle close events in the context that created the browser."""
         from matplotlib.pyplot import close
 
         logger.debug(f"Closing {self.mne.instance_type} browser...")

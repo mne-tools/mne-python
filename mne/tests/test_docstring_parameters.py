@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import ast
 import importlib
 import inspect
 import re
@@ -234,6 +235,69 @@ def test_tabs():
             assert "\t" not in source, (
                 f'"{modname}" has tabs, please remove them or add it to the ignore list'
             )
+
+
+# Use ``np.random.default_rng(seed)`` and its modern methods. The global RNG
+# (``np.random.seed``/``np.random.randn``/...) makes tests order-dependent and
+# flaky, and the legacy ``RandomState`` methods below don't exist on a
+# ``Generator``, so calling them silently locks code to the old bit stream.
+global_rng_ok = ("default_rng", "RandomState", "Generator", "mtrand")
+legacy_rng_methods = {
+    "randn": "standard_normal",
+    "rand": "random",
+    "random_sample": "random",
+    "ranf": "random",
+    "randint": "integers",
+    "random_integers": "integers",
+    "seed": "a local default_rng",
+    "tomaxint": "integers",
+}
+
+
+def _is_np_random(node):
+    """Return whether ``node`` is the ``np.random`` module attribute."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == "random"
+        and isinstance(node.value, ast.Name)
+        and node.value.id in ("np", "numpy")
+    )
+
+
+def test_no_global_rng():
+    """Test that we use local generators and the modern numpy RNG API."""
+    root = pyproject_path.parent  # only available in a dev/editable checkout
+    bad = []
+    for sub in ("mne", "examples", "tutorials"):
+        base = root / sub
+        if not base.is_dir():  # e.g. examples/tutorials absent from a wheel
+            continue
+        for path in sorted(base.rglob("*.py")):
+            rel = path.relative_to(root).as_posix()
+            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
+                # 1. the global RNG: ``np.random.<attr>`` / ``numpy.random.<attr>``
+                if (
+                    isinstance(node, ast.Attribute)
+                    and node.attr not in global_rng_ok
+                    and _is_np_random(node.value)
+                ):
+                    bad.append(
+                        f"{rel}:{node.lineno}: np.random.{node.attr} "
+                        "(use a local np.random.default_rng)"
+                    )
+                # 2. legacy RandomState-only methods, e.g. ``rng.randn(...)``
+                elif (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in legacy_rng_methods
+                    and not _is_np_random(node.func.value)
+                ):
+                    want = legacy_rng_methods[node.func.attr]
+                    bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
+    if bad:
+        raise AssertionError(
+            f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)
+        )
 
 
 documented_ignored_mods = (

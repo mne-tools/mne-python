@@ -48,7 +48,7 @@ def simulate_data(
     Data are simulated in the statistical source space, where n=n_components
     sources contain the peak of interest.
     """
-    rng = np.random.RandomState(random_state)
+    rng = np.random.default_rng(random_state)
 
     filt_params_signal = dict(
         l_freq=freqs_sig[0],
@@ -59,12 +59,12 @@ def simulate_data(
     )
 
     # generate an orthogonal mixin matrix
-    mixing_mat = np.linalg.svd(rng.randn(n_channels, n_channels))[0]
+    mixing_mat = np.linalg.svd(rng.standard_normal((n_channels, n_channels)))[0]
     # define sources
-    S_s = rng.randn(n_trials * n_samples, n_components)
+    S_s = rng.standard_normal((n_trials * n_samples, n_components))
     # filter source in the specific freq. band of interest
     S_s = filter_data(S_s.T, samples_per_second, **filt_params_signal).T
-    S_n = rng.randn(n_trials * n_samples, n_channels - n_components)
+    S_n = rng.standard_normal((n_trials * n_samples, n_channels - n_components))
     S = np.hstack((S_s, S_n))
     # mix data
     X_s = np.dot(mixing_mat[:, :n_components], S_s.T).T
@@ -335,7 +335,7 @@ def test_ssd_pipeline():
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))
     # define bynary random output
-    y = np.random.RandomState(0).randint(2, size=100)
+    y = np.random.default_rng(0).integers(2, size=100)
 
     info = create_info(ch_names=20, sfreq=sf, ch_types="eeg")
 

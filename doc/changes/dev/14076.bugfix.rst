@@ -1,0 +1,1 @@
+Fix figures not being displayed in notebook-style frontends when using a Matplotlib inline backend, by `Mingjian He`_.

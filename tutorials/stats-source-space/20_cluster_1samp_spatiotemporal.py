@@ -5,11 +5,10 @@
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================
 
-This example tests if the evoked response is significantly different between
-two conditions across subjects. Here just for demonstration purposes
-we simulate data from multiple subjects using one subject's data.
-The multiple comparisons problem is addressed with a cluster-level
-permutation test across space and time.
+This example tests if the evoked response is significantly different between two
+conditions across subjects. Here just for demonstration purposes we simulate data from
+multiple subjects using one subject's data. The multiple comparisons problem is
+addressed with a cluster-level permutation test across space and time.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -21,7 +20,6 @@ permutation test across space and time.
 # %%
 
 import numpy as np
-from numpy.random import randn
 from scipy import stats as stats
 
 import mne
@@ -126,8 +124,8 @@ n_subjects = 6
 print(f"Simulating data for {n_subjects} subjects.")
 
 # Let's make sure our results replicate, so set the seed.
-np.random.seed(0)
-X = randn(n_vertices_sample, n_times, n_subjects, 2) * 10
+rng = np.random.default_rng(0)
+X = rng.normal(scale=10, size=(n_vertices_sample, n_times, n_subjects, 2))
 X[:, :, :, 0] += condition1.data[:, :, np.newaxis]
 X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 
@@ -211,6 +209,7 @@ T_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_1samp_test
     n_jobs=None,
     threshold=t_threshold,
     buffer_size=None,
+    seed=0,
     verbose=True,
 )
 

@@ -133,8 +133,8 @@ def _simulate_artinis_octamon():
     This is to test data that is imported with missing or incorrect montage
     info. This data can then be used to test the set_montage function.
     """
-    np.random.seed(42)
-    data = np.absolute(np.random.normal(size=(16, 100)))
+    rng = np.random.default_rng(42)
+    data = np.absolute(rng.normal(size=(16, 100)))
     ch_names = [
         "S1_D1 760",
         "S1_D1 850",
@@ -169,8 +169,8 @@ def _simulate_artinis_brite23():
     This is to test data that is imported with missing or incorrect montage
     info. This data can then be used to test the set_montage function.
     """
-    np.random.seed(0)
-    data = np.random.normal(size=(46, 100))
+    rng = np.random.default_rng(0)
+    data = rng.normal(size=(46, 100))
     sd_names = [
         "S1_D1",
         "S2_D1",
@@ -324,7 +324,8 @@ def test_set_montage_artinis_basic():
     info_new = create_info(
         ["S11_D1 hbo", "S11_D1 hbr"], raw.info["sfreq"], ["hbo", "hbr"]
     )
-    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    rng = np.random.default_rng(0)
+    new = RawArray(rng.normal(size=(2, len(raw))), info_new)
     raw.add_channels([new], force_update_info=True)
     raw.set_montage("artinis-brite23")
 
@@ -333,7 +334,7 @@ def test_set_montage_artinis_basic():
     info_new = create_info(
         ["S12_D7 hbo", "S12_D7 hbr"], raw.info["sfreq"], ["hbo", "hbr"]
     )
-    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    new = RawArray(rng.normal(size=(2, len(raw))), info_new)
     raw.add_channels([new], force_update_info=True)
     with pytest.raises(ValueError, match="not in list"):
         raw.set_montage("artinis-brite23")
@@ -343,7 +344,7 @@ def test_set_montage_artinis_basic():
     info_new = create_info(
         ["S11_D8 hbo", "S11_D8 hbr"], raw.info["sfreq"], ["hbo", "hbr"]
     )
-    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    new = RawArray(rng.normal(size=(2, len(raw))), info_new)
     raw.add_channels([new], force_update_info=True)
     with pytest.raises(ValueError, match="not in list"):
         raw.set_montage("artinis-brite23")

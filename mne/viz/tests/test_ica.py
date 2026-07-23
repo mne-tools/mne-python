@@ -23,7 +23,7 @@ from mne import (
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import _record_warnings, catch_logging
+from mne.utils import _record_warnings, catch_logging, check_version
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
@@ -66,12 +66,29 @@ def _get_epochs():
     return epochs
 
 
+def _trace_click_xy(fig, trace_idx, sample_idx):
+    """Get data-coordinates to click on a browser trace at a given sample."""
+    trace = fig.mne.traces[trace_idx]
+    x = trace.get_xdata()[sample_idx]
+    y = trace.get_ydata()[sample_idx]
+    if hasattr(trace, "mapToScene"):  # pyqtgraph DataTrace (a QGraphicsItem)
+        # can have a per-trace y-scaling transform that get_ydata() alone misses
+        from pyqtgraph import Point
+
+        scene_pt = trace.mapToScene(
+            Point(trace.xData[sample_idx], trace.yData[sample_idx])
+        )
+        view_pt = fig.mne.viewbox.mapSceneToView(scene_pt)
+        x, y = view_pt.x(), view_pt.y()
+    return x, y
+
+
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8, random_state=0)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match="(projection)|(unstable mixing matrix)"):
         ica.fit(raw, picks=ica_picks)
@@ -81,6 +98,19 @@ def test_plot_ica_components():
             components, image_interp="cubic", colorbar=True, **fast_test
         )
     plt.close("all")
+
+    # TODO VERSION: non-GUI get_window_title() always returned "image" before
+    # matplotlib 3.10.3; simplify once that's the minimum supported version (currently
+    # the "old" job pins matplotlib 3.9.0)
+    if check_version("matplotlib", "3.10.3"):
+        # window title shows the component range when picks are contiguous
+        fig = ica.plot_components(None, **fast_test)
+        assert fig.canvas.manager.get_window_title() == "Independent Components (0-7)"
+        fig = ica.plot_components([3], **fast_test)  # single component
+        assert fig.canvas.manager.get_window_title() == "Independent Components (3)"
+        fig = ica.plot_components([0, 1] * 2, **fast_test)  # not contiguous
+        assert fig.canvas.manager.get_window_title() == "Independent Components"
+        plt.close("all")
 
     # test interactive mode (passing 'inst' arg)
     with catch_logging() as log:
@@ -334,7 +364,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica_picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )
-    ica = ICA(n_components=2)
+    ica = ICA(n_components=2, random_state=0)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     if sys.platform == "darwin":  # unknown transformation bug
@@ -346,8 +376,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     fig._redraw()
     assert_array_equal(ica.exclude, [1])
     assert fig.mne.info["bads"] == [ica._ica_names[1]]
-    x = fig.mne.traces[1].get_xdata()[5]
-    y = fig.mne.traces[1].get_ydata()[5]
+    x, y = _trace_click_xy(fig, 1, 5)
     fig._fake_click((x, y), xform="data")  # exclude = []
     assert fig.mne.info["bads"] == []
     assert_array_equal(ica.exclude, [1])  # unchanged
@@ -504,6 +533,7 @@ def test_plot_ica_overlay():
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(
         n_components=2,
+        random_state=0,
     )
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match="longer than"):
@@ -522,7 +552,7 @@ def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -560,7 +590,7 @@ def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]

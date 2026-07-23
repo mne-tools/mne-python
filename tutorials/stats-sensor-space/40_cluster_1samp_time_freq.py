@@ -208,6 +208,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_1samp_test(
     tail=tail,
     adjacency=adjacency,
     out_type="mask",
+    seed=0,
     verbose=True,
 )
 

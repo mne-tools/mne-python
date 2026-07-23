@@ -134,7 +134,7 @@ def _get_dig_montage_pos(montage):
 
 def test_dig_montage_trans(tmp_path):
     """Test getting a trans from and applying a trans to a montage."""
-    nasion, lpa, rpa, *ch_pos = np.random.RandomState(0).randn(10, 3)
+    nasion, lpa, rpa, *ch_pos = np.random.default_rng(0).standard_normal((10, 3))
     ch_pos = {f"EEG{ii:3d}": pos for ii, pos in enumerate(ch_pos, 1)}
     montage = make_dig_montage(
         ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame="mri"
@@ -704,7 +704,10 @@ def test_read_dig_montage_using_polhemus_fastscan():
     montage = make_dig_montage(
         # EEG_CH
         ch_pos=dict(
-            zip(ascii_lowercase[:N_EEG_CH], np.random.RandomState(0).rand(N_EEG_CH, 3))
+            zip(
+                ascii_lowercase[:N_EEG_CH],
+                np.random.default_rng(0).random((N_EEG_CH, 3)),
+            )
         ),
         # NO NAMED points
         nasion=my_electrode_positions[0],
@@ -795,7 +798,7 @@ def isotrak_eeg(tmp_path_factory):
     """Mock isotrak file with EEG positions."""
     _SEED = 42
     N_ROWS, N_COLS = 5, 3
-    content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
+    content = np.random.default_rng(_SEED).standard_normal((N_ROWS, N_COLS))
 
     fname = tmp_path_factory.mktemp("data") / "test.eeg"
     with open(str(fname), "w") as fid:
@@ -834,7 +837,7 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
     }
     ch_names = [f"eeg {ii:01d}" for ii in range(N_CHANNELS)]
     EXPECTED_CH_POS = dict(
-        zip(ch_names, np.random.RandomState(_SEED).randn(N_CHANNELS, 3))
+        zip(ch_names, np.random.default_rng(_SEED).standard_normal((N_CHANNELS, 3)))
     )
 
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
@@ -881,8 +884,8 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
 
 def test_combining_digmontage_objects():
     """Test combining different DigMontage objects."""
-    rng = np.random.RandomState(0)
-    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.rand(3, 3)))
+    rng = np.random.default_rng(0)
+    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.random((3, 3))))
 
     # hsp positions are [1X, 1X, 1X]
     hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.0))
@@ -952,24 +955,26 @@ def test_combining_digmontage_objects():
 
 def test_combining_digmontage_forbiden_behaviors():
     """Test combining different DigMontage objects with repeated names."""
-    rng = np.random.RandomState(0)
-    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.rand(3, 3)))
+    rng = np.random.default_rng(0)
+    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.random((3, 3))))
     dig1 = make_dig_montage(
         **fiducials,
-        ch_pos=dict(zip(list("abc"), rng.rand(3, 3))),
+        ch_pos=dict(zip(list("abc"), rng.random((3, 3)))),
     )
     dig2 = make_dig_montage(
         **fiducials,
-        ch_pos=dict(zip(list("bcd"), rng.rand(3, 3))),
+        ch_pos=dict(zip(list("bcd"), rng.random((3, 3)))),
     )
     dig2_wrong_fid = make_dig_montage(
-        nasion=rng.rand(3),
-        lpa=rng.rand(3),
-        rpa=rng.rand(3),
-        ch_pos=dict(zip(list("ghi"), rng.rand(3, 3))),
+        nasion=rng.random(3),
+        lpa=rng.random(3),
+        rpa=rng.random(3),
+        ch_pos=dict(zip(list("ghi"), rng.random((3, 3)))),
     )
     dig2_wrong_coordframe = make_dig_montage(
-        **fiducials, ch_pos=dict(zip(list("ghi"), rng.rand(3, 3))), coord_frame="meg"
+        **fiducials,
+        ch_pos=dict(zip(list("ghi"), rng.random((3, 3)))),
+        coord_frame="meg",
     )
 
     EXPECTED_ERR_MSG = "Cannot.*duplicated channel.*found: 'b', 'c'."
@@ -1802,7 +1807,8 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
 def test_montage_head_frame(ch_type):
     """Test that head frame is set properly."""
     # gh-9446
-    data = np.random.randn(2, 100)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((2, 100))
     info = create_info(["a", "b"], 512, ch_type)
     for ch in info["chs"]:
         assert ch["coord_frame"] == FIFF.FIFFV_COORD_HEAD
@@ -2048,8 +2054,8 @@ def test_plot_montage():
 
 def test_montage_equality():
     """Test montage equality."""
-    rng = np.random.RandomState(0)
-    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.rand(3, 3)))
+    rng = np.random.default_rng(0)
+    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.random((3, 3))))
 
     # hsp positions are [1X, 1X, 1X]
     hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.0))

@@ -1075,7 +1075,7 @@ def _compute_mxne_sure(
     rng = check_random_state(random_state)
     # See Deledalle et al. 20214 Sec. 5.1
     eps = 2 * sigma / (M.shape[0] ** 0.3)
-    delta = rng.randn(*M.shape)
+    delta = rng.standard_normal(M.shape)
 
     coefs_grid_1, coefs_grid_2, active_sets = _fit_on_grid(gain, M, eps, delta)
 
