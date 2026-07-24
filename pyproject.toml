@@ -97,6 +97,7 @@ classifiers = [
   "License :: OSI Approved",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
   "Operating System :: POSIX",
   "Operating System :: Unix",
   "Programming Language :: Python :: 3",
@@ -116,13 +117,21 @@ dependencies = [
   "tqdm >= 4.66",
   "typing-extensions >= 4.15; python_version < '3.11'",  # for typing.Self TODO VERSION
 ]
-description = "MNE-Python project for MEG and EEG data analysis."
+description = "MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, machine learning, and statistics."
 dynamic = ["version"]
 keywords = [
   "brain",
+  "DBS",
+  "deep brain stimulation",
   "ECoG",
   "EEG",
+  "electrocorticography",
+  "electroencephalography",
   "fNIRS",
+  "functional near-infrared spectroscopy",
+  "iEEG",
+  "intracranial EEG",
+  "magnetoencephalography",
   "MEG",
   "neuroimaging",
   "neuroscience",
@@ -134,7 +143,7 @@ name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
 # ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
-# command in `.github/workflows/spec_zero.yaml` (astral-sh/uv/#16333), and also the
+# command in `.github/workflows/autofix.yml` (astral-sh/uv/#16333), and also the
 # `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yaml`
 scripts = {mne = "mne.commands.utils:main"}
 

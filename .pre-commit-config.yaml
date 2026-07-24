@@ -89,15 +89,6 @@ repos:
       - id: toml-sort-fix
         files: pyproject.toml
 
-  # dependencies
-  - repo: local
-    hooks:
-      - id: update-env-file
-        name: Copy dependency changes from pyproject.toml to environment.yml
-        language: python
-        entry: ./tools/hooks/update_environment_file.py
-        files: '^(pyproject.toml|tools/hooks/update_environment_file.py)$'
-
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
     rev: v1.28.0

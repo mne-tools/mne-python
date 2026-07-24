@@ -109,6 +109,7 @@ jobs:
         if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
+        id: setup-micromamba
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
@@ -118,6 +119,9 @@ jobs:
             -v
         if: matrix.kind == 'conda'
         timeout-minutes: 20
+      - name: Make conda python available to later steps
+        run: echo "${{ steps.setup-micromamba.outputs.environment-path }}/bin" >> "$GITHUB_PATH"  # zizmor: ignore[template-injection]
+        if: matrix.kind == 'conda'
       # Python (if old)
       - uses: astral-sh/setup-uv@v8.3.2
         with:
@@ -130,7 +134,11 @@ jobs:
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
-      - run: python ./tools/github_actions_check_old_env.py
+      - name: Check 'old' CI environment
+        uses: tsbinns/mne-tools/actions/check-environment@tools-actions
+        with:
+          project-root: ${{ github.workspace }}
+          groups: lockfile_extras
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - uses: actions/cache@v6.1.0
@@ -141,8 +149,10 @@ jobs:
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
-      # Check Qt
-      - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
+      - name: Check Qt import
+        uses: tsbinns/mne-tools/actions/check-qt-import@tools-actions
+        with:
+          qt-backend: ${{ env.MNE_QT_BACKEND }}
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/

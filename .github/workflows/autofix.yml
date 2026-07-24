@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  autofix:
+  autofix-changelog-headers:
     name: Autofix and style
     runs-on: ubuntu-latest
     steps:
@@ -22,5 +22,50 @@ jobs:
       - run: vulture
       # Run this last, since it can fail the job if moved up
       - uses: j178/prek-action@v2.0.5
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
+        if: success() || failure()
+  autofix-dependencies:
+    name: Autoupdate 'old' CI lockfile, README dependencies, and environment file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          enable-cache: false
+          python-version: "3.12"
+      - name: Update 'old' CI lockfile
+        # uv pip compile requires setting the python version for the environment explicitly in the command :(
+        run: |
+          uv pip compile pyproject.toml \
+          --python "3.10" --python-platform "x86_64-unknown-linux-gnu" \
+          --group test --group lockfile_extras \
+          --resolution lowest-direct \
+          --format pylock.toml --output-file tools/pylock.ci-old.toml \
+          --no-cache
+      - name: Validate 'old' CI lockfile
+        uses: tsbinns/mne-tools/actions/check-lockfile@tools-actions
+        with:
+          project-root: ${{ github.workspace }}
+          lockfile-path: tools/pylock.ci-old.toml
+          groups: lockfile_extras
+      - name: Sync dependencies to README
+        uses: tsbinns/mne-tools/actions/sync-dependencies-to-readme@tools-actions
+        with:
+          project-root: ${{ github.workspace }}
+          ignore-upper-pins: numpy
+      - name: Sync dependencies to environment file
+        uses: tsbinns/mne-tools/actions/sync-dependencies-to-environment-file@tools-actions
+        with:
+          project-root: ${{ github.workspace }}
+          extras: full,full-no-qt,hdf5
+          # manually specify extras groups to sync, as logic for recursion into other groups isn't implemented in the action yet
+          # e.g., `full` includes `mne[full-no-qt]`, but the action won't recognise this, so we need to specify `full-no-qt` explicitly
+          additional-dependencies: pip,mamba,conda,nomkl,noqt5
+          pip-dependencies: pymef
+          requirements-overrides: PySide6==6.11.1,vtk==9.6.2
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
