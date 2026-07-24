@@ -54,6 +54,7 @@ sys.path.append(str(curpath / "sphinxext"))
 
 from build_lite_wheel import build_wheel, find_wheels  # noqa: E402
 from credit_tools import generate_credit_rst  # noqa: E402
+from jupyterlite_lite_renderer import LITE_RENDERER_CELL  # noqa: E402
 from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
 
 # -- Project information -----------------------------------------------------
@@ -1265,7 +1266,9 @@ sphinx_gallery_conf = {
         "        _find_libraries_pyodide\n"
         "    )\n"
         "except Exception:\n"
-        "    pass\n"
+        "    pass\n" + LITE_RENDERER_CELL
+        # Draw MNE's 3D figures with pyvista-js. Appended last so MNE is
+        # already imported; see doc/sphinxext/jupyterlite_lite_renderer.py.
     ),
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
