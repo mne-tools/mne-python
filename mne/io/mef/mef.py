@@ -5,6 +5,7 @@
 """Read MEF3 files."""
 
 import datetime as dt
+from pathlib import Path
 
 import numpy as np
 
@@ -257,7 +258,13 @@ class RawMEF(BaseRaw):
 
 
 @verbose
-def read_raw_mef(fname, *, password="", preload=False, verbose=None) -> RawMEF:
+def read_raw_mef(
+    fname: Path | str,
+    *,
+    password: str | bytes | None = "",
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> RawMEF:
     """Read raw data from MEF3 files.
 
     Parameters

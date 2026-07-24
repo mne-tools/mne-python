@@ -33,7 +33,7 @@ class RawANT(BaseRaw):
 
     Parameters
     ----------
-    fname : file-like
+    fname : path-like
         Path to the ANT raw file to load. The file should have the extension ``.cnt``.
     eog : str | None
         Regex pattern to find EOG channel labels. If None, no EOG channels are
@@ -89,7 +89,7 @@ class RawANT(BaseRaw):
         impedance_annotation: str,
         *,
         encoding: str = "latin-1",
-        preload: bool | NDArray,
+        preload: bool | str | NDArray,
         verbose=None,
     ) -> None:
         logger.info("Reading ANT file %s", fname)
@@ -299,15 +299,15 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
 
 @copy_doc(RawANT)
 def read_raw_ant(
-    fname,
-    eog=None,
-    misc=r"BIP\d+",
-    bipolars=None,
-    impedance_annotation="impedance",
+    fname: Path | str,
+    eog: str | None = None,
+    misc: str | None = r"BIP\d+",
+    bipolars: list[str] | tuple[str, ...] | None = None,
+    impedance_annotation: str = "impedance",
     *,
     encoding: str = "latin-1",
-    preload=False,
-    verbose=None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawANT:
     """
     Returns

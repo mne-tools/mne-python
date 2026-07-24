@@ -46,8 +46,10 @@ from ...transforms import (
 from ...utils import (
     Bunch,
     _auto_weakref,
+    _check_fname,
     _check_option,
     _ensure_int,
+    _path_like,
     _ReuseCycle,
     _to_rgb,
     _validate_type,
@@ -3078,21 +3080,27 @@ class Brain:
         color=None,
         hover=True,
     ):
-        """Add an annotation file.
+        """Add an annotation (i.e. an atlas of many labels) to the brain figure.
 
         Parameters
         ----------
-        annot : str
-            Either path to annotation file or annotation name.
+        annot : path-like | str | list of Label
+            Either path to annotation file, an annotation name, or a list of
+            :class:`mne.Label` objects.
+
+            DEPRECATED: The annotation can be specified as a ``(labels, ctab)`` tuple
+            per hemisphere, i.e. ``annot=(labels, ctab)`` for a single hemisphere or
+            ``annot=((lh_labels, lh_ctab), (rh_labels, rh_ctab))`` for both hemispheres.
+
+            .. versionadded:: 1.13
+               The ability to supply a list of :class:`~mne.Label` objects.
         borders : bool | int
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
         %(alpha)s Default is 1.
         hemi : str | None
-            If None, it is assumed to belong to the hemisphere being
-            shown. If two hemispheres are being shown, data must exist
-            for both hemispheres.
+            Optionally restrict the annotation to the given hemisphere.
         remove_existing : bool
             If True (default), remove old annotations.
         color : matplotlib-style color code
@@ -3105,19 +3113,49 @@ class Brain:
         """
         from ...label import read_labels_from_annot
 
+        if (isinstance(annot, tuple) and isinstance(annot[0], np.ndarray)) or (
+            isinstance(annot, (tuple, list)) and isinstance(annot[0], tuple)
+        ):
+            # Deprecated old style of passing a (labels, cmap) pair per hemisphere.
+            # Shortcut to old code that can be removed in version 1.14.
+            warn(
+                "Passing the annotation as a `(label, cmap)` tuple is deprecated and "
+                "will be removed in MNE-Python version 1.14.",
+                FutureWarning,
+            )
+            self._old_add_annotation(
+                annot,
+                borders=borders,
+                alpha=alpha,
+                hemi=hemi,
+                remove_existing=remove_existing,
+                color=color,
+            )
+            return
+
+        _validate_type(annot, ("path-like", str, list), "annot")
+
         hemis = self._check_hemis(hemi)
         kwargs = dict()
-        if os.path.isfile(annot):
-            kwargs["annot_fname"] = annot
-        else:
-            kwargs["parc"] = annot
 
-        for hemi in hemis:
-            labels = read_labels_from_annot(
-                self._subject, hemi=hemi, subjects_dir=self._subjects_dir, **kwargs
-            )
+        for hemi_idx, hemi in enumerate(hemis):
+            if _path_like(annot):
+                if os.path.isfile(annot):
+                    kwargs["annot_fname"] = annot
+                else:
+                    kwargs["parc"] = annot
+                labels = read_labels_from_annot(
+                    self._subject,
+                    hemi=hemi,
+                    subjects_dir=self._subjects_dir,
+                    **kwargs,
+                )
+                name = annot
+            else:
+                labels = [label for label in annot if label.hemi == hemi]
+                name = "annotation"  # placeholder name for the annotation
             n_labels = len(labels)
-            ids = np.zeros(self.geo[hemi].coords.shape[0], dtype=int)
+            ids = np.full(self.geo[hemi].coords.shape[0], -1, dtype=int)
             cmap = np.zeros((len(labels) + 1, 4))
             cmap[:, 3] = 1
             cmap[0] = np.array(self._brain_color)
@@ -3131,7 +3169,7 @@ class Brain:
                     label.center_of_mass(subjects_dir=self._subjects_dir)
                 ]
             self._annots[hemi].append(
-                dict(name=annot, labels=labels, ids=ids, centroids=centroids)
+                dict(name=name, labels=labels, ids=ids, centroids=centroids)
             )
             del labels
 
@@ -3151,7 +3189,7 @@ class Brain:
                     colormap=ctable * 255,
                     rng=[0, n_labels],
                     opacity=alpha,
-                    name=annot,
+                    name=name,
                 )
 
         if hover:
@@ -3173,6 +3211,99 @@ class Brain:
                         reset_camera=False,
                         render=False,
                     )
+        self._renderer._update()
+
+    # DEPRECATED: Can be removed in version 1.14. Also remove _read_annot from
+    # mne/labels.py.
+    def _old_add_annotation(
+        self, annot, borders=True, alpha=1, hemi=None, remove_existing=True, color=None
+    ):
+        from ...label import _read_annot
+
+        hemis = self._check_hemis(hemi)
+
+        # Figure out where the data is coming from
+        if _path_like(annot):
+            if os.path.isfile(annot):
+                filepath = _check_fname(annot, overwrite="read")
+                file_hemi, annot = filepath.name.split(".", 1)
+                if len(hemis) > 1:
+                    if file_hemi == "lh":
+                        filepaths = [filepath, filepath.parent / ("rh." + annot)]
+                    elif file_hemi == "rh":
+                        filepaths = [filepath.parent / ("lh." + annot), filepath]
+                    else:
+                        raise RuntimeError(
+                            "To add both hemispheres simultaneously, filename must "
+                            'begin with "lh." or "rh."'
+                        )
+                else:
+                    filepaths = [filepath]
+            else:
+                filepaths = []
+                for hemi in hemis:
+                    filepath = op.join(
+                        self._subjects_dir,
+                        self._subject,
+                        "label",
+                        ".".join([hemi, annot, "annot"]),
+                    )
+                    if not os.path.exists(filepath):
+                        raise ValueError(f"Annotation file {filepath} does not exist")
+                    filepaths += [filepath]
+            annots = []
+            for hemi, filepath in zip(hemis, filepaths):
+                # Read in the data
+                labels, cmap, _ = _read_annot(filepath)
+                annots.append((labels, cmap))
+        else:
+            annots = [annot] if len(hemis) == 1 else annot
+            annot = "annotation"
+
+        for hemi, (labels, cmap) in zip(hemis, annots):
+            # Maybe zero-out the non-border vertices
+            self._to_borders(labels, hemi, borders)
+
+            # Handle null labels properly
+            cmap[:, 3] = 255
+            bgcolor = np.round(np.array(self._brain_color) * 255).astype(int)
+            bgcolor[-1] = 0
+            cmap[cmap[:, 4] < 0, 4] += 2**24  # wrap to positive
+            cmap[cmap[:, 4] <= 0, :4] = bgcolor
+            if np.any(labels == 0) and not np.any(cmap[:, -1] <= 0):
+                cmap = np.vstack((cmap, np.concatenate([bgcolor, [0]])))
+
+            # Set label ids sensibly
+            order = np.argsort(cmap[:, -1])
+            cmap = cmap[order]
+            ids = np.searchsorted(cmap[:, -1], labels)
+            cmap = cmap[:, :4]
+
+            #  Set the alpha level
+            alpha_vec = cmap[:, 3]
+            alpha_vec[alpha_vec > 0] = alpha * 255
+
+            # Override the cmap when a single color is used
+            if color is not None:
+                rgb = np.round(np.multiply(_to_rgb(color), 255))
+                cmap[:, :3] = rgb.astype(cmap.dtype)
+
+            ctable = cmap.astype(np.float64)
+            for _ in self._iter_views(hemi):
+                mesh = self.layered_meshes[hemi]
+                mesh.add_overlay(
+                    scalars=ids,
+                    colormap=ctable,
+                    rng=[np.min(ids), np.max(ids)],
+                    opacity=alpha,
+                    name=annot,
+                )
+                self._annots[hemi].append(annot)
+                if not self.time_viewer or self.traces_mode == "vertex":
+                    self._renderer._set_colormap_range(
+                        mesh._actor, cmap.astype(np.uint8), None
+                    )
+
         self._renderer._update()
 
     def _create_caption(self):

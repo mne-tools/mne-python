@@ -4,7 +4,8 @@
 
 import os
 from datetime import datetime, timezone
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 
@@ -88,7 +89,13 @@ nsx_header_dict = {
 
 @fill_doc
 def read_raw_nsx(
-    input_fname, stim_channel=True, eog=None, misc=None, preload=False, *, verbose=None
+    input_fname: Path | str,
+    stim_channel: str | int | list | Literal["auto"] | bool = True,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    preload: bool | str = False,
+    *,
+    verbose: bool | str | int | None = None,
 ) -> "RawNSX":
     """Reader function for NSx (Blackrock Microsystems) files.
 

@@ -5,6 +5,7 @@
 import calendar
 import datetime
 import os.path as op
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -22,7 +23,11 @@ from .utils import _load_mne_locs, _read_pos
 
 @verbose
 def read_raw_artemis123(
-    input_fname, preload=False, verbose=None, pos_fname=None, add_head_trans=True
+    input_fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+    pos_fname: Path | str | None = None,
+    add_head_trans: bool = True,
 ) -> "RawArtemis123":
     """Read Artemis123 data as raw object.
 
