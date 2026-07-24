@@ -156,6 +156,10 @@ def parallel_func(
 
 def _running_in_joblib_context():
     """Check if we are running in a joblib.parallel_config context manager."""
+    import sys
+
+    if sys.platform == "emscripten":
+        return False
     try:
         from joblib.parallel import get_active_backend
     except ImportError:

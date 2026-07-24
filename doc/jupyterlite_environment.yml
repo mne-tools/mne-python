@@ -1,0 +1,44 @@
+# Environment for the xeus-python JupyterLite kernel used by the browser docs.
+#
+# Unlike the Pyodide kernel (which installs MNE at runtime via piplite), the
+# xeus kernel PRE-INSTALLS everything at build time from these channels:
+#   - emscripten-forge : WASM-compiled binaries (numpy, scipy, vtk, ...)
+#   - conda-forge      : pure-Python (noarch) packages (nibabel, pooch, mne, ...)
+# MNE itself is installed from the local checkout via the pip section (pure
+# Python, so no dependency resolution is needed -- its deps are the conda
+# packages listed below). Verified to resolve for emscripten-wasm32 2026-07-22.
+name: xeus-python
+channels:
+  - https://repo.prefix.dev/emscripten-forge-4x
+  - https://repo.prefix.dev/conda-forge
+dependencies:
+  - xeus-python
+  # compiled scientific stack (from emscripten-forge)
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - scikit-learn
+  - h5py
+  - statsmodels
+  # pure-Python deps (from conda-forge)
+  - nibabel
+  - pooch
+  - tqdm
+  - decorator
+  - jinja2
+  - lazy_loader
+  - packaging
+  - pymatreader
+  - h5io
+  - python-picard
+  - patsy
+  - threadpoolctl
+  - joblib
+  - pillow
+  # the development MNE from this checkout (pure Python, installed w/o deps)
+  - pip:
+      - ..
+      # pyvista-js renders 3D through vtk.js in the browser; MNE's normal
+      # VTK stack cannot load in WASM. Pure Python, so pip is fine here.
+      - pyvista-js

@@ -1,0 +1,1 @@
+Added a JupyterLite version of the documentation that runs in the browser using the xeus-python kernel, by `Natneal B`_.
