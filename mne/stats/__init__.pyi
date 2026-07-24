@@ -20,6 +20,7 @@ __all__ = [
     "summarize_clusters_stc",
     "ttest_1samp_no_p",
     "ttest_ind_no_p",
+    "erp",
 ]
 from . import erp
 from ._adjacency import combine_adjacency
