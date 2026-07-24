@@ -573,6 +573,31 @@ if src_eeglab.exists() and not dst_eeglab.exists():
     shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
     print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
 
+# Six notebooks use the somato dataset (the DICS/TF-MxNE examples and the
+# time-frequency tutorial). The full dataset is ~610 MB, but they only read one
+# raw, one forward solution and the FreeSurfer surfaces needed to draw the
+# source estimate, so copy just those. CircleCI already restores somato from
+# data-cache-somato for the native build, so nothing extra is downloaded.
+somato_files = [
+    "sub-01/meg/sub-01_task-somato_meg.fif",
+    "derivatives/sub-01/sub-01_task-somato-fwd.fif",
+    "derivatives/freesurfer/subjects/01/surf/lh.inflated",
+    "derivatives/freesurfer/subjects/01/surf/rh.inflated",
+    "derivatives/freesurfer/subjects/01/surf/lh.curv",
+    "derivatives/freesurfer/subjects/01/surf/rh.curv",
+]
+src_somato = mne_data_base / "MNE-somato-data"
+print(f"[JupyterLite] somato data source exists: {src_somato.exists()}")
+for somato_file in somato_files:
+    s = src_somato / somato_file
+    d = lite_data_base / "MNE-somato-data" / somato_file
+    if s.exists() and not d.exists():
+        d.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(s, d)
+        print(f"[JupyterLite]   Copied {somato_file} ({s.stat().st_size / 1e6:.1f} MB)")
+    elif not s.exists():
+        print(f"[JupyterLite]   MISSING {somato_file}")
+
 # Inject the single needed file(s) from extra datasets used by the Epochs and
 # decoding examples. Sizes are all within what we already serve
 # (sample_audvis_raw.fif is 128.5 MB): kiloword 28.7 MB, erp_core 123.6 MB,
@@ -835,6 +860,12 @@ sphinx_gallery_conf = {
         "def _lite_mtrf_data_path(*_a, **_kw):\n"
         "    return _lite_lazy_fetch('mTRF_1.5', 'speech_data.mat')\n"
         "mne.datasets.mtrf.data_path = _lite_mtrf_data_path\n"
+        "# somato just returns the folder: the notebooks reach its raw and\n"
+        "# forward files through read_raw_fif/read_forward_solution, which are\n"
+        "# already shimmed below to fetch anything under mne_data on first read.\n"
+        "def _lite_somato_data_path(*_a, **_kw):\n"
+        "    return _Path(mne_data_path + '/MNE-somato-data')\n"
+        "mne.datasets.somato.data_path = _lite_somato_data_path\n"
         "def _lite_eegbci_load_data(subject, runs, *_a, **_kw):\n"
         "    _runs = [runs] if isinstance(runs, (int, float)) else list(runs)\n"
         "    _subjects = (\n"
@@ -928,6 +959,12 @@ sphinx_gallery_conf = {
         "        _sdir = _kw.get('subjects_dir')\n"
         "        _sdir = (str(_sdir) if _sdir is not None else\n"
         "                 mne_data_path + '/MNE-sample-data/subjects')\n"
+        "        # surfaces are fetched relative to the served mne_data root, so\n"
+        "        # derive that from subjects_dir instead of assuming sample --\n"
+        "        # somato keeps its FreeSurfer subjects under its own folder.\n"
+        "        _rel_sdir = (_sdir[len(mne_data_path) + 1:]\n"
+        "                     if _sdir.startswith(mne_data_path + '/')\n"
+        "                     else 'MNE-sample-data/subjects')\n"
         "        _init = _kw.get('initial_time', None)\n"
         "        if _init is None:\n"
         "            _ti = int(_np.argmax(_np.abs(self.data).mean(0)))\n"
@@ -963,8 +1000,7 @@ sphinx_gallery_conf = {
         "        for _h, _hi, _vno in _hemis:\n"
         "            if len(_vno) == 0:\n"
         "                continue\n"
-        "            _pre = ('MNE-sample-data/subjects/' + _subj +\n"
-        "                    '/surf/' + _h)\n"
+        "            _pre = _rel_sdir + '/' + _subj + '/surf/' + _h\n"
         "            _lite_fetch_rel(_pre + '.inflated')\n"
         "            _lite_fetch_rel(_pre + '.curv')\n"
         "            _bpath = _sdir + '/' + _subj + '/surf/' + _h\n"
