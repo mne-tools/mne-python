@@ -131,13 +131,13 @@ def compute_ems(
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list of str | None, default None
+    conditions : list of str | None
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
     %(picks_good_data)s
     %(n_jobs)s
-    cv : cross-validation object | str | None, default LeaveOneOut
+    cv : cross-validation object | str | None
         The cross-validation scheme.
     %(verbose)s
 

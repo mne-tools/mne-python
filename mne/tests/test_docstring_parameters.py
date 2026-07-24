@@ -102,6 +102,11 @@ tab_ignores = [
 error_ignores_specific = {  # specific instances to skip
     ("regress_artifact", "SS05"),  # "Regress" is actually imperative
 }
+bad_docstring_type = re.compile(
+    r"(?:\(\s*default\b|,\s*default(?=\s|=|:)|"
+    r"(?:^|,)\s*(?:optional|\(\s*optional\s*\))(?:$|\s*\())",
+    re.IGNORECASE,
+)
 subclass_name_ignores = (
     (
         dict,
@@ -124,8 +129,25 @@ subclass_name_ignores = (
 )
 
 
+@pytest.mark.parametrize(
+    ("type_description", "is_bad"),
+    [
+        ("bool, optional", True),
+        ("bool, (optional)", True),
+        ("bool, default=True", True),
+        ("bool (default True)", True),
+        ('{"default", "pandas"}', False),
+        ("bool | None", False),
+    ],
+)
+def test_bad_docstring_type(type_description, is_bad):
+    """Test detection of defaults and optional in parameter types."""
+    assert bool(bad_docstring_type.search(type_description)) == is_bad
+
+
 def check_parameters_match(func, *, cls=None, where):
     """Check docstring, return list of incorrect results."""
+    from numpydoc.docscrape import FunctionDoc
     from numpydoc.validate import validate
 
     name = _func_name(func, cls)
@@ -144,6 +166,15 @@ def check_parameters_match(func, *, cls=None, where):
         if err[0] not in error_ignores
         and (name.split(".")[-1], err[0]) not in error_ignores_specific
     ]
+    module = inspect.getmodule(func)
+    if module is not None and module.__name__.startswith("mne."):
+        for param in FunctionDoc(func)["Parameters"]:
+            if bad_docstring_type.search(param.type):
+                incorrect.append(
+                    f"{where} : {name} : {param.name} : type description "
+                    f"{param.type!r} includes a default or 'optional'; put defaults "
+                    "in the parameter description instead"
+                )
     # Add a check that all public functions and methods that have "verbose"
     # set the default verbose=None
     if cls is None:
@@ -522,12 +553,6 @@ def _type_atoms(type_str):
     s = type_str.replace("``", "").replace("`", "")  # drop reST inline literals
     s = re.sub(r":\w+:", "", s)  # drop sphinx roles, e.g. :class:
     s = s.replace("~", "")  # drop the sphinx "abbreviate" marker
-    # TODO: neither ``default X`` nor ``optional`` belongs in a numpydoc *type* --
-    # MNE style puts the default in the parameter description prose instead. Drop
-    # these three normalizations to find (and then fix) the docstrings doing it.
-    s = re.sub(r"\s*\(\s*default[^)]*\)", "", s, flags=re.I)  # (default X)
-    s = re.sub(r"\s*,\s*default[:=]?\s*[^,|]+", "", s, flags=re.I)  # , default X
-    s = re.sub(r"\s*,?\s*optional\b", "", s, flags=re.I)  # , optional
     s = re.sub(r"\binstance of\b", "", s)
     s = re.sub(r",?\s*(?:of )?shape\s*\(?[^)|]*\)?", "", s)  # shape (n, m) suffixes
     s = re.sub(r"\btuple of length \d+\b", "tuple", s, flags=re.I)
@@ -587,7 +612,6 @@ unparseable_docstring_types = {
     "Evoked instance, or list of Evoked instances",
     "None | colormap | (colormap, bool) | 'interactive'",
     "Raw object",
-    "bool, str, or None (default None)",
     "instance of matplotlib Axes | None",
     "list of (int | str) | tuple of (int | str)",
     "list of (int | str) | tuple of (int | str) | ``'auto'``",

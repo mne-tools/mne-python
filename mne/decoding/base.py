@@ -842,9 +842,9 @@ def cross_val_multiscore(
         other cases, :class:`sklearn.model_selection.KFold` is used.
     %(n_jobs)s
     %(verbose)s
-    fit_params : dict, optional
+    fit_params : dict
         Parameters to pass to the fit method of the estimator.
-    pre_dispatch : int, or str, optional
+    pre_dispatch : int, or str
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
