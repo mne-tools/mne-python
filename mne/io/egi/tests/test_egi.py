@@ -598,3 +598,22 @@ def test_egi_mff_bad_xml(tmp_path):
             raw = read_raw_egi(mff_fname)
     # little check that the bad XML doesn't affect the parsing of other xml files
     assert "DIN1" in raw.annotations.description
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "fname, expected",
+    [pytest.param(egi_pause_fname, "AM40_3", id="paused")],
+)
+def test_read_event_keys(fname, expected):
+    """Test event metadata extraction from``<keys>`` child elements."""
+    with pytest.warns(RuntimeWarning, match="Acquisition skips detected"):
+        raw = _test_raw_reader(
+            read_raw_egi,
+            input_fname=fname,
+            test_scaling=False,
+            test_rank="less",
+            events_as_annotations=True,
+            event_key="cel#",
+        )
+    assert expected in raw.annotations.description

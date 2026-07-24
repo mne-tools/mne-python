@@ -102,6 +102,7 @@ def read_raw_egi(
     channel_naming: str = "E%d",
     *,
     events_as_annotations: bool = True,
+    event_key: str | None = None,
     verbose: bool | str | int | None = None,
 ) -> "RawEGI":
     """Read EGI simple binary as raw object.
@@ -142,6 +143,15 @@ def read_raw_egi(
         The default will change from False to True in version 1.9.
 
         .. versionadded:: 1.8.0
+    event_key : str | None
+        The MFF event key whose value is appended to annotation descriptions and extras
+        when ``events_as_annotations=True``, and to stim channel names when
+        ``events_as_annotations=False``. For example, ``event_key='cel#'`` will convert
+        an MFF event code ``'stim'`` with ``cel#=1`` to ``'stim_1'``. These will also
+        appear as ``'event_key_cel#': 1`` in annotations.extras
+        Only supported for MFF files.
+
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     Returns
@@ -156,22 +166,31 @@ def read_raw_egi(
 
     Notes
     -----
-    When ``events_from_annotations=True``, event codes on stimulus channels like
+    When ``events_as_annotations=True``, event codes on stimulus channels like
     ``DIN1`` are stored as annotations with the ``description`` set to the stimulus
     channel name.
 
-    When ``events_from_annotations=False`` and events are present on the included
-    stimulus channels, a new stim channel ``STI014`` will be synthesized from the
+    When ``events_as_annotations=False`` and events are present on the included
+    stimulus channels, a new stim channel ``STI 014`` will be synthesized from the
     events. It will contain 1-sample pulses where the Netstation file had event
     timestamps. A ``raw.event_id`` dictionary is added to the raw object that will have
     arbitrary sequential integer IDs for the events. This will fail if any timestamps
     are duplicated. The ``event_id`` will also not survive a save/load roundtrip.
 
     For these reasons, it is recommended to use ``events_as_annotations=True``.
+
+    MFF event track XML files can store additional metadata in a
+    ``<keys>`` child element of each ``<event>`` element. This corresponds to
+    the ECI Event Data Stream "Key List" described in the
+    `EGI Amp Server Pro SDK User Guide
+    <https://www.egi.com/images/stories/manuals/amp-server-pro-sdk-3-0-network-apis-user-guide-rev-01.pdf>`__.
+    For example, E-Prime driven experiments sometimes store the experimental condition
+    in a ``'cel#'`` event key.
     """
     _validate_type(input_fname, "path-like", "input_fname")
     input_fname = str(input_fname)
     _validate_type(events_as_annotations, bool, "events_as_annotations")
+    _validate_type(event_key, (str, None), "event_key")
 
     if input_fname.rstrip("/\\").endswith(".mff"):  # allows .mff or .mff/
         return _read_raw_egi_mff(
@@ -183,8 +202,10 @@ def read_raw_egi(
             preload,
             channel_naming,
             events_as_annotations=events_as_annotations,
+            event_key=event_key,
             verbose=verbose,
         )
+
     return RawEGI(
         input_fname,
         eog,
