@@ -741,7 +741,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(fig_facecolor)s
         %(axis_facecolor)s
         %(axes_spectrum_plot_topo)s
-        block : bool
+        block : bool | None
             This parameter is deprecated and will be removed in MNE 1.15; blocking now
             follows Matplotlib's behavior (see ``show``).
         %(show)s
