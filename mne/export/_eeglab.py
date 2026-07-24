@@ -66,16 +66,24 @@ def _export_epochs(fname, epochs):
     else:
         annot = None
 
+    # eeglabio uses column 0 as latency in the concatenated epochs array and
+    # column 2 as event type; the original recording sample is not stored here.
+    events = epochs.events.copy()
+    events[:, 0] = (
+        np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
+    )
+
     # https://github.com/jackz314/eeglabio/pull/18
     kwargs = dict()
     if "epoch_indices" in getfullargspec(eeglabio.epochs.export_set).kwonlyargs:
-        kwargs["epoch_indices"] = epochs.selection
+        # This also handles zero time falling on the final sample (tmax=0).
+        kwargs["epoch_indices"] = np.arange(1, len(epochs) + 1)
 
     eeglabio.epochs.export_set(
         fname,
         data=epochs.get_data(picks=ch_names),
         sfreq=epochs.info["sfreq"],
-        events=epochs.events,
+        events=events,
         tmin=epochs.tmin,
         tmax=epochs.tmax,
         ch_names=ch_names,

@@ -1,0 +1,1 @@
+Fix :meth:`mne.Epochs.export` producing invalid EEGLAB event latencies and dummy events after epochs were dropped, by :newcontrib:`Daria Agafonova`.
