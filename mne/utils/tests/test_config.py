@@ -122,6 +122,29 @@ def test_sys_info_basic():
         assert "Platform Linux" in out
 
 
+def test_sys_info_windowing_system(monkeypatch):
+    """Test that sys_info reports the windowing system on Linux."""
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    for var in ("XDG_SESSION_TYPE", "WAYLAND_DISPLAY", "DISPLAY"):
+        monkeypatch.delenv(var, raising=False)
+
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    line = out.getvalue().splitlines()[0]
+    assert line.startswith("Platform")
+    assert "(" not in line
+
+    monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    assert "(Wayland)" in out.getvalue().splitlines()[0]
+
+    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    assert "(X11)" in out.getvalue().splitlines()[0]
+
+
 def test_sys_info_complete():
     """Test that sys_info is sufficiently complete."""
     tomllib = pytest.importorskip("tomllib")  # python 3.11+
