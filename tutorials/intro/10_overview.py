@@ -18,7 +18,7 @@ We begin by importing the necessary Python modules:
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# %%
+import sys
 
 import numpy as np
 
@@ -80,6 +80,7 @@ print(raw.info)
 # (since our data are low-pass filtered at 40 Hz). In interactive Python
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
+
 
 raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
 raw.plot(duration=5, n_channels=30)
@@ -400,9 +401,14 @@ stc = mne.minimum_norm.apply_inverse(
 # path to subjects' MRI files
 subjects_dir = sample_data_folder / "subjects"
 # plot the STC
-stc.plot(
-    initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
-)
+# In JupyterLite (browser) this renders via pyvista-js (vtk.js), wired up in the
+# setup cell; otherwise it uses MNE's normal 3D backend.
+if sys.platform != "emscripten":
+    stc.plot(
+        initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
+    )
+else:
+    stc.plot(initial_time=0.1, hemi="both", subjects_dir=subjects_dir)
 
 ##############################################################################
 # We can also display multiple conditions on the same brain. Here we compare

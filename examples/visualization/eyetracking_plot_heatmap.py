@@ -26,10 +26,20 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 # :ref:`example data <eyelink-dataset>`: eye-tracking data recorded from SR research's
 # ``'.asc'`` file format.
 
+import sys
+
 import matplotlib.pyplot as plt
 
 import mne
 from mne.viz.eyetracking import plot_gaze
+
+# JupyterLite (Pyodide) browser build only.
+if sys.platform == "emscripten":
+    raise RuntimeError(
+        "This example requires the MNE EyeLink dataset, "
+        "which is not available in the browser. Please run this example "
+        "locally. Visit https://mne.tools for instructions."
+    )
 
 task_fpath = mne.datasets.eyelink.data_path() / "freeviewing"
 et_fpath = task_fpath / "sub-01_task-freeview_eyetrack.asc"

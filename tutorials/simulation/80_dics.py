@@ -239,6 +239,8 @@ s = apply_inverse(epochs["signal"].average(), inv)
 # Take the root-mean square along the time dimension and plot the result.
 s_rms = np.sqrt((s**2).mean())
 title = "MNE-dSPM inverse (RMS)"
+# In JupyterLite (browser) this renders via pyvista-js (see the setup cell);
+# otherwise it uses MNE's normal 3D backend.
 brain = s_rms.plot(
     "sample",
     subjects_dir=subjects_dir,
@@ -318,6 +320,8 @@ power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 def plot_approach(power, n):
     """Plot the results on a brain."""
+    # In JupyterLite (browser) this renders via pyvista-js (see the setup
+    # cell); otherwise it uses MNE's normal 3D backend.
     title = f"DICS power map, approach {n}"
     brain = power_approach1.plot(
         "sample",

@@ -151,6 +151,8 @@ kwargs = dict(
     views=["lat", "med"],
 )
 clim = dict(kind="value", pos_lims=[1e-9, 1e-8, 1e-7])
+# In JupyterLite (browser) this renders via pyvista-js (see the setup cell);
+# otherwise it uses MNE's normal 3D backend.
 brain_gen = stc_gen.plot(clim=clim, **kwargs)
 
 # %%

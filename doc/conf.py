@@ -11,10 +11,10 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import faulthandler
 import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
-from importlib.metadata import metadata
 from pathlib import Path
 
 import matplotlib
@@ -52,6 +52,7 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
+from build_lite_wheel import build_wheel, find_wheels  # noqa: E402
 from credit_tools import generate_credit_rst  # noqa: E402
 from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
 
@@ -116,6 +117,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
+    "jupyterlite_sphinx",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     "sphinxcontrib.towncrier.ext",
@@ -139,7 +141,14 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/dev"]
+exclude_patterns = [
+    "_includes",
+    "changes/dev",
+    "jupyterlite_contents",
+    "lite_extra",
+    "pypi",
+    "corrupt_*",
+]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -481,7 +490,652 @@ if sys.platform.startswith("win"):
         compress_images = ()
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
+jupyterlite_contents = ["jupyterlite_contents"]
+jupyterlite_bind_ipynb_suffix = False
+
+# Inject the required subset of MNE-sample-data for JupyterLite. The data is
+# placed under doc/lite_extra/mne_data and served at the docs root via
+# html_extra_path (added below). The JupyterLite setup cell fetches these
+# files over HTTP into the Pyodide kernel — the /drive virtual-filesystem
+# bridge needs cross-origin-isolation (COOP/COEP) headers that static
+# artifact servers (e.g. CircleCI) do not send, so it is unusable there.
+# lite_data (mne.datasets.lite_data) extracts the curated subset here, with the
+# files under their original dataset folders (MNE-sample-data/, ...).
+lite_root = Path(os.path.expanduser("~/mne_data/MNE-lite-data"))
+src_sample_data = lite_root / "MNE-sample-data"
+lite_extra_base = (
+    Path(os.path.abspath(os.path.dirname(__file__))) / "lite_extra" / "mne_data"
+)
+dst_sample_data = lite_extra_base / "MNE-sample-data"
+dst_sample_data.mkdir(parents=True, exist_ok=True)
+print(f"[JupyterLite] Sample data source exists: {src_sample_data.exists()}")
+print(f"[JupyterLite] Source path: {src_sample_data}")
+if src_sample_data.exists():
+    required_files = [
+        "version.txt",
+        "MEG/sample/sample_audvis_raw.fif",
+        "MEG/sample/sample_audvis_filt-0-40_raw.fif",
+        "MEG/sample/sample_audvis_raw-eve.fif",
+        "MEG/sample/sample_audvis_filt-0-40_raw-eve.fif",
+        "MEG/sample/sample_audvis_ecg-proj.fif",
+        "MEG/sample/sample_audvis-ave.fif",
+        "MEG/sample/sample_audvis-cov.fif",
+        "MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-fwd.fif",
+        "MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif",
+        "MEG/sample/ernoise_raw.fif",
+        "MEG/sample/sample_audvis-no-filter-ave.fif",
+        "MEG/sample/sample_audvis_raw-trans.fif",
+        "MEG/sample/sample_audvis-shrunk-cov.fif",
+        "MEG/sample/sample_audvis-meg-lh.stc",
+        "MEG/sample/sample_audvis-meg-rh.stc",
+        "subjects/sample/mri/T1.mgz",
+        "subjects/sample/bem/sample-oct-6-src.fif",
+        "subjects/sample/surf/rh.pial",
+        "subjects/sample/surf/lh.pial",
+        "subjects/sample/surf/rh.white",
+        "subjects/sample/surf/lh.white",
+        "subjects/sample/surf/rh.inflated",
+        "subjects/sample/surf/lh.inflated",
+        "subjects/sample/surf/rh.curv",
+        "subjects/sample/surf/lh.curv",
+        "subjects/sample/label/lh.aparc.annot",
+        "subjects/sample/label/rh.aparc.annot",
+    ]
+    for req in required_files:
+        s = src_sample_data / req
+        d = dst_sample_data / req
+        if s.exists():
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied: {req}")
+        else:
+            print(f"[JupyterLite]   MISSING: {req}")
+
+
+# Also inject SSVEP and EEGLAB testing datasets for JupyterLite
+mne_data_base = Path(os.path.expanduser("~/mne_data"))
+lite_data_base = lite_extra_base
+lite_data_base.mkdir(parents=True, exist_ok=True)
+
+src_ssvep = mne_data_base / "ssvep-example-data"
+dst_ssvep = lite_data_base / "ssvep-example-data"
+print(f"[JupyterLite] SSVEP data source exists: {src_ssvep.exists()}")
+if src_ssvep.exists() and not dst_ssvep.exists():
+    shutil.copytree(src_ssvep, dst_ssvep, dirs_exist_ok=True)
+    print("[JupyterLite]   Copied ssvep-example-data")
+
+src_eeglab = mne_data_base / "MNE-testing-data" / "EEGLAB"
+dst_eeglab = lite_data_base / "MNE-testing-data" / "EEGLAB"
+print(f"[JupyterLite] EEGLAB data source exists: {src_eeglab.exists()}")
+if src_eeglab.exists() and not dst_eeglab.exists():
+    shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
+    print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
+
+# Inject the single needed file(s) from extra datasets used by the Epochs and
+# decoding examples. Sizes are all within what we already serve
+# (sample_audvis_raw.fif is 128.5 MB): kiloword 28.7 MB, erp_core 123.6 MB,
+# mtrf speech_data.mat 17.2 MB, eegbci 3x2.6 MB. The CI "Ensure ... data" step
+# downloads them so the sources exist here.
+for _folder, _ds_files in (
+    ("MNE-kiloword-data", ["kword_metadata-epo.fif"]),
+    ("MNE-ERP-CORE-data", ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"]),
+    ("mTRF_1.5", ["speech_data.mat"]),
+    (
+        "MNE-eegbci-data",
+        [
+            "files/eegmmidb/1.0.0/S001/S001R06.edf",
+            "files/eegmmidb/1.0.0/S001/S001R10.edf",
+            "files/eegmmidb/1.0.0/S001/S001R14.edf",
+        ],
+    ),
+):
+    _src_ds = lite_root / _folder
+    _dst_ds = lite_data_base / _folder
+    print(f"[JupyterLite] {_folder} source exists: {_src_ds.exists()}")
+    for _ds_file in _ds_files:
+        s = _src_ds / _ds_file
+        d = _dst_ds / _ds_file
+        if s.exists():
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied: {_folder}/{_ds_file}")
+        else:
+            print(f"[JupyterLite]   MISSING: {_folder}/{_ds_file}")
+
+
+# Provide the development MNE wheel so JupyterLite installs the current version
+# rather than the older release from PyPI. ``doc/sphinxext/build_lite_wheel.py``
+# builds it into ``doc/pypi``, where the jupyterlite-pyodide-kernel PipliteAddon
+# discovers and indexes it. Running that script before the docs build (in CI or
+# locally) means Sphinx reuses the wheel instead of rebuilding it on every
+# invocation; if none is present we build it here, so the docs build never
+# depends on the pre-step having run.
+_lite_wheels = find_wheels() or build_wheel()
+sphinx_logger.info(f"[JupyterLite] MNE wheel for the browser kernel: {_lite_wheels}")
+
 sphinx_gallery_conf = {
+    "jupyterlite": {
+        "use_jupyter_lab": True,
+        "jupyterlite_contents": "jupyterlite_contents",
+    },
+    "first_notebook_cell": (
+        "# 💡 This cell is automatically added to the start of each notebook.\n"
+        "# It installs MNE and patches the browser environment for Pyodide.\n"
+        "import piplite\n"
+        "# Use piplite (not micropip) so the locally-built development MNE wheel\n"
+        "# bundled into the JupyterLite build is preferred over the older PyPI\n"
+        "# release;\n"
+        "# piplite checks the local index first and falls back to PyPI for deps.\n"
+        "# keep_going=True lets it install even if Pyodide's bundled\n"
+        "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"
+        "await piplite.install(\n"
+        "    ['mne', 'scikit-learn', 'joblib', 'pandas', 'seaborn', "
+        "'mne-connectivity', 'nibabel', 'pyvista-js'],\n"
+        "    keep_going=True,\n"
+        ")\n"
+        "\n"
+        "import sys\n"
+        "import os\n"
+        "import io\n"
+        "\n"
+        "# lzma: try real stdlib first (Pyodide ships it); only mock if absent\n"
+        "try:\n"
+        "    import lzma\n"
+        "except ImportError:\n"
+        "    class _LZMAFile:\n"
+        "        def __init__(self, *a, **kw): pass\n"
+        "        def __enter__(self): return self\n"
+        "        def __exit__(self, *a): pass\n"
+        "        def write(self, d): pass\n"
+        "        def read(self, n=-1): return b''\n"
+        "        def close(self): pass\n"
+        "    class _MockLZMA:\n"
+        "        LZMAError = Exception\n"
+        "        LZMAFile = _LZMAFile\n"
+        "        FORMAT_XZ = 1\n"
+        "        FORMAT_ALONE = 2\n"
+        "        def __getattr__(self, name): return object\n"
+        "    import sys as _sys\n"
+        "    _sys.modules['lzma'] = _MockLZMA()\n"
+        "\n"
+        "# Mock multiprocessing — missing in Pyodide but imported by joblib\n"
+        "from unittest.mock import MagicMock\n"
+        "if 'multiprocessing' not in sys.modules:\n"
+        "    m = MagicMock()\n"
+        "    m.cpu_count.return_value = 1\n"
+        "    sys.modules['multiprocessing'] = m\n"
+        "    sys.modules['multiprocessing.util'] = m.util\n"
+        "    sys.modules['multiprocessing.pool'] = m.pool\n"
+        "\n"
+        "# Patch requests so pooch can fetch files already on /drive/mne_data.\n"
+        "# open_url works for both text and binary in Pyodide >= 0.21.\n"
+        "import requests\n"
+        "import pyodide\n"
+        "orig_send = requests.Session.send\n"
+        "def pyodide_send(self, request, **kwargs):\n"
+        "    try:\n"
+        "        buf = pyodide.http.open_url(request.url)\n"
+        "        content = buf.getvalue() if hasattr(buf, 'getvalue') else buf.read()\n"
+        "        if isinstance(content, str):\n"
+        "            content = content.encode('utf-8')\n"
+        "    except Exception as e:\n"
+        "        print(f'open_url failed for {request.url}: {e}')\n"
+        "        return orig_send(self, request, **kwargs)\n"
+        "    response = requests.Response()\n"
+        "    response.status_code = 200\n"
+        "    response.url = request.url\n"
+        "    response.raw = io.BytesIO(content)\n"
+        "    return response\n"
+        "requests.Session.send = pyodide_send\n"
+        "\n"
+        "# /drive/ in Pyodide requires Cross-Origin-Isolation headers\n"
+        "# (COOP/COEP) which many static servers (e.g. CircleCI artifacts)\n"
+        "# do not send. Fetch the data over HTTP into /tmp/mne_data instead\n"
+        "# — same-origin, no CORS. The data is served at the docs root\n"
+        "# (/mne_data/...) via Sphinx html_extra_path.\n"
+        "# Pyodide may run in a web worker (no `window`); `location` exists\n"
+        "# in both the main thread and workers, so use it to find the docs\n"
+        "# root by splitting on '/lite/'.\n"
+        "import pyodide.http as _phttp\n"
+        "import js as _js\n"
+        "try:\n"
+        "    _page = str(_js.location.href)\n"
+        "except Exception:\n"
+        "    _page = str(_js.window.location.href)\n"
+        "_base = _page.split('/lite/')[0] + '/mne_data/'\n"
+        "mne_data_path = '/tmp/mne_data'\n"
+        "_sample_dir = mne_data_path + '/MNE-sample-data'\n"
+        "# Eager 'core': small, commonly-used sample files fetched once at\n"
+        "# notebook start. The heavy files (raw / filt raw / ernoise / fwd /\n"
+        "# inv / src, ~360 MB total) are intentionally omitted here -- they are\n"
+        "# fetched lazily on first read via the reader shims below, so each\n"
+        "# notebook only downloads the sample files it actually uses.\n"
+        "_sample_files = [\n"
+        "    'version.txt',\n"
+        "    'MEG/sample/sample_audvis_raw-eve.fif',\n"
+        "    'MEG/sample/sample_audvis_filt-0-40_raw-eve.fif',\n"
+        "    'MEG/sample/sample_audvis_ecg-proj.fif',\n"
+        "    'MEG/sample/sample_audvis-cov.fif',\n"
+        "    'MEG/sample/sample_audvis-ave.fif',\n"
+        "    'MEG/sample/sample_audvis-no-filter-ave.fif',\n"
+        "    'MEG/sample/sample_audvis_raw-trans.fif',\n"
+        "    'MEG/sample/sample_audvis-shrunk-cov.fif',\n"
+        "    'MEG/sample/sample_audvis-meg-lh.stc',\n"
+        "    'MEG/sample/sample_audvis-meg-rh.stc',\n"
+        "    'subjects/sample/mri/T1.mgz',\n"
+        "    'subjects/sample/surf/rh.pial',\n"
+        "    'subjects/sample/surf/lh.pial',\n"
+        "    'subjects/sample/surf/rh.white',\n"
+        "    'subjects/sample/surf/lh.white',\n"
+        "    'subjects/sample/label/lh.aparc.annot',\n"
+        "    'subjects/sample/label/rh.aparc.annot',\n"
+        "]\n"
+        "print('Fetching MNE sample data (once per session)...')\n"
+        "for _f in _sample_files:\n"
+        "    _dst = _sample_dir + '/' + _f\n"
+        "    if os.path.exists(_dst):\n"
+        "        continue\n"
+        "    _url = _base + 'MNE-sample-data/' + _f\n"
+        "    try:\n"
+        "        _r = await _phttp.pyfetch(_url)\n"
+        "        if _r.status != 200:\n"
+        "            print(f'  HTTP {_r.status} for {_url}')\n"
+        "            continue\n"
+        "        _d = await _r.bytes()\n"
+        "        if _d[:4] == b'<!DO' or _d[:5] == b'<html':\n"
+        "            print(f'  skipped {_f} (server returned HTML)')\n"
+        "            continue\n"
+        "        os.makedirs(os.path.dirname(_dst), exist_ok=True)\n"
+        "        with open(_dst, 'wb') as _fh:\n"
+        "            _fh.write(_d)\n"
+        "    except Exception as _e:\n"
+        "        print(f'  failed to fetch {_f}: {_e}')\n"
+        "os.makedirs(mne_data_path, exist_ok=True)\n"
+        "os.environ['MNE_DATA'] = mne_data_path\n"
+        "os.environ['MNE_DATASETS_SAMPLE_PATH'] = mne_data_path\n"
+        "\n"
+        "# Block pooch from attempting large OSF downloads in the browser.\n"
+        "# The required files are either pre-injected or unavailable.\n"
+        "import pooch\n"
+        "orig_pooch_fetch = pooch.Pooch.fetch\n"
+        "def pyodide_pooch_fetch(self, fname, processor=None, downloader=None):\n"
+        "    url = self.get_url(fname)\n"
+        "    if 'osf.io' in url or 'files.osf.io' in url:\n"
+        "        raise RuntimeError(\n"
+        "            f'Cannot download {fname!r} from OSF in JupyterLite: '\n"
+        "            'browser CORS policy and memory limits prevent large '\n"
+        "            'dataset downloads. Open this notebook from mne.tools '\n"
+        "            'where sample data is pre-bundled, or run it locally.'\n"
+        "        )\n"
+        "    return orig_pooch_fetch(\n"
+        "        self, fname, processor=processor, downloader=downloader\n"
+        "    )\n"
+        "pooch.Pooch.fetch = pyodide_pooch_fetch\n"
+        "\n"
+        "# Import MNE and finalize setup.\n"
+        "import mne\n"
+        "# Pre-create a valid empty config file so MNE never hits a corrupt read.\n"
+        "_cfg = mne.get_config_path()\n"
+        "os.makedirs(os.path.dirname(_cfg), exist_ok=True)\n"
+        "if not os.path.exists(_cfg):\n"
+        "    with open(_cfg, 'w') as _f:\n"
+        "        _f.write('{}')\n"
+        "mne.set_config('MNE_DATA', mne_data_path)\n"
+        "for ds in ['SAMPLE', 'TESTING', 'SSVEP', 'EEGBCI', 'SOMATO',\n"
+        "           'BRAINSTORM']:\n"
+        "    mne.set_config(f'MNE_DATASETS_{ds}_PATH', mne_data_path)\n"
+        "\n"
+        "# Bypass pooch's archive check: data_path() normally looks for the\n"
+        "# .tar.gz archive, not just the extracted folder. Return the folder\n"
+        "# directly so pooch never tries to download from OSF. Return a Path\n"
+        "# (not a str) since tutorials use the / operator on the result.\n"
+        "from pathlib import Path as _Path\n"
+        "_sample_path = _Path(_sample_dir)\n"
+        "def _lite_sample_data_path(*_a, **_kw):\n"
+        "    return _sample_path\n"
+        "mne.datasets.sample.data_path = _lite_sample_data_path\n"
+        "# Several non-sample datasets are each used by only a couple of\n"
+        "# notebooks (kiloword/erp_core for Epochs 30 & 40; mtrf/eegbci for the\n"
+        "# decoding examples), so fetch them LAZILY — only when their\n"
+        "# data_path()/load_data() is called — to avoid taxing every other\n"
+        "# notebook's setup. Pyodide runs in a web worker here, where a\n"
+        "# synchronous XHR may set responseType='arraybuffer', letting a sync\n"
+        "# data_path() read binary.\n"
+        "def _lite_fetch_rel(_rel):\n"
+        "    _dst = mne_data_path + '/' + _rel\n"
+        "    if not os.path.exists(_dst):\n"
+        "        from js import XMLHttpRequest\n"
+        "        _xhr = XMLHttpRequest.new()\n"
+        "        _xhr.open('GET', _base + _rel, False)\n"
+        "        _xhr.responseType = 'arraybuffer'\n"
+        "        _xhr.send()\n"
+        "        if _xhr.status != 200:\n"
+        "            raise FileNotFoundError(\n"
+        "                f'Could not fetch {_rel} (HTTP {_xhr.status})'\n"
+        "            )\n"
+        "        os.makedirs(os.path.dirname(_dst), exist_ok=True)\n"
+        "        with open(_dst, 'wb') as _fh:\n"
+        "            _fh.write(bytes(_xhr.response.to_py()))\n"
+        "    return _dst\n"
+        "def _lite_lazy_fetch(_folder, _fname):\n"
+        "    _lite_fetch_rel(_folder + '/' + _fname)\n"
+        "    return _Path(mne_data_path + '/' + _folder)\n"
+        "def _lite_kiloword_data_path(*_a, **_kw):\n"
+        "    return _lite_lazy_fetch("
+        "'MNE-kiloword-data', 'kword_metadata-epo.fif')\n"
+        "mne.datasets.kiloword.data_path = _lite_kiloword_data_path\n"
+        "def _lite_erp_core_data_path(*_a, **_kw):\n"
+        "    return _lite_lazy_fetch(\n"
+        "        'MNE-ERP-CORE-data', "
+        "'ERP-CORE_Subject-001_Task-Flankers_eeg.fif'\n"
+        "    )\n"
+        "mne.datasets.erp_core.data_path = _lite_erp_core_data_path\n"
+        "def _lite_mtrf_data_path(*_a, **_kw):\n"
+        "    return _lite_lazy_fetch('mTRF_1.5', 'speech_data.mat')\n"
+        "mne.datasets.mtrf.data_path = _lite_mtrf_data_path\n"
+        "def _lite_eegbci_load_data(subject, runs, *_a, **_kw):\n"
+        "    _runs = [runs] if isinstance(runs, (int, float)) else list(runs)\n"
+        "    _subjects = (\n"
+        "        list(subject) if isinstance(subject, (list, tuple))\n"
+        "        else [subject]\n"
+        "    )\n"
+        "    _out = []\n"
+        "    for _s in _subjects:\n"
+        "        for _r in _runs:\n"
+        "            _rel = (\n"
+        "                'MNE-eegbci-data/files/eegmmidb/1.0.0/'\n"
+        "                f'S{int(_s):03d}/S{int(_s):03d}R{int(_r):02d}.edf'\n"
+        "            )\n"
+        "            _out.append(_Path(_lite_fetch_rel(_rel)))\n"
+        "    return _out\n"
+        "mne.datasets.eegbci.load_data = _lite_eegbci_load_data\n"
+        "\n"
+        "# Some MNE-sample-data files (e.g. the fixed-orientation forward/\n"
+        "# inverse used by the point-spread tutorial) aren't in the eager\n"
+        "# _sample_files list above because only one or two notebooks need\n"
+        "# them. Rather than hand-listing every such file, lazily fetch any\n"
+        "# sample-data path the first time read_forward_solution/\n"
+        "# read_inverse_operator is asked to open it.\n"
+        "def _lite_fetch_if_under_mne_data(fname):\n"
+        "    _p = str(fname)\n"
+        "    if _p.startswith(mne_data_path + '/'):\n"
+        "        _lite_fetch_rel(_p[len(mne_data_path) + 1:])\n"
+        "    return fname\n"
+        "_orig_read_forward_solution = mne.read_forward_solution\n"
+        "def _lite_read_forward_solution(fname, *_a, **_kw):\n"
+        "    return _orig_read_forward_solution(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_forward_solution = _lite_read_forward_solution\n"
+        "import mne.minimum_norm as _mne_minv\n"
+        "_orig_read_inverse_operator = _mne_minv.read_inverse_operator\n"
+        "def _lite_read_inverse_operator(fname, *_a, **_kw):\n"
+        "    return _orig_read_inverse_operator(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "_mne_minv.read_inverse_operator = _lite_read_inverse_operator\n"
+        "mne.minimum_norm.read_inverse_operator = _lite_read_inverse_operator\n"
+        "# Lazily fetch the heavy sample raw / source-space files only when a\n"
+        "# notebook actually reads them (same pattern as the fwd/inv shims\n"
+        "# above), instead of pulling the whole sample set up front.\n"
+        "_orig_read_raw_fif = mne.io.read_raw_fif\n"
+        "def _lite_read_raw_fif(fname, *_a, **_kw):\n"
+        "    return _orig_read_raw_fif(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.io.read_raw_fif = _lite_read_raw_fif\n"
+        "_orig_read_raw = mne.io.read_raw\n"
+        "def _lite_read_raw(fname, *_a, **_kw):\n"
+        "    return _orig_read_raw(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.io.read_raw = _lite_read_raw\n"
+        "_orig_read_source_spaces = mne.read_source_spaces\n"
+        "def _lite_read_source_spaces(fname, *_a, **_kw):\n"
+        "    return _orig_read_source_spaces(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_source_spaces = _lite_read_source_spaces\n"
+        "\n"
+        "# EXPERIMENTAL 3D: MNE's normal Brain/VTK stack can't load in WASM, so\n"
+        "# route SourceEstimate.plot() through pyvista-js (vtk.js) instead.\n"
+        "# pyvista-js (0.15) has no scalar colormap in its renderer, so we\n"
+        "# approximate MNE's Brain look with solid-colored meshes: a two-tone\n"
+        "# curvature base (light gyri + dark sulci) plus many thin 'hot' bands\n"
+        "# for the activation, on a black background with even scene lighting.\n"
+        "# Static, one time point, no time slider yet. Fully guarded — any\n"
+        "# failure prints a message so the notebook completes. Returns a stub\n"
+        "# 'brain' whose methods (add_foci/add_text/show_view/...) are safe\n"
+        "# no-ops, so tutorials that call brain.add_foci(...) after plot() work.\n"
+        "class _LiteBrain:\n"
+        "    def screenshot(self, *_a, **_kw):\n"
+        "        import numpy as _np\n"
+        "        return _np.zeros((2, 2, 3), dtype='uint8')\n"
+        "    def __getattr__(self, _name):\n"
+        "        return lambda *_a, **_kw: None\n"
+        "def _lite_stc_plot(self, *_a, **_kw):\n"
+        "    try:\n"
+        "        import numpy as _np\n"
+        "        import nibabel as _nib\n"
+        "        from scipy.spatial import cKDTree as _KDTree\n"
+        "        from matplotlib import colormaps as _cmaps\n"
+        "        import pyvista_js as _pv\n"
+        "        _subj = (_kw.get('subject')\n"
+        "                 or (_a[0] if _a and isinstance(_a[0], str) else None)\n"
+        "                 or 'sample')\n"
+        "        _sdir = _kw.get('subjects_dir')\n"
+        "        _sdir = (str(_sdir) if _sdir is not None else\n"
+        "                 mne_data_path + '/MNE-sample-data/subjects')\n"
+        "        _init = _kw.get('initial_time', None)\n"
+        "        if _init is None:\n"
+        "            _ti = int(_np.argmax(_np.abs(self.data).mean(0)))\n"
+        "        else:\n"
+        "            _ti = int(_np.argmin(_np.abs(self.times - _init)))\n"
+        "        _hot = _cmaps['hot']\n"
+        "        _N = 10\n"
+        "        def _flat(_t):\n"
+        "            return _np.hstack([\n"
+        "                _np.full((len(_t), 1), 3, dtype=_np.int64),\n"
+        "                _t.astype(_np.int64)]).ravel()\n"
+        "        def _sub(_pts, _tris, _mask, _lift=0.0, _cen=None):\n"
+        "            _sel = _tris[_mask]\n"
+        "            if len(_sel) == 0:\n"
+        "                return None\n"
+        "            _u, _iv = _np.unique(_sel, return_inverse=True)\n"
+        "            _p = _pts[_u]\n"
+        "            if _lift and _cen is not None:\n"
+        "                _p = _cen + (_p - _cen) * (1.0 + _lift)\n"
+        "            return _p, _iv.reshape(-1, 3)\n"
+        "        _plotter = _pv.Plotter()\n"
+        "        _plotter.background_color = 'black'\n"
+        "        # even lighting so the surface isn't black when rotated\n"
+        "        for _lp in ((1, 0, 0), (-1, 0, 0), (0, 1, 0),\n"
+        "                    (0, -1, 0), (0, 0, 1), (0, 0, -1)):\n"
+        "            _plotter.add_light(_pv.Light(\n"
+        "                position=(300.0 * _lp[0], 300.0 * _lp[1],\n"
+        "                          300.0 * _lp[2]),\n"
+        "                focal_point=(0.0, 0.0, 0.0), intensity=0.4))\n"
+        "        _nlh = len(self.vertices[0])\n"
+        "        _hemis = (('lh', 0, self.vertices[0]),\n"
+        "                  ('rh', 1, self.vertices[1]))\n"
+        "        for _h, _hi, _vno in _hemis:\n"
+        "            if len(_vno) == 0:\n"
+        "                continue\n"
+        "            _pre = ('MNE-sample-data/subjects/' + _subj +\n"
+        "                    '/surf/' + _h)\n"
+        "            _lite_fetch_rel(_pre + '.inflated')\n"
+        "            _lite_fetch_rel(_pre + '.curv')\n"
+        "            _bpath = _sdir + '/' + _subj + '/surf/' + _h\n"
+        "            _rr, _tris = mne.read_surface(_bpath + '.inflated')\n"
+        "            _cv = _nib.freesurfer.read_morph_data(_bpath + '.curv')\n"
+        "            _hdata = self.data[:_nlh] if _hi == 0 else self.data[_nlh:]\n"
+        "            # color each surface vertex from the nearest ACTIVE source\n"
+        "            # within a small radius, so single-vertex (point) sources\n"
+        "            # show as visible blobs and dense sources fill in as usual\n"
+        "            _sv = _hdata[:, _ti].astype(float)\n"
+        "            _act = _sv != 0\n"
+        "            _scal = _np.zeros(len(_rr))\n"
+        "            if _act.any():\n"
+        "                _atree = _KDTree(_rr[_vno][_act])\n"
+        "                _ad, _ai = _atree.query(_rr)\n"
+        "                _scal = _np.where(_ad <= 12.0, _sv[_act][_ai], 0.0)\n"
+        "            # offset hemispheres along x so they do not overlap\n"
+        "            _off = -60.0 if _h == 'lh' else 60.0\n"
+        "            _pts = _np.round(_rr, 2)\n"
+        "            _pts[:, 0] = _pts[:, 0] + _off\n"
+        "            _cen = _pts.mean(0)\n"
+        "            # curvature base: light gyri (curv<0) + dark sulci (curv>=0)\n"
+        "            _fc = _cv[_tris].mean(1)\n"
+        "            for _cm, _col in (\n"
+        "                    (_fc < 0, (0.68, 0.68, 0.68)),\n"
+        "                    (_fc >= 0, (0.38, 0.38, 0.38))):\n"
+        "                _s = _sub(_pts, _tris, _cm)\n"
+        "                if _s is not None:\n"
+        "                    _plotter.add_mesh(\n"
+        "                        _pv.PolyData(points=_s[0], faces=_flat(_s[1])),\n"
+        "                        color=_col, smooth_shading=True)\n"
+        "            # activation as a smooth hot gradient in N value bands,\n"
+        "            # each lifted 2% off the surface to avoid z-fighting\n"
+        "            _fv = _scal[_tris].mean(1)\n"
+        "            _p90 = _np.percentile(_scal, 90.0)\n"
+        "            _fmax = float(_scal.max())\n"
+        "            # keep the background gray: for sparse point sources the\n"
+        "            # 90th pct is ~0 (most of the brain is zero), which would\n"
+        "            # paint everything, so fall back to a fraction of the max.\n"
+        "            _fmin = _p90 if _p90 > _fmax * 0.05 else _fmax * 0.4\n"
+        "            if _fmax > _fmin:\n"
+        "                _edges = _np.linspace(_fmin, _fmax, _N + 1)\n"
+        "                for _i in range(_N):\n"
+        "                    if _i < _N - 1:\n"
+        "                        _m = (_fv >= _edges[_i]) & (_fv < _edges[_i + 1])\n"
+        "                    else:\n"
+        "                        _m = _fv >= _edges[_i]\n"
+        "                    if int(_m.sum()) == 0:\n"
+        "                        continue\n"
+        "                    _rgb = _hot(0.25 + 0.41 * (_i / (_N - 1)))\n"
+        "                    _col = (float(_rgb[0]), float(_rgb[1]),\n"
+        "                            float(_rgb[2]))\n"
+        "                    _s = _sub(_pts, _tris, _m, 0.02, _cen)\n"
+        "                    if _s is not None:\n"
+        "                        _plotter.add_mesh(\n"
+        "                            _pv.PolyData(points=_s[0],\n"
+        "                                         faces=_flat(_s[1])),\n"
+        "                            color=_col, smooth_shading=True)\n"
+        "        # Open on the lateral profile (camera along the medial-lateral\n"
+        "        # X axis, superior up), like native MNE, instead of vtk.js's\n"
+        "        # default anterior/face-on view. Guarded so a missing\n"
+        "        # view_vector never costs us the render.\n"
+        "        try:\n"
+        "            _plotter.view_vector((-1.0, 0.0, 0.0),\n"
+        "                                 viewup=(0.0, 0.0, 1.0))\n"
+        "        except Exception:\n"
+        "            pass\n"
+        "        _plotter.show()\n"
+        "    except Exception as _e:\n"
+        "        print('[JupyterLite] pyvista-js 3D render unavailable: '\n"
+        "              + repr(_e))\n"
+        "    return _LiteBrain()\n"
+        "mne.SourceEstimate.plot = _lite_stc_plot\n"
+        "\n"
+        "# Pyodide/WASM has no OS threads, so MNE's ProgressBar background\n"
+        "# updater thread (used by the ProgressBar context manager, e.g. in\n"
+        "# permutation cluster tests) crashes with 'can't start new thread'.\n"
+        "# That thread only animates a cosmetic bar — the computation runs on\n"
+        "# the main thread and __exit__ writes the final state — so no-op its\n"
+        "# start/join. Only affects notebooks that use it; results are unchanged.\n"
+        "try:\n"
+        "    from mne.utils import progressbar as _mpb\n"
+        "    _mpb._UpdateThread.start = lambda self: None\n"
+        "    _mpb._UpdateThread.join = lambda self, *_a, **_kw: None\n"
+        "except Exception:\n"
+        "    pass\n"
+        "# tqdm also spawns its own monitor thread, which likewise can't start in\n"
+        "# WASM and emits a TqdmMonitorWarning. Setting monitor_interval=0 before\n"
+        "# any bar is created skips that thread entirely (bars still display).\n"
+        "try:\n"
+        "    import tqdm as _tqdm\n"
+        "    _tqdm.tqdm.monitor_interval = 0\n"
+        "except Exception:\n"
+        "    pass\n"
+        "\n"
+        "# Switch matplotlib to inline so figures render in the notebook.\n"
+        "import IPython\n"
+        "IPython.get_ipython().run_line_magic('matplotlib', 'inline')\n"
+        "import matplotlib.pyplot as plt\n"
+        "# Silence the spurious 'FigureCanvasAgg is non-interactive' warning\n"
+        "# at its source. MNE's plt_show calls fig.show() (the inline backend\n"
+        "# isn't detected as 'agg'), and the inline Agg canvas warns. Patching\n"
+        "# viz.utils.plt_show is not enough: other modules did\n"
+        "# `from .utils import plt_show` and hold their own reference. Every\n"
+        "# path resolves fig.show on the class at call time, so a no-op here\n"
+        "# silences it everywhere. Figures still render via the inline backend.\n"
+        "import matplotlib.figure as _mfig\n"
+        "_mfig.Figure.show = lambda self, *a, **k: None\n"
+        "import importlib\n"
+        "viz_utils = importlib.import_module('mne.viz.utils')\n"
+        "# Also display+close via IPython for paths that call plt_show\n"
+        "# directly, so figures render exactly once.\n"
+        "def pyodide_plt_show(show=True, fig=None, **kwargs):\n"
+        "    if not show:\n"
+        "        return\n"
+        "    import IPython.display\n"
+        "    _f = fig if fig is not None else plt.gcf()\n"
+        "    IPython.display.display(_f)\n"
+        "    plt.close(_f)\n"
+        "viz_utils.plt_show = pyodide_plt_show\n"
+        "\n"
+        "# Each MNE plot is rendered once by pyodide_plt_show above (display()).\n"
+        "# When a plot call is also a cell's last expression, the method returns\n"
+        "# the Figure, which Jupyter echoes a SECOND time as the Out[] result\n"
+        "# (the duplicate seen below inline plots). Drop that redundant echo for\n"
+        "# Figures (and pure lists of Figures, e.g. ica.plot_properties) so each\n"
+        "# plot appears exactly once. Non-figure results (numbers, DataFrames,\n"
+        "# reprs) are untouched, and raw matplotlib figures never shown still\n"
+        "# render via the inline backend's end-of-cell flush, so nothing hides.\n"
+        "# Wrapped in try/except (like the patches below): if anything about\n"
+        "# the displayhook is unexpected, silently keep the current behavior\n"
+        "# (harmless double render) rather than breaking the setup cell.\n"
+        "try:\n"
+        "    _lite_dh = type(IPython.get_ipython().displayhook)\n"
+        "    if not getattr(_lite_dh, '_lite_no_fig_echo', False):\n"
+        "        _lite_dh_call = _lite_dh.__call__\n"
+        "        def _lite_displayhook(self, result=None):\n"
+        "            if isinstance(result, _mfig.Figure):\n"
+        "                result = None\n"
+        "            elif (isinstance(result, (list, tuple)) and result\n"
+        "                  and all(isinstance(_x, _mfig.Figure) for _x in result)):\n"
+        "                result = None\n"
+        "            return _lite_dh_call(self, result)\n"
+        "        _lite_dh.__call__ = _lite_displayhook\n"
+        "        _lite_dh._lite_no_fig_echo = True\n"
+        "except Exception:\n"
+        "    pass\n"
+        "\n"
+        "# Real fix (not a warnings filter) for the threadpoolctl Pyodide\n"
+        "# RuntimeWarning seen via mne.sys_info(): threadpoolctl 3.6.0 (latest\n"
+        "# release) still calls the deprecated Pyodide JsProxy.as_object_map().\n"
+        "# Pyodide's own message says to use as_py_json() instead; both yield the\n"
+        "# same library filepaths, so we swap the call at its source. This removes\n"
+        "# the deprecated API usage entirely, so the warning is never emitted.\n"
+        "# The upstream fix is already merged (joblib/threadpoolctl#201) but\n"
+        "# unreleased; Pyodide bundles the released 3.6.0 wheel. DROP THIS PATCH\n"
+        "# once threadpoolctl 3.7.0 is released and Pyodide bundles it.\n"
+        "try:\n"
+        "    import os as _os\n"
+        "    import threadpoolctl as _tpc\n"
+        "    def _find_libraries_pyodide(self):\n"
+        "        from pyodide_js._module import LDSO\n"
+        "        for _fp in LDSO.loadedLibsByName.as_py_json():\n"
+        "            if _os.path.exists(_fp):\n"
+        "                self._make_controller_from_path(_fp)\n"
+        "    _tpc.ThreadpoolController._find_libraries_pyodide = (\n"
+        "        _find_libraries_pyodide\n"
+        "    )\n"
+        "except Exception:\n"
+        "    pass\n"
+    ),
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
     "examples_dirs": examples_dirs,
@@ -583,6 +1237,55 @@ sphinx_gallery_conf = {
     "parallel": sphinx_gallery_parallel,
 }
 assert is_serializable(sphinx_gallery_conf)
+
+# ---------------------------------------------------------------------------
+# Drop the "Open in JupyterLite" launch badge from gallery pages whose
+# notebooks cannot run in the browser kernel at all: they need the R runtime
+# (rpy2), a compiled package Pyodide does not ship (antio), or multi-GB
+# datasets that cannot be bundled/slimmed. sphinx-gallery adds the badge to
+# every example unconditionally, so we wrap its badge generator and return an
+# empty string for these files. This only removes the badge/link — the
+# notebook source is untouched (no in-code guard). Files that merely need data
+# bundled, a pure-Python package installed, or pyvista 3D are NOT listed here
+# (they are fixable, not impossible).
+JUPYTERLITE_EXCLUDE = (
+    # Tier 1 — impossible: R runtime / compiled package / huge single dataset
+    "examples/stats/r_interop.py",  # rpy2 -> needs the R runtime
+    "examples/io/read_impedances.py",  # antio (compiled, not in Pyodide)
+    "examples/decoding/decoding_rsa_sgskip.py",  # visual_92_categories ~6 GB
+    "examples/decoding/decoding_spoc_CMC.py",  # fieldtrip_cmc ~700 MB
+    "examples/decoding/ssd_spatial_filters.py",  # fieldtrip_cmc ~700 MB
+    # Tier 2 — multi-GB datasets (brainstorm / spm_face / opm / hf_sef)
+    "examples/datasets/brainstorm_data.py",
+    "examples/datasets/hf_sef_data.py",
+    "examples/datasets/opm_data.py",
+    "examples/datasets/spm_faces_dataset.py",
+    "examples/preprocessing/movement_detection.py",
+    "examples/preprocessing/muscle_detection.py",
+    "examples/preprocessing/otp.py",
+    "examples/time_frequency/source_power_spectrum_opm.py",
+    "examples/visualization/evoked_arrowmap.py",
+    "examples/visualization/meg_sensors.py",
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py",
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py",
+    "tutorials/io/60_ctf_bst_auditory.py",
+    "tutorials/preprocessing/80_opm_processing.py",
+)
+
+import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
+
+_orig_gen_jupyterlite_rst = _sg_gen_rst.gen_jupyterlite_rst
+
+
+def _lite_badge_filtered(fpath, gallery_conf):
+    """Return the JupyterLite badge reST, or "" for excluded notebooks."""
+    _p = str(fpath).replace(os.sep, "/")
+    if any(_p.endswith(_ex) for _ex in JUPYTERLITE_EXCLUDE):
+        return ""
+    return _orig_gen_jupyterlite_rst(fpath, gallery_conf)
+
+
+_sg_gen_rst.gen_jupyterlite_rst = _lite_badge_filtered
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
@@ -887,6 +1590,9 @@ html_extra_path = [
     "documentation.html",
     "getting_started.html",
     "install_mne_python.html",
+    # Serve the pre-bundled JupyterLite sample data at the docs root
+    # (e.g. /mne_data/...). The lite setup cell fetches it over HTTP.
+    "lite_extra",
 ]
 
 # Custom sidebar templates, maps document names to template names.
@@ -1109,10 +1815,9 @@ rst_prolog += """
 
 # -- Dependency info ----------------------------------------------------------
 
-min_py = metadata("mne")["Requires-Python"].lstrip(" =<>")
+min_py = "3.10"
+min_py_minor = "10"
 rst_prolog += f"\n.. |min_python_version| replace:: {min_py}\n"
-
-# -- website redirects --------------------------------------------------------
 
 # Static list created 2021/04/13 based on what we needed to redirect,
 # since we don't need to add redirects for examples added after this date.
@@ -1516,8 +2221,25 @@ def rstjinja(app, docname, source):
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
+def _mark_jupyterlite_parallel_safe(app):
+    """Declare jupyterlite_sphinx safe for Sphinx's parallel (-j) read phase.
+
+    The jupyterlite-sphinx version pinned by our JupyterLite/Pyodide stack
+    (0.9.3) predates the ``parallel_read_safe`` metadata that newer releases
+    declare, so the doc build's ``-j auto`` emits a "does not declare if it is
+    safe for parallel reading" warning that ``-W`` turns into a build error.
+    Newer jupyterlite-sphinx marks it read-safe; set the same flag here rather
+    than bumping the pin (which would drag the whole pinned Pyodide stack
+    forward and risk the browser build).
+    """
+    ext = app.extensions.get("jupyterlite_sphinx")
+    if ext is not None and ext.parallel_read_safe is None:
+        ext.parallel_read_safe = True
+
+
 def setup(app):
     """Set up the Sphinx app."""
+    app.connect("builder-inited", _mark_jupyterlite_parallel_safe, priority=1)
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
