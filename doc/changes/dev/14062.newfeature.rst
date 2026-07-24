@@ -1,0 +1,1 @@
+The colorbar in the :class:`mne.viz.Brain` viewer now shows tick marks aligned with its labels, and its title now defaults to the active overlay's ``key`` (see :meth:`~mne.viz.Brain.add_data`). The interactive viewer can show vertex coordinates and camera orientation, toggled via the :kbd:`v` key or a new toolbar button, by `Payam Sadeghi-Shabestari`_.
