@@ -849,7 +849,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
         An open file descriptor.
     tree : dict
         The FIF tree structure if source is a file id.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
 
@@ -886,7 +886,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     fname : path-like
         The name of the file, which should end with ``-src.fif`` or
         ``-src.fif.gz``.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
 
