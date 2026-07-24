@@ -718,6 +718,8 @@ def test_plot_spectrum(method, output, average, request):
         n_bad = sum(same_color(line.get_color(), bad_color) for line in lines)
         assert n_bad == 1
     spectrum.plot_topo()
+    with pytest.warns(FutureWarning, match="'block' parameter is deprecated"):
+        spectrum.plot_topo(block=True)
     spectrum.plot_topomap()
 
 
