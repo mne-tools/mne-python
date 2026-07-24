@@ -844,7 +844,7 @@ def cross_val_multiscore(
     %(verbose)s
     fit_params : dict
         Parameters to pass to the fit method of the estimator.
-    pre_dispatch : int, or str
+    pre_dispatch : int | str
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched

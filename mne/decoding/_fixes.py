@@ -65,7 +65,7 @@ except ImportError:
             call to `partial_fit`. All other methods that validate `X`
             should set `reset=False`.
 
-        validate_separately : False or tuple of dicts
+        validate_separately : False | tuple of dicts
             Only used if `y` is not `None`.
             If `False`, call :func:`~sklearn.utils.check_X_y`. Else, it must be a tuple
             of kwargs to be used for calling :func:`~sklearn.utils.check_array` on `X`
