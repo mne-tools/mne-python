@@ -690,7 +690,7 @@ class SetChannelsMixin(MontageMixin):
         ch_groups=None,
         to_sphere=True,
         axes=None,
-        block=False,
+        block=None,
         show=True,
         sphere=None,
         *,
@@ -736,11 +736,18 @@ class SetChannelsMixin(MontageMixin):
             instance of Axes3D. If None (default), a new axes will be created.
 
             .. versionadded:: 0.13.0
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Defaults to False.
+        block : bool | None
+            Whether to halt program execution until the figure is closed. By default
+            (``None``) this follows :func:`matplotlib.pyplot.show`: it blocks unless
+            Matplotlib's interactive mode is on (see :func:`matplotlib.pyplot.ion`), in
+            which case it returns immediately. Set to ``True`` to force blocking, which
+            is useful with ``kind="select"`` to collect the interactive selection
+            synchronously when interactive mode is on.
 
             .. versionadded:: 0.13.0
+            .. versionchanged:: 1.13
+               The default changed from ``False`` to ``None`` (follow
+               Matplotlib).
         show : bool
             Show figure if True. Defaults to True.
         %(sphere_topomap_auto)s

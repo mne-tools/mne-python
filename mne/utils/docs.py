@@ -4265,7 +4265,13 @@ shape : tuple of int
 
 docdict["show"] = """\
 show : bool
-    Show the figure if ``True``.
+    Show the figure if ``True``. When shown, blocking follows
+    :func:`matplotlib.pyplot.show`: the call blocks until the window is closed unless
+    Matplotlib's interactive mode is on (enabled with :func:`matplotlib.pyplot.ion`,
+    which IPython's Matplotlib integration turns on automatically), in which case it
+    returns immediately. Interactive mode is off by default, so a plain script or REPL
+    blocks. Pass ``show=False`` to build several figures and display them together with
+    a single :func:`matplotlib.pyplot.show` call.
 """
 
 docdict["show_names_topomap"] = """
