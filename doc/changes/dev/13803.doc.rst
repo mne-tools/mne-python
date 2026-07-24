@@ -1,0 +1,1 @@
+Fix placeholder text in :class:`mne.io.RawEyelink` docstring, by :newcontrib:`Siri Ananya Yallapragada`.
