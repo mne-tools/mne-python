@@ -67,6 +67,12 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
         "Summary": "Functions and classes for performing connectivity analysis on MEG data.",  # noqa: E501
     },
+    # PyPI metadata still points at the old personal repo (payamsash/mne-rt)
+    # instead of the current mne-rt-org/mne-rt home.
+    "mne-rt": {
+        "Home-page": "https://github.com/mne-rt-org/mne-rt",
+        "Summary": "Real-time M/EEG neurofeedback and BCI framework built on MNE-Python and MNE-LSL.",  # noqa: E501
+    },
 }
 
 REQUIRE_INSTALLED = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
