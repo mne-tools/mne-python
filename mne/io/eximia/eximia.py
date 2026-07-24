@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import os.path as op
+from pathlib import Path
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _file_size, _read_segments_file
@@ -11,7 +12,11 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_eximia(fname, preload=False, verbose=None) -> "RawEximia":
+def read_raw_eximia(
+    fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawEximia":
     """Reader for an eXimia EEG file.
 
     Parameters

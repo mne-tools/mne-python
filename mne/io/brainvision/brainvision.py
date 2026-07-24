@@ -10,6 +10,8 @@ import os.path as op
 import re
 from datetime import datetime, timezone
 from io import StringIO
+from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -1141,14 +1143,14 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
 
 @fill_doc
 def read_raw_brainvision(
-    vhdr_fname,
-    eog=("HEOGL", "HEOGR", "VEOGb"),
-    misc="auto",
-    scale=1.0,
-    ignore_marker_types=False,
-    overrides=None,
-    preload=False,
-    verbose=None,
+    vhdr_fname: Path | str,
+    eog: list | tuple = ("HEOGL", "HEOGR", "VEOGb"),
+    misc: list | tuple | Literal["auto"] = "auto",
+    scale: float = 1.0,
+    ignore_marker_types: bool = False,
+    overrides: dict | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawBrainVision:
     """Reader for Brain Vision EEG file.
 

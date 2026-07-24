@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import re as re
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -15,7 +16,11 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_boxy(fname, preload=False, verbose=None) -> "RawBOXY":
+def read_raw_boxy(
+    fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawBOXY":
     """Reader for an optical imaging recording.
 
     This function has been tested using the ISS Imagent I and II systems

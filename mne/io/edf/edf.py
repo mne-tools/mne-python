@@ -9,7 +9,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -29,6 +29,7 @@ from ...utils import (
     verbose,
     warn,
 )
+from ...utils._typing import FileLike
 from ..base import BaseRaw, _get_scaling
 from ._open import _gdf_edf_get_fid
 
@@ -1889,19 +1890,19 @@ def _check_args(input_fname, preload, target_ext):
 
 @fill_doc
 def read_raw_edf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    infer_types=False,
-    include=None,
-    preload=False,
-    units=None,
-    encoding="utf8",
-    exclude_after_unique=False,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    infer_types: bool = False,
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    units: dict | str | None = None,
+    encoding: str = "utf8",
+    exclude_after_unique: bool = False,
     *,
-    verbose=None,
+    verbose: bool | str | int | None = None,
 ) -> RawEDF:
     """Reader function for EDF and EDF+ files.
 
@@ -2028,19 +2029,19 @@ def read_raw_edf(
 
 @fill_doc
 def read_raw_bdf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    infer_types=False,
-    include=None,
-    preload=False,
-    units=None,
-    encoding="utf8",
-    exclude_after_unique=False,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    infer_types: bool = False,
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    units: dict | str | None = None,
+    encoding: str = "utf8",
+    exclude_after_unique: bool = False,
     *,
-    verbose=None,
+    verbose: bool | str | int | None = None,
 ) -> RawBDF:
     """Reader function for BDF files.
 
@@ -2167,14 +2168,14 @@ def read_raw_bdf(
 
 @fill_doc
 def read_raw_gdf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    include=None,
-    preload=False,
-    verbose=None,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawGDF:
     """Reader function for GDF files.
 
