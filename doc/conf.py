@@ -1401,6 +1401,16 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/85_brainstorm_phantom_ctf.py",
     "tutorials/io/60_ctf_bst_auditory.py",
     "tutorials/preprocessing/80_opm_processing.py",
+    # Tier 3 — several blockers each, none of them worth clearing on its own
+    # the volume inverse is ~178 MB and volume source estimates are not
+    # rendered in the browser
+    "examples/inverse/compute_mne_inverse_volume.py",
+    # needs aseg.mgz and the mixed source space, and calls src.plot(), which
+    # is the 3D SourceSpaces view
+    "examples/inverse/mixed_source_space_inverse.py",
+    # needs the BEM solution, and nilearn.datasets.load_mni152_template()
+    # downloads a template at runtime, which the browser blocks (CORS)
+    "tutorials/inverse/20_dipole_fit.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
