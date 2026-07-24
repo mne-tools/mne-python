@@ -573,7 +573,7 @@ class EpochsEEGLAB(BaseEpochs):
         EEGLAB (.set) file with each descriptions copied from ``eventtype``.
     tmin : float
         Start time before event.
-    baseline : None or tuple of length 2
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".

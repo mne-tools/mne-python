@@ -100,7 +100,7 @@ error_ignores_specific = {  # specific instances to skip
 }
 bad_docstring_type = re.compile(
     r"(?:\(\s*default\b|,\s*default(?=\s|=|:)|"
-    r"(?:^|,)\s*(?:optional|\(\s*optional\s*\))(?:$|\s*\())",
+    r"(?:^|,)\s*(?:optional|\(\s*optional\s*\))(?=\s*(?:$|[|,])))",
     re.IGNORECASE,
 )
 subclass_name_ignores = (
@@ -130,9 +130,12 @@ subclass_name_ignores = (
     [
         ("bool, optional", True),
         ("bool, (optional)", True),
+        ("bool, optional | str", True),
+        ("bool, (optional) | str", True),
         ("bool, default=True", True),
         ("bool (default True)", True),
         ('{"default", "pandas"}', False),
+        ("{'optional', 'required'}", False),
         ("bool | None", False),
     ],
 )

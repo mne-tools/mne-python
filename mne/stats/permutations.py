@@ -45,7 +45,7 @@ def permutation_t_test(
         permutations are tested. It's the exact test, that
         can be untractable when the number of samples is big (e.g. > 20).
         If n_permutations >= 2**n_samples then the exact test is performed.
-    tail : -1 or 0 or 1
+    tail : -1 | 0 | 1
         If tail is 1, the alternative hypothesis is that the
         mean of the data is greater than 0 (upper tailed test).  If tail is 0,
         the alternative hypothesis is that the mean of the data is different

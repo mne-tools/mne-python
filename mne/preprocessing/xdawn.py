@@ -229,7 +229,7 @@ class Xdawn(XdawnTransformer):
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    correct_overlap : 'auto' or bool
+    correct_overlap : 'auto' | bool
         Compute the independent evoked responses per condition, while
         correcting for event overlaps if any. If 'auto', then
         overlapp_correction = True if the events do overlap.

@@ -404,7 +404,7 @@ class BaseRaw(
             If omitted, data is included to the end.
         sel : array
             Indices of channels to select.
-        data_buffer : array or str
+        data_buffer : array | str
             numpy array to fill with data read, must have the correct shape.
             If str, a np.memmap with the correct data type will be used
             to store the data.

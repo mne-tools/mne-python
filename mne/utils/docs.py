@@ -3685,7 +3685,7 @@ precompute : bool | str
 """
 
 docdict["preload"] = """
-preload : bool or str
+preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
