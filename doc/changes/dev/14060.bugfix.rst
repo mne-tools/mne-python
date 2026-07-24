@@ -1,0 +1,1 @@
+Fix :func:`mne.io.read_raw_nihon` misreading large multichannel Nihon Kohden ``EEG-1200A`` recordings as a single ~1 second channel, by :newcontrib:`mgj05otf`.

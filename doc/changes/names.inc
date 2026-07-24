@@ -236,6 +236,7 @@
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 .. _Melih Yayli: https://github.com/yaylim
+.. _mgj05otf: https://github.com/mgj05otf
 .. _Michael Straube: https://github.com/mistraube
 .. _Michal Žák: https://github.com/michalrzak
 .. _Michiru Kaneda: https://github.com/rcmdnk
