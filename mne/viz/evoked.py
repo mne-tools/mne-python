@@ -46,6 +46,7 @@ from .topomap import (
     _set_contour_locator,
     plot_topomap,
 )
+from .ui_events import TimeChange, publish, subscribe
 from .utils import (
     DraggableColorbar,
     _check_cov,
@@ -111,6 +112,11 @@ def _butterfly_on_button_press(event, params):
             event.canvas.draw()
     params["need_draw"] = False
 
+    for ax in params["axes"]:
+        if event.inaxes is ax:
+            publish(ax.figure, TimeChange(time=event.xdata))
+            break
+
 
 def _line_plot_onselect(
     xmin,
@@ -132,6 +138,9 @@ def _line_plot_onselect(
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
         raise ValueError("Interactive topomaps only allowed for EEG and MEG channels.")
+    # First click after SpanSelector triggers this again, so reject when zero-width span
+    if xmin == xmax:
+        return
     if (
         "grad" in ch_types
         and len(_pair_grad_sensors(info, topomap_coords=False, raise_error=False)) < 2
@@ -625,20 +634,64 @@ def _plot_lines(
                 selectables[type_idx] = False
 
     if selectable:
-        # Parameters for butterfly interactive plots
-        params = dict(
-            axes=axes,
-            texts=texts,
-            lines=lines,
-            ch_names=info["ch_names"],
-            idxs=idxs,
-            need_draw=False,
-            path_effects=path_effects,
-        )
-        fig.canvas.mpl_connect("pick_event", partial(_butterfly_onpick, params=params))
-        fig.canvas.mpl_connect(
-            "button_press_event", partial(_butterfly_on_button_press, params=params)
-        )
+
+        def _on_hover(event):
+            if not event.inaxes:
+                return
+
+            # pop up channel name on hover
+            ax = event.inaxes
+            ax_idx = np.where([ax is a for a in axes])[0]
+            if len(ax_idx):  # do nothing if ax is used instead
+                ax_idx = ax_idx[0]
+                text = texts[ax_idx]
+                hovered = None
+                for line_idx, line in enumerate(lines[ax_idx]):
+                    hit, details = line.contains(event)
+                    if hit:
+                        hovered = (line_idx, line, details["ind"][0])
+                        break  # stop recursion at first hit
+                if hovered is not None:
+                    line_idx, line, ind = hovered
+                    ch_name = info["ch_names"][idxs[ax_idx][line_idx]]
+                    text.set_position((line.get_xdata()[ind], line.get_ydata()[ind]))
+                    text.set_text(ch_name)
+                    text.set_color(line.get_color())
+                    text.set_alpha(1.0)
+                    text.set_zorder(
+                        len(ax.lines)
+                    )  # to make sure it goes on top of the lines
+                    text.set_path_effects(path_effects)
+                else:
+                    text.set_alpha(0.0)
+                    text.set_path_effects([])
+
+            # vertical line to indicate time point
+            for ax in axes:
+                line = getattr(ax, "_cursorline", None)
+                if line is None:
+                    ax._cursorline = ax.axvline(event.xdata, color="black", alpha=0.2)
+                else:
+                    line.set_xdata([event.xdata, event.xdata])
+            ax.figure.canvas.draw_idle()
+
+        def _rm_cursor(event):
+            for ax in axes:
+                if ax._cursorline is not None:
+                    ax._cursorline.remove()
+                    ax._cursorline = None
+            ax.figure.canvas.draw_idle()
+
+        def _select_time(event):
+            for ax in axes:
+                if event.inaxes is ax:
+                    publish(ax.figure, TimeChange(time=event.xdata))
+                    break
+
+        fig.canvas.mpl_connect("motion_notify_event", _on_hover)
+        fig.canvas.mpl_connect("figure_leave_event", _rm_cursor)
+        fig.canvas.mpl_connect("button_press_event", _select_time)
+
     for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
         line_list = list()  # 'line_list' contains the lines for this axes
         if unit is False:
@@ -849,6 +902,18 @@ def _plot_lines(
                 props=dict(alpha=0.5, facecolor="red"),
             )
 
+    def on_time_change(event):
+        """Respond to a time change UI event."""
+        for ax in axes:
+            line = getattr(ax, "_selectline", None)
+            if line is None:
+                ax._selectline = ax.axvline(event.time, color="black", alpha=1)
+            else:
+                line.set_xdata([event.time, event.time])
+        ax.figure.canvas.draw()
+
+    subscribe(fig, "time_change", on_time_change)
+
 
 def _add_nave(ax, nave):
     """Add nave to axes."""
@@ -986,7 +1051,7 @@ def plot_evoked(
     axes=None,
     gfp=False,
     window_title=None,
-    spatial_colors=False,
+    spatial_colors="auto",
     zorder="unsorted",
     selectable=True,
     noise_cov=None,
@@ -1114,6 +1179,14 @@ def plot_evoked(
     See Also
     --------
     mne.viz.plot_evoked_white
+
+    Notes
+    -----
+    The figure will publish and subscribe to the following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange`
+
+    .. versionadded:: 1.13.0
     """  # noqa: E501
     return _plot_evoked(
         evoked=evoked,
