@@ -131,6 +131,13 @@ if (
     os.environ.setdefault("QT_MAC_WANTS_LAYER", "1")
 
 
+def _qcursor(name):
+    # map to a native name on macOS (instead of using Qt pixmap)
+    if sys.platform == "darwin" and name in ("WaitCursor", "BusyCursor"):
+        name = "ForbiddenCursor"
+    return QCursor(getattr(Qt, name))
+
+
 # fix for qscroll needing two layouts, one parent, one child
 def _get_layout(layout):
     if hasattr(layout, "_parent_layout"):
@@ -885,7 +892,7 @@ class _QtDialog(_AbstractDialog):
             button_id = widget.standardButton(button)
             for button_name in _QtDialog.supported_button_names:
                 if button_id == getattr(QMessageBox, button_name):
-                    widget.setCursor(QCursor(Qt.WaitCursor))
+                    widget.setCursor(_qcursor("WaitCursor"))
                     try:
                         callback(button_name)
                     finally:
@@ -1610,7 +1617,7 @@ class _QtWindow(_AbstractWindow):
         self._window.setCursor(cursor)
 
     def _window_new_cursor(self, name):
-        return QCursor(getattr(Qt, name))
+        return _qcursor(name)
 
     @contextmanager
     def _window_ensure_minimum_sizes(self):
