@@ -121,6 +121,10 @@ jobs:
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
+      # Probe CoreGraphics ICC colorspace cache lifetime (temporary diagnostic,
+      # expected: WEAK + child SIGTRAP on macOS 26.4, fixed on >= 26.5)
+      - run: python tools/cg_icc_probe.py
+        if: startsWith(matrix.os, 'macos')
       # Check Qt
       - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: env.MNE_QT_BACKEND != ''
@@ -134,11 +138,6 @@ jobs:
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-        env:
-          # CGColorSpace over-release canary (temporary diagnostic, see tools/cg_canary.py)
-          PYTHONPATH: ${{ github.workspace }}/tools
-          PYTEST_ADDOPTS: -p cg_canary
-          CG_CANARY_LOG: ${{ github.workspace }}/cg_canary.log
       # Diagnose silent pytest-xdist worker deaths on macOS: a JetsamEvent-*.ips
       # report means the OS killed the worker under memory pressure (SIGKILL),
       # while a python-*.ips crash report means a real native crash (with stack)
@@ -151,7 +150,6 @@ jobs:
           sudo find /Library/Logs/DiagnosticReports -type f -mmin -90 -exec cp {} crash_diagnostics/system_reports/ \; 2>/dev/null || true
           sudo chown -R "$USER" crash_diagnostics || true
           { sysctl hw.memsize vm.swapusage; vm_stat; } > crash_diagnostics/memory_snapshot.txt || true
-          cp "$GITHUB_WORKSPACE/cg_canary.log" crash_diagnostics/ || true
           log show --last 45m --style syslog --predicate 'eventMessage CONTAINS[c] "memorystatus" OR eventMessage CONTAINS[c] "jetsam"' > crash_diagnostics/memorystatus.log || true
           ls -alR crash_diagnostics || true
       - uses: actions/upload-artifact@v7
