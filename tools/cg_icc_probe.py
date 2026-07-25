@@ -94,6 +94,107 @@ for t in threads:
 print(f"stress child: survived {sum(count)} cycles across 4 threads", flush=True)
 """
 
+EVICT_CHILD = """
+import ctypes, pathlib
+cg = ctypes.CDLL("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+cg.CGColorSpaceCreateWithICCData.restype = ctypes.c_void_p
+cg.CGColorSpaceCreateWithICCData.argtypes = [ctypes.c_void_p]
+cg.CGColorSpaceGetType.restype = ctypes.c_int
+cg.CGColorSpaceGetType.argtypes = [ctypes.c_void_p]
+cf.CFDataCreate.restype = ctypes.c_void_p
+cf.CFDataCreate.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long]
+cf.CFRelease.restype = None
+cf.CFRelease.argtypes = [ctypes.c_void_p]
+icc = bytearray(
+    pathlib.Path("/System/Library/ColorSync/Profiles/sRGB Profile.icc").read_bytes()
+)
+icc[-4:] = b"MNE!"
+d_target = cf.CFDataCreate(None, bytes(icc), len(icc))
+p1 = cg.CGColorSpaceCreateWithICCData(d_target)
+cg.CGColorSpaceGetType(p1)
+cf.CFRelease(p1)  # cache-only (rc=1) -> eviction candidate
+# pressure the cache with many distinct profiles
+for i in range(20000):
+    v = bytearray(icc)
+    v[-8:-4] = i.to_bytes(4, "big")
+    dv = cf.CFDataCreate(None, bytes(v), len(v))
+    q = cg.CGColorSpaceCreateWithICCData(dv)
+    if q:
+        cf.CFRelease(q)
+    cf.CFRelease(dv)
+p2 = cg.CGColorSpaceCreateWithICCData(d_target)
+print(f"evict child: p1={p1:#x} p2={p2:#x} same={p1 == p2}", flush=True)
+print(f"evict child: type={cg.CGColorSpaceGetType(p2)}", flush=True)  # crashable
+print("evict child: survived", flush=True)
+"""
+
+PRESSURE_CHILD = """
+import ctypes, pathlib, subprocess, threading, time
+cg = ctypes.CDLL("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+cg.CGColorSpaceCreateWithICCData.restype = ctypes.c_void_p
+cg.CGColorSpaceCreateWithICCData.argtypes = [ctypes.c_void_p]
+cg.CGColorSpaceGetType.restype = ctypes.c_int
+cg.CGColorSpaceGetType.argtypes = [ctypes.c_void_p]
+cf.CFDataCreate.restype = ctypes.c_void_p
+cf.CFDataCreate.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long]
+cf.CFRelease.restype = None
+cf.CFRelease.argtypes = [ctypes.c_void_p]
+icc = bytearray(
+    pathlib.Path("/System/Library/ColorSync/Profiles/sRGB Profile.icc").read_bytes()
+)
+icc[-4:] = b"MNE!"
+icc = bytes(icc)
+DURATION = 12.0
+stop = time.monotonic() + DURATION
+fired = [0]
+
+def pressure():
+    # simulate memory-pressure notifications (CG caches flush on these)
+    while time.monotonic() < stop:
+        for level in ("warn", "critical"):
+            r = subprocess.run(
+                ["sudo", "-n", "memory_pressure", "-S", "-l", level],
+                capture_output=True,
+            )
+            if r.returncode == 0:
+                fired[0] += 1
+        time.sleep(1.0)
+
+def churn_distinct():
+    i = 0
+    while time.monotonic() < stop:
+        v = bytearray(icc)
+        v[-8:-4] = i.to_bytes(4, "big")
+        dv = cf.CFDataCreate(None, bytes(v), len(v))
+        q = cg.CGColorSpaceCreateWithICCData(dv)
+        if q:
+            cf.CFRelease(q)
+        cf.CFRelease(dv)
+        i += 1
+
+threads = [
+    threading.Thread(target=pressure),
+    threading.Thread(target=churn_distinct),
+]
+for t in threads:
+    t.start()
+d = cf.CFDataCreate(None, icc, len(icc))
+n = 0
+while time.monotonic() < stop:
+    p = cg.CGColorSpaceCreateWithICCData(d)  # may return flushed/stale entry
+    cg.CGColorSpaceGetType(p)  # crashable
+    cf.CFRelease(p)
+    n += 1
+for t in threads:
+    t.join()
+print(
+    f"pressure child: survived {n} lookups, {fired[0]} pressure events fired",
+    flush=True,
+)
+"""
+
 
 def main():
     """Run the probe."""
@@ -124,7 +225,12 @@ def main():
             flush=True,
         )
 
-    for label, code in [("crash probe", CHILD), ("stress probe", STRESS_CHILD)]:
+    for label, code in [
+        ("crash probe", CHILD),
+        ("stress probe", STRESS_CHILD),
+        ("evict probe", EVICT_CHILD),
+        ("pressure probe", PRESSURE_CHILD),
+    ]:
         res = subprocess.run(
             [sys.executable, "-c", code], capture_output=True, text=True
         )
