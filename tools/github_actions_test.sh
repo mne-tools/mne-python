@@ -45,4 +45,4 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_C
 fi
 
 # $COV_ARGS is set in github_actions_env_vars.sh (coverage only on Python >= 3.14)
-pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 ${COV_ARGS} ${COV_APPEND} --color=yes --continue-on-collection-errors --junit-xml="$THIS_JUNIT" -vv ${USE_DIRS}
+pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 ${COV_ARGS} --color=yes --continue-on-collection-errors --junit-xml="$JUNIT_PATH" -vv ${USE_DIRS}
