@@ -619,6 +619,13 @@ class _AbstractRenderer(ABC):
             The number of labels to display on the scalar bar.
         bgcolor : tuple | str
             The color of the background when there is transparency.
+
+        Returns
+        -------
+        actor
+            The scalar bar actor.
+        tick_actor
+            The actor drawing tick marks along the scalar bar.
         """
         pass
 

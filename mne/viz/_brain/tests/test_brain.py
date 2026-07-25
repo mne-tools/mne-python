@@ -662,6 +662,62 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
+def test_scalar_bar_ticks_title_and_hover(renderer_interactive_pyvistaqt, brain_gc):
+    """Test scalar bar tick marks, title truncation, and hover info toggle."""
+    long_title = "a" * 40
+    brain = _create_testing_brain(
+        hemi="lh",
+        show_traces=False,
+        add_data_kwargs=dict(colorbar_kwargs=dict(title=long_title)),
+    )
+    n_labels = brain._scalar_bar.GetNumberOfLabels()
+    ticks = brain._scalar_bar_ticks
+    assert ticks.GetNumberOfLabels() == n_labels
+    assert ticks.GetTickVisibility()
+    assert not ticks.GetLabelVisibility()
+    title = brain._scalar_bar.GetTitle()
+    assert title.endswith("…")
+    assert len(title) <= 20
+
+    assert brain._show_hover_info is False
+
+    class MockIren:
+        def GetEventPosition(self):
+            return 50, 50
+
+        def FindPokedRenderer(self, x, y):
+            return brain.plotter.renderers[0]
+
+    class MockPicker:
+        def Pick(self, x, y, z, renderer):
+            pass
+
+        def GetCellId(self):
+            return 0
+
+        def GetMapper(self):
+            return brain.plotter.mapper
+
+        def GetPickPosition(self):
+            return np.zeros(3)
+
+    brain._renderer._picker = MockPicker()
+    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    assert not brain._hover_caption.GetVisibility()  # toggle is off
+
+    brain._toggle_hover_info()
+    assert brain._show_hover_info is True
+    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    assert brain._hover_caption.GetVisibility()
+    assert "vertex" in brain._hover_caption.GetCaption()
+
+    brain._toggle_hover_info()
+    assert brain._show_hover_info is False
+    assert not brain._hover_caption.GetVisibility()
+    brain.close()
+
+
+@testing.requires_testing_data
 def test_add_sensors_scales(renderer_interactive_pyvistaqt):
     """Test sensor_scales parameter."""
     kwargs = dict(subject=subject, subjects_dir=subjects_dir)
