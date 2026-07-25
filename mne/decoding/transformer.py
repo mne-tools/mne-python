@@ -138,7 +138,7 @@ class Scaler(MNETransformerMixin, BaseEstimator):
     Parameters
     ----------
     %(info)s Only necessary if ``scalings`` is a dict or None.
-    scalings : dict, str
+    scalings : dict | str | None
         Scaling method to be applied to data channel wise.
 
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,

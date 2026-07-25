@@ -1364,7 +1364,7 @@ def compute_depth_prior(
 
     The ``limit_depth_chs`` argument can take the following values:
 
-    * : data:`python:True`
+    * :data:`python:True` (default)
           Use only grad channels in depth weighting (equivalent to MNE C
           minimum-norm code). If grad channels aren't present, only mag
           channels will be used (if no mag, then eeg). This makes the depth

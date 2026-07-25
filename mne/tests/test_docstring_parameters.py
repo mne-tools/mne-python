@@ -144,6 +144,29 @@ def test_bad_docstring_type(type_description, is_bad):
     assert bool(bad_docstring_type.search(type_description)) == is_bad
 
 
+def test_bad_docstring_type_ignores_notes():
+    """Test that defaults outside parameter types are not checked."""
+    from numpydoc.docscrape import FunctionDoc
+
+    def func(param):
+        """Do something.
+
+        Parameters
+        ----------
+        param : bool
+            A parameter.
+
+        Notes
+        -----
+        * :data:`python:True` (default)
+            A valid default in the Notes section.
+        """
+
+    params = FunctionDoc(func)["Parameters"]
+    assert [param.type for param in params] == ["bool"]
+    assert not any(bad_docstring_type.search(param.type) for param in params)
+
+
 def check_parameters_match(func, *, cls=None, where):
     """Check docstring, return list of incorrect results."""
     from numpydoc.docscrape import FunctionDoc

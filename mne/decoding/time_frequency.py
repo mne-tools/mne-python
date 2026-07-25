@@ -30,7 +30,7 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    time_bandwidth : float
+    time_bandwidth : float | None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is

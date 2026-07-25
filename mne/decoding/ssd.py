@@ -59,7 +59,7 @@ class SSD(_GEDTransformer):
     return_filtered : bool
         If return_filtered is True, data is bandpassed and projected onto the
         SSD components.
-    n_fft : int
+    n_fft : int | None
        If sort_by_spectral_ratio is set to True, then the SSD sources will be
        sorted according to their spectral ratio which is calculated based on
        :func:`mne.time_frequency.psd_array_welch`. The n_fft parameter sets the
