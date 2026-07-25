@@ -95,7 +95,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     n_cycles : float | array-like, shape (n_freqs,)
         Number of cycles. Can be a fixed number (float) or one per frequency
         (array-like).
-    sigma : float
+    sigma : float | None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
         is adapted with the frequency like for all wavelet transform.
@@ -460,7 +460,7 @@ def _compute_tfr(
     zero_mean : bool | None
         None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
-    time_bandwidth : float
+    time_bandwidth : float | None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is

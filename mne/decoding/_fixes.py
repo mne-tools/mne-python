@@ -33,7 +33,7 @@ except ImportError:
             The estimator to validate the input for.
 
         X : {array-like, sparse matrix, dataframe} of shape \
-                (n_samples, n_features), default='no validation'
+                (n_samples, n_features) | 'no_validation'
             The input samples.
             If `'no_validation'`, no validation is performed on `X`. This is
             useful for meta-estimator which can delegate input validation to
@@ -41,7 +41,7 @@ except ImportError:
             the only accepted `check_params` are `multi_output` and
             `y_numeric`.
 
-        y : array-like of shape (n_samples,)
+        y : array-like of shape (n_samples,) | None | 'no_validation'
             The targets.
 
             - If `None`, :func:`~sklearn.utils.check_array` is called on `X`. If
