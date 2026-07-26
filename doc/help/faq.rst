@@ -176,25 +176,35 @@ support multithreading:
   which uses `OpenMP <https://www.openmp.org/>`_
 
 To control how many cores are used for linear-algebra-heavy functions like
-:func:`mne.preprocessing.maxwell_filter`, you can set the ``OMP_NUM_THREADS``
-or ``OPENBLAS_NUM_THREADS`` environment variable to the desired number of cores
-for MKL or OpenBLAS, respectively.
+:func:`mne.preprocessing.maxwell_filter`, you can set an environment variable
+to the desired number of cores. **Which variable works depends on the threading
+layer your BLAS was built against, not just on which BLAS it is.**
+:func:`mne.sys_info` reports both, for example
+``OpenBLAS 0.3.33 with 10 threads (openmp threading layer)``.
+
+- OpenBLAS with the ``pthreads`` threading layer, typically shipped by the
+  NumPy and SciPy wheels on PyPI: use ``OPENBLAS_NUM_THREADS``.
+- OpenBLAS with the ``openmp`` threading layer, typically shipped by
+  ``conda-forge`` and by the :ref:`standalone installers <installers>`: use
+  ``OMP_NUM_THREADS``. On these builds ``OPENBLAS_NUM_THREADS`` is silently
+  ignored, because OpenBLAS delegates threading to OpenMP.
+- MKL: use ``MKL_NUM_THREADS``, or ``OMP_NUM_THREADS`` for any OpenMP-based
+  threading layer.
 
 Using more threads is not always faster. In particular, decomposition-heavy
 operations such as :func:`mne.preprocessing.maxwell_filter` and
-:func:`mne.compute_covariance` with ``method="shrunk"`` can be slower when
-OpenBLAS uses all logical CPU cores on Linux. If one of these operations is
-unexpectedly slow, use :func:`mne.sys_info` to check the BLAS library and its
-current thread count. Compare a few settings, for example 1, 2, 4, and the
-number of physical CPU cores, using a representative part of your analysis.
-The best setting depends on the operation, CPU, and BLAS library.
+:func:`mne.compute_covariance` with ``method="shrunk"`` can be much slower when
+BLAS uses all logical CPU cores. If one of these operations is unexpectedly
+slow, compare a few settings, for example 1, 2, 4, and the number of physical
+CPU cores, using a representative part of your analysis. The best setting
+depends on the operation, CPU, and BLAS library.
 
 Set the environment variable before importing MNE-Python, NumPy, or SciPy. For
 example, start the analysis from the shell with:
 
 .. code-block:: console
 
-    $ OPENBLAS_NUM_THREADS=4 python analysis.py
+    $ OMP_NUM_THREADS=4 python analysis.py
 
 Changes made after the linear algebra library has been loaded might have no
 effect in the same Python session.

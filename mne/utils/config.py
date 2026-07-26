@@ -646,10 +646,15 @@ def _get_numpy_libs():
     )
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
+            # the threading layer determines which env var (and which
+            # threadpoolctl user_api) actually controls the thread count
+            layer = pool.get("threading_layer")
+            layer = f" ({layer} threading layer)" if layer else ""
             return (
                 f"{rename[pool['internal_api']]} "
                 f"{pool['version']} with "
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
+                f"{layer}"
             )
     return bad_lib
 
