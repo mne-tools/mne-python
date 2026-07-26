@@ -588,11 +588,23 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
 @testing.requires_testing_data
 def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
-    """Test live cortex alpha and silhouette line width."""
+    """Test live cortex alpha/colormap, surf switching, and silhouette line width."""
     brain = _create_testing_brain(hemi="lh", show_traces=False)
 
     brain.set_cortex_alpha(0.5)
     assert brain._alpha == 0.5
+
+    brain.set_cortex_colormap("bone")
+    assert brain._cortex_preset == "bone"
+
+    old_coords = brain.geo["lh"].coords.copy()
+    brain.set_surf("white")
+    assert brain._surf == "white"
+    assert not np.allclose(brain.geo["lh"].coords, old_coords)
+    assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
+
+    brain.set_surf("white")  # no-op, same surf
+    assert brain._surf == "white"
 
     assert not brain.silhouette
     brain.set_silhouette_line_width(3.0)
