@@ -41,7 +41,7 @@ from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
 from ..preprocessing.ica import read_ica
-from ..proj import read_proj
+from ..proj import read_proj, sensitivity_map
 from ..source_estimate import SourceEstimate, read_source_estimate
 from ..source_space._source_space import _ensure_src
 from ..surface import dig_mri_distances
@@ -1583,6 +1583,7 @@ class Report:
         subject=None,
         subjects_dir=None,
         plot=False,
+        sensitivity=False,
         tags=("forward-solution",),
         section=None,
         replace=False,
@@ -1604,6 +1605,10 @@ class Report:
             If True, plot the source space of the forward solution.
 
             .. versionadded:: 1.10
+        sensitivity : bool
+            If True, render sensitivity maps for all available sensor types.
+
+            .. versionadded:: 1.13
         %(tags_report)s
         %(section_report)s
 
@@ -1626,6 +1631,7 @@ class Report:
             tags=tags,
             replace=replace,
             plot=plot,
+            sensitivity=sensitivity,
         )
 
     @fill_doc
@@ -3709,6 +3715,7 @@ class Report:
         title,
         image_format,
         plot,
+        sensitivity,
         section,
         tags,
         replace,
@@ -3720,9 +3727,28 @@ class Report:
         subject = self.subject if subject is None else subject
         subject = forward["src"][0]["subject_his_id"] if subject is None else subject
 
-        # XXX Todo
-        # Render sensitivity maps
         sensitivity_maps_html = ""
+        if sensitivity:
+            ch_types = forward["info"].get_channel_types(unique=True)
+            for ch_type in ("grad", "mag", "eeg"):
+                if ch_type not in ch_types:
+                    continue
+                stc = sensitivity_map(forward, ch_type=ch_type)
+                html_partial = self._render_stc(
+                    stc=stc,
+                    title=f"{ch_type.upper()} sensitivity",
+                    subject=subject,
+                    subjects_dir=subjects_dir,
+                    n_time_points=1,
+                    image_format=image_format,
+                    tags=tags,
+                    stc_plot_kwargs=None,
+                )
+                sensitivity_maps_html += html_partial(
+                    id_=self._get_dom_id(
+                        section=section, title=f"{title}-{ch_type}-sensitivity"
+                    )
+                )
         source_space_html = ""
         if plot:
             source_space_html = self._src_html(
@@ -4508,6 +4534,37 @@ class Report:
         replace,
     ):
         """Render STC."""
+        html_partial = self._render_stc(
+            stc=stc,
+            title=title,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            n_time_points=n_time_points,
+            image_format=image_format,
+            tags=tags,
+            stc_plot_kwargs=stc_plot_kwargs,
+        )
+        self._add_or_replace(
+            title=title,
+            section=section,
+            tags=tags,
+            html_partial=html_partial,
+            replace=replace,
+        )
+
+    def _render_stc(
+        self,
+        *,
+        stc,
+        title,
+        subject,
+        subjects_dir,
+        n_time_points,
+        image_format,
+        tags,
+        stc_plot_kwargs,
+    ):
+        """Render an STC as embeddable report HTML."""
         if isinstance(stc, SourceEstimate):
             if subject is None:
                 subject = self.subject  # supplied during Report init
@@ -4618,16 +4675,14 @@ class Report:
             brain_rh.close()
 
         captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
-        self._add_slider(
+        return self._render_slider(
             figs=figs,
             imgs=None,
             captions=captions,
             title=title,
             image_format=image_format,
             start_idx=t_zero_idx,
-            section=section,
             tags=tags,
-            replace=replace,
             own_figure=False,  # prevent rescaling
         )
         for fig in figs:
