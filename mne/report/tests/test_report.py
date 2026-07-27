@@ -36,6 +36,7 @@ from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
 )
+from mne.source_estimate import SourceEstimate, VolSourceEstimate
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
@@ -556,6 +557,89 @@ def test_add_forward(renderer_interactive_pyvistaqt):
 def test_add_forward_sensitivity_parameter():
     """Test sensitivity maps can be requested when adding a forward solution."""
     assert "sensitivity" in inspect.signature(Report.add_forward).parameters
+
+
+class _FakeBrain:
+    """Minimal stand-in for a 3D source-estimate plot."""
+
+    def __init__(self):
+        self._renderer = Bunch(plotter=Bunch(subplot=lambda *_: None))
+
+    def close(self):
+        pass
+
+    def screenshot(self, **kwargs):
+        return np.zeros((2, 2, 3), np.uint8)
+
+    def set_time(self, time):
+        pass
+
+
+def _fake_stc_plot(*args, **kwargs):
+    """Return a lightweight source-estimate plot for report rendering tests."""
+    return _FakeBrain()
+
+
+def test_render_volume_stc(monkeypatch):
+    """Test rendering an in-memory volume source estimate."""
+    stc = VolSourceEstimate(
+        data=np.ones((1, 1)),
+        vertices=[np.array([0])],
+        tmin=0,
+        tstep=1,
+        subject="sample",
+    )
+    report = Report()
+    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: "pyvista")
+    monkeypatch.setattr(VolSourceEstimate, "plot", _fake_stc_plot)
+    monkeypatch.setattr(
+        report_mod,
+        "read_source_estimate",
+        lambda **kwargs: pytest.fail("An in-memory STC must not be read from disk"),
+    )
+    html_partial = report._render_stc(
+        stc=stc,
+        title="Volume STC",
+        subject="sample",
+        subjects_dir=None,
+        n_time_points=1,
+        image_format="png",
+        tags=(),
+        stc_plot_kwargs=None,
+    )
+    assert callable(html_partial)
+
+
+def test_render_stc_matplotlib_captions(monkeypatch):
+    """Test Matplotlib source-estimate views have one caption per image."""
+    stc = SourceEstimate(
+        data=np.ones((2, 1)),
+        vertices=[np.array([0]), np.array([0])],
+        tmin=0,
+        tstep=1,
+        subject="sample",
+    )
+    report = Report()
+    slider_kwargs = {}
+
+    def _render_slider(**kwargs):
+        slider_kwargs.update(kwargs)
+        return lambda **kwargs: ""
+
+    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: None)
+    monkeypatch.setattr(SourceEstimate, "plot", _fake_stc_plot)
+    monkeypatch.setattr(report, "_render_slider", _render_slider)
+    report._render_stc(
+        stc=stc,
+        title="Surface STC",
+        subject="sample",
+        subjects_dir=None,
+        n_time_points=1,
+        image_format="png",
+        tags=(),
+        stc_plot_kwargs=None,
+    )
+    assert len(slider_kwargs["figs"]) == len(slider_kwargs["captions"]) == 2
 
 
 @testing.requires_testing_data
