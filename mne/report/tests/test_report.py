@@ -559,22 +559,6 @@ def test_add_forward_sensitivity_parameter():
     assert "sensitivity" in inspect.signature(Report.add_forward).parameters
 
 
-@testing.requires_testing_data
-def test_add_forward_sensitivity_matplotlib(monkeypatch):
-    """Test rendering forward sensitivity maps with the Matplotlib fallback."""
-    pytest.importorskip("nibabel")
-    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: None)
-    report = Report(subjects_dir=subjects_dir, image_format="png")
-    report.add_forward(
-        forward=fwd_fname,
-        subjects_dir=subjects_dir,
-        title="Forward solution",
-        sensitivity=True,
-    )
-    assert len(report.html) == 1
-    assert report.html[0].count("<img") == 6
-
-
 class _FakeBrain:
     """Minimal stand-in for a 3D source-estimate plot."""
 
@@ -626,8 +610,8 @@ def test_render_volume_stc(monkeypatch):
     assert callable(html_partial)
 
 
-def test_render_stc_matplotlib_captions(monkeypatch):
-    """Test Matplotlib source-estimate views have one caption per image."""
+def test_render_stc_requires_3d_backend(monkeypatch):
+    """Test rendering source estimates requires a 3D backend."""
     stc = SourceEstimate(
         data=np.ones((2, 3)),
         vertices=[np.array([0]), np.array([0])],
@@ -636,27 +620,21 @@ def test_render_stc_matplotlib_captions(monkeypatch):
         subject="sample",
     )
     report = Report()
-    slider_kwargs = {}
-
-    def _render_slider(**kwargs):
-        slider_kwargs.update(kwargs)
-        return lambda **kwargs: ""
-
     monkeypatch.setattr(report_mod, "get_3d_backend", lambda: None)
     monkeypatch.setattr(SourceEstimate, "plot", _fake_stc_plot)
-    monkeypatch.setattr(report, "_render_slider", _render_slider)
-    report._render_stc(
-        stc=stc,
-        title="Surface STC",
-        subject="sample",
-        subjects_dir=None,
-        n_time_points=3,
-        image_format="png",
-        tags=(),
-        stc_plot_kwargs=None,
-    )
-    assert len(slider_kwargs["figs"]) == len(slider_kwargs["captions"]) == 6
-    assert slider_kwargs["start_idx"] == 2
+    monkeypatch.setattr(report, "_render_slider", lambda **kwargs: None)
+
+    with pytest.raises(RuntimeError, match="3D backend"):
+        report._render_stc(
+            stc=stc,
+            title="Surface STC",
+            subject="sample",
+            subjects_dir=None,
+            n_time_points=3,
+            image_format="png",
+            tags=(),
+            stc_plot_kwargs=None,
+        )
 
 
 @testing.requires_testing_data
