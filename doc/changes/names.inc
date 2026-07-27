@@ -268,6 +268,7 @@
 .. _Manu Sutela: https://github.com/MJAS1
 .. _Marcin Koculak: https://github.com/mkoculak
 .. _Marian Dovgialo: https://github.com/mdovgialo
+.. _Mariam Husain: https://github.com/mariam-hedgie
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 .. _Mark Alexander Henney: https://github.com/henneysq
 .. _Mark Wronkiewicz: https://github.com/wronk
