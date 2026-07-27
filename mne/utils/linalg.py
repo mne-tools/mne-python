@@ -22,13 +22,91 @@ inputs will be memcopied.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import contextlib
 import functools
+import os
 
 import numpy as np
 from scipy import linalg
 from scipy._lib._util import _asarray_validated
 
 from ..fixes import _safe_svd
+
+###############################################################################
+# BLAS thread limiting
+
+# Setting any of these means the user has already expressed a preference
+_BLAS_THREAD_ENV_VARS = (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "BLIS_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+)
+# Measured optima across the machines in gh-13766 range from 1 to 8 depending on
+# CPU and BLAS, but 3 is within ~11% of the best on all of them, and unlike a
+# larger cap it leaves a core free on 4-core machines.
+_MAX_BLAS_THREADS = 3
+
+
+@functools.cache
+def _blas_thread_controller():
+    """Get a cached controller, or None if we should not touch thread counts."""
+    # Constructing one rescans the process's shared libraries (~120 us); reusing
+    # it drops enter/exit to ~3 us, hence the cache. It still reports live thread
+    # counts, so caching does not stale the checks in _limit_blas_threads.
+    try:
+        from threadpoolctl import ThreadpoolController
+    except Exception:  # not a required dependency
+        return None
+    controller = ThreadpoolController()
+    # Accelerate exposes no working thread control, so there is nothing to limit
+    # (and nothing to gain: it is insensitive to thread settings, see gh-13766)
+    if not any(
+        pool["internal_api"] in ("openblas", "mkl") for pool in controller.info()
+    ):
+        return None
+    return controller
+
+
+def _n_available_cpus():
+    """Get the number of CPUs this process may actually use."""
+    # TODO VERSION: drop both fallbacks once Python 3.13 is the minimum
+    if (process_cpu_count := getattr(os, "process_cpu_count", None)) is not None:
+        # preferred: affinity-aware everywhere, and honors -X cpu_count and
+        # PYTHON_CPU_COUNT, which gives users a documented override
+        return process_cpu_count() or 1
+    if (sched_getaffinity := getattr(os, "sched_getaffinity", None)) is not None:
+        return len(sched_getaffinity(0))  # Linux only
+    return os.cpu_count() or 1
+
+
+@contextlib.contextmanager
+def _limit_blas_threads():
+    """Cap BLAS threads around decomposition-heavy code (gh-13766).
+
+    Works as a context manager or as a decorator. Yields immediately, leaving
+    thread counts untouched, whenever the user has expressed their own
+    preference or the BLAS in use cannot be controlled.
+    """
+    controller = _blas_thread_controller()
+    if controller is None or any(os.getenv(var) for var in _BLAS_THREAD_ENV_VARS):
+        yield
+        return
+    n_cpus = _n_available_cpus()
+    # a pool already below the machine size means something else is managing
+    # threads for us (an outer threadpool_limits, a joblib worker, ...)
+    if any(pool["num_threads"] < n_cpus for pool in controller.info()):
+        yield
+        return
+    # limit every API rather than just user_api="blas": OpenBLAS built against
+    # OpenMP silently ignores the BLAS-level call before OpenBLAS 0.3.34
+    with controller.limit(limits=min(_MAX_BLAS_THREADS, n_cpus)):
+        yield
+
+
+###############################################################################
+# Fast linalg helpers
 
 # For efficiency, names should be str or tuple of str, dtype a builtin
 # NumPy dtype

@@ -68,6 +68,7 @@ from ..utils import (
     _check_preload,
     _ensure_int,
     _get_inst_data,
+    _limit_blas_threads,
     _on_missing,
     _pl,
     _reject_data_segments,
@@ -887,6 +888,7 @@ class ICA(ContainsMixin):
             data = self.pre_whitener_ @ data
         return data
 
+    @_limit_blas_threads()
     def _fit(self, data, fit_type):
         """Aux function."""
         if not np.isfinite(data).all():

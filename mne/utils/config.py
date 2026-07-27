@@ -671,7 +671,9 @@ def _get_numpy_build_blas():
     except Exception:
         return None
     version = blas.get("version", "")
-    return f"{name} {version} (numpy build config, no runtime introspection)".strip()
+    if version and version != "unknown":  # Accelerate reports a literal "unknown"
+        name = f"{name} {version}"
+    return f"{name} (numpy build config, threads not introspectable)"
 
 
 _gpu_cmd = """\

@@ -174,6 +174,8 @@ support multithreading:
 - `OpenBLAS <http://www.openblas.net/>`_
 - `Intel Math Kernel Library (MKL) <https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html>`_,
   which uses `OpenMP <https://www.openmp.org/>`_
+- `Accelerate <https://developer.apple.com/accelerate/>`_, used by the NumPy and
+  SciPy wheels on PyPI for macOS on Apple silicon
 
 To control how many cores are used for linear-algebra-heavy functions like
 :func:`mne.preprocessing.maxwell_filter`, you can set an environment variable
@@ -190,14 +192,18 @@ layer your BLAS was built against, not just on which BLAS it is.**
   ignored, because OpenBLAS delegates threading to OpenMP.
 - MKL: use ``MKL_NUM_THREADS``, or ``OMP_NUM_THREADS`` for any OpenMP-based
   threading layer.
+- Accelerate: there is no effective setting, and none is needed. Accelerate
+  manages its own threads and ignores all of the variables above;
+  ``VECLIB_MAXIMUM_THREADS`` is advisory at best. Its performance is also
+  essentially flat with respect to thread settings, so there is nothing to tune.
 
 Using more threads is not always faster. In particular, decomposition-heavy
 operations such as :func:`mne.preprocessing.maxwell_filter` and
 :func:`mne.compute_covariance` with ``method="shrunk"`` can be much slower when
-BLAS uses all logical CPU cores. If one of these operations is unexpectedly
-slow, compare a few settings, for example 1, 2, 4, and the number of physical
-CPU cores, using a representative part of your analysis. The best setting
-depends on the operation, CPU, and BLAS library.
+OpenBLAS or MKL uses all logical CPU cores. If one of these operations is
+unexpectedly slow, compare a few settings, for example 1, 2, 3, 4, and the
+number of physical CPU cores, using a representative part of your analysis. The
+best setting depends on the operation, CPU, and BLAS library.
 
 Set the environment variable before importing MNE-Python, NumPy, or SciPy. For
 example, start the analysis from the shell with:
