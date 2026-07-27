@@ -656,7 +656,22 @@ def _get_numpy_libs():
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
                 f"{layer}"
             )
-    return bad_lib
+    return _get_numpy_build_blas() or bad_lib
+
+
+def _get_numpy_build_blas():
+    """Name the BLAS from the build config, for backends threadpoolctl can't see."""
+    # Accelerate has no threadpoolctl controller, so macOS wheels otherwise
+    # report only "unknown linalg bindings"
+    import numpy as np
+
+    try:
+        blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        name = blas["name"]
+    except Exception:
+        return None
+    version = blas.get("version", "")
+    return f"{name} {version} (numpy build config, no runtime introspection)".strip()
 
 
 _gpu_cmd = """\
