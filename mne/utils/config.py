@@ -699,6 +699,16 @@ def _get_total_memory():
     return total_memory
 
 
+def _get_linux_windowing_system():
+    """Return the windowing system on Linux ("Wayland", "X11", or None)."""
+    session_type = os.getenv("XDG_SESSION_TYPE", "").lower()
+    if session_type == "wayland" or os.getenv("WAYLAND_DISPLAY"):
+        return "Wayland"
+    if session_type == "x11" or os.getenv("DISPLAY"):
+        return "X11"
+    return None
+
+
 def _get_cpu_brand():
     """Return the CPU brand string."""
     if platform.system() == "Windows":
@@ -770,6 +780,10 @@ def sys_info(
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
+    if platform.system() == "Linux":
+        windowing_system = _get_linux_windowing_system()
+        if windowing_system is not None:
+            platform_str += f" ({windowing_system})"
 
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")

@@ -6,6 +6,7 @@ import datetime
 import glob
 import inspect
 import os
+from pathlib import Path
 
 import numpy as np
 
@@ -18,7 +19,11 @@ from ..base import BaseRaw
 
 @fill_doc
 def read_raw_neuralynx(
-    fname, *, preload=False, exclude_fname_patterns=None, verbose=None
+    fname: Path | str,
+    *,
+    preload: bool | str = False,
+    exclude_fname_patterns: list[str] | None = None,
+    verbose: bool | str | int | None = None,
 ) -> "RawNeuralynx":
     """Reader for Neuralynx files.
 

@@ -82,6 +82,7 @@ test_extra_ft = [
   "neo",
   "pybv",
   "snirf",
+  "sphinx",
   "sphinx-gallery",
   {include-group = "test"},
 ]
