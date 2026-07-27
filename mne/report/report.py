@@ -42,7 +42,7 @@ from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
 from ..preprocessing.ica import read_ica
 from ..proj import read_proj, sensitivity_map
-from ..source_estimate import SourceEstimate, read_source_estimate
+from ..source_estimate import _BaseSourceEstimate, SourceEstimate, read_source_estimate
 from ..source_space._source_space import _ensure_src
 from ..surface import dig_mri_distances
 from ..transforms import _find_trans
@@ -4565,7 +4565,7 @@ class Report:
         stc_plot_kwargs,
     ):
         """Render an STC as embeddable report HTML."""
-        if isinstance(stc, SourceEstimate):
+        if isinstance(stc, _BaseSourceEstimate):
             if subject is None:
                 subject = self.subject  # supplied during Report init
                 if not subject:
@@ -4675,6 +4675,9 @@ class Report:
             brain_rh.close()
 
         captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
+        if not backend_is_3d:
+            captions = [caption for caption in captions for _ in range(2)]
+            t_zero_idx *= 2
         return self._render_slider(
             figs=figs,
             imgs=None,
@@ -4683,6 +4686,7 @@ class Report:
             image_format=image_format,
             start_idx=t_zero_idx,
             tags=tags,
+            klass="stc",
             own_figure=False,  # prevent rescaling
         )
         for fig in figs:

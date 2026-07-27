@@ -613,9 +613,9 @@ def test_render_volume_stc(monkeypatch):
 def test_render_stc_matplotlib_captions(monkeypatch):
     """Test Matplotlib source-estimate views have one caption per image."""
     stc = SourceEstimate(
-        data=np.ones((2, 1)),
+        data=np.ones((2, 3)),
         vertices=[np.array([0]), np.array([0])],
-        tmin=0,
+        tmin=-1,
         tstep=1,
         subject="sample",
     )
@@ -634,12 +634,13 @@ def test_render_stc_matplotlib_captions(monkeypatch):
         title="Surface STC",
         subject="sample",
         subjects_dir=None,
-        n_time_points=1,
+        n_time_points=3,
         image_format="png",
         tags=(),
         stc_plot_kwargs=None,
     )
-    assert len(slider_kwargs["figs"]) == len(slider_kwargs["captions"]) == 2
+    assert len(slider_kwargs["figs"]) == len(slider_kwargs["captions"]) == 6
+    assert slider_kwargs["start_idx"] == 2
 
 
 @testing.requires_testing_data
