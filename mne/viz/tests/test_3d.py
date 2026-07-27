@@ -1458,13 +1458,14 @@ def test_plot_stat_cluster(renderer_interactive):
     # simulate stc data
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
-        np.random.RandomState(0).rand(stc_data.size // 20)
+    rng = np.random.default_rng(0)
+    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.default_rng(0).random(stc_data.size // 20)
     )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
-    # Simulate a  cluster
+    # Simulate a cluster
     cluster_time_idx = [1, 1, 2, 3]
     cluster_vertex_idx = [0, 1, 2, 3]
     cluster = (cluster_time_idx, cluster_vertex_idx)
@@ -1496,6 +1497,7 @@ def test_plot_stat_cluster(renderer_interactive):
     assert len(brain.labels["lh"]) == 1
     assert len(brain.labels["rh"]) == 0
     assert brain.labels["lh"][0].name == "cluster-0"
+    assert brain._current_time == brain._times[1]  # time of max extent
 
     brain.close()
     del brain
