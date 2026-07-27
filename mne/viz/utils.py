@@ -502,24 +502,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     # make edges around checkbox areas and change already-applied projectors
     # to red
-    from ._mpl_figure import _OLD_BUTTONS
-
-    check_kwargs = dict()
-    if not _OLD_BUTTONS:
-        checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
-        check_kwargs["check_props"] = dict(facecolor=checkcolor)
-        check_kwargs["frame_props"] = dict(edgecolor="0.5", linewidth=1)
+    checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
     proj_checks = widgets.CheckButtons(
-        ax_temp, labels=labels, actives=actives, **check_kwargs
+        ax_temp,
+        labels=labels,
+        actives=actives,
+        check_props=dict(facecolor=checkcolor),
+        frame_props=dict(edgecolor="0.5", linewidth=1),
     )
-    if _OLD_BUTTONS:
-        for rect in proj_checks.rectangles:
-            rect.set_edgecolor("0.5")
-            rect.set_linewidth(1.0)
-        for ii, p in enumerate(projs):
-            if p["active"]:
-                for x in proj_checks.lines[ii]:
-                    x.set_color("#ff0000")
 
     # make minimal size
     # pass key presses from option dialog over
