@@ -559,6 +559,21 @@ def test_add_forward_sensitivity_parameter():
     assert "sensitivity" in inspect.signature(Report.add_forward).parameters
 
 
+@testing.requires_testing_data
+def test_add_forward_sensitivity_matplotlib(monkeypatch):
+    """Test rendering forward sensitivity maps with the Matplotlib fallback."""
+    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: None)
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        sensitivity=True,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 6
+
+
 class _FakeBrain:
     """Minimal stand-in for a 3D source-estimate plot."""
 

@@ -4632,8 +4632,8 @@ class Report:
                     brain.set_time(t)
                     figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
                 else:
-                    fig_lh = plt.figure(layout="constrained")
-                    fig_rh = plt.figure(layout="constrained")
+                    fig_lh = plt.figure()
+                    fig_rh = plt.figure()
 
                     brain_lh = stc.plot(
                         views="lat",
@@ -4670,9 +4670,6 @@ class Report:
 
         if backend_is_3d:
             brain.close()
-        else:
-            brain_lh.close()
-            brain_rh.close()
 
         captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
         if not backend_is_3d:
