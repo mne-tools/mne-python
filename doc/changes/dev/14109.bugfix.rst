@@ -1,0 +1,2 @@
+Fixed bug where dialogs of :meth:`mne.io.Raw.plot` did not respect dark mode, by
+`Eric Larson`_.

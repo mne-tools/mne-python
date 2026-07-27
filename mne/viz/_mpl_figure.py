@@ -38,6 +38,7 @@ matplotlib.figure.Figure
 import datetime
 import platform
 from collections import OrderedDict, defaultdict
+from colorsys import rgb_to_hsv
 from contextlib import contextmanager
 from functools import partial
 
@@ -57,7 +58,7 @@ from .._fiff.pick import (
 )
 from ..defaults import DEFAULTS
 from ..fixes import _close_event
-from ..utils import Bunch, _click_ch_name, logger
+from ..utils import Bunch, _click_ch_name, _to_rgb, logger
 from ._figure import BrowserBase
 from .utils import (
     _BLIT_KWARGS,
@@ -136,14 +137,25 @@ def _resolve_mpl_theme(theme):
     return theme
 
 
+def _is_dark(color):
+    """Check whether a background color calls for light foreground colors."""
+    # mne-qt-browser decides this via oklab lightness; HSV value agrees with it across
+    # the range of backgrounds we care about
+    return rgb_to_hsv(*_to_rgb(color))[2] < 0.5
+
+
 def _apply_mpl_theme_to_kwargs(kwargs):
     """Apply dark theme colors to browser kwargs in-place."""
     theme = kwargs.get("theme", "auto")
-    if _resolve_mpl_theme(theme) != "dark":
+    if _resolve_mpl_theme(theme) == "dark":
+        # bgcolor: override if absent or still at the light default "w"
+        if kwargs.get("bgcolor", "w") == "w":
+            kwargs["bgcolor"] = _DARK_BGCOLOR
+    # follow the resolved background rather than the theme, so an explicitly light
+    # bgcolor never gets light-on-light styling (mne-qt-browser derives it the same way)
+    kwargs["dark"] = _is_dark(kwargs.get("bgcolor", "w"))
+    if not kwargs["dark"]:
         return
-    # bgcolor: override if absent or still at the light default "w"
-    if kwargs.get("bgcolor", "w") == "w":
-        kwargs["bgcolor"] = _DARK_BGCOLOR
     # fgcolor: inject if not explicitly set by the caller
     kwargs.setdefault("fgcolor", _DARK_FGCOLOR)
     # bad channel colors: override if still at the light default
@@ -179,7 +191,9 @@ class MNEFigure(Figure):
         super().__init__(figsize=figsize)
         # things we'll almost always want
         defaults = dict(
-            fgcolor=rcParams["axes.edgecolor"], bgcolor=rcParams["axes.facecolor"]
+            fgcolor=rcParams["axes.edgecolor"],
+            bgcolor=rcParams["axes.facecolor"],
+            dark=False,
         )
         for key, value in defaults.items():
             if key not in kwargs:
@@ -650,7 +664,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
 
         # apply theme colors (dark mode only)
-        if self.mne.bgcolor == _DARK_BGCOLOR:
+        if self.mne.dark:
             self.patch.set_facecolor(self.mne.bgcolor)
             for _ax in (ax_hscroll, ax_vscroll):
                 _ax.set_facecolor(self.mne.bgcolor)
@@ -1034,6 +1048,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Instantiate a new MNE dialog figure (with event listeners)."""
         kwargs.setdefault("bgcolor", self.mne.bgcolor)
         kwargs.setdefault("fgcolor", self.mne.fgcolor)
+        kwargs.setdefault("dark", self.mne.dark)
         fig = _figure(
             toolbar=False,
             parent_fig=self,
@@ -1296,7 +1311,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
 
         # apply theme colors to annotation dialog (dark mode only)
-        if fig.mne.bgcolor == _DARK_BGCOLOR:
+        if fig.mne.dark:
             fig.patch.set_facecolor(fig.mne.bgcolor)
             for _ax in fig.axes:
                 _ax.set_facecolor(fig.mne.bgcolor)
@@ -1579,6 +1594,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
+        from matplotlib.colors import to_rgba
         from matplotlib.widgets import RadioButtons
 
         # make figure
@@ -1610,10 +1626,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         selections_dict = self.mne.ch_selections
         selections_dict.update(Custom=np.array([], dtype=int))  # for lasso
         labels = list(selections_dict)
-        # make & style the radio buttons; this dialog keeps a light background in
-        # both themes, so don't use mne.fgcolor (light gray under the dark theme)
+        # make & style the radio buttons (fgcolor is black under the light theme, so
+        # these match matplotlib's defaults there)
         radio_ax.buttons = RadioButtons(
-            radio_ax, labels, activecolor="k", **_BLIT_KWARGS
+            radio_ax,
+            labels,
+            activecolor=self.mne.fgcolor,
+            radio_props=dict(edgecolor=self.mne.fgcolor),
+            label_props=dict(color=[self.mne.fgcolor] * len(labels)),
+            **_BLIT_KWARGS,
         )
         fig.mne.old_selection = 0
         fig._style_radio_buttons_butterfly()
@@ -1626,10 +1647,27 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             "existing selection."
         )
         instructions_ax = fig.add_subplot(gs[-3:], frame_on=False)
-        instructions_ax.text(
-            0.04, 0.08, instructions, va="bottom", ha="left", ma="left", wrap=True
+        instr_text = instructions_ax.text(
+            0.04,
+            0.08,
+            instructions,
+            va="bottom",
+            ha="left",
+            ma="left",
+            wrap=True,
+            color=self.mne.fgcolor,
         )
         instructions_ax.set_axis_off()
+        # apply theme colors (dark mode only)
+        if fig.mne.dark:
+            fig.patch.set_facecolor(fig.mne.bgcolor)
+            for _ax in fig.axes:
+                _ax.set_facecolor(fig.mne.bgcolor)
+            instr_text.set_color(fig.mne.fgcolor)
+            # head outline / nose / ears are drawn black; the lasso line is red
+            for _line in fig.mne.sensor_ax.lines:
+                if to_rgba(_line.get_color()) == to_rgba("black"):
+                    _line.set_color(fig.mne.fgcolor)
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
         fig.lasso.callbacks.append(fig._set_custom_selection)
@@ -1747,6 +1785,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
         # save params
         fig.mne.proj_checkboxes = checkboxes
+        # apply theme colors (dark mode only); the checkbox labels already use fgcolor
+        if fig.mne.dark:
+            fig.patch.set_facecolor(fig.mne.bgcolor)
+            ax.set_facecolor(fig.mne.bgcolor)
+            ax.title.set_color(fig.mne.fgcolor)
+            ax_all.set_facecolor(_DARK_BUTTON_COLOR)
+            fig.mne.proj_all.color = _DARK_BUTTON_COLOR
+            fig.mne.proj_all.label.set_color(fig.mne.fgcolor)
         # show figure
         self.mne.fig_proj.canvas.draw()
         plt_show(fig=self.mne.fig_proj, warn=False)
