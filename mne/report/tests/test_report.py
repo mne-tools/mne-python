@@ -562,6 +562,7 @@ def test_add_forward_sensitivity_parameter():
 @testing.requires_testing_data
 def test_add_forward_sensitivity_matplotlib(monkeypatch):
     """Test rendering forward sensitivity maps with the Matplotlib fallback."""
+    pytest.importorskip("nibabel")
     monkeypatch.setattr(report_mod, "get_3d_backend", lambda: None)
     report = Report(subjects_dir=subjects_dir, image_format="png")
     report.add_forward(
