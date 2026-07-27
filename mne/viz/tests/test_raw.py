@@ -860,7 +860,7 @@ def test_plot_ref_meg(raw_ctf, browser_backend):
 
 def test_plot_misc_auto(browser_backend):
     """Test plotting of data with misc auto scaling."""
-    data = np.random.RandomState(0).randn(1, 1000)
+    data = np.random.default_rng(0).standard_normal((1, 1000))
     raw = RawArray(data, create_info(1, 1000.0, "misc"))
     raw.plot()
     raw = RawArray(data, create_info(1, 1000.0, "dipole"))
@@ -1270,7 +1270,8 @@ def test_plot_raw_psd(raw, raw_orig):
 
     # gh-7631
     n_times = sfreq = n_fft = 100
-    data = 1e-3 * np.random.rand(2, n_times)
+    rng = np.random.default_rng(0)
+    data = 1e-3 * rng.random((2, n_times))
     info = create_info(["CH1", "CH2"], sfreq)  # ch_types defaults to 'misc'
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
@@ -1323,7 +1324,8 @@ def test_plot_sensors(raw):
 
     # Test plotting with sphere='eeglab'
     info = create_info(ch_names=["Fpz", "Oz", "T7", "T8"], sfreq=100, ch_types="eeg")
-    data = 1e-6 * np.random.rand(4, 100)
+    rng = np.random.default_rng(0)
+    data = 1e-6 * rng.random((4, 100))
     raw_eeg = RawArray(data=data, info=info)
     raw_eeg.set_montage("biosemi64")
     raw_eeg.plot_sensors(sphere="eeglab")
@@ -1393,7 +1395,7 @@ def test_plotting_order_consistency():
 
 def test_plotting_temperature_gsr(browser_backend):
     """Test that we can plot temperature and GSR."""
-    data = np.random.RandomState(0).randn(2, 1000)
+    data = np.random.default_rng(0).standard_normal((2, 1000))
     data[0] += 37  # deg C
     # no idea what the scale should be for GSR
     info = create_info(2, 1000.0, ["temperature", "gsr"])

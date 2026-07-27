@@ -95,14 +95,14 @@ def test_iterable():
     trans = None
     sphere = make_sphere_model(head_radius=None, info=raw.info)
     tstep = 1.0 / raw.info["sfreq"]
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices = [np.array([1])]
-    data = rng.randn(1, 2)
+    data = rng.standard_normal((1, 2))
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
     with pytest.raises(ValueError, match="at least three time points"):
         simulate_raw(raw.info, stc, trans, src, sphere, None)
-    data = rng.randn(1, 1000)
+    data = rng.standard_normal((1, 1000))
     n_events = (len(raw.times) - 1) // 1000 + 1
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
@@ -176,7 +176,7 @@ def test_iterable():
 
     # Forward omission
     vertices = [np.array([0, 1])]
-    data = rng.randn(2, 1000)
+    data = rng.standard_normal((2, 1000))
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
     # XXX eventually we should support filtering based on sphere radius, too,

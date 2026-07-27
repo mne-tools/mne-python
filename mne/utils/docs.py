@@ -809,7 +809,7 @@ clim : str | dict
 """
 
 _cmap_template = """
-cmap : matplotlib colormap | str{allowed}
+cmap : str | matplotlib.colors.Colormap{allowed}
         The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
         valid Matplotlib colormap name. Default is {default}.
 """
@@ -821,7 +821,7 @@ docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
 docdict["cmap_topomap"] = """\
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
     interactive mode the colors are adjustable by clicking and dragging the
@@ -838,7 +838,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 """
 
 docdict["cmap_topomap_simple"] = """
-cmap : matplotlib colormap | None
+cmap : str | matplotlib.colors.Colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """
@@ -2577,6 +2577,13 @@ docdict["mask_evoked_topomap"] = _mask_base.format(
     example=" (useful for, e.g. marking which channels at which times a "
     "statistical test of the data reaches significance)",
 )
+docdict["mask_label_params_topomap"] = """
+mask_label_params : dict | None
+    Additional plotting parameters for significant sensor labels.
+    Default (None) equals::
+
+        dict(fontsize='medium', fontweight='bold')
+"""
 docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -3872,9 +3879,21 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict["regularize_maxwell_reg"] = """
 regularize : str | None
-    Basis regularization type, must be ``"in"`` or None.
-    ``"in"`` is the same algorithm as the ``-regularize in`` option in
-    MaxFilter™.
+    Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+    Both ``"in"`` options use the same information-theoretic component ordering
+    as the ``-regularize in`` option in MaxFilter™, and differ only in where
+    the total-information curve is cut:
+
+    ``"in"`` (default)
+      Keeps the components giving at least 98% of the peak total information. The curve
+      can be quite flat, so this errs on the side of including rather than excluding
+      components. This is the criterion MaxFilter™ 3.0 uses.
+    ``"in_argmax"``
+      Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+      Use this to match MaxFilter™ 2.2 output more closely; it generally excludes more
+      components than ``"in"``.
+
+      .. versionadded:: 1.13
 """
 
 
@@ -4246,7 +4265,13 @@ shape : tuple of int
 
 docdict["show"] = """\
 show : bool
-    Show the figure if ``True``.
+    Show the figure if ``True``. When shown, blocking follows
+    :func:`matplotlib.pyplot.show`: the call blocks until the window is closed unless
+    Matplotlib's interactive mode is on (enabled with :func:`matplotlib.pyplot.ion` or
+    IPython's ``%%matplotlib`` magic command), in which case it returns immediately.
+    Interactive mode is off by default, so a plain script or REPL blocks. Pass
+    ``show=False`` to build several figures and display them together with a single
+    :func:`matplotlib.pyplot.show` call.
 """
 
 docdict["show_names_topomap"] = """

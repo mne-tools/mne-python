@@ -701,7 +701,10 @@ def _make_trans_dig(
 
 @verbose
 def read_raw_curry(
-    fname, preload=False, on_bad_hpi_match="warn", verbose=None
+    fname: Path | str,
+    preload: bool | str = False,
+    on_bad_hpi_match: str = "warn",
+    verbose: bool | str | int | None = None,
 ) -> "RawCurry":
     """Read raw data from Curry files.
 

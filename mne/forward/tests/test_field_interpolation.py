@@ -63,7 +63,7 @@ def test_field_map_ctf():
 
 def test_legendre_val():
     """Test Legendre polynomial (derivative) evaluation."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     xs = np.linspace(-1.0, 1.0, 1000)
     n_terms = 100
 
@@ -77,8 +77,8 @@ def test_legendre_val():
     assert_allclose(vals_np[:, 1:], vals_i)
 
     # Now let's look at our sums
-    ctheta = rng.rand(20, 30) * 2.0 - 1.0
-    beta = rng.rand(20, 30) * 0.8
+    ctheta = rng.random((20, 30)) * 2.0 - 1.0
+    beta = rng.random((20, 30)) * 0.8
     c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), leg_fun, n_fact)
     c1 = _reshape_view(c1, beta.shape)
 
@@ -95,8 +95,8 @@ def test_legendre_val():
     assert_allclose(c1, c2)
 
     # smoke test for MEG at a couple of n_coeff values
-    ctheta = rng.rand(20 * 30) * 2.0 - 1.0
-    beta = rng.rand(20 * 30) * 0.8
+    ctheta = rng.random(20 * 30) * 2.0 - 1.0
+    beta = rng.random(20 * 30) * 0.8
     for n_coeff in (10, 20):
         leg_fun, n_fact = _get_legen_fun("meg", n_coeff=n_coeff)
         _comp_sums_meg(beta, ctheta, leg_fun, n_fact, False)

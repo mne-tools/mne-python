@@ -451,6 +451,7 @@ def test_warn_maxwell_filtered():
     assert len(amps["times"]) > 0  # but for this file, it does work!
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_initial_fit_redo():
     """Test that initial fits can be redone based on moments."""
@@ -499,7 +500,7 @@ def test_initial_fit_redo():
 def test_fit_chpi_quat_weighted():
     """Test weighted cHPI quaternion fitting (gh-11330)."""
     rng = np.random.default_rng(0)
-    head_rrs = rng.standard_normal((5, 3)) * 0.05
+    head_rrs = rng.normal(scale=0.05, size=(5, 3))
     quat = np.array([0.05, -0.03, 0.02, 0.01, -0.02, 0.03])
     rot = quat_to_rot(quat[:3])
     # device coil positions such that ``rot @ dev + trans == head``
@@ -675,7 +676,7 @@ def _check_dists(info, cHPI_digs, n_bad=0, bad_low=0.02, bad_high=0.04):
         assert_array_less(bads, bad_high)
 
 
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @testing.requires_testing_data
 def test_calculate_chpi_coil_locs_artemis():
     """Test computing just cHPI locations."""

@@ -565,6 +565,10 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
         idx = np.argmin(res)
         if res[idx] < res0:
             x0 = guesses["rr"][idx]
+    # x0 is the previous time point's coil position (or a better guess-grid point), so a
+    # rhobeg (initial trust-region radius) of 1 mm covers typical between-window motion.
+    # rhoend (final radius) sets the position resolution; 10 um is finer than cHPI
+    # accuracy but still converges in a few dozen evaluations
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
     gof, moment = objective(x, return_moment=True)
     gof = 1.0 - gof / B2

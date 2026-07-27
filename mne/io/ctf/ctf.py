@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import os
+from pathlib import Path
 
 import numpy as np
 
@@ -31,7 +32,11 @@ from .trans import _make_ctf_coord_trans_set
 
 @fill_doc
 def read_raw_ctf(
-    directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
+    directory: Path | str,
+    system_clock: str = "truncate",
+    preload: bool | str = False,
+    clean_names: bool = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawCTF":
     """Raw object from CTF directory.
 

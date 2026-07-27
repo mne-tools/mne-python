@@ -377,8 +377,8 @@ def test_plot_tfr_topo():
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1
-    data = np.random.RandomState(0).randn(
-        len(epochs.ch_names), n_freqs, len(epochs.times)
+    data = np.random.default_rng(0).standard_normal(
+        (len(epochs.ch_names), n_freqs, len(epochs.times))
     )
     tfr = AverageTFRArray(
         info=epochs.info,

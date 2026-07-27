@@ -41,8 +41,12 @@ test_external = {
 
 def generate_data(n_subjects, n_conditions):
     """Generate testing data."""
+    # RandomState (not default_rng): the SPSS/R reference values in
+    # test_external were computed from this exact stream
     rng = np.random.RandomState(42)
-    data = rng.randn(n_subjects * n_conditions).reshape(n_subjects, n_conditions)
+    data = rng.standard_normal(n_subjects * n_conditions).reshape(
+        n_subjects, n_conditions
+    )
     return data
 
 
@@ -68,12 +72,12 @@ def test_map_effects():
 
 def test_f_twoway_rm():
     """Test 2-way anova."""
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     iter_params = product([4, 10], [2, 15], [4, 6, 8], ["A", "B", "A:B"], [False, True])
     _effects = {4: [2, 2], 6: [2, 3], 8: [2, 4]}
     for params in iter_params:
         n_subj, n_obs, n_levels, effects, correction = params
-        data = rng.random_sample([n_subj, n_levels, n_obs])
+        data = rng.random([n_subj, n_levels, n_obs])
         fvals, pvals = f_mway_rm(
             data, _effects[n_levels], effects, correction=correction
         )
@@ -91,11 +95,11 @@ def test_f_twoway_rm():
 
     # check time-frequency input
     n_subj, n_freqs, n_times, n_levels = (5, 10, 101, 4)
-    data = rng.random_sample([n_subj, n_levels, n_freqs, n_times])
+    data = rng.random([n_subj, n_levels, n_freqs, n_times])
     fvals, pvals = f_mway_rm(data, _effects[n_levels])
     assert fvals.shape[1:] == pvals.shape[1:] == (n_freqs, n_times)
 
-    data = rng.random_sample([n_subj, n_levels, 1])
+    data = rng.random([n_subj, n_levels, 1])
     pytest.raises(
         ValueError,
         f_mway_rm,
@@ -104,7 +108,7 @@ def test_f_twoway_rm():
         effects="C",
         correction=correction,
     )
-    data = rng.random_sample([n_subj, n_levels, n_obs, 3])
+    data = rng.random([n_subj, n_levels, n_obs, 3])
     # check for dimension handling
     f_mway_rm(data, _effects[n_levels], effects, correction=correction)
 
@@ -147,7 +151,7 @@ def test_f_twoway_rm():
 @pytest.mark.parametrize("seed", [0, 42, 1337])
 def test_ttest_equiv(kind, kwargs, sigma, seed):
     """Test t-test equivalence."""
-    rng = np.random.RandomState(seed)
+    rng = np.random.default_rng(seed)
 
     def theirs(*a, **kw):
         f = getattr(scipy.stats, f"ttest_{kind}")
@@ -159,9 +163,9 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
 
     ours = partial(getattr(mne.stats, f"ttest_{kind}_no_p"), sigma=sigma, **kwargs)
 
-    X = rng.randn(3, 4, 5)
+    X = rng.standard_normal((3, 4, 5))
     if kind == "ind":
-        X = [X, rng.randn(30, 4, 5)]  # should differ based on equal_var
+        X = [X, rng.standard_normal((30, 4, 5))]  # should differ based on equal_var
         got = ours(*X)
         want = theirs(*X)
     else:
@@ -199,7 +203,7 @@ def test_f_oneway_hat(sigma, method, seed):
 
 def test_f_oneway_hat_small_variance():
     """Test that f_oneway hat stabilizes F-values for near-zero variance."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     X1 = rng.normal(0, 1e-6, (10, 100))
     X2 = rng.normal(1, 1e-6, (10, 100))
 
@@ -216,9 +220,9 @@ def test_f_oneway_hat_small_variance():
 
 def test_f_oneway_hat_input_validation():
     """Test f_oneway input validation for sigma and method."""
-    rng = np.random.RandomState(0)
-    X1 = rng.randn(5, 10)
-    X2 = rng.randn(5, 10)
+    rng = np.random.default_rng(0)
+    X1 = rng.standard_normal((5, 10))
+    X2 = rng.standard_normal((5, 10))
 
     with pytest.raises(ValueError, match="sigma must be >= 0"):
         f_oneway(X1, X2, sigma=-0.1)

@@ -103,10 +103,10 @@ def test_estimate_ringing():
 def test_1d_filter(n_signal, n_filter, filter_type):
     """Test our private overlap-add filtering function."""
     # make some random signals and filters
-    rng = np.random.RandomState(0)
-    x = rng.randn(n_signal)
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal(n_signal)
     if filter_type == "random":
-        h = rng.randn(n_filter)
+        h = rng.standard_normal(n_filter)
     else:  # filter_type == 'identity'
         h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
     # ensure we pad the signal the same way for both filters
@@ -175,7 +175,7 @@ def test_1d_filter(n_signal, n_filter, filter_type):
 
 def test_iir_stability():
     """Test IIR filter stability check."""
-    sig = np.random.RandomState(0).rand(1000)
+    sig = np.random.default_rng(0).random(1000)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
     pytest.raises(
@@ -338,13 +338,13 @@ line_freqs = tuple(range(60, 241, 60))
 def test_notch_filters(method, filter_length, line_freq, tol):
     """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     sfreq = 487
     sig_len_secs = 21
     t = np.arange(0, int(round(sig_len_secs * sfreq))) / sfreq
 
     # make a "signal"
-    a = rng.randn(int(sig_len_secs * sfreq))
+    a = rng.standard_normal(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a**2))
     # make line noise
     a += np.sum([np.sin(2 * np.pi * f * t) for f in line_freqs], axis=0)
@@ -373,7 +373,7 @@ def test_notch_filters(method, filter_length, line_freq, tol):
 @resample_method_parametrize
 def test_resample(method):
     """Test resampling."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     x = rng.normal(0, 1, (10, 10, 10))
     with catch_logging() as log:
         x_rs = resample(x, 1, 2, npad=10, method=method, verbose=True)
@@ -419,7 +419,7 @@ def test_resample_scipy():
 def test_n_jobs(n_jobs, capsys):
     """Test resampling against SciPy."""
     joblib = pytest.importorskip("joblib")
-    x = np.random.RandomState(0).randn(4, 100)
+    x = np.random.default_rng(0).standard_normal((4, 100))
     y1 = resample(x, 2, 1, n_jobs=None)
     y2 = resample(x, 2, 1, n_jobs=n_jobs)
     assert_allclose(y1, y2)
@@ -515,11 +515,11 @@ def test_resample_below_1_sample(method):
 @pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     sfreq = 100
     sig_len_secs = 15
 
-    a = rng.randn(2, sig_len_secs * sfreq)
+    a = rng.standard_normal((2, sig_len_secs * sfreq))
 
     # let's test our catchers
     for fl in ["blah", [0, 1], 1000.5, "10ss", "10"]:
@@ -695,7 +695,7 @@ def test_filters():
     assert iir_params["sos"].shape == (2, 6)
 
     # check that picks work for 3d array with one channel and picks=[0]
-    a = rng.randn(5 * sfreq, 5 * sfreq)
+    a = rng.standard_normal((5 * sfreq, 5 * sfreq))
     b = a[:, None, :]
 
     a_filt = filter_data(a, sfreq, 4, 8, None, 400, 2.0, 2.0, fir_design="firwin")
@@ -704,7 +704,7 @@ def test_filters():
     assert_array_equal(a_filt[:, None, :], b_filt)
 
     # check for n-dimensional case
-    a = rng.randn(2, 2, 2, 2)
+    a = rng.standard_normal((2, 2, 2, 2))
     with pytest.warns(RuntimeWarning, match="longer"):
         pytest.raises(
             ValueError, filter_data, a, sfreq, 4, 8, np.array([0, 1]), 100, 1.0, 1.0
@@ -804,10 +804,10 @@ def test_cuda_fir():
     """Test CUDA-based filtering."""
     # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=None.
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     sfreq = 500
     sig_len_secs = 20
-    a = rng.randn(sig_len_secs * sfreq)
+    a = rng.standard_normal(sig_len_secs * sfreq)
     kwargs = dict(fir_design="firwin")
 
     with catch_logging() as log_file:
@@ -845,10 +845,10 @@ def test_cuda_fir():
 
 def test_cuda_resampling():
     """Test CUDA resampling."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     for window in ("boxcar", "triang"):
         for N in (997, 1000):  # one prime, one even
-            a = rng.randn(2, N)
+            a = rng.standard_normal((2, N))
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
                 a1 = resample(a, fro, to, n_jobs=None, npad="auto", window=window)
                 a2 = resample(a, fro, to, n_jobs="cuda", npad="auto", window=window)
@@ -1032,7 +1032,7 @@ def test_reporting_fir(phase, fir_window, btype):
 
 def test_filter_picks():
     """Test filter picking."""
-    data = np.random.RandomState(0).randn(3, 1000)
+    data = np.random.default_rng(0).standard_normal((3, 1000))
     fs = 1000.0
     kwargs = dict(l_freq=None, h_freq=40.0)
     filt = filter_data(data, fs, **kwargs)
