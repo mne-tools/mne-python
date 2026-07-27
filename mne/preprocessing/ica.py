@@ -158,8 +158,8 @@ def get_score_funcs():
             if signature(f).parameters == ["u", "v"]
         }
     )
-    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
-    # should just look at the positional_only and positional_or_keyword entries
+    # pearsonr has (x, y, *, alternative='two-sided'), so only look at the
+    # positional_only and positional_or_keyword entries
     for n, f in xy_arg_stats_funcs:
         params = [
             name
