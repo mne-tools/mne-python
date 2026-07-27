@@ -42,7 +42,7 @@ from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
 from ..preprocessing.ica import read_ica
 from ..proj import read_proj, sensitivity_map
-from ..source_estimate import _BaseSourceEstimate, SourceEstimate, read_source_estimate
+from ..source_estimate import _BaseSourceEstimate, read_source_estimate
 from ..source_space._source_space import _ensure_src
 from ..surface import dig_mri_distances
 from ..transforms import _find_trans
