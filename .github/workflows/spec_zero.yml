@@ -25,7 +25,7 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: true
       - name: Triage SSH
@@ -69,7 +69,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v2.0.5
+      - uses: j178/prek-action@v2.0.6
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         run: |
