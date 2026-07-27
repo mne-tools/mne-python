@@ -4,6 +4,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from inspect import signature
+
 import numpy as np
 
 from ..defaults import _handle_default
@@ -61,11 +63,16 @@ def _inplace(df, method, **kwargs):
     #     future version. Copy-on-Write is active in pandas since 3.0 which utilizes a
     #     lazy copy mechanism that defers copies until necessary. Use .copy() to make
     #     an eager copy if necessary.
-    _meth = getattr(df, method)  # used for set_index() and rename()
+    _meth = getattr(df, method)  # used for set_index(), rename(), sort_values()
 
     if check_version("pandas", "3.0"):
         return _meth(**kwargs)
-    return _meth(**kwargs, copy=False)
+    # per-method, not per-version: rename() takes copy=, set_index()/sort_values() don't
+    elif "copy" in signature(_meth).parameters:
+        return _meth(**kwargs, copy=False)
+    else:
+        _meth(**kwargs, inplace=True)
+        return df
 
 
 @verbose
