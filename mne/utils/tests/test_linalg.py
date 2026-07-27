@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from unittest.mock import MagicMock
+from contextlib import contextmanager
 
 import numpy as np
 import pytest
@@ -105,45 +105,60 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
     assert_allclose(np.matmul(mat, mat_symv), want, **kwargs)
 
 
+class _FakeController:
+    """Minimal stand-in for threadpoolctl.ThreadpoolController."""
+
+    def __init__(self, num_threads):
+        self.num_threads = num_threads
+        self.applied = []
+
+    def info(self):
+        return [dict(internal_api="openblas", num_threads=self.num_threads)]
+
+    @contextmanager
+    def limit(self, *, limits):
+        self.applied.append(limits)
+        yield
+
+
 def test_limit_blas_threads_logic(monkeypatch):
     """Test when BLAS thread limiting engages and when it defers."""
     pytest.importorskip("threadpoolctl")
     from mne.utils import linalg
 
-    controller = MagicMock()
-    controller.info.return_value = [dict(internal_api="openblas", num_threads=8)]
+    controller = _FakeController(8)
     monkeypatch.setattr(linalg, "_blas_thread_controller", lambda: controller)
     monkeypatch.setattr(linalg, "_n_available_cpus", lambda: 8)
     for var in linalg._BLAS_THREAD_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
     with linalg._limit_blas_threads():
         pass
-    controller.limit.assert_called_once_with(limits=3)
+    assert controller.applied == [3]
 
     # defer to an explicit user preference
-    controller.reset_mock()
     monkeypatch.setenv("OMP_NUM_THREADS", "2")
     with linalg._limit_blas_threads():
         pass
-    controller.limit.assert_not_called()
+    assert controller.applied == [3]
 
     # defer when something already limited us (outer limits, joblib worker, ...)
     monkeypatch.delenv("OMP_NUM_THREADS")
-    controller.info.return_value = [dict(internal_api="openblas", num_threads=2)]
+    controller.num_threads = 2
     with linalg._limit_blas_threads():
         pass
-    controller.limit.assert_not_called()
+    assert controller.applied == [3]
 
     # but do not oversubscribe a machine smaller than the cap
     monkeypatch.setattr(linalg, "_n_available_cpus", lambda: 2)
     with linalg._limit_blas_threads():
         pass
-    controller.limit.assert_called_once_with(limits=2)
+    assert controller.applied == [3, 2]
 
     # no-op when threads cannot be controlled at all (no threadpoolctl, Accelerate)
     monkeypatch.setattr(linalg, "_blas_thread_controller", lambda: None)
     with linalg._limit_blas_threads():
         pass
+    assert controller.applied == [3, 2]
 
 
 def test_limit_blas_threads(monkeypatch):
