@@ -4686,9 +4686,6 @@ class Report:
             klass="stc",
             own_figure=False,  # prevent rescaling
         )
-        for fig in figs:
-            if not isinstance(fig, np.ndarray):
-                plt.close(fig)
 
     @_use_agg
     def _add_bem(
