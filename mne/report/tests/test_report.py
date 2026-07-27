@@ -4,6 +4,7 @@
 
 import base64
 import glob
+import inspect
 import os
 import pickle
 import re
@@ -539,6 +540,22 @@ def test_add_forward(renderer_interactive_pyvistaqt):
     )
     assert len(report.html) == 1
     assert report.html[0].count("<img") == 0
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=False,
+        sensitivity=True,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 3
+
+
+def test_add_forward_sensitivity_parameter():
+    """Test sensitivity maps can be requested when adding a forward solution."""
+    assert "sensitivity" in inspect.signature(Report.add_forward).parameters
 
 
 @testing.requires_testing_data
