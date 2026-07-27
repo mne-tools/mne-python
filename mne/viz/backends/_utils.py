@@ -298,6 +298,7 @@ def _qt_get_stylesheet(theme):
                 "pip install qdarkstyle\n"
             )
         else:
+            # TODO VERSION remove on qdarkstyle 3.2.3+
             if api in ("PySide6", "PyQt6") and _compare_version(
                 qdarkstyle.__version__, "<", "3.2.3"
             ):

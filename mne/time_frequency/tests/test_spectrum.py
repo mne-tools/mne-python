@@ -450,7 +450,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
         else:
             agg_df = gb.mean()  # excludes missing values itself
     else:
-        gb = gb[df.columns]  # XXX: try removing when minimum pandas >= 2.1 is required
+        gb = gb[df.columns]  # still needed as of pandas 3.0
         agg_df = gb.apply(_agg_helper, spectrum.weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the

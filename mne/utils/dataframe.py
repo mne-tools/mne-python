@@ -4,8 +4,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from inspect import signature
-
 import numpy as np
 
 from ..defaults import _handle_default
@@ -58,9 +56,7 @@ def _convert_times(
 
 
 def _inplace(df, method, **kwargs):
-    # TODO VERSION remove on pandas 3.0+
-    # Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)
-    # and 3.0 warning:
+    # TODO VERSION remove on pandas 3.0+, which warns:
     #     The copy keyword will be removed in a
     #     future version. Copy-on-Write is active in pandas since 3.0 which utilizes a
     #     lazy copy mechanism that defers copies until necessary. Use .copy() to make
@@ -69,11 +65,7 @@ def _inplace(df, method, **kwargs):
 
     if check_version("pandas", "3.0"):
         return _meth(**kwargs)
-    elif "copy" in signature(_meth).parameters:
-        return _meth(**kwargs, copy=False)
-    else:
-        _meth(**kwargs, inplace=True)
-        return df
+    return _meth(**kwargs, copy=False)
 
 
 @verbose

@@ -37,16 +37,11 @@ raw_fname = base_dir / "test_raw.fif"
 
 
 def _get_button_xy(buttons, idx):
-    from mne.viz._mpl_figure import _OLD_BUTTONS
-
-    if _OLD_BUTTONS:
-        return buttons.circles[idx].center
-    else:
-        # Each transform is to display coords, and our offsets are in Axes
-        # coords. We want data coords, so we go Axes -> display -> data.
-        return buttons.ax.transData.inverted().transform(
-            buttons.ax.transAxes.transform(buttons.ax.collections[0].get_offsets()[idx])
-        )
+    # Each transform is to display coords, and our offsets are in Axes
+    # coords. We want data coords, so we go Axes -> display -> data.
+    return buttons.ax.transData.inverted().transform(
+        buttons.ax.transAxes.transform(buttons.ax.collections[0].get_offsets()[idx])
+    )
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -408,6 +403,11 @@ def test_plot_raw_selection(raw, browser_backend):
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
     if ismpl:
+        # in butterfly mode all radio buttons show as selected
+        buttons = sel_fig.mne.radio_ax.buttons
+        facecolors = buttons.ax.collections[0].get_facecolor()
+        want = mcolors.to_rgba(buttons.activecolor)
+        assert_allclose(facecolors, [want] * len(facecolors))
         print(f"Clicking button: {repr(left_temp)}")
         assert sel_fig.mne.radio_ax.buttons.labels[0].get_text() == left_temp
         xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, 0)

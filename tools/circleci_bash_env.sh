@@ -10,9 +10,14 @@ if [[ $(lsb_release -rs) == "26.04" ]]; then
 else
     EXTRA_DEPS=""
 fi
-sudo apt install -qq graphviz optipng python3-venv libxft2 ffmpeg r-base libtirpc-dev $EXTRA_DEPS
+APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+# no -qq: it hides download progress, which trips CircleCI's 10 min no-output timeout (gh-14103)
+sudo apt install -y $APT_OPTS graphviz optipng python3-venv libxft2 ffmpeg libtirpc-dev $EXTRA_DEPS
+# r-base-dev rather than r-base: rpy2-rinterface has no manylinux wheel so it builds against
+# R's headers, but we don't need r-recommended (the r-cran-* set) or the html manuals
+sudo apt install -y $APT_OPTS r-base-dev
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo apt install ./google-chrome-stable_current_amd64.deb
+sudo apt install -y $APT_OPTS ./google-chrome-stable_current_amd64.deb
 python -m venv ~/python_env
 echo "set -e" >> $BASH_ENV
 echo "set -o pipefail" >> $BASH_ENV

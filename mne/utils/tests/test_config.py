@@ -147,7 +147,7 @@ def test_sys_info_windowing_system(monkeypatch):
 
 def test_sys_info_complete():
     """Test that sys_info is sufficiently complete."""
-    tomllib = pytest.importorskip("tomllib")  # python 3.11+
+    tomllib = pytest.importorskip("tomllib")  # TODO VERSION remove on Python 3.11+
     pyproject = Path(__file__).parents[3] / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("Does not appear to be a dev installation")
