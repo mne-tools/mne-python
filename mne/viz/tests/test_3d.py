@@ -709,7 +709,6 @@ def test_plot_alignment_eeg_errors(renderer, evoked):
     # eeg checking for head surface
     with pytest.raises(ValueError, match="A head surface is required"):
         kwargs1 = kwargs.update(surfaces=[])
-        plot_alignment(**kwargs.update(surfaces=[]))
         plot_alignment(**kwargs1)
     # wrong eeg value:
     with pytest.raises(ValueError, match="Invalid value for the .eeg"):
