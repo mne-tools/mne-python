@@ -1868,6 +1868,11 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/70_eeg_mri_coords.py",
     # mne_bids is not installable in the browser kernel
     "tutorials/inverse/95_phantom_KIT.py",
+    # Single recordings well past LITE_MAX_FILE_MB, confirmed against the full
+    # build: 379 MB and 251 MB for one example each, so they are skipped by the
+    # copy step and the badge would have nothing to load.
+    "examples/datasets/kernel_phantom.py",
+    "examples/io/elekta_epochs.py",
     # Report renders its forward/inverse/source-estimate sections through the
     # Brain screenshot path, which the browser renderer has no equivalent for,
     # and three sections round-trip the report through HDF5. The parts that do
