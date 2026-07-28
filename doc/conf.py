@@ -502,16 +502,37 @@ jupyterlite_bind_ipynb_suffix = False
 # artifact servers (e.g. CircleCI) do not send, so it is unusable there.
 # lite_data (mne.datasets.lite_data) extracts the curated subset here, with the
 # files under their original dataset folders (MNE-sample-data/, ...).
-lite_root = Path(os.path.expanduser("~/mne_data/MNE-lite-data"))
+mne_data_base = Path(os.path.expanduser("~/mne_data"))
+lite_root = mne_data_base / "MNE-lite-data"
 src_sample_data = lite_root / "MNE-sample-data"
 lite_extra_base = (
     Path(os.path.abspath(os.path.dirname(__file__))) / "lite_extra" / "mne_data"
 )
 dst_sample_data = lite_extra_base / "MNE-sample-data"
 dst_sample_data.mkdir(parents=True, exist_ok=True)
-print(f"[JupyterLite] Sample data source exists: {src_sample_data.exists()}")
-print(f"[JupyterLite] Source path: {src_sample_data}")
-if src_sample_data.exists():
+
+
+def _lite_src(folder, rel):
+    """Return where a dataset file can be read from, or None if nowhere.
+
+    The curated lite_data archive only carries the files it was published with,
+    so look in whatever CI restored of the real dataset first and fall back to
+    the archive. Sourcing from the archive alone means anything added since it
+    was last uploaded goes missing without the build failing.
+    """
+    for root in (mne_data_base / folder, lite_root / folder):
+        candidate = root / rel
+        if candidate.exists():
+            return candidate
+    return None
+
+
+print(
+    f"[JupyterLite] Sample data: real dataset="
+    f"{(mne_data_base / 'MNE-sample-data').exists()}, "
+    f"curated archive={src_sample_data.exists()}"
+)
+if (mne_data_base / "MNE-sample-data").exists() or src_sample_data.exists():
     required_files = [
         "version.txt",
         "MEG/sample/sample_audvis_raw.fif",
@@ -570,9 +591,9 @@ if src_sample_data.exists():
         "subjects/sample/label/rh.aparc.annot",
     ]
     for req in required_files:
-        s = src_sample_data / req
+        s = _lite_src("MNE-sample-data", req)
         d = dst_sample_data / req
-        if s.exists():
+        if s is not None:
             d.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(s, d)
             print(f"[JupyterLite]   Copied: {req}")
@@ -581,7 +602,6 @@ if src_sample_data.exists():
 
 
 # Also inject SSVEP and EEGLAB testing datasets for JupyterLite
-mne_data_base = Path(os.path.expanduser("~/mne_data"))
 lite_data_base = lite_extra_base
 lite_data_base.mkdir(parents=True, exist_ok=True)
 
@@ -606,16 +626,15 @@ testing_files = [
     "SSS/test_move_anon_raw.fif",
     "SSS/test_move_anon_raw.pos",
 ]
-src_testing = mne_data_base / "MNE-testing-data"
 for testing_file in testing_files:
-    s = src_testing / testing_file
+    s = _lite_src("MNE-testing-data", testing_file)
     d = lite_data_base / "MNE-testing-data" / testing_file
-    if s.exists() and not d.exists():
+    if s is not None and not d.exists():
         d.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(s, d)
         _mb = s.stat().st_size / 1e6
         print(f"[JupyterLite]   Copied {testing_file} ({_mb:.1f} MB)")
-    elif not s.exists():
+    elif s is None:
         print(f"[JupyterLite]   MISSING {testing_file}")
 
 # The remaining datasets are each used by one or two notebooks that read only a
@@ -628,10 +647,9 @@ LITE_MAX_FILE_MB = 150
 
 def _lite_copy(folder, rel_paths):
     """Copy selected files of a dataset into the served tree."""
-    src_root = mne_data_base / folder
     for rel in rel_paths:
-        s = src_root / rel
-        if not s.exists():
+        s = _lite_src(folder, rel)
+        if s is None:
             print(f"[JupyterLite]   MISSING {folder}/{rel}")
             continue
         size_mb = s.stat().st_size / 1e6
@@ -716,16 +734,14 @@ somato_files = [
     "derivatives/freesurfer/subjects/01/surf/lh.curv",
     "derivatives/freesurfer/subjects/01/surf/rh.curv",
 ]
-src_somato = mne_data_base / "MNE-somato-data"
-print(f"[JupyterLite] somato data source exists: {src_somato.exists()}")
 for somato_file in somato_files:
-    s = src_somato / somato_file
+    s = _lite_src("MNE-somato-data", somato_file)
     d = lite_data_base / "MNE-somato-data" / somato_file
-    if s.exists() and not d.exists():
+    if s is not None and not d.exists():
         d.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(s, d)
         print(f"[JupyterLite]   Copied {somato_file} ({s.stat().st_size / 1e6:.1f} MB)")
-    elif not s.exists():
+    elif s is None:
         print(f"[JupyterLite]   MISSING {somato_file}")
 
 # Inject the single needed file(s) from extra datasets used by the Epochs and
@@ -746,13 +762,11 @@ for _folder, _ds_files in (
         ],
     ),
 ):
-    _src_ds = lite_root / _folder
     _dst_ds = lite_data_base / _folder
-    print(f"[JupyterLite] {_folder} source exists: {_src_ds.exists()}")
     for _ds_file in _ds_files:
-        s = _src_ds / _ds_file
+        s = _lite_src(_folder, _ds_file)
         d = _dst_ds / _ds_file
-        if s.exists():
+        if s is not None:
             d.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(s, d)
             print(f"[JupyterLite]   Copied: {_folder}/{_ds_file}")
