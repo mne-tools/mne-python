@@ -109,7 +109,7 @@ def _create_test_stc(n_times=5):
     )
     stc_data = _reshape_view(stc_data, (n_verts, n_times))
 
-    return SourceEstimate(stc_data, vertices, 1, 1), src
+    return SourceEstimate(stc_data, vertices, 1, 1, subject="sample"), src
 
 
 def test_plot_head_positions():
