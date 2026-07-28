@@ -167,6 +167,8 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int
+        The index number of the source estimate point that was selected.
 
     Attributes
     ----------
@@ -176,10 +178,13 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int
+        The index number of the source estimate point that was selected.
     """
 
     hemi: str
     vertex_id: int
+    source_id: int = None
 
 
 @dataclass

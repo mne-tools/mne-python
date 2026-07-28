@@ -1183,7 +1183,9 @@ class Brain:
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
             vertex_id = vertices[ind[0]]
-            publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+            publish(
+                self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=ind[0])
+            )
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1457,6 +1459,7 @@ class Brain:
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [
@@ -1466,7 +1469,14 @@ class Brain:
             vert_pos = mesh.points[cell]
             vertex_id = cell[np.argmin(np.linalg.norm(vert_pos - pos, axis=1))]
 
-        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+            # retrieve the nearest source_id from the smooth_mat
+            smooth_mat = self.act_data_smooth[hemi][1]
+            # to deal CSR format and avoid materializing per click
+            # equivalent to: source_id = np.argmax(smooth_mat[vertex_id].toarray())
+            lo, hi = smooth_mat.indptr[vertex_id], smooth_mat.indptr[vertex_id + 1]
+            source_id = smooth_mat.indices[lo + np.argmax(smooth_mat.data[lo:hi])]
+
+        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=source_id))
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
@@ -4050,9 +4060,11 @@ class Brain:
                     mesh = self.layered_meshes[hemi]
                     mesh.smooth_mat = hemi_data.get("smooth_mat")
                     key_rng = [
-                        -key_data["fmax"]
-                        if key_data["center"] is not None
-                        else key_data["fmin"],
+                        (
+                            -key_data["fmax"]
+                            if key_data["center"] is not None
+                            else key_data["fmin"]
+                        ),
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:
