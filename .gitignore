@@ -105,3 +105,4 @@ venv/
 .ipynb_checkpoints/
 jupyterlite_contents/auto_tutorials
 jupyterlite_contents/mne_data
+/.claude/
