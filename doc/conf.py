@@ -1414,6 +1414,9 @@ JUPYTERLITE_EXCLUDE = (
     # needs the BEM solution, and nilearn.datasets.load_mni152_template()
     # downloads a template at runtime, which the browser blocks (CORS)
     "tutorials/inverse/20_dipole_fit.py",
+    # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
+    # plot_field needs the interactive viewer that the browser renderer skips
+    "examples/visualization/mne_helmet.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
