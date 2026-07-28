@@ -739,28 +739,8 @@ _lite_copy("MNE-phantom-kernel-data", ["phantom_32_100nam_raw.fif"])
 _lite_copy("MNE-multimodal-data", ["multimodal_raw.fif"])
 _lite_copy("MNE-refmeg-noise-data", ["sample_reference_MEG_noise-raw.fif"])
 
-# Six notebooks use the somato dataset (the DICS/TF-MxNE examples and the
-# time-frequency tutorial). The full dataset is ~610 MB, but they only read one
-# raw, one forward solution and the FreeSurfer surfaces needed to draw the
-# source estimate, so copy just those. CircleCI already restores somato from
-# data-cache-somato for the native build, so nothing extra is downloaded.
-somato_files = [
-    "sub-01/meg/sub-01_task-somato_meg.fif",
-    "derivatives/sub-01/sub-01_task-somato-fwd.fif",
-    "derivatives/freesurfer/subjects/01/surf/lh.inflated",
-    "derivatives/freesurfer/subjects/01/surf/rh.inflated",
-    "derivatives/freesurfer/subjects/01/surf/lh.curv",
-    "derivatives/freesurfer/subjects/01/surf/rh.curv",
-]
-for somato_file in somato_files:
-    s = _lite_src("MNE-somato-data", somato_file)
-    d = lite_data_base / "MNE-somato-data" / somato_file
-    if s is not None and not d.exists():
-        d.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(s, d)
-        print(f"[JupyterLite]   Copied {somato_file} ({s.stat().st_size / 1e6:.1f} MB)")
-    elif s is None:
-        print(f"[JupyterLite]   MISSING {somato_file}")
+# somato is deliberately not served: its raw alone is 344 MB and the six
+# notebooks that read it are on the exclude list instead.
 
 # Inject the single needed file(s) from extra datasets used by the Epochs and
 # decoding examples. Sizes are all within what we already serve
@@ -1024,15 +1004,9 @@ sphinx_gallery_conf = {
         "def _lite_mtrf_data_path(*_a, **_kw):\n"
         "    return _lite_lazy_fetch('mTRF_1.5', 'speech_data.mat')\n"
         "mne.datasets.mtrf.data_path = _lite_mtrf_data_path\n"
-        "# somato just returns the folder: the notebooks reach its raw and\n"
-        "# forward files through read_raw_fif/read_forward_solution, which are\n"
-        "# already shimmed below to fetch anything under mne_data on first read.\n"
-        "def _lite_somato_data_path(*_a, **_kw):\n"
-        "    return _Path(mne_data_path + '/MNE-somato-data')\n"
-        "mne.datasets.somato.data_path = _lite_somato_data_path\n"
-        "# testing follows somato: hand back the folder and let the shimmed\n"
-        "# readers pull individual files, so a notebook that wants the EEGLAB\n"
-        "# recording does not also drag down the 39 MB movement raw.\n"
+        "# testing hands back the folder and lets the shimmed readers pull\n"
+        "# individual files, so a notebook that wants the EEGLAB recording does\n"
+        "# not also drag down the 39 MB movement raw.\n"
         "def _lite_testing_data_path(*_a, **_kw):\n"
         "    return _Path(mne_data_path + '/MNE-testing-data')\n"
         "mne.datasets.testing.data_path = _lite_testing_data_path\n"
@@ -1370,8 +1344,8 @@ sphinx_gallery_conf = {
         "        _sdir = (str(_sdir) if _sdir is not None else\n"
         "                 mne_data_path + '/MNE-sample-data/subjects')\n"
         "        # surfaces are fetched relative to the served mne_data root, so\n"
-        "        # derive that from subjects_dir instead of assuming sample --\n"
-        "        # somato keeps its FreeSurfer subjects under its own folder.\n"
+        "        # derive that from subjects_dir rather than assuming sample --\n"
+        "        # a dataset may keep its FreeSurfer subjects under its own folder.\n"
         "        _rel_sdir = (_sdir[len(mne_data_path) + 1:]\n"
         "                     if _sdir.startswith(mne_data_path + '/')\n"
         "                     else 'MNE-sample-data/subjects')\n"
@@ -1868,6 +1842,16 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/70_eeg_mri_coords.py",
     # mne_bids is not installable in the browser kernel
     "tutorials/inverse/95_phantom_KIT.py",
+    # Tier 7 — somato. Serving it costs 404 MB (the raw alone is 344 MB) on
+    # every docs deploy, which is more than these six pages are worth; the
+    # dataset is not copied at all. Restoring them means putting the somato
+    # block back in the copy step above.
+    "examples/inverse/dics_epochs.py",
+    "examples/inverse/dics_source_power.py",
+    "examples/inverse/evoked_ers_source_power.py",
+    "examples/inverse/multidict_reweighted_tfmxne.py",
+    "examples/time_frequency/time_frequency_global_field_power.py",
+    "tutorials/time-freq/20_sensors_time_frequency.py",
     # Single recordings well past LITE_MAX_FILE_MB, confirmed against the full
     # build: 379 MB and 251 MB for one example each, so they are skipped by the
     # copy step and the badge would have nothing to load.
