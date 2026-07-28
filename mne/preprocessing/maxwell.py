@@ -51,6 +51,7 @@ from ..utils import (
     _check_option,
     _clean_names,
     _ensure_int,
+    _limit_blas_threads,
     _pl,
     _time_mask,
     _validate_type,
@@ -713,6 +714,7 @@ def _prep_maxwell_filter(
     return params
 
 
+@_limit_blas_threads()
 def _run_maxwell_filter(
     raw,
     skip_by_annotation,
