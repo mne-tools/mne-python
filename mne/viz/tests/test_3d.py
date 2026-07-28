@@ -95,6 +95,23 @@ coil_3d = """# custom cube coil def
 """
 
 
+def _create_test_stc(n_times=5):
+    src = read_source_spaces(src_fname)
+    vertices = [s["vertno"] for s in src]
+    n_verts = sum(len(v) for v in vertices)
+
+    # Fill the SourceEstimate with random data, but only fill one in every 20 entries so
+    # we have to generate fewer random numbers and speed things up.
+    rng = np.random.default_rng(0)
+    stc_data = np.zeros(n_verts * n_times)
+    stc_data[(rng.random(stc_data.size // 20) * stc_data.size).astype(int)] = (
+        np.random.default_rng(0).random(stc_data.size // 20)
+    )
+    stc_data = _reshape_view(stc_data, (n_verts, n_times))
+
+    return SourceEstimate(stc_data, vertices, 1, 1), src
+
+
 def test_plot_head_positions():
     """Test plotting of head positions."""
     info = read_info(evoked_fname)
@@ -126,26 +143,13 @@ def test_plot_head_positions():
 def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
     pytest.importorskip("nibabel")
-    sample_src = read_source_spaces(src_fname)
 
-    # dense version
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros(n_verts * n_time)
-    stc_size = stc_data.size
-    rng = np.random.default_rng(0)
-    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
-        np.random.default_rng(0).random(stc_data.size // 20)
-    )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
-
-    colormap = "mne_analyze"
+    n_times = 5
+    stc, src = _create_test_stc(n_times=n_times)
     brain = plot_source_estimates(
         stc,
         "sample",
-        colormap=colormap,
+        colormap="mne_analyze",
         background=(1, 1, 0),
         subjects_dir=subjects_dir,
         colorbar=True,
@@ -164,15 +168,15 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
         )
 
     # now do sparse version
-    vertices = sample_src[0]["vertno"]
+    vertices = src[0]["vertno"]
     inds = [111, 333]
-    stc_data = np.zeros((len(inds), n_time))
+    stc_data = np.zeros((len(inds), n_times))
     stc_data[0, 1] = 1.0
     stc_data[1, 4] = 2.0
     vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     out = plot_sparse_source_estimates(
-        sample_src, stc, bgcolor=(1, 1, 1), opacity=0.5, high_resolution=False
+        src, stc, bgcolor=(1, 1, 1), opacity=0.5, high_resolution=False
     )
     assert isinstance(out, Figure3D)
 
@@ -960,7 +964,6 @@ def test_plot_alignment_fnirs(renderer, tmp_path):
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
     pytest.importorskip("nibabel")
-    sample_src = read_source_spaces(src_fname)
     kwargs = dict(
         subjects_dir=subjects_dir,
         smoothing_steps=1,
@@ -968,14 +971,8 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
         show_traces=False,
     )
 
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.random.default_rng(0).random(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
-    stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
-
     # Test for simple use cases
+    stc, _ = _create_test_stc()
     brain = stc.plot(**kwargs)
     assert brain.data["center"] is None
     brain.close()
@@ -1089,13 +1086,7 @@ def test_process_clim_round_trip():
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
     pytest.importorskip("nibabel")
-    sample_src = read_source_spaces(src_fname)
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.ones(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
-    stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
+    stc, _ = _create_test_stc()
     stc.plot(
         subjects_dir=subjects_dir,
         time_unit="s",
@@ -1417,29 +1408,8 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
     pytest.importorskip("nibabel")
-    sample_src = read_source_spaces(src_fname)
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros(n_verts * n_time)
-    stc_size = stc_data.size
-    rng = np.random.default_rng(0)
-    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
-        np.random.default_rng(0).random(stc_data.size // 20)
-    )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
-
-    colormap = "mne_analyze"
-    brain = plot_source_estimates(
-        stc,
-        "sample",
-        colormap=colormap,
-        background=(1, 1, 0),
-        subjects_dir=subjects_dir,
-        colorbar=True,
-        clim="auto",
-    )
+    stc, _ = _create_test_stc()
+    brain = plot_source_estimates(stc, "sample", subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match="is empty"):
         link_brains([])
     with pytest.raises(TypeError, match="type is Brain"):
@@ -1448,56 +1418,45 @@ def test_link_brains(renderer_interactive):
 
 
 @testing.requires_testing_data
-def test_plot_stat_cluster(renderer_interactive):
+def test_plot_stat_cluster(renderer_interactive, brain_gc):
     """Test plotting clusters on brain in static and interactive mode."""
-    sample_src = read_source_spaces(src_fname)
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-
-    # simulate stc data
-    stc_data = np.zeros(n_verts * n_time)
-    stc_size = stc_data.size
-    rng = np.random.default_rng(0)
-    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
-        np.random.default_rng(0).random(stc_data.size // 20)
-    )
-    stc_data.shape = (n_verts, n_time)
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
+    stc, src = _create_test_stc(n_times=4)
 
     # Simulate a cluster
-    cluster_time_idx = [1, 1, 2, 3]
-    cluster_vertex_idx = [0, 1, 2, 3]
+    cluster_time_idx = [0, 1, 1, 1, 1, 2, 3]
+    cluster_vertex_idx = [0, 1, 2, 3, 4, 5, 6]
     cluster = (cluster_time_idx, cluster_vertex_idx)
 
-    brain = plot_source_estimates(
-        stc,
-        "sample",
-        background=(1, 1, 0),
-        subjects_dir=subjects_dir,
-        colorbar=True,
-        clim="auto",
-    )
-    # Test for incorrect argument in time
+    brain = plot_source_estimates(stc, subject="sample", subjects_dir=subjects_dir)
+
+    # Test for incorrect data type of cluster.
+    with pytest.raises(TypeError):
+        plot_stat_cluster([[1, 2, 3], [1, 2, 3]], src, brain)
+
+    # Test for incorrect shape of cluster.
     with pytest.raises(ValueError):
-        plot_stat_cluster(cluster, sample_src, brain, "foo")
+        plot_stat_cluster(([1],), src, brain)
+    with pytest.raises(ValueError):
+        plot_stat_cluster(([1], [1, 2, 3]), src, brain)
 
-    # test for incorrect shape of cluster
-    with pytest.raises(TypeError):
-        plot_stat_cluster(([1]), sample_src, brain)
-
-    # test for incorrect data type of cluster
-    with pytest.raises(TypeError):
-        plot_stat_cluster([[1, 2, 3], [1, 2, 3]], sample_src, brain)
-
-    # All arguments are correct
-    plot_stat_cluster(cluster, sample_src, brain)
+    # Test plotting cluster at the maximum extent.
+    plot_stat_cluster(cluster, src, brain, initial_time=None)
+    assert brain._current_time == 2
 
     # Check that the proper anatomical label has been constructed.
     assert len(brain.labels["lh"]) == 1
     assert len(brain.labels["rh"]) == 0
-    assert brain.labels["lh"][0].name == "cluster-0"
-    assert brain._current_time == brain._times[1]  # time of max extent
+    assert brain.labels["lh"][0].name == "cluster-1"
+    should_include_verts = src[0]["vertno"][[1, 2, 3, 4]]
+    label_verts = brain.labels["lh"][0].vertices
+    assert len(np.setdiff1d(should_include_verts, label_verts)) == 0
+
+    # Test plotting cluster at specific time.
+    plot_stat_cluster(cluster, src, brain, initial_time=3)
+    assert brain._current_time == 3
+    should_include_verts = src[0]["vertno"][[5]]
+    label_verts = brain.labels["lh"][0].vertices
+    assert len(np.setdiff1d(should_include_verts, label_verts)) == 0
 
     brain.close()
     del brain

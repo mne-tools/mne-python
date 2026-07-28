@@ -4394,11 +4394,18 @@ def plot_stat_cluster(cluster, src, brain, initial_time=None, color="magenta", w
         raise TypeError(f"Tuple expected, got {type(cluster)} instead.")
     elif len(cluster) != 2:
         raise ValueError(
-            "A cluster is a tuple of two elements,  a list time indices "
+            "A cluster is a tuple of two elements, a list of time indices "
             "and list of vertex indices."
         )
-    else:
-        cluster_time_idx, cluster_vertex_index = cluster
+    elif len(cluster[0]) != len(cluster[1]):
+        raise ValueError(
+            "The number of time indices ({len(cluster[0]}) does not match "
+            "the number of vertex indices ({len(cluster[1]})."
+        )
+
+    cluster_time_idx, cluster_vertex_idx = cluster
+    cluster_time_idx = np.asarray(cluster_time_idx)
+    cluster_vertex_idx = np.asarray(cluster_vertex_idx)
 
     # A cluster is defined both in space and time. If we want to plot the boundaries of
     # the cluster in space, we must choose a specific time for which to show the
@@ -4439,7 +4446,7 @@ def plot_stat_cluster(cluster, src, brain, initial_time=None, color="magenta", w
 
         # Create a new Label object containing the vertices of the cluster at the
         # current time.
-        draw_vertex_idx = cluster_vertex_index[cluster_time_idx == time_idx]
+        draw_vertex_idx = cluster_vertex_idx[cluster_time_idx == time_idx]
         draw_vertex_idx = np.unique(draw_vertex_idx)
         split_point = np.searchsorted(draw_vertex_idx, n_lh_verts)
         draw_lh_verts = lh_verts[draw_vertex_idx[:split_point]]
