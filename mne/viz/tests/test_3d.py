@@ -606,14 +606,8 @@ def test_plot_alignment_info(renderer, evoked):
     info = evoked.info
     plot_alignment(info)  # works: surfaces='auto' default
     # check error raised if incorrect info provided
-    pytest.raises(
-        TypeError,
-        plot_alignment,
-        "foo",
-        trans_fname,
-        subject="sample",
-        subjects_dir=subjects_dir,
-    )
+    with pytest.raises(TypeError, match="instance of Info"):
+        plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)
     renderer.backend._close_all()
 
 
@@ -705,25 +699,22 @@ def test_plot_alignment_eeg(renderer, evoked):
 def test_plot_alignment_eeg_errors(renderer, evoked):
     """Test error raising during EEG alignment plotting."""
     info = evoked.info
+    kwargs = dict(
+        info=info,
+        trans=trans_fname,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        eeg="projected",
+    )
     # eeg checking for head surface
     with pytest.raises(ValueError, match="A head surface is required"):
-        plot_alignment(
-            info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            eeg="projected",
-            surfaces=[],
-        )
+        kwargs1 = kwargs.update(surfaces=[])
+        plot_alignment(**kwargs.update(surfaces=[]))
+        plot_alignment(**kwargs1)
     # wrong eeg value:
     with pytest.raises(ValueError, match="Invalid value for the .eeg"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            eeg="foo",
-        )
+        kwargs2 = kwargs.update(eeg="foo")
+        plot_alignment(**kwargs2)
 
 
 @testing.requires_testing_data
