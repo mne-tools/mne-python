@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "65ea602031ba2e91a140cd1082d765987ad09b20",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13960.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 5,
+      "d": 6
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

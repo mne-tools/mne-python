@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ac2c2cf99e94b3f2c7974d26a61fcf8bf2a97354",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/psf_ctf_label_leakage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

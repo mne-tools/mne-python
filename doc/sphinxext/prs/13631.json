@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b515c2098d2ae983a1fd0af7dd8733df34f7eb79",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/overview/people.rst": {
+      "a": 25,
+      "d": 6
+    }
+  }
+}

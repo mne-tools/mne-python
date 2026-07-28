@@ -358,7 +358,7 @@ _CHECK_ADJ = [adj for adj in _BUILTIN_CHANNEL_ADJACENCIES if adj.source_url is n
 
 # This test is ~15s long across all montages, and we shouldn't need to check super
 # often for mismatches. So let's mark it ultraslowtest so only one CI runs it.
-@pytest.mark.flaky
+@pytest.mark.flaky(reruns=3, reruns_delay=5)
 @pytest.mark.ultraslowtest
 @requires_good_network
 @pytest.mark.parametrize("adj", _CHECK_ADJ)

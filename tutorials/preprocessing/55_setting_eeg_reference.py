@@ -79,13 +79,13 @@ raw.pick([f"EEG 0{n:02}" for n in range(41, 60)])
 # earlobe or mastoid channels, so this is just for demonstration purposes:
 
 # use a single channel reference (left earlobe)
-# raw.set_eeg_reference(ref_channels=['A1'])
+# raw.set_eeg_reference(ref_channels='A1')
 
 # use average of mastoid channels as reference
 # raw.set_eeg_reference(ref_channels=['M1', 'M2'])
 
 # use a bipolar reference (contralateral)
-# raw.set_bipolar_reference(anode='[F3'], cathode=['F4'])
+# raw.set_bipolar_reference(anode='F3', cathode='F4')
 
 # %%
 # If a scalp electrode was used as reference but was not saved alongside the
@@ -109,14 +109,14 @@ raw.plot()
 # ``copy=False``.
 
 # add new reference channel (all zero)
-raw_new_ref = mne.add_reference_channels(raw, ref_channels=["EEG 999"])
+raw_new_ref = mne.add_reference_channels(raw, ref_channels="EEG 999")
 raw_new_ref.plot()
 
 # %%
 # .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
 
 # set reference to `EEG 050`
-raw_new_ref.set_eeg_reference(ref_channels=["EEG 050"])
+raw_new_ref.set_eeg_reference(ref_channels="EEG 050")
 raw_new_ref.plot()
 
 # %%
@@ -140,6 +140,16 @@ raw_new_ref.plot()
 # use the average of all channels as reference
 raw_avg_ref = raw.copy().set_eeg_reference(ref_channels="average")
 raw_avg_ref.plot()
+
+# %%
+# .. note::
+#   When performing average referencing in sensor-space analyses, the original reference
+#   electrode should be present as a zero-filled channel. If it is not, this must first
+#   be added using :func:`~mne.add_reference_channels`, before calling
+#   :func:`~mne.set_eeg_reference`. This is necessary to avoid biasing the reference
+#   :footcite:`KimEtAl2023`, as the subtracted reference signal would be divided by
+#   ``n_channels`` instead of the correct ``n_channels + 1`` (i.e., including the
+#   original reference channel).
 
 # %%
 # .. _section-avg-ref-proj:
@@ -218,7 +228,7 @@ for title, _raw in zip(["Original", "REST (∞)"], [raw, raw_rest]):
 # :footcite:`YaoEtAl2019` which creates a new virtual channel
 # named ``EEG 054-EEG 055``.
 
-raw_bip_ref = mne.set_bipolar_reference(raw, anode=["EEG 054"], cathode=["EEG 055"])
+raw_bip_ref = mne.set_bipolar_reference(raw, anode="EEG 054", cathode="EEG 055")
 raw_bip_ref.plot()
 
 # %%

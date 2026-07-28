@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from .fixes import _eye_array, _get_img_fdata, _reshape_view
+from .fixes import _get_img_fdata, _reshape_view
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -29,8 +29,8 @@ from .utils import (
     _ensure_int,
     _import_h5io_funcs,
     _import_nibabel,
+    _soft_import,
     _validate_type,
-    check_version,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -210,7 +210,7 @@ def compute_source_morph(
     vertices_to_surf, vertices_to_vol = list(), list()
 
     if kind in ("volume", "mixed"):
-        _check_dep(nibabel="2.1.0", dipy="0.10.1")
+        _check_dep()
         nib = _import_nibabel("work with a volume source space")
 
         logger.info("Volume source space(s) present...")
@@ -292,8 +292,11 @@ def compute_source_morph(
             assert morph_mat.shape[0] == n_verts
 
     vertices_to = vertices_to_surf + vertices_to_vol
+
     if src_to is not None:
         assert len(vertices_to) == len(src_to)
+        # set spacing to None when src_to is provided
+        spacing = None
     morph = SourceMorph(
         subject_from,
         subject_to,
@@ -886,16 +889,12 @@ def read_source_morph(fname):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
-def _check_dep(nibabel="2.1.0", dipy="0.10.1"):
+def _check_dep(nibabel=True, dipy=True):
     """Check dependencies."""
-    for lib, ver in zip(["nibabel", "dipy"], [nibabel, dipy]):
-        passed = True if not ver else check_version(lib, ver)
-
-        if not passed:
-            raise ImportError(
-                f"{lib} {ver} or higher must be correctly "
-                "installed and accessible from Python"
-            )
+    if nibabel:
+        _import_nibabel("morph source estimates")
+    if dipy:
+        _soft_import("dipy", "volumetric source morphing")
 
 
 def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
@@ -903,7 +902,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     assert isinstance(stc, _BaseVolSourceEstimate)  # should be guaranteed
     if stc._data_ndim == 3:
         stc = stc.magnitude()
-    _check_dep(nibabel="2.1.0", dipy=False)
+    _check_dep(dipy=False)
 
     NiftiImage, NiftiHeader = _triage_output(output)
 
@@ -1035,7 +1034,7 @@ def _triage_output(output):
 
 def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     """Interpolate source estimate data to MRI."""
-    _check_dep(nibabel="2.1.0", dipy=False)
+    _check_dep(dipy=False)
     NiftiImage, NiftiHeader = _triage_output(output)
     _validate_type(stc, _BaseVolSourceEstimate, "stc", "volume source estimate")
     assert morph.kind in ("volume", "mixed")
@@ -1047,7 +1046,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         mri_resolution = (float(mri_resolution),) * 3
 
     if isinstance(mri_resolution, tuple):
-        _check_dep(nibabel=False, dipy="0.10.1")  # nibabel was already checked
+        _check_dep(nibabel=False)  # nibabel was already checked
         from dipy.align.reslice import reslice
 
         voxel_size = mri_resolution
@@ -1228,7 +1227,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e += _eye_array(n_vertices, format="csr")
+    e += sparse.eye_array(n_vertices, format="csr")
     if isinstance(smooth, str):
         _check_option("smooth", smooth, ("nearest",), extra=" when used as a string.")
         mm = _surf_nearest(vertices_from, e).tocsr()
@@ -1377,7 +1376,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
     assert e.shape == (n_tot, n_tot)
     # our output matrix starts out as a smaller matrix, and will gradually
     # increase in size
-    data = _eye_array(len(idx_from), format="csr")
+    data = sparse.eye_array(len(idx_from), format="csr")
     _validate_type(smooth, ("int-like", str, None), "smoothing steps")
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, "smoothing steps")

@@ -63,7 +63,7 @@ def regress_artifact(
 
     Returns
     -------
-    inst : instance of Epochs | Raw
+    inst : same type as the input data
         The processed data.
     betas : ndarray, shape (n_picks, n_picks_ref)
         The betas used during regression.
@@ -271,6 +271,7 @@ class EOGRegression:
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -295,6 +296,7 @@ class EOGRegression:
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,

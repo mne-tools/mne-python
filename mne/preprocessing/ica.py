@@ -3,8 +3,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import json
 import math
 import warnings
@@ -160,8 +158,8 @@ def get_score_funcs():
             if signature(f).parameters == ["u", "v"]
         }
     )
-    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
-    # should just look at the positional_only and positional_or_keyword entries
+    # pearsonr has (x, y, *, alternative='two-sided'), so only look at the
+    # positional_only and positional_or_keyword entries
     for n, f in xy_arg_stats_funcs:
         params = [
             name
@@ -1247,7 +1245,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        sources : instance of Raw, Epochs or Evoked
+        sources : same type as the input data
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
@@ -2221,7 +2219,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        out : instance of Raw, Epochs or Evoked
+        out : same type as the input data
             The processed data.
 
         Notes
@@ -2581,6 +2579,7 @@ class ICA(ContainsMixin):
         picks=None,
         start=None,
         stop=None,
+        n_components=20,
         title=None,
         show=True,
         block=False,
@@ -2602,6 +2601,7 @@ class ICA(ContainsMixin):
             picks=picks,
             start=start,
             stop=stop,
+            n_components=n_components,
             title=title,
             show=show,
             block=block,
@@ -2926,7 +2926,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
                         if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
-        for cls in (np.random.RandomState, Covariance):
+        for cls in (np.random.RandomState, np.random.Generator, Covariance):
             if isinstance(value, cls):
                 value = cls.__name__
 

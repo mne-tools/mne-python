@@ -1,0 +1,1 @@
+:class:`mne.viz.Brain`'s ``silhouette`` option now accepts a spacing string (e.g. ``"ico5"``, now the default) to decimate using the same vertex-picking as :func:`mne.setup_source_space` instead of a generic mesh decimation. :func:`mne.viz.plot_alignment` and :class:`mne.viz.Brain` should also be faster when plotting many sensors (e.g., whole-head MEG systems), by `Eric Larson`_.

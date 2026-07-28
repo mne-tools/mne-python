@@ -294,7 +294,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
         # Check head_to_mni (the `trans` here does not really matter)
         trans = rotation(0.001, 0.002, 0.003) @ translation(0.01, 0.02, 0.03)
         trans = Transform("head", "mri", trans)
-        pos_head_from = np.random.RandomState(0).randn(4, 3)
+        pos_head_from = np.random.default_rng(0).standard_normal((4, 3))
         pos_mni_from = mne.head_to_mni(
             pos_head_from, subject_from, trans, subjects_dir_tmp_few
         )
@@ -343,7 +343,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points."""
-    tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
+    tgt_pts = np.random.default_rng(42).uniform(size=(6, 3))
 
     # rotation only
     trans = rotation(2, 6, 3)

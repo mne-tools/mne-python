@@ -1,0 +1,1 @@
+Switch the default Qt bindings from PyQt6 to PySide6. As a result, ``mne[full]`` now includes PySide6 instead of PyQt6. Users who prefer PyQt6 can continue to use ``mne[full-pyqt6]``, and ``mne[full-pyside6]`` remains available as an alias for ``mne[full]``. Changes by `Clemens Brunner`_.

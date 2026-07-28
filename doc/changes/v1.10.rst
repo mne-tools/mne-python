@@ -39,7 +39,7 @@ Bugfixes
 - Do not convert the first "New Segment" marker in a BrainVision file to an annotation, as it only contains the recording date (which is already available in ``info["meas_date"]``), by `Clemens Brunner`_. (`#13100 <https://github.com/mne-tools/mne-python/pull/13100>`__)
 - Take units (m or mm) into account when drawing :func:`~mne.viz.plot_evoked_field` on top of :class:`~mne.viz.Brain`, by `Marijn van Vliet`_. (`#13101 <https://github.com/mne-tools/mne-python/pull/13101>`__)
 - Improved the handling of problematic MFF files in `mne.io.read_raw_egi` by `Scott Huberty`_. (`#13145 <https://github.com/mne-tools/mne-python/pull/13145>`__)
-- Fix bug in :func:`mne.bem.make_watershed_bem` where function would fail if ``talairach_with_skull.lta`` did not exist due to changes in Freesurfer by `Peter Molfese`_. (`#13172 <https://github.com/mne-tools/mne-python/pull/13172>`__)
+- Fix bug in :func:`mne.bem.make_watershed_bem` where function would fail if ``talairach_with_skull.lta`` did not exist due to changes in FreeSurfer by `Peter Molfese`_. (`#13172 <https://github.com/mne-tools/mne-python/pull/13172>`__)
 - Fix bug where :func:`mne.export.export_raw` might allocate huge intermediate arrays unnecessarily, when padding data blocks during export to EDF format, by `Daniel McCloy`_. (`#13174 <https://github.com/mne-tools/mne-python/pull/13174>`__)
 - Fix bug with least-squares fitting of head origin using digitization points in :func:`mne.preprocessing.maxwell_filter`, by `Eric Larson`_. (`#13178 <https://github.com/mne-tools/mne-python/pull/13178>`__)
 - Fix bug with :func:`mne.viz.plot_alignment` where ``eeg="projected"`` was not plotted, by `Eric Larson`_. (`#13179 <https://github.com/mne-tools/mne-python/pull/13179>`__)

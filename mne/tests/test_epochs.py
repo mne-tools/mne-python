@@ -81,13 +81,13 @@ evoked_nf_name = base_dir / "test-nf-ave.fif"
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = np.int64(2)  # to test non Python int types
-rng = np.random.RandomState(42)
+rng = np.random.default_rng(42)
 
 
 def _create_epochs_with_annotations():
     """Create test dataset of Epochs with Annotations."""
     # set up a test dataset
-    data = rng.randn(1, 600)
+    data = rng.standard_normal((1, 600))
     sfreq = 100.0
     info = create_info(ch_names=["MEG1"], ch_types=["grad"], sfreq=sfreq)
     raw = RawArray(data, info)
@@ -482,8 +482,9 @@ def _assert_drop_log_types(drop_log):
     assert all(isinstance(log, tuple) for log in drop_log), (
         "drop_log[ii] should be tuple"
     )
-    assert all(isinstance(s, str) for log in drop_log for s in log), (
-        "drop_log[ii][jj] should be str"
+    # enforce exact built-in str (reject np.str_ and other str subclasses)
+    assert all(type(s) is str for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be built-in str"
     )
 
 
@@ -775,6 +776,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         epochs = mne.Epochs(
             raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
         )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 0
 
     # Setting `reject_tmin` to prevent rejection of epoch.
@@ -787,6 +789,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
     # Same check but bad segment overlapping from 2.5s to 3s: use `reject_tmax`
@@ -800,6 +803,7 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
         preload=True,
         reject_by_annotation=True,
     )
+    _assert_drop_log_types(epochs.drop_log)
     assert len(epochs) == 1
 
 
@@ -838,7 +842,7 @@ def test_decim():
     n_epochs, n_channels, n_times = 5, 10, 20
     sfreq = 1000.0
     sfreq_new = sfreq / decim
-    data = rng.randn(n_epochs, n_channels, n_times)
+    data = rng.standard_normal((n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, "eeg")
     with info._unlock():
@@ -1579,7 +1583,7 @@ def epochs_factory():
         # See gh-5102
         n_ch, fs = 100, 1000.0
         n_times = int(round(fs * (n_epochs + 1)))
-        raw_data = np.random.RandomState(0).randn(n_ch, n_times)
+        raw_data = np.random.default_rng(0).standard_normal((n_ch, n_times))
         raw = mne.io.RawArray(raw_data, mne.create_info(n_ch, fs))
         events = mne.make_fixed_length_events(raw, 1)
         epochs = mne.Epochs(raw, events)
@@ -2397,7 +2401,7 @@ def test_indexing_slicing():
         assert_array_equal(data, data_normal[[idx]])
 
         # using indexing with an array
-        idx = rng.randint(0, data_epochs2_sliced.shape[0], 10)
+        idx = rng.integers(0, data_epochs2_sliced.shape[0], 10)
         data = epochs2[idx].get_data()
         assert_array_equal(data, data_normal[idx])
 
@@ -3699,7 +3703,7 @@ def test_add_channels_epochs():
 def test_array_epochs(tmp_path, browser_backend):
     """Test creating epochs from array."""
     # creating
-    data = rng.random_sample((10, 20, 300))
+    data = rng.random((10, 20, 300))
     sfreq = 1e3
     ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
@@ -3838,6 +3842,16 @@ def test_concatenate_epochs():
     epochs2.event_id = dict(a=2)
     with pytest.raises(ValueError, match="identical keys"):
         concatenate_epochs([epochs1, epochs2])
+    # corruption check
+    with pytest.raises(ValueError, match="has values that do not match any"):
+        epochs2["a"]
+    epochs2.event_id = dict(a=1, b=1)
+    with pytest.raises(ValueError, match="has duplicate values"):
+        epochs2["a"]
+    # mismatch check
+    epochs2.event_id = dict(b=1)
+    with pytest.raises(ValueError, match="identical values"):
+        concatenate_epochs([epochs1, epochs2])
 
     # check concatenating epochs where one of the objects is empty
     epochs2 = epochs.copy()[:0]
@@ -3951,7 +3965,8 @@ def test_default_values():
 def test_metadata(tmp_path, monkeypatch):
     """Test metadata support with pandas."""
     pd = pytest.importorskip("pandas")
-    data = np.random.randn(10, 2, 2000)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((10, 2, 2000))
     chs = ["a", "b"]
     info = create_info(chs, 1000)
     meta = np.array(
@@ -4106,7 +4121,7 @@ def test_metadata(tmp_path, monkeypatch):
     assert_metadata_equal(epochs_one_nopandas_read.metadata, epochs_one.metadata)
 
     # gh-4820
-    raw_data = np.random.randn(10, 1000)
+    raw_data = rng.standard_normal((10, 1000))
     info = mne.create_info(10, 1000.0)
     raw = mne.io.RawArray(raw_data, info)
     events = [[0, 0, 1], [100, 0, 1], [200, 0, 1], [300, 0, 1]]
@@ -4127,7 +4142,7 @@ def test_metadata(tmp_path, monkeypatch):
         epochs["new_key == 1"]
 
     # metadata should be same length as original events
-    raw_data = np.random.randn(2, 10000)
+    raw_data = rng.standard_normal((2, 10000))
     info = mne.create_info(2, 1000.0)
     raw = mne.io.RawArray(raw_data, info)
     opts = dict(raw=raw, tmin=0, tmax=0.001, baseline=None)
@@ -4335,7 +4350,7 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
 
     # Generate raw data, attach the annotations, and convert to events
     rng = np.random.default_rng()
-    data = 1e-5 * rng.standard_normal((n_chs, sfreq * duration))
+    data = rng.normal(scale=1e-5, size=(n_chs, sfreq * duration))
     info = mne.create_info(
         ch_names=[f"EEG {i}" for i in range(n_chs)], sfreq=sfreq, ch_types="eeg"
     )
@@ -4385,8 +4400,9 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
 def test_events_list():
     """Test that events can be a list."""
     events = [[100, 0, 1], [200, 0, 1], [300, 0, 1]]
+    rng = np.random.default_rng(0)
     epochs = mne.Epochs(
-        mne.io.RawArray(np.random.randn(10, 1000), mne.create_info(10, 1000.0)),
+        mne.io.RawArray(rng.standard_normal((10, 1000)), mne.create_info(10, 1000.0)),
         events=events,
     )
     assert_array_equal(epochs.events, np.array(events))
@@ -4397,7 +4413,8 @@ def test_events_list():
 def test_save_overwrite(tmp_path):
     """Test saving with overwrite functionality."""
     raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(100, 10000), mne.create_info(100, 1000.0)
+        np.random.default_rng(0).standard_normal((100, 10000)),
+        mne.create_info(100, 1000.0),
     )
 
     events = mne.make_fixed_length_events(raw, 1)
@@ -4500,7 +4517,7 @@ def test_average_methods():
     """Test average methods."""
     n_epochs, n_channels, n_times = 5, 10, 20
     sfreq = 1000.0
-    data = rng.randn(n_epochs, n_channels, n_times)
+    data = rng.standard_normal((n_epochs, n_channels, n_times))
 
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     # Add second event type
@@ -4629,7 +4646,8 @@ def test_epochs_drop_selection(fname, preload):
 def test_file_like(kind, preload, tmp_path):
     """Test handling with file-like objects."""
     raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(100, 10000), mne.create_info(100, 1000.0)
+        np.random.default_rng(0).standard_normal((100, 10000)),
+        mne.create_info(100, 1000.0),
     )
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events, preload=preload)
@@ -4712,7 +4730,7 @@ def test_make_fixed_length_epochs():
     assert "2" in epochs.event_id and len(epochs.event_id) == 1
 
 
-def test_epochs_huge_events(tmp_path):
+def test_epochs_huge_events(tmp_path, monkeypatch):
     """Test epochs with event numbers that are too large."""
     data = np.zeros((1, 1, 1000))
     info = create_info(1, 1000.0, "eeg")
@@ -4724,6 +4742,7 @@ def test_epochs_huge_events(tmp_path):
         EpochsArray(data, info, events)
     epochs = EpochsArray(data, info)
     epochs.events = events
+    epochs.event_id["1"] = 2147483648
     with pytest.raises(TypeError, match="exceeds maximum"):
         epochs.save(tmp_path / "temp-epo.fif")
 
@@ -4832,20 +4851,21 @@ def test_apply_function():
     info = mne.create_info(n_channels, 1000.0, "eeg")
     epochs = mne.EpochsArray(data, info, events)
     data_epochs = epochs.get_data()
+    picks = np.arange(3)
+    non_picks = np.arange(3, n_channels)
 
     # apply_function to all channels at once
     def fun(data):
         """Reverse channel order without changing values."""
         return np.eye(data.shape[1])[::-1] @ data
 
-    want = data_epochs[:, ::-1]
-    got = epochs.apply_function(fun, channel_wise=False).get_data()
+    want = np.concatenate(
+        [data_epochs[:, picks][:, ::-1], data_epochs[:, non_picks]], axis=1
+    )  # only reverse channel order of picks
+    got = epochs.apply_function(fun, picks=picks, channel_wise=False).get_data()
     assert_array_equal(want, got)
 
     # apply_function channel-wise (to first 3 channels) by replacing with mean
-    picks = np.arange(3)
-    non_picks = np.arange(3, n_channels)
-
     def fun(data):
         return np.full_like(data, data.mean())
 
@@ -4936,7 +4956,8 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, with_extras, tmp_pa
     pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
 
-    data = np.random.randn(2, 400) * 10e-12
+    rng = np.random.default_rng(0)
+    data = rng.normal(scale=10e-12, size=(2, 400))
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types="grad", sfreq=100.0)
 
     # create a Raw object with a first_samp
@@ -5273,3 +5294,21 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+
+def test_epochs_warn_out_of_bounds_events():
+    """Warn when event sample numbers fall outside the recorded data (gh-12989)."""
+    sfreq = 100.0
+    info = create_info(3, sfreq, "eeg")
+    raw = RawArray(np.random.default_rng(0).standard_normal((3, 1000)), info)
+    oob = np.array([[2000, 0, 1]])
+    # event sample 2000 is past the 1000-sample recording -> warn (default)
+    with pytest.warns(RuntimeWarning, match="outside the data range"):
+        mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None)
+    # on_outside="raise" turns it into an error
+    with pytest.raises(ValueError, match="outside the data range"):
+        mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None, on_outside="raise")
+    # on_outside="ignore" stays silent (warnings are treated as errors in the suite)
+    mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None, on_outside="ignore")
+    # an in-range event whose epoch window merely clips the edge must NOT warn
+    mne.Epochs(raw, np.array([[990, 0, 1]]), tmin=0, tmax=0.5, baseline=None)

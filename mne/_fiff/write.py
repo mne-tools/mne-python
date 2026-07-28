@@ -149,7 +149,7 @@ def write_name_list(fid, kind, data):
     write_string(fid, kind, ":".join(data))
 
 
-def write_name_list_sanitized(fid, kind, lst, name):
+def write_name_list_sanitized(fid, kind, lst, *, name="ch_names"):
     """Write a sanitized, colon-separated list of names."""
     write_string(fid, kind, _safe_name_list(lst, "write", name))
 
@@ -408,9 +408,7 @@ def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
             fid.write(np.array(d["ident"], ">i4").tobytes())
             fid.write(np.array(d["r"][:3], ">f4").tobytes())
         if ch_names is not None:
-            write_name_list_sanitized(
-                fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names, "ch_names"
-            )
+            write_name_list_sanitized(fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names)
         if block:
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 

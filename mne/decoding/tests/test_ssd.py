@@ -18,7 +18,7 @@ from mne import Epochs, create_info, io, pick_types, read_events
 from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
 from mne.decoding._mod_ged import _get_spectral_ratio
-from mne.decoding.ssd import SSD
+from mne.decoding.ssd import SSD, read_ssd
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
 
@@ -48,7 +48,7 @@ def simulate_data(
     Data are simulated in the statistical source space, where n=n_components
     sources contain the peak of interest.
     """
-    rng = np.random.RandomState(random_state)
+    rng = np.random.default_rng(random_state)
 
     filt_params_signal = dict(
         l_freq=freqs_sig[0],
@@ -59,12 +59,12 @@ def simulate_data(
     )
 
     # generate an orthogonal mixin matrix
-    mixing_mat = np.linalg.svd(rng.randn(n_channels, n_channels))[0]
+    mixing_mat = np.linalg.svd(rng.standard_normal((n_channels, n_channels)))[0]
     # define sources
-    S_s = rng.randn(n_trials * n_samples, n_components)
+    S_s = rng.standard_normal((n_trials * n_samples, n_components))
     # filter source in the specific freq. band of interest
     S_s = filter_data(S_s.T, samples_per_second, **filt_params_signal).T
-    S_n = rng.randn(n_trials * n_samples, n_channels - n_components)
+    S_n = rng.standard_normal((n_trials * n_samples, n_channels - n_components))
     S = np.hstack((S_s, S_n))
     # mix data
     X_s = np.dot(mixing_mat[:, :n_components], S_s.T).T
@@ -335,7 +335,7 @@ def test_ssd_pipeline():
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))
     # define bynary random output
-    y = np.random.RandomState(0).randint(2, size=100)
+    y = np.random.default_rng(0).integers(2, size=100)
 
     info = create_info(ch_names=20, sfreq=sf, ch_types="eeg")
 
@@ -508,7 +508,7 @@ def test_non_full_rank_data():
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)
     if sys.platform == "darwin":
-        pytest.xfail("Unknown linalg bug (Accelerate?)")
+        pytest.xfail("Unknown linalg bug on macOS (Accelerate?)")
     ssd.fit(X)
 
 
@@ -570,6 +570,74 @@ def test_picks_arg():
     ssd.fit(X).transform(X)
 
 
+def test_ssd_save_load(tmp_path):
+    """Test that SSD can be saved to disk and loaded back correctly."""
+    h5io = pytest.importorskip("h5io")
+    X, _, _ = simulate_data()
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types="eeg")
+    n_components = 5
+
+    filt_params_signal = dict(
+        l_freq=freqs_sig[0],
+        h_freq=freqs_sig[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+    filt_params_noise = dict(
+        l_freq=freqs_noise[0],
+        h_freq=freqs_noise[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+
+    ssd = SSD(info, filt_params_signal, filt_params_noise, n_components=n_components)
+    ssd.fit(X)
+
+    state = ssd.__getstate__()
+    assert "cov_callable" not in state
+    assert "mod_ged_callable" not in state
+
+    fname = tmp_path / "test_ssd.h5"
+    ssd.save(fname)
+
+    ssd_loaded = read_ssd(fname)
+
+    assert hasattr(ssd_loaded, "cov_callable")
+    assert hasattr(ssd_loaded, "mod_ged_callable")
+    assert callable(ssd_loaded.cov_callable)
+    assert callable(ssd_loaded.mod_ged_callable)
+
+    # Check fitted array attributes are restored
+    assert_array_almost_equal(ssd.filters_, ssd_loaded.filters_)
+    assert_array_almost_equal(ssd.patterns_, ssd_loaded.patterns_)
+
+    # Check scalar/param attributes
+    assert ssd.n_components == ssd_loaded.n_components
+    assert ssd.info["sfreq"] == ssd_loaded.info["sfreq"]
+    assert ssd.filt_params_signal == ssd_loaded.filt_params_signal
+    assert ssd.filt_params_noise == ssd_loaded.filt_params_noise
+
+    # Check transform output matches
+    X_orig = ssd.transform(X)
+    X_loaded = ssd_loaded.transform(X)
+    assert_array_almost_equal(X_orig, X_loaded)
+
+    with pytest.raises(FileExistsError):
+        ssd.save(fname)
+    ssd.save(fname, overwrite=True)
+
+    # Check that loading an HDF5 file with missing keys raises an error
+    bad_fname = tmp_path / "bad.h5"
+    h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
+    with pytest.raises(ValueError, match="missing required keys"):
+        read_ssd(bad_fname)
+
+    with pytest.raises(OSError, match="not found|does not exist"):
+        read_ssd(tmp_path / "nonexistent.h5")
+
+
 def test_get_spectral_ratio():
     """Test that method is the same as function in _mod_ged.py."""
     X, _, _ = simulate_data()
@@ -621,7 +689,7 @@ def test_get_spectral_ratio():
 )
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     ignores = (
         # Checks below fail because what sklearn passes as (n_samples, n_features)
         # is considered (n_channels, n_times) by SSD and creates problems

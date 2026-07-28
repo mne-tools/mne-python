@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.set_eeg_reference` not working when passing a single channel name as string, by `Michael Straube`_.

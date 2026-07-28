@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "4051f3102d39fd2dcc85e0b3079a86c11289816c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Carina Forster",
+      "e": "carinaforster0611@gmail.com"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    },
+    {
+      "n": "Erica Peterson",
+      "e": "nordme@uw.edu"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/spec_zero.yml": {
+      "a": 15,
+      "d": 7
+    },
+    ".github/workflows/tests.yml": {
+      "a": 12,
+      "d": 3
+    },
+    "environment.yml": {
+      "a": 11,
+      "d": 11
+    },
+    "pyproject.toml": {
+      "a": 40,
+      "d": 30
+    },
+    "tools/check_pyproject_helpers.py": {
+      "a": 61,
+      "d": 0
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 29,
+      "d": 22
+    },
+    "tools/github_actions_check_old.py": {
+      "a": 0,
+      "d": 35
+    },
+    "tools/github_actions_check_old_env.py": {
+      "a": 68,
+      "d": 0
+    },
+    "tools/github_actions_check_old_lockfile.py": {
+      "a": 68,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 28,
+      "d": 6
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 5,
+      "d": 6
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 656,
+      "d": 0
+    }
+  }
+}

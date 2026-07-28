@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9f784fa56102e7984a6690d98f245e83e77181f1",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13602.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/eyetracking.py": {
+      "a": 1,
+      "d": 16
+    }
+  }
+}

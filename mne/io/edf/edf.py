@@ -9,11 +9,11 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..._edf.open import _gdf_edf_get_fid
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
@@ -29,7 +29,9 @@ from ...utils import (
     verbose,
     warn,
 )
+from ...utils._typing import FileLike
 from ..base import BaseRaw, _get_scaling
+from ._open import _gdf_edf_get_fid
 
 
 class FileType(Enum):
@@ -149,7 +151,7 @@ class RawEDF(BaseRaw):
     annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -361,7 +363,7 @@ class RawBDF(BaseRaw):
     annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -517,7 +519,7 @@ class RawGDF(BaseRaw):
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
 
@@ -591,6 +593,7 @@ class RawGDF(BaseRaw):
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
+    assert dtype is not None
     # BDF
     if subtype == "bdf":
         ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
@@ -975,7 +978,7 @@ def _get_info(
         _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
         _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
 
-    if np.isnan(info["lowpass"]):
+    if np.isnan(info["lowpass"]) or info["lowpass"] <= 0:
         info["lowpass"] = info["sfreq"] / 2.0
 
     if info["highpass"] > info["lowpass"]:
@@ -1074,7 +1077,7 @@ def _read_edf_header(
     exclude_after_unique=False,
 ):
     """Read header information from EDF+ or BDF file."""
-    edf_info = {"events": []}
+    edf_info: dict[str, Any] = {"events": []}
 
     with _gdf_edf_get_fid(fname) as fid:
         fid.read(8)  # version (unused here)
@@ -1350,7 +1353,7 @@ def _check_dtype_byte(types):
 
 def _read_gdf_header(fname, exclude, include=None):
     """Read GDF 1.x and GDF 2.x header info."""
-    edf_info = dict()
+    edf_info: dict[str, Any] = dict()
     events = None
 
     with _gdf_edf_get_fid(fname) as fid:
@@ -1887,19 +1890,19 @@ def _check_args(input_fname, preload, target_ext):
 
 @fill_doc
 def read_raw_edf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    infer_types=False,
-    include=None,
-    preload=False,
-    units=None,
-    encoding="utf8",
-    exclude_after_unique=False,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    infer_types: bool = False,
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    units: dict | str | None = None,
+    encoding: str = "utf8",
+    exclude_after_unique: bool = False,
     *,
-    verbose=None,
+    verbose: bool | str | int | None = None,
 ) -> RawEDF:
     """Reader function for EDF and EDF+ files.
 
@@ -1978,7 +1981,7 @@ def read_raw_edf(
     obtain events from these annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
 
     The EDF specification allows optional storage of channel types in the
@@ -2026,19 +2029,19 @@ def read_raw_edf(
 
 @fill_doc
 def read_raw_bdf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    infer_types=False,
-    include=None,
-    preload=False,
-    units=None,
-    encoding="utf8",
-    exclude_after_unique=False,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    infer_types: bool = False,
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    units: dict | str | None = None,
+    encoding: str = "utf8",
+    exclude_after_unique: bool = False,
     *,
-    verbose=None,
+    verbose: bool | str | int | None = None,
 ) -> RawBDF:
     """Reader function for BDF files.
 
@@ -2090,7 +2093,7 @@ def read_raw_bdf(
 
     Returns
     -------
-    raw : instance of RawEDF
+    raw : instance of RawBDF
         The raw instance.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -2142,7 +2145,7 @@ def read_raw_bdf(
     obtain events from these annotations.
 
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
     _check_args(input_fname, preload, "bdf")
@@ -2165,14 +2168,14 @@ def read_raw_bdf(
 
 @fill_doc
 def read_raw_gdf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    include=None,
-    preload=False,
-    verbose=None,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawGDF:
     """Reader function for GDF files.
 
@@ -2222,7 +2225,7 @@ def read_raw_gdf(
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
+    STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
     _check_args(input_fname, preload, "gdf")
@@ -2277,7 +2280,9 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
             else:
                 this_chan = chan.astype(np.int64)
                 # Exploit np vectorized processing
-                tals.extend(np.uint8([this_chan % 256, this_chan // 256]).flatten("F"))
+                tals.extend(
+                    np.array([this_chan % 256, this_chan // 256], np.uint8).flatten("F")
+                )
         try:
             triggers = re.findall(pat, tals.decode(encoding))
         except UnicodeDecodeError as e:
@@ -2286,7 +2291,7 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
                 " You might want to try setting \"encoding='latin1'\"."
             ) from e
 
-    events = {}
+    events: dict[str, Any] = {}
     offset = 0.0
     for k, ev in enumerate(triggers):
         onset = float(ev[0]) + offset

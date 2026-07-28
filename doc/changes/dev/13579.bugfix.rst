@@ -1,1 +1,0 @@
-Fix bug with montage test error message checking, by `Eric Larson`_.

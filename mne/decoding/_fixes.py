@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 try:
+    # TODO VERSION remove once we require sklearn 1.6+
     from sklearn.utils.validation import validate_data
 except ImportError:
     from sklearn.utils.validation import check_array, check_X_y

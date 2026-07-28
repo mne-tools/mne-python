@@ -1,0 +1,1 @@
+:meth:`~mne.viz.Brain.add_data` now supports multiple simultaneous overlays via ``remove_existing=False`` and distinct ``key`` values. The ``remove_existing`` parameter now accepts ``True`` / ``False`` in addition to ``None``. By `Payam Sadeghi-Shabestari`_.

@@ -94,6 +94,14 @@ def test_compute_whitener(proj, pca):
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
 
+    # with and without rank
+    W_info, _ = compute_whitener(cov, raw.info, pca=pca, rank="info", verbose="error")
+    assert_allclose(W_info, W)
+    rank = compute_rank(raw, rank="info", proj=proj)
+    assert W.shape == (n_reduced, n_channels)
+    W_rank, _ = compute_whitener(cov, raw.info, pca=pca, rank=rank, verbose="error")
+    assert_allclose(W_rank, W)
+
     raw.info["bads"] = [raw.ch_names[0]]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
     with pytest.warns(RuntimeWarning, match="Too few samples"):
@@ -174,7 +182,7 @@ def test_cov_order():
     prepare_noise_cov(cov, info, ch_names, verbose="error")
     # big reordering
     cov_reorder = cov.copy()
-    order = np.random.RandomState(0).permutation(np.arange(len(cov.ch_names)))
+    order = np.random.default_rng(0).permutation(np.arange(len(cov.ch_names)))
     cov_reorder["names"] = [cov["names"][ii] for ii in order]
     cov_reorder["data"] = cov["data"][order][:, order]
     # Make sure we did this properly
@@ -607,14 +615,14 @@ def test_auto_low_rank():
     sigma = 0.1
 
     def get_data(n_samples, n_features, rank, sigma):
-        rng = np.random.RandomState(42)
-        W = rng.randn(n_features, n_features)
-        X = rng.randn(n_samples, rank)
+        rng = np.random.default_rng(42)
+        W = rng.standard_normal((n_features, n_features))
+        X = rng.standard_normal((n_samples, rank))
         U, _, _ = _safe_svd(W.copy())
         X = np.dot(X, U[:, :rank].T)
 
-        sigmas = sigma * rng.rand(n_features) + sigma / 2.0
-        X += rng.randn(n_samples, n_features) * sigmas
+        sigmas = sigma * rng.random(n_features) + sigma / 2.0
+        X += rng.normal(scale=sigmas, size=(n_samples, n_features))
         return X
 
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank, sigma=sigma)

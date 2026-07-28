@@ -8,7 +8,7 @@ Changelog
 
 - Add support for mayavi figures in ``add_section`` method in Report by `Mainak Jas`_
 
-- Add extract volumes of interest from freesurfer segmentation and setup as volume source space by `Alan Leggitt`_
+- Add extract volumes of interest from FreeSurfer segmentation and setup as volume source space by `Alan Leggitt`_
 
 - Add support to combine source spaces of different types by `Alan Leggitt`_
 

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7e357df76cb6cb75ed70b9ad7286fa151252f584",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/proj.py": {
+      "a": 16,
+      "d": 6
+    }
+  }
+}

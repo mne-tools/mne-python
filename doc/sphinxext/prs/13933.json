@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fb90a3590759faf885aa8986dd33c3667f32425b",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 0,
+      "d": 21
+    }
+  }
+}

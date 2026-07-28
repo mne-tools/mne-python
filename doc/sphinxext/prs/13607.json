@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fb76357808296815b6abbe53e5f0462de83ec5e6",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

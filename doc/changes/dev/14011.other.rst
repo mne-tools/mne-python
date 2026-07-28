@@ -1,0 +1,1 @@
+Remove ``_get_eeg_calibration_info`` from the EGI MFF reader and delegate per-channel GCAL scaling to ``mffpy``'s native calibration, simplifying EEG channel calibration in :func:`mne.io.read_raw_egi`, by `Pragnya Khandelwal`_.

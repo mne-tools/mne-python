@@ -5,7 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import warnings
-from abc import ABC, abstractclassmethod, abstractmethod
+from abc import ABC, abstractmethod
 
 from ..ui_events import TimeChange, publish
 
@@ -28,7 +28,8 @@ class Figure3D(ABC):
     # document the class more easily, as we don't have to say what all the
     # params are in public docs.
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def _init(
         self,
         fig=None,
@@ -55,7 +56,8 @@ class Figure3D(ABC):
 
 
 class _AbstractRenderer(ABC):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(
         self,
         fig=None,
@@ -75,23 +77,27 @@ class _AbstractRenderer(ABC):
     def _kind(self):
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def subplot(self, x, y):
         """Set the active subplot."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def scene(self):
         """Return scene handle."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def set_interaction(self, interaction):
         """Set interaction mode."""
         pass
 
-    @abstractclassmethod
-    def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
+    @classmethod
+    @abstractmethod
+    def legend(self, labels, size=0.1, face="triangle", loc="upper left"):
         """Add a legend to the scene.
 
         Parameters
@@ -100,9 +106,6 @@ class _AbstractRenderer(ABC):
             Each entry must contain two strings, (label, color),
             where ``label`` is the name of the item to add, and
             ``color`` is the color of the label to add.
-        border : bool
-            Controls if there will be a border around the legend.
-            The default is False.
         size : float
             The size of the entire figure window.
         loc : str
@@ -118,7 +121,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def mesh(
         self,
         x,
@@ -137,7 +141,6 @@ class _AbstractRenderer(ABC):
         representation="surface",
         line_width=1.0,
         normals=None,
-        polygon_offset=None,
         name=None,
         **kwargs,
     ):
@@ -183,8 +186,6 @@ class _AbstractRenderer(ABC):
             The width of the lines when representation='wireframe'.
         normals : array, shape (n_vertices, 3)
             The array containing the normal of each vertex.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             The name of the mesh.
         kwargs : args
@@ -197,7 +198,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def contour(
         self,
         surface,
@@ -245,7 +247,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def surface(
         self,
         surface,
@@ -257,7 +260,6 @@ class _AbstractRenderer(ABC):
         normalized_colormap=False,
         scalars=None,
         backface_culling=False,
-        polygon_offset=None,
         *,
         name=None,
     ):
@@ -285,14 +287,13 @@ class _AbstractRenderer(ABC):
             The scalar valued associated to the vertices.
         backface_culling : bool
             If True, enable backface culling on the surface.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             Name of the surface.
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def sphere(
         self,
         center,
@@ -329,7 +330,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def tube(
         self,
         origin,
@@ -383,7 +385,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def quiver3d(
         self,
         x,
@@ -395,7 +398,6 @@ class _AbstractRenderer(ABC):
         color,
         scale,
         mode,
-        resolution=8,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -435,10 +437,6 @@ class _AbstractRenderer(ABC):
             The given value specifies the maximum glyph size in drawing units.
         mode : 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
-        resolution : int
-            The resolution of the glyph created. Depending on the type of
-            glyph, it represents the number of divisions in its geometric
-            representation.
         glyph_height : float
             The height of the glyph used with the quiver.
         glyph_center : tuple
@@ -473,8 +471,85 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
-    def text2d(self, x_window, y_window, text, size=14, color="white"):
+    @classmethod
+    @abstractmethod
+    def instanced_mesh(
+        self,
+        rr,
+        tris,
+        positions,
+        quats,
+        colors,
+        scales=None,
+        opacity=1.0,
+        backface_culling=False,
+        name=None,
+    ):
+        """Add one mesh GPU-instanced at multiple positions/orientations.
+
+        Unlike :meth:`quiver3d` or :meth:`sphere`, which bake a merged,
+        static glyph mesh, this draws one copy of a single template mesh at
+        each of ``n_instances`` locations using per-instance position,
+        orientation, and color that can be changed later without rebuilding
+        the geometry (see ``mesh`` in "Returns" below).
+
+        Parameters
+        ----------
+        rr : array, shape (n_vertices, 3)
+            The vertices of the template mesh, in the local (object) frame
+            shared by all instances.
+        tris : array, shape (n_tris, 3)
+            The triangles of the template mesh.
+        positions : array, shape (n_instances, 3)
+            The position of each instance.
+        quats : array, shape (n_instances, 3)
+            The orientation of each instance as a unit quaternion, given as
+            only the ``(x, y, z)`` vector part (``w`` omitted, recoverable
+            as ``sqrt(max(1 - x**2 - y**2 - z**2, 0))``) -- the same
+            convention used by :func:`~mne.transforms.rot_to_quat` /
+            :func:`~mne.transforms.quat_to_rot`.
+        colors : array, shape (n_instances, 4)
+            The per-instance RGBA color (float values between 0 and 1) to
+            use for each instance. Per-instance alpha (the fourth column)
+            is respected.
+        scales : array, shape (n_instances,) | None
+            The per-instance isotropic scale factor applied to the template
+            geometry. If ``None`` (the default), no per-instance scaling is
+            applied and the size baked into ``rr`` is used as-is (e.g. for
+            MEG coils).
+        opacity : float
+            A uniform opacity multiplier applied on top of the per-instance
+            alpha values in ``colors``.
+        backface_culling : bool
+            If True, enable backface culling on the mesh.
+        name : str | None
+            Name of the mesh.
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        mesh :
+            The point cloud (one point per instance) backing the glyph
+            mapper. Its per-instance color and orientation arrays can be
+            mutated in place (followed by a render update) to recolor or
+            re-orient individual instances live, without rebuilding the
+            actor or its geometry.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def text2d(
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
+    ):
         """Add 2d text in the scene.
 
         Parameters
@@ -493,10 +568,18 @@ class _AbstractRenderer(ABC):
             The color of the text as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
+        justification : str | None
+            The text justification. Can be 'left', 'center', or 'right'.
+        font_file : str | None
+            Path to an absolute path of a font file to use for rendering
+            the text. FreeType is used for loading, supporting many font
+            formats beyond ``.ttf`` and ``.ttc``. This can be helpful for
+            non-ASCII glyph coverage.
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def text3d(self, x, y, z, text, width, color="white"):
         """Add 2d text in the scene.
 
@@ -519,7 +602,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def scalarbar(self, source, color="white", title=None, n_labels=4, bgcolor=None):
         """Add a scalar bar in the scene.
 
@@ -535,20 +619,30 @@ class _AbstractRenderer(ABC):
             The number of labels to display on the scalar bar.
         bgcolor : tuple | str
             The color of the background when there is transparency.
+
+        Returns
+        -------
+        actor
+            The scalar bar actor.
+        tick_actor
+            The actor drawing tick marks along the scalar bar.
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def show(self):
         """Render the scene."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def close(self):
         """Close the scene."""
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def set_camera(
         self,
         azimuth=None,
@@ -574,7 +668,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def screenshot(self, mode="rgb", filename=None):
         """Take a screenshot of the scene.
 
@@ -588,7 +683,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.
 
@@ -601,7 +697,8 @@ class _AbstractRenderer(ABC):
         """
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def remove_mesh(self, mesh_data):
         """Remove the given mesh from the scene.
 
@@ -619,7 +716,8 @@ class _AbstractRenderer(ABC):
 
 
 class _AbstractWidget(ABC):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self):
         pass
 
@@ -648,14 +746,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _get_tooltip(self):
-        pass
-
-    @abstractmethod
-    def _set_tooltip(self, tooltip: str):
-        pass
-
-    @abstractmethod
     def _add_keypress(self, callback):
         pass
 
@@ -668,10 +758,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _set_layout(self, layout):
-        pass
-
-    @abstractmethod
     def _set_theme(self, theme):
         pass
 
@@ -681,13 +767,15 @@ class _AbstractWidget(ABC):
 
 
 class _AbstractLabel(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, center=False, selectable=False):
         pass
 
 
 class _AbstractText(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value=None, placeholder=None, callback=None):
         pass
 
@@ -697,7 +785,8 @@ class _AbstractText(_AbstractWidget):
 
 
 class _AbstractButton(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, callback, icon=None):
         pass
 
@@ -705,13 +794,10 @@ class _AbstractButton(_AbstractWidget):
     def _click(self):
         pass
 
-    @abstractmethod
-    def _set_icon(self, icon):
-        pass
-
 
 class _AbstractSlider(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, rng, callback, horizontal=True):
         pass
 
@@ -723,13 +809,10 @@ class _AbstractSlider(_AbstractWidget):
     def _get_value(self):
         pass
 
-    @abstractmethod
-    def _set_range(self, rng):
-        pass
-
 
 class _AbstractProgressBar(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, count):
         pass
 
@@ -739,7 +822,8 @@ class _AbstractProgressBar(_AbstractWidget):
 
 
 class _AbstractCheckBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, callback):
         pass
 
@@ -753,7 +837,8 @@ class _AbstractCheckBox(_AbstractWidget):
 
 
 class _AbstractSpinBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, rng, callback, step=None):
         pass
 
@@ -767,7 +852,8 @@ class _AbstractSpinBox(_AbstractWidget):
 
 
 class _AbstractComboBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, items, callback):
         pass
 
@@ -781,7 +867,8 @@ class _AbstractComboBox(_AbstractWidget):
 
 
 class _AbstractRadioButtons(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, items, callback):
         pass
 
@@ -795,13 +882,15 @@ class _AbstractRadioButtons(_AbstractWidget):
 
 
 class _AbstractGroupBox(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, name, items):
         pass
 
 
 class _AbstractFileButton(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(
         self,
         callback,
@@ -816,7 +905,8 @@ class _AbstractFileButton(_AbstractWidget):
 
 
 class _AbstractPlayMenu(_AbstractWidget):
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def __init__(self, value, rng, callback):
         pass
 
@@ -882,10 +972,6 @@ class _AbstractBoxLayout(ABC):
     def _add_widget(self, widget):
         pass
 
-    @abstractmethod
-    def _add_stretch(self, amount=1):
-        pass
-
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
     @abstractmethod
@@ -918,31 +1004,7 @@ class _AbstractAppWindow(ABC):
         pass
 
     @abstractmethod
-    def _get_dpi(self):
-        pass
-
-    @abstractmethod
     def _get_size(self):
-        pass
-
-    @abstractmethod
-    def _get_cursor(self):
-        pass
-
-    @abstractmethod
-    def _set_cursor(self, cursor):
-        pass
-
-    @abstractmethod
-    def _new_cursor(self, name):
-        pass
-
-    @abstractmethod
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    @abstractmethod
-    def _close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -1174,7 +1236,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         pass
 
     @abstractmethod
@@ -1288,6 +1350,10 @@ class _AbstractWdgt(ABC):
         pass
 
     @abstractmethod
+    def is_visible(self):
+        pass
+
+    @abstractmethod
     def update(self, repaint=True):
         pass
 
@@ -1301,6 +1367,10 @@ class _AbstractWdgt(ABC):
 
     @abstractmethod
     def set_style(self, style):
+        pass
+
+    @abstractmethod
+    def set_items(self, items):
         pass
 
 
@@ -1471,6 +1541,15 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_get_simple_canvas(self, width, height, dpi):
+        pass
+
+    @abstractmethod
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        """Return a widget listing ``(key, description)`` pairs.
+
+        ``pairs`` are keyboard shortcuts; ``mouse_pairs``, if given, are
+        ``(action, description)`` pairs shown in a separate section.
+        """
         pass
 
     @abstractmethod

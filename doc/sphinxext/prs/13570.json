@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4a5479d6b496dc18bd325919bc6c346ce7563cfb",
+  "authors": [
+    {
+      "n": "Aman Srivastava",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13570.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/eeg_on_scalp.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

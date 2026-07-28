@@ -1421,9 +1421,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
-        # instead of csr_array
-        dists = csr_array(triu(dists, format=dists.format))
+        dists = triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -1722,7 +1720,7 @@ def setup_volume_source_space(
         Region(s) of interest to use. None (default) will create a single
         whole-brain source space. Otherwise, a separate source space will be
         created for each entry in the list or dict (str will be turned into
-        a single-element list). If list of str, standard Freesurfer labels
+        a single-element list). If list of str, standard FreeSurfer labels
         are assumed. If dict, should be a mapping of region names to atlas
         id numbers, allowing the use of other atlases.
 
@@ -2086,7 +2084,7 @@ def _make_volume_source_space(
     logger.info(
         f"Surface CM = ({1000 * cm[0]:6.1f} {1000 * cm[1]:6.1f} {1000 * cm[2]:6.1f}) mm"
     )
-    logger.info("Surface fits inside a sphere with radius %6.1f mm" % (1000 * maxdist))
+    logger.info(f"Surface fits inside a sphere with radius {1000 * maxdist:6.1f} mm")
     logger.info("Surface extent:")
     for c, mi, ma in zip("xyz", mins, maxs):
         logger.info(f"    {c} = {1000 * mi:6.1f} ... {1000 * ma:6.1f} mm")
@@ -2838,7 +2836,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         The source space containing the volume regions.
     %(subject)s
     subjects_dir : str
-        Freesurfer folder of the subjects.
+        FreeSurfer folder of the subjects.
 
     Returns
     -------
@@ -3129,8 +3127,6 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_equal(a, b, str(a ^ b))
         for name in ["nuse", "ntri", "np", "type", "id"]:
             a, b = s0[name], s1[name]
-            if name == "id":  # workaround for old NumPy bug
-                a, b = int(a), int(b)
             assert_equal(a, b, name)
         for name in ["subject_his_id"]:
             if name in s0 or name in s1:

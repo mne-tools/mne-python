@@ -1,1 +1,0 @@
-Documentation improvement for eSSS in docstring :func:`mne.preprocessing.maxwell_filter` and in the MaxFilter example by `Simon Kern`_.

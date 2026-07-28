@@ -22,6 +22,7 @@ import mne
 from mne import (
     Annotations,
     Epochs,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     create_info,
@@ -85,6 +86,7 @@ def test_basics():
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat("test", 10)
+    extras = [dict(foo=i) for i in range(10)]
     dt = raw.info["meas_date"]
     assert isinstance(dt, datetime)
     stamp = _dt_to_stamp(dt)
@@ -109,7 +111,7 @@ def test_basics():
     offset = offset[0] + offset[1] * 1e-6
     offset = orig_time - offset
     assert_allclose(offset, raw._first_time)
-    annot = Annotations(onset, duration, description, orig_time)
+    annot = Annotations(onset, duration, description, orig_time, extras=extras)
     assert annot.orig_time is not None
     assert " segments" in repr(annot)
     raw2.set_annotations(annot)
@@ -121,6 +123,7 @@ def test_basics():
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat("test", 10))
+    assert raw.annotations.extras == extras
 
 
 def test_annot_sanitizing(tmp_path):
@@ -138,7 +141,8 @@ def test_annot_sanitizing(tmp_path):
 
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
-    data = np.random.randn(2, 1000) * 10e-12
+    rng = np.random.default_rng(0)
+    data = rng.normal(scale=10e-12, size=(2, 1000))
     sfreq = 100.0
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types=["grad"] * 2, sfreq=sfreq)
     meas_date = _handle_meas_date(np.pi)
@@ -338,7 +342,7 @@ def test_events_from_annotation_orig_time_none():
     """Tests events_from_annotation with orig_time None and first_sampe > 0."""
     # Create fake data
     sfreq, duration_s = 100, 10
-    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    data = np.random.default_rng(42).standard_normal((1, sfreq * duration_s))
     info = mne.create_info(ch_names=["EEG1"], ch_types=["eeg"], sfreq=sfreq)
     raw = mne.io.RawArray(data, info)
 
@@ -365,7 +369,7 @@ def test_events_from_annotation_orig_time_none():
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
-    raw._data[:] = np.random.RandomState(0).randn(*raw._data.shape)
+    raw._data[:] = np.random.default_rng(0).standard_normal(raw._data.shape)
     onset = np.array([0.47058824, 2.49773765, 6.67873287, 9.15837097])
     duration = np.array([0.89592767, 1.13574672, 1.09954739, 0.48868752])
     annotations = mne.Annotations(onset, duration, "BAD")
@@ -1051,6 +1055,8 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
 @pytest.mark.parametrize("with_extras", [True, False])
 def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extras):
     """Test CSV, TXT, and FIF input/output (which support ch_names)."""
+    if with_extras:
+        pytest.importorskip("pandas")
     annot = read_annotations(dummy_annotation_file)
     assert annot.orig_time == _ORIG_TIME
     kwargs = dict(orig_time=_ORIG_TIME)
@@ -1079,6 +1085,18 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
+
+
+def test_read_annotations_txt_single_channel_specific(tmp_path):
+    """Read a .txt with a SINGLE channel-specific annotation (gh-13961)."""
+    # np.loadtxt(..., unpack=True) squeezes a 1-row file to 0-D scalars;
+    # ch_names (unlike onset/duration/description) was not wrapped in
+    # np.atleast_1d, so it was iterated as bytes-ints -> AttributeError.
+    annot = Annotations([1.0], [0.5], ["BAD_x"], ch_names=[["EEG001"]])
+    fname = tmp_path / "annotations.txt"
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    assert list(annot_read.ch_names) == [("EEG001",)]
 
 
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
@@ -1378,7 +1396,8 @@ def test_date_none(tmp_path):
     # Regression test for gh-5908
     n_chans = 139
     n_samps = 20
-    data = np.random.random_sample((n_chans, n_samps))
+    rng = np.random.default_rng(0)
+    data = rng.random((n_chans, n_samps))
     ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
@@ -1749,6 +1768,41 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa", 2.2})
 
 
+def test_setter_validation():
+    """Test that onset/duration/description/ch_names setters validate length."""
+    annots = Annotations(onset=[1, 3, 2, 4], duration=0, description="foo")
+
+    # onset mismatch should raise
+    with pytest.raises(ValueError, match="Length of onset"):
+        annots.onset = annots.onset[:2]
+
+    # duration mismatch should raise
+    with pytest.raises(ValueError, match="Length of duration"):
+        annots.duration = annots.duration[:2]
+
+    # description mismatch should raise
+    with pytest.raises(ValueError, match="Length of description"):
+        annots.description = annots.description[:2]
+
+    # scalar duration should broadcast without error
+    annots.duration = 1.0
+    assert len(annots.duration) == 4
+    assert all(annots.duration == 1.0)
+
+    # scalar description should broadcast without error
+    annots.description = "bad"
+    assert len(annots.description) == 4
+    assert all(annots.description == "bad")
+
+    # ch_names mismatch should raise
+    with pytest.raises(ValueError, match="Length of ch_names"):
+        annots.ch_names = [(), ()]
+
+    # valid ch_names assignment (correct length) should succeed
+    annots.ch_names = [("MEG 0111",), (), (), ()]
+    assert annots.ch_names[0] == ("MEG 0111",)
+
+
 @pytest.mark.parametrize("meas_date", (None, 1))
 @pytest.mark.parametrize("set_meas_date", ("before", "after"))
 @pytest.mark.parametrize("first_samp", (0, 100, 3000))
@@ -1904,7 +1958,7 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     sfreq = 1000.0
     info = mne.create_info(1, sfreq, "eeg")
     raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(1, 3000), info, first_samp=first_samp
+        np.random.default_rng(0).standard_normal((1, 3000)), info, first_samp=first_samp
     )
     raw.set_meas_date(meas_date)
     onset = np.array([0, 1, 2], float)
@@ -1966,6 +2020,290 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert_allclose(raw.annotations.onset, [onset] * 2)
 
 
+def test_hed_annotations():
+    """Test hed_strings validation."""
+    pytest.importorskip("hed")
+    # test initting with bad value
+    validation_fail_msg = "A HED string failed to validate"
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=["foo"],
+        )
+    # test initting with good values
+    good_values = dict(
+        square="Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))",  # extra spaces intentional
+        tone="Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)",
+        press="Agent-action, (Experiment-participant, (Press, Mouse-button))",
+        word="Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
+        "Visual-presentation",
+    )
+    # single string should broadcast to all annotations
+    ann_single = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.1],
+        description=["x", "y"],
+        hed_string=good_values["tone"],
+    )
+    assert list(ann_single.hed_string) == [good_values["tone"], good_values["tone"]]
+    # extras cannot override reserved field names
+    with pytest.raises(ValueError, match="reserved"):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=[good_values["tone"]],
+            extras=[{"hed_string": "bad"}],
+        )
+    ann = HEDAnnotations(
+        onset=[3, 2, 1],
+        duration=[0.1, 0.0, 0.3],
+        description=["d", "c", "a"],
+        hed_string=[good_values["square"], good_values["tone"], good_values["press"]],
+    )
+    # make sure sorting by onset worked correctly
+    assert ann.hed_string[0] == good_values["press"]
+    assert ann.hed_string._objs[0].get_original_hed_string() == good_values["press"]
+    # test appending
+    foo = ann.copy()
+    ons_dur_desc = dict(onset=1.5, duration=0.2, description="b")
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        foo.append(**ons_dur_desc, hed_string="foo")
+    foo.append(**ons_dur_desc, hed_string=good_values["word"])
+    # make sure sorting by onset also works for .append()
+    assert list(foo.hed_string) == [
+        x.get_original_hed_string() for x in foo.hed_string._objs
+    ]
+    # make sure we didn't mess up the type of the HEDStrings
+    assert isinstance(foo.hed_string, mne.annotations._HEDStrings)
+    # test modifying with bad value
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        ann.hed_string[0] = "foo"
+    # test modifying, __eq__, and delete()
+    foo = ann.copy()
+    assert ann == foo
+    foo.hed_string[0] = good_values["word"]
+    assert ann != foo
+    ann.hed_string[0] = good_values["word"]
+    assert ann == foo
+    foo.delete(0)
+    assert ann != foo
+    assert foo.hed_string[0] == ann.hed_string[1]
+    # test .count()
+    want_counts = {
+        good_values["word"]: 1,
+        good_values["tone"]: 1,
+        good_values["square"]: 1,
+    }
+    assert ann.count() == want_counts
+    # test __getitem__
+    first = ann[0]
+    assert first["hed_string"] == good_values["word"]
+    # setting bad value on extracted OrderedDict won't try to validate:
+    first["hed_string"] = "foo"
+    # ...and won't affect the original object
+    assert ann.hed_string[0] == good_values["word"]
+    # test __repr__
+    _repr = repr(ann)
+    assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
+    # test vectorized append with extras and list-like delete
+    ann_extra = ann.copy()
+    ann_extra.append(
+        onset=[10, 11],
+        duration=[0.1, 0.1],
+        description=["e", "f"],
+        hed_string=[good_values["tone"], good_values["press"]],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    assert ann_extra.extras[-2]["run"] == 1
+    assert ann_extra.extras[-1]["run"] == 2
+    ann_extra.delete([0, 3])
+    assert len(ann_extra) == 3
+    assert len(ann_extra.hed_string) == 3
+    # test concatenation
+    lhs = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[good_values["tone"]],
+        extras=[{"side": "lhs"}],
+    )
+    rhs = HEDAnnotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        hed_string=[good_values["press"]],
+        extras=[{"side": "rhs"}],
+    )
+    lhs += rhs
+    assert len(lhs) == 2
+    assert list(lhs.hed_string) == [good_values["tone"], good_values["press"]]
+    assert lhs.extras[1]["side"] == "rhs"
+    # test crop()
+    ann_crop = HEDAnnotations(
+        onset=[1, 3, 5, 7],
+        duration=[0.5, 0.5, 0.5, 0.5],
+        description=["a", "b", "c", "d"],
+        hed_string=[
+            good_values["press"],
+            good_values["tone"],
+            good_values["square"],
+            good_values["word"],
+        ],
+    )
+    # crop keeping middle two annotations
+    cropped = ann_crop.copy()
+    cropped.crop(tmin=2, tmax=6)
+    assert len(cropped) == 2
+    assert_array_equal(cropped.description, ["b", "c"])
+    assert list(cropped.hed_string) == [good_values["tone"], good_values["square"]]
+    assert isinstance(cropped.hed_string, mne.annotations._HEDStrings)
+    # crop that clips annotation at boundary
+    cropped2 = ann_crop.copy()
+    cropped2.crop(tmin=0.5, tmax=1.25)
+    assert len(cropped2) == 1
+    assert_allclose(cropped2.onset, [1.0])
+    assert_allclose(cropped2.duration, [0.25])
+    assert list(cropped2.hed_string) == [good_values["press"]]
+    # crop on empty HEDAnnotations
+    empty_ann = HEDAnnotations(
+        onset=[1],
+        duration=[0.5],
+        description=["a"],
+        hed_string=[good_values["press"]],
+    )
+    empty_ann.crop(tmin=5, tmax=10)
+    assert len(empty_ann) == 0
+    assert list(empty_ann.hed_string) == []
+
+
+def test_hed_annotations_mixed_concatenation():
+    """Test concatenation of HEDAnnotations with regular Annotations."""
+    pytest.importorskip("hed")
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, "
+        "(Tone, Frequency/550 Hz)"
+    )
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+
+    hed = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.2],
+        description=["tone", "press"],
+        hed_string=[tone, press],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    reg = Annotations(
+        onset=[2, 3],
+        duration=[0.3, 0.4],
+        description=["plain1", "plain2"],
+        extras=[{"run": 3}, {}],
+    )
+
+    # --- Annotations += HEDAnnotations ---
+    combined = reg.copy()
+    combined += hed
+    assert isinstance(combined, Annotations)
+    assert not isinstance(combined, HEDAnnotations)
+    assert len(combined) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined.extras[0]["HED"] == tone
+    assert combined.extras[1]["HED"] == press
+    assert "HED" not in combined.extras[2]
+    assert "HED" not in combined.extras[3]
+    # pre-existing extras preserved
+    assert combined.extras[0]["run"] == 1
+    assert combined.extras[1]["run"] == 2
+    assert combined.extras[2]["run"] == 3
+
+    # --- HEDAnnotations += Annotations ---
+    combined2 = hed.copy()
+    combined2 += reg
+    # result is plain Annotations (rebinding semantics)
+    assert isinstance(combined2, Annotations)
+    assert not isinstance(combined2, HEDAnnotations)
+    assert len(combined2) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined2.extras[0]["HED"] == tone
+    assert combined2.extras[1]["HED"] == press
+    assert "HED" not in combined2.extras[2]
+    assert "HED" not in combined2.extras[3]
+    # pre-existing extras preserved
+    assert combined2.extras[0]["run"] == 1
+    assert combined2.extras[2]["run"] == 3
+
+    # --- non-mutating + operators ---
+    hed_orig = hed.copy()
+    reg_orig = reg.copy()
+
+    out1 = reg + hed
+    assert isinstance(out1, Annotations)
+    assert not isinstance(out1, HEDAnnotations)
+    assert len(out1) == 4
+    assert out1.extras[0]["HED"] == tone
+    assert out1.extras[1]["HED"] == press
+
+    out2 = hed + reg
+    assert isinstance(out2, Annotations)
+    assert not isinstance(out2, HEDAnnotations)
+    assert len(out2) == 4
+    assert out2.extras[0]["HED"] == tone
+    assert out2.extras[1]["HED"] == press
+
+    # originals are not mutated
+    assert hed == hed_orig
+    assert reg == reg_orig
+
+    # --- ch_names are preserved ---
+    hed_ch = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[tone],
+        ch_names=[["EEG 001"]],
+    )
+    reg_ch = Annotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        ch_names=[["EEG 002"]],
+    )
+    out3 = reg_ch + hed_ch
+    # sorted by onset: hed_ch(0) then reg_ch(1)
+    assert out3[0]["ch_names"] == ("EEG 001",)
+    assert out3[1]["ch_names"] == ("EEG 002",)
+
+
+def test_hed_annotations_to_data_frame():
+    """Test HEDAnnotations.to_data_frame()."""
+    pytest.importorskip("hed")
+    pytest.importorskip("pandas")
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)"
+    )
+    square = (
+        "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))"
+    )
+    ann = HEDAnnotations(
+        onset=[1, 3, 5],
+        duration=[0.5, 0.5, 0.5],
+        description=["a", "b", "c"],
+        hed_string=[press, tone, square],
+    )
+    df = ann.to_data_frame()
+    assert "hed_string" in df.columns
+    assert list(df["hed_string"]) == [press, tone, square]
+    assert list(df["description"]) == ["a", "b", "c"]
+    assert_allclose(df["duration"], [0.5, 0.5, 0.5])
+
+
 @pytest.mark.parametrize(
     "key, value, expected_error, match",
     (
@@ -1973,6 +2311,7 @@ def test_append_splits_boundary(tmp_path, split_size):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),
@@ -1998,6 +2337,7 @@ def test_extras_dict_raises(key, value, expected_error, match):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),

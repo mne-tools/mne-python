@@ -21,7 +21,8 @@ def test_yule_walker():
     pytest.importorskip("statsmodels", "0.8")
     from statsmodels.regression.linear_model import yule_walker as sm_yw
 
-    d = np.random.randn(100)
+    rng = np.random.default_rng(0)
+    d = rng.standard_normal(100)
     sm_rho, sm_sigma = sm_yw(d, order=2)
     rho, sigma = _yule_walker(d[np.newaxis], order=2)
     assert_array_almost_equal(sm_sigma, sigma)
@@ -38,8 +39,8 @@ def test_ar_raw():
         assert coeffs.shape == (order,)
         assert_allclose(-coeffs[0], 1.0, atol=0.5)
     # let's make sure we're doing something reasonable: first, white noise
-    rng = np.random.RandomState(0)
-    raw._data = rng.randn(*raw._data.shape)
+    rng = np.random.default_rng(0)
+    raw._data = rng.standard_normal(raw._data.shape)
     raw._data *= 1e-15
     for order in (2, 5, 10):
         coeffs = fit_iir_model_raw(raw, order)[1]

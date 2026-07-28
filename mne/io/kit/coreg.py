@@ -31,7 +31,7 @@ INT32 = "<i4"
 FLOAT64 = "<f8"
 
 
-def read_mrk(fname):
+def read_mrk(fname: Path | str) -> np.ndarray:
     r"""Marker Point Extraction in MEG space directly from sqd.
 
     Parameters
