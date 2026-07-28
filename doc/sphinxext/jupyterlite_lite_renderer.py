@@ -7,11 +7,12 @@ obtained from ``mne.viz.backends.renderer._get_renderer``. Only that last step n
 VTK, and VTK cannot load in WebAssembly.
 
 So instead of reimplementing those functions one by one, this module supplies a
-renderer that draws with pyvista-js (vtk.js) and patches the factory. MNE then does
-all of the transform math itself -- which matters, because getting a head/MRI/device
-transform subtly wrong produces a plausible-looking picture with the sensors in the
-wrong place, and several of these tutorials are specifically *about* coordinate
-alignment.
+renderer that draws with pyvista-js (vtk.js) and patches the factory, along with the
+``renderer.backend`` global that ``set_3d_view`` and the other scene-level helpers
+read directly. MNE then does all of the transform math itself -- which matters,
+because getting a head/MRI/device transform subtly wrong produces a
+plausible-looking picture with the sensors in the wrong place, and several of these
+tutorials are specifically *about* coordinate alignment.
 
 What is supported: meshes, surfaces, spheres, tubes and glyphs -- enough for the
 static figures the docs render. What is not: the interactive ``Brain`` time viewer,
@@ -30,6 +31,29 @@ LITE_RENDERER_CELL = r'''
 # --- pyvista-js drawing backend for MNE's 3D renderer -----------------------
 # Patches mne.viz.backends.renderer._get_renderer so MNE keeps doing its own
 # geometry and coordinate-frame work and only the drawing is replaced.
+def _lite_view_vector(azimuth):
+    """Map an MNE azimuth in degrees onto the nearest pyvista-js view vector."""
+    _a = float(azimuth) % 360.0
+    if 45 <= _a < 135:
+        return (0.0, -1.0, 0.0)
+    elif 135 <= _a < 225:
+        return (1.0, 0.0, 0.0)
+    elif 225 <= _a < 315:
+        return (0.0, 1.0, 0.0)
+    return (-1.0, 0.0, 0.0)
+
+
+def _lite_set_view(plotter, azimuth):
+    """Point a plotter at the nearest axis-aligned view; no-op without azimuth."""
+    if azimuth is None:
+        return None
+    try:
+        plotter.view_vector(_lite_view_vector(azimuth), viewup=(0.0, 0.0, 1.0))
+    except Exception:
+        pass
+    return None
+
+
 class _LiteRenderer:
     """Minimal MNE 3D renderer backed by pyvista-js."""
 
@@ -284,22 +308,7 @@ class _LiteRenderer:
                    focalpoint=None, roll=None, *args, **kwargs):
         # pyvista-js has no azimuth/elevation camera; approximate the common
         # views and otherwise leave the default.
-        try:
-            if azimuth is None:
-                return None
-            _a = float(azimuth) % 360.0
-            if 45 <= _a < 135:
-                _vec = (0.0, -1.0, 0.0)
-            elif 135 <= _a < 225:
-                _vec = (1.0, 0.0, 0.0)
-            elif 225 <= _a < 315:
-                _vec = (0.0, 1.0, 0.0)
-            else:
-                _vec = (-1.0, 0.0, 0.0)
-            self.plotter.view_vector(_vec, viewup=(0.0, 0.0, 1.0))
-        except Exception:
-            pass
-        return None
+        return _lite_set_view(self.plotter, azimuth)
 
     def scene(self):
         return self.plotter
@@ -316,9 +325,38 @@ def _lite_get_renderer(*args, **kwargs):
     return _LiteRenderer(*args, **kwargs)
 
 
+class _LiteBackend:
+    """Stand-in for the module MNE imports into ``renderer.backend``.
+
+    ``set_3d_view``, ``set_3d_title`` and the ``close_*`` helpers are module-level
+    functions that reach for that global directly instead of going through
+    ``_get_renderer``, so replacing the factory alone leaves them calling into
+    ``None``.  The figure they are handed is the pyvista-js plotter that
+    ``_LiteRenderer.scene`` returns.
+    """
+
+    def _set_3d_view(self, figure, azimuth=None, elevation=None,
+                     focalpoint=None, distance=None, roll=None):
+        return _lite_set_view(figure, azimuth)
+
+    def _set_3d_title(self, figure, title, size=40, color="white",
+                      position="upper_left"):
+        return None
+
+    def _close_3d_figure(self, figure):
+        return None
+
+    def _close_all(self):
+        return None
+
+
 try:
     import mne.viz.backends.renderer as _mne_rend
     _mne_rend._get_renderer = _lite_get_renderer
+    _mne_rend.backend = _LiteBackend()
+    # naming a backend keeps _get_3d_backend() from walking VALID_3D_BACKENDS and
+    # importing _qt, which would overwrite the stub above on its way to failing
+    _mne_rend.MNE_3D_BACKEND = "notebook"
 except Exception as _e:
     print("[JupyterLite] could not install the pyvista-js renderer: " + repr(_e))
 '''
