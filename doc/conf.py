@@ -618,6 +618,91 @@ for testing_file in testing_files:
     elif not s.exists():
         print(f"[JupyterLite]   MISSING {testing_file}")
 
+# The remaining datasets are each used by one or two notebooks that read only a
+# couple of files out of them. CI already downloads all of these in
+# tools/circleci_download.sh, so copying is free -- but their sizes vary a lot,
+# so refuse anything past this limit rather than bloat the artifact. For scale,
+# the largest file already served (sample_audvis_raw.fif) is 128 MB.
+LITE_MAX_FILE_MB = 150
+
+
+def _lite_copy(folder, rel_paths):
+    """Copy selected files of a dataset into the served tree."""
+    src_root = mne_data_base / folder
+    for rel in rel_paths:
+        s = src_root / rel
+        if not s.exists():
+            print(f"[JupyterLite]   MISSING {folder}/{rel}")
+            continue
+        size_mb = s.stat().st_size / 1e6
+        if size_mb > LITE_MAX_FILE_MB:
+            print(f"[JupyterLite]   SKIPPED {folder}/{rel} ({size_mb:.1f} MB)")
+            continue
+        d = lite_data_base / folder / rel
+        if not d.exists():
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            print(f"[JupyterLite]   Copied {folder}/{rel} ({size_mb:.1f} MB)")
+
+
+def _lite_copy_tree(folder, rel_dir):
+    """Copy a directory-shaped recording, leaving a manifest for the browser.
+
+    read_raw_nirx and read_raw_egi are handed a folder rather than a file, so
+    the setup cell has no way to know what to fetch without a listing.
+    """
+    src = mne_data_base / folder / rel_dir
+    if not src.is_dir():
+        print(f"[JupyterLite]   MISSING {folder}/{rel_dir}")
+        return
+    names, total_mb = [], 0.0
+    for f in sorted(src.rglob("*")):
+        if not f.is_file():
+            continue
+        size_mb = f.stat().st_size / 1e6
+        if size_mb > LITE_MAX_FILE_MB:
+            print(f"[JupyterLite]   SKIPPED {folder}/{rel_dir} ({size_mb:.1f} MB)")
+            return
+        names.append(str(f.relative_to(src)))
+        total_mb += size_mb
+    dst = lite_data_base / folder / rel_dir
+    dst.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        d = dst / name
+        d.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src / name, d)
+    (dst / "_lite_manifest.txt").write_text("\n".join(names))
+    print(
+        f"[JupyterLite]   Copied {folder}/{rel_dir} "
+        f"({len(names)} files, {total_mb:.1f} MB)"
+    )
+
+
+_lite_copy(
+    "MNE-misc-data",
+    [
+        "xdf/sub-P001_ses-S004_task-Default_run-001_eeg_a2.xdf",
+        "movement/simulated_quats.pos",
+        "movement/simulated_movement_raw.fif",
+        "movement/simulated_stationary_raw.fif",
+        "eyetracking/eyelink/px_textpage_ws.asc",
+        "eyetracking/eyelink/HREF_textpage_ws.asc",
+    ],
+)
+_lite_copy(
+    "MNE-eyelink-data",
+    [
+        "freeviewing/sub-01_task-freeview_eyetrack.asc",
+        "freeviewing/stim/naturalistic.png",
+        "eeg-et/sub-01_task-plr_eyetrack.asc",
+    ],
+)
+_lite_copy_tree("MNE-eyelink-data", "eeg-et/sub-01_task-plr_eeg.mff")
+_lite_copy_tree("MNE-fNIRS-motor-data", "Participant-1")
+_lite_copy("MNE-phantom-kernel-data", ["phantom_32_100nam_raw.fif"])
+_lite_copy("MNE-multimodal-data", ["multimodal_raw.fif"])
+_lite_copy("MNE-refmeg-noise-data", ["sample_reference_MEG_noise-raw.fif"])
+
 # Six notebooks use the somato dataset (the DICS/TF-MxNE examples and the
 # time-frequency tutorial). The full dataset is ~610 MB, but they only read one
 # raw, one forward solution and the FreeSurfer surfaces needed to draw the
@@ -702,7 +787,7 @@ sphinx_gallery_conf = {
         "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"
         "await piplite.install(\n"
         "    ['mne', 'scikit-learn', 'joblib', 'pandas', 'seaborn', "
-        "'mne-connectivity', 'nibabel', 'pyvista-js'],\n"
+        "'mne-connectivity', 'nibabel', 'pyvista-js', 'pyxdf'],\n"
         "    keep_going=True,\n"
         ")\n"
         "\n"
@@ -919,6 +1004,22 @@ sphinx_gallery_conf = {
         "def _lite_testing_data_path(*_a, **_kw):\n"
         "    return _Path(mne_data_path + '/MNE-testing-data')\n"
         "mne.datasets.testing.data_path = _lite_testing_data_path\n"
+        "# Same again for the datasets behind a single example each. Only the\n"
+        "# files those examples read are served, and the shimmed readers below\n"
+        "# pull them individually.\n"
+        "def _lite_folder_data_path(_folder):\n"
+        "    def _data_path(*_a, **_kw):\n"
+        "        return _Path(mne_data_path + '/' + _folder)\n"
+        "    return _data_path\n"
+        "for _ds, _folder in (\n"
+        "    ('misc', 'MNE-misc-data'),\n"
+        "    ('eyelink', 'MNE-eyelink-data'),\n"
+        "    ('fnirs_motor', 'MNE-fNIRS-motor-data'),\n"
+        "    ('refmeg_noise', 'MNE-refmeg-noise-data'),\n"
+        "    ('phantom_kernel', 'MNE-phantom-kernel-data'),\n"
+        "    ('multimodal', 'MNE-multimodal-data'),\n"
+        "):\n"
+        "    getattr(mne.datasets, _ds).data_path = _lite_folder_data_path(_folder)\n"
         "def _lite_eegbci_load_data(subject, runs, *_a, **_kw):\n"
         "    _runs = [runs] if isinstance(runs, (int, float)) else list(runs)\n"
         "    _subjects = (\n"
@@ -1006,6 +1107,53 @@ sphinx_gallery_conf = {
         "                pass\n"
         "    return _orig_read_raw_eeglab(input_fname, *_a, **_kw)\n"
         "mne.io.read_raw_eeglab = _lite_read_raw_eeglab\n"
+        "# read_raw_nirx and read_raw_egi open a folder, so there is no single\n"
+        "# name to fetch; conf.py leaves a listing next to the copy.\n"
+        "def _lite_fetch_dir(_rel):\n"
+        "    _manifest = _lite_fetch_rel(_rel + '/_lite_manifest.txt')\n"
+        "    with open(_manifest) as _fh:\n"
+        "        _names = [_n.strip() for _n in _fh if _n.strip()]\n"
+        "    for _name in _names:\n"
+        "        _lite_fetch_rel(_rel + '/' + _name)\n"
+        "    return mne_data_path + '/' + _rel\n"
+        "def _lite_dir_reader(_orig):\n"
+        "    def _read(fname, *_a, **_kw):\n"
+        "        _p = str(fname)\n"
+        "        if _p.startswith(mne_data_path + '/'):\n"
+        "            try:\n"
+        "                _lite_fetch_dir(_p[len(mne_data_path) + 1:])\n"
+        "            except Exception as _e:\n"
+        "                print('[JupyterLite] could not fetch '\n"
+        "                      + _p + ': ' + repr(_e))\n"
+        "        return _orig(fname, *_a, **_kw)\n"
+        "    return _read\n"
+        "mne.io.read_raw_nirx = _lite_dir_reader(mne.io.read_raw_nirx)\n"
+        "mne.io.read_raw_egi = _lite_dir_reader(mne.io.read_raw_egi)\n"
+        "# eyelink .asc recordings are single files\n"
+        "_orig_read_raw_eyelink = mne.io.read_raw_eyelink\n"
+        "def _lite_read_raw_eyelink(fname, *_a, **_kw):\n"
+        "    return _orig_read_raw_eyelink(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.io.read_raw_eyelink = _lite_read_raw_eyelink\n"
+        "# the heatmap example draws its stimulus straight through pyplot, and\n"
+        "# read_xdf goes through pyxdf -- neither is an MNE reader, so shim the\n"
+        "# two entry points as well\n"
+        "import matplotlib.pyplot as _plt\n"
+        "_orig_imread = _plt.imread\n"
+        "def _lite_imread(fname, *_a, **_kw):\n"
+        "    return _orig_imread(_lite_fetch_if_under_mne_data(fname), *_a, **_kw)\n"
+        "_plt.imread = _lite_imread\n"
+        "try:\n"
+        "    import pyxdf as _pyxdf\n"
+        "    _orig_load_xdf = _pyxdf.load_xdf\n"
+        "    def _lite_load_xdf(fname, *_a, **_kw):\n"
+        "        return _orig_load_xdf(\n"
+        "            _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "        )\n"
+        "    _pyxdf.load_xdf = _lite_load_xdf\n"
+        "except Exception:\n"
+        "    pass\n"
         "import mne.chpi as _mne_chpi\n"
         "_orig_read_head_pos = _mne_chpi.read_head_pos\n"
         "def _lite_read_head_pos(fname, *_a, **_kw):\n"
@@ -1580,8 +1728,9 @@ JUPYTERLITE_EXCLUDE = (
     # needs aseg.mgz and the mixed source space, and calls src.plot(), which
     # is the 3D SourceSpaces view
     "examples/inverse/mixed_source_space_inverse.py",
-    # needs the BEM solution, and nilearn.datasets.load_mni152_template()
-    # downloads a template at runtime, which the browser blocks (CORS)
+    # nilearn.datasets.load_mni152_template() downloads a template at runtime,
+    # which the browser blocks (CORS); the surrounding try only catches
+    # TypeError, so the failure is not survivable
     "tutorials/inverse/20_dipole_fit.py",
     # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
     # plot_field needs the interactive viewer that the browser renderer skips
@@ -1610,6 +1759,23 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/90_phantom_4DBTi.py",
     # needs mne_bids as well as the epilepsy_ecog dataset and 3D sensor views
     "tutorials/clinical/30_ecog.py",
+    # Tier 6 — fetch_fsaverage. _manifest_check_download only skips the
+    # download when every one of its ~190 manifest entries is already present,
+    # so fsaverage cannot be part-bundled, and MNE-sample-data ships no
+    # fsaverage/bem at all. The volume forward and inverse these two want are
+    # 187 MB and 360 MB on top of that.
+    "examples/inverse/morph_volume_stc.py",
+    "tutorials/inverse/50_beamformer_lcmv.py",
+    "examples/visualization/montage_sgskip.py",
+    # same, plus fetch_infant_template downloads a second template
+    "tutorials/forward/35_eeg_no_mri.py",
+    # snapshot_brain_montage needs a real 3D window to read pixels back from
+    "examples/visualization/3d_to_2d.py",
+    # the three-layer BEM solution is 237 MB, and T1_electrodes.mgz would pull
+    # in the misc dataset's MRI as well
+    "tutorials/inverse/70_eeg_mri_coords.py",
+    # mne_bids is not installable in the browser kernel
+    "tutorials/inverse/95_phantom_KIT.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
