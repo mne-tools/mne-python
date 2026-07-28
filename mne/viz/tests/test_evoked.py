@@ -244,12 +244,7 @@ def test_plot_evoked():
     # check if text of channel name is displayed due to hover
     text = ax.texts[0]
     assert text.get_alpha() == 0.0
-    traces = [
-        line
-        for line in ax.get_lines()
-        if line.get_picker() and len(line.get_xdata()) > 3
-    ]
-    trace = traces[0]  # pick the first trace (MEG 0111)
+    trace = ax.get_lines()[0]  # pick the first trace (MEG 0111)
     x, y = trace.get_xdata(), trace.get_ydata()
     i = len(x) // 2
     _fake_click(fig, ax, (x[i], y[i]), xform="data", kind="motion")
@@ -262,7 +257,7 @@ def test_plot_evoked():
     assert ax._selectline.get_xdata()[0] == 0.0
 
     _fake_click(fig, ax, (0.6, 0.5), kind="press")
-    assert ax._selectline.get_xdata()[0] != 0.0
+    assert ax._selectline.get_xdata()[0] > 0.0
 
     plt.close("all")
 
