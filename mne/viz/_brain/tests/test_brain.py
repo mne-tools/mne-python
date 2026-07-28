@@ -594,8 +594,11 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     brain.set_cortex_alpha(0.5)
     assert brain._alpha == 0.5
 
+    mesh = brain.layered_meshes["lh"]
+    old_colors = mesh._current_colors.copy()
     brain.set_cortex_colormap("bone")
     assert brain._cortex_preset == "bone"
+    assert not np.allclose(mesh._current_colors, old_colors)
 
     old_coords = brain.geo["lh"].coords.copy()
     brain.set_surf("white")
