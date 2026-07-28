@@ -717,6 +717,24 @@ _lite_copy(
 )
 _lite_copy_tree("MNE-eyelink-data", "eeg-et/sub-01_task-plr_eeg.mff")
 _lite_copy_tree("MNE-fNIRS-motor-data", "Participant-1")
+
+# The logging tutorial reads a KIT file that lives inside the package itself,
+# under mne/io/kit/tests/. pyproject excludes "/mne/**/tests" from the wheel, so
+# it is absent from the browser kernel -- serve it and let the setup cell stage
+# it back into the path the tutorial builds.
+_kit_src = Path(mne.__file__).parent / "io" / "kit" / "tests" / "data" / "test.sqd"
+_kit_dst = lite_data_base / "MNE-kit-testdata" / "test.sqd"
+if _kit_src.exists():
+    if not _kit_dst.exists():
+        _kit_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(_kit_src, _kit_dst)
+    print(
+        f"[JupyterLite]   Copied MNE-kit-testdata/test.sqd "
+        f"({_kit_src.stat().st_size / 1e6:.1f} MB)"
+    )
+else:
+    print("[JupyterLite]   MISSING MNE-kit-testdata/test.sqd")
+
 _lite_copy("MNE-phantom-kernel-data", ["phantom_32_100nam_raw.fif"])
 _lite_copy("MNE-multimodal-data", ["multimodal_raw.fif"])
 _lite_copy("MNE-refmeg-noise-data", ["sample_reference_MEG_noise-raw.fif"])
@@ -1026,6 +1044,7 @@ sphinx_gallery_conf = {
         "        return _Path(mne_data_path + '/' + _folder)\n"
         "    return _data_path\n"
         "for _ds, _folder in (\n"
+        "    ('ssvep', 'ssvep-example-data'),\n"
         "    ('misc', 'MNE-misc-data'),\n"
         "    ('eyelink', 'MNE-eyelink-data'),\n"
         "    ('fnirs_motor', 'MNE-fNIRS-motor-data'),\n"
@@ -1143,6 +1162,65 @@ sphinx_gallery_conf = {
         "    return _read\n"
         "mne.io.read_raw_nirx = _lite_dir_reader(mne.io.read_raw_nirx)\n"
         "mne.io.read_raw_egi = _lite_dir_reader(mne.io.read_raw_egi)\n"
+        "# mne.Report writes an HTML file and opens a browser, neither of which\n"
+        "# means anything here. Writes to a temp dir do work in Pyodide's\n"
+        "# in-memory filesystem, so save there, read the HTML back and show it\n"
+        "# in an isolated iframe -- the report's own CSS/JS then cannot clash\n"
+        "# with the notebook page.\n"
+        "_orig_report_save = mne.Report.save\n"
+        "def _lite_report_save(self, fname=None, *_a, **_kw):\n"
+        "    # only the HTML form is previewed; an .hdf5 round-trip still has to\n"
+        "    # write the file the caller asked for\n"
+        "    if fname is not None and str(fname).lower().endswith(('.h5', '.hdf5')):\n"
+        "        return _orig_report_save(self, fname, *_a, **_kw)\n"
+        "    try:\n"
+        "        import html as _htmllib\n"
+        "        import tempfile\n"
+        "        from IPython.display import HTML as _HTML, display as _display\n"
+        "        _tmp = os.path.join(tempfile.mkdtemp(), 'report.html')\n"
+        "        _orig_report_save(self, _tmp, open_browser=False, overwrite=True)\n"
+        "        with open(_tmp, encoding='utf-8') as _fh:\n"
+        "            _doc = _fh.read()\n"
+        "        # wrap in a div so the payload does not start with '<iframe',\n"
+        "        # which trips IPython's 'use IPython.display.IFrame' warning\n"
+        "        _display(_HTML(\n"
+        "            '<div><iframe srcdoc=\"' + _htmllib.escape(_doc) + '\" '\n"
+        '            \'width="100%" height="500" \'\n'
+        "            'style=\"border:1px solid #ccc;\"></iframe></div>'\n"
+        "        ))\n"
+        "    except Exception as _e:\n"
+        "        print('(report preview unavailable: ' + repr(_e) + ')')\n"
+        "    return fname\n"
+        "mne.Report.save = _lite_report_save\n"
+        "# the logging tutorial reads a KIT file from inside the installed\n"
+        "# package; the wheel excludes mne/**/tests, so stage the served copy\n"
+        "# into the path the tutorial builds rather than editing the tutorial\n"
+        "import shutil as _shutil\n"
+        "_orig_read_raw_kit = mne.io.read_raw_kit\n"
+        "def _lite_read_raw_kit(input_fname, *_a, **_kw):\n"
+        "    _p = str(input_fname)\n"
+        "    if _p.endswith('test.sqd') and not os.path.exists(_p):\n"
+        "        try:\n"
+        "            _staged = _lite_fetch_rel('MNE-kit-testdata/test.sqd')\n"
+        "            os.makedirs(os.path.dirname(_p), exist_ok=True)\n"
+        "            _shutil.copyfile(_staged, _p)\n"
+        "        except Exception as _e:\n"
+        "            print('[JupyterLite] could not stage test.sqd: ' + repr(_e))\n"
+        "    return _orig_read_raw_kit(input_fname, *_a, **_kw)\n"
+        "mne.io.read_raw_kit = _lite_read_raw_kit\n"
+        "# a BrainVision .vhdr is a text header pointing at a .eeg and a .vmrk\n"
+        "_orig_read_raw_brainvision = mne.io.read_raw_brainvision\n"
+        "def _lite_read_raw_brainvision(vhdr_fname, *_a, **_kw):\n"
+        "    _p = str(vhdr_fname)\n"
+        "    if _p.startswith(mne_data_path + '/'):\n"
+        "        _stem = _p[:-5] if _p.endswith('.vhdr') else _p\n"
+        "        for _cand in (_p, _stem + '.eeg', _stem + '.vmrk'):\n"
+        "            try:\n"
+        "                _lite_fetch_rel(_cand[len(mne_data_path) + 1:])\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "    return _orig_read_raw_brainvision(vhdr_fname, *_a, **_kw)\n"
+        "mne.io.read_raw_brainvision = _lite_read_raw_brainvision\n"
         "# eyelink .asc recordings are single files\n"
         "_orig_read_raw_eyelink = mne.io.read_raw_eyelink\n"
         "def _lite_read_raw_eyelink(fname, *_a, **_kw):\n"
@@ -1790,6 +1868,12 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/70_eeg_mri_coords.py",
     # mne_bids is not installable in the browser kernel
     "tutorials/inverse/95_phantom_KIT.py",
+    # Report renders its forward/inverse/source-estimate sections through the
+    # Brain screenshot path, which the browser renderer has no equivalent for,
+    # and three sections round-trip the report through HDF5. The parts that do
+    # work are not worth a badge that half-renders, so the whole page is hidden
+    # (mne.Report.save itself still previews inline -- see the setup cell).
+    "tutorials/intro/70_report.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
