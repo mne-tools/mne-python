@@ -13,6 +13,8 @@ addressed with a cluster-level permutation test across space and time.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Shristi Baral <baralshristi@gmail.com>
+#          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -278,12 +280,6 @@ difference_plot = difference.plot(
     initial_time=0.1,
 )
 
-# Plot one cluster at the time of maximal spatial extent of that cluster
-plot_stat_cluster(
-    good_clusters[2], src, difference_plot, time="max-extent", color="magenta", width=1
-)
-
-# Plotting the cluster in interactive mode allows scrolling through time
-plot_stat_cluster(
-    good_clusters[2], src, difference_plot, time="interactive", color="magenta", width=1
-)
+# Plot one cluster at the time of maximal spatial extent of that cluster. The cluster
+# will update when scrolling through time.
+plot_stat_cluster(good_clusters[2], src, difference_plot, color="magenta", width=1)
