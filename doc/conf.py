@@ -531,8 +531,33 @@ if src_sample_data.exists():
         "MEG/sample/sample_audvis-shrunk-cov.fif",
         "MEG/sample/sample_audvis-meg-lh.stc",
         "MEG/sample/sample_audvis-meg-rh.stc",
+        "MEG/sample/sample_audvis-meg-eeg-lh.stc",
+        "MEG/sample/sample_audvis-meg-eeg-rh.stc",
+        "MEG/sample/sample_audvis_ecg-eve.fif",
+        # Maxwell-filter calibration pair, read from inside maxwell_filter
+        # rather than through a shimmable reader (86 KB, so fetched eagerly)
+        "SSS/sss_cal_mgh.dat",
+        "SSS/ct_sparse_mgh.fif",
         "subjects/sample/mri/T1.mgz",
+        "subjects/sample/mri/aseg.mgz",
         "subjects/sample/bem/sample-oct-6-src.fif",
+        # Head and skull surfaces for plot_alignment. outer_skin.surf is what
+        # MNE picks first, so serving it makes the browser figure match the
+        # rendered docs; sample-head.fif is the later fallback. There is no
+        # sample-head-dense.fif in the dataset -- lh.seghead is the documented
+        # second candidate for the dense surface. (These three .surf paths are
+        # symlinks into bem/flash/, and copy2 follows them.)
+        "subjects/sample/bem/outer_skin.surf",
+        "subjects/sample/bem/outer_skull.surf",
+        "subjects/sample/bem/inner_skull.surf",
+        "subjects/sample/bem/sample-head.fif",
+        "subjects/sample/surf/lh.seghead",
+        # single-layer BEM solution (the 3-layer one is 237 MB, so notebooks
+        # needing that are excluded instead)
+        "subjects/sample/bem/sample-5120-bem-sol.fif",
+        # fsaverage source space, used by the morphing and cluster-stats
+        # notebooks; it ships inside MNE-sample-data
+        "subjects/fsaverage/bem/fsaverage-ico-5-src.fif",
         "subjects/sample/surf/rh.pial",
         "subjects/sample/surf/lh.pial",
         "subjects/sample/surf/rh.white",
@@ -573,6 +598,25 @@ print(f"[JupyterLite] EEGLAB data source exists: {src_eeglab.exists()}")
 if src_eeglab.exists() and not dst_eeglab.exists():
     shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
     print("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
+
+# The head-position and Maxwell-filtering tutorials read one continuous
+# movement recording out of the testing dataset. CI already restores it from
+# data-cache-testing, so only these two files are copied, not the 1.6 GB set.
+testing_files = [
+    "SSS/test_move_anon_raw.fif",
+    "SSS/test_move_anon_raw.pos",
+]
+src_testing = mne_data_base / "MNE-testing-data"
+for testing_file in testing_files:
+    s = src_testing / testing_file
+    d = lite_data_base / "MNE-testing-data" / testing_file
+    if s.exists() and not d.exists():
+        d.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(s, d)
+        _mb = s.stat().st_size / 1e6
+        print(f"[JupyterLite]   Copied {testing_file} ({_mb:.1f} MB)")
+    elif not s.exists():
+        print(f"[JupyterLite]   MISSING {testing_file}")
 
 # Six notebooks use the somato dataset (the DICS/TF-MxNE examples and the
 # time-frequency tutorial). The full dataset is ~610 MB, but they only read one
@@ -757,6 +801,8 @@ sphinx_gallery_conf = {
         "    'subjects/sample/surf/lh.white',\n"
         "    'subjects/sample/label/lh.aparc.annot',\n"
         "    'subjects/sample/label/rh.aparc.annot',\n"
+        "    'SSS/sss_cal_mgh.dat',\n"
+        "    'SSS/ct_sparse_mgh.fif',\n"
         "]\n"
         "print('Fetching MNE sample data (once per session)...')\n"
         "for _f in _sample_files:\n"
@@ -867,6 +913,12 @@ sphinx_gallery_conf = {
         "def _lite_somato_data_path(*_a, **_kw):\n"
         "    return _Path(mne_data_path + '/MNE-somato-data')\n"
         "mne.datasets.somato.data_path = _lite_somato_data_path\n"
+        "# testing follows somato: hand back the folder and let the shimmed\n"
+        "# readers pull individual files, so a notebook that wants the EEGLAB\n"
+        "# recording does not also drag down the 39 MB movement raw.\n"
+        "def _lite_testing_data_path(*_a, **_kw):\n"
+        "    return _Path(mne_data_path + '/MNE-testing-data')\n"
+        "mne.datasets.testing.data_path = _lite_testing_data_path\n"
         "def _lite_eegbci_load_data(subject, runs, *_a, **_kw):\n"
         "    _runs = [runs] if isinstance(runs, (int, float)) else list(runs)\n"
         "    _subjects = (\n"
@@ -930,6 +982,123 @@ sphinx_gallery_conf = {
         "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
         "    )\n"
         "mne.read_source_spaces = _lite_read_source_spaces\n"
+        "_orig_read_bem_solution = mne.read_bem_solution\n"
+        "def _lite_read_bem_solution(fname, *_a, **_kw):\n"
+        "    return _orig_read_bem_solution(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_bem_solution = _lite_read_bem_solution\n"
+        "_orig_read_events = mne.read_events\n"
+        "def _lite_read_events(fname, *_a, **_kw):\n"
+        "    return _orig_read_events(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_events = _lite_read_events\n"
+        "# an EEGLAB .set keeps its samples in a sibling .fdt, so fetch both\n"
+        "_orig_read_raw_eeglab = mne.io.read_raw_eeglab\n"
+        "def _lite_read_raw_eeglab(input_fname, *_a, **_kw):\n"
+        "    _p = str(input_fname)\n"
+        "    if _p.startswith(mne_data_path + '/'):\n"
+        "        for _cand in (_p, _p[:-4] + '.fdt'):\n"
+        "            try:\n"
+        "                _lite_fetch_rel(_cand[len(mne_data_path) + 1:])\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "    return _orig_read_raw_eeglab(input_fname, *_a, **_kw)\n"
+        "mne.io.read_raw_eeglab = _lite_read_raw_eeglab\n"
+        "import mne.chpi as _mne_chpi\n"
+        "_orig_read_head_pos = _mne_chpi.read_head_pos\n"
+        "def _lite_read_head_pos(fname, *_a, **_kw):\n"
+        "    return _orig_read_head_pos(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "_mne_chpi.read_head_pos = _lite_read_head_pos\n"
+        "mne.chpi.read_head_pos = _lite_read_head_pos\n"
+        "# read_source_estimate is handed the stem of a .stc pair, so fetch\n"
+        "# both hemispheres before letting MNE resolve the name itself.\n"
+        "_orig_read_source_estimate = mne.read_source_estimate\n"
+        "def _lite_read_source_estimate(fname, *_a, **_kw):\n"
+        "    _p = str(fname)\n"
+        "    if _p.startswith(mne_data_path + '/'):\n"
+        "        for _suf in ('', '-lh.stc', '-rh.stc'):\n"
+        "            try:\n"
+        "                _lite_fetch_rel(_p[len(mne_data_path) + 1:] + _suf)\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "    return _orig_read_source_estimate(fname, *_a, **_kw)\n"
+        "mne.read_source_estimate = _lite_read_source_estimate\n"
+        "# plot_alignment locates its head surface by probing the filesystem\n"
+        "# with os.path.exists before any reader runs, so a reader shim never\n"
+        "# fires. Fetch the candidates first and let MNE choose as it normally\n"
+        "# would. mne.viz._3d binds the function at import time, so patch both.\n"
+        "import mne._freesurfer as _mne_fs\n"
+        "_orig_get_head_surface = _mne_fs._get_head_surface\n"
+        "def _lite_get_head_surface(surf, subject, subjects_dir, bem=None,\n"
+        "                           verbose=None):\n"
+        "    _sd = str(subjects_dir) if subjects_dir is not None else ''\n"
+        "    if subject and _sd.startswith(mne_data_path + '/'):\n"
+        "        _rel = _sd[len(mne_data_path) + 1:] + '/' + str(subject)\n"
+        "        if surf in ('head-dense', 'seghead'):\n"
+        "            _cands = ['bem/' + str(subject) + '-head-dense.fif',\n"
+        "                      'surf/lh.seghead']\n"
+        "        else:\n"
+        "            # same order MNE tries, so the browser picks the same\n"
+        "            # surface the rendered docs did\n"
+        "            _cands = ['bem/outer_skin.surf',\n"
+        "                      'bem/' + str(subject) + '-head.fif']\n"
+        "        for _c in _cands:\n"
+        "            try:\n"
+        "                _lite_fetch_rel(_rel + '/' + _c)\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "    return _orig_get_head_surface(\n"
+        "        surf, subject, subjects_dir, bem=bem, verbose=verbose\n"
+        "    )\n"
+        "_mne_fs._get_head_surface = _lite_get_head_surface\n"
+        "import mne.viz._3d as _mne_viz3d\n"
+        "_mne_viz3d._get_head_surface = _lite_get_head_surface\n"
+        "# same story for the skull surfaces, which _check_fname insists\n"
+        "# already exist on disk\n"
+        "_orig_get_skull_surface = _mne_fs._get_skull_surface\n"
+        "def _lite_get_skull_surface(surf, subject, subjects_dir, bem=None,\n"
+        "                            verbose=None):\n"
+        "    _sd = str(subjects_dir) if subjects_dir is not None else ''\n"
+        "    if subject and _sd.startswith(mne_data_path + '/'):\n"
+        "        try:\n"
+        "            _lite_fetch_rel(\n"
+        "                _sd[len(mne_data_path) + 1:] + '/' + str(subject)\n"
+        "                + '/bem/' + surf + '_skull.surf'\n"
+        "            )\n"
+        "        except Exception:\n"
+        "            pass\n"
+        "    return _orig_get_skull_surface(\n"
+        "        surf, subject, subjects_dir, bem=bem, verbose=verbose\n"
+        "    )\n"
+        "_mne_fs._get_skull_surface = _lite_get_skull_surface\n"
+        "_mne_viz3d._get_skull_surface = _lite_get_skull_surface\n"
+        "# plot_bem globs bem/*.surf and requires the bem directory to exist,\n"
+        "# so pull its three contours (plus the MRI it draws them on) down\n"
+        "# first; fetching creates the directory as a side effect.\n"
+        "_orig_plot_bem = mne.viz.plot_bem\n"
+        "def _lite_plot_bem(subject=None, subjects_dir=None, *_a, **_kw):\n"
+        "    _sd = str(subjects_dir) if subjects_dir is not None else ''\n"
+        "    if subject and _sd.startswith(mne_data_path + '/'):\n"
+        "        _rel = _sd[len(mne_data_path) + 1:] + '/' + str(subject)\n"
+        "        _want = ['bem/inner_skull.surf', 'bem/outer_skull.surf',\n"
+        "                 'bem/outer_skin.surf',\n"
+        "                 'mri/' + str(_kw.get('mri', 'T1.mgz'))]\n"
+        "        _bs = _kw.get('brain_surfaces')\n"
+        "        if _bs is not None:\n"
+        "            _bs = [_bs] if isinstance(_bs, str) else list(_bs)\n"
+        "            for _b in _bs:\n"
+        "                _want += ['surf/lh.' + _b, 'surf/rh.' + _b]\n"
+        "        for _c in _want:\n"
+        "            try:\n"
+        "                _lite_fetch_rel(_rel + '/' + _c)\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "    return _orig_plot_bem(subject, subjects_dir, *_a, **_kw)\n"
+        "mne.viz.plot_bem = _lite_plot_bem\n"
         "\n"
         "# EXPERIMENTAL 3D: MNE's normal Brain/VTK stack can't load in WASM, so\n"
         "# route SourceEstimate.plot() through pyvista-js (vtk.js) instead.\n"
@@ -1417,6 +1586,30 @@ JUPYTERLITE_EXCLUDE = (
     # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
     # plot_field needs the interactive viewer that the browser renderer skips
     "examples/visualization/mne_helmet.py",
+    # Tier 4 — mne.viz.Brain. The browser renderer draws static meshes; Brain
+    # additionally wants dock widgets, a toolbar and a time slider, so these
+    # are blocked on the interactive layer rather than on data.
+    "examples/visualization/brain.py",
+    "examples/visualization/parcellation.py",
+    "tutorials/clinical/20_seeg.py",
+    "tutorials/forward/10_background_freesurfer.py",
+    "tutorials/forward/50_background_freesurfer_mne.py",
+    "tutorials/inverse/60_visualize_stc.py",
+    "tutorials/io/30_reading_fnirs_data.py",
+    "tutorials/preprocessing/70_fnirs_processing.py",
+    # Tier 5 — one-off blockers with no browser path
+    # plot_field needs the interactive viewer
+    "tutorials/evoked/20_visualize_evoked.py",
+    # the three-layer BEM solution alone is 237 MB
+    "examples/inverse/multi_dipole_model.py",
+    # openneuro fetches the recording at runtime, which the browser blocks
+    "examples/preprocessing/esg_rm_heart_artefact_pcaobs.py",
+    # physionet.org is not CORS-enabled and the dataset is not on the CI box
+    "tutorials/clinical/60_sleep.py",
+    # the 4D/BTi phantom dataset is not among the ones CI downloads
+    "tutorials/inverse/90_phantom_4DBTi.py",
+    # needs mne_bids as well as the epilepsy_ecog dataset and 3D sensor views
+    "tutorials/clinical/30_ecog.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
