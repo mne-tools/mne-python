@@ -40,6 +40,7 @@ from ._fiff.pick import (
     pick_types,
 )
 from ._fiff.proj import Projection, setup_proj
+from ._ola import _Interp2
 from .bem import ConductorModel
 from .channels.channels import _get_meg_system
 from .cov import compute_whitener, make_ad_hoc_cov
@@ -1548,6 +1549,8 @@ def filter_chpi(
     t_window="auto",
     ext_order=1,
     allow_line_only=False,
+    *,
+    interp="hann",
     verbose=None,
 ):
     """Remove cHPI and line noise from data.
@@ -1570,6 +1573,14 @@ def filter_chpi(
         which only allows the function to run when cHPI information is present.
 
         .. versionadded:: 0.20
+    interp : str | None
+        How the fitted cHPI/line amplitude envelope is interpolated between the
+        fitting windows before subtraction. ``"hann"`` (default) smoothly interpolates,
+        avoiding small step discontinuities (and associated broadband spectral
+        leakage) produced by ``None``, which holds each window's amplitudes constant
+        over its central ``t_step``. ``"linear"`` interpolation is also supported.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -1607,53 +1618,97 @@ def filter_chpi(
         verbose=_verbose_safe_false(),
     )
 
-    fit_idxs = np.arange(0, len(raw.times) + hpi["n_window"] // 2, n_step)
+    _check_option("interp", interp, (None, "hann", "cos2", "linear"))
     n_freqs = len(hpi["freqs"])
     n_remove = 2 * n_freqs
     meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
-    n_times = len(raw.times)
 
     msg = f"Removing {n_freqs} cHPI"
     if include_line:
         n_remove += 2 * len(hpi["line_freqs"])
         msg += f" and {len(hpi['line_freqs'])} line harmonic"
     msg += f" frequencies from {len(meg_picks)} MEG channels"
-
-    recon = (hpi["model"][:, :n_remove] @ hpi["inv_model"][:n_remove]).T
     logger.info(msg)
-    chunks = list()  # the chunks to subtract
-    last_endpt = 0
-    pb = ProgressBar(fit_idxs, mesg="Filtering")
-    for ii, midpt in enumerate(pb):
-        left_edge = midpt - hpi["n_window"] // 2
-        time_sl = slice(
-            max(left_edge, 0), min(left_edge + hpi["n_window"], len(raw.times))
-        )
-        this_len = time_sl.stop - time_sl.start
-        if this_len == hpi["n_window"]:
-            this_recon = recon
-        else:  # first or last window
-            model = hpi["model"][:this_len]
-            inv_model = np.linalg.pinv(model)
-            this_recon = (model[:, :n_remove] @ inv_model[:n_remove]).T
-        this_data = raw._data[meg_picks, time_sl]
-        subt_pt = min(midpt + n_step, n_times)
-        if last_endpt != subt_pt:
-            fit_left_edge = left_edge - time_sl.start + hpi["n_window"] // 2
-            fit_sl = slice(fit_left_edge, fit_left_edge + (subt_pt - last_endpt))
-            chunks.append((subt_pt, this_data @ this_recon[:, fit_sl]))
-        last_endpt = subt_pt
 
-        # Consume (trailing) chunks that are now safe to remove because
-        # our windows will no longer touch them
-        if ii < len(fit_idxs) - 1:
-            next_left_edge = fit_idxs[ii + 1] - hpi["n_window"] // 2
-        else:
-            next_left_edge = np.inf
-        while len(chunks) > 0 and chunks[0][0] <= next_left_edge:
-            right_edge, chunk = chunks.pop(0)
-            raw._data[meg_picks, right_edge - chunk.shape[1] : right_edge] -= chunk
+    # interp=None reproduces the pre-1.13 zero-order-hold subtraction
+    _subtract_chpi(
+        raw,
+        hpi,
+        meg_picks,
+        n_step,
+        n_remove,
+        include_line,
+        "zero" if interp is None else interp,
+    )
     return raw
+
+
+def _chpi_fit_coeffs(
+    midpt, *, raw, meg_picks, hpi, freqs, n_freqs, n_line, n_remove, inv_cache
+):
+    """Fit absolute-phase sin/cos amplitudes for one control point."""
+    n_window = hpi["n_window"]
+    n_times = len(raw.times)
+    sfreq = raw.info["sfreq"]
+    # window centered on the control point, clamped (shorter) at the edges, to
+    # match the legacy per-window fit so that interp="zero" reproduces it
+    left_edge = midpt - n_window // 2
+    start = max(left_edge, 0)
+    stop = min(left_edge + n_window, n_times)
+    this_len = stop - start
+    if this_len not in inv_cache:
+        inv_cache[this_len] = np.linalg.pinv(hpi["model"][:this_len])[:n_remove]
+    coef = inv_cache[this_len] @ raw._data[meg_picks, start:stop].T  # (n_remove, n_ch)
+    # model columns of the removable subspace: [sin_hpi, cos_hpi, sin_line, cos_line]
+    sin_sl = slice(0, n_freqs)
+    sin_sl_line = slice(2 * n_freqs, 2 * n_freqs + n_line)
+    cos_sl = slice(n_freqs, 2 * n_freqs)
+    cos_sl_line = slice(2 * n_freqs + n_line, 2 * n_freqs + 2 * n_line)
+    sin_c = np.concatenate([coef[sin_sl], coef[sin_sl_line]])
+    cos_c = np.concatenate([coef[cos_sl], coef[cos_sl_line]])
+    # rotate window-relative phase (0 at window start) to absolute time
+    theta0 = (2 * np.pi * freqs * start / sfreq)[:, np.newaxis]
+    # one-element list (for _Interp2) with array of shape ``(2, n_freq, n_ch)``
+    s_t_0 = np.sin(theta0)
+    c_t_0 = np.cos(theta0)
+    return [np.stack([sin_c * c_t_0 + cos_c * s_t_0, cos_c * c_t_0 - sin_c * s_t_0])]
+
+
+def _subtract_chpi(raw, hpi, meg_picks, n_step, n_remove, include_line, interp):
+    """Subtract cHPI/line noise from the data."""
+    # Fits amplitudes on then uses _Interp2 to interpolate the amplitude envelope
+    # before reconstructing and subtracting.
+    sfreq = raw.info["sfreq"]
+    n_times = len(raw.times)
+    n_freqs = len(hpi["freqs"])
+    n_line = len(hpi["line_freqs"]) if include_line else 0
+    freqs = np.concatenate([hpi["freqs"], hpi["line_freqs"][:n_line]])
+    fit = partial(
+        _chpi_fit_coeffs,
+        raw=raw,
+        meg_picks=meg_picks,
+        hpi=hpi,
+        freqs=freqs,
+        n_freqs=n_freqs,
+        n_line=n_line,
+        n_remove=n_remove,
+        inv_cache={},
+    )
+    interp2 = _Interp2(np.arange(0, n_times, n_step), fit, interp=interp)
+    chunk = max(2 * hpi["n_window"], 1000)
+    prev = None  # (start, stop, recon) subtracted one chunk late (see docstring)
+    for start in ProgressBar(range(0, n_times, chunk), mesg="Filtering"):
+        stop = min(start + chunk, n_times)
+        vals = interp2.feed(stop - start)[0]  # (2, n_freq, n_ch, n_pts)
+        phase = 2 * np.pi * np.outer(freqs, np.arange(start, stop)) / sfreq
+        recon = np.einsum("fct,ft->ct", vals[0], np.sin(phase)) + np.einsum(
+            "fct,ft->ct", vals[1], np.cos(phase)
+        )
+        if prev is not None:
+            raw._data[meg_picks, prev[0] : prev[1]] -= prev[2]
+        prev = (start, stop, recon)
+    if prev is not None:
+        raw._data[meg_picks, prev[0] : prev[1]] -= prev[2]
 
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
