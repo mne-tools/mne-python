@@ -590,6 +590,11 @@ if (mne_data_base / "MNE-sample-data").exists() or src_sample_data.exists():
         "subjects/sample/surf/lh.inflated",
         "subjects/sample/surf/rh.curv",
         "subjects/sample/surf/lh.curv",
+        # setup_source_space maps each hemisphere onto its sphere for any
+        # ico/oct spacing, and _create_surf_spacing reads surf/{hemi}.sphere
+        # by a path it builds itself (5.6 MB each)
+        "subjects/sample/surf/lh.sphere",
+        "subjects/sample/surf/rh.sphere",
         "subjects/sample/label/lh.aparc.annot",
         "subjects/sample/label/rh.aparc.annot",
         # the auditory/visual ROIs; about nine notebooks build these names with
@@ -1282,7 +1287,8 @@ sphinx_gallery_conf = {
         "# plot_alignment locates its head surface by probing the filesystem\n"
         "# with os.path.exists before any reader runs, so a reader shim never\n"
         "# fires. Fetch the candidates first and let MNE choose as it normally\n"
-        "# would. mne.viz._3d binds the function at import time, so patch both.\n"
+        "# would. Several viz modules bind the name at import time, so rebind\n"
+        "# it wherever the original landed instead of in one known place.\n"
         "import mne._freesurfer as _mne_fs\n"
         "_orig_get_head_surface = _mne_fs._get_head_surface\n"
         "def _lite_get_head_surface(surf, subject, subjects_dir, bem=None,\n"
@@ -1307,8 +1313,14 @@ sphinx_gallery_conf = {
         "        surf, subject, subjects_dir, bem=bem, verbose=verbose\n"
         "    )\n"
         "_mne_fs._get_head_surface = _lite_get_head_surface\n"
-        "import mne.viz._3d as _mne_viz3d\n"
-        "_mne_viz3d._get_head_surface = _lite_get_head_surface\n"
+        "# import the 3D module first so the sweep below is guaranteed to see\n"
+        "# it; anything imported later picks the patched name up on its own.\n"
+        "import mne.viz._3d  # noqa: F401\n"
+        "for _m in list(sys.modules.values()):\n"
+        "    if (getattr(_m, '__name__', '').startswith('mne')\n"
+        "            and getattr(_m, '_get_head_surface', None)\n"
+        "            is _orig_get_head_surface):\n"
+        "        _m._get_head_surface = _lite_get_head_surface\n"
         "# same story for the skull surfaces, which _check_fname insists\n"
         "# already exist on disk\n"
         "_orig_get_skull_surface = _mne_fs._get_skull_surface\n"
@@ -1327,7 +1339,35 @@ sphinx_gallery_conf = {
         "        surf, subject, subjects_dir, bem=bem, verbose=verbose\n"
         "    )\n"
         "_mne_fs._get_skull_surface = _lite_get_skull_surface\n"
-        "_mne_viz3d._get_skull_surface = _lite_get_skull_surface\n"
+        "for _m in list(sys.modules.values()):\n"
+        "    if (getattr(_m, '__name__', '').startswith('mne')\n"
+        "            and getattr(_m, '_get_skull_surface', None)\n"
+        "            is _orig_get_skull_surface):\n"
+        "        _m._get_skull_surface = _lite_get_skull_surface\n"
+        "# dig_mri_distances reaches a second, unrelated _get_head_surface, the\n"
+        "# one in mne/surface.py: it takes a list of candidate sources and\n"
+        "# probes bem/ with os.path.exists and glob, raising if the directory\n"
+        "# is absent, so the candidates have to land before it runs.\n"
+        "import mne.surface as _mne_surface\n"
+        "_orig_surface_head = _mne_surface._get_head_surface\n"
+        "def _lite_surface_head_surface(subject, source, subjects_dir,\n"
+        "                               on_defects, raise_error=True):\n"
+        "    _sd = str(subjects_dir) if subjects_dir is not None else ''\n"
+        "    if subject and _sd.startswith(mne_data_path + '/'):\n"
+        "        _rel = _sd[len(mne_data_path) + 1:] + '/' + str(subject)\n"
+        "        _srcs = [source] if isinstance(source, str) else list(source)\n"
+        "        for _s in _srcs:\n"
+        "            try:\n"
+        "                _lite_fetch_rel(\n"
+        "                    _rel + '/bem/' + str(subject) + '-' + _s + '.fif'\n"
+        "                )\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "    return _orig_surface_head(\n"
+        "        subject, source, subjects_dir, on_defects,\n"
+        "        raise_error=raise_error\n"
+        "    )\n"
+        "_mne_surface._get_head_surface = _lite_surface_head_surface\n"
         "# plot_bem globs bem/*.surf and requires the bem directory to exist,\n"
         "# so pull its three contours (plus the MRI it draws them on) down\n"
         "# first; fetching creates the directory as a side effect.\n"
