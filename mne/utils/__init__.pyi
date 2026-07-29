@@ -89,6 +89,7 @@ __all__ = [
     "_is_numeric",
     "_is_vtk",
     "_julian_to_date",
+    "_limit_blas_threads",
     "_mask_to_onsets_offsets",
     "_on_missing",
     "_open_lock",
@@ -317,6 +318,7 @@ from .docs import (
 from .fetching import _url_to_local_path
 from .linalg import (
     _get_blas_funcs,
+    _limit_blas_threads,
     _repeated_svd,
     _svd_lwork,
     _sym_mat_pow,
