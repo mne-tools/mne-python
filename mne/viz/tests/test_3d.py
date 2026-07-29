@@ -949,20 +949,23 @@ def test_plot_alignment_fwd(renderer, evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_cframe(renderer, evoked):
+@pytest.mark.parametrize(
+    "coord_frame",
+    ["meg", "head", "mri"],
+)
+def test_plot_alignment_cframe(renderer, evoked, coord_frame):
     """Test varying the coordinate frame for alignment plot."""
     info = evoked.info
-    for coord_frame in ("meg", "head", "mri"):
-        plot_alignment(
-            info,
-            meg=["helmet", "sensors"],
-            dig=True,
-            coord_frame=coord_frame,
-            trans=Path(trans_fname),
-            subject="sample",
-            src=src_fname,
-            subjects_dir=subjects_dir,
-        )
+    plot_alignment(
+        info,
+        meg=["helmet", "sensors"],
+        dig=True,
+        coord_frame=coord_frame,
+        trans=Path(trans_fname),
+        subject="sample",
+        src=src_fname,
+        subjects_dir=subjects_dir,
+    )
     renderer.backend._close_all()
 
 
