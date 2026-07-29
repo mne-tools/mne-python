@@ -561,6 +561,9 @@ if (mne_data_base / "MNE-sample-data").exists() or src_sample_data.exists():
         "SSS/ct_sparse_mgh.fif",
         "subjects/sample/mri/T1.mgz",
         "subjects/sample/mri/aseg.mgz",
+        # read_talxfm builds this path itself, so nothing in the tutorials
+        # names it; plot_alignment needs it to estimate MRI fiducials
+        "subjects/sample/mri/transforms/talairach.xfm",
         "subjects/sample/bem/sample-oct-6-src.fif",
         # Head and skull surfaces for plot_alignment. outer_skin.surf is what
         # MNE picks first, so serving it makes the browser figure match the
@@ -589,6 +592,12 @@ if (mne_data_base / "MNE-sample-data").exists() or src_sample_data.exists():
         "subjects/sample/surf/lh.curv",
         "subjects/sample/label/lh.aparc.annot",
         "subjects/sample/label/rh.aparc.annot",
+        # the auditory/visual ROIs; about nine notebooks build these names with
+        # an f-string, so a scan of the tutorial text never sees them
+        "MEG/sample/labels/Aud-lh.label",
+        "MEG/sample/labels/Aud-rh.label",
+        "MEG/sample/labels/Vis-lh.label",
+        "MEG/sample/labels/Vis-rh.label",
     ]
     for req in required_files:
         s = _lite_src("MNE-sample-data", req)
@@ -677,6 +686,10 @@ def _lite_copy_tree(folder, rel_dir):
     for f in sorted(src.rglob("*")):
         if not f.is_file():
             continue
+        # zero-byte members (an .mff carries a couple of lock files) do not
+        # survive the artifact upload, so listing them only yields a 404
+        if f.stat().st_size == 0:
+            continue
         size_mb = f.stat().st_size / 1e6
         if size_mb > LITE_MAX_FILE_MB:
             print(f"[JupyterLite]   SKIPPED {folder}/{rel_dir} ({size_mb:.1f} MB)")
@@ -753,10 +766,17 @@ for _folder, _ds_files in (
     ("mTRF_1.5", ["speech_data.mat"]),
     (
         "MNE-eegbci-data",
+        # exactly the runs tools/circleci_download.sh fetches: subject 1 runs
+        # 3/6/10/14 and run 3 for subjects 2-4. Notebooks wanting run 1 or 2 are
+        # excluded instead, since that data never reaches the CI box.
         [
+            "files/eegmmidb/1.0.0/S001/S001R03.edf",
             "files/eegmmidb/1.0.0/S001/S001R06.edf",
             "files/eegmmidb/1.0.0/S001/S001R10.edf",
             "files/eegmmidb/1.0.0/S001/S001R14.edf",
+            "files/eegmmidb/1.0.0/S002/S002R03.edf",
+            "files/eegmmidb/1.0.0/S003/S003R03.edf",
+            "files/eegmmidb/1.0.0/S004/S004R03.edf",
         ],
     ),
 ):
@@ -799,7 +819,8 @@ sphinx_gallery_conf = {
         "# matplotlib/scipy/numpy are older than MNE's declared minimums.\n"
         "await piplite.install(\n"
         "    ['mne', 'scikit-learn', 'joblib', 'pandas', 'seaborn', "
-        "'mne-connectivity', 'nibabel', 'pyvista-js', 'pyxdf'],\n"
+        "'mne-connectivity', 'nibabel', 'pyvista-js', 'pyxdf', 'mffpy', "
+        "'python-picard'],\n"
         "    keep_going=True,\n"
         ")\n"
         "\n"
@@ -1090,6 +1111,48 @@ sphinx_gallery_conf = {
         "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
         "    )\n"
         "mne.read_source_spaces = _lite_read_source_spaces\n"
+        "# Nearly every MNE reader validates its filename through\n"
+        "# _check_fname(must_exist=True) before opening it, so hooking that one\n"
+        "# function covers read_info, read_evokeds, read_cov, read_label and the\n"
+        "# rest without a wrapper each. Failures stay silent here so MNE still\n"
+        "# raises its own, clearer error for a file that genuinely is missing.\n"
+        "import mne.utils.check as _mne_check\n"
+        "_orig_check_fname = _mne_check._check_fname\n"
+        "def _lite_check_fname(fname, overwrite=False, must_exist=False,\n"
+        "                      *_a, **_kw):\n"
+        "    if must_exist:\n"
+        "        try:\n"
+        "            _lite_fetch_if_under_mne_data(fname)\n"
+        "        except Exception:\n"
+        "            pass\n"
+        "    return _orig_check_fname(fname, overwrite, must_exist, *_a, **_kw)\n"
+        "_mne_check._check_fname = _lite_check_fname\n"
+        "# modules that imported it before now hold their own reference; ones\n"
+        "# loaded later (mne lazy-loads most of itself) pick up the patch\n"
+        "for _m in list(sys.modules.values()):\n"
+        "    if (getattr(_m, '__name__', '').startswith('mne')\n"
+        "            and getattr(_m, '_check_fname', None) is _orig_check_fname):\n"
+        "        _m._check_fname = _lite_check_fname\n"
+        "# read_label, read_epochs and read_raw_edf open their file directly\n"
+        "# rather than validating it first, so the hook above never sees them\n"
+        "_orig_read_label = mne.read_label\n"
+        "def _lite_read_label(filename, *_a, **_kw):\n"
+        "    return _orig_read_label(\n"
+        "        _lite_fetch_if_under_mne_data(filename), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_label = _lite_read_label\n"
+        "_orig_read_epochs = mne.read_epochs\n"
+        "def _lite_read_epochs(fname, *_a, **_kw):\n"
+        "    return _orig_read_epochs(\n"
+        "        _lite_fetch_if_under_mne_data(fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.read_epochs = _lite_read_epochs\n"
+        "_orig_read_raw_edf = mne.io.read_raw_edf\n"
+        "def _lite_read_raw_edf(input_fname, *_a, **_kw):\n"
+        "    return _orig_read_raw_edf(\n"
+        "        _lite_fetch_if_under_mne_data(input_fname), *_a, **_kw\n"
+        "    )\n"
+        "mne.io.read_raw_edf = _lite_read_raw_edf\n"
         "_orig_read_bem_solution = mne.read_bem_solution\n"
         "def _lite_read_bem_solution(fname, *_a, **_kw):\n"
         "    return _orig_read_bem_solution(\n"
@@ -1121,7 +1184,12 @@ sphinx_gallery_conf = {
         "    with open(_manifest) as _fh:\n"
         "        _names = [_n.strip() for _n in _fh if _n.strip()]\n"
         "    for _name in _names:\n"
-        "        _lite_fetch_rel(_rel + '/' + _name)\n"
+        "        # one unreachable member must not abandon the rest of the\n"
+        "        # recording; the reader complains if it needed that file\n"
+        "        try:\n"
+        "            _lite_fetch_rel(_rel + '/' + _name)\n"
+        "        except Exception as _e:\n"
+        "            print('[JupyterLite] skipped ' + _name + ': ' + repr(_e))\n"
         "    return mne_data_path + '/' + _rel\n"
         "def _lite_dir_reader(_orig):\n"
         "    def _read(fname, *_a, **_kw):\n"
@@ -1136,36 +1204,6 @@ sphinx_gallery_conf = {
         "    return _read\n"
         "mne.io.read_raw_nirx = _lite_dir_reader(mne.io.read_raw_nirx)\n"
         "mne.io.read_raw_egi = _lite_dir_reader(mne.io.read_raw_egi)\n"
-        "# mne.Report writes an HTML file and opens a browser, neither of which\n"
-        "# means anything here. Writes to a temp dir do work in Pyodide's\n"
-        "# in-memory filesystem, so save there, read the HTML back and show it\n"
-        "# in an isolated iframe -- the report's own CSS/JS then cannot clash\n"
-        "# with the notebook page.\n"
-        "_orig_report_save = mne.Report.save\n"
-        "def _lite_report_save(self, fname=None, *_a, **_kw):\n"
-        "    # only the HTML form is previewed; an .hdf5 round-trip still has to\n"
-        "    # write the file the caller asked for\n"
-        "    if fname is not None and str(fname).lower().endswith(('.h5', '.hdf5')):\n"
-        "        return _orig_report_save(self, fname, *_a, **_kw)\n"
-        "    try:\n"
-        "        import html as _htmllib\n"
-        "        import tempfile\n"
-        "        from IPython.display import HTML as _HTML, display as _display\n"
-        "        _tmp = os.path.join(tempfile.mkdtemp(), 'report.html')\n"
-        "        _orig_report_save(self, _tmp, open_browser=False, overwrite=True)\n"
-        "        with open(_tmp, encoding='utf-8') as _fh:\n"
-        "            _doc = _fh.read()\n"
-        "        # wrap in a div so the payload does not start with '<iframe',\n"
-        "        # which trips IPython's 'use IPython.display.IFrame' warning\n"
-        "        _display(_HTML(\n"
-        "            '<div><iframe srcdoc=\"' + _htmllib.escape(_doc) + '\" '\n"
-        '            \'width="100%" height="500" \'\n'
-        "            'style=\"border:1px solid #ccc;\"></iframe></div>'\n"
-        "        ))\n"
-        "    except Exception as _e:\n"
-        "        print('(report preview unavailable: ' + repr(_e) + ')')\n"
-        "    return fname\n"
-        "mne.Report.save = _lite_report_save\n"
         "# the logging tutorial reads a KIT file from inside the installed\n"
         "# package; the wheel excludes mne/**/tests, so stage the served copy\n"
         "# into the path the tutorial builds rather than editing the tutorial\n"
@@ -1857,12 +1895,19 @@ JUPYTERLITE_EXCLUDE = (
     # copy step and the badge would have nothing to load.
     "examples/datasets/kernel_phantom.py",
     "examples/io/elekta_epochs.py",
-    # Report renders its forward/inverse/source-estimate sections through the
-    # Brain screenshot path, which the browser renderer has no equivalent for,
-    # and three sections round-trip the report through HDF5. The parts that do
-    # work are not worth a badge that half-renders, so the whole page is hidden
-    # (mne.Report.save itself still previews inline -- see the setup cell).
+    # These want EEGBCI runs 1 and 2, which tools/circleci_download.sh never
+    # fetches (it takes subject 1 runs 3/6/10/14 and run 3 for subjects 2-4),
+    # so the data is not on the machine that builds the docs. eeg_bridging
+    # alone would need run 1 for ten subjects.
+    "examples/visualization/onionskin.py",
+    "examples/preprocessing/muscle_ica.py",
+    "examples/preprocessing/eeg_bridging.py",
+    # Both Report tutorials build their figures by screenshotting a 3D scene
+    # (Report._itv calls backend._take_3d_screenshot), and vtk.js cannot hand a
+    # framebuffer back to Python, so those sections would embed blank images.
+    # 70_report additionally round-trips a report through HDF5.
     "tutorials/intro/70_report.py",
+    "tutorials/preprocessing/14_quality_control_report.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
