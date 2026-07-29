@@ -1671,7 +1671,7 @@ def _chpi_fit_coeffs(
     # one-element list (for _Interp2) with array of shape ``(2, n_freq, n_ch)``
     s_t_0 = np.sin(theta0)
     c_t_0 = np.cos(theta0)
-    return [np.r_[sin_c * c_t_0 + cos_c * s_t_0, cos_c * c_t_0 - sin_c * s_t_0]]
+    return [np.stack([sin_c * c_t_0 + cos_c * s_t_0, cos_c * c_t_0 - sin_c * s_t_0])]
 
 
 def _subtract_chpi(raw, hpi, meg_picks, n_step, n_remove, include_line, interp):
