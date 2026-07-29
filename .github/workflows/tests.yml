@@ -114,7 +114,7 @@ jobs:
           run-install: false
         if: matrix.kind == 'pixi'
       - name: Install development version of MNE into pixi environment
-        run: pixi add --editable --pypi mne '@ file:///Users/runner/work/mne-python/mne-python'
+        run: pixi add --editable --pypi 'mne @ file:///Users/runner/work/mne-python/mne-python'
         if: matrix.kind == 'pixi'
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
