@@ -8,6 +8,7 @@ import json
 import os.path as op
 import re as re
 from configparser import ConfigParser, RawConfigParser
+from pathlib import Path
 
 import numpy as np
 from scipy.io import loadmat
@@ -35,7 +36,12 @@ from ._localized_abbr import _localized_abbr
 
 @fill_doc
 def read_raw_nirx(
-    fname, saturated="annotate", *, preload=False, encoding="latin-1", verbose=None
+    fname: Path | str,
+    saturated: str = "annotate",
+    *,
+    preload: bool | str = False,
+    encoding: str = "latin-1",
+    verbose: bool | str | int | None = None,
 ) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 

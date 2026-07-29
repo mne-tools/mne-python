@@ -59,9 +59,9 @@ n_subjects1, n_subjects2 = 6, 7
 print(f"Simulating data for {n_subjects1} and {n_subjects2} subjects.")
 
 #    Let's make sure our results replicate, so set the seed.
-np.random.seed(0)
-X1 = np.random.randn(n_vertices_fsave, n_times, n_subjects1) * 10
-X2 = np.random.randn(n_vertices_fsave, n_times, n_subjects2) * 10
+rng = np.random.default_rng(0)
+X1 = rng.normal(scale=10, size=(n_vertices_fsave, n_times, n_subjects1))
+X2 = rng.normal(scale=10, size=(n_vertices_fsave, n_times, n_subjects2))
 X1[:, :, :] += stc.data[:, :, np.newaxis]
 # make the activity bigger for the second set of subjects
 X2[:, :, :] += 3 * stc.data[:, :, np.newaxis]
@@ -101,6 +101,7 @@ F_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_test(
     n_permutations=n_permutations,
     threshold=f_threshold,
     buffer_size=None,
+    seed=0,
 )
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).

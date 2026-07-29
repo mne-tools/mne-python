@@ -4,6 +4,7 @@
 
 import json
 import pathlib
+from pathlib import Path
 
 import numpy as np
 
@@ -25,7 +26,11 @@ from .sensors import (
 
 @verbose
 def read_raw_fil(
-    binfile, precision="single", preload=False, *, verbose=None
+    binfile: Path | str,
+    precision: str = "single",
+    preload: bool | str = False,
+    *,
+    verbose: bool | str | int | None = None,
 ) -> "RawFIL":
     """Raw object from FIL-OPMEG formatted data.
 

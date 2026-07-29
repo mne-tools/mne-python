@@ -533,6 +533,7 @@ def test_plot_ica_overlay():
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(
         n_components=2,
+        random_state=0,
     )
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match="longer than"):
@@ -551,7 +552,7 @@ def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -589,7 +590,7 @@ def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]

@@ -1,0 +1,1 @@
+On Linux, :func:`mne.sys_info` now includes the detected windowing system (Wayland or X11), by `Clemens Brunner`_.

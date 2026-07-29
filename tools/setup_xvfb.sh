@@ -9,13 +9,17 @@ for apt_file in `grep -lr microsoft /etc/apt/sources.list.d/`; do
     sudo rm $apt_file
 done
 
+# Give up on a stalled mirror connection quickly and retry instead of hanging (gh-14103)
+APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+
 # This also includes the libraries necessary for Qt6
-sudo apt update
+sudo apt update $APT_OPTS
 # Need two different libxml2 variants for 24.04 and 26.04
 if [[ $(lsb_release -rs) == "26.04" ]]; then
     XML_DEP=libxml2-16
 else
     XML_DEP=libxml2
 fi
-sudo apt install -yqq xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0 libegl1 libosmesa6 mesa-utils libxcb-shape0 libxcb-cursor0 $XML_DEP
+# no -qq: it hides download progress, which trips CircleCI's 10 min no-output timeout
+sudo apt install -y $APT_OPTS xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0 libegl1 libosmesa6 mesa-utils libxcb-shape0 libxcb-cursor0 $XML_DEP
 /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset

@@ -22,14 +22,11 @@ short words. TFCE is described in :footcite:`SmithNichols2009`.
 # %%
 
 import matplotlib.pyplot as plt
-import numpy as np
 from scipy.stats import ttest_ind
 
 import mne
 from mne.channels import find_ch_adjacency, make_1020_channel_selections
 from mne.stats import spatio_temporal_cluster_test
-
-np.random.seed(0)
 
 # Load the data
 path = mne.datasets.kiloword.data_path() / "kword_metadata-epo.fif"
@@ -101,7 +98,7 @@ tfce = dict(start=0.4, step=0.4)  # ideally start and step would be smaller
 
 # Calculate statistical thresholds
 t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_test(
-    X, tfce, adjacency=adjacency, n_permutations=100
+    X, tfce, adjacency=adjacency, n_permutations=100, seed=0
 )  # a more standard number would be 1000+
 significant_points = cluster_pv.reshape(t_obs.shape).T < 0.05
 print(str(significant_points.sum()) + " points selected by TFCE ...")

@@ -3,13 +3,8 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-
-try:
-    from scipy.io.matlab import MatlabFunction, MatlabOpaque
-except ImportError:  # scipy < 1.8
-    from scipy.io.matlab.mio5 import MatlabFunction
-    from scipy.io.matlab.mio5_params import MatlabOpaque
 from scipy.io import loadmat
+from scipy.io.matlab import MatlabFunction, MatlabOpaque
 
 from ...fixes import _whosmat
 from ...utils import _import_pymatreader_funcs, warn

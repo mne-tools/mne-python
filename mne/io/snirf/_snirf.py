@@ -4,6 +4,7 @@
 
 import datetime
 import re
+from pathlib import Path
 
 import numpy as np
 
@@ -70,7 +71,12 @@ _TD_MOMENT_ORDER_MAP = {
 
 @fill_doc
 def read_raw_snirf(
-    fname, optode_frame="unknown", *, sfreq=None, preload=False, verbose=None
+    fname: Path | str,
+    optode_frame: str = "unknown",
+    *,
+    sfreq: float | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
