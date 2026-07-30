@@ -274,9 +274,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     # only keep positive frequencies
     freqs = rfftfreq(n_fft, 1.0 / sfreq)
 
-    # Compute the tapered FFTs in one batched call across all leading dims.
-    # This is faster than looping over signals, at the cost of a larger
-    # temporary than the old per-signal FFT path.
+    # compute FFTs in one batch (faster than looping over tapers but uses more memory)
     x_mt = rfft(x[..., np.newaxis, :] * dpss, n=n_fft, axis=-1)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[..., 0] /= np.sqrt(2.0)
