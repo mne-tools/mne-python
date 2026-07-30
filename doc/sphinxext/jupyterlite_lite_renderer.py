@@ -54,6 +54,34 @@ def _lite_set_view(plotter, azimuth):
     return None
 
 
+# Every scene a notebook drew used to stay live for the kernel's lifetime,
+# because the close helpers on _LiteBackend were no-ops. Track the plotters
+# weakly -- so they stay collectable -- and give close_all something to free.
+_lite_live_plotters = []
+
+
+def _lite_release_plotter(plotter):
+    """Hand back a plotter's meshes, JS arrays and GPU buffers."""
+    import gc as _gc
+    if plotter is None:
+        return None
+    for _i in range(len(_lite_live_plotters) - 1, -1, -1):
+        _p = _lite_live_plotters[_i]()
+        if _p is None or _p is plotter:
+            del _lite_live_plotters[_i]
+    # pyvista-js is someone else's surface, so use whichever teardown of these
+    # it actually implements
+    for _name in ("clear", "deep_clean", "close"):
+        _fn = getattr(plotter, _name, None)
+        if _fn is not None:
+            try:
+                _fn()
+            except Exception:
+                pass
+    _gc.collect()
+    return None
+
+
 class _LiteRenderer:
     """Minimal MNE 3D renderer backed by pyvista-js."""
 
@@ -63,6 +91,8 @@ class _LiteRenderer:
         self._np = _np
         self._pv = _pv
         self.plotter = _pv.Plotter()
+        import weakref as _weakref
+        _lite_live_plotters.append(_weakref.ref(self.plotter))
         _bg = kwargs.get("bgcolor", kwargs.get("background_color", "black"))
         try:
             self.plotter.background_color = self._rgb(_bg)
@@ -99,23 +129,69 @@ class _LiteRenderer:
         return _np.hstack([
             _np.full((len(_t), 1), 3, dtype=_np.int32), _t]).ravel()
 
+    def _subdivide(self, rr, tris):
+        """One level of midpoint subdivision, sharing the new edge vertices."""
+        _np = self._np
+        _rr = [tuple(_v) for _v in _np.asarray(rr, dtype=float)]
+        _mid = {}
+        _out = []
+        for _a, _b, _c in _np.asarray(tris, dtype=int):
+            _m = []
+            for _p, _q in ((_a, _b), (_b, _c), (_c, _a)):
+                _k = (min(int(_p), int(_q)), max(int(_p), int(_q)))
+                if _k not in _mid:
+                    _mid[_k] = len(_rr)
+                    _rr.append(tuple((_np.asarray(_rr[_p])
+                                      + _np.asarray(_rr[_q])) / 2.0))
+                _m.append(_mid[_k])
+            _ab, _bc, _ca = _m
+            _out += [[_a, _ab, _ca], [_ab, _b, _bc], [_ca, _bc, _c],
+                     [_ab, _bc, _ca]]
+        return _np.asarray(_rr, dtype=float), _np.asarray(_out, dtype=int)
+
     def _glyph_template(self, kind, radius=None, height=None, center=None,
                         resolution=None, **kwargs):
-        """Return (rr, tris) for instanced_mesh, oriented along +x.
+        """Return (rr, tris) for a glyph template, oriented along +x.
 
         pyvista-js's Sphere/Cylinder are parametric primitives with no
-        triangle list, so build the templates here. These are markers a few
-        millimetres across, so keep them low-poly -- every instance is a
-        separate mesh and the WASM heap is not large.
+        triangle list, so build the templates here. ``_tile`` then stamps one
+        of these at every position and merges the result, which is what keeps
+        these cheap -- the copies share a single mesh and a single actor.
+
+        Sizes follow the templates ``_pyvista.py`` hands the glyph filter, so
+        the browser draws the markers at the size the rendered docs do.
         """
         _np = self._np
-        if kind == "sphere":
+        if kind in ("sphere", "oct"):
             _r = 0.5 if radius is None else float(radius)
-            rr = _np.array([[_r, 0, 0], [-_r, 0, 0], [0, _r, 0],
-                            [0, -_r, 0], [0, 0, _r], [0, 0, -_r]], float)
+            rr = _np.array([[1.0, 0, 0], [-1.0, 0, 0], [0, 1.0, 0],
+                            [0, -1.0, 0], [0, 0, 1.0], [0, 0, -1.0]], float)
             tris = _np.array([[0, 2, 4], [2, 1, 4], [1, 3, 4], [3, 0, 4],
                               [2, 0, 5], [1, 2, 5], [3, 1, 5], [0, 3, 5]], int)
-            return rr, tris
+            # "oct" is an octahedron on purpose -- that is what _pyvista.py
+            # hands the glyph filter. A "sphere" has to look round, though:
+            # fiducials and dig points are drawn with it, so subdivide onto the
+            # unit sphere to land near the reference's 8x8 sphere (58 verts).
+            if kind == "sphere":
+                for _ in range(2):
+                    rr, tris = self._subdivide(rr, tris)
+                    rr /= _np.linalg.norm(rr, axis=1)[:, None]
+            return rr * _r, tris
+        if kind == "cone":
+            # apex along +x so the glyph filter's orientation applies, matching
+            # pyvista.Cone(center=(0.5, 0, 0)): base at x=0, apex at x=height
+            _r = 0.15 if radius is None else float(radius)
+            _h = 1.0 if height is None else float(height)
+            _n = 8 if not resolution else max(3, int(resolution) // 2)
+            _ang = _np.linspace(0.0, 2 * _np.pi, _n, endpoint=False)
+            _ring = _np.column_stack([_np.zeros(_n), _r * _np.cos(_ang),
+                                      _r * _np.sin(_ang)])
+            rr = _np.vstack([_ring, [[_h, 0, 0]], [[0.0, 0, 0]]])
+            tris = []
+            for _i in range(_n):
+                _j = (_i + 1) % _n
+                tris += [[_i, _j, _n], [_n + 1, _j, _i]]   # side, base
+            return rr, _np.asarray(tris, int)
         # cylinder along +x, matching _cylinder_geom's convention
         _r = 0.1 if radius is None else float(radius)
         _h = 1.0 if height is None else float(height)
@@ -147,6 +223,45 @@ class _LiteRenderer:
             smooth_shading=True)
         return _actor, _pd
 
+    def _rots_from_dirs(self, dirs):
+        """Rotations carrying +x onto each direction, as the glyphs assume."""
+        _np = self._np
+        from mne.transforms import _find_vector_rotation as _fvr
+        _x = _np.array([1.0, 0.0, 0.0])
+        return _np.asarray([_fvr(_x, _d) for _d in dirs], dtype=float)
+
+    def _tile(self, rr, tris, positions, scales=None, rots=None,
+              axis_scales=None):
+        """Stamp one template mesh at many positions as a single mesh.
+
+        ``_pyvista.py`` hands its template to VTK's glyph filter, which bakes
+        every copy into one mesh and adds it once. Doing this per position
+        instead means an oct-6 source space becomes 8196 meshes and 8196
+        actors, which is enough to run the browser tab out of memory.
+        """
+        _np = self._np
+        _rr = _np.asarray(rr, dtype=float)
+        _tris = _np.asarray(tris, dtype=int)
+        _pos = _np.atleast_2d(_np.asarray(positions, dtype=float))[:, :3]
+        _n = len(_pos)
+        _pts = _np.repeat(_rr[None, :, :], _n, axis=0)
+        if axis_scales is not None:
+            # tubes span a given length without fattening, so scale the
+            # template's axis alone
+            _ax = _np.atleast_1d(_np.asarray(axis_scales, dtype=float))
+            _pts[:, :, 0] *= _ax[_np.arange(_n) % len(_ax)][:, None]
+        if scales is not None:
+            _sa = _np.atleast_1d(_np.asarray(scales, dtype=float))
+            _pts *= _sa[_np.arange(_n) % len(_sa)][:, None, None]
+        if rots is not None:
+            _ra = _np.asarray(rots, dtype=float)
+            _pts = _np.einsum(
+                'nij,nkj->nki', _ra[_np.arange(_n) % len(_ra)], _pts)
+        _pts += _pos[:, None, :]
+        _off = (_np.arange(_n) * len(_rr))[:, None, None]
+        return (_pts.reshape(-1, 3),
+                (_tris[None, :, :] + _off).reshape(-1, 3))
+
     # -- drawing ------------------------------------------------------------
     def mesh(self, x, y, z, triangles, color=None, opacity=1.0, *args, **kwargs):
         _np = self._np
@@ -162,92 +277,135 @@ class _LiteRenderer:
                resolution=8, backface_culling=False, radius=None, **kwargs):
         _np = self._np
         _c = _np.atleast_2d(_np.asarray(center, dtype=float))
+        if not len(_c):
+            return None, None
         _r = float(radius if radius is not None else scale)
-        _actor = _mesh = None
-        for _p in _c:
-            _mesh = self._pv.Sphere(
-                radius=_r, center=tuple(float(_q) for _q in _p[:3]))
-            _actor = self.plotter.add_mesh(
-                _mesh, color=self._rgb(color), opacity=float(opacity),
-                smooth_shading=True)
-        return _actor, _mesh
+        _rr, _tris = self._glyph_template("sphere", radius=_r,
+                                          resolution=resolution)
+        _pts, _faces = self._tile(_rr, _tris, _c)
+        return self._add(_pts, _faces, color, opacity)
 
-    def tube(self, origin, destination, radius=0.001, color=None, *args, **kwargs):
+    def tube(self, origin, destination, radius=0.001, color=None, *args,
+             **kwargs):
         _np = self._np
-        _o = _np.atleast_2d(_np.asarray(origin, dtype=float))
-        _d = _np.atleast_2d(_np.asarray(destination, dtype=float))
-        _actor = _mesh = None
-        for _a, _b in zip(_o, _d):
-            _vec = _b[:3] - _a[:3]
-            _len = float(_np.linalg.norm(_vec))
-            if _len == 0.0:
-                continue
-            _mesh = self._pv.Cylinder(
-                center=tuple(float(_q) for _q in (_a[:3] + _b[:3]) / 2.0),
-                direction=tuple(float(_q) for _q in _vec / _len),
-                radius=float(radius), height=_len)
-            _actor = self.plotter.add_mesh(
-                _mesh, color=self._rgb(color), smooth_shading=True)
-        return _actor, _mesh
+        _o = _np.atleast_2d(_np.asarray(origin, dtype=float))[:, :3]
+        _d = _np.atleast_2d(_np.asarray(destination, dtype=float))[:, :3]
+        _n = min(len(_o), len(_d))
+        if not _n:
+            return None, None
+        _vec = _d[:_n] - _o[:_n]
+        _len = _np.linalg.norm(_vec, axis=1)
+        _keep = _len > 0
+        if not _keep.any():
+            return None, None
+        _vec, _len = _vec[_keep], _len[_keep]
+        _ctr = (_o[:_n][_keep] + _d[:_n][_keep]) / 2.0
+        # one unit-height template stretched to each segment, merged into a
+        # single mesh rather than a cylinder primitive per segment
+        _rr, _tris = self._glyph_template("cylinder", radius=float(radius),
+                                          height=1.0)
+        _pts, _faces = self._tile(
+            _rr, _tris, _ctr, rots=self._rots_from_dirs(_vec / _len[:, None]),
+            axis_scales=_len)
+        return self._add(_pts, _faces, color, kwargs.get("opacity", 1.0))
 
     def quiver3d(self, x, y, z, u, v, w, color=None, scale=1.0, mode="arrow",
-                 opacity=1.0, *args, **kwargs):
+                 opacity=1.0, *, glyph_height=None, glyph_center=None,
+                 glyph_resolution=None, glyph_radius=0.15,
+                 solid_transform=None, **kwargs):
+        """Draw one merged glyph mesh, the way the glyph filter would.
+
+        ``_pyvista.py`` builds a template, lets VTK's glyph filter bake a copy
+        at every point into one mesh, and adds that once. Drawing a primitive
+        per point instead is what made ``20_source_alignment`` -- an oct-6
+        source space, so 8196 glyphs, twice -- exhaust the browser tab.
+        """
         _np = self._np
         _x, _y, _z = (_np.atleast_1d(_np.asarray(_q, dtype=float))
                       for _q in (x, y, z))
+        _ctr = _np.column_stack([_x, _y, _z])
+        _n = len(_ctr)
+        if not _n:
+            return None, None
+        _s = float(_np.asarray(scale).ravel()[0]) if _np.size(scale) else 1.0
+        _i = _np.arange(_n)
         _u, _v, _w = (_np.atleast_1d(_np.asarray(_q, dtype=float))
                       for _q in (u, v, w))
-        _s = float(_np.asarray(scale).ravel()[0]) if _np.size(scale) else 1.0
-        _actor = _g = None
-        for _i in range(len(_x)):
-            _ctr = (float(_x[_i]), float(_y[_i]), float(_z[_i]))
-            _dir = (float(_u[_i % len(_u)]), float(_v[_i % len(_v)]),
-                    float(_w[_i % len(_w)]))
-            if _np.linalg.norm(_dir) == 0.0:
-                _dir = (0.0, 0.0, 1.0)
-            if mode == "sphere":
-                _g = self._pv.Sphere(radius=_s / 2.0, center=_ctr)
-            elif mode in ("cylinder", "oct"):
-                _g = self._pv.Cylinder(center=_ctr, direction=_dir,
-                                       radius=_s / 4.0, height=_s)
-            else:  # arrow / cone / 2darrow
-                _g = self._pv.Cone(center=_ctr, direction=_dir,
-                                   height=_s, radius=_s / 2.0)
-            _actor = self.plotter.add_mesh(
-                _g, color=self._rgb(color), opacity=float(opacity),
-                smooth_shading=True)
-        return _actor, _g
+        _dirs = _np.column_stack([_u[_i % len(_u)], _v[_i % len(_v)],
+                                  _w[_i % len(_w)]])
+        _norm = _np.linalg.norm(_dirs, axis=1)
+        _flat = _norm == 0
+        _dirs[_flat] = (1.0, 0.0, 0.0)
+        _norm[_flat] = 1.0
+        _dirs = _dirs / _norm[:, None]
+        # the same templates _pyvista.py feeds the filter; `scale` then plays
+        # the part its `factor` does
+        if mode == "oct":
+            # vtkPlatonicSolidSource puts its octahedron on the unit
+            # circumsphere, and the MRI fiducials get their real size from
+            # solid_transform (mri_fid_scale, 5 mm) rather than from `scale`
+            _kind, _tkw = "oct", dict(radius=1.0)
+        elif mode == "sphere":
+            _kind, _tkw = "sphere", dict(radius=0.5)
+        elif mode == "cylinder":
+            _kind = "cylinder"
+            _tkw = dict(radius=glyph_radius, height=glyph_height,
+                        center=glyph_center, resolution=glyph_resolution)
+        else:  # arrow / cone / 2darrow
+            _kind = "cone"
+            _tkw = dict(radius=glyph_radius, height=glyph_height,
+                        resolution=glyph_resolution)
+        _rr, _tris = self._glyph_template(_kind, **_tkw)
+        if solid_transform is not None:
+            # _pyvista.py transforms the template before glyphing, and this is
+            # where the fiducial markers get their size and 45 deg roll
+            _st = _np.asarray(solid_transform, dtype=float)
+            _rr = _rr @ _st[:3, :3].T + _st[:3, 3]
+        _rots = (None if mode in ("sphere", "oct")
+                 else self._rots_from_dirs(_dirs))
+        _pts, _faces = self._tile(_rr, _tris, _ctr, scales=_s, rots=_rots)
+        return self._add(_pts, _faces, color, opacity)
 
     def instanced_mesh(self, rr, tris, positions, quats=None, colors=None,
                        scales=None, opacity=1.0, *args, **kwargs):
-        # one copy of the template per position; rotate with MNE's own
-        # quaternion helper so oriented glyphs (EEG cylinders) point the way
-        # MNE intended rather than all along +x.
+        """Stamp the template at every position, merged per distinct color.
+
+        Rotate with MNE's own quaternion helper so oriented glyphs (EEG
+        cylinders) point the way MNE intended rather than all along +x.
+        pyvista-js has no per-vertex color, so instances are grouped by the
+        color they asked for and each group becomes one mesh -- a handful of
+        actors for a sensor array instead of one per sensor.
+        """
         _np = self._np
-        _rr = _np.asarray(rr, dtype=float)
-        _pos = _np.atleast_2d(_np.asarray(positions, dtype=float))
-        _quats = None if quats is None else _np.atleast_2d(
-            _np.asarray(quats, dtype=float))
+        _pos = _np.atleast_2d(_np.asarray(positions, dtype=float))[:, :3]
+        _n = len(_pos)
+        if not _n:
+            return None, None
         _rot = None
-        if _quats is not None:
-            try:
-                from mne.transforms import quat_to_rot as _q2r
-                _rot = _q2r(_quats)
-            except Exception:
-                _rot = None
+        if quats is not None:
+            from mne.transforms import quat_to_rot as _q2r
+            _rot = _np.asarray(_q2r(_np.atleast_2d(
+                _np.asarray(quats, dtype=float))), dtype=float)
+        _idx = _np.arange(_n)
+        if colors is not None and _np.ndim(colors) > 1:
+            _ca = _np.asarray(colors)
+            _uniq, _inv = _np.unique(_ca[_idx % len(_ca)], axis=0,
+                                     return_inverse=True)
+            _inv = _np.asarray(_inv).ravel()
+            _groups = [(_uniq[_k], _idx[_inv == _k])
+                       for _k in range(len(_uniq))]
+        else:
+            _groups = [(colors, _idx)]
         _out = (None, None)
-        for _i, _p in enumerate(_pos):
-            _s = 1.0
+        for _col, _sel in _groups:
+            _sc = None
             if scales is not None:
                 _sa = _np.atleast_1d(_np.asarray(scales, dtype=float))
-                _s = float(_sa[_i % len(_sa)])
-            _col = colors
-            if colors is not None and _np.ndim(colors) > 1:
-                _col = _np.asarray(colors)[_i % len(colors)]
-            _pts = _rr * _s
-            if _rot is not None:
-                _pts = _pts @ _np.asarray(_rot[_i % len(_rot)]).T
-            _out = self._add(_pts + _p[:3], tris, _col, opacity)
+                _sc = _sa[_sel % len(_sa)]
+            _rt = None if _rot is None else _rot[_sel % len(_rot)]
+            _pts, _faces = self._tile(rr, tris, _pos[_sel], scales=_sc,
+                                      rots=_rt)
+            _out = self._add(_pts, _faces, _col, opacity)
         return _out
 
     # -- things the static docs do not need ---------------------------------
@@ -344,9 +502,19 @@ class _LiteBackend:
         return None
 
     def _close_3d_figure(self, figure):
+        _lite_release_plotter(figure)
         return None
 
     def _close_all(self):
+        # the registry holds weak references, so deref before releasing --
+        # handing the ref itself to _lite_release_plotter matches nothing and
+        # never shortens the list
+        while _lite_live_plotters:
+            _p = _lite_live_plotters[-1]()
+            if _p is None:
+                _lite_live_plotters.pop()
+            else:
+                _lite_release_plotter(_p)
         return None
 
 
