@@ -90,6 +90,15 @@ class _LiteRenderer:
         import pyvista_js as _pv
         self._np = _np
         self._pv = _pv
+        # plot_alignment(fig=...) and plot_dipole_locations(fig=...) composite
+        # into a scene the notebook already made, so draw into that plotter
+        # rather than opening a second one and splitting the picture in two.
+        # plot_alignment passes it positionally and create_3d_figure by name,
+        # and `fig` is _PyVistaRenderer's first argument, so accept both.
+        _fig = args[0] if args else kwargs.get("fig", None)
+        if _fig is not None and hasattr(_fig, "add_mesh"):
+            self.plotter = _fig
+            return
         self.plotter = _pv.Plotter()
         import weakref as _weakref
         _lite_live_plotters.append(_weakref.ref(self.plotter))
@@ -467,6 +476,17 @@ class _LiteRenderer:
         # pyvista-js has no azimuth/elevation camera; approximate the common
         # views and otherwise leave the default.
         return _lite_set_view(self.plotter, azimuth)
+
+    @property
+    def figure(self):
+        """The scene, under the name the tutorials reach for.
+
+        ``_PyVistaRenderer`` hands out one object as both ``.figure`` and
+        ``.scene()``; ``20_source_alignment`` builds a renderer itself with
+        ``create_3d_figure(scene=False)`` and then passes ``renderer.figure``
+        to ``set_3d_view``, so the two have to stay the same thing here too.
+        """
+        return self.plotter
 
     def scene(self):
         return self.plotter
