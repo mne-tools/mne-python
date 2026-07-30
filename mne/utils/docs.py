@@ -1755,25 +1755,23 @@ docdict["filter_length_notch"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
-    * **'auto' (default)**: The filter length is chosen based
-      on the size of the transition regions (6.6 times the reciprocal
-      of the shortest transition band for fir_window='hamming'
-      and fir_design="firwin2", and half that for "firwin").
-    * **str**: A human-readable time in
-      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-      converted to that number of samples if ``phase="zero"``, or
-      the shortest power-of-two length at least that duration for
-      ``phase="zero-double"``.
-    * **int**: Specified length in samples. For fir_design="firwin",
-      this should not be used.
+    ``"auto"`` (default)
+        The filter length is chosen based on the size of the transition regions (6.6
+        times the reciprocal of the shortest transition band for
+        ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+        ``fir_design="firwin"``).
+    str
+        A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or ``"5500ms"``)
+        will be converted to that number of samples if ``phase="zero"``, or the shortest
+        power-of-two length at least that duration for ``phase="zero-double"``.
+    int
+        Specified length in samples. For ``fir_design="firwin"``, this should not be
+        used.
 
-    When ``method=='spectrum_fit'``, this sets the effective window duration
-    over which fits are computed. See :func:`mne.filter.create_filter`
-    for options. Longer window lengths will give more stable frequency
-    estimates, but require (potentially much) more processing and are not able
-    to adapt as well to non-stationarities.
-
-    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
+    When ``method=='spectrum_fit'``, this sets the effective window duration over which
+    fits are computed. Longer window lengths will give more stable frequency estimates,
+    but require (potentially much) more processing and are not able to adapt as well to
+    non-stationarities. The default ``"auto"`` corresponds to ``"10s"``.
 """
 
 docdict["fir_design"] = """
