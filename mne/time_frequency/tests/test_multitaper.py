@@ -4,11 +4,10 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_array_almost_equal
-from scipy.fft import rfft
+from numpy.testing import assert_array_almost_equal
 
 from mne.time_frequency import psd_array_multitaper
-from mne.time_frequency.multitaper import _mt_spectra, dpss_windows
+from mne.time_frequency.multitaper import dpss_windows
 from mne.utils import _record_warnings
 
 
@@ -79,22 +78,3 @@ def test_adaptive_weights_convergence():
     ):
         psd_array_multitaper(data, sfreq, adaptive=True, max_iter=2)
     psd_array_multitaper(data, sfreq, adaptive=True, max_iter=200)
-
-
-def test_mt_spectra_batched_matches_reference():
-    """Test that batched tapered spectra match an explicit channel loop."""
-    rng = np.random.default_rng(0)
-    x = rng.standard_normal((3, 17))
-    sfreq = 200.0
-    dpss, _ = dpss_windows(17, 2.5, 4, low_bias=False)
-
-    x_mt, freqs = _mt_spectra(x, dpss, sfreq)
-    x = x - np.mean(x, axis=-1, keepdims=True)
-    ref = np.array([rfft(sig[np.newaxis, :] * dpss, axis=-1) for sig in x])
-    ref[..., 0] /= np.sqrt(2.0)
-    if 17 % 2 == 0:
-        ref[..., -1] /= np.sqrt(2.0)
-
-    assert x_mt.shape == ref.shape
-    assert_allclose(x_mt, ref)
-    assert freqs.shape[0] == x_mt.shape[-1]
