@@ -4,7 +4,7 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_almost_equal
 from scipy.fft import rfft
 
 from mne.time_frequency import psd_array_multitaper
