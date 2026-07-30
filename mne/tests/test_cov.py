@@ -538,6 +538,30 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     pytest.raises(TypeError, compute_covariance, epochs, projs=["foo"])
 
 
+def test_cov_estimation_evoked():
+    """Test covariance estimation from an evoked response."""
+    evoked = read_evokeds(
+        ave_fname, condition=0, baseline=(None, 0), proj=False, verbose=False
+    )
+    evoked.pick(evoked.ch_names[:12])
+    evoked.del_proj()
+
+    tmin, tmax = -0.1, 0.2
+    cov = compute_covariance(
+        evoked, tmin=tmin, tmax=tmax, projs=[], rank="full", verbose=False
+    )
+    time_mask = (tmin <= evoked.times) & (evoked.times <= tmax)
+    data = evoked.data[:, time_mask]
+    expected = data @ data.T / (data.shape[1] - 1)
+
+    assert_allclose(cov.data, expected)
+    assert cov.ch_names == evoked.ch_names
+    assert cov.nfree == data.shape[1] - 1
+
+    with pytest.raises(ValueError, match="keep_sample_mean=False.*Evoked"):
+        compute_covariance(evoked, keep_sample_mean=False, verbose=False)
+
+
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices."""
     cov = read_cov(cov_fname)
