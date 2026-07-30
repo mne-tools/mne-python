@@ -1768,7 +1768,7 @@ filter_length : str | int
         Specified length in samples. For ``fir_design="firwin"``, this should not be
         used.
 
-    When ``method=='spectrum_fit'``, this sets the effective window duration over which
+    When ``method=="spectrum_fit"``, this sets the effective window duration over which
     fits are computed. Longer window lengths will give more stable frequency estimates,
     but require (potentially much) more processing and are not able to adapt as well to
     non-stationarities. The default ``"auto"`` corresponds to ``"10s"``.
