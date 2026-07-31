@@ -53,7 +53,12 @@ from tomlkit.items import Comment, Trivia
 from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = [
+    "dipy",
     "matplotlib",
+    "mne-qt-browser",
+    "nibabel",
+    "nilearn",
+    "numba",
     "numpy",
     "pandas",
     "pyvista",

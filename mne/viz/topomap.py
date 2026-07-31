@@ -2420,7 +2420,7 @@ def plot_evoked_topomap(
         interactive_colorbar=True,
         single_time_point=False,
     )
-    plt_show(show, block=False)
+    plt_show(show)
     if axes is not None:
         fig.canvas.draw()
     return fig

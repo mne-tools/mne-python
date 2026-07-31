@@ -73,9 +73,7 @@ def requires_openmeeg_mark():
     """Mark pytest tests that require OpenMEEG."""
     import pytest
 
-    return pytest.mark.skipif(
-        not check_version("openmeeg", "2.5.6"), reason="Requires OpenMEEG >= 2.5.6"
-    )
+    return pytest.mark.skipif(not check_version("openmeeg"), reason="Requires OpenMEEG")
 
 
 def requires_freesurfer(arg):
@@ -384,16 +382,6 @@ def _click_ch_name(fig, ch_index=0, button=1):
     x = bbox.intervalx.mean()
     y = bbox.intervaly.mean()
     _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)
-
-
-def _get_suptitle(fig):
-    """Get fig suptitle (shim for matplotlib < 3.8.0)."""
-    # TODO: obsolete when minimum MPL version is 3.8
-    if check_version("matplotlib", "3.8"):
-        return fig.get_suptitle()
-    else:
-        # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
-        return fig.texts[0].get_text()
 
 
 def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):

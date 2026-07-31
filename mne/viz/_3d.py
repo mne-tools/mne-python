@@ -70,9 +70,9 @@ from ..utils import (
     _ensure_int,
     _import_nibabel,
     _pl,
+    _soft_import,
     _to_rgb,
     _validate_type,
-    check_version,
     fill_doc,
     get_config,
     get_subjects_dir,
@@ -3101,8 +3101,7 @@ def plot_volume_source_estimates(
     from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
-    if not check_version("nilearn", "0.4"):
-        raise RuntimeError("This function requires nilearn >= 0.4")
+    _soft_import("nilearn", "plotting volume source estimates")
 
     from nilearn.image import index_img
 

@@ -44,7 +44,6 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
-    check_version,
     numerics,
 )
 from mne.viz._figure import use_browser_backend
@@ -667,11 +666,6 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
-# Skip functions or modules for mne-qt-browser < 0.2.0
-pre_2_0_skip_modules = ["mne.viz.tests.test_epochs", "mne.viz.tests.test_ica"]
-pre_2_0_skip_funcs = ["test_plot_raw_white", "test_plot_raw_selection"]
-
-
 def _check_pyqtgraph(request):
     # Check Qt
     qt_version, api = _check_qt_version(return_api=True)
@@ -681,17 +675,6 @@ def _check_pyqtgraph(request):
         )
     try:
         import mne_qt_browser  # noqa: F401
-
-        # Check mne-qt-browser version
-        lower_2_0 = _compare_version(mne_qt_browser.__version__, "<", "0.2.0")
-        m_name = request.function.__module__
-        f_name = request.function.__name__
-        if lower_2_0 and m_name in pre_2_0_skip_modules:
-            pytest.skip(
-                f'Test-Module "{m_name}" was skipped for mne-qt-browser < 0.2.0'
-            )
-        elif lower_2_0 and f_name in pre_2_0_skip_funcs:
-            pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
 
@@ -834,7 +817,7 @@ def _check_skip_backend(name):
 def pixel_ratio(qapp):
     """Get the pixel ratio."""
     # _check_qt_version will init an app for us, so no need for us to do it
-    if not check_version("pyvista", "0.32") or not _check_qt_version():
+    if not _check_qt_version():
         return 1.0
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow

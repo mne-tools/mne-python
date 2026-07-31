@@ -137,6 +137,8 @@ class Brain:
            Add support for non-string arguments.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
+
+        See :meth:`set_cortex_alpha` to change this after creation.
     size : int | array-like, shape (2,)
         The size of the window, in pixels. can be one number to specify
         a square window, or a length-2 sequence to specify (width, height).
@@ -182,6 +184,9 @@ class Brain:
 
        .. versionchanged:: 1.13
           The default ``decimate`` value changed from ``0.9`` to ``"ico5"``.
+
+       See :meth:`set_silhouette_line_width` to change the line width (or
+       show/hide the silhouette) after creation.
     %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
@@ -399,7 +404,9 @@ class Brain:
             self.silhouette = True
         else:
             self.silhouette = silhouette
+        self._silhouette_actors = []
         self._scalar_bar = None
+        self._scalar_bar_ticks = None
         # for now only one time label can be added
         # since it is the same for all figures
         self._time_label_added = False
@@ -473,34 +480,10 @@ class Brain:
                 else:
                     actor = self.layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor, render=False)
-                if self.silhouette:
-                    mesh = self.layered_meshes[h]
-                    decimate = self._silhouette["decimate"]
-                    if isinstance(decimate, str):
-                        import pyvista as pv
-
-                        vertno, tris = _decimate_surface_ico_oct(
-                            self._subject,
-                            self._subjects_dir,
-                            h,
-                            self.geo[h].surf,
-                            decimate,
-                        )
-                        sil_mesh = pv.PolyData(
-                            self.geo[h].coords[vertno],
-                            np.c_[np.full(len(tris), 3), tris],
-                        )
-                        decimate = None  # already decimated
-                    else:
-                        sil_mesh = mesh._polydata
-                    self._renderer._silhouette(
-                        mesh=sil_mesh,
-                        color=self._silhouette["color"],
-                        line_width=self._silhouette["line_width"],
-                        alpha=self._silhouette["alpha"],
-                        decimate=decimate,
-                    )
                 self._set_camera(**views_dicts[h][v])
+
+        if self.silhouette:
+            self._add_silhouette()
 
         self.interaction = interaction
         self._closed = False
@@ -591,6 +574,8 @@ class Brain:
         self._picked_patches = {key: list() for key in all_keys}
         self._picked_points = dict()
         self._mouse_no_mvt = -1
+        self._show_hover_info = False
+        self._hover_caption = None
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -626,6 +611,7 @@ class Brain:
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
+        self._configure_hover()
         self._configure_dock()
         self._configure_tool_bar()
         self._configure_status_bar()
@@ -654,6 +640,9 @@ class Brain:
         # clear init actors
         for hemi in self.layered_meshes:
             self.layered_meshes[hemi]._clean()
+        for actor in getattr(self, "_silhouette_actors", None) or ():
+            self.plotter.remove_actor(actor)
+        self._silhouette_actors = None
         self._clear_callbacks()
         self._clear_widgets()
         if getattr(self, "mpl_canvas", None) is not None:
@@ -687,6 +676,8 @@ class Brain:
             "picked_renderer",
             "act_data_smooth",
             "_scalar_bar",
+            "_scalar_bar_ticks",
+            "_hover_caption",
             "actions",
             "widgets",
             "geo",
@@ -775,6 +766,8 @@ class Brain:
             self._scalar_bar.SetHeight(0.6)
             self._scalar_bar.SetWidth(0.05)
             self._scalar_bar.SetPosition(0.02, 0.2)
+            # the tick actor repositions itself on every render (see
+            # _add_scalarbar_ticks), so no explicit update is needed here
 
     def _configure_dock_playback_widget(self, name):
         len_time = len(self._data["time"]) - 1
@@ -812,7 +805,7 @@ class Brain:
         del current_time
 
     def _configure_dock_orientation_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
         # Renderer widget
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
@@ -868,13 +861,31 @@ class Brain:
             layout=layout,
         )
 
+    def _configure_dock_surface_widget(self, name):
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
+        self.widgets["cortex_alpha"] = self._renderer._dock_add_slider(
+            name="Alpha",
+            value=self._alpha,
+            rng=[0.0, 1.0],
+            callback=self.set_cortex_alpha,
+            double=True,
+            layout=layout,
+        )
+        self.widgets["silhouette"] = self._renderer._dock_add_spin_box(
+            name="Silhouette",
+            value=self._silhouette["line_width"] if self.silhouette else 0.0,
+            rng=[0.0, 10.0],
+            callback=self.set_silhouette_line_width,
+            layout=layout,
+        )
+
     def _configure_dock_colormap_widget(self, name):
         self._active_data_key = next(iter(self._all_data))
         fmax, fscale, fscale_power = _get_range(self)
         rng = [0, fmax * fscale]
         self._data["fscale"] = fscale
 
-        layout = self._renderer._dock_add_group_box(name)
+        layout = self._renderer._dock_add_group_box(name, collapse=False)
 
         @_auto_weakref
         def select_data_key(value):
@@ -961,6 +972,16 @@ class Brain:
             style="toolbutton",
         )
         self._renderer._layout_add_widget(layout, hlayout)
+
+        self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
+            name="Smoothing",
+            value=self._data["smoothing_steps"],
+            rng=self.default_smoothing_range,
+            callback=self.set_data_smoothing,
+            double=False,
+            layout=layout,
+        )
+
         self._update_colormap_range()
 
     def _refresh_colormap_widgets(self):
@@ -998,7 +1019,7 @@ class Brain:
             self._configure_vertex_time_course()
             return
 
-        layout = self._renderer._dock_add_group_box(name)
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
 
         # setup candidate annots
         @_auto_weakref
@@ -1070,19 +1091,10 @@ class Brain:
     def _configure_dock(self):
         self._renderer._dock_initialize()
         self._configure_dock_playback_widget(name="Playback")
-        self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_colormap_widget(name="Color Limits")
+        self._configure_dock_orientation_widget(name="Orientation")
+        self._configure_dock_surface_widget(name="Surface")
         self._configure_dock_trace_widget(name="Trace")
-
-        # Smoothing widget
-        self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
-            name="Smoothing",
-            value=self._data["smoothing_steps"],
-            rng=self.default_smoothing_range,
-            callback=self.set_data_smoothing,
-            double=False,
-        )
-
         self._renderer._dock_finalize()
 
     def _configure_mplcanvas(self):
@@ -1198,6 +1210,74 @@ class Brain:
         )
         subscribe(self, "vertex_select", self._on_vertex_select)
 
+    def _configure_hover(self):
+        self._hover_caption = self._create_caption()
+        self.plotter.add_actor(
+            self._hover_caption,
+            name=None,
+            culling=False,
+            pickable=False,
+            reset_camera=False,
+            render=False,
+        )
+
+        @_auto_weakref
+        def on_surface_hover(iren, event):
+            self._on_surface_hover(iren, event)
+
+        self.plotter.iren.add_observer("MouseMoveEvent", on_surface_hover)
+
+    def _on_surface_hover(self, iren, event):  # event == "MouseMoveEvent"
+        if not self._show_hover_info:
+            return
+        from pyvista import DataSetMapper
+
+        x, y = iren.GetEventPosition()
+        picked_renderer = iren.FindPokedRenderer(x, y)
+        vtk_picker = self._renderer._picker
+        vtk_picker.Pick(x, y, 0, picked_renderer)
+        cell_id = vtk_picker.GetCellId()
+        mapper = vtk_picker.GetMapper()
+        if not isinstance(mapper, DataSetMapper) or cell_id == -1:
+            if self._hover_caption.GetVisibility():
+                self._hover_caption.SetVisibility(False)
+                self._renderer._update()
+            return  # didn't find a mesh
+        for _, this_mesh in self.layered_meshes.items():
+            if this_mesh._polydata is mapper.dataset:
+                mesh = this_mesh._polydata
+                break
+        else:
+            return
+        pos = np.array(vtk_picker.GetPickPosition())
+        vtk_cell = mesh.GetCell(cell_id)
+        cell = [
+            vtk_cell.GetPointId(point_id)
+            for point_id in range(vtk_cell.GetNumberOfPoints())
+        ]
+        vert_pos = mesh.points[cell]
+        vertex_id = cell[np.argmin(np.linalg.norm(vert_pos - pos, axis=1))]
+        _, _, azimuth, elevation, _ = self._renderer.get_camera(rigid=self._rigid)
+        text = (
+            f"vertex {vertex_id}\n"
+            f"({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}) mm\n"
+            f"az {azimuth:.0f}\N{DEGREE SIGN}  el {elevation:.0f}\N{DEGREE SIGN}"
+        )
+        self._hover_caption.SetCaption(text)
+        self._hover_caption.SetAttachmentPoint(*pos)
+        self._hover_caption.SetVisibility(True)
+        actor = self._hover_caption.GetTextActor()
+        wh = np.zeros(2)
+        actor.GetSize(self.plotter.renderer, wh)
+        self._hover_caption.SetPosition2(wh)
+        self._renderer._update()
+
+    def _toggle_hover_info(self):
+        self._show_hover_info = not self._show_hover_info
+        if not self._show_hover_info and self._hover_caption is not None:
+            self._hover_caption.SetVisibility(False)
+            self._renderer._update()
+
     def _configure_tool_bar(self):
         if not hasattr(self._renderer, "_tool_bar") or self._renderer._tool_bar is None:
             self._renderer._tool_bar_initialize(name="Toolbar")
@@ -1240,6 +1320,12 @@ class Brain:
             desc="Clear traces",
             func=self.clear_glyphs,
         )
+        self._renderer._tool_bar_add_button(
+            name="hover_info",
+            desc="Toggle vertex/camera hover info",
+            func=self._toggle_hover_info,
+            icon_name="information",
+        )
         self._renderer._tool_bar_add_spacer()
         self._renderer._tool_bar_add_button(
             name="help",
@@ -1263,13 +1349,14 @@ class Brain:
 
     def _configure_shortcuts(self):
         # Remove the default key binding
-        if getattr(self, "iren", None) is not None:
+        if getattr(self.plotter, "iren", None) is not None:
             self.plotter.iren.clear_key_event_callbacks()
         # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event("v", self._toggle_hover_info)
         for key, which, amt in (
             ("Left", "azimuth", 10),
             ("Right", "azimuth", -10),
@@ -1658,6 +1745,7 @@ class Brain:
             ("s", "Apply auto-scaling"),
             ("r", "Restore original clim"),
             ("c", "Clear all traces"),
+            ("v", "Toggle vertex/camera hover info"),
             ("n", "Shift the time forward by the playback speed"),
             ("b", "Shift the time backward by the playback speed"),
             ("Space", "Start/Pause playback"),
@@ -2013,6 +2101,9 @@ class Brain:
         self._all_data[key]["fmid"] = fmid
         self._all_data[key]["fmax"] = fmax
         self._all_data[key]["colorbar_fmt"] = (colorbar_kwargs or {}).get("fmt")
+        self._all_data[key]["colorbar_title"] = (colorbar_kwargs or {}).get(
+            "title", key if key != "data" else None
+        )
         self.set_time_interpolation(self.time_interpolation)
         self._update_colormap_range()
 
@@ -2067,7 +2158,9 @@ class Brain:
                     fmt=_auto_scalar_bar_fmt(self._cmap_range),
                 )
                 kwargs.update(colorbar_kwargs or {})
-                self._scalar_bar = self._renderer.scalarbar(**kwargs)
+                self._scalar_bar, self._scalar_bar_ticks = self._renderer.scalarbar(
+                    **kwargs
+                )
             self._set_camera(**views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity (and render)
@@ -3657,6 +3750,72 @@ class Brain:
             )
         return img
 
+    def set_cortex_alpha(self, alpha):
+        """Set the opacity of the cortical surface.
+
+        Parameters
+        ----------
+        alpha : float
+            The opacity of the cortical surface, between 0 and 1.
+        """
+        self._alpha = float(alpha)
+        for hemi in self._hemis:
+            self.layered_meshes[hemi].update_overlay("curv", opacity=self._alpha)
+        self._renderer._update()
+
+    def _add_silhouette(self):
+        self._silhouette_actors = []
+        for h in self._hemis:
+            mesh = self.layered_meshes[h]
+            for _, _, v in self._iter_views(h):
+                self._set_camera(**views_dicts[h][v])
+                decimate = self._silhouette["decimate"]
+                if isinstance(decimate, str):
+                    import pyvista as pv
+
+                    vertno, tris = _decimate_surface_ico_oct(
+                        self._subject, self._subjects_dir, h, self.geo[h].surf, decimate
+                    )
+                    sil_mesh = pv.PolyData(
+                        self.geo[h].coords[vertno],
+                        np.c_[np.full(len(tris), 3), tris],
+                    )
+                    decimate = None  # already decimated
+                else:
+                    sil_mesh = mesh._polydata
+                actor = self._renderer._silhouette(
+                    mesh=sil_mesh,
+                    color=self._silhouette["color"],
+                    line_width=self._silhouette["line_width"],
+                    alpha=self._silhouette["alpha"],
+                    decimate=decimate,
+                )
+                self._silhouette_actors.append(actor)
+
+    def set_silhouette_line_width(self, line_width):
+        """Set the width of the cortical surface silhouette outline.
+
+        Parameters
+        ----------
+        line_width : float
+            The silhouette line width. A value of ``0`` hides the
+            silhouette entirely.
+        """
+        line_width = float(line_width)
+        self._silhouette["line_width"] = line_width
+        if line_width <= 0:
+            self.silhouette = False
+            for actor in self._silhouette_actors:
+                actor.SetVisibility(False)
+        else:
+            self.silhouette = True
+            if not self._silhouette_actors:
+                self._add_silhouette()
+            for actor in self._silhouette_actors:
+                actor.GetProperty().SetLineWidth(line_width)
+                actor.SetVisibility(True)
+        self._renderer._update()
+
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update the range of the color map.
@@ -3706,6 +3865,10 @@ class Brain:
         rng = self._cmap_range
         ctable = self._data["ctable"]
         fmt = self._data["colorbar_fmt"] or _auto_scalar_bar_fmt(rng)
+        if self._scalar_bar is not None:
+            self._renderer.set_scalarbar_title(
+                self._scalar_bar, self._data["colorbar_title"]
+            )
         for hemi in ["lh", "rh", "vol"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
