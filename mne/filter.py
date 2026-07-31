@@ -6,7 +6,7 @@
 
 from collections import Counter
 from copy import deepcopy
-from functools import cache, partial
+from functools import lru_cache, partial
 from math import gcd
 
 import numpy as np
@@ -1586,7 +1586,7 @@ def notch_filter(
     return xf
 
 
-@cache
+@lru_cache
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     from .time_frequency.multitaper import _compute_mt_params
 

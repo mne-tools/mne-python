@@ -274,8 +274,12 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     # only keep positive frequencies
     freqs = rfftfreq(n_fft, 1.0 / sfreq)
 
-    # compute FFTs in one batch (faster than looping over tapers but uses more memory)
-    x_mt = rfft(x[..., np.newaxis, :] * dpss, n=n_fft, axis=-1)
+    # The following is equivalent to this, but uses less memory:
+    # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
+    n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
+    x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)), dtype=np.complex128)
+    for idx, sig in enumerate(x):
+        x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[..., 0] /= np.sqrt(2.0)
     if n_fft % 2 == 0:
