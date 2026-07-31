@@ -15,7 +15,6 @@ from datetime import date, datetime, timedelta, timezone
 from io import BytesIO, StringIO
 from math import ceil, sqrt
 from pathlib import Path
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 from scipy import sparse
@@ -732,17 +731,9 @@ def object_size(x, memo=None):
 
 
 def _is_sparse_cs(x):
-    with catch_warnings(category=DeprecationWarning):
-        filterwarnings(
-            action="ignore",
-            message=r"(csr|csc)_matrix is being replaced by \1_array",
-            category=DeprecationWarning,
-            module="scipy",
-        )
-        return isinstance(
-            x,
-            sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array,
-        )
+    return isinstance(
+        x, sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array
+    )
 
 
 def _sort_keys(x):

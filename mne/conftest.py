@@ -228,6 +228,8 @@ def pytest_configure(config: pytest.Config):
     # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
     ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
     ignore:Implicitly cleaning up.*:ResourceWarning
+    # Scipy deprecation warning via sklearn (present as of sklearn 1.10.dev0 2026-09-31)
+    ignore:(csr|csc|coo)_matrix is being replaced by \1_array
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
