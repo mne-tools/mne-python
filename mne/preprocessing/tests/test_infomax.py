@@ -33,12 +33,10 @@ def center_and_norm(x, axis=-1):
 
 def test_infomax_blowup():
     """Test the infomax algorithm blowup condition."""
-    # scipy.stats uses the global RNG:
-    np.random.seed(0)
     n_samples = 100
     # Generate two sources:
     s1 = (2 * np.sin(np.linspace(0, 100, n_samples)) > 0) - 1
-    s2 = stats.t.rvs(1, size=n_samples)
+    s2 = stats.t.rvs(1, size=n_samples, random_state=0)
     s = np.c_[s1, s2].T
     center_and_norm(s)
     s1, s2 = s
@@ -52,8 +50,8 @@ def test_infomax_blowup():
 
     center_and_norm(m)
 
-    X = _get_pca().fit_transform(m.T)
-    k_ = infomax(X, extended=True, l_rate=0.1)
+    X = _get_pca(0).fit_transform(m.T)
+    k_ = infomax(X, extended=True, l_rate=0.1, random_state=0)
     s_ = np.dot(k_, X.T)
 
     center_and_norm(s_)
@@ -72,13 +70,11 @@ def test_infomax_blowup():
 
 def test_infomax_simple():
     """Test the infomax algorithm on very simple data."""
-    rng = np.random.RandomState(0)
-    # scipy.stats uses the global RNG:
-    np.random.seed(0)
+    rng = np.random.default_rng(0)
     n_samples = 500
     # Generate two sources:
     s1 = (2 * np.sin(np.linspace(0, 100, n_samples)) > 0) - 1
-    s2 = stats.t.rvs(1, size=n_samples)
+    s2 = stats.t.rvs(1, size=n_samples, random_state=0)
     s = np.c_[s1, s2].T
     center_and_norm(s)
     s1, s2 = s
@@ -91,13 +87,13 @@ def test_infomax_simple():
     for add_noise in (False, True):
         m = np.dot(mixing, s)
         if add_noise:
-            m += 0.1 * rng.randn(2, n_samples)
+            m += rng.normal(scale=0.1, size=(2, n_samples))
         center_and_norm(m)
 
         algos = [True, False]
         for algo in algos:
-            X = _get_pca().fit_transform(m.T)
-            k_ = infomax(X, extended=algo)
+            X = _get_pca(0).fit_transform(m.T)
+            k_ = infomax(X, extended=algo, random_state=0)
             s_ = np.dot(k_, X.T)
 
             center_and_norm(s_)
@@ -120,11 +116,12 @@ def test_infomax_simple():
 
 def test_infomax_weights_ini():
     """Test the infomax algorithm w/initial weights matrix."""
-    X = np.random.random((3, 100))
+    rng = np.random.default_rng(0)
+    X = rng.random((3, 100))
     weights = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64)
 
-    w1 = infomax(X, max_iter=0, weights=weights, extended=True)
-    w2 = infomax(X, max_iter=0, weights=weights, extended=False)
+    w1 = infomax(X, max_iter=0, weights=weights, extended=True, random_state=0)
+    w2 = infomax(X, max_iter=0, weights=weights, extended=False, random_state=0)
 
     assert_almost_equal(w1, weights)
     assert_almost_equal(w2, weights)
@@ -132,7 +129,7 @@ def test_infomax_weights_ini():
 
 def test_non_square_infomax():
     """Test non-square infomax."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
 
     n_samples = 200
     # Generate two sources:
@@ -145,18 +142,18 @@ def test_non_square_infomax():
 
     # Mixing matrix
     n_observed = 6
-    mixing = rng.randn(n_observed, 2)
+    mixing = rng.standard_normal((n_observed, 2))
     for add_noise in (False, True):
         m = np.dot(mixing, s)
 
         if add_noise:
-            m += 0.1 * rng.randn(n_observed, n_samples)
+            m += rng.normal(scale=0.1, size=(n_observed, n_samples))
 
         center_and_norm(m)
         m = m.T
-        m = _get_pca(rng).fit_transform(m)
+        m = _get_pca(0).fit_transform(m)
         # we need extended since input signals are sub-gaussian
-        unmixing_ = infomax(m, random_state=rng, extended=True)
+        unmixing_ = infomax(m, random_state=0, extended=True)
         s_ = np.dot(unmixing_, m.T)
         # Check that the mixing model described in the docstring holds:
         mixing_ = pinv(unmixing_.T)
@@ -181,9 +178,12 @@ def test_non_square_infomax():
 @pytest.mark.parametrize("return_n_iter", [True, False])
 def test_infomax_n_iter(return_n_iter):
     """Test the return_n_iter kwarg."""
-    X = np.random.random((3, 100))
+    rng = np.random.default_rng(0)
+    X = rng.random((3, 100))
     max_iter = 1
-    r = infomax(X, max_iter=max_iter, extended=True, return_n_iter=return_n_iter)
+    r = infomax(
+        X, max_iter=max_iter, extended=True, return_n_iter=return_n_iter, random_state=0
+    )
 
     if return_n_iter:
         assert isinstance(r, tuple)

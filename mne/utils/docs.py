@@ -809,7 +809,7 @@ clim : str | dict
 """
 
 _cmap_template = """
-cmap : matplotlib colormap | str{allowed}
+cmap : str | matplotlib.colors.Colormap{allowed}
         The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
         valid Matplotlib colormap name. Default is {default}.
 """
@@ -821,7 +821,7 @@ docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
 docdict["cmap_topomap"] = """\
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
     interactive mode the colors are adjustable by clicking and dragging the
@@ -838,7 +838,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 """
 
 docdict["cmap_topomap_simple"] = """
-cmap : matplotlib colormap | None
+cmap : str | matplotlib.colors.Colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """
@@ -1721,6 +1721,14 @@ fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background. Defaults to black.
 """
 
+docdict["figure_class"] = """
+figure_class : class
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
+    to pass a subclass in order to customize the plot. This parameter requires
+    cooperation from the backend, and is currently only supported by the
+    ``matplotlib`` backend.
+"""
+
 docdict["filter_length"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
@@ -1747,25 +1755,23 @@ docdict["filter_length_notch"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
-    * **'auto' (default)**: The filter length is chosen based
-      on the size of the transition regions (6.6 times the reciprocal
-      of the shortest transition band for fir_window='hamming'
-      and fir_design="firwin2", and half that for "firwin").
-    * **str**: A human-readable time in
-      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-      converted to that number of samples if ``phase="zero"``, or
-      the shortest power-of-two length at least that duration for
-      ``phase="zero-double"``.
-    * **int**: Specified length in samples. For fir_design="firwin",
-      this should not be used.
+    ``"auto"`` (default)
+        The filter length is chosen based on the size of the transition regions (6.6
+        times the reciprocal of the shortest transition band for
+        ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+        ``fir_design="firwin"``).
+    str
+        A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or ``"5500ms"``)
+        will be converted to that number of samples if ``phase="zero"``, or the shortest
+        power-of-two length at least that duration for ``phase="zero-double"``.
+    int
+        Specified length in samples. For ``fir_design="firwin"``, this should not be
+        used.
 
-    When ``method=='spectrum_fit'``, this sets the effective window duration
-    over which fits are computed. See :func:`mne.filter.create_filter`
-    for options. Longer window lengths will give more stable frequency
-    estimates, but require (potentially much) more processing and are not able
-    to adapt as well to non-stationarities.
-
-    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
+    When ``method=="spectrum_fit"``, this sets the effective window duration over which
+    fits are computed. Longer window lengths will give more stable frequency estimates,
+    but require (potentially much) more processing and are not able to adapt as well to
+    non-stationarities. The default ``"auto"`` corresponds to ``"10s"``.
 """
 
 docdict["fir_design"] = """
@@ -2569,6 +2575,13 @@ docdict["mask_evoked_topomap"] = _mask_base.format(
     example=" (useful for, e.g. marking which channels at which times a "
     "statistical test of the data reaches significance)",
 )
+docdict["mask_label_params_topomap"] = """
+mask_label_params : dict | None
+    Additional plotting parameters for significant sensor labels.
+    Default (None) equals::
+
+        dict(fontsize='medium', fontweight='bold')
+"""
 docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -3220,6 +3233,15 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.20.1
 """
 
+docdict["on_outside_epochs"] = """
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["on_rank_mismatch"] = """
 on_rank_mismatch : str
     If an explicit MEG value is passed, what to do when it does not match
@@ -3855,9 +3877,21 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict["regularize_maxwell_reg"] = """
 regularize : str | None
-    Basis regularization type, must be ``"in"`` or None.
-    ``"in"`` is the same algorithm as the ``-regularize in`` option in
-    MaxFilter™.
+    Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+    Both ``"in"`` options use the same information-theoretic component ordering
+    as the ``-regularize in`` option in MaxFilter™, and differ only in where
+    the total-information curve is cut:
+
+    ``"in"`` (default)
+      Keeps the components giving at least 98% of the peak total information. The curve
+      can be quite flat, so this errs on the side of including rather than excluding
+      components. This is the criterion MaxFilter™ 3.0 uses.
+    ``"in_argmax"``
+      Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+      Use this to match MaxFilter™ 2.2 output more closely; it generally excludes more
+      components than ``"in"``.
+
+      .. versionadded:: 1.13
 """
 
 
@@ -4229,7 +4263,13 @@ shape : tuple of int
 
 docdict["show"] = """\
 show : bool
-    Show the figure if ``True``.
+    Show the figure if ``True``. When shown, blocking follows
+    :func:`matplotlib.pyplot.show`: the call blocks until the window is closed unless
+    Matplotlib's interactive mode is on (enabled with :func:`matplotlib.pyplot.ion` or
+    IPython's ``%%matplotlib`` magic command), in which case it returns immediately.
+    Interactive mode is off by default, so a plain script or REPL blocks. Pass
+    ``show=False`` to build several figures and display them together with a single
+    :func:`matplotlib.pyplot.show` call.
 """
 
 docdict["show_names_topomap"] = """
@@ -4269,6 +4309,17 @@ show_traces : bool | str | float
     equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
+"""
+
+docdict["show_zero_line"] = """
+show_zero_line : bool
+    Whether to show the zero line for each channel trace when the plot is
+    initialized. The line always marks the true zero of the channel, even
+    if the currently-visible window's mean has been subtracted for display
+    (see ``remove_dc``). Can be toggled after initialization by pressing
+    :kbd:`0` while the plot window is focused. Default is ``False``.
+
+    .. versionadded:: 1.13
 """
 
 docdict["size_topomap"] = """

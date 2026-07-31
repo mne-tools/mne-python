@@ -98,67 +98,62 @@ _known_config_types = {
         "tuple, width and height of the raw browser window (in inches)"
     ),
     "MNE_BROWSER_BACKEND": (
-        "str, the backend to use for the MNE Browse Raw window (qt or matplotlib)"
+        'str, the backend to use for the raw browser ("qt" or "matplotlib")'
     ),
     "MNE_BROWSER_OVERVIEW_MODE": (
-        "str, the overview mode to use in the MNE Browse Raw window )"
-        "(see mne.viz.plot_raw for valid options)"
+        "str, the overview mode to use in the raw browser (see mne.viz.plot_raw() for "
+        "valid options)"
     ),
     "MNE_BROWSER_PRECOMPUTE": (
-        "bool, whether to precompute raw data in the MNE Browse Raw window"
+        "bool, whether to precompute raw data in the raw browser"
     ),
-    "MNE_BROWSER_THEME": "str, the color theme (light or dark) to use for the browser",
+    "MNE_BROWSER_THEME": (
+        "str, the color theme (light or dark) to use for the raw browser"
+    ),
     "MNE_BROWSER_USE_OPENGL": (
-        "bool, whether to use OpenGL for rendering in the MNE Browse Raw window"
+        "bool, whether to use OpenGL for rendering in the raw browser"
     ),
     "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
     "MNE_COREG_ADVANCED_RENDERING": (
-        "bool, whether to use advanced OpenGL rendering in mne coreg"
+        "bool, whether to use advanced OpenGL rendering in coreg"
     ),
     "MNE_COREG_COPY_ANNOT": (
         "bool, whether to copy the annotation files during warping"
     ),
-    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in mne coreg",
-    "MNE_COREG_GUESS_MRI_SUBJECT": (
-        "bool, whether to guess the MRI subject in mne coreg"
-    ),
-    "MNE_COREG_HEAD_HIGH_RES": (
-        "bool, whether to use high-res head surface in mne coreg"
-    ),
-    "MNE_COREG_HEAD_OPACITY": ("bool, the head surface opacity to use in mne coreg"),
+    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in coreg",
+    "MNE_COREG_GUESS_MRI_SUBJECT": "bool, whether to guess the MRI subject in coreg",
+    "MNE_COREG_HEAD_HIGH_RES": "bool, whether to use high-res head surface in coreg",
+    "MNE_COREG_HEAD_OPACITY": "bool, the head surface opacity to use in coreg",
     "MNE_COREG_HEAD_INSIDE": (
-        "bool, whether to add an opaque inner scalp head surface to help "
-        "occlude points behind the head in mne coreg"
+        "bool, whether to add an opaque inner scalp head surface to help occlude points"
+        " behind the head in coreg"
     ),
-    "MNE_COREG_INTERACTION": (
-        "str, interaction style in mne coreg (trackball or terrain)"
-    ),
+    "MNE_COREG_INTERACTION": ("str, interaction style in coreg (trackball or terrain)"),
     "MNE_COREG_MARK_INSIDE": (
-        "bool, whether to mark points inside the head surface in mne coreg"
+        "bool, whether to mark points inside the head surface in coreg"
     ),
     "MNE_COREG_PREPARE_BEM": (
-        "bool, whether to prepare the BEM solution after warping in mne coreg"
+        "bool, whether to prepare the BEM solution after warping in coreg"
     ),
     "MNE_COREG_ORIENT_TO_SURFACE": (
-        "bool, whether to orient the digitization markers to the head surface "
-        "in mne coreg"
+        "bool, whether to orient the digitization markers to the head surface in coreg"
     ),
     "MNE_COREG_SCALE_LABELS": (
-        "bool, whether to scale the MRI labels during warping in mne coreg"
+        "bool, whether to scale the MRI labels during warping in coreg"
     ),
     "MNE_COREG_SCALE_BY_DISTANCE": (
-        "bool, whether to scale the digitization markers by their distance from "
-        "the scalp in mne coreg"
+        "bool, whether to scale the digitization markers by their distance from the "
+        "scalp in coreg"
     ),
     "MNE_COREG_SCENE_SCALE": (
-        "float, the scale factor of the 3D scene in mne coreg (default 0.16)"
+        "float, the scale factor of the 3D scene in coreg (default 0.16)"
     ),
-    "MNE_COREG_WINDOW_HEIGHT": "int, window height for mne coreg",
-    "MNE_COREG_WINDOW_WIDTH": "int, window width for mne coreg",
-    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for mne coreg",
+    "MNE_COREG_WINDOW_HEIGHT": "int, window height for coreg",
+    "MNE_COREG_WINDOW_WIDTH": "int, window width for coreg",
+    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for coreg",
     "MNE_CUDA_DEVICE": "int, CUDA device to use for GPU processing",
     "MNE_DATA": "str, default data directory",
-    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for brainstorm data",
+    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for Brainstorm data",
     "MNE_DATASETS_EEGBCI_PATH": "str, path for EEGBCI data",
     "MNE_DATASETS_EPILEPSY_ECOG_PATH": "str, path for epilepsy_ecog data",
     "MNE_DATASETS_HF_SEF_PATH": "str, path for HF_SEF data",
@@ -185,29 +180,28 @@ _known_config_types = {
     "MNE_DATASETS_ERP_CORE_PATH": "str, path for erp_core data",
     "MNE_FORCE_SERIAL": "bool, force serial rather than parallel execution",
     "MNE_LOGGING_LEVEL": (
-        "str or int, controls the level of verbosity of any function "
-        "decorated with @verbose. See "
-        "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"
+        "str or int, controls the level of verbosity of any function decorated with "
+        "@verbose"
     ),
     "MNE_MEMMAP_MIN_SIZE": (
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
     ),
     "MNE_REPR_HTML": (
-        "bool, represent some of our objects with rich HTML in a notebook environment"
+        "bool, represent some objects with rich HTML in a notebook environment"
     ),
     "MNE_SKIP_NETWORK_TESTS": (
-        "bool, used in a test decorator (@requires_good_network) to skip "
-        "tests that include large downloads"
+        "bool, used in a test decorator (@requires_good_network) to skip  tests that "
+        "include large downloads"
     ),
     "MNE_SKIP_TESTING_DATASET_TESTS": (
-        "bool, used in test decorators (@requires_spm_data, "
-        "@requires_bstraw_data) to skip tests that require specific datasets"
+        "bool, used in test decorators (@requires_spm_data, @requires_bstraw_data) to "
+        "skip tests that require specific datasets"
     ),
-    "MNE_STIM_CHANNEL": "string, the default channel name for mne.find_events",
+    "MNE_STIM_CHANNEL": "str, the default channel name for mne.find_events()",
     "MNE_TQDM": (
-        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence '
-        "of progress bars"
+        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence of '
+        "progress bars"
     ),
     "MNE_USE_CUDA": "bool, use GPU for filtering/resampling",
     "MNE_USE_NUMBA": (
@@ -639,6 +633,13 @@ def _get_root_dir():
     return root_dir
 
 
+_blas_rename = dict(
+    openblas="OpenBLAS",
+    mkl="MKL",
+    accelerate="Accelerate",
+)
+
+
 def _get_numpy_libs():
     bad_lib = "unknown linalg bindings"
     try:
@@ -646,18 +647,37 @@ def _get_numpy_libs():
     except Exception as exc:
         return bad_lib + f" (threadpoolctl module not found: {exc})"
     pools = threadpool_info()
-    rename = dict(
-        openblas="OpenBLAS",
-        mkl="MKL",
-    )
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
+            layer = pool.get("threading_layer")
+            layer = f" via {layer}" if layer else ""
+            name = pool["internal_api"]
+            name = _blas_rename.get(name, name)
             return (
-                f"{rename[pool['internal_api']]} "
+                f"{name} "
                 f"{pool['version']} with "
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
+                f"{layer}"
             )
-    return bad_lib
+    return _get_numpy_build_blas() or bad_lib
+
+
+def _get_numpy_build_blas():
+    """Name the BLAS from the build config, for backends threadpoolctl can't see."""
+    # Accelerate has no threadpoolctl controller, so macOS wheels otherwise report only
+    # "unknown linalg bindings"
+    import numpy as np
+
+    try:
+        blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        name = blas["name"].lower()
+    except Exception:
+        return None
+    version = blas.get("version", "")
+    name = _blas_rename.get(name, name)
+    if version and version != "unknown":  # Accelerate reports a literal "unknown"
+        name = f"{name} {version}"
+    return f"{name}, threads not introspectable"
 
 
 _gpu_cmd = """\
@@ -703,6 +723,16 @@ def _get_total_memory():
         raise UnknownPlatformError("Could not determine total memory")
 
     return total_memory
+
+
+def _get_linux_windowing_system():
+    """Return the windowing system on Linux ("Wayland", "X11", or None)."""
+    session_type = os.getenv("XDG_SESSION_TYPE", "").lower()
+    if session_type == "wayland" or os.getenv("WAYLAND_DISPLAY"):
+        return "Wayland"
+    if session_type == "x11" or os.getenv("DISPLAY"):
+        return "X11"
+    return None
 
 
 def _get_cpu_brand():
@@ -776,6 +806,10 @@ def sys_info(
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
+    if platform.system() == "Linux":
+        windowing_system = _get_linux_windowing_system()
+        if windowing_system is not None:
+            platform_str += f" ({windowing_system})"
 
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")
@@ -815,6 +849,7 @@ def sys_info(
         "",
         "# Numerical (optional)",
         "scikit-learn",
+        "threadpoolctl",
         "numba",
         "nibabel",
         "nilearn",
@@ -869,9 +904,10 @@ def sys_info(
             "pytest-qt",
             "pytest-rerunfailures",
             "pytest-timeout",
+            "pytest-xdist",
+            "refleak",
             "codespell",
             "ipython",
-            "mypy",
             "pillow",
             "pre-commit",
             "ruff",

@@ -4,6 +4,7 @@
 
 import datetime
 import time
+from pathlib import Path
 
 import numpy as np
 
@@ -92,16 +93,16 @@ def _read_events(fid, info):
 
 @verbose
 def read_raw_egi(
-    input_fname,
-    eog=None,
-    misc=None,
-    include=None,
-    exclude=None,
-    preload=False,
-    channel_naming="E%d",
+    input_fname: Path | str,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    include: list | None = None,
+    exclude: list | None = None,
+    preload: bool | str = False,
+    channel_naming: str = "E%d",
     *,
-    events_as_annotations=True,
-    verbose=None,
+    events_as_annotations: bool = True,
+    verbose: bool | str | int | None = None,
 ) -> "RawEGI":
     """Read EGI simple binary as raw object.
 

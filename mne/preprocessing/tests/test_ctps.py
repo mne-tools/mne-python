@@ -25,15 +25,15 @@ Ws = morlet(sfreq, [3], n_cycles=[1])
 single_trial[0][: len(Ws[0])] = np.real(Ws[0])
 roll_to = 300 - 265  # shift data to center of time window
 single_trial = np.roll(single_trial, roll_to)
-rng = np.random.RandomState(42)
+rng = np.random.default_rng(42)
 
 
 def get_data(n_trials, j_extent):
     """Generate ground truth and testing data."""
     ground_truth = np.tile(single_trial, n_trials)
     my_shape = n_trials, 1, 600
-    random_data = rng.random_sample(my_shape)
-    rand_ints = rng.randint(-j_extent, j_extent, n_trials)
+    random_data = rng.random(my_shape)
+    rand_ints = rng.integers(-j_extent, j_extent, n_trials)
     jittered_data = np.array([np.roll(single_trial, i) for i in rand_ints])
     data = np.concatenate(
         [

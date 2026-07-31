@@ -6,7 +6,7 @@
 
 from collections import Counter
 from copy import deepcopy
-from functools import partial
+from functools import cache, partial
 from math import gcd
 
 import numpy as np
@@ -22,7 +22,7 @@ from .cuda import (
     _setup_cuda_fft_resample,
     _smart_pad,
 )
-from .fixes import _reshape_view, minimum_phase
+from .fixes import _reshape_view
 from .parallel import parallel_func
 from .utils import (
     _check_option,
@@ -440,7 +440,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
             if this_N > N:
                 raise ValueError(
                     f"The requested filter length {N} is too short for the requested "
-                    f"{transition * sfreq / 2.0:0.2f} Hz transition band, which "
+                    f"{transition * sfreq:0.2f} Hz transition band, which "
                     f"requires {this_N} samples"
                 )
             # Construct a lowpass
@@ -495,11 +495,11 @@ def _construct_fir_filter(
     # construct symmetric (linear phase) filter
     if phase == "minimum-half":
         h = fir_design(N * 2 - 1, freq, gain, window=fir_window)
-        h = minimum_phase(h)
+        h = signal.minimum_phase(h)
     else:
         h = fir_design(N, freq, gain, window=fir_window)
         if phase == "minimum":
-            h = minimum_phase(h, half=False)
+            h = signal.minimum_phase(h, half=False)
     assert h.size == N
     att_db, att_freq = _filter_attenuation(h, freq, gain)
     if phase == "zero-double":
@@ -1586,6 +1586,7 @@ def notch_filter(
     return xf
 
 
+@cache
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     from .time_frequency.multitaper import _compute_mt_params
 
@@ -1619,6 +1620,8 @@ def _mt_spectrum_proc(
     if filter_length is None:
         filter_length = x.shape[-1]
     filter_length = min(_to_samples(filter_length, sfreq, "", ""), x.shape[-1])
+    pick_mask = np.zeros(len(x), dtype=bool)
+    pick_mask[picks] = True
     get_wt = partial(
         _get_window_thresh, sfreq=sfreq, mt_bandwidth=mt_bandwidth, p_value=p_value
     )
@@ -1627,7 +1630,7 @@ def _mt_spectrum_proc(
     if n_jobs == 1:
         freq_list = list()
         for ii, x_ in enumerate(x):
-            if ii in picks:
+            if pick_mask[ii]:
                 x[ii], f = _mt_spectrum_remove_win(
                     x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_wt
                 )
@@ -1636,7 +1639,7 @@ def _mt_spectrum_proc(
         data_new = parallel(
             p_fun(x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_wt)
             for xi, x_ in enumerate(x)
-            if xi in picks
+            if pick_mask[xi]
         )
         freq_list = [d[1] for d in data_new]
         data_new = np.array([d[0] for d in data_new])
@@ -1748,17 +1751,16 @@ def _mt_spectrum_remove(
         indices = np.unique(np.r_[indices_1, indices_2])
         rm_freqs = freqs[indices]
 
-    fits = list()
-    for ind in indices:
-        c = 2 * A[0, ind]
-        fit = np.abs(c) * np.cos(freqs[ind] * rads + np.angle(c))
-        fits.append(fit)
-
-    if len(fits) == 0:
+    if len(indices) == 0:
         datafit = 0.0
     else:
+        c = 2 * A[0, indices]
         # fitted sinusoids are summed, and subtracted from data
-        datafit = np.sum(fits, axis=0)
+        datafit = np.sum(
+            np.abs(c)[:, np.newaxis]
+            * np.cos(freqs[indices, np.newaxis] * rads + np.angle(c)[:, np.newaxis]),
+            axis=0,
+        )
 
     return x - datafit, rm_freqs
 

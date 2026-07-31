@@ -137,11 +137,11 @@ def test_get_valid_units():
 
 def test_coil_trans():
     """Test loc<->coil_trans functions."""
-    rng = np.random.RandomState(0)
-    x = rng.randn(4, 4)
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((4, 4))
     x[3] = [0, 0, 0, 1]
     assert_allclose(_loc_to_coil_trans(_coil_trans_to_loc(x)), x)
-    x = rng.randn(12)
+    x = rng.standard_normal(12)
     assert_allclose(_coil_trans_to_loc(_loc_to_coil_trans(x)), x)
 
 
@@ -1427,7 +1427,7 @@ def test_pickle(fname_info, unlocked, protocol):
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked
     assert isinstance(info_un["bads"], MNEBadsList)
-    assert info_un["bads"]._mne_info is info_un
+    assert info_un["bads"]._mne_info() is info_un  # weakref back to its Info
 
 
 def test_info_bad():

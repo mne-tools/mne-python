@@ -164,8 +164,8 @@ def test_array_raw():
     assert_equal(evoked.nave, len(events) - 1)
 
     # complex data
-    rng = np.random.RandomState(0)
-    data = rng.randn(1, 100) + 1j * rng.randn(1, 100)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((1, 100)) + 1j * rng.standard_normal((1, 100))
     raw = RawArray(data, create_info(1, 1000.0, "eeg"))
     assert_allclose(raw._data, data)
 
@@ -174,9 +174,9 @@ def test_array_raw():
     ts_size = 10000
     Fs = 512.0
     ch_names = [str(i) for i in range(n_elec)]
-    ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
+    ch_pos_loc = rng.integers(60, size=(n_elec, 3)).tolist()
 
-    data = np.random.rand(n_elec, ts_size)
+    data = rng.random((n_elec, ts_size))
     montage = make_dig_montage(
         ch_pos=dict(zip(ch_names, ch_pos_loc)), coord_frame="head"
     )
