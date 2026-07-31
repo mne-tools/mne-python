@@ -617,3 +617,6 @@ def test_read_event_keys(fname, expected):
             event_key="cel#",
         )
     assert expected in raw.annotations.description
+    extra = raw.annotations[3]["extras"]
+    assert extra["label"] == "AM40"
+    assert extra["event_key_cel#"] == 3
