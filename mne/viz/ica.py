@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 import warnings
-from functools import partial
 
 import numpy as np
 from scipy.stats import gaussian_kde
@@ -20,9 +19,10 @@ from ..utils import (
     verbose,
 )
 from .epochs import plot_epochs_image
-from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .evoked import _plot_lines
 from .topomap import _plot_ica_topomap
 from .utils import (
+    _check_time_unit,
     _compute_scalings,
     _convert_psds,
     _get_cmap,
@@ -783,7 +783,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
         The ICA labels attribute.
     """
     import matplotlib.pyplot as plt
-    from matplotlib import patheffects
 
     if title is None:
         title = "Reconstructed latent sources, time-locked"
@@ -791,13 +790,20 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     fig, axes = plt.subplots(1, layout="constrained")
     ax = axes
     axes = [axes]
-    times = evoked.times * 1e3
+    # ms changed to s for consistency with other plotting functions
+    time_unit, times = _check_time_unit("s", evoked.times)
 
     # plot unclassified sources and label excluded ones
-    lines = list()
-    texts = list()
     picks = np.sort(picks)
-    idxs = [picks]
+
+    # plot parameters
+    data = evoked.data
+    info = evoked.info
+    units = _handle_default("units", None)
+    scalings = _handle_default("scalings", None)
+    titles = _handle_default("titles", None)
+    types = np.array(evoked.info.get_channel_types(picks), str)
+    ch_types_used = ["misc"]
 
     if labels is not None:
         labels_used = [k for k in labels if "/" not in k]
@@ -853,29 +859,47 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
                 style = cat_styles[label_name]
                 label_props[label_idx] = (color, style)
 
-    for pick_idx, (exc_label, pick) in enumerate(zip(exclude_labels, picks)):
-        color, style = label_props[pick_idx]
-        # ensure traces of excluded components are plotted on top
-        zorder = 2 if exc_label is None else 10
-        lines.extend(
-            ax.plot(
-                times,
-                evoked.data[pick].T,
-                picker=True,
-                zorder=zorder,
-                color=color,
-                linestyle=style,
-                label=exc_label,
-            )
-        )
-        lines[-1].set_pickradius(3.0)
+    # zorder independent of data passed
+    def zorder(_):
+        return [2 if exc_label is None else 10 for exc_label in exclude_labels]
 
-    ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
+    lines = _plot_lines(
+        data=data,
+        info=info,
+        picks=picks,
+        fig=fig,
+        axes=axes,
+        spatial_colors=False,
+        unit=False,
+        units=units,
+        scalings=scalings,
+        hline=None,
+        gfp=False,
+        types=types,
+        zorder=zorder,
+        xlim="tight",
+        ylim=None,
+        times=times,
+        bad_ch_idx=[],
+        titles=titles,
+        ch_types_used=ch_types_used,
+        selectable=True,
+        psd=False,
+        line_alpha=1.0,
+        nave=None,
+        time_unit=time_unit,
+        sphere=None,
+        highlight=None,
+        linewidth=1.5,
+        label_props=label_props,
+    )
+
+    ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (s)", ylabel="(NA)")
     leg_lines_labels = list(
         zip(
             *[
                 (line, label)
-                for line, label in zip(lines, exclude_labels)
+                for line, label in zip(lines[0], exclude_labels)
                 if label is not None
             ]
         )
@@ -884,37 +908,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
         leg_lines, leg_labels = leg_lines_labels
         ax.legend(leg_lines, leg_labels, loc="best")
 
-    texts.append(
-        ax.text(
-            0,
-            0,
-            "",
-            zorder=3,
-            verticalalignment="baseline",
-            horizontalalignment="left",
-            fontweight="bold",
-            alpha=0,
-        )
-    )
-    # this is done to give the structure of a list of lists of a group of lines
-    # in each subplot
-    lines = [lines]
-    ch_names = evoked.ch_names
-
-    path_effects = [patheffects.withStroke(linewidth=2, foreground="w", alpha=0.75)]
-    params = dict(
-        axes=axes,
-        texts=texts,
-        lines=lines,
-        idxs=idxs,
-        ch_names=ch_names,
-        need_draw=False,
-        path_effects=path_effects,
-    )
-    fig.canvas.mpl_connect("pick_event", partial(_butterfly_onpick, params=params))
-    fig.canvas.mpl_connect(
-        "button_press_event", partial(_butterfly_on_button_press, params=params)
-    )
     plt_show(show)
     return fig
 
