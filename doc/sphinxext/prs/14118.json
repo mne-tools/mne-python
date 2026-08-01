@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1d3e723ad4c6879d6e6c903204c12d9a0dc3fd55",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/_adjacency.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/stats/regression.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_morph.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

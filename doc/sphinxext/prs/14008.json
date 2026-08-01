@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7c460f3da9829b84f7e891514954f062631bdd7f",
+  "authors": [
+    {
+      "n": "Cedric Conday",
+      "e": null
+    },
+    {
+      "n": "CedricConday",
+      "e": "cedric@conday.digital"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14008.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

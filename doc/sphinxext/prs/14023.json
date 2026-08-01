@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6553b19fca5757b15fb50652983ce03681cf691d",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14023.dependency.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/filter.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 56
+    },
+    "pyproject.toml": {
+      "a": 7,
+      "d": 7
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 7,
+      "d": 4
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 9,
+      "d": 15
+    }
+  }
+}

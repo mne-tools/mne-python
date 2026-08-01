@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "88618bcfe1380c77a957bfdbc808fe600d9d2382",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

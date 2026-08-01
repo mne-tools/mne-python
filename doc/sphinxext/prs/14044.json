@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "be0ac569d6685b5829c7ae02dafe1f386f1389f2",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "AGENTS.md": {
+      "a": 140,
+      "d": 0
+    },
+    "CLAUDE.md": {
+      "a": 1,
+      "d": 138
+    }
+  }
+}

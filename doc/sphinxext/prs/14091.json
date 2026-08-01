@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "31fe8e92eaca3266d6e96762732a987a95e8620e",
+  "authors": [
+    {
+      "n": "Mingjian He",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "tutorials/raw/40_visualize_raw.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4fa9c468128ff79cc70a422691c914d0ad0b058c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.py": {
+      "a": 0,
+      "d": 13
+    },
+    "doc/sphinxext/related_software.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

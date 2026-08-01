@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "d491745d99a02b73453903135b692ba3f61932cc",
+  "authors": [
+    {
+      "n": "Qian Chu",
+      "e": null
+    },
+    {
+      "n": "varunkasyap",
+      "e": "varunkasyap@hotmail.com"
+    },
+    {
+      "n": "Varun Kasyap Pentamaraju",
+      "e": "77223408+varunkasyap@users.noreply.github.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13571.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 26,
+      "d": 10
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 27,
+      "d": 9
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "1326afe3b99873738a148735461344783849ce6a",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14037.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/brain.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/_3d_overlay.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 130,
+      "d": 32
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 14,
+      "d": 0
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 38,
+      "d": 0
+    }
+  }
+}

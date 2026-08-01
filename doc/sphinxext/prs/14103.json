@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "7ec1a35a6f6f3b304bea5af3c8a2d924baf118a8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14103.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/help/faq.rst": {
+      "a": 26,
+      "d": 10
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 32,
+      "d": 6
+    },
+    "mne/utils/linalg.py": {
+      "a": 76,
+      "d": 0
+    },
+    "mne/utils/tests/test_linalg.py": {
+      "a": 75,
+      "d": 0
+    }
+  }
+}

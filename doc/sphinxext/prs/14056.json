@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "41ae901e5c90b0596bd98392ab2ba6d69b20e865",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14056.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 370,
+      "d": 285
+    },
+    "mne/evoked.py": {
+      "a": 335,
+      "d": 281
+    },
+    "mne/io/_read_raw.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/ant/ant.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/io/array/_array.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 276,
+      "d": 212
+    },
+    "mne/io/bci2k/bci2k.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/besa/besa.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/io/bti/bti.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/curry/curry.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 34,
+      "d": 33
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 14,
+      "d": 13
+    },
+    "mne/io/egi/egi.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 25,
+      "d": 9
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/io/fil/fil.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 23,
+      "d": 22
+    },
+    "mne/io/mef/mef.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 196,
+      "d": 40
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/utils/_typing.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

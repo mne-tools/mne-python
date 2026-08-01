@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8a886097fae0d36040952105c378a8d56aa2db18",
+  "authors": [
+    {
+      "n": "Daria Agafonova",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14064.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/help/faq.rst": {
+      "a": 18,
+      "d": 7
+    }
+  }
+}

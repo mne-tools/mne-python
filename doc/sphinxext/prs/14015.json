@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7c9a7194163768cee6237da7a8b92e247808ec91",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

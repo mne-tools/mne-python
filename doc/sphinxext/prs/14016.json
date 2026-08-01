@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "d828df49bc4e34c392d7f390c809ef2e51df985f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14016.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 23,
+      "d": 11
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/conftest.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 5,
+      "d": 73
+    },
+    "mne/utils/tests/test_misc.py": {
+      "a": 19,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 164,
+      "d": 170
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 60,
+      "d": 10
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 68,
+      "d": 15
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 166,
+      "d": 127
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 21,
+      "d": 7
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 7,
+      "d": 1
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 1,
+      "d": 4
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "598bf6cf9fdcdc3594db9d4d691ef1aa605e6b27",
+  "authors": [
+    {
+      "n": "sharif",
+      "e": null
+    },
+    {
+      "n": "Claude Opus 4.6 (1M context)",
+      "e": "noreply@anthropic.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13731.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13731.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 118,
+      "d": 275
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 48,
+      "d": 0
+    }
+  }
+}

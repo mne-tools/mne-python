@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "0b56ea221bafeaacffd53a6174977c7498b2ff5f",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14098.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14098.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 18,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 10,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6f5e77a123c91776b4212b31947fba9f6f87582b",
+  "authors": [
+    {
+      "n": "emma-bailey",
+      "e": "bailey.emma438@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14055.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 44,
+      "d": 12
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 36,
+      "d": 0
+    }
+  }
+}

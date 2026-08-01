@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d5fd153f496219055fa4ce94b0f7766cc7a8bb59",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

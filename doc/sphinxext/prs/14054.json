@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "26550f274034ad8417fa56b116877fbffb065bab",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14054.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 43,
+      "d": 35
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 33,
+      "d": 2
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 66,
+      "d": 1
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

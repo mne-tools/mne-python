@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "688148011fedc743e6e8b8fa9ef3863287b33444",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 42,
+      "d": 18
+    },
+    "mne/conftest.py": {
+      "a": 31,
+      "d": 23
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 8,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 4,
+      "d": 3
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 3,
+      "d": 3
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

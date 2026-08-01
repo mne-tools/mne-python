@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "979e9a7dedcf68d1757efac6e950e919db48532f",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13995.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/brain.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 131,
+      "d": 90
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 24,
+      "d": 2
+    }
+  }
+}

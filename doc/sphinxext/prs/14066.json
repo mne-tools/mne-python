@@ -1,0 +1,207 @@
+{
+  "merge_commit_sha": "364c6b1ae4ae6840ae83c5b14a03b049687d8640",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 5,
+      "d": 5
+    },
+    ".github/workflows/tests.yml": {
+      "a": 6,
+      "d": 6
+    },
+    "azure-pipelines.yml": {
+      "a": 14,
+      "d": 15
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/contrib_avatars.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/directive_formatting.py": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/sphinxext/gen_names.py": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/sphinxext/gh_substitutions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/newcontrib_substitutions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/unit_role.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 7,
+      "d": 39
+    },
+    "mne/_fiff/pick.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 13,
+      "d": 29
+    },
+    "mne/conftest.py": {
+      "a": 22,
+      "d": 78
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/decoding/tests/test_ged.py": {
+      "a": 3,
+      "d": 32
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_annotate_nan.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 13
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 15
+    },
+    "mne/utils/config.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/_3d.py": {
+      "a": 31,
+      "d": 63
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/viz/backends/tests/test_utils.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 3,
+      "d": 25
+    },
+    "pyproject.toml": {
+      "a": 0,
+      "d": 2
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 5,
+      "d": 9
+    },
+    "tools/circleci_uv_overrides.txt": {
+      "a": 0,
+      "d": 14
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 4,
+      "d": 26
+    },
+    "tools/github_actions_test.sh": {
+      "a": 7,
+      "d": 39
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 7
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 0,
+      "d": 12
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

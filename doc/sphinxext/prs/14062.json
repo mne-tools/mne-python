@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "dfb84297012c17886924ba913311c3589d41511c",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14062.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/information.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/information.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 95,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 56,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 57,
+      "d": 3
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

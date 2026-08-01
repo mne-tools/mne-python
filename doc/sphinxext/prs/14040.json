@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "210be8d25e447227cfd936833a9f06c2d6d7d4a2",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14040.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 57,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 32,
+      "d": 4
+    }
+  }
+}

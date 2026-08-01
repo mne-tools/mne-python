@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8854ea4d23a1c0e0c39bf5367901e57d3bdf7a71",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 17,
+      "d": 19
+    }
+  }
+}
