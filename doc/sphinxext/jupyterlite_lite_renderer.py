@@ -19,8 +19,10 @@ static figures the docs render. What is not: the interactive ``Brain`` time view
 which additionally needs dock widgets and toolbars, and scalar colormaps, which
 pyvista-js 0.15 does not have (scalars fall back to a solid color).
 
-The source is kept as a string because it has to run inside the browser kernel; see
-``first_notebook_cell`` in ``conf.py``.
+The source is kept as a string because it has to run inside the browser kernel; it
+is appended to ``LITE_SETUP_CELL`` in ``jupyterlite_setup_cell.py``, which
+``jupyterlite_cell_notes.note_unrunnable_cells`` prepends to each JupyterLite
+notebook.
 """
 
 # Authors: The MNE-Python contributors.
