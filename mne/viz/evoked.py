@@ -711,7 +711,7 @@ def _plot_lines(
                             times,
                             D[ch_idx],
                             picker=True,
-                            zorder=z + 1 if _spat_col else 1,
+                            zorder=z + 1 if (_spat_col or callable(zorder)) else 1,
                             color=(
                                 colors[ch_idx]
                                 if label_props is None
