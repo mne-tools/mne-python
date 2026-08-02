@@ -59,13 +59,16 @@ for pull in iter_:
     # One option is to do a git diff between pull.base and pull.head,
     # but let's see if we can stay pythonic
     out["merge_commit_sha"] = pull.merge_commit_sha
-    # Prefer the GitHub username information because it should be most up to date
-    name, email = pull.user.name, pull.user.email
-    if name is None and email is None:
-        # no usable GitHub user information, pull it from the first commit
-        author = pull.get_commits()[0].commit.author
-        name, email = author.name, author.email
-    out["authors"] = [dict(n=name, e=email)]
+    # Prefer the GitHub username information because it should be most up to date.
+    # The user's public email is rarely set, so fall back to the canonical GitHub
+    # noreply address, which is what .mailmap entries can then be keyed on.
+    name, email, login = pull.user.name, pull.user.email, pull.user.login
+    if email is None:
+        email = f"{pull.user.id}+{login}@users.noreply.github.com"
+    if name is None:
+        # no GitHub profile name, pull it from the first commit
+        name = pull.get_commits()[0].commit.author.name
+    out["authors"] = [dict(n=name, e=email, l=login)]
     # For PR 54 for example this is empty for some reason!
     if out["merge_commit_sha"]:
         try:
