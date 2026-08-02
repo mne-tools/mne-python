@@ -62,8 +62,16 @@ def _lite_set_view(plotter, azimuth):
 _lite_live_plotters = []
 
 
-def _lite_release_plotter(plotter):
-    """Hand back a plotter's meshes, JS arrays and GPU buffers."""
+def _lite_release_plotter(plotter, close=True):
+    """Hand back a plotter's meshes, JS arrays and GPU buffers.
+
+    ``clear()`` empties the actor list, which is where the geometry is held,
+    so that is what frees the memory. ``close=False`` additionally says not to
+    tear the render window down -- what trimming an older scene wants, since
+    the notebook has already drawn it. pyvista-js 0.15 implements neither
+    ``deep_clean`` nor ``close``, so today the two paths do the same thing;
+    the flag keeps the intent right if that changes.
+    """
     import gc as _gc
     if plotter is None:
         return None
@@ -73,7 +81,8 @@ def _lite_release_plotter(plotter):
             del _lite_live_plotters[_i]
     # pyvista-js is someone else's surface, so use whichever teardown of these
     # it actually implements
-    for _name in ("clear", "deep_clean", "close"):
+    _names = ("clear", "deep_clean", "close") if close else ("clear", "deep_clean")
+    for _name in _names:
         _fn = getattr(plotter, _name, None)
         if _fn is not None:
             try:
@@ -81,6 +90,27 @@ def _lite_release_plotter(plotter):
             except Exception:
                 pass
     _gc.collect()
+    return None
+
+
+# Each live scene holds its meshes in the WASM heap, a copy of them in JS and
+# a set of GPU buffers. Nothing in a notebook calls close_3d_figure, so without
+# a cap they all stay: 20_source_alignment builds six, which is enough to run
+# the tab out of memory. Keep the newest few and give the rest their geometry
+# back as new ones arrive -- scrolling back shows an empty canvas, which is a
+# far better outcome than losing the page.
+_LITE_MAX_LIVE_SCENES = 2
+
+
+def _lite_trim_live_plotters():
+    """Release everything but the most recent scenes."""
+    while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
+        _p = _lite_live_plotters[0]()
+        if _p is None:
+            _lite_live_plotters.pop(0)
+        else:
+            # also drops it from the registry, so this terminates
+            _lite_release_plotter(_p, close=False)
     return None
 
 
@@ -104,6 +134,8 @@ class _LiteRenderer:
         self.plotter = _pv.Plotter()
         import weakref as _weakref
         _lite_live_plotters.append(_weakref.ref(self.plotter))
+        # trim AFTER appending, so the scene being built is never the one freed
+        _lite_trim_live_plotters()
         _bg = kwargs.get("bgcolor", kwargs.get("background_color", "black"))
         try:
             self.plotter.background_color = self._rgb(_bg)
