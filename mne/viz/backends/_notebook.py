@@ -1367,6 +1367,7 @@ class _IpyWindow(_AbstractWindow):
             "visibility_on",
             "visibility_off",
             "folder",
+            "information",
         ):  # noqa: E501
             self._icons[key] = _ICON_LUT[key]
         self._icons["play"] = None

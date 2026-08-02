@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.0
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,7 +24,7 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.62
+    rev: v0.0.63
     hooks:
       - id: ty
         additional_dependencies:

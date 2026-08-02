@@ -68,6 +68,7 @@ from ..utils import (
     _check_preload,
     _ensure_int,
     _get_inst_data,
+    _limit_blas_threads,
     _on_missing,
     _pl,
     _reject_data_segments,
@@ -158,8 +159,8 @@ def get_score_funcs():
             if signature(f).parameters == ["u", "v"]
         }
     )
-    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
-    # should just look at the positional_only and positional_or_keyword entries
+    # pearsonr has (x, y, *, alternative='two-sided'), so only look at the
+    # positional_only and positional_or_keyword entries
     for n, f in xy_arg_stats_funcs:
         params = [
             name
@@ -887,6 +888,7 @@ class ICA(ContainsMixin):
             data = self.pre_whitener_ @ data
         return data
 
+    @_limit_blas_threads()
     def _fit(self, data, fit_type):
         """Aux function."""
         if not np.isfinite(data).all():
@@ -2926,7 +2928,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
                         if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
-        for cls in (np.random.RandomState, Covariance):
+        for cls in (np.random.RandomState, np.random.Generator, Covariance):
             if isinstance(value, cls):
                 value = cls.__name__
 

@@ -127,6 +127,8 @@ def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
     pytest.importorskip("nibabel")
     amp = 100e-9
+    # RandomState (not default_rng): the hardcoded target_labels below are the
+    # anatomical labels of the source vertices drawn from this exact stream
     rng = np.random.RandomState(0)
     fname_dtemp = tmp_path / "test.dip"
     fname_sim = tmp_path / "test-ave.fif"

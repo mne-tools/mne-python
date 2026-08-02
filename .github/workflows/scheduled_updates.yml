@@ -1,4 +1,4 @@
-name: SPEC0
+name: Scheduled updates
 
 on:  # yamllint disable-line rule:truthy
   schedule:
@@ -12,12 +12,24 @@ on:  # yamllint disable-line rule:truthy
         type: boolean
 
 jobs:
-  update_versions:
+  update:
     permissions:
       contents: write
       pull-requests: write
-    name: Update dependency versions
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: spec_zero
+            name: Update dependency specifiers
+            title: 'MAINT: Update dependency specifiers'
+            body: '*Adjustments may need to be made to shims in `mne/fixes.py` and elsewhere in this or another PR. `make -C tools/dev dep` is a good starting point for finding potential updates.*'
+          - id: prek_auto_update
+            name: Update pre-commit hooks
+            title: 'MAINT: Update pre-commit hook versions'
+            body: '*Created by `prek auto-update`. The updated hooks were then run over the whole repo, so any reformatting they now do is included here.*'
     env:
       GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
@@ -25,9 +37,11 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: true
+      - name: Get commit message
+        run: echo "COMMIT_MESSAGE=$(git show -s --format=%s ${{ github.sha }})" | tee -a ${GITHUB_ENV}
       - name: Triage SSH
         run: |
           if [[ "${{ inputs.ssh }}" == "true" ]] || [[ "$COMMIT_MESSAGE" == *"[actions ssh]"* ]]; then
@@ -46,6 +60,7 @@ jobs:
       - name: Install dependencies
         run: pip install --upgrade packaging requests tomlkit
       - name: Update tracked dependencies
+        if: matrix.id == 'spec_zero'
         run: python ./tools/dev/spec_zero_update_versions.py
       - name: check if files changed
         run: |
@@ -55,17 +70,23 @@ jobs:
           fi
         id: status
       - name: Create PR
+        env:
+          BRANCH: ${{ matrix.id }}
+          TITLE: ${{ matrix.title }}
+          BODY: ${{ matrix.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -xeo pipefail
           git diff
           git config --global user.email "50266005+mne-bot@users.noreply.github.com"
           git config --global user.name "mne[bot]"
-          git checkout -b spec_zero
-          if [ -f doc/changes/dev/dependency.rst ]; then
-            git add doc/changes/dev/dependency.rst  # one new file, others changed
-          fi
-          git commit -am "mne[bot]: Update dependency specifiers"
-          git push origin spec_zero
-          PR_NUM=$(gh pr create --base main --head spec_zero --title "MAINT: Update dependency specifiers" --body "Created by spec_zero [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to shims in \`mne/fixes.py\` and elswhere in this or another PR. \`make -C tools/dev dep\` is a good starting point for finding potential updates.*")
+          git checkout -b "$BRANCH"
+          git add -A  # doc/changes/dev/dependency.rst is a new file, the others are changed
+          git commit -m "mne[bot]: ${TITLE#MAINT: }"
+          git push origin "$BRANCH"
+          printf '%s\n\n%s\n' \
+            "Created by the \`$BRANCH\` job of this [GitHub Action run]($RUN_URL)." \
+            "$BODY" > "$RUNNER_TEMP/pr_body.md"
+          PR_NUM=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr_body.md")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'

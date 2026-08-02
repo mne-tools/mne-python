@@ -142,7 +142,7 @@ def test_stockwell_api():
     assert np.log(power.data.max()) * 20 <= 0.0
     with pytest.raises(TypeError, match="ndarray"):
         tfr_array_stockwell("foo", 1000.0)
-    data = np.random.RandomState(0).randn(1, 1024)
+    data = np.random.default_rng(0).standard_normal((1, 1024))
     with pytest.raises(ValueError, match="3D with shape"):
         tfr_array_stockwell(data, 1000.0)
     data = data[np.newaxis]

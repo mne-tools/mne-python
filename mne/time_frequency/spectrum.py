@@ -161,7 +161,7 @@ class SpectrumMixin:
         fig_facecolor="k",
         axis_facecolor="k",
         axes=None,
-        block=False,
+        block=None,
         show=True,
         n_jobs=None,
         verbose=None,
@@ -181,7 +181,9 @@ class SpectrumMixin:
         %(fig_facecolor)s
         %(axis_facecolor)s
         %(axes_spectrum_plot_topo)s
-        %(block)s
+        block : bool
+            This parameter is deprecated and will be removed in MNE 1.15; blocking now
+            follows Matplotlib's behavior (see ``show``).
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -213,6 +215,7 @@ class SpectrumMixin:
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=0,
         outlines="head",
         sphere=None,
@@ -249,6 +252,9 @@ class SpectrumMixin:
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -722,7 +728,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig_facecolor="k",
         axis_facecolor="k",
         axes=None,
-        block=False,
+        block=None,
         show=True,
     ):
         """Plot power spectral density, separately for each channel.
@@ -735,7 +741,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(fig_facecolor)s
         %(axis_facecolor)s
         %(axes_spectrum_plot_topo)s
-        %(block)s
+        block : bool | None
+            This parameter is deprecated and will be removed in MNE 1.15; blocking now
+            follows Matplotlib's behavior (see ``show``).
         %(show)s
 
         Returns
@@ -773,7 +781,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             y_label=y_label,
             axes=axes,
         )
-        plt_show(show, block=block)
+        if block is None:
+            plt_show(show)
+        else:
+            warn(
+                "The 'block' parameter is deprecated and will be removed in MNE 1.15; "
+                "blocking now follows Matplotlib's behavior. Pass show=False and call "
+                "matplotlib.pyplot.show() to control it.",
+                FutureWarning,
+            )
+            plt_show(show, block=block)
         return fig
 
     @fill_doc
@@ -789,6 +806,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -819,6 +837,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -881,6 +902,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             names=names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,

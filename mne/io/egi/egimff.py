@@ -369,6 +369,7 @@ def _read_raw_egi_mff(
     channel_naming="E%d",
     *,
     events_as_annotations=True,
+    event_key=None,
     verbose=None,
 ):
     """Read EGI mff binary as raw object."""
@@ -381,6 +382,7 @@ def _read_raw_egi_mff(
         preload,
         channel_naming,
         events_as_annotations=events_as_annotations,
+        event_key=event_key,
         verbose=verbose,
     )
 
@@ -402,6 +404,7 @@ class RawMff(BaseRaw):
         channel_naming="E%d",
         *,
         events_as_annotations=True,
+        event_key=None,
         verbose=None,
     ):
         """Init the RawMff class."""
@@ -422,7 +425,9 @@ class RawMff(BaseRaw):
             misc = np.where(np.array(egi_info["chan_type"]) != "eeg")[0].tolist()
 
         logger.info("    Reading events ...")
-        egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
+        egi_events, egi_info, mff_events = _read_events(
+            input_fname, egi_info, event_key=event_key
+        )
         cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
         logger.info("    Assembling measurement info ...")
         event_codes = egi_info["event_codes"]
@@ -672,15 +677,19 @@ class RawMff(BaseRaw):
 
 @verbose
 def read_evokeds_mff(
-    fname, condition=None, channel_naming="E%d", baseline=None, verbose=None
-):
+    fname: Path | str,
+    condition: int | str | list[int] | list[str] | None = None,
+    channel_naming: str = "E%d",
+    baseline: tuple[float | None, float | None] | None = None,
+    verbose: bool | str | int | None = None,
+) -> "EvokedArray | list[EvokedArray]":
     """Read averaged MFF file as EvokedArray or list of EvokedArray.
 
     Parameters
     ----------
     fname : path-like
         File path to averaged MFF file. Should end in ``.mff``.
-    condition : int or str | list of int or str | None
+    condition : int | str | list of int | list of str | None
         The index (indices) or category (categories) from which to read in
         data. Averaged MFF files can contain separate averages for different
         categories. These can be indexed by the block number or the category
@@ -746,18 +755,21 @@ def read_evokeds_mff(
             f"{fname} may not be an averaged MFF file."
         )
     return_list = True
+    conditions: list
     if condition is None:
         categories = mff.categories.categories
-        condition = list(categories.keys())
+        conditions = list(categories.keys())
     elif not isinstance(condition, list):
-        condition = [condition]
+        conditions = [condition]
         return_list = False
-    logger.info(f"Reading {len(condition)} evoked datasets from {fname} ...")
+    else:
+        conditions = condition
+    logger.info(f"Reading {len(conditions)} evoked datasets from {fname} ...")
     output = [
         _read_evoked_mff(
             fname, c, channel_naming=channel_naming, verbose=verbose
         ).apply_baseline(baseline)
-        for c in condition
+        for c in conditions
     ]
     return output if return_list else output[0]
 

@@ -123,7 +123,13 @@ def split_name_ext(fname):
 
 
 @fill_doc
-def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
+def read_raw(
+    fname: Path | str,
+    *,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+    **kwargs,
+) -> BaseRaw:
     """Read raw file.
 
     This function is a convenient wrapper for readers defined in `mne.io`. The

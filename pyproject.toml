@@ -6,6 +6,8 @@ requires = ["hatch-vcs", "hatchling >= 1.27"]
 dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
 # Dependencies for building the documentation
 doc = [
+  # 0.22 moved normalize_options into docutils.parsers.rst.roles
+  "docutils >= 0.22",
   "graphviz",
   "intersphinx_registry >= 0.2405.27",
   "ipython != 8.7.0",  # also in "full-no-qt" and "test"
@@ -19,11 +21,11 @@ doc = [
   "psutil",
   "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
-  "pymef",
+  "pymef",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
-  "refleak >= 0.2.1",
+  "refleak >= 0.2.1",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
@@ -82,6 +84,7 @@ test_extra_ft = [
   "neo",
   "pybv",
   "snirf",
+  "sphinx",
   "sphinx-gallery",
   {include-group = "test"},
 ]
@@ -142,8 +145,8 @@ name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
 # ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
-# command in `.github/workflows/autofix.yml` (astral-sh/uv/#16333), and also the
-# `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yaml`
+# command in `.github/workflows/scheduled_updates.yml` (astral-sh/uv/#16333), and also
+# the `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yml`
 scripts = {mne = "mne.commands.utils:main"}
 
 [project.optional-dependencies]
@@ -159,7 +162,7 @@ full-no-qt = [
   "curryreader >= 0.1.2",
   "darkdetect",
   "defusedxml",
-  "dipy >= 0.8",
+  "dipy >= 1.9",  # released 2024-03-08, will become 1.10 on 2026-12-12
   "edfio >= 0.4.10",
   "eeglabio",
   "filelock >= 3.18.0",
@@ -173,13 +176,13 @@ full-no-qt = [
   "joblib >= 0.8",
   "jupyter",
   "mffpy >= 0.11.0",
-  "mne-qt-browser",
+  "mne-qt-browser >= 0.6",  # released 2023-10-11, will become 0.7 on 2027-04-08
   "mne[hdf5]",
   "neo",
   "nest-asyncio2",
-  "nibabel >= 2.0",
-  "nilearn",
-  "numba >= 0.35",
+  "nibabel >= 5.2",  # released 2023-12-11, will become 5.3 on 2026-10-08
+  "nilearn >= 0.10",  # released 2023-01-06, will become 0.11 on 2026-12-02
+  "numba >= 0.60",  # released 2024-06-13, will become 0.61 on 2027-01-20
   "openmeeg >= 2.5.7",
   "pandas >= 2.2, != 3.0.4",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "pillow",  # for `Brain.save_image` and `mne.Report`
