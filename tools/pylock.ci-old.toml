@@ -447,7 +447,7 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836
 [[packages]]
 name = "twine"
 version = "1.0.1"
-sdist = { url = "https://files.pythonhosted.org/packages/a4/08/dcc58e09165733f78c34c8328a305d4d018802ebbe8cfd77704974c8e18c/twine-1.0.1.tar.bz2", upload-time = 2013-09-26T12:49:15Z, size = 15047, hashes = { sha256 = "6912cf86354f7a992385786b4d7595935d67b4104ac9c9147a82bfc4d9c4d251" } }
+sdist = { url = "https://files.pythonhosted.org/packages/33/16/b777faf3d2cc0284e96ff021962eb7cb241194d380952b56508a59870b51/twine-1.0.1.tar.gz", upload-time = 2013-09-26T12:49:18Z, size = 15775, hashes = { sha256 = "e60919dd698d09cc0877d02f8f24677ed7de7bd1728a73b9d7f29ffc5f6c1fa8" } }
 wheels = [{ url = "https://files.pythonhosted.org/packages/da/07/baf5870c94b669c86ac37cf52e60aa878cd45b29fd31692463f6b1df7162/twine-1.0.1-py2.py3-none-any.whl", upload-time = 2013-09-26T12:48:13Z, size = 12015, hashes = { sha256 = "54f16ad27606c23c921646afa75e8d5c533dddd3bd680aee372a3fd3a48416b1" } }]
 
 [[packages]]
