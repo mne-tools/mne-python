@@ -283,6 +283,8 @@ def remove_fmri_gradient_artifact(
     :footcite:`AllenEtAl2000`, which builds an artifact template for each
     imaging volume (TR) by averaging neighboring TR epochs and subtracts it.
 
+    See :ref:`tut-fmri-gradient` for a full example.
+
     Parameters
     ----------
     raw : instance of Raw
