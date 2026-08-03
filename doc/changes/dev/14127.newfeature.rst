@@ -1,0 +1,1 @@
+Add :func:`mne.preprocessing.remove_fmri_gradient_artifact` and the :class:`mne.preprocessing.GradientRemover` class to remove the fMRI gradient (imaging) artifact from EEG recorded during functional MRI using average artifact subtraction (AAS, :footcite:`AllenEtAl2000`), by `Peter Molfese`_ and `Joshua Teves`_.
