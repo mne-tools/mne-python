@@ -1,1 +1,2 @@
-Add ``TimeChange`` behaviour for :func:`mne.viz.plot_evoked`, where vertical time cursor is previewed on hover and marked on click. Also change previous channel names pop-up on click to on hover, by `Lifeng Qiu Lin`_.
+Add ``TimeChange`` behaviour for :func:`mne.viz.plot_evoked`, where vertical time cursor is previewed on hover and marked on click. Also change previous channel names pop-up on click to on hover.
+Refactor :func:`mne.viz.plot_ica_sources` when plotting :class:`~mne.viz.Evoked` instance, unify under :func:`mne.viz.evoked._plot_lines`, equipping this plot with hover and click behaviours, by `Lifeng Qiu Lin`_.
