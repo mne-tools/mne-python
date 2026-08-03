@@ -81,10 +81,9 @@ def _read_mff_events(filename, sfreq, start_time, *, event_key=None):
             duration = event["duration"] / 1e9
             if "label" in event or "description" in event:
                 extras = dict(
-                    #adding a fix in case you're missing one
-                    label=event.get["label",""],
+                    label=event.get("label", ""),
                     # description is reserved by mne/annotations.py
-                    desc=event.get["description",""],
+                    desc=event.get("description", ""),
                 )
             else:
                 extras = {}
