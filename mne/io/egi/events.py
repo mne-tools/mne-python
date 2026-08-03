@@ -100,7 +100,7 @@ def _read_mff_events(filename, sfreq, start_time, *, event_key=None):
                 {
                     "name": code_str,
                     "start": start_sec,
-                    "start_sample": int(np.trunc(start_sec * sfreq)),
+                    "start_sample": int(np.round(start_sec * sfreq)),
                     "end": start_sec + duration,
                     "chan": None,
                     "extras": extras,
