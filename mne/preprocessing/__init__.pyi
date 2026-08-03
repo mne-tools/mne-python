@@ -58,8 +58,8 @@ from ._fine_cal import (
     read_fine_calibration,
     write_fine_calibration,
 )
-from ._lof import find_bad_channels_lof
 from ._fmri_gradient import GradientRemover, remove_fmri_gradient_artifact
+from ._lof import find_bad_channels_lof
 from ._pca_obs import apply_pca_obs
 from ._peak_finder import peak_finder
 from ._regress import EOGRegression, read_eog_regression, regress_artifact
