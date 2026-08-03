@@ -369,6 +369,7 @@ def _read_raw_egi_mff(
     channel_naming="E%d",
     *,
     events_as_annotations=True,
+    event_key=None,
     verbose=None,
 ):
     """Read EGI mff binary as raw object."""
@@ -381,6 +382,7 @@ def _read_raw_egi_mff(
         preload,
         channel_naming,
         events_as_annotations=events_as_annotations,
+        event_key=event_key,
         verbose=verbose,
     )
 
@@ -402,6 +404,7 @@ class RawMff(BaseRaw):
         channel_naming="E%d",
         *,
         events_as_annotations=True,
+        event_key=None,
         verbose=None,
     ):
         """Init the RawMff class."""
@@ -422,7 +425,9 @@ class RawMff(BaseRaw):
             misc = np.where(np.array(egi_info["chan_type"]) != "eeg")[0].tolist()
 
         logger.info("    Reading events ...")
-        egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
+        egi_events, egi_info, mff_events = _read_events(
+            input_fname, egi_info, event_key=event_key
+        )
         cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
         logger.info("    Assembling measurement info ...")
         event_codes = egi_info["event_codes"]
