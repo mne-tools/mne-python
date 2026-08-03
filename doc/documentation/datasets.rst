@@ -541,6 +541,22 @@ the people in the scene were unrecognizable.
 
     * :ref:`tut-eyetrack-heatmap`
 
+.. _lite-data:
+
+JupyterLite data
+================
+:func:`mne.datasets.lite_data.data_path`
+
+A small curated archive holding only the files the browser documentation reads,
+taken from the ``sample``, ``kiloword``, ``erp_core``, ``mtrf`` and ``eegbci``
+datasets (same files, same checksums). Those ship as separate multi-GB archives,
+so without it the documentation build would download several gigabytes to serve
+a handful of files. It extracts to ``MNE-lite-data/``, keeping each file under
+its original dataset folder (``MNE-sample-data/``, ``MNE-kiloword-data/``, ...).
+
+This exists for the documentation build; for analysis, use the individual
+dataset fetchers above.
+
 References
 ==========
 
