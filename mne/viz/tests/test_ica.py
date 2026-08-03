@@ -24,6 +24,7 @@ from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import _record_warnings, catch_logging
+from mne.viz import ui_events
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
@@ -449,6 +450,44 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     _fake_click(fig, ax, [ax.get_xlim()[0], ax.get_ylim()[1]], "data")
     leg = ax.get_legend()
     assert len(leg.get_texts()) == len(ica.exclude) == 1
+    plt.close("all")
+
+    # test hover
+    fig = ica.plot_sources(evoked)
+    ax = fig.get_axes()[0]
+
+    # check cursorline is created on hover
+    assert not hasattr(ax, "_cursorline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="motion")
+    assert hasattr(ax, "_cursorline")
+    # use np.mean() because it is asymmetric
+    assert_allclose(ax._cursorline.get_xdata()[0], np.mean(ax.get_xlim()))
+    # check if text of channel name is displayed due to hover
+    text = ax.texts[0]
+    assert text.get_alpha() == 0.0
+    trace = ax.get_lines()[0]  # pick the first trace (MEG 0111)
+    x, y = trace.get_xdata(), trace.get_ydata()
+    i = len(x) // 2
+    _fake_click(fig, ax, (x[i], y[i]), xform="data", kind="motion")
+    assert text.get_alpha() == 1.0
+
+    # test click
+    assert not hasattr(ax, "_selectline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
+    assert hasattr(ax, "_selectline")
+    assert_allclose(ax._selectline.get_xdata()[0], np.mean(ax.get_xlim()))
+
+    _fake_click(fig, ax, (0.6, 0.5), kind="press")
+    assert ax._selectline.get_xdata()[0] > np.mean(ax.get_xlim())
+
+    # Test TimeChange event
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
+    assert_allclose(ax._selectline.get_xdata()[0], np.mean(ax.get_xlim()))
+
+    ui_events.publish(fig, ui_events.TimeChange(time=0.1))
+    assert ax._selectline.get_xdata()[0] == 0.1
+
+    plt.close("all")
 
     # Check if annotation filtering works - All annotations
     annot = Annotations([0.1, 0.3], [0.1, 0.1], ["test", "test2"])
