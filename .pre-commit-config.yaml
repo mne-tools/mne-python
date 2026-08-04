@@ -89,6 +89,14 @@ repos:
       - id: toml-sort-fix
         files: pyproject.toml
 
+  - repo: local  # file-contents-sorter would put every accented name after "z"
+    hooks:
+      - id: sort-contributor-names
+        name: Sort contributor names ignoring case and accents
+        language: python
+        entry: ./tools/hooks/sort_contributor_names.py
+        files: '^(doc/changes/names.inc|.mailmap)$'
+
   # dependencies
   - repo: local
     hooks:
@@ -97,13 +105,6 @@ repos:
         language: python
         entry: ./tools/hooks/update_environment_file.py
         files: '^(pyproject.toml|tools/hooks/update_environment_file.py)$'
-
-      # file-contents-sorter would put every accented name after "z"
-      - id: sort-contributor-names
-        name: Sort contributor names ignoring case and accents
-        language: python
-        entry: ./tools/hooks/sort_contributor_names.py
-        files: '^(doc/changes/names.inc|.mailmap)$'
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit

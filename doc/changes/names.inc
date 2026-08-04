@@ -21,7 +21,7 @@
 .. _Aman Srivastava: https://github.com/aman-coder03
 .. _Ana Radanovic: https://github.com/anaradanovic
 .. _Andrea Brovelli: https://brovelli.github.io/
-.. _Andreas Hojlund: https://github.com/ahoejlund
+.. _Andreas Højlund: https://github.com/ahoejlund
 .. _Andres Rodriguez: https://github.com/infinitejest/
 .. _Andrew Dykstra: https://scholar.google.com/citations?hl=en&user=uCxafoMAAAAJ
 .. _Andrew Quinn: https://github.com/ajquinn
@@ -87,7 +87,7 @@
 .. _Cora Kim: https://github.com/kimcoco
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
 .. _Dan Wakeman: https://github.com/dgwakeman
-.. _Daniel C Schad: https://github.com/DanielCSchad
+.. _Daniel Carlström Schad: https://github.com/DanielCSchad
 .. _Daniel Hasegan: https://daniel.hasegan.com
 .. _Daniel McCloy: https://dan.mccloy.info
 .. _Daniel Strohmeier: https://github.com/joewalter
@@ -140,7 +140,7 @@
 .. _Federico Raimondo: https://github.com/fraimondo
 .. _Federico Zamberlan: https://github.com/fzamberlan
 .. _Felix Klotzsche: https://github.com/eioe
-.. _Felix Raimundo: https://github.com/gamazeps
+.. _Félix Raimundo: https://github.com/gamazeps
 .. _Florian Hofer: https://github.com/hofaflo
 .. _Florin Pop: https://github.com/florin-pop
 .. _Frankie Robertson: https://github.com/frankier
@@ -213,7 +213,7 @@
 .. _Jonathan Kuziek:  https://github.com/kuziekj
 .. _Jordan Drew: https://github.com/jadrew43
 .. _Joris Van den Bossche: https://github.com/jorisvandenbossche
-.. _Jose Alanis: https://github.com/JoseAlanis
+.. _José C. García Alanis: https://github.com/JoseAlanis
 .. _Josh Koen: https://github.com/jdkoen
 .. _Joshua Bear: https://github.com/joshbear
 .. _Joshua Calder-Travis: https://github.com/jCalderTravis
@@ -400,7 +400,7 @@
 .. _Sawradip Saha: https://sawradip.github.io/
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
 .. _Sebastiaan Mathot: https://www.cogsci.nl/smathot
-.. _Sebastian Castano: https://github.com/jscastanoc
+.. _Sebastián Castaño-Candamil: https://github.com/jscastanoc
 .. _Sebastian Jentschke: https://github.com/sjentsch
 .. _Sebastian Major: https://github.com/major-s
 .. _Sébastien Marti: https://www.researchgate.net/profile/Sebastien-Marti
@@ -471,7 +471,7 @@
 .. _Valerii Chirkov: https://github.com/vagechirkov
 .. _Varun Kasyap Pentamaraju: https://github.com/varunkasyap
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
-.. _Victor Ferat: https://github.com/vferat
+.. _Victor Férat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
 .. _Vincent Gao: https://github.com/gaoflow
 .. _Wei Xu: https://github.com/psyxw

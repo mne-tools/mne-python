@@ -20,14 +20,14 @@ Bugfixes
 
 - Preserve ``kit_system_id`` in forward-solution ``Info``, by :newcontrib:`Melih Yayli`. (`#13520 <https://github.com/mne-tools/mne-python/pull/13520>`__)
 - Fix axis limits in :meth:`mne.preprocessing.eyetracking.Calibration.plot` to use screen resolution if available, by :newcontrib:`Gnaneswar Lopinti`. (`#13558 <https://github.com/mne-tools/mne-python/pull/13558>`__)
-- Fix bug where :func:`mne.viz.plot_raw` would access incorrect matplotlib attributes, by :newcontrib:`Thomas Caswell`. (`#13606 <https://github.com/mne-tools/mne-python/pull/13606>`__)
+- Fix bug where :func:`mne.viz.plot_raw` would access incorrect matplotlib attributes, by :newcontrib:`Thomas A Caswell`. (`#13606 <https://github.com/mne-tools/mne-python/pull/13606>`__)
 - Allow reading alternative nasion label ("Nz") in SNIRF files when parsing landmarkPos3D, by :newcontrib:`Aniket Singh Yadav`. (`#13672 <https://github.com/mne-tools/mne-python/pull/13672>`__)
 - Change default-pick 'data' for "eyegaze" to false, following existing documentation. by :newcontrib:`Benedikt Ehinger`. (`#13723 <https://github.com/mne-tools/mne-python/pull/13723>`__)
 - Fix bug in when reading EDF/GDF files where non-positive lowpass values were not handled correctly, now mapping them to the Nyquist frequency to prevent errors during plotting, by :newcontrib:`Hansuja Budhiraja`. (`#13769 <https://github.com/mne-tools/mne-python/pull/13769>`__)
 - Clearer error message when no ECG events are found in :func:`~mne.preprocessing.find_ecg_events`, by :newcontrib:`Hansuja Budhiraja`. (`#13771 <https://github.com/mne-tools/mne-python/pull/13771>`__)
 - Fix bug in 3D overlay compositing that could produce NaN RGBA values when the resulting alpha is zero, by `Pragnya Khandelwal`_. (`#13714 <https://github.com/mne-tools/mne-python/pull/13714>`__)
 - Make :meth:`~mne.io.Raw.interpolate_bads` method flexible (ignore, warn, raise) about how to handle interpolation of channels with invalid positions, by :newcontrib:`Himanshu Mahor`. (`#13518 <https://github.com/mne-tools/mne-python/pull/13518>`__)
-- Fix bug where outdated ``seghead.mgz`` files were reused in :func:`mne.bem.make_scalp_surfaces`. Add a new parameter ``reuse_seghead`` to control whether to reuse existing ``seghead.mgz`` files, by `Victor Ferat`_. (`#13024 <https://github.com/mne-tools/mne-python/pull/13024>`__)
+- Fix bug where outdated ``seghead.mgz`` files were reused in :func:`mne.bem.make_scalp_surfaces`. Add a new parameter ``reuse_seghead`` to control whether to reuse existing ``seghead.mgz`` files, by `Victor Férat`_. (`#13024 <https://github.com/mne-tools/mne-python/pull/13024>`__)
 - When interpolating from axial to planar gradiometers, set info fields "chs", "ch_names", and "nchan", according to the interpolated data, reset info fields "device_info", "helium_info", "gantry_angle", "ctf_head_t", "dev_ctf_t", "bads", "projs", and "comps" to [] or None, and preserve all remaining info fields.   by :newcontrib:`Christoph Huber-Huber`. (`#13759 <https://github.com/mne-tools/mne-python/pull/13759>`__)
 - Clarified an internal forward-model invariant in ``mne.forward._lead_dots`` by asserting that ``rref`` is ``None`` on the current code path, by :newcontrib:`Pragnya Khandelwal`. (`#13764 <https://github.com/mne-tools/mne-python/pull/13764>`__)
 - Fix bug preventing :func:`mne.time_frequency.read_spectrum` from reading saved :class:`mne.time_frequency.Spectrum` objects created from :meth:`mne.time_frequency.EpochsSpectrum.average`, by `Thomas Binns`_. (`#13521 <https://github.com/mne-tools/mne-python/pull/13521>`__)
@@ -77,7 +77,7 @@ New features
 Other changes
 -------------
 
-- Created a quality control report tutorial :ref:`tut-qc-report`, by :newcontrib:`varshaa-1616`. (`#13532 <https://github.com/mne-tools/mne-python/pull/13532>`__)
+- Created a quality control report tutorial :ref:`tut-qc-report`, by :newcontrib:`Srivarsha Chivukula`. (`#13532 <https://github.com/mne-tools/mne-python/pull/13532>`__)
 - Improved docs for :func:`mne.io.read_raw_nirx`, by :newcontrib:`Natneal B`. (`#13541 <https://github.com/mne-tools/mne-python/pull/13541>`__)
 - Refactor f-strings in ``mne/tests/test_import_nesting.py``, by :newcontrib:`Shruti Bhale`. (`#13551 <https://github.com/mne-tools/mne-python/pull/13551>`__)
 - Remove legacy Python-version compatibility checks in ``mne.utils.misc._empty_hash`` now that ``usedforsecurity=False`` is always supported, by :newcontrib:`Varun Kasyap Pentamaraju`. (`#13566 <https://github.com/mne-tools/mne-python/pull/13566>`__)

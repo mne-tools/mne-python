@@ -15,7 +15,7 @@ Bugfixes
 - Improved the configuration json to handle with parallel access with file lock configuration by :newcontrib:`Bruno Aristimunha`. (`#13241 <https://github.com/mne-tools/mne-python/pull/13241>`__)
 - Update :func:`mne.viz.plot_alignment` and related functions to support PyVista deprecation of positional arguments by :newcontrib:`user27182`. (`#13277 <https://github.com/mne-tools/mne-python/pull/13277>`__)
 - Fixed bug where :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` would not reliably identify meg channel types for matching bads across emptyroom and task, by :newcontrib:`Harrison Ritz`. (`#13280 <https://github.com/mne-tools/mne-python/pull/13280>`__)
-- Fixed bug where saving FIFF files failed when ``info["subject_info"]["birthday"]`` was a :class:`pandas.Timestamp` instead of :class:`datetime.date`, by :newcontrib:`Laurent Le Mentec`. (`#13284 <https://github.com/mne-tools/mne-python/pull/13284>`__)
+- Fixed bug where saving FIFF files failed when ``info["subject_info"]["birthday"]`` was a :class:`pandas.Timestamp` instead of :class:`datetime.date`, by :newcontrib:`Laurent Lementec`. (`#13284 <https://github.com/mne-tools/mne-python/pull/13284>`__)
 - Fixed almost-white (barely visible) channel traces when using ``spatial_colors=True`` in :meth:`mne.io.Raw.plot_psd`, :meth:`mne.Epochs.plot_psd`, and related PSD-plot helpers, by :newcontrib:`Mojackhak`. (`#13286 <https://github.com/mne-tools/mne-python/pull/13286>`__)
 - Fix bug where :func:`mne.export.export_raw` does not correct for recording start time (:attr:`raw.first_time <mne.io.Raw.first_time>`) when exporting Raw instances to EDF or EEGLAB formats, by `Qian Chu`_. (`#12656 <https://github.com/mne-tools/mne-python/pull/12656>`__)
 - Fix epoch indexing in :class:`mne.time_frequency.EpochsTFRArray` when initialising the class with the default ``drop_log`` parameter, by `Thomas Binns`_. (`#13028 <https://github.com/mne-tools/mne-python/pull/13028>`__)
@@ -62,12 +62,12 @@ API changes by deprecation
 New features
 ------------
 
-- Add PCA-OBS preprocessing for the removal of heart-artefacts from EEG or ESG datasets via :func:`mne.preprocessing.apply_pca_obs`, by :newcontrib:`Emma Bailey` and :newcontrib:`Steinn Hauser Magnusson`. (`#13037 <https://github.com/mne-tools/mne-python/pull/13037>`__)
+- Add PCA-OBS preprocessing for the removal of heart-artefacts from EEG or ESG datasets via :func:`mne.preprocessing.apply_pca_obs`, by :newcontrib:`Emma Bailey` and :newcontrib:`Steinn Hauser Magnússon`. (`#13037 <https://github.com/mne-tools/mne-python/pull/13037>`__)
 - Add :meth:`mne.Evoked.interpolate_to` to allow interpolating EEG data to other montages, by :newcontrib:`Antoine Collas`. (`#13044 <https://github.com/mne-tools/mne-python/pull/13044>`__)
 - Allow for ``topomap`` plotting of optically pumped MEG (OPM) sensors with overlapping channel locations. When channel locations overlap, plot the most radially oriented channel. By :newcontrib:`Harrison Ritz`. (`#13144 <https://github.com/mne-tools/mne-python/pull/13144>`__)
 - Improved error message in :meth:`mne.io.Raw.save` when attempting to overwrite a file, by :newcontrib:`Sebastian Jentschke` (`#13233 <https://github.com/mne-tools/mne-python/pull/13233>`__)
 - Add new ``select`` parameter to :func:`mne.viz.plot_evoked_topo` and :meth:`mne.Evoked.plot_topo` to toggle lasso selection of sensors, by `Marijn van Vliet`_. (`#12071 <https://github.com/mne-tools/mne-python/pull/12071>`__)
-- Add source space(s) visualization(s) in :func:`mne.Report.add_forward`, by `Victor Ferat`_. (`#12848 <https://github.com/mne-tools/mne-python/pull/12848>`__)
+- Add source space(s) visualization(s) in :func:`mne.Report.add_forward`, by `Victor Férat`_. (`#12848 <https://github.com/mne-tools/mne-python/pull/12848>`__)
 - Added the option to return taper weights from :func:`mne.time_frequency.tfr_array_multitaper`, and taper weights are now stored in the :class:`mne.time_frequency.BaseTFR` objects, by `Thomas Binns`_. (`#12910 <https://github.com/mne-tools/mne-python/pull/12910>`__)
 - Add ``fig.mne`` container for :class:`Colorbar <matplotlib.colorbar.Colorbar>` in :func:`plot_connectivity_circle <mne_connectivity.viz.plot_connectivity_circle>` to allow users to access it directly, by `Santeri Ruuskanen`_. (`#13019 <https://github.com/mne-tools/mne-python/pull/13019>`__)
 - Added :func:`mne.time_frequency.combine_tfr` to allow combining TFRs across tapers, by `Thomas Binns`_. (`#13054 <https://github.com/mne-tools/mne-python/pull/13054>`__)

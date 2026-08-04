@@ -25,6 +25,8 @@ anchor_re = re.compile(r"^\.\. _(.+?):\s+(\S+)\s*$", re.MULTILINE)
 reference_re = re.compile(r"`([^`<>]+?)`_")
 # ":newcontrib:`Jane Doe`"
 newcontrib_re = re.compile(r":newcontrib:`([^`]+)`")
+# stand-in names used to show the changelog syntax, not real credits
+PLACEHOLDERS = {"firstname lastname", "new contributor"}
 
 
 def _reference_key(name):
@@ -52,18 +54,31 @@ def main():
                 "the same link."
             )
 
-    # Every name credited in a changelog fragment needs a link target
+    # Every name credited in a changelog needs a link target. Released
+    # changelogs are checked too: renaming or removing a target breaks them
+    # just as easily, and only the (much slower) documentation build would say
+    # so otherwise.
+    # Changelogs also link to projects and tools, whose targets live in
+    # doc/links.inc or in the file itself rather than in names.inc
+    known = set(urls)
+    links_inc = changes_dir.parent / "links.inc"
+    if links_inc.is_file():
+        known |= {
+            _reference_key(name)
+            for name, _ in anchor_re.findall(links_inc.read_text("utf-8"))
+        }
     missing = defaultdict(list)
-    for fname in sorted((changes_dir / "dev").glob("*.rst")):
+    for fname in sorted(changes_dir.rglob("*.rst")):
         text = fname.read_text("utf-8")
+        here = known | {_reference_key(name) for name, _ in anchor_re.findall(text)}
         for match in list(reference_re.finditer(text)) + list(
             newcontrib_re.finditer(text)
         ):
             name = match.group(1)
-            if _reference_key(name) not in urls:
-                missing[name].append(fname.name)
+            if _reference_key(name) not in here | PLACEHOLDERS:
+                missing[name].append(str(fname.relative_to(changes_dir.parent.parent)))
     for name, fnames in sorted(missing.items()):
-        where = ", ".join(f"doc/changes/dev/{fname}" for fname in sorted(set(fnames)))
+        where = ", ".join(sorted(set(fnames)))
         problems.append(
             f"{where} credits {name!r}, but doc/changes/names.inc has no link "
             f"target for that name. Add one (the file is sorted alphabetically, "
