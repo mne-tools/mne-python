@@ -2160,9 +2160,7 @@ def setup_subcortical_source_space(
             rr, tris = surface["rr"], surface["tris"]
         else:
             surface = str(
-                _check_fname(
-                    surface, overwrite="read", must_exist=True, name="surface"
-                )
+                _check_fname(surface, overwrite="read", must_exist=True, name="surface")
             )
             rr, tris = read_surface(surface)[:2]
         rr = np.array(rr, float) / 1000.0  # mm -> m
