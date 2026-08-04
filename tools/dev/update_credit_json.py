@@ -1,13 +1,14 @@
-"""Collect credit information for PRs.
+"""Collect credit information for recently merged PRs.
 
-The initial run takes a long time (hours!) due to GitHub rate limits, even with
-a personal GITHUB_TOKEN.
+A full-history rebuild (removing the cutoff below) takes a long time (hours!)
+due to GitHub rate limits, even with a personal GITHUB_TOKEN.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import json
 import os
 import re
@@ -30,24 +31,22 @@ json_kwargs = dict(indent=2, ensure_ascii=False, sort_keys=False)
 #     fname.write_text(json.dumps(json.loads(fname.read_text("utf-8")), **json_kwargs), "utf-8")  # noqa: E501
 
 repo = g.get_repo("mne-tools/mne-python")
-# No need to look any farther back than the oldest open PR: everything older is
-# closed, and if it was merged its JSON file already exists
-oldest_pr = repo.get_pulls(state="open", sort="created", direction="asc")[0].number
-print(f"Traversing closed PRs back to the oldest open one (#{oldest_pr})")
 co_re = re.compile("Co-authored-by: ([^<>]+) <([^()>]+)>")
-# We go in descending order of updates and `break` when we encounter a PR we have
-# already committed a file for.
-pulls_iter = repo.get_pulls(state="closed", sort="created", direction="desc")
+# Iterate closed PRs by last-updated time: merging always bumps updated_at, so
+# every PR merged within the lookback window is seen regardless of how old or
+# low-numbered it is (the monthly action runs far more often than this window).
+# For a full-history rebuild, remove the cutoff `break` below.
+cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90)
+pulls_iter = repo.get_pulls(state="closed", sort="updated", direction="desc")
 iter_ = tqdm(pulls_iter, unit="pr", desc="Traversing")
-last = 0
 n_added = 0
 for pull in iter_:
     fname_out = out_path / f"{pull.number}.json"
-    if pull.number < oldest_pr:
+    if pull.updated_at < cutoff:
         iter_.close()
         print(
-            f"After checking {iter_.n + 1} and adding {n_added} PR(s), "
-            f"found PR number less than oldest existing file {fname_out}, stopping"
+            f"After checking {iter_.n + 1} and adding {n_added} PR(s), reached "
+            f"PRs last updated before {cutoff.date()}, stopping"
         )
         break
     if fname_out.is_file():
