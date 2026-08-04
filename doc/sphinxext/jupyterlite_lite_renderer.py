@@ -256,13 +256,20 @@ class _LiteRenderer:
         return rr, _np.asarray(tris, int)
 
     def _add(self, points, tris, color, opacity=1.0):
-        """Draw a mesh and return MNE's (actor, mesh) pair."""
+        """Draw a mesh and return MNE's (actor, mesh) pair.
+
+        ``opacity=None`` means "renderer default" in MNE's renderer API, which
+        for PyVista reaches ``add_mesh(opacity=None)`` and draws opaque. Every
+        drawing method here funnels through this, so translating it once covers
+        all of them.
+        """
         _np = self._np
         _pd = self._pv.PolyData(
             points=_np.asarray(points, dtype=_np.float32),
             faces=self._faces(tris))
         _actor = self.plotter.add_mesh(
-            _pd, color=self._rgb(color), opacity=float(opacity),
+            _pd, color=self._rgb(color),
+            opacity=1.0 if opacity is None else float(opacity),
             smooth_shading=True)
         return _actor, _pd
 
