@@ -14,7 +14,9 @@ Contributor names are resolved from the PR JSON files in this order:
 
 Anything else is reported as a ready-to-paste ``.mailmap`` suggestion, or
 appended to ``.mailmap`` automatically when running with ``--fix-mailmap``
-(what the monthly credit GitHub Action does).
+(what the monthly credit GitHub Action does). In that mode, the name from the
+PR's changelog ``:newcontrib:`` entry is preferred when one exists, since new
+contributors pick that name themselves.
 """
 
 # Authors: The MNE-Python contributors.
@@ -147,6 +149,8 @@ class _Unresolved:
     name: str | None
     email: str | None
     login: str | None
+    sha: str | None = None  # merge commit, for fetching the changelog fragment
+    changelog_files: tuple = ()  # this PR's doc/changes/dev(el)/*.rst fragments
 
     @property
     def best_name(self):
@@ -154,19 +158,21 @@ class _Unresolved:
 
     @property
     def mailmap_entry(self):
-        """Ready-to-paste .mailmap line, annotated since the name fails heuristics.
+        """Ready-to-paste .mailmap line.
 
-        Per our policy the GitHub profile name is acceptable as-is; the
-        annotation just records where it came from.
+        Annotated when the name fails our heuristics: per our policy the GitHub
+        profile name is acceptable as-is, and the annotation just records where
+        it came from. Names taken from a changelog ``:newcontrib:`` entry
+        usually pass the heuristics and so get a plain entry.
         """
         assert self.email is not None
-        return (
-            f"{self.best_name} <{self.email}> {NAME_OK_MARKER} "
-            f"(auto-added, see {PR_URL.format(pr=self.pr)})"
-        )
+        entry = f"{self.best_name} <{self.email}>"
+        if not _good_name(self.best_name):
+            entry += f" {NAME_OK_MARKER} (auto-added, see {PR_URL.format(pr=self.pr)})"
+        return entry
 
 
-def _resolve_name(author, pr, mailmap, fallback_names, unresolved):
+def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved):
     """Resolve one PR JSON author dict to a display name (or None to skip)."""
     name, email, login = author.get("n"), author.get("e"), author.get("l")
     if _is_bot(name, email):
@@ -184,7 +190,18 @@ def _resolve_name(author, pr, mailmap, fallback_names, unresolved):
         return candidate
     key = email or f"{name} #{pr}"
     if key not in unresolved:
-        unresolved[key] = _Unresolved(pr=pr, name=name, email=email, login=login)
+        unresolved[key] = _Unresolved(
+            pr=pr,
+            name=name,
+            email=email,
+            login=login,
+            sha=data.get("merge_commit_sha"),
+            changelog_files=tuple(
+                file
+                for file in data["changes"]
+                if re.match(r"doc/changes/dev(el)?/\d+\.[a-z]+\.rst$", file)
+            ),
+        )
     return None
 
 
@@ -215,7 +232,7 @@ def _load_pr_stats(mailmap):
         data = json.loads(fname.read_text("utf-8"))
         assert data != {}, fname
         names = [
-            _resolve_name(author, pr, mailmap, fallback_names, unresolved)
+            _resolve_name(author, pr, data, mailmap, fallback_names, unresolved)
             for author in data["authors"]
         ]
         # dedup, keeping author order (so ties in the output sort stay stable)
@@ -235,17 +252,45 @@ def _load_pr_stats(mailmap):
 
 
 def _check_duplicate_names(names):
-    """Warn about surnames shared by more people than we know are distinct."""
+    """Check surname sharing against the NAME_COUNTS allowances.
+
+    Returns advisory warnings (more sharers than allowed — possibly the same
+    person under two name variants) and fatal problems (stale NAME_COUNTS
+    entries allowing more sharers than actually exist).
+    """
     last_map = defaultdict(set)
     for name in names:
         last_map[name.split()[-1]].add(name)
-    return [
+    warnings = [
         f"surname {last!r} is shared by {sorted(these)}; if these are the same "
         "person, merge them in .mailmap, otherwise bump NAME_COUNTS in "
         "credit_tools.py"
         for last, these in last_map.items()
         if len(these) > NAME_COUNTS.get(last, 1)
     ]
+    problems = [
+        f"NAME_COUNTS[{last!r}] = {allowed} but only {len(last_map.get(last, ()))} "
+        "distinct contributor(s) share that surname; remove or lower the stale "
+        "entry in credit_tools.py"
+        for last, allowed in NAME_COUNTS.items()
+        if len(last_map.get(last, ())) < allowed
+    ]
+    return warnings, problems
+
+
+def _check_names_inc(names):
+    """List credited names that have no doc/changes/names.inc link anchor.
+
+    Advisory only: names.inc is what changelogs link against, so drift here
+    means a contributor's changelog credit and code credit use different
+    spellings (or the anchor is missing entirely).
+    """
+    anchors = re.findall(
+        r"^\.\. _(.+?): \S",
+        (doc_root / "changes" / "names.inc").read_text("utf-8"),
+        re.M,
+    )
+    return sorted(set(names) - set(anchors))
 
 
 def _append_mailmap_entries(entries):
@@ -261,6 +306,13 @@ def _report_problems(mailmap, unresolved):
     parts = []
     if mailmap.problems:
         parts.append("Problems in .mailmap:\n" + "\n".join(mailmap.problems))
+    no_email = [un for un in unresolved.values() if un.email is None]
+    if no_email:
+        parts.append(
+            "Authors with no usable name and no email; fix the JSON by hand or "
+            "remove it:\n"
+            + "\n".join(f"{un.name!r} in prs/{un.pr}.json" for un in no_email)
+        )
     fixable = [un for un in unresolved.values() if un.email is not None]
     if fixable:
         parts.append(
@@ -282,6 +334,7 @@ def generate_credit_rst(
     stats, commits, ignores, unresolved = _load_pr_stats(mailmap)
     added = [un for un in unresolved.values() if un.email is not None]
     if fix_mailmap and added and not mailmap.problems:
+        _apply_newcontrib_names(added)
         _append_mailmap_entries(un.mailmap_entry for un in added)
         sphinx_logger.info(f"Added {len(added)} entries to .mailmap")
         mailmap = _load_mailmap()  # second pass with the appended entries
@@ -291,26 +344,21 @@ def generate_credit_rst(
     problems = _report_problems(mailmap, unresolved)
     if problems:
         raise RuntimeError(problems)
-    # Entries without an email cannot be resolved through .mailmap; skip their
-    # credit with a warning (they come from legacy JSONs predating the login
-    # backfill, or from PRs whose author deleted their GitHub account)
-    skipped = [un for un in unresolved.values() if un.email is None]
-    if skipped:
-        # TODO: Make this a warning (or an error) once the JSON login backfill
-        # has landed; for now the doc build treats warnings as errors
-        sphinx_logger.info(
-            f"Skipped credit for {len(skipped)} author entr(ies) with no usable "
-            "name and no email, e.g. "
-            f"{skipped[0].name!r} in prs/{skipped[0].pr}.json; running "
-            "tools/dev/backfill_credit_json.py should fix most of them"
-        )
 
     all_names = {name for these in stats.values() for name in these}
-    duplicate_warnings = _check_duplicate_names(all_names)
+    duplicate_warnings, count_problems = _check_duplicate_names(all_names)
+    if count_problems:
+        raise RuntimeError("\n".join(count_problems))
     for warning in duplicate_warnings:
         sphinx_logger.info(f"Possible duplicate contributor: {warning}")
+    missing_anchors = _check_names_inc(all_names)
+    if missing_anchors:
+        sphinx_logger.info(
+            f"{len(missing_anchors)} credited name(s) have no "
+            "doc/changes/names.inc anchor"
+        )
     if report_file is not None:
-        _write_report(report_file, added, skipped, duplicate_warnings)
+        _write_report(report_file, added, duplicate_warnings, missing_anchors)
 
     logger.info("Biggest included commits/PRs:")
     biggest = sorted(commits, key=lambda key: commits[key], reverse=True)
@@ -324,6 +372,46 @@ def generate_credit_rst(
 
     mod_stats, link_overrides, mod_file_map = _aggregate_module_stats(stats)
     _write_credit_rst(mod_stats, link_overrides, mod_file_map)
+
+
+def _apply_newcontrib_names(unresolved):
+    """Take unresolved contributors' names from their changelog fragments.
+
+    New contributors typically add a towncrier fragment crediting themselves
+    with a ``:newcontrib:`` role (see the contributing guide); that name is
+    deliberately chosen, so prefer it over the GitHub profile name. Only
+    applied when the PR has exactly one unresolved author and its fragment
+    names exactly one new contributor, to avoid misattribution.
+    """
+    by_pr = defaultdict(list)
+    for un in unresolved:
+        by_pr[un.pr].append(un)
+    todo = [
+        uns[0]
+        for uns in by_pr.values()
+        if len(uns) == 1 and uns[0].sha and uns[0].changelog_files
+    ]
+    if not todo:
+        return
+    try:
+        import github  # not a doc dependency, only needed in --fix-mailmap mode
+
+        token = os.environ.get("GITHUB_TOKEN")
+        auth = github.Auth.Token(token) if token else None
+        with github.Github(auth=auth) as gh:
+            repo = gh.get_repo("mne-tools/mne-python")
+            for un in todo:
+                for path in un.changelog_files:
+                    try:
+                        text = repo.get_contents(path, ref=un.sha).decoded_content
+                    except Exception:
+                        continue
+                    names = re.findall(r":newcontrib:`([^`]+)`", text.decode())
+                    if len(set(names)) == 1:
+                        un.name = names[0]
+                        break
+    except Exception:
+        pass  # best-effort only; the GitHub profile name is still used
 
 
 def _github_website(login):
@@ -344,14 +432,15 @@ def _github_website(login):
     return website or None
 
 
-def _write_report(report_file, added, skipped, duplicate_warnings):
+def _write_report(report_file, added, duplicate_warnings, missing_anchors):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
     if added:
         lines += [
-            f"{len(added)} new contributor(s) were added to `.mailmap` with their "
-            "GitHub profile name taken as-is. To improve a name, check the links "
-            "below and edit `.mailmap`:",
+            f"{len(added)} new contributor(s) were added to `.mailmap`, named "
+            "from their changelog `:newcontrib:` entry where available and "
+            "otherwise from their GitHub profile as-is. To improve a name, "
+            "check the links below and edit `.mailmap`:",
             "",
         ]
         for un in added:
@@ -364,18 +453,20 @@ def _write_report(report_file, added, skipped, duplicate_warnings):
             lines.append(f"- `{un.mailmap_entry}` — {', '.join(links)}")
     else:
         lines += ["All contributor names resolved cleanly."]
-    if skipped:
-        lines += [
-            "",
-            f"Credit was skipped for {len(skipped)} author entr(ies) with no "
-            "usable name and no email (e.g., "
-            f"`{skipped[0].name}` in `prs/{skipped[0].pr}.json`). Running "
-            "`tools/dev/backfill_credit_json.py` on this branch should fix "
-            "most of them.",
-        ]
     if duplicate_warnings:
         lines += ["", "Possible duplicate contributors:", ""]
         lines += [f"- {warning}" for warning in duplicate_warnings]
+    if missing_anchors:
+        lines += [
+            "",
+            f"{len(missing_anchors)} credited name(s) have no anchor in "
+            "`doc/changes/names.inc` (changelog credit will use a different "
+            "spelling or link):",
+            "",
+        ]
+        lines += [f"- {name}" for name in missing_anchors[:20]]
+        if len(missing_anchors) > 20:
+            lines += [f"- … and {len(missing_anchors) - 20} more"]
     Path(report_file).write_text("\n".join(lines) + "\n", "utf-8")
 
 
