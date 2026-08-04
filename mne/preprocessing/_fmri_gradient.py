@@ -29,7 +29,7 @@ class GradientRemover:
     ----------
     eeg_data : ndarray, shape (n_channels, n_times)
         The raw EEG data to perform gradient correction on.
-    tr_events : ndarray, shape (n_trs,) | (n_trs, 3)
+    tr_events : ndarray, shape (n_trs,) or (n_trs, 3)
         The sample numbers at which TRs (imaging volumes) begin. May be a
         1D array of sample numbers, or an ``(n_trs, 3)`` events array as
         returned by :func:`mne.find_events` (the first column is used). TRs
@@ -126,7 +126,11 @@ class GradientRemover:
         data : ndarray, shape (n_channels, tr_spacing)
             The detrended data at the given TR.
         """
-        return detrend(self.get_tr(n))
+        # Some BLAS/LAPACK builds can emit floating-point RuntimeWarnings from
+        # SciPy's least-squares internals even when the detrended result is
+        # finite and correct.
+        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+            return detrend(self.get_tr(n))
 
     def get_tr_template(self, n):
         """Get the gradient artifact template at a given TR.
@@ -142,14 +146,14 @@ class GradientRemover:
             The artifact template at the given TR.
         """
         self._check_valid_tr(n)
-        if n < self.window[0] or n > (self.n_tr - self.window[1]):
+        if n < self.window[0] or n >= (self.n_tr - self.window[1]):
             return np.zeros((self.n_channels, self.tr_spacing))
         if self.window[0]:
             before = self._get_tr_template_part(n - self.window[0], n)
         else:
             before = 0
         if self.window[1]:
-            after = self._get_tr_template_part(n + 1, n + self.window[1] - 1)
+            after = self._get_tr_template_part(n + 1, n + self.window[1] + 1)
         else:
             after = 0
         return self._weight_before * before + self._weight_after * after
@@ -289,7 +293,7 @@ def remove_fmri_gradient_artifact(
     ----------
     raw : instance of Raw
         The raw data recorded during MRI acquisition. Must be preloaded.
-    tr_events : ndarray, shape (n_trs,) | (n_trs, 3)
+    tr_events : ndarray, shape (n_trs,) or (n_trs, 3)
         The sample numbers at which TRs (imaging volumes) begin. May be a 1D
         array of sample numbers, or an ``(n_trs, 3)`` events array as returned
         by :func:`mne.find_events` (the first column is used). TRs must be
