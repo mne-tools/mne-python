@@ -826,7 +826,7 @@ class RawCurry(BaseRaw):
         # "HPI-coil measurements matrix (Orion-MEG only) where every row is:
         # [measurementsample, dipolefitflag, x, y, z, deviation]"
         #
-        # that's incorrect, though. it ratehr seems to be:
+        # that's incorrect, though. it rather seems to be:
         # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
         # for all n coils.
         #

@@ -9,7 +9,6 @@ import os
 import platform
 import signal
 import sys
-from colorsys import rgb_to_hls
 from contextlib import contextmanager
 from ctypes import c_char_p, c_void_p, cdll
 from pathlib import Path
@@ -18,7 +17,7 @@ import numpy as np
 
 from ...fixes import _compare_version, _reshape_view
 from ...utils import _check_qt_version, _validate_type, logger, warn
-from ..utils import _get_cmap
+from ..utils import _get_cmap, _is_dark
 
 VALID_BROWSE_BACKENDS = (
     "qt",
@@ -342,10 +341,9 @@ def _qt_raise_window(widget):
 
 
 def _qt_is_dark(widget):
-    # Ideally this would use CIELab, but this should be good enough
     win = widget.window()
     bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
-    return rgb_to_hls(*bgcolor)[1] < 0.5
+    return _is_dark(bgcolor, name="bgcolor")
 
 
 def _pixmap_to_ndarray(pixmap):

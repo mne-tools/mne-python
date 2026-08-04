@@ -138,3 +138,9 @@ changelog entry instead of a plain name link.
 - Prefer the `testing` dataset over `sample`/other large datasets in tests (smaller, faster).
 - Prefer to keep unit tests compact and add to existing tests when possible. The full test suite takes about an hour on CIs, so minimizing test time (for CIs) and test verbosity (for reviewers) is important.
 - When new functionality is added, it is good in general to add it somewhere in an example (`examples/`) or a tutorial (`tutorials/`) to help with discoverability and documentation.
+- Code adapted from an outside source must be under a BSD-compatible license (BSD, MIT, ISC, Apache-2.0, public domain, ...); GPL/LGPL/AGPL and non-commercial or no-derivatives licenses are not acceptable. Attribute it in a comment directly above the adapted code, naming the source (URL and/or author) and its license, e.g.:
+  ```python
+  # Adapted from https://example.com/post by A. Nother, released under the MIT license
+  # (BSD-compatible).
+  ```
+  If the license of a snippet cannot be determined, do not adapt it.
