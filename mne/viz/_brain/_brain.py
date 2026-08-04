@@ -84,6 +84,7 @@ from ..ui_events import (
 from ..utils import (
     _generate_default_filename,
     _get_color_list,
+    _is_dark,
     _save_ndarray_img,
     concatenate_images,
     safe_event,
@@ -350,7 +351,7 @@ class Brain:
 
         self._bg_color = _to_rgb(background, name="background")
         if foreground is None:
-            foreground = "w" if sum(self._bg_color) < 2 else "k"
+            foreground = "w" if _is_dark(self._bg_color, name="background") else "k"
         self._fg_color = _to_rgb(foreground, name="foreground")
         del background, foreground
         views = _check_views(surf, views, hemi)
