@@ -48,6 +48,7 @@ from ..transforms import (
 )
 from ..utils import (
     _check_fname,
+    _explain_exception,
     _validate_type,
     check_fname,
     fill_doc,
@@ -1505,10 +1506,12 @@ class CoregistrationUI(HasTraits):
                 labels=True,
                 annot=True,
                 on_defects="ignore",
-                mri_fiducials=self.coreg.fiducials,
+                mri_fiducials=self.coreg.fiducials.dig,
             )
         except Exception:
-            logger.error(f"Error scaling {self._subject_to}")
+            logger.error(
+                f"Error scaling {self._subject_to}{_explain_exception(start=0)}"
+            )
             bem_names = []
         else:
             self._display_message(f"Scaling {self._subject_to}... Done!")
@@ -1525,7 +1528,9 @@ class CoregistrationUI(HasTraits):
                 bemsol = make_bem_solution(bem_file)
                 write_bem_solution(bem_file[:-4] + "-sol.fif", bemsol)
             except Exception:
-                logger.error(f"Error computing {bem_name} solution")
+                logger.error(
+                    f"Error computing {bem_name} solution{_explain_exception(start=0)}"
+                )
             else:
                 self._display_message(f"Computing {bem_name} solution... Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
