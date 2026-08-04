@@ -85,7 +85,7 @@ def _make_colored_noise(n_samples, sfreq, std):
 
 
 def _make_gradient_template(tr_samples, sfreq, peak_amplitude):
-    """A fixed, repeating gradient-artifact waveform for one TR."""
+    """Create a fixed, repeating gradient-artifact waveform for one TR."""
     t = np.arange(tr_samples) / sfreq
     ramp = 2 * (t / t[-1]) - 1  # slice-select-like ramp across the TR
     slice_freqs = rng.uniform(20, 60, size=4)
