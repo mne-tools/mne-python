@@ -52,6 +52,7 @@ fname_raw_testing = sample_dir / "sample_audvis_trunc_raw.fif"
 fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
 fname_stc = sample_dir / "sample_audvis_trunc-meg"
 fname_label = sample_dir / "labels" / "Vis-lh.label"
+fname_label2 = sample_dir / "labels" / "Vis-rh.label"
 fname_cov = sample_dir / "sample_audvis_trunc-cov.fif"
 fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
 fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
@@ -585,15 +586,42 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
 
+@testing.requires_testing_data
+def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
+    """Test live cortex alpha and silhouette line width."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    brain.set_cortex_alpha(0.5)
+    assert brain._alpha == 0.5
+
+    assert not brain.silhouette
+    brain.set_silhouette_line_width(3.0)
+    assert brain.silhouette
+    actors = brain._silhouette_actors
+    assert len(actors) > 0
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(0.0)
+    assert not brain.silhouette
+    assert all(not a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(5.0)
+    assert brain._silhouette_actors is actors
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.close()
+
+
 def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
     """Test add_annotation."""
     annots = [
         "aparc",
         subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
+        [read_label(fname_label, "fsaverage"), read_label(fname_label2, "fsaverage")],
     ]
-    borders = [True, 2]
-    alphas = [1, 0.5]
-    colors = [None, "r"]
+    borders = [True, 1, 2]
+    alphas = [1, 0.5, 0]
+    colors = [None, "r", "b"]
     size = (100, 100)
     brain = Brain(
         subject="fsaverage",
@@ -655,7 +683,63 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
         subjects_dir=subjects_dir,
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
-        brain.add_annotation(str(a), b, p, color=color)
+        brain.add_annotation(a, b, p, color=color)
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_scalar_bar_ticks_title_and_hover(renderer_interactive_pyvistaqt, brain_gc):
+    """Test scalar bar tick marks, title truncation, and hover info toggle."""
+    long_title = "a" * 40
+    brain = _create_testing_brain(
+        hemi="lh",
+        show_traces=False,
+        add_data_kwargs=dict(colorbar_kwargs=dict(title=long_title)),
+    )
+    n_labels = brain._scalar_bar.GetNumberOfLabels()
+    ticks = brain._scalar_bar_ticks
+    assert ticks.GetNumberOfLabels() == n_labels
+    assert ticks.GetTickVisibility()
+    assert not ticks.GetLabelVisibility()
+    title = brain._scalar_bar.GetTitle()
+    assert title.endswith("…")
+    assert len(title) <= 20
+
+    assert brain._show_hover_info is False
+
+    class MockIren:
+        def GetEventPosition(self):
+            return 50, 50
+
+        def FindPokedRenderer(self, x, y):
+            return brain.plotter.renderers[0]
+
+    class MockPicker:
+        def Pick(self, x, y, z, renderer):
+            pass
+
+        def GetCellId(self):
+            return 0
+
+        def GetMapper(self):
+            return brain.plotter.mapper
+
+        def GetPickPosition(self):
+            return np.zeros(3)
+
+    brain._renderer._picker = MockPicker()
+    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    assert not brain._hover_caption.GetVisibility()  # toggle is off
+
+    brain._toggle_hover_info()
+    assert brain._show_hover_info is True
+    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    assert brain._hover_caption.GetVisibility()
+    assert "vertex" in brain._hover_caption.GetCaption()
+
+    brain._toggle_hover_info()
+    assert brain._show_hover_info is False
+    assert not brain._hover_caption.GetVisibility()
     brain.close()
 
 
@@ -923,10 +1007,10 @@ def tiny(tmp_path):
     subject_dir = tmp_path / subject
     (subject_dir / "surf").mkdir()
     surf_dir = subject_dir / "surf"
-    rng = np.random.RandomState(0)
-    rr = rng.randn(4, 3)
+    rng = np.random.default_rng(0)
+    rr = rng.standard_normal((4, 3))
     tris = np.array([[0, 1, 2], [2, 1, 3]])
-    curv = rng.randn(len(rr))
+    curv = rng.standard_normal(len(rr))
     with open(surf_dir / "lh.curv", "wb") as fid:
         fid.write(np.array([255, 255, 255], dtype=np.uint8))
         fid.write(np.array([len(rr), 0, 1], dtype=">i4"))
@@ -934,7 +1018,7 @@ def tiny(tmp_path):
     write_surface(surf_dir / "lh.white", rr, tris)
     write_surface(surf_dir / "rh.white", rr, tris)  # needed for vertex tc
     vertices = [np.arange(len(rr)), []]
-    data = rng.randn(len(rr), 10)
+    data = rng.standard_normal((len(rr), 10))
     stc = SourceEstimate(data, vertices, 0, 1, subject)
     brain = stc.plot(subjects_dir=tmp_path, hemi="lh", surface="white", size=_TINY_SIZE)
     # in principle this should be sufficient:
@@ -1152,12 +1236,12 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         brain.widgets["extract_mode"].set_value("max")
 
         # test picking a cell at random
-        rng = np.random.RandomState(0)
+        rng = np.random.default_rng(0)
         for idx, current_hemi in enumerate(hemi_str):
             if current_hemi == "vol":
                 continue
             current_mesh = brain.layered_meshes[current_hemi]._polydata
-            cell_id = rng.randint(0, current_mesh.n_cells)
+            cell_id = rng.integers(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
             assert len(brain._picked_patches[current_hemi]) == 0
             brain._on_pick(test_picker, None)
@@ -1251,7 +1335,7 @@ def test_brain_traces_vertex(
         assert len(picked_points[key]) == 0
 
     # test picking a cell at random
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     for idx, current_hemi in enumerate(hemi_str):
         assert len(spheres) == 0
         if current_hemi == "vol":
@@ -1261,7 +1345,7 @@ def test_brain_traces_vertex(
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain.layered_meshes[current_hemi]._polydata
-            cell_id = rng.randint(0, current_mesh.n_cells)
+            cell_id = rng.integers(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None
         test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
@@ -1636,12 +1720,12 @@ def _create_testing_brain(
     assert sample_src.kind == src
 
     # dense version
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices = [s["vertno"] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
+    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = rng.random(
         stc_data.size // 20
     )
     stc_data = _reshape_view(stc_data, (n_verts, n_time))

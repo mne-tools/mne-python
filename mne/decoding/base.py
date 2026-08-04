@@ -457,7 +457,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         "predict",
         "predict_proba",
         "predict_log_proba",
-        "_estimator_type",  # remove after sklearn 1.6
+        "_estimator_type",  # TODO VERSION remove on sklearn 1.6+
         "decision_function",
         "score",
         "classes_",
@@ -505,7 +505,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
                     "(classifier or regressor)"
                 )
 
-        # For sklearn < 1.6
+        # TODO VERSION remove on sklearn 1.6+
         try:
             self._check_n_features(X, reset=True)
         except AttributeError:

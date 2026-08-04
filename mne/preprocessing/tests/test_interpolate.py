@@ -124,7 +124,8 @@ def test_interpolate_bridged_electrodes():
         if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]
     ]
     info = create_info(ch_names, sfreq=1024, ch_types="eeg")
-    data = np.random.randn(len(ch_names), 1024)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 1024))
     data[:5, :] = np.ones((5, 1024))
     raw = io.RawArray(data, info)
     raw.set_montage("spherical_1005")

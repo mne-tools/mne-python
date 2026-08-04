@@ -701,7 +701,10 @@ def _make_trans_dig(
 
 @verbose
 def read_raw_curry(
-    fname, preload=False, on_bad_hpi_match="warn", verbose=None
+    fname: Path | str,
+    preload: bool | str = False,
+    on_bad_hpi_match: str = "warn",
+    verbose: bool | str | int | None = None,
 ) -> "RawCurry":
     """Read raw data from Curry files.
 
@@ -823,7 +826,7 @@ class RawCurry(BaseRaw):
         # "HPI-coil measurements matrix (Orion-MEG only) where every row is:
         # [measurementsample, dipolefitflag, x, y, z, deviation]"
         #
-        # that's incorrect, though. it ratehr seems to be:
+        # that's incorrect, though. it rather seems to be:
         # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
         # for all n coils.
         #

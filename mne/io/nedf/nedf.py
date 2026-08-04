@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -205,7 +206,11 @@ def _convert_eeg(chunks, n_eeg, n_tot):
 
 
 @verbose
-def read_raw_nedf(filename, preload=False, verbose=None) -> RawNedf:
+def read_raw_nedf(
+    filename: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> RawNedf:
     """Read NeuroElectrics .nedf files.
 
     NEDF file versions starting from 1.3 are supported.

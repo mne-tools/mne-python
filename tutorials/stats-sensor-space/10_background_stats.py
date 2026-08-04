@@ -62,10 +62,12 @@ n_permutations = "all"  # run an exact test
 n_src = width * width
 
 # For each "subject", make a smoothed noisy signal with a centered peak
-rng = np.random.RandomState(2)
-X = noise_sd * rng.randn(n_subjects, width, width)
+rng = np.random.default_rng(2)
+X = rng.normal(scale=noise_sd, size=(n_subjects, width, width))
 # Add a signal at the center
-X[:, width // 2, width // 2] = signal_mean + rng.randn(n_subjects) * signal_sd
+X[:, width // 2, width // 2] = rng.normal(
+    loc=signal_mean, scale=signal_sd, size=n_subjects
+)
 # Spatially smooth with a 2D Gaussian kernel
 size = width // 2 - 1
 gaussian = np.exp(-(np.arange(-size, size + 1) ** 2 / float(gaussian_sd**2)))
@@ -249,7 +251,7 @@ ts.append(np.zeros(width * width))
 ps.append(np.zeros(width * width))
 mccs.append(False)
 for ii in range(n_src):
-    t, p = permutation_t_test(X[:, [ii]], verbose=False)[:2]
+    t, p = permutation_t_test(X[:, [ii]], verbose=False, seed=0)[:2]
     ts[-1][ii], ps[-1][ii] = t[0], p[0]
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
@@ -368,7 +370,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    of processed neuroimaging data).
 
 titles.append(r"$\mathbf{Perm_{max}}$")
-out = permutation_t_test(X, verbose=False)[:2]
+out = permutation_t_test(X, verbose=False, seed=0)[:2]
 ts.append(out[0])
 ps.append(out[1])
 mccs.append(True)
@@ -507,6 +509,7 @@ t_thresh = stats.distributions.t.ppf(1 - alpha / 2, df=df)
 # run the cluster test
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
     X,
+    seed=0,
     n_jobs=None,
     threshold=t_thresh,
     adjacency=None,
@@ -532,6 +535,7 @@ titles.append(r"$\mathbf{C_{hat}}$")
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
 t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
     X,
+    seed=0,
     n_jobs=None,
     threshold=t_thresh,
     adjacency=None,
@@ -575,6 +579,7 @@ titles.append(r"$\mathbf{C_{TFCE}}$")
 threshold_tfce = dict(start=0, step=0.2)
 t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
     X,
+    seed=0,
     n_jobs=None,
     threshold=threshold_tfce,
     adjacency=None,
@@ -591,6 +596,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 titles.append(r"$\mathbf{C_{hat,TFCE}}$")
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
     X,
+    seed=0,
     n_jobs=None,
     threshold=threshold_tfce,
     adjacency=None,

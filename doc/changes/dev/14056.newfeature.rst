@@ -1,0 +1,1 @@
+Added type annotations to public members of ``mne/io``, :class:`mne.Evoked`, and :class:`mne.Epochs`, by `Eric Larson`_.

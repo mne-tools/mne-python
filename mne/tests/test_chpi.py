@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 from scipy.interpolate import interp1d
+from scipy.signal import welch
 from scipy.spatial.distance import cdist
 
 from mne import pick_info, pick_types
@@ -500,7 +501,7 @@ def test_initial_fit_redo():
 def test_fit_chpi_quat_weighted():
     """Test weighted cHPI quaternion fitting (gh-11330)."""
     rng = np.random.default_rng(0)
-    head_rrs = rng.standard_normal((5, 3)) * 0.05
+    head_rrs = rng.normal(scale=0.05, size=(5, 3))
     quat = np.array([0.05, -0.03, 0.02, 0.01, -0.02, 0.03])
     rot = quat_to_rot(quat[:3])
     # device coil positions such that ``rot @ dev + trans == head``
@@ -730,7 +731,6 @@ def test_calculate_chpi_coil_locs_artemis():
 def assert_suppressed(new, old, suppressed, retained):
     """Assert that some frequencies are suppressed and others aren't."""
     __tracebackhide__ = True
-    from scipy.signal import welch
 
     picks = pick_types(new.info, meg="grad")
     sfreq = new.info["sfreq"]
@@ -756,19 +756,48 @@ def test_chpi_subtraction_filter_chpi():
     raw.info["bads"] = ["MEG0111"]
     raw.del_proj()
     raw_orig = raw.copy().crop(0, 16)
-    with catch_logging() as log:
-        filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
-    log = log.getvalue()
-    assert "No average EEG" not in log
-    assert "5 cHPI" in log
-    # MaxFilter doesn't do quite as well as our algorithm with the last bit
-    raw.crop(0, 16)
     # remove cHPI status chans
     raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
     raw_c.pick(["meg", "eeg", "eog", "ecg", "stim", "misc"])
-    assert_meg_snr(raw, raw_c, 143, 624)
+    # interp=None reproduces the pre-1.13 zero-order-hold subtraction, which
+    # closely matches MaxFilter (which also does not remove line freqs here)
+    raw_zoh = raw.copy()
+    with catch_logging() as log:
+        filter_chpi(
+            raw_zoh, include_line=False, t_window=0.2, interp=None, verbose=True
+        )
+    log = log.getvalue()
+    assert "No average EEG" not in log
+    assert "5 cHPI" in log
+    raw_zoh.crop(0, 16)
+    # MaxFilter doesn't do quite as well as our algorithm with the last bit
+    assert_meg_snr(raw_zoh, raw_c, 143, 624)
     # cHPI suppressed but not line freqs (or others)
+    assert_suppressed(raw_zoh, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    # the default interp="hann" smoothly interpolates the amplitude envelope,
+    # avoiding zero-order-hold step discontinuities and removing cHPI at least
+    # as well (thereby improving on, and diverging from, MaxFilter)
+    filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
+    raw.crop(0, 16)
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    # hann also suppresses the broadband "step" artifacts that the zero-order
+    # hold (interp=None) injects: with the default (auto) window, the leakage in
+    # a band between the removed line harmonics (360 and 420 Hz), where only that
+    # artifact appears, drops by ~10 dB.
+    raw_hann = raw_orig.copy()
+    filter_chpi(raw_hann, verbose="error")
+    raw_zoh_auto = raw_orig.copy()
+    filter_chpi(raw_zoh_auto, interp=None, verbose="error")
+    picks = pick_types(raw_orig.info, meg=True)
+    orig = raw_orig.get_data(picks)
+    kwargs = dict(fs=raw_orig.info["sfreq"], window="hann", nperseg=1024)
+    f, p_hann = welch(orig - raw_hann.get_data(picks), **kwargs)
+    _, p_zoh = welch(orig - raw_zoh_auto.get_data(picks), **kwargs)
+    fb = (f >= 370) & (f <= 410)  # between the removed 360 and 420 Hz harmonics
+    leak_db = 10 * np.log10(
+        np.median(p_hann[:, fb], axis=0).mean() / np.median(p_zoh[:, fb], axis=0).mean()
+    )
+    assert -15 < leak_db < -8, leak_db  # observed ≈ -11.5 dB
     raw = raw_orig.copy()
     with catch_logging() as log:
         filter_chpi(raw, include_line=True, t_window=0.2, verbose=True)

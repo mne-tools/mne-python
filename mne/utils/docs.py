@@ -809,7 +809,7 @@ clim : str | dict
 """
 
 _cmap_template = """
-cmap : matplotlib colormap | str{allowed}
+cmap : str | matplotlib.colors.Colormap{allowed}
         The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
         valid Matplotlib colormap name. Default is {default}.
 """
@@ -821,7 +821,7 @@ docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
 docdict["cmap_topomap"] = """\
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
     interactive mode the colors are adjustable by clicking and dragging the
@@ -838,7 +838,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 """
 
 docdict["cmap_topomap_simple"] = """
-cmap : matplotlib colormap | None
+cmap : str | matplotlib.colors.Colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """
@@ -1654,10 +1654,10 @@ apply_offsets : bool (default False)
 
 docdict["eyelink_create_annotations"] = """
 create_annotations : bool | list (default True)
-    Whether to create :class:`~mne.Annotations` from occular events
+    Whether to create :class:`~mne.Annotations` from ocular events
     (blinks, fixations, saccades) and experiment messages. If a list, must
     contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
-    If True, creates :class:`~mne.Annotations` for both occular events and
+    If True, creates :class:`~mne.Annotations` for both ocular events and
     experiment messages.
 """
 
@@ -1755,25 +1755,23 @@ docdict["filter_length_notch"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
-    * **'auto' (default)**: The filter length is chosen based
-      on the size of the transition regions (6.6 times the reciprocal
-      of the shortest transition band for fir_window='hamming'
-      and fir_design="firwin2", and half that for "firwin").
-    * **str**: A human-readable time in
-      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-      converted to that number of samples if ``phase="zero"``, or
-      the shortest power-of-two length at least that duration for
-      ``phase="zero-double"``.
-    * **int**: Specified length in samples. For fir_design="firwin",
-      this should not be used.
+    ``"auto"`` (default)
+        The filter length is chosen based on the size of the transition regions (6.6
+        times the reciprocal of the shortest transition band for
+        ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+        ``fir_design="firwin"``).
+    str
+        A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or ``"5500ms"``)
+        will be converted to that number of samples if ``phase="zero"``, or the shortest
+        power-of-two length at least that duration for ``phase="zero-double"``.
+    int
+        Specified length in samples. For ``fir_design="firwin"``, this should not be
+        used.
 
-    When ``method=='spectrum_fit'``, this sets the effective window duration
-    over which fits are computed. See :func:`mne.filter.create_filter`
-    for options. Longer window lengths will give more stable frequency
-    estimates, but require (potentially much) more processing and are not able
-    to adapt as well to non-stationarities.
-
-    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
+    When ``method=="spectrum_fit"``, this sets the effective window duration over which
+    fits are computed. Longer window lengths will give more stable frequency estimates,
+    but require (potentially much) more processing and are not able to adapt as well to
+    non-stationarities. The default ``"auto"`` corresponds to ``"10s"``.
 """
 
 docdict["fir_design"] = """
@@ -2577,6 +2575,13 @@ docdict["mask_evoked_topomap"] = _mask_base.format(
     example=" (useful for, e.g. marking which channels at which times a "
     "statistical test of the data reaches significance)",
 )
+docdict["mask_label_params_topomap"] = """
+mask_label_params : dict | None
+    Additional plotting parameters for significant sensor labels.
+    Default (None) equals::
+
+        dict(fontsize='medium', fontweight='bold')
+"""
 docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -4258,7 +4263,13 @@ shape : tuple of int
 
 docdict["show"] = """\
 show : bool
-    Show the figure if ``True``.
+    Show the figure if ``True``. When shown, blocking follows
+    :func:`matplotlib.pyplot.show`: the call blocks until the window is closed unless
+    Matplotlib's interactive mode is on (enabled with :func:`matplotlib.pyplot.ion` or
+    IPython's ``%%matplotlib`` magic command), in which case it returns immediately.
+    Interactive mode is off by default, so a plain script or REPL blocks. Pass
+    ``show=False`` to build several figures and display them together with a single
+    :func:`matplotlib.pyplot.show` call.
 """
 
 docdict["show_names_topomap"] = """

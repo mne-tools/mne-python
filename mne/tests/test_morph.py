@@ -7,8 +7,7 @@ from inspect import signature
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
-from scipy.sparse import csr_array
-from scipy.sparse import eye as speye
+from scipy.sparse import csr_array, eye_array
 from scipy.spatial.distance import cdist
 
 import mne
@@ -80,12 +79,12 @@ def test_sourcemorph_consistency():
 @testing.requires_testing_data
 def test_sparse_morph():
     """Test sparse morphing."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices_fs = [
         np.sort(rng.permutation(np.arange(10242))[:4]),
         np.sort(rng.permutation(np.arange(10242))[:6]),
     ]
-    data = rng.randn(10, 1)
+    data = rng.standard_normal((10, 1))
     stc_fs = SourceEstimate(data, vertices_fs, 1, 1, "fsaverage")
     spheres_fs = [
         mne.read_surface(subjects_dir / "fsaverage" / "surf" / f"{hemi}.sphere.reg")[0]
@@ -276,7 +275,7 @@ def test_surface_source_morph_shortcut(subjects_dir_tmp):
     )
     stc_back = morph_identity.apply(stc)
     assert_allclose(stc_back.data, stc.data, rtol=1e-4)
-    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format="csc")
+    abs_sum = morph_identity.morph_mat - eye_array(len(stc.data), format="csc")
     abs_sum = np.abs(abs_sum.data).sum()
     assert abs_sum < 1e-4
 
@@ -1082,10 +1081,10 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
 
 
 def _rand_affine(rng):
-    quat = rng.randn(3)
+    quat = rng.standard_normal(3)
     quat /= 5 * np.linalg.norm(quat)
     affine = np.eye(4)
-    affine[:3, 3] = rng.randn(3) / 5.0
+    affine[:3, 3] = rng.normal(scale=1 / 5.0, size=3)
     affine[:3, :3] = quat_to_rot(quat)
     return affine
 
@@ -1113,8 +1112,8 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine, order, see
     """Test resampling equivalences."""
     pytest.importorskip("nibabel")
     pytest.importorskip("dipy")
-    rng = np.random.RandomState(seed)
-    from_data = rng.randn(*from_shape)
+    rng = np.random.default_rng(seed)
+    from_data = rng.standard_normal(from_shape)
     is_rand = False
     if isinstance(to_affine, str):
         assert to_affine == "rand"

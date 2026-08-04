@@ -738,6 +738,9 @@ linkcheck_report_timeouts_as_broken = False
 # autodoc / autosummary
 autosummary_generate = True
 autodoc_default_options = {"inherited-members": None}
+# Types are documented (in human-readable numpydoc form) in the docstrings
+# themselves, so don't also render the annotations into the signatures.
+autodoc_typehints = "none"
 
 # sphinxcontrib-bibtex
 bibtex_bibfiles = ["./references.bib"]

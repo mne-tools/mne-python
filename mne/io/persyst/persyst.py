@@ -6,6 +6,7 @@ import os
 import os.path as op
 from collections import OrderedDict
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -19,7 +20,11 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_persyst(fname, preload=False, verbose=None) -> "RawPersyst":
+def read_raw_persyst(
+    fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawPersyst":
     """Reader for a Persyst (.lay/.dat) recording.
 
     Parameters
