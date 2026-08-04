@@ -20,9 +20,6 @@ auth = Auth.Token(os.environ["GITHUB_TOKEN"])
 g = Github(auth=auth, per_page=100)
 out_path = Path(__file__).parents[2] / "doc" / "sphinxext" / "prs"
 out_path.mkdir(exist_ok=True)
-# manually update this when the oldest open PR changes to speed things up
-# (don't need to look any farther back than this)
-oldest_pr = 9176
 
 # JSON formatting
 json_kwargs = dict(indent=2, ensure_ascii=False, sort_keys=False)
@@ -33,6 +30,10 @@ json_kwargs = dict(indent=2, ensure_ascii=False, sort_keys=False)
 #     fname.write_text(json.dumps(json.loads(fname.read_text("utf-8")), **json_kwargs), "utf-8")  # noqa: E501
 
 repo = g.get_repo("mne-tools/mne-python")
+# No need to look any farther back than the oldest open PR: everything older is
+# closed, and if it was merged its JSON file already exists
+oldest_pr = repo.get_pulls(state="open", sort="created", direction="asc")[0].number
+print(f"Traversing closed PRs back to the oldest open one (#{oldest_pr})")
 co_re = re.compile("Co-authored-by: ([^<>]+) <([^()>]+)>")
 # We go in descending order of updates and `break` when we encounter a PR we have
 # already committed a file for.
