@@ -3,7 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 import os
+import queue
 import shutil
+import threading
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -47,6 +49,26 @@ pytest.importorskip("nibabel")
 def _raise_scale_mri(**kwargs):
     """Make scale_mri fail, to check that the reason gets logged."""
     raise RuntimeError("not today")
+
+
+def test_coreg_worker_survives_failing_job():
+    """Test that a failing job does not kill the worker thread."""
+    from mne.gui._coreg import CoregistrationUI, _WorkerData
+
+    job_queue = queue.Queue()
+    finished = threading.Event()
+    jobs = dict(bad=_raise_scale_mri, good=finished.set)
+    thread = threading.Thread(
+        target=CoregistrationUI._run_worker,  # does not use self
+        args=(None, job_queue, jobs),
+        daemon=True,
+    )
+    thread.start()
+    with catch_logging() as log:
+        job_queue.put(_WorkerData("bad", None))
+        job_queue.put(_WorkerData("good", None))
+        assert finished.wait(timeout=10), "worker died on the failing job"
+    assert "RuntimeError: not today" in log.getvalue()
 
 
 class TstVTKPicker:
@@ -309,10 +331,14 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     # are what get scaled and saved
     assert coreg._mri_fids_modified
     subject_to = "sample_scaled"
+    # scaling onto the source subject would delete it, so it must be refused
+    coreg._set_subject_to("sample")
+    assert not coreg._widgets["save_subject"].is_enabled()
     coreg._set_scale_mode("uniform")
     coreg._fits_fiducials()
     want = coreg.coreg.fiducials.dig[1]["r"] * coreg.coreg._scale
     coreg._set_subject_to(subject_to)
+    assert coreg._widgets["save_subject"].is_enabled()
     with catch_logging() as log:
         coreg._save_subject()
     log = log.getvalue()
@@ -323,14 +349,18 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     )
     assert_allclose(fids[1]["r"], want, atol=1e-6)
 
-    # and when scaling fails, the log should say why, not just that it failed
+    # and when scaling fails, the log should say why -- and not claim success
     monkeypatch.setattr("mne.gui._coreg.scale_mri", _raise_scale_mri)
     coreg._set_subject_to("sample_scaled_2")
+    coreg._mri_scale_modified = True
     with catch_logging() as log:
         coreg._save_subject()
     log = log.getvalue()
     assert "Error scaling sample_scaled_2" in log
     assert "RuntimeError: not today" in log
+    assert "Failed!" in log
+    assert "Done!" not in log
+    assert coreg._mri_scale_modified  # so closing still warns it wasn't saved
 
     # first, disable auto cleanup
     coreg._renderer._window_close_disconnect(after=True)

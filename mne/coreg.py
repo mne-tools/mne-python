@@ -853,6 +853,16 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
         config.write(fid)
 
 
+def _check_scale_subjects(subject_from, subject_to):
+    """Check that scaling will not overwrite the subject being scaled from."""
+    # Scaling in place would delete subject_from before its files could be read
+    if subject_to == subject_from:
+        raise ValueError(
+            f"subject_to must be different from subject_from, got {subject_to!r} for "
+            "both. Scaling a subject in place is not supported."
+        )
+
+
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
     """Assemble parameters for scaling.
 
@@ -880,6 +890,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         n_params = cfg["n_params"]
         assert n_params in (1, 3)
         scale = cfg["scale"]
+    _check_scale_subjects(subject_from, subject_to)
     scale = np.atleast_1d(scale)
     if scale.ndim != 1 or scale.shape[0] not in (1, 3):
         raise ValueError(
@@ -1078,6 +1089,7 @@ def scale_mri(
     filename patterns in the subject directory.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    _check_scale_subjects(subject_from, subject_to)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.atleast_1d(scale)
     if scale.shape == (3,):

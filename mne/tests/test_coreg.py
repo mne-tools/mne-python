@@ -26,6 +26,7 @@ from mne.coreg import (
     create_default_subject,
     fit_matched_points,
     get_mni_fiducials,
+    scale_bem,
     scale_labels,
     scale_mri,
     scale_source_space,
@@ -140,6 +141,18 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # scale fsaverage
     write_source_spaces(bem_path / (bem_fname % "ico-0"), src, overwrite=True)
+    # scaling in place would delete the subject we are scaling from
+    kwargs = dict(subject_from="fsaverage", scale=scale, subjects_dir=tmp_path)
+    for func, args in (
+        (scale_bem, ("fsaverage", "inner_skull-bem")),
+        (scale_labels, ("fsaverage",)),
+        (scale_source_space, ("fsaverage", "ico-0")),
+    ):
+        with pytest.raises(ValueError, match="must be different from subject_from"):
+            func(*args, **kwargs)
+    with pytest.raises(ValueError, match="must be different from subject_from"):
+        scale_mri("fsaverage", "fsaverage", scale, True, subjects_dir=tmp_path)
+    assert _is_mri_subject("fsaverage", tmp_path)
     scale_mri(
         "fsaverage",
         "flachkopf",
