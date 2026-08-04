@@ -22,6 +22,10 @@ Every credited name is shown as a link to that person, so it also needs an
 entry in doc/changes/names.inc (the same links changelogs use). ``--fix-mailmap``
 adds one pointing at the contributor's GitHub profile where we know it;
 anything left over is an error, since the badge would have nowhere to point.
+
+Two names that look like the same person are also an error: it usually means an
+address is missing from .mailmap, so someone is credited twice under slightly
+different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
 """
 
 # Authors: The MNE-Python contributors.
@@ -30,10 +34,12 @@ anything left over is an error, since the badge would have nowhere to point.
 
 import argparse
 import dataclasses
+import difflib
 import fnmatch
 import json
 import os
 import re
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
@@ -61,25 +67,57 @@ BOTS = (
     "Lumberbot",
     "Deleted user",
 )
-# Surnames where we know we have more than one distinct contributor; a surname
-# appearing more often than this makes the monthly report warn about possible
-# duplicates (e.g., the same person under two name variants).
-NAME_COUNTS = dict(
-    Bailey=2,
-    Das=2,
-    Drew=2,
-    Jin=2,
-    Li=2,
-    Peterson=2,
-    Wong=2,
-    Yadav=2,
-    Zhang=3,
-)
+# Pairs of similar-looking names that really are different contributors, so the
+# duplicate check below leaves them alone. Keep them sorted within each pair.
+DISTINCT_NAMES = set()
 
 
 def _reference_key(name):
     """Normalize a name the way docutils normalizes reST reference names."""
     return re.sub(r"\s+", " ", name).strip().lower()
+
+
+def _fold(name):
+    """Strip accents and case so "Victor Férat" and "Victor Ferat" compare equal."""
+    decomposed = unicodedata.normalize("NFKD", _reference_key(name))
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
+def _similar_names(names):
+    """Find pairs of credited names that look like the same person.
+
+    One person credited under two spellings means an email is missing from
+    .mailmap: whoever it is should be routed to a single preferred name there.
+    Genuinely distinct people whose names happen to look alike go in
+    DISTINCT_NAMES.
+    """
+    problems = []
+    names = sorted(names)
+    for ii, one in enumerate(names):
+        for other in names[ii + 1 :]:
+            if tuple(sorted((one, other))) in DISTINCT_NAMES:
+                continue
+            first, second = _fold(one).split(), _fold(other).split()
+            why = None
+            if first == second:  # differ only by accents or case
+                why = "differ only in accents or capitalization"
+            elif set(first) <= set(second) or set(second) <= set(first):
+                why = "one is the other plus a middle name, initial, or suffix"
+            elif first[-1] == second[-1] and (  # same surname, shortened first name
+                first[0].startswith(second[0]) or second[0].startswith(first[0])
+            ):
+                why = "one first name is a shortening of the other"
+            if why is None:  # catch-all for typos and spelling variants
+                ratio = difflib.SequenceMatcher(None, _fold(one), _fold(other)).ratio()
+                if ratio > 0.9:
+                    why = "the names are nearly identical"
+            if why is not None:
+                problems.append(
+                    f"{one!r} and {other!r} may be the same person ({why}). If so, "
+                    "add the missing address to .mailmap so both map to one name; "
+                    "if not, add the pair to DISTINCT_NAMES in credit_tools.py"
+                )
+    return problems
 
 
 def _github_login(author):
@@ -281,33 +319,6 @@ def _load_pr_stats(mailmap):
     return stats, commits, ignores, unresolved, logins
 
 
-def _check_duplicate_names(names):
-    """Check surname sharing against the NAME_COUNTS allowances.
-
-    Returns advisory warnings (more sharers than allowed — possibly the same
-    person under two name variants) and fatal problems (stale NAME_COUNTS
-    entries allowing more sharers than actually exist).
-    """
-    last_map = defaultdict(set)
-    for name in names:
-        last_map[name.split()[-1]].add(name)
-    warnings = [
-        f"surname {last!r} is shared by {sorted(these)}; if these are the same "
-        "person, merge them in .mailmap, otherwise bump NAME_COUNTS in "
-        "credit_tools.py"
-        for last, these in last_map.items()
-        if len(these) > NAME_COUNTS.get(last, 1)
-    ]
-    problems = [
-        f"NAME_COUNTS[{last!r}] = {allowed} but only {len(last_map.get(last, ()))} "
-        "distinct contributor(s) share that surname; remove or lower the stale "
-        "entry in credit_tools.py"
-        for last, allowed in NAME_COUNTS.items()
-        if len(last_map.get(last, ())) < allowed
-    ]
-    return warnings, problems
-
-
 def _load_names_inc():
     """Map contributor names to their doc/changes/names.inc link.
 
@@ -390,11 +401,12 @@ def generate_credit_rst(
         raise RuntimeError(problems)
 
     all_names = {name for these in stats.values() for name in these}
-    duplicate_warnings, count_problems = _check_duplicate_names(all_names)
-    if count_problems:
-        raise RuntimeError("\n".join(count_problems))
-    for warning in duplicate_warnings:
-        sphinx_logger.info(f"Possible duplicate contributor: {warning}")
+    duplicates = _similar_names(all_names)
+    if duplicates:
+        raise RuntimeError(
+            f"{len(duplicates)} possible duplicate contributor(s):\n"
+            + "\n".join(duplicates)
+        )
 
     # Every credited name is shown as a link on the credit page, so it needs an
     # entry in names.inc. In --fix-mailmap mode add the ones we can derive from
@@ -424,7 +436,7 @@ def generate_credit_rst(
             + "\n".join(f".. _{name}: https://..." for name in missing_anchors)
         )
     if report_file is not None:
-        _write_report(report_file, added, anchors_added, duplicate_warnings)
+        _write_report(report_file, added, anchors_added)
 
     logger.info("Biggest included commits/PRs:")
     biggest = sorted(commits, key=lambda key: commits[key], reverse=True)
@@ -498,7 +510,7 @@ def _github_website(login):
     return website or None
 
 
-def _write_report(report_file, added, anchors_added, duplicate_warnings):
+def _write_report(report_file, added, anchors_added):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
     if added:
@@ -531,9 +543,6 @@ def _write_report(report_file, added, anchors_added, duplicate_warnings):
             *anchors_added,
             "```",
         ]
-    if duplicate_warnings:
-        lines += ["", "Possible duplicate contributors:", ""]
-        lines += [f"- {warning}" for warning in duplicate_warnings]
     Path(report_file).write_text("\n".join(lines) + "\n", "utf-8")
 
 
