@@ -1471,10 +1471,8 @@ class Brain:
 
             # retrieve the nearest source_id from the smooth_mat
             smooth_mat = self.act_data_smooth[hemi][1]
-            # to deal CSR format and avoid materializing per click
-            # equivalent to: source_id = np.argmax(smooth_mat[vertex_id].toarray())
-            lo, hi = smooth_mat.indptr[vertex_id], smooth_mat.indptr[vertex_id + 1]
-            source_id = smooth_mat.indices[lo + np.argmax(smooth_mat.data[lo:hi])]
+            row = smooth_mat[vertex_id]
+            source_id = smooth_mat[vertex_id].argmax() if row.nnz else None
 
         publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=source_id))
 
