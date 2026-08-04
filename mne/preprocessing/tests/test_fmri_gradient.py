@@ -2,9 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import warnings
+
 import numpy as np
 import pytest
-import warnings
 from numpy.testing import assert_allclose
 
 from mne import create_info
