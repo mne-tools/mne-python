@@ -95,19 +95,22 @@ coil_3d = """# custom cube coil def
 """
 
 
-def _create_test_stc(n_times=5):
+def _create_test_stc(n_times=5, sparse=True):
     src = read_source_spaces(src_fname)
     vertices = [s["vertno"] for s in src]
     n_verts = sum(len(v) for v in vertices)
 
-    # Fill the SourceEstimate with random data, but only fill one in every 20 entries so
-    # we have to generate fewer random numbers and speed things up.
     rng = np.random.default_rng(0)
-    stc_data = np.zeros(n_verts * n_times)
-    stc_data[(rng.random(stc_data.size // 20) * stc_data.size).astype(int)] = (
-        np.random.default_rng(0).random(stc_data.size // 20)
-    )
-    stc_data = _reshape_view(stc_data, (n_verts, n_times))
+    if sparse:
+        # Fill the SourceEstimate with random data, but only fill one in every 20
+        # entries so we have to generate fewer random numbers and speed things up.
+        stc_data = np.zeros(n_verts * n_times)
+        stc_data[(rng.random(stc_data.size // 20) * stc_data.size).astype(int)] = (
+            np.random.default_rng(0).random(stc_data.size // 20)
+        )
+        stc_data = _reshape_view(stc_data, (n_verts, n_times))
+    else:
+        stc_data = rng.random((n_verts, n_times))
 
     return SourceEstimate(stc_data, vertices, 1, 1, subject="sample"), src
 
@@ -972,7 +975,7 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     )
 
     # Test for simple use cases
-    stc, _ = _create_test_stc()
+    stc, _ = _create_test_stc(sparse=False)
     brain = stc.plot(**kwargs)
     assert brain.data["center"] is None
     brain.close()

@@ -7,6 +7,7 @@
 import os
 import os.path as op
 import warnings
+import weakref
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -4433,7 +4434,12 @@ def plot_stat_cluster(cluster, src, brain, initial_time=None, color="magenta", w
     cluster_name = f"cluster-{cluster_index + 1}"
 
     # This event-handling function draws the cluster at the given time.
+    brain_ref = weakref.ref(brain)  # to avoid circular references
+
     def _on_time_change(event):
+        brain = brain_ref()
+        if brain is None:
+            return
         time_idx = int(round(brain._to_time_index(event.time)))
 
         # Remove any existing Label objects of this cluster.
