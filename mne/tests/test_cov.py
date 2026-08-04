@@ -548,7 +548,7 @@ def test_cov_estimation_evoked():
 
     tmin, tmax = -0.1, 0.2
     cov = compute_covariance(
-        evoked, tmin=tmin, tmax=tmax, projs=[], rank="full", verbose=False
+        inst=evoked, tmin=tmin, tmax=tmax, projs=[], rank="full", verbose=False
     )
     time_mask = (tmin <= evoked.times) & (evoked.times <= tmax)
     data = evoked.data[:, time_mask]

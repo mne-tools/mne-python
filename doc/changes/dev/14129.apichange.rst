@@ -1,0 +1,1 @@
+Allow :func:`mne.compute_covariance` to estimate spatial covariance from an :class:`mne.Evoked` by treating time samples as observations, and deprecate its ``epochs`` parameter in favor of ``inst``, by `Hamza Abdelhedi`_.
