@@ -29,11 +29,12 @@ class GradientRemover:
     ----------
     eeg_data : ndarray, shape (n_channels, n_times)
         The raw EEG data to perform gradient correction on.
-    tr_events : ndarray, shape (n_trs,) or (n_trs, 3)
+    tr_events : ndarray
         The sample numbers at which TRs (imaging volumes) begin. May be a
-        1D array of sample numbers, or an ``(n_trs, 3)`` events array as
-        returned by :func:`mne.find_events` (the first column is used). TRs
-        must be evenly spaced in time, within ``tr_tol`` samples (see below).
+        1D array of sample numbers, shape ``(n_trs,)``, or an ``(n_trs, 3)``
+        events array as returned by :func:`mne.find_events` (the first column
+        is used). TRs must be evenly spaced in time, within ``tr_tol`` samples
+        (see below).
     window : int | tuple of int
         The number of neighboring TRs to average into each template. Either an
         even integer giving the total number of TRs (split evenly before and
@@ -293,11 +294,12 @@ def remove_fmri_gradient_artifact(
     ----------
     raw : instance of Raw
         The raw data recorded during MRI acquisition. Must be preloaded.
-    tr_events : ndarray, shape (n_trs,) or (n_trs, 3)
+    tr_events : ndarray
         The sample numbers at which TRs (imaging volumes) begin. May be a 1D
-        array of sample numbers, or an ``(n_trs, 3)`` events array as returned
-        by :func:`mne.find_events` (the first column is used). TRs must be
-        evenly spaced in time, within ``tr_tol`` samples (see below).
+        array of sample numbers, shape ``(n_trs,)``, or an ``(n_trs, 3)``
+        events array as returned by :func:`mne.find_events` (the first column
+        is used). TRs must be evenly spaced in time, within ``tr_tol`` samples
+        (see below).
     window : int | tuple of int
         The number of neighboring TRs to average into each template. Either an
         even integer giving the total number of TRs (split evenly before and
