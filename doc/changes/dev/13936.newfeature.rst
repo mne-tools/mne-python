@@ -1,0 +1,1 @@
+Added ``'fsaverage_1005'`` montage, which is a slightly improved version of the existing ``'colin27_1005'`` montage (known in 1.12 and older as ``'standard_1005'``). The electrodes have already been mapped to the ``fsaverage`` head surface. Changes by `Eric Larson`_.

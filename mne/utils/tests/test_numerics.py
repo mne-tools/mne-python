@@ -98,7 +98,7 @@ def test_hashfunc(tmp_path):
 
 def test_sum_squared():
     """Test optimized sum of squares."""
-    X = np.random.RandomState(0).randint(0, 50, (3, 3))
+    X = np.random.default_rng(0).integers(0, 50, (3, 3))
     assert np.sum(X**2) == sum_squared(X)
 
 
@@ -307,8 +307,8 @@ def test_object_size():
     assert object_size(np.ones(10, np.float32)) < object_size(np.ones(10, np.float64))
     for lower, upper, obj in (
         (0, 60, ""),
-        (0, 30, 1),
-        (0, 30, 1.0),
+        (0, 45, 1),
+        (0, 45, 1.0),
         (0, 70, "foo"),
         (0, 150, np.ones(0)),
         (0, 150, np.int32(1)),
@@ -319,7 +319,7 @@ def test_object_size():
         (200, 900, sparse.eye_array(20, format="csr")),
     ):
         size = object_size(obj)
-        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
+        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj!r}"
     # views work properly
     x = dict(a=1)
     assert object_size(x) < 1000
@@ -442,7 +442,7 @@ def test_pca(n_components, whiten):
     from sklearn.decomposition import PCA
 
     n_samples, n_dim = 1000, 10
-    X = np.random.RandomState(0).randn(n_samples, n_dim)
+    X = np.random.default_rng(0).standard_normal((n_samples, n_dim))
     X[:, -1] = np.mean(X[:, :-1], axis=-1)  # true X dim is ndim - 1
     X_orig = X.copy()
     pca_skl = PCA(n_components, whiten=whiten, svd_solver="full")

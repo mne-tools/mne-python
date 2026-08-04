@@ -14,6 +14,7 @@ Visualization
    :toctree: ../generated/
 
    Brain
+   LayeredMesh
    ClickableImage
    EvokedField
    Figure3D

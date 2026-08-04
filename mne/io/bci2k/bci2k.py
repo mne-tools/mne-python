@@ -4,6 +4,7 @@
 
 import os
 import re
+from pathlib import Path
 
 import numpy as np
 
@@ -266,7 +267,11 @@ class RawBCI2k(BaseRaw):
         )
 
 
-def read_raw_bci2k(input_fname, preload=False, verbose=None):
+def read_raw_bci2k(
+    input_fname: Path | str,
+    preload: bool = False,
+    verbose: bool | str | int | None = None,
+) -> "RawBCI2k":
     """Read a BCI2000 ``.dat`` file.
 
     Parameters

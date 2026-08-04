@@ -351,7 +351,7 @@ class Dipole(TimeMixin):
         Returns
         -------
         pos_mri : array, shape (n_pos, 3)
-            The Freesurfer surface RAS coordinates (in mm) of pos.
+            The FreeSurfer surface RAS coordinates (in mm) of pos.
         """
         mri_head_t, trans = _get_trans(trans)
         return head_to_mri(
@@ -963,7 +963,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
             f"Making a spherical guess space with radius {1000 * surf.radius:7.1f} "
             "mm..."
         )
-    logger.info("Filtering (grid = %6.f mm)..." % (1000 * grid))
+    logger.info(f"Filtering (grid = {1000 * grid:6.0f} mm)...")
     src = _make_volume_source_space(
         surf, grid, exclude, 1000 * mindist, do_neighbors=False, n_jobs=n_jobs
     )[0]
@@ -1354,10 +1354,14 @@ def _fit_dipole(
     )
 
     # Tested minimizers:
-    #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
+    #    Simplex, BFGS, CG, COBYLA, COBYQA, L-BFGS-B, Powell, SLSQP, TNC
     # Several were similar, but COBYLA won for having a handy constraint
     # function we can use to ensure we stay inside the inner skull /
-    # smallest sphere
+    # smallest sphere. COBYQA needs ~10x more constraint evaluations, and the
+    # inner-skull constraint is a surface search rather than a cheap formula
+    # rhobeg (initial trust-region radius) is a few times the 2 cm guess grid so the fit
+    # can leave a poorly chosen grid cell. rhoend (final radius, the ``tol`` argument)
+    # sets the position resolution; loosening it to 1e-4 already shifts fits by ~2 mm
     rd_final = fmin_cobyla(
         fun, x0, (constraint,), consargs=(), rhobeg=5e-2, rhoend=rhoend, disp=False
     )
@@ -1387,12 +1391,12 @@ def _fit_dipole(
         sensors=sensors, rd=rd_final, Q=Q, ori=ori, whitener=whitener, fwd_data=fwd_data
     )
 
-    msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
+    msg = f"---- Fitted : {1000.0 * t:7.1f} ms"
     if surf is not None:
         dist_to_inner_skull = _compute_nearest(
             surf["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
-        msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
+        msg += f", distance to inner skull : {dist_to_inner_skull * 1000.0:2.4f} mm"
 
     logger.info(msg)
     return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj

@@ -31,6 +31,7 @@ CORE_DEPS_URLS = {
     "lazy-loader": "https://pypi.org/project/lazy_loader",
     "packaging": "https://packaging.pypa.io/en/stable/",
 }
+IGNORED_CORE_DEPS = ["typing-extensions"]
 
 
 def _prettify_pin(pin):
@@ -57,6 +58,9 @@ pattern = re.compile(r"(?P<name>[A-Za-z_\-\d]+)(?P<pin>[<>=]+.*)?")
 core_deps_pins = {
     dep["name"]: _prettify_pin(dep["pin"]) for dep in map(pattern.match, core_deps)
 }
+# remove ignored deps
+for dep in IGNORED_CORE_DEPS:
+    core_deps_pins.pop(dep, None)
 # don't show upper pin on NumPy (not important for users, just devs)
 new_pin = core_deps_pins["numpy"].split(",")
 new_pin.remove(" < 3")

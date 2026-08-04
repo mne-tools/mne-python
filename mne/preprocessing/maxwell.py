@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from collections import Counter
+from copy import deepcopy
 from functools import partial
 from math import factorial
 from os import path as op
@@ -498,6 +499,30 @@ def _prep_maxwell_filter(
     add_channels = (head_pos is not None) and (not st_only)
     head_pos = _check_pos(head_pos, coord_frame, raw, st_fixed)
     mc = _MoveComp(head_pos, coord_frame, raw, mc_interp, reconstruct)
+
+    # cross_talk=None (or True) means "use built-in ones if in info"
+    _validate_type(cross_talk, (None, bool, dict, "path-like"))
+    _validate_type(calibration, (None, bool, dict, "path-like"))
+    if cross_talk is None:
+        cross_talk = raw.info.get("cross_talk")
+    elif cross_talk is True:
+        if "cross_talk" not in raw.info:
+            raise RuntimeError(f"{cross_talk=}, but info['cross_talk'] is None.")
+        cross_talk = raw.info["cross_talk"]
+    elif cross_talk is False:
+        cross_talk = None
+    # otherwise, it's path-like
+
+    if calibration is None:
+        calibration = raw.info.get("fine_calibration")
+    elif calibration is True:
+        if "fine_calibration" not in raw.info:
+            raise RuntimeError(f"{calibration=}, but info['fine_calibration'] is None.")
+        calibration = raw.info["fine_calibration"]
+    elif calibration is False:
+        calibration = None
+    # otherwise, it's path-like
+
     _check_info(
         raw.info,
         sss=not st_only,
@@ -1398,9 +1423,14 @@ def _regularize(
     n_in = _get_n_moments(int_order)
     n_out = S_decomp.shape[1] - n_in
     t_str = f"{t:8.3f}"
-    if regularize is not None:  # regularize='in'
+    if regularize is not None:  # regularize='in' or 'in_argmax'
         in_removes, out_removes = _regularize_in(
-            int_order, ext_order, S_decomp, mag_or_fine, extended_remove
+            int_order,
+            ext_order,
+            S_decomp,
+            mag_or_fine,
+            extended_remove,
+            argmax=regularize == "in_argmax",
         )
     else:
         in_removes = []
@@ -1485,10 +1515,9 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
 
 def _check_regularize(regularize):
     """Ensure regularize is valid."""
-    if not (
-        regularize is None or (isinstance(regularize, str) and regularize in ("in",))
-    ):
-        raise ValueError('regularize must be None or "in"')
+    _validate_type(regularize, (str, None), "regularize")
+    if regularize is not None:
+        _check_option("regularize", regularize, ("in", "in_argmax"), extra="when str")
 
 
 def _check_usable(inst, ignore_ref):
@@ -1502,7 +1531,7 @@ def _check_usable(inst, ignore_ref):
         raise RuntimeError(
             "Maxwell filter cannot be done on compensated "
             "channels (data have been compensated with "
-            "grade {current_comp}) when ignore_ref=True"
+            f"grade {current_comp}) when ignore_ref=True"
         )
 
 
@@ -1710,7 +1739,6 @@ def _sss_basis(exp, all_coils):
     sin_az = rmags[:, 1] / r_xy  # sin(phi)
     sin_az[z_only] = 0.0
     # Appropriate vector spherical harmonics terms
-    #  JNE 2012-02-08: modified alm -> 2*alm, blm -> -2*blm
     r_nn2 = r_n.copy()
     r_nn1 = 1.0 / (r_n * r_n)
     S_tot = np.empty((n_coils, n_in + n_out), np.float64)
@@ -1764,7 +1792,13 @@ def _sss_basis(exp, all_coils):
             sin_order = np.sin(ord_phi)
             cos_order = np.cos(ord_phi)
             mult /= np.sqrt((degree - order + 1) * (degree + order))
-            factor = mult * np.sqrt(2)  # equivalence fix (MF uses 2.)
+            # √2 keeps the real basis orthonormal. MaxFilter's real
+            # ("even-odd") coefficients instead absorb a factor of 2 relative to
+            # the complex ones, so our order != 0 columns are its columns
+            # divided by √2. Being a per-column scaling, this cancels in
+            # S_in @ pinv(S_tot); it only matters where column norms do, i.e.
+            # when regularizing (see _regularize_in).
+            factor = mult * np.sqrt(2)
 
             # Real
             idx = _deg_ord_idx(degree, order)
@@ -1927,6 +1961,25 @@ def _get_degrees_orders(order):
     return degrees, orders
 
 
+def _mne_ord_to_mf_idx(order):
+    """Get indices reordering a moment array from our order into MaxFilter's.
+
+    We index moments by signed order ascending within each degree (see
+    ``_deg_ord_idx``, i.e. -degree, ..., 0, ..., +degree). MaxFilter instead
+    walks its even-odd formulation, m = 0, ..., 2 * degree, where m = 0 is the
+    zero order, odd m is the real part of order (m + 1) // 2, and even m > 0 is
+    the imaginary part (our negative order).
+    """
+    return np.array(
+        [
+            _deg_ord_idx(degree, order_)
+            for degree in range(1, order + 1)
+            for order_ in [0, *(s * m for m in range(1, degree + 1) for s in (1, -1))]
+        ],
+        int,
+    )
+
+
 def _alegendre_deriv(order, degree, val):
     """Compute the derivative of the associated Legendre polynomial at a value.
 
@@ -1971,8 +2024,11 @@ def _bases_complex_to_real(complex_tot, int_order, ext_order):
                 idx_neg = _deg_ord_idx(deg, -order)
                 real[:, idx_pos] = _sh_complex_to_real(comp[:, idx_pos], order)
                 if order != 0:
-                    # This extra mult factor baffles me a bit, but it works
-                    # in round-trip testing, so we'll keep it :(
+                    # idx_neg holds (-1)**order * conj(comp[:, idx_pos]) (the
+                    # conjugation property), and _sh_complex_to_real takes
+                    # √2·imag for order < 0, flipping the sign again. This
+                    # mult == -(-1)**order undoes both, leaving
+                    # real[:, idx_neg] == √2 · imag(comp[:, idx_pos]).
                     mult = -1 if order % 2 == 0 else 1
                     real[:, idx_neg] = mult * _sh_complex_to_real(
                         comp[:, idx_neg], -order
@@ -2072,6 +2128,14 @@ def _update_sss_info(
         raw.info["maxshield"] = False
     components = np.zeros(n_in + n_out + len(extended_proj)).astype("int32")
     components[reg_moments] = 1
+    # MaxFilter lays the moments out in its even-odd order rather than ours, so
+    # reindex both expansions before writing them out (nfree is a count, so it
+    # is unaffected). Any extended (eSSS) entries are appended after the two
+    # expansions and have no degree/order structure, so they stay put.
+    components[:n_in] = components[:n_in][_mne_ord_to_mf_idx(int_order)]
+    components[n_in : n_in + n_out] = components[n_in : n_in + n_out][
+        _mne_ord_to_mf_idx(ext_order)
+    ]
     sss_info_dict = dict(
         in_order=int_order,
         out_order=ext_order,
@@ -2174,6 +2238,31 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
+def _reformat_fine_cal_dict(fine_cal):
+    # reformat a possible dict  with "cal_chans", "cal_corrs" keys to more standard one
+    # with "ch_names", "locs", "imb_cals" keys
+    if "cal_chans" in fine_cal:
+        # Someday we might need to refactor this for other systems, but we should do
+        # that when we start building in fine cal to them during acq (probably never)
+        _GRAD_TYPES = tuple(
+            getattr(FIFF, f"FIFFV_COIL_VV_PLANAR_{t}")
+            for t in ("T1", "T2", "T3", "T4", "W")
+        )
+        ch_names = [f"MEG{ch_num:04d}" for ch_num in fine_cal["cal_chans"][:, 0]]
+        locs = fine_cal["cal_corrs"][:, -12:].astype(float)
+        coil_types = fine_cal["cal_chans"][:, 1]
+        is_grad = np.isin(coil_types, _GRAD_TYPES)
+        starts = np.where(is_grad, 1, 0)
+        stops = np.where(is_grad, fine_cal["cal_corrs"].shape[1] - 12, 1)
+        imb_cals = list(
+            fine_cal["cal_corrs"][ii, start:stop].astype(float)
+            for ii, (start, stop) in enumerate(zip(starts, stops))
+        )
+        return dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
+    else:
+        return deepcopy(fine_cal)
+
+
 def _prep_fine_cal(info, fine_cal, *, ignore_ref):
     from ._fine_cal import read_fine_calibration
 
@@ -2183,6 +2272,7 @@ def _prep_fine_cal(info, fine_cal, *, ignore_ref):
         fine_cal = read_fine_calibration(fine_cal)
     else:
         extra = "dict"
+        fine_cal = _reformat_fine_cal_dict(fine_cal)
     logger.info(f"    Using fine calibration {extra}")
     ch_names = _clean_names(info["ch_names"], remove_whitespace=True)
     info_to_cal = dict()
@@ -2230,12 +2320,12 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     )
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = list()
     used = np.zeros(len(info["chs"]), bool)
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
-    for oi, ci in info_to_cal.items():
+    ang_shift = np.zeros(len(info_to_cal))
+    for ii, (oi, ci) in enumerate(info_to_cal.items()):
         assert not used[oi]
         used[oi] = True
         info_ch = info["chs"][oi]
@@ -2250,30 +2340,25 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
         ch_coil_rot = _loc_to_coil_trans(info_ch["loc"])[:3, :3]
+        _normalize_vectors(ch_coil_rot.T)  # column-wise
         cal_loc = fine_cal["locs"][ci].copy()
         cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
-        if (
-            np.max(
-                [
-                    np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
-                    for ii in range(2)
-                ]
-            )
-            > 1e-6
-        ):  # X or Y not orthogonal
+        _normalize_vectors(cal_coil_rot.T)
+        # X or Y not orthogonal to Z:
+        if np.max(np.abs(cal_coil_rot[:, 2] @ cal_coil_rot[:, :2])) > 1e-5:
             if not adjust_logged:
                 logger.info("        Adjusting non-orthogonal EX and EY")
                 adjust_logged = True
             # find the rotation matrix that goes from one to the other
-            this_trans = _find_vector_rotation(ch_coil_rot[:, 2], cal_coil_rot[:, 2])
-            cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
+            R = _find_vector_rotation(ch_coil_rot[:, 2], cal_coil_rot[:, 2])
+            cal_coil_rot[:] = R @ ch_coil_rot
+            _normalize_vectors(cal_coil_rot.T)
+            cal_loc[3:9] = cal_coil_rot.T.ravel()[:6]  # set just X and Y in output
 
         # calculate shift angle
-        v1 = _loc_to_coil_trans(cal_loc)[:3, :3]
-        _normalize_vectors(v1)
-        v2 = _loc_to_coil_trans(info_ch["loc"])[:3, :3]
-        _normalize_vectors(v2)
-        ang_shift.append(np.sum(v1 * v2, axis=0))
+        v2 = _loc_to_coil_trans(info_ch["loc"])[:3, 2:]
+        _normalize_vectors(v2.T)
+        ang_shift[ii] = cal_coil_rot[:3, 2] @ v2[:, 0]
         if oi in grad_picks:
             extra = [1.0, fine_cal["imb_cals"][ci][0]]
         else:
@@ -2281,19 +2366,21 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
-        info_ch["loc"][3:] = cal_loc[3:]
+        info_ch["loc"][3:] = cal_coil_rot.T.ravel()
         assert info_ch["coord_frame"] == FIFF.FIFFV_COORD_DEVICE
     meg_picks = pick_types(info, meg=True, exclude=(), ref_meg=not ignore_ref)
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
     # This gets written to the Info struct
-    sss_cal = dict(cal_corrs=np.array(cal_corrs), cal_chans=np.array(cal_chans))
+    sss_cal = dict(
+        cal_corrs=np.array(cal_corrs, float),
+        cal_chans=np.array(cal_chans, int),
+    )
 
     # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
-    ang_shift = np.array(ang_shift)
-    np.clip(ang_shift, -1.0, 1.0, ang_shift)
-    np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
+    np.clip(ang_shift, -1.0, 1.0, out=ang_shift)
+    np.rad2deg(np.arccos(ang_shift), out=ang_shift)  # Convert to degrees
     logger.info(
         "        Adjusted coil orientations by (μ ± σ): "
         f"{np.mean(ang_shift):0.1f}° ± {np.std(ang_shift):0.1f}° "
@@ -2352,7 +2439,9 @@ def _regularize_out(int_order, ext_order, mag_or_fine, extended_remove):
     return list(range(n_in, n_in + 3 * remove_homog)) + extended_remove
 
 
-def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove):
+def _regularize_in(
+    int_order, ext_order, S_decomp, mag_or_fine, extended_remove, *, argmax=False
+):
     """Regularize basis set using idealized SNR measure."""
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
@@ -2376,22 +2465,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
     # if plot:
     #     import matplotlib.pyplot as plt
     #     fig, axs = plt.subplots(3, figsize=[6, 12])
-    #     plot_ord = np.empty(n_in, int)
-    #     plot_ord.fill(-1)
-    #     count = 0
-    #     # Reorder plot to match MF
-    #     for degree in range(1, int_order + 1):
-    #         for order in range(0, degree + 1):
-    #             assert plot_ord[count] == -1
-    #             plot_ord[count] = _deg_ord_idx(degree, order)
-    #             count += 1
-    #             if order > 0:
-    #                 assert plot_ord[count] == -1
-    #                 plot_ord[count] = _deg_ord_idx(degree, -order)
-    #                 count += 1
-    #     assert count == n_in
-    #     assert (plot_ord >= 0).all()
-    #     assert len(np.unique(plot_ord)) == n_in
+    #     plot_ord = _mne_ord_to_mf_idx(int_order)  # reorder plot to match MF
     noise_lev = 5e-13  # noise level in T/m
     noise_lev *= noise_lev  # effectively what would happen by earlier multiply
     for ii in range(n_in):
@@ -2407,8 +2481,20 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
         eta_lm_sq = eta_lm_sq.sum(axis=1)
         eta_lm_sq *= noise_lev
 
-        # Mysterious scale factors to match MF, likely due to differences
-        # in the basis normalizations...
+        # Together these scale snr by 400 (order != 0) / 200 (order == 0). Only
+        # the ratio of 2 is derivable: our order != 0 columns are MaxFilter's
+        # divided by √2 (see _sss_basis), making eta_lm_sq (a squared pinv)
+        # 2x its value there, which doubling order == 0 evens out.
+        #
+        # The shared factor of 100 is empirical, and puts I_tots in the ~480
+        # bits/sample range reported for this array in Nenonen et al. 2007 (Int
+        # Congr Ser 1300:245). It cannot affect *which* components are dropped,
+        # since remove_order below uses argmin(snr), but it does move the cut:
+        # every snr here is >> 1, so I_tots ~ 0.5*sum(log2(snr)) and a global
+        # scale adds 0.5*n_keepers*log2(scale) -- a ramp, not an offset, as
+        # n_keepers shrinks each iteration. It is nonetheless well enough
+        # calibrated that we reproduce MaxFilter 3.0's selection; see
+        # test_regularization_mf3.
         eta_lm_sq[orders[in_keepers] == 0] *= 2
         eta_lm_sq *= 0.0025
         snr = a_lm_sq[in_keepers] / eta_lm_sq
@@ -2426,12 +2512,17 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
     #     axs[1].set(ylabel='Information', xlabel='Iteration')
     #     axs[2].plot(eigs[:, 0] / eigs[:, 1])
     #     axs[2].set(ylabel='Condition', xlabel='Iteration')
-    # Pick the components that give at least 98% of max info
-    # This is done because the curves can be quite flat, and we err on the
-    # side of including rather than excluding components
+    # argmax is what MaxFilter 2.2 does, and what Nenonen et al. 2007 (Int Congr
+    # Ser 1300:245) describes: "Iteration is stopped when the maximum Itot is
+    # found". Over 27 expansion origins it reproduces 2.2's nfree exactly 16/27
+    # times against 4/27 for the 98% rule, which is 3.0's and which we track
+    # closely instead (see test_regularization_mf3).
     if n_in:
         max_info = np.max(I_tots)
-        lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
+        if argmax:
+            lim_idx = np.argmax(I_tots)
+        else:
+            lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
         in_removes = remove_order[:lim_idx]
         for ii, ri in enumerate(in_removes):
             eig = eigs[ii]
@@ -2466,10 +2557,29 @@ def _compute_sphere_activation_in(degrees):
     rho_i : float
         The current density.
 
+    Notes
+    -----
+    The model is that of :footcite:`NenonenEtAl2004`, which is also where the
+    constants below and ``mag_scale=100`` come from.
+
     References
     ----------
     .. footbibliography::
     """
+    # Per NenonenEtAl2004: rho_i is Knuutila's 0.6 µA/m²/√Hz random brain
+    # current density (the 100 fT below inverts to 0.591), r_in is its
+    # "integration radius of 80 mm", and mag_scale=100 is its noise ratio,
+    # 3 fT/√Hz mag vs 4.8 fT/√Hz grad over a 16 mm baseline (3e-15 T
+    # vs 3.0e-13 T/m). rho_i and the noise are both spectral densities, so this
+    # is bandwidth free -- the 100 fT is only the RMS it gives over 0.1-30 Hz,
+    # and applying √bandwidth to one but not the other measurably hurts.
+    #
+    # We use the *surface* rather than the volume variant, though that paper
+    # describes a volume current density: the two differ by an l-dependent
+    # R_in²/(l+3)², and surface reproduces MaxFilter's component selection far
+    # better. r_in=0.080 is likewise a sharp empirical optimum across expansion
+    # origins, and making the sphere aware of the origin's offset from the head
+    # centre does not help.
     r_in = 0.080  # radius of the randomly-activated sphere
 
     # set the observation point r=r_s, az=el=0, so we can just look at m=0 term
@@ -2899,9 +3009,14 @@ def find_bad_channels_maxwell(
 def _read_cross_talk(cross_talk, ch_names):
     sss_ctc = dict()
     ctc = None
-    if cross_talk is not None:
-        sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc["proj_items_chs"]
+    if cross_talk:
+        if not isinstance(cross_talk, dict):
+            sss_ctc = _read_ctc(cross_talk)
+        else:
+            sss_ctc = deepcopy(cross_talk)
+            # the way it is on disk
+            sss_ctc["decoupler"] = sss_ctc["decoupler"].T.tocsc()
+        ctc_chs = sss_ctc["ch_names"]
         # checking for extra space ambiguity in channel names
         # between old and new fif files
         if ch_names[0] not in ctc_chs:

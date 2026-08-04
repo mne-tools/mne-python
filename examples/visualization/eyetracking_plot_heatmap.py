@@ -82,8 +82,10 @@ plot_gaze(epochs["natural"], calibration=calibration, cmap=cmap, sigma=50)
 # start at a value greater than the darkest value in our previous heatmap, which will
 # make the darkest colors of the heatmap transparent.
 
-cmap.set_under("k", alpha=0)  # make the lowest values transparent
-ax = plt.subplot()
+cmap = cmap.with_extremes(
+    under=(0.0, 0.0, 0.0, 0.0)
+)  # make the lowest values transparent
+_, ax = plt.subplots(figsize=(6, 3.5), layout="constrained")
 ax.imshow(plt.imread(stim_fpath))
 plot_gaze(
     epochs["natural"],

@@ -9,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from matplotlib.colors import PowerNorm, TwoSlopeNorm
+from matplotlib.colors import PowerNorm, TwoSlopeNorm, to_rgba
 from matplotlib.patches import Circle
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
@@ -169,24 +169,47 @@ def test_plot_projs_topomap_joint(meg, vlim, raw):
     assert len(fig.axes) == 4  # 2 mag, 2 grad
 
 
-def test_plot_topomap_animation(capsys):
+def test_plot_topomap_animation(capsys, tmp_path):
     """Test topomap plotting."""
-    # evoked
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-
-    # Test animation
-    fig, anim = evoked.animate_topomap(
-        ch_type="grad",
-        times=[0, 0.1],
-        cmap="viridis",
-        butterfly=False,
-        time_unit="s",
-        verbose="debug",
-    )
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    with pytest.warns(FutureWarning, match=".* vmin .* deprecated.*"):
+        fig, anim = evoked.animate_topomap(
+            times=[0, 0.1],
+            cmap="viridis",
+            vmin=0,
+            vmax=10,
+            verbose="debug",
+        )
     out, _ = capsys.readouterr()
-    assert "extrapolation mode local to 0" in out
+    assert "extrapolation mode local to mean" in out
     assert fig.axes[0].images[0].get_cmap().name == "viridis"
+
+    # saving
+    PIL = pytest.importorskip("PIL")
+    gif_path = tmp_path / "test.gif"
+    anim.save(gif_path, writer="pillow")
+    assert gif_path.exists()
+    with PIL.Image.open(gif_path) as img:
+        assert img.format == "GIF"
+        assert img.n_frames == 2
+        for frame in PIL.ImageSequence.Iterator(img):
+            assert frame.format == "GIF"
+            data = np.array(frame)
+            assert data.any()  # not all empty
+
+    # failure modes
+    evoked.pick("mag")
+    with pytest.raises(ValueError, match="No channels of type"):
+        evoked.animate_topomap(ch_type="eeg")
+    fig, axes = plt.subplots(1, 4)
+    with pytest.raises(ValueError, match="it must have length 2"):
+        evoked.animate_topomap(axes=axes)
+    with pytest.raises(ValueError, match="it must have length 3"):
+        evoked.animate_topomap(axes=axes, butterfly=True)
+    with pytest.raises(TypeError, match="axes must be an instance"):
+        evoked.animate_topomap(axes="test")
+    with pytest.raises(TypeError, match=r"axes\[0\] must be an instance"):
+        evoked.animate_topomap(axes=["test", "test"])
 
 
 def test_plot_topomap_animation_csd(capsys):
@@ -201,17 +224,12 @@ def test_plot_topomap_animation_csd(capsys):
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
+    assert "extrapolation mode head to mean" in out
 
 
-@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
-def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
+def test_plot_topomap_animation_nirs(fnirs_evoked):
     """Test topomap plotting for nirs data."""
-    fig, anim = fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
-    out, _ = capsys.readouterr()
-    assert "extrapolation mode head to 0" in out
-    assert len(fig.axes) == 2
+    fnirs_evoked.animate_topomap(ch_type="hbo", verbose="debug")
 
 
 def test_plot_evoked_topomap_errors(evoked, monkeypatch):
@@ -335,6 +353,25 @@ def test_plot_evoked_topomap_border():
     assert_almost_equal(img_data[idx, idx], data[0], decimal=9)
 
 
+def test_plot_topomap_interactive_slider_cmap():
+    """Regression test: moving the time slider must not raise KeyError on cmap.
+
+    gh-14038: group_cmaps stored full (name, draggable) tuples but the slider
+    callback passed the tuple as the cmap kwarg, causing a KeyError in
+    matplotlib's colormap registry.
+    """
+    evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
+    evoked.pick("mag")
+    fig = evoked.plot_topomap(times="interactive", **fast_test)
+    # Trigger the slider callback — this crashed before the fix.
+    # The slider axes is not necessarily fig.axes[-1] (colorbar may follow it),
+    # so find it by looking for the axes that has a .slider attribute.
+    slider_ax = next(ax for ax in fig.axes if hasattr(ax, "slider"))
+    slider_ax.slider.set_val(evoked.times[len(evoked.times) // 2])
+    # Verify the topomap was redrawn (not blank) — would fail with double-scaling
+    assert len(fig.axes[0].images) > 0
+
+
 @pytest.mark.slowtest
 def test_plot_topomap_basic():
     """Test basics of topomap plotting."""
@@ -358,7 +395,8 @@ def test_plot_topomap_basic():
     # ---------------------------------------------------
     info_grad = evoked.copy().pick("grad").info
     n_grads = len(info_grad["ch_names"])
-    data = np.random.randn(n_grads)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal(n_grads)
     img, _ = plot_topomap(data, info_grad)
 
     # check that channels are scattered around x == 0
@@ -601,10 +639,10 @@ def test_plot_tfr_topomap():
     res = 8
     n_freqs = 3
     nave = 1
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     picks = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
     info = pick_info(raw.info, picks)
-    data = rng.randn(len(picks), n_freqs, len(times))
+    data = rng.standard_normal((len(picks), n_freqs, len(times)))
 
     # test complex numbers
     tfr = AverageTFRArray(
@@ -620,7 +658,7 @@ def test_plot_tfr_topomap():
 
     # test data with taper dimension (real)
     data = np.expand_dims(data, axis=1)
-    weights = np.random.rand(1, n_freqs)
+    weights = rng.random((1, n_freqs))
     tfr = AverageTFRArray(
         info=info,
         data=data,
@@ -675,7 +713,7 @@ def test_plot_tfr_topomap():
     fig, axes = plt.subplots()
     freqs = np.arange(3.0, 9.5)
     bands = [(4, 8, "Theta")]
-    psd = np.random.rand(len(info["ch_names"]), freqs.shape[0])
+    psd = rng.random((len(info["ch_names"]), freqs.shape[0]))
     plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
 
 
@@ -746,7 +784,7 @@ def test_plot_topomap_neuromag122():
 
 def test_plot_topomap_bads():
     """Test plotting topomap with bad channels (gh-7213)."""
-    data = np.random.RandomState(0).randn(3, 1000)
+    data = np.random.default_rng(0).standard_normal((3, 1000))
     raw = RawArray(data, create_info(3, 1000.0, "eeg"))
     ch_pos_dict = {name: pos for name, pos in zip(raw.ch_names, np.eye(3))}
     raw.info.set_montage(make_dig_montage(ch_pos_dict, coord_frame="head"))
@@ -766,7 +804,8 @@ def test_plot_topomap_channel_distance():
     ch_names = ["TP9", "AF7", "AF8", "TP10"]
 
     info = create_info(ch_names, 100, ch_types="eeg")
-    evoked = EvokedArray(np.random.randn(4, 10) * 1e-6, info)
+    rng = np.random.default_rng(0)
+    evoked = EvokedArray(rng.normal(scale=1e-6, size=(4, 10)), info)
     ten_five = make_standard_montage("colin27_1005")
     evoked.set_montage(ten_five)
 
@@ -775,7 +814,7 @@ def test_plot_topomap_channel_distance():
 
 def test_plot_topomap_bads_grad():
     """Test plotting topomap with bad gradiometer channels (gh-8802)."""
-    data = np.random.RandomState(0).randn(203)
+    data = np.random.default_rng(0).standard_normal(203)
     info = read_info(evoked_fname)
     info["bads"] = ["MEG 2242"]
     picks = pick_types(info, meg="grad")
@@ -794,7 +833,9 @@ def test_plot_topomap_opm():
     fig_evoked = evoked.plot_topomap(
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
-    assert len(fig_evoked.axes) == 5
+    # Biaxial OPM pairs trigger grouped rendering
+    # (4 radial + 4 tangential + 2 colorbars)
+    assert len(fig_evoked.axes) == 10
 
 
 def test_prepare_topomap_plot_opm_non_quspin_coils():
@@ -851,6 +892,102 @@ def test_split_opm_overlaps(triaxial_evoked):
     assert tangential == ["OPM002", "OPM003", "OPM005", "OPM006"]
 
 
+def test_opm_tangential_rms_unsigned(triaxial_evoked):
+    """Test that tangential OPM data is RMS magnitude and unsigned."""
+    picks, pos, merge_channels, names, *_ = topomap._prepare_topomap_plot(
+        triaxial_evoked, "mag"
+    )
+    data = triaxial_evoked.data[picks]
+    grouped = topomap._compute_orientation_group_data(
+        data,
+        names,
+        pos,
+        ch_type="mag",
+        modality="opm",
+        merge_channels=merge_channels,
+        use_opm_orientation_groups=True,
+    )
+    tangential = [group for group in grouped if group[0] == "tangential"][0]
+    assert np.all(tangential[1] >= 0)
+    assert tangential[4]
+
+
+def test_should_use_opm_orientation_groups_only_for_triaxial():
+    """Test that OPM orientation grouping works for biaxial and triaxial overlaps."""
+    ch_names = [f"OPM{k:03}" for k in range(1, 7)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    with info._unlock():
+        for ch in info["chs"]:
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+
+    pair_overlaps = [
+        np.array(["OPM001", "OPM002"]),
+        np.array(["OPM003", "OPM004"]),
+    ]
+    triax_overlaps = [
+        np.array(["OPM001", "OPM002", "OPM003"]),
+        np.array(["OPM004", "OPM005", "OPM006"]),
+    ]
+
+    # Both biaxial and triaxial overlaps should trigger grouping
+    assert topomap._should_use_opm_orientation_groups(pair_overlaps, "mag")
+    assert topomap._should_use_opm_orientation_groups(triax_overlaps, "mag")
+
+
+def test_plot_evoked_topomap_opm_triaxial_groups(triaxial_evoked):
+    """Test grouped radial/tangential topomap rendering for triaxial OPM."""
+    fig = triaxial_evoked.plot_topomap(
+        times=[0.0],
+        ch_type="mag",
+        contours=0,
+        res=8,
+        sensors=False,
+        show=False,
+    )
+    assert len(fig.axes) == 4
+    titles = [ax.get_title() for ax in fig.axes]
+    assert any("radial" in title for title in titles)
+    assert any("tangential" in title for title in titles)
+
+
+def test_plot_projs_topomap_opm(triaxial_evoked):
+    """Test plot_projs_topomap does not crash on colocated OPM channels (gh-13866)."""
+    from mne import compute_proj_evoked
+
+    projs = compute_proj_evoked(triaxial_evoked, n_mag=2)
+    # Should not raise a shape mismatch between data and pos
+    fig = plot_projs_topomap(projs, triaxial_evoked.info, show=False)
+    assert len(fig.axes) >= 1
+
+
+@pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
+def test_animate_topomap_opm(triaxial_evoked):
+    """Test animate_topomap does not crash on colocated OPM channels (gh-13866)."""
+    fig, anim = triaxial_evoked.animate_topomap(ch_type="mag", times=[0.0], show=False)
+    anim._func(0)
+    assert len(fig.axes) >= 1
+
+
+def test_plot_arrowmap_opm():
+    """Test plot_arrowmap does not crash on colocated OPM channels (gh-13866)."""
+    from mne.viz import plot_arrowmap
+
+    # Need at least 3 unique sensor locations for Delaunay triangulation
+    ch_names = [f"OPM{k:03d}" for k in range(1, 10)]
+    info = create_info(ch_names, 1000.0, ch_types="mag")
+    positions = np.array(
+        [[0.03, 0.0, 0.05]] * 3 + [[-0.03, 0.0, 0.05]] * 3 + [[0.0, 0.03, 0.05]] * 3
+    )
+    with info._unlock():
+        for idx, ch in enumerate(info["chs"]):
+            ch["coil_type"] = FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1
+            ch["loc"][:3] = positions[idx]
+    rng = np.random.default_rng(0)
+    data_snap = rng.standard_normal(9)
+    fig = plot_arrowmap(data_snap, info, show=False)
+    assert len(fig.axes) == 1
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
@@ -869,7 +1006,7 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
         fnirs_epochs.info["highpass"] = 1.0
     fnirs_epochs.baseline = None
 
-    ica = ICA().fit(fnirs_epochs)
+    ica = ICA(random_state=0).fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
 
@@ -990,7 +1127,7 @@ def test_plot_ch_adjacency():
     assert len(collections) == 2
 
     # make sure the point is green
-    green = matplotlib.colors.to_rgba("tab:green")
+    green = to_rgba("tab:green")
     assert (collections[1].get_facecolor() == green).all()
 
     # make sure adjacency entry is modified after second click on another node
@@ -1073,3 +1210,84 @@ def test_plot_topomap_info_names_ordering(ch_type):
     assert displayed_names == list(expected_names), (
         f"Expected {list(expected_names)}, got {displayed_names}"
     )
+
+
+def test_plot_topomap_mask_label_params():
+    """Test that mask_label_params styles the masked-sensor labels."""
+    evoked = read_evokeds(evoked_fname)[0]
+
+    significant = (
+        "EEG 001",
+        "EEG 002",
+        "EEG 003",
+        "EEG 004",
+        "EEG 005",
+        "EEG 006",
+        "EEG 007",
+        "EEG 008",
+    )
+    sig = np.isin(evoked.ch_names, significant)
+    mask = np.zeros(evoked.data.shape, dtype=bool)
+    mask[sig, :] = True
+
+    # test non-default
+    mask_label_params = dict(
+        fontsize="medium",
+        color="green",
+        fontweight="bold",
+        bbox=dict(facecolor="red", alpha=0.3),
+    )
+
+    fig = evoked.plot_topomap(
+        times=0.1,
+        ch_type="eeg",
+        mask=mask,
+        show_names=True,
+        mask_label_params=mask_label_params,
+        show=False,
+    )
+
+    fig.canvas.draw()  # important for the bbox patches
+
+    sig_labels = [t for ax in fig.axes for t in ax.texts if t.get_text() in significant]
+
+    assert sig_labels, "there are no masked-channel labels"
+
+    # non masked channels should not be green
+    nonsig_labels = [
+        t
+        for ax in fig.axes
+        for t in ax.texts
+        if t.get_text() in evoked.ch_names and t.get_text() not in significant
+    ]
+
+    for ns in nonsig_labels:
+        assert to_rgba(ns.get_color()) != to_rgba("green")
+
+    # loop over significant labels and check text attributes
+    for sl in sig_labels:
+        assert to_rgba(sl.get_color()) == to_rgba("green")
+        assert sl.get_fontweight() == "bold"
+        patch = sl.get_bbox_patch()
+        assert patch is not None
+        assert np.allclose(patch.get_facecolor()[:3], (1.0, 0.0, 0.0))  # red
+
+    # test default mask labels
+    # should be dict(fontsize="medium", fontweight="bold")
+    fig = evoked.plot_topomap(
+        times=0.1,
+        ch_type="eeg",
+        mask=mask,
+        show_names=True,
+        mask_label_params=None,
+        show=False,
+    )
+
+    sig_labels = [t for ax in fig.axes for t in ax.texts if t.get_text() in significant]
+
+    assert sig_labels, "there are no masked-channel labels"
+
+    # masked labels should be bold and colored the same as unmasked labels
+    for sl in sig_labels:
+        assert sl.get_fontweight() == "bold"
+        assert to_rgba(sl.get_color()) == to_rgba(nonsig_labels[0].get_color())

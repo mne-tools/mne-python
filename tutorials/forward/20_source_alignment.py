@@ -84,7 +84,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 # displaying the resulting alignment of EEG sensors, MEG sensors, brain
 # sources, and conductor models. If you provide ``subjects_dir`` and
 # ``subject`` parameters, the function automatically loads the subject's
-# Freesurfer MRI surfaces. Important for our purposes, passing
+# FreeSurfer MRI surfaces. Important for our purposes, passing
 # ``show_axes=True`` to `~mne.viz.plot_alignment` will draw the origin of each
 # coordinate frame in a different color, with axes indicated by different sized
 # arrows:
@@ -176,7 +176,7 @@ print(
 #                ``raw.info['dev_head_t']``.
 #
 # 3. MRI coordinate frame ("mri", :gray:`gray axes`)
-#      Defined by Freesurfer, the "MRI surface RAS" coordinate frame has its
+#      Defined by FreeSurfer, the "MRI surface RAS" coordinate frame has its
 #      origin at the center of a 256×256×256 1mm anisotropic volume (though the
 #      center may not correspond to the anatomical center of the subject's
 #      head).
@@ -224,7 +224,7 @@ mne.viz.plot_alignment(
 # -------------------------------
 # Let's visualize these coordinate frames using just the scalp surface; this
 # will make it easier to see their relative orientations. To do this we'll
-# first load the Freesurfer scalp surface, then apply a few different
+# first load the FreeSurfer scalp surface, then apply a few different
 # transforms to it. In addition to the three coordinate frames discussed above,
 # we'll also show the "mri_voxel" coordinate frame. Unlike MRI Surface RAS,
 # "mri_voxel" has its origin in the corner of the volume (the left-most,
@@ -347,7 +347,7 @@ renderer.show()
 #
 # * After doing this for all the landmarks, toggle ``Lock Fiducials`` radio
 #   button and optionally pressing ``Save MRI Fid.`` which will save to a
-#   default location in the ``bem`` folder of the Freesurfer subject directory.
+#   default location in the ``bem`` folder of the FreeSurfer subject directory.
 # * Then you can load the digitization data from the raw file
 #   (``Path to info``).
 # * Click ``Fit ICP``. This will align the digitization points to the
@@ -373,7 +373,7 @@ mne.gui.coregistration(subject="sample", subjects_dir=subjects_dir)
 # Alignment without MRI
 # ---------------------
 # The surface alignments above are possible if you have the surfaces available
-# from Freesurfer. :func:`mne.viz.plot_alignment` automatically searches for
+# from FreeSurfer. :func:`mne.viz.plot_alignment` automatically searches for
 # the correct surfaces from the provided ``subjects_dir``. Another option is
 # to use a :ref:`spherical conductor model <eeg_sphere_model>`. It is
 # passed through ``bem`` parameter.

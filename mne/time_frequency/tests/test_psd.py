@@ -16,7 +16,7 @@ from mne.utils import catch_logging
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
     n_samples, n_fft, n_overlap = 2048, 1024, 512
-    x = np.random.RandomState(0).randn(1, n_samples)
+    x = np.random.default_rng(0).standard_normal((1, n_samples))
     psds, freqs = psd_array_welch(
         x[:, : n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap
     )
@@ -231,7 +231,7 @@ def test_psd_array_welch_n_jobs():
 def test_psd_nan_in_data():
     """psd_array_welch should fail if +Inf lies inside analyzed samples."""
     n_samples, n_fft, n_overlap = 2048, 256, 128
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     x = rng.standard_normal(size=(2, n_samples))
     # Put +Inf inside the series; this falls within Welch windows
     x[0, 800] = np.inf  # Channel 0 has Inf → bad channel
@@ -248,7 +248,7 @@ def test_psd_nan_in_data():
 def test_psd_misaligned_nan_across_channels():
     """If NaNs are present but masks are NOT aligned across channels."""
     n_samples, n_fft, n_overlap = 2048, 256, 128
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     x = rng.standard_normal(size=(2, n_samples))
     # NaN only in ch0; ch1 has no NaN => masks not aligned -> should raise
     x[0, 500] = np.nan

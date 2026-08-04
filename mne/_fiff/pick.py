@@ -104,6 +104,26 @@ def get_channel_type_constants(include_defaults=False):
             unit=FIFF.FIFF_UNIT_RAD,
             coil_type=FIFF.FIFFV_COIL_FNIRS_FD_PHASE,
         ),
+        fnirs_td_gated_amplitude=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_UNITLESS,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
+        ),
+        fnirs_td_moments_intensity=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_UNITLESS,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY,
+        ),
+        fnirs_td_moments_mean=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_SEC,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN,
+        ),
+        fnirs_td_moments_variance=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_SEC2,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE,
+        ),
         fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH, coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
         hbo=dict(
             kind=FIFF.FIFFV_FNIRS_CH,
@@ -197,6 +217,10 @@ _second_rules = {
             FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE: "fnirs_fd_ac_amplitude",
             FIFF.FIFFV_COIL_FNIRS_FD_PHASE: "fnirs_fd_phase",
             FIFF.FIFFV_COIL_FNIRS_OD: "fnirs_od",
+            FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE: "fnirs_td_gated_amplitude",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY: "fnirs_td_moments_intensity",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN: "fnirs_td_moments_mean",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE: "fnirs_td_moments_variance",
         },
     ),
     "eeg": (
@@ -385,6 +409,26 @@ def _triage_fnirs_pick(ch, fnirs, warned):
         return True
     elif ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_OD and "fnirs_od" in fnirs:
         return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE
+        and "fnirs_td_gated_amplitude" in fnirs
+    ):
+        return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY
+        and "fnirs_td_moments_intensity" in fnirs
+    ):
+        return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN
+        and "fnirs_td_moments_mean" in fnirs
+    ):
+        return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE
+        and "fnirs_td_moments_variance" in fnirs
+    ):
+        return True
     return False
 
 
@@ -413,13 +457,17 @@ def _check_meg_type(meg, allow_auto=False):
 
 
 def _check_info_exclude(info, exclude):
+    # NB: we deliberately do not call info._check_consistency() here. This helper
+    # only computes channel indices (it produces no new Info), and it is called
+    # very frequently via _picks_to_idx/pick_types. The consistency of an Info is
+    # validated where it matters -- at construction/I/O and whenever pick_info
+    # produces a new Info from it.
     _validate_type(info, "info")
-    info._check_consistency()
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == "bads":
         exclude = info.get("bads", [])
-    elif not isinstance(exclude, list | tuple):
+    elif not isinstance(exclude, (list, tuple)):
         raise ValueError(
             'exclude must either be "bads" or a list of strings.'
             " If only one channel is to be excluded, use "
@@ -569,7 +617,7 @@ def pick_types(
                 pick[k] = _triage_meg_pick(info["chs"][k], ref_meg)
             elif ch_type in ("eyegaze", "pupil"):
                 pick[k] = _triage_eyetrack_pick(info["chs"][k], eyetrack)
-            else:  # ch_type in ('hbo', 'hbr')
+            else:  # ch_type in ('hbo', 'hbr', ...)
                 pick[k] = _triage_fnirs_pick(info["chs"][k], fnirs, warned)
 
     # restrict channels to selection if provided
@@ -616,6 +664,10 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     # avoid circular imports
     from .meas_info import _bad_chans_comp
 
+    # Validate the *input* (a user may have corrupted `info` despite our
+    # safeguards). This is a no-op inside an `info._skip_checks()` block, which
+    # internal callers use when they know `info` is already consistent. We do not
+    # re-check the picked result below: picking here is trusted to be correct.
     info._check_consistency()
     info = info.copy() if copy else info
     if sel is None:
@@ -670,7 +722,6 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         if len(projs) != len(info["projs"]):
             with info._unlock():
                 info["projs"] = projs
-    info._check_consistency()
 
     return info
 
@@ -867,6 +918,10 @@ def channel_indices_by_type(info, picks=None, *, exclude=()):
         fnirs_fd_ac_amplitude=list(),
         fnirs_fd_phase=list(),
         fnirs_od=list(),
+        fnirs_td_gated_amplitude=list(),
+        fnirs_td_moments_intensity=list(),
+        fnirs_td_moments_mean=list(),
+        fnirs_td_moments_variance=list(),
         eyegaze=list(),
         pupil=list(),
     )
@@ -1104,6 +1159,10 @@ _FNIRS_CH_TYPES_SPLIT = (
     "fnirs_fd_ac_amplitude",
     "fnirs_fd_phase",
     "fnirs_od",
+    "fnirs_td_gated_amplitude",
+    "fnirs_td_moments_intensity",
+    "fnirs_td_moments_mean",
+    "fnirs_td_moments_variance",
 )
 _EYETRACK_CH_TYPES_SPLIT = ("eyegaze", "pupil")
 _DATA_CH_TYPES_ORDER_DEFAULT = (

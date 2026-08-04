@@ -272,7 +272,8 @@ def test_fnirs_channel_frequency_ordering(fname, readerfn):
 
 def test_fnirs_channel_naming_and_order_custom_raw():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.normal(size=(6, 10))
+    rng = np.random.default_rng(0)
+    data = rng.normal(size=(6, 10))
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
@@ -371,7 +372,8 @@ def test_fnirs_channel_naming_and_order_custom_raw():
 
 def test_fnirs_channel_naming_and_order_custom_optical_density():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.normal(size=(6, 10))
+    rng = np.random.default_rng(0)
+    data = rng.normal(size=(6, 10))
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
@@ -429,13 +431,13 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw2 = RawArray(data, info, verbose=True)
     raw.add_channels([raw2])
-    with pytest.raises(ValueError, match="does not support a combination"):
+    with pytest.raises(ValueError, match="exactly one of"):
         _check_channels_ordered(raw.info, [760, 850])
 
 
 def test_fnirs_channel_naming_and_order_custom_chroma():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.RandomState(0).randn(6, 10)
+    data = np.random.default_rng(0).standard_normal((6, 10))
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
@@ -567,7 +569,7 @@ def test_order_agnostic(nirx_snirf):
     """Test that order does not matter to (pre)processing results."""
     raw_nirx, raw_snirf = nirx_snirf
     raw_random = raw_nirx.copy().pick(
-        np.random.RandomState(0).permutation(len(raw_nirx.ch_names))
+        np.random.default_rng(0).permutation(len(raw_nirx.ch_names))
     )
     raws = dict(nirx=raw_nirx, snirf=raw_snirf, random=raw_random)
     del raw_nirx, raw_snirf, raw_random

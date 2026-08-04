@@ -153,7 +153,7 @@ def compute_current_source_density(
     _validate_type(z, "numeric", "z")
     _validate_type(radius, "numeric", "radius")
     if radius <= 0:
-        raise ValueError("sphere radius must be greater than 0, got {radius}")
+        raise ValueError(f"sphere radius must be greater than 0, got {radius}")
 
     pos = np.array([inst.info["chs"][pick]["loc"][:3] for pick in picks])
     if not np.isfinite(pos).all() or np.isclose(pos, 0.0).all(1).any():

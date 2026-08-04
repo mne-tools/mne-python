@@ -72,6 +72,21 @@ class _BuiltinStandardMontage:
 
 _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
+        name="fsaverage_1005",
+        description="Electrodes are named according to the international 10-05 system "
+        "and positioned on the fsaverage head model (335+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="fsaverage_1010",
+        description="Electrodes are named according to the international 10-10 system "
+        "and positioned on the fsaverage head model (70+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name="fsaverage_1020",
+        description="Electrodes are named according to the international 10-20 system "
+        "and positioned on the fsaverage head model (21+3 locations)",
+    ),
+    _BuiltinStandardMontage(
         name="colin27_1005",
         description="Electrodes are named according to the international 10-05 system "
         "and positioned on the Colin27 head model (343+3 locations)",
@@ -90,7 +105,7 @@ _BUILTIN_STANDARD_MONTAGES = [
         name="colin27_postfixed",
         description="Electrodes are named according to the international extended 10-20"
         " system using postfixes for intermediate positions and positioned on the "
-        "Colin27 head model(100+3 locations)",
+        "Colin27 head model (100+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="colin27_prefixed",
@@ -130,19 +145,19 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="easycap-M1",
-        description="EasyCap with 10-05 electrode names (74 locations)",
+        description="EasyCap with 10-05 electrode names (74+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="easycap-M10",
-        description="EasyCap with numbered electrodes (61 locations)",
+        description="EasyCap with numbered electrodes (61+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="easycap-M43",
-        description="EasyCap with numbered electrodes (64 locations)",
+        description="EasyCap with numbered electrodes (64+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="EGI_256",
-        description="Geodesic Sensor Net (256 locations)",
+        description="Geodesic Sensor Net (256+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="GSN-HydroCel-32",
@@ -191,19 +206,22 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="brainproducts-RNP-BA-128",
-        description="Brain Products with 10-10 electrode names (128 channels)",
+        description="Brain Products with 10-10 electrode names (130+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="spherical_1005",
-        description="10–05 electrode names and locations using a spherical head model",
+        description="10–05 electrode names and locations using a spherical head model"
+        " (344+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="spherical_1010",
-        description="10–10 electrode names and locations using a spherical head model",
+        description="10–10 electrode names and locations using a spherical head model"
+        " (70+3 locations)",
     ),
     _BuiltinStandardMontage(
         name="spherical_1020",
-        description="10–20 electrode names and locations using a spherical head model",
+        description="10–20 electrode names and locations using a spherical head model"
+        " (21+3 locations)",
     ),
 ]
 
@@ -2008,9 +2026,9 @@ def make_standard_montage(kind, head_size="auto"):
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
         Can be None to not scale the read sizes. ``'auto'`` (default) will
-        use 95mm for all montages except the ``'colin27*'``, ``'mgh*'``, and
-        ``'artinis*'``, which are already in fsaverage's MRI coordinates
-        (same as MNI).
+        use 95mm for all montages except the ``'fsaverage*'``,
+        ``'colin27*'``, ``'mgh*'``, and ``'artinis*'``, which are already in
+        fsaverage's MRI coordinates (same as MNI).
 
     Returns
     -------
@@ -2051,7 +2069,7 @@ def make_standard_montage(kind, head_size="auto"):
     _validate_type(head_size, ("numeric", str, None), "head_size")
     if isinstance(head_size, str):
         _check_option("head_size", head_size, ("auto",), extra="when str")
-        if kind.startswith(("colin27", "mgh", "artinis")):
+        if kind.startswith(("fsaverage", "colin27", "mgh", "artinis")):
             head_size = None
         else:
             head_size = HEAD_SIZE_DEFAULT

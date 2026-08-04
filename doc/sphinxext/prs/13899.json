@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "990b0b5bfaa9536489060896196fcaf16c347b5e",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/dev/13899.dependency.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/dataframe.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 5,
+      "d": 5
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

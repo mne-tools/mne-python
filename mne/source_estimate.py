@@ -513,7 +513,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 )
             if sens_data.ndim != 2:
                 raise ValueError(
-                    "The sensor data must have 2 dimensions, got {sens_data.ndim}"
+                    f"The sensor data must have 2 dimensions, got {sens_data.ndim}"
                 )
 
         _validate_type(vertices, list, "vertices")
@@ -565,9 +565,9 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         s = f"{sum(len(v) for v in self.vertices)} vertices"
         if self.subject is not None:
             s += f", subject : {self.subject}"
-        s += ", tmin : %s (ms)" % (1e3 * self.tmin)
-        s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
-        s += ", tstep : %s (ms)" % (1e3 * self.tstep)
+        s += f", tmin : {1e3 * self.tmin} (ms)"
+        s += f", tmax : {1e3 * self.times[-1]} (ms)"
+        s += f", tstep : {1e3 * self.tstep} (ms)"
         s += f", data shape : {self.shape}"
         sz = sum(object_size(x) for x in (self.vertices + [self.data]))
         s += f", ~{sizeof_fmt(sz)}"
@@ -3672,7 +3672,7 @@ def _gen_extract_label_time_course(
     _check_option("mode", mode, _get_default_label_modes())
 
     if kind in ("surface", "mixed"):
-        if not isinstance(labels, list):
+        if not isinstance(labels, (list, tuple)):
             labels = [labels]
         use_sparse = False
     else:

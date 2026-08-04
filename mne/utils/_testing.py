@@ -79,10 +79,10 @@ def requires_openmeeg_mark():
 
 
 def requires_freesurfer(arg):
-    """Require Freesurfer."""
+    """Require FreeSurfer."""
     import pytest
 
-    reason = "Requires Freesurfer"
+    reason = "Requires FreeSurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
@@ -97,7 +97,7 @@ def requires_freesurfer(arg):
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires FreeSurfer")(
             arg
         )
 
@@ -147,7 +147,7 @@ def has_mne_c():
 
 
 def has_freesurfer():
-    """Check for Freesurfer."""
+    """Check for FreeSurfer."""
     return "FREESURFER_HOME" in os.environ
 
 
@@ -438,3 +438,25 @@ def copytree_rw(src, dst):
     shutil.copytree(src, dst)
     _chmod_rw_R(dst)
     return dst
+
+
+_vtk_object_base = None
+
+
+def _is_vtk(obj):
+    """Check if an object is a VTK object worth leak-checking (for refleak).
+
+    An ``isinstance`` check, not a class-name-prefix one: VTK >= 9.6
+    instantiates pythonic override subclasses whose names lack the ``vtk``
+    prefix (``PolyData``, ``VTKAOSArray_vtkFloatArray``, ...), and pyvista
+    wrapper subclasses count as VTK objects too. Requires ``vtkmodules``.
+    """
+    global _vtk_object_base
+    if _vtk_object_base is None:
+        from vtkmodules.vtkCommonCore import vtkObjectBase
+
+        _vtk_object_base = vtkObjectBase
+    # vtkBuffer_IhE (vtkBuffer<unsigned char>) instances are known to linger
+    return (
+        isinstance(obj, _vtk_object_base) and obj.__class__.__name__ != "vtkBuffer_IhE"
+    )

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "03dd68a8796741d34bef04ab0e8e74e6b8d155e1",
+  "authors": [
+    {
+      "n": "Jonas Mago",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.py": {
+      "a": 6,
+      "d": 1
+    },
+    "doc/sphinxext/related_software_nodeps.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

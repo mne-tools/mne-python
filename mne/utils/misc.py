@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 import fnmatch
-import gc
 import hashlib
 import inspect
 import os
@@ -353,109 +352,12 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ("read", "seek"))
 
 
-def _fullname(obj, *, referent=None):
-    klass = obj.__class__
-    module = klass.__module__
-    name = klass.__qualname__
-    if module != "builtins":
-        name = f"{module}.{name}"
-    if referent is not None:
-        if isinstance(obj, list | tuple):
-            for ii, item in enumerate(obj):
-                if item is referent:
-                    name += f"[{ii}]"
-                    break
-        elif isinstance(obj, dict):
-            for key, value in obj.items():
-                if key is referent:
-                    name += "-key"
-                    break
-                if value is referent:
-                    name += f"[{key!r}]"
-                    break
-    return name
-
-
+# Low-effort backward compat wrapper in case other MNE libraries use this function
 def _assert_no_instances(cls, when=""):
+    from refleak.testing import assert_no_instances
+
     __tracebackhide__ = True
-    n = 0
-    ref = list()
-    gc.collect()
-    objs = gc.get_objects()
-    for obj in objs:  # e.g., vtkPolyData, Brain, Plotter, etc.
-        try:
-            check = isinstance(obj, cls)
-        except Exception:  # such as a weakref
-            check = False
-        if check:
-            ref_prefix = f"  #{n + 1}: "
-            if cls.__name__ == "Brain":
-                ref.append(
-                    f"{ref_prefix}"
-                    f"(Note: Brain._cleaned = {getattr(obj, '_cleaned', None)})"
-                )
-            rr = gc.get_referrers(obj)
-            count = 0
-            for r in rr:  # e.g., list, dict, etc. that holds the reference to obj
-                if (
-                    r is not objs
-                    and r is not globals()
-                    and r is not locals()
-                    and not inspect.isframe(r)
-                ):
-                    name = _fullname(r, referent=obj)
-                    # improve our name in the case that it's an object's __dict__
-                    if isinstance(r, dict):
-                        for possible_obj in objs:
-                            try:
-                                obj_dict = getattr(possible_obj, "__dict__", None)
-                            except Exception:
-                                pass
-                            else:
-                                if obj_dict is r:
-                                    name = f"{_fullname(possible_obj)}.__dict__"
-                                    for key, value in obj_dict.items():
-                                        if key is obj:
-                                            name += "-key"
-                                            del key, value
-                                            break
-                                        if value is obj:
-                                            name += f"[{key!r}]"
-                                            del key, value
-                                            break
-                                        del key, value
-                                    else:  # shouldn't ever hit this...
-                                        name += "???"
-                                del obj_dict
-                            del possible_obj
-                    if isinstance(r, list | dict | tuple):
-                        rep = ""
-                        rep += f"len={len(r)}"
-                        r_ = gc.get_referrers(r)
-                        types = list()
-                        for x in r_:
-                            types.append(_fullname(x, referent=r))
-                        types = " / ".join(sorted(types))
-                        rep += f" | {len(r_)} referrers: {types}"
-                        del r_
-                    else:
-                        rep = "repr="
-                        rep += repr(r)[:100].replace("\n", " ")
-                        # If it's a __closure__, get more information
-                        if rep.startswith("<cell at "):
-                            try:
-                                rep += f" ({repr(r.cell_contents)[:100]})"
-                            except Exception:
-                                pass
-                    ref.append(f"{ref_prefix}{name} with {rep}")
-                    count += 1
-                del r
-            del rr
-            n += count > 0
-        del obj
-    del objs
-    gc.collect()
-    assert n == 0, f"\n{n} {cls.__name__} @ {when}, referrers:\n" + "\n".join(ref)
+    assert_no_instances(cls, when=when)
 
 
 def _resource_path(submodule, filename):
@@ -526,7 +428,13 @@ def _auto_weakref(function):
     __weakref_values__ = dict()
     evaldict = dict(__weakref_values__=__weakref_values__)
     for name, value in zip(names, function.__closure__):
-        __weakref_values__[name] = weakref.ref(value.cell_contents)
+        try:
+            __weakref_values__[name] = weakref.ref(value.cell_contents)
+        except TypeError:  # pragma: no cover
+            raise TypeError(
+                f"Cannot create weak reference to {name} "
+                f"(type {type(value.cell_contents)})"
+            )
     body = dedent(inspect.getsource(function))
     body = body.splitlines()
     for li, line in enumerate(body):

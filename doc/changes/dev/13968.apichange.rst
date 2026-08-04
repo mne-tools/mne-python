@@ -1,0 +1,1 @@
+In :func:`mne.viz.iter_topography`, the ``on_pick`` callable for sub-figures now has a new parameter ``orig_fig`` that refers to the main figure. To preserve backward compatibility, it is made optional. By `Lifeng Qiu Lin`_.

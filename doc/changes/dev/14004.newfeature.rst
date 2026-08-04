@@ -1,0 +1,1 @@
+Add ``on_outside`` parameter to :class:`mne.Epochs` and :class:`mne.EpochsArray` classes to control the behaviour when events exist outside the data range. The options are to ``'warn'`` (new default), ``'raise'``, or ``'ignore'`` (old behaviour), by `Cedric Conday`_.

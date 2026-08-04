@@ -1243,6 +1243,14 @@ def plot_evoked_topo(
     -------
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
+
+    Notes
+    -----
+    The figure will publish and subscribe to the following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange`
+
+    .. versionadded:: 1.13.0
     """
     if type(evoked) not in (tuple, list):
         evoked = [evoked]
@@ -1954,9 +1962,24 @@ def plot_evoked_joint(
     del times
     _, times_ts = _check_time_unit(ts_args["time_unit"], times_sec)
 
-    # prepare axes for topomap
+    ch_type = ch_types.pop()  # set should only contain one element
+    use_opm_orientation_groups = False
+    if ch_type == "mag":
+        from .topomap import _should_use_opm_orientation_groups
+
+        _, _, merge_channels, *_ = _prepare_topomap_plot(
+            evoked, ch_type, sphere=topomap_args.get("sphere")
+        )
+        use_opm_orientation_groups = _should_use_opm_orientation_groups(
+            merge_channels, ch_type
+        )
+    n_group_axes = 2 if use_opm_orientation_groups else 1
+
+    # prepare axes for topomap and butterfly plots
     if not got_axes:
-        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
+        fig, ts_ax, map_ax = _prepare_joint_axes(
+            len(times_sec) * n_group_axes, figsize=(8.0, 4.2)
+        )
         cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
@@ -2002,7 +2025,7 @@ def plot_evoked_joint(
 
     # topomap
     contours = topomap_args.get("contours", 6)
-    ch_type = ch_types.pop()  # set should only contain one element
+
     # Since the data has all the ch_types, we get the limits from the plot.
     vmin, vmax = (None, None)
     norm = ch_type == "grad"
@@ -2059,7 +2082,7 @@ def plot_evoked_joint(
             zorder=1,
             clip_on=False,
         )
-        fig.add_artist(con)
+        ts_ax.add_artist(con)
 
     # mark times in time series plot
     for timepoint in times_ts:
@@ -2858,9 +2881,7 @@ def plot_compare_evokeds(
         for evk in evokeds[cond]:
             _validate_type(evk, Evoked, "All evokeds entries ", "Evoked")
     # ensure same channels and times across all evokeds
-    all_evoked = sum(evokeds.values(), [])
-    _check_evokeds_ch_names_times(all_evoked)
-    del all_evoked
+    _check_evokeds_ch_names_times(sum(evokeds.values(), []), inplace=True)
 
     # get some representative info
     conditions = list(evokeds)
@@ -3019,6 +3040,7 @@ def plot_compare_evokeds(
     if not do_topo:
         # add vacuous "index" (needed for topo) so same code works for both
         axes = [(ax, 0) for ax in axes]
+        assert len(axes) == 1
         if np.array(picks).ndim < 2:
             picks = [picks]  # enables zipping w/ axes
     else:
@@ -3130,7 +3152,8 @@ def plot_compare_evokeds(
     c_func = None if do_topo else combine_func
     all_data = list()
     all_cis = list()
-    for _picks, (ax, idx) in zip(picks, axes):
+    # We need to truncate axes because of a possible additional ax for the legend
+    for ax, idx in axes[: len(picks)]:
         data_dict = dict()
         ci_dict = dict()
         for cond in conditions:
@@ -3145,7 +3168,7 @@ def plot_compare_evokeds(
                 combine,
                 c_func,
                 ch_type=ch_type,
-                picks=_picks,
+                picks=picks[idx],
                 scaling=scalings,
                 ci_fun=ci_fun,
             )

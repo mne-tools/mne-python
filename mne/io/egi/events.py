@@ -3,9 +3,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime
-from glob import glob
-from os.path import basename, join, splitext
+from os.path import basename, splitext
 
 import numpy as np
 
@@ -23,140 +21,89 @@ def _read_events(input_fname, info):
         Header info array.
     """
     n_samples = info["last_samps"][-1]
-    mff_events, event_codes = _read_mff_events(input_fname, info["sfreq"])
+    mff_events, event_codes = _read_mff_events(
+        input_fname, info["sfreq"], info["meas_dt_local"]
+    )
     info["n_events"] = len(event_codes)
     info["event_codes"] = event_codes
     events = np.zeros([info["n_events"], info["n_segments"] * n_samples])
     for n, event in enumerate(event_codes):
-        for i in mff_events[event]:
+        for dct in mff_events[event]:
+            i = dct["start_sample"]
             if (i < 0) or (i >= events.shape[1]):
                 continue
             events[n][i] = n + 1
     return events, info, mff_events
 
 
-def _read_mff_events(filename, sfreq):
-    """Extract the events.
+def _read_mff_events(filename, sfreq, start_time):
+    """Extract the events with mffpy."""
+    mffpy = _soft_import("mffpy", purpose="reading EGI MFF data", min_version="0.11")
+    from mffpy.xml_files import XML
 
-    Parameters
-    ----------
-    filename : path-like
-        File path.
-    sfreq : float
-        The sampling frequency
-    """
-    orig = {}
-    for xml_file in glob(join(filename, "*.xml")):
-        xml_type = splitext(basename(xml_file))[0]
-        et = _parse_xml(xml_file)
-        if et is not None:
-            orig[xml_type] = et
-    xml_files = orig.keys()
-    xml_events = [x for x in xml_files if x[:7] == "Events_"]
-    for item in orig["info"]:
-        if "recordTime" in item:
-            start_time = _ns2py_time(item["recordTime"])
-            break
+    reader = mffpy.Reader(filename)
+    try:
+        files_list = sorted(reader.directory.listdir())
+    except Exception:
+        files_list = []
+
+    tracks = []
+    for xml_name in files_list:
+        stem = splitext(basename(xml_name))[0]
+        # Only parse actual Event XML files to save I/O
+        if not stem.startswith("Events"):
+            continue
+
+        with reader.directory.filepointer(stem) as fp:
+            # Let mffpy 0.11 handle all the heavy lifting!
+            try:
+                track = XML.from_file(fp)
+            except Exception as exc:
+                warn(f"Could not parse the XML file {xml_name}: {exc}", RuntimeWarning)
+                continue
+            tracks.append(track)
+
     markers = []
     code = []
-    for xml in xml_events:
-        for event in orig[xml][2:]:
-            event_start = _ns2py_time(event["beginTime"])
-            start = (event_start - start_time).total_seconds()
-            if event["code"] not in code:
-                code.append(event["code"])
-            marker = {
-                "name": event["code"],
-                "start": start,
-                "start_sample": int(np.trunc(start * sfreq)),
-                "end": start + float(event["duration"]) / 1e9,
-                "chan": None,
-            }
-            markers.append(marker)
-    events_tims = dict()
-    for ev in code:
-        trig_samp = list(
-            c["start_sample"] for n, c in enumerate(markers) if c["name"] == ev
-        )
-        events_tims.update({ev: trig_samp})
+
+    for track in tracks:
+        for event in track.events:
+            code_str = event["code"]
+            if code_str not in code:
+                code.append(code_str)
+
+            event_start = event["beginTime"]
+            start_sec = (event_start - start_time).total_seconds()
+            duration = event["duration"] / 1e9
+            if "label" in event or "description" in event:
+                extras = dict(
+                    label=event["label"],
+                    # description is reserved by mne/annotations.py
+                    desc=event["description"],
+                )
+            else:
+                extras = {}
+
+            markers.append(
+                {
+                    "name": code_str,
+                    "start": start_sec,
+                    "start_sample": int(np.trunc(start_sec * sfreq)),
+                    "end": start_sec + duration,
+                    "chan": None,
+                    "extras": extras,
+                }
+            )
+
+    events_tims = {
+        ev: [
+            dict(start_sample=marker["start_sample"], extras=marker["extras"])
+            for marker in markers
+            if marker["name"] == ev
+        ]
+        for ev in code
+    }
     return events_tims, code
-
-
-def _parse_xml(xml_file: str) -> list[dict[str, str]] | None:
-    """Parse XML file."""
-    defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
-    try:
-        xml = defusedxml.ElementTree.parse(xml_file)
-    except defusedxml.ElementTree.ParseError as e:
-        warn(f"Could not parse the XML file {xml_file}: {e}")
-        return
-    root = xml.getroot()
-    return _xml2list(root)
-
-
-def _xml2list(root):
-    """Parse XML item."""
-    output = []
-    for element in root:
-        if len(element) > 0:
-            if element[0].tag != element[-1].tag:
-                output.append(_xml2dict(element))
-            else:
-                output.append(_xml2list(element))
-
-        elif element.text:
-            text = element.text.strip()
-            if text:
-                tag = _ns(element.tag)
-                output.append({tag: text})
-
-    return output
-
-
-def _ns(s):
-    """Remove namespace, but only if there is a namespace to begin with."""
-    if "}" in s:
-        return "}".join(s.split("}")[1:])
-    else:
-        return s
-
-
-def _xml2dict(root):
-    """Use functions instead of Class.
-
-    remove namespace based on
-    http://stackoverflow.com/questions/2148119
-    """
-    output = {}
-    if root.items():
-        output.update(dict(root.items()))
-
-    for element in root:
-        if len(element) > 0:
-            if len(element) == 1 or element[0].tag != element[1].tag:
-                one_dict = _xml2dict(element)
-            else:
-                one_dict = {_ns(element[0].tag): _xml2list(element)}
-
-            if element.items():
-                one_dict.update(dict(element.items()))
-            output.update({_ns(element.tag): one_dict})
-
-        elif element.items():
-            output.update({_ns(element.tag): dict(element.items())})
-
-        else:
-            output.update({_ns(element.tag): element.text})
-    return output
-
-
-def _ns2py_time(nstime):
-    """Parse times."""
-    nsdate = nstime[0:10]
-    nstime0 = nstime[11:26]
-    nstime00 = nsdate + " " + nstime0
-    pytime = datetime.strptime(nstime00, "%Y-%m-%d %H:%M:%S.%f")
-    return pytime
 
 
 def _combine_triggers(data, remapping=None):

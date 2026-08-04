@@ -175,7 +175,7 @@ Bugs
 
 - The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`10749` by `Richard Höchenberger`_)
 
-- Add a YouTube video tutorial for editing Freesurfer surfaces in Blender to :ref:`tut-fix-meshes` (:gh:`10778` by `Alex Rockhill`_)
+- Add a YouTube video tutorial for editing FreeSurfer surfaces in Blender to :ref:`tut-fix-meshes` (:gh:`10778` by `Alex Rockhill`_)
 
 - The default interaction style of :meth:`mne.Evoked.plot_field` has been changed such that if behaves like :func:`~mne.viz.plot_alignment` when trying to rotate the head (:gh:`10788` by `Richard Höchenberger`_)
 

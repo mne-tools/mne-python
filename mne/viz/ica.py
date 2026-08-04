@@ -40,6 +40,7 @@ def plot_ica_sources(
     picks=None,
     start=None,
     stop=None,
+    n_components=None,
     title=None,
     show=True,
     block=False,
@@ -78,6 +79,10 @@ def plot_ica_sources(
        `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
        signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
        the first and last epoch to show.
+    n_components : int
+        Maximum number of ICA components to plot. Defaults to 20.
+
+        .. versionadded:: 1.13
     title : str | None
         The window title. If None a default is provided.
     show : bool
@@ -142,6 +147,7 @@ def plot_ica_sources(
             exclude,
             start=start,
             stop=stop,
+            n_components=n_components,
             show=show,
             title=title,
             block=block,
@@ -1292,6 +1298,7 @@ def _plot_sources(
     psd_args,
     theme=None,
     overview_mode=None,
+    n_components=20,
     splash=True,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
@@ -1348,7 +1355,9 @@ def _plot_sources(
         data = np.append(data, eog_ecg_data, axis=0)
     picks = np.concatenate((picks, ica.n_components_ + np.arange(len(extra_picks))))
     ch_order = np.arange(len(picks))
-    n_channels = min([20, len(picks)])
+    if n_components is None:
+        n_components = 20
+    n_components = min([n_components, len(picks)])
     ch_names_picked = [ch_names[x] for x in picks]
 
     # create info
@@ -1401,7 +1410,7 @@ def _plot_sources(
         ch_types=np.array(ch_types),
         ch_order=ch_order,
         picks=picks,
-        n_channels=n_channels,
+        n_channels=n_components,
         picks_data=list(),
         # time
         t_start=start if is_raw else boundary_times[start],
@@ -1433,6 +1442,7 @@ def _plot_sources(
         clipping=None,
         scrollbars_visible=show_scrollbars,
         scalebars_visible=False,
+        zero_line_visible=False,
         window_title=title,
         precompute=precompute,
         use_opengl=use_opengl,

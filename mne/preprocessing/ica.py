@@ -2579,6 +2579,7 @@ class ICA(ContainsMixin):
         picks=None,
         start=None,
         stop=None,
+        n_components=20,
         title=None,
         show=True,
         block=False,
@@ -2600,6 +2601,7 @@ class ICA(ContainsMixin):
             picks=picks,
             start=start,
             stop=stop,
+            n_components=n_components,
             title=title,
             show=show,
             block=block,
@@ -2924,7 +2926,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
                         if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
-        for cls in (np.random.RandomState, Covariance):
+        for cls in (np.random.RandomState, np.random.Generator, Covariance):
             if isinstance(value, cls):
                 value = cls.__name__
 

@@ -67,6 +67,7 @@ def plot_raw(
     event_id=None,
     show_scrollbars=True,
     show_scalebars=True,
+    show_zero_line=False,
     time_format="float",
     precompute=None,
     use_opengl=None,
@@ -75,6 +76,7 @@ def plot_raw(
     overview_mode=None,
     splash=True,
     verbose=None,
+    figure_class=None,
 ):
     """Plot raw data.
 
@@ -213,6 +215,7 @@ def plot_raw(
     %(show_scalebars)s
 
         .. versionadded:: 0.20.0
+    %(show_zero_line)s
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
@@ -227,6 +230,9 @@ def plot_raw(
 
         .. versionadded:: 1.6
     %(verbose)s
+    %(figure_class)s
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -427,6 +433,7 @@ def plot_raw(
         clipping=clipping,
         scrollbars_visible=show_scrollbars,
         scalebars_visible=show_scalebars,
+        zero_line_visible=show_zero_line,
         window_title=title,
         bgcolor=bgcolor,
         # Qt-specific
@@ -435,6 +442,7 @@ def plot_raw(
         theme=theme,
         overview_mode=overview_mode,
         splash=splash,
+        figure_class=figure_class,
     )
 
     fig = _get_browser(show=show, block=block, **params)

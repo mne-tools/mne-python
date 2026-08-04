@@ -320,7 +320,7 @@ docdict["aseg"] = """
 aseg : str
     The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
     if available and ``wmparc`` if not. This may be any anatomical
-    segmentation file in the mri subdirectory of the Freesurfer subject
+    segmentation file in the mri subdirectory of the FreeSurfer subject
     directory.
 
     .. versionchanged:: 1.8
@@ -644,10 +644,16 @@ by_event_type : bool
 # C
 
 docdict["calibration_maxwell_cal"] = """
-calibration : str | None
-    Path to the ``'.dat'`` file with fine calibration coefficients.
-    File can have 1D or 3D gradiometer imbalance correction.
-    This file is machine/site-specific.
+calibration : path-like | bool | None
+    Path to the .dat file with fine calibration information.
+    If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
+    If ``False``, no calibration will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control calibration using
+       ``info["fine_calibration"]``, and ``None`` now uses ``info["fine_calibration"]``
+       if available.
 """
 
 docdict["cbar_fmt_topomap"] = """\
@@ -717,6 +723,10 @@ ch_type : list of str | str
     .. versionadded:: 0.19
     .. versionchanged:: 1.2
        ``list-of-str`` is now supported with ``projection=True``.
+    .. versionchanged:: 1.13
+       ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+       now applies a per-channel-type reference by default (set ``joint=True``
+       for the previous union-of-types behavior).
 """
 
 _ch_type_topomap_base = """\
@@ -799,7 +809,7 @@ clim : str | dict
 """
 
 _cmap_template = """
-cmap : matplotlib colormap | str{allowed}
+cmap : str | matplotlib.colors.Colormap{allowed}
         The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
         valid Matplotlib colormap name. Default is {default}.
 """
@@ -811,7 +821,7 @@ docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
 docdict["cmap_topomap"] = """\
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
     interactive mode the colors are adjustable by clicking and dragging the
@@ -828,7 +838,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 """
 
 docdict["cmap_topomap_simple"] = """
-cmap : matplotlib colormap | None
+cmap : str | matplotlib.colors.Colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """
@@ -1044,8 +1054,16 @@ docdict["create_eog_epochs"] = """This function will:
 """
 
 docdict["cross_talk_maxwell"] = """
-cross_talk : str | None
+cross_talk : path-like | bool | None
     Path to the FIF file with cross-talk correction information.
+    If ``None``, will use the ``info["cross_talk"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
+    If ``False``, no cross-talk correction will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control cross-talk correction using
+       ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+       if available.
 """
 
 # %%
@@ -1152,13 +1170,10 @@ docdict["depth"] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use None is equivalent to 0, meaning no depth weighting is performed.
+    to use. None is equivalent to 0, meaning no depth weighting is performed.
     It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
-    defaults). This is effectively ignored when ``method='eLORETA'``.
-
-    .. versionchanged:: 0.20
-       Depth bias ignored for ``method='eLORETA'``.
+    defaults).
 """
 
 docdict["destination_maxwell_dest"] = """
@@ -1704,6 +1719,14 @@ fig_background : None | array
 docdict["fig_facecolor"] = """
 fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background. Defaults to black.
+"""
+
+docdict["figure_class"] = """
+figure_class : class
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
+    to pass a subclass in order to customize the plot. This parameter requires
+    cooperation from the backend, and is currently only supported by the
+    ``matplotlib`` backend.
 """
 
 docdict["filter_length"] = """
@@ -2310,11 +2333,16 @@ item : int | slice | array-like | str
 
 docdict["joint_set_eeg_reference"] = """
 joint : bool
-    How to handle list-of-str ``ch_type``. If False (default), one projector
-    is created per channel type. If True, one projector is created across
-    all channel types. This is only used when ``projection=True``.
+    How to handle list-of-str ``ch_type``. If False (default), the reference is
+    computed per channel type (one projector per type when ``projection=True``;
+    one average reference subtracted per type when ``projection=False`` and
+    ``ref_channels="average"``). If True, a single reference is computed across
+    all listed channel types.
 
     .. versionadded:: 1.2
+    .. versionchanged:: 1.13
+       Now also applies when ``projection=False``. Previously, the
+       ``projection=False`` path silently behaved as if ``joint=True``.
 """
 
 # %%
@@ -2549,6 +2577,13 @@ docdict["mask_evoked_topomap"] = _mask_base.format(
     example=" (useful for, e.g. marking which channels at which times a "
     "statistical test of the data reaches significance)",
 )
+docdict["mask_label_params_topomap"] = """
+mask_label_params : dict | None
+    Additional plotting parameters for significant sensor labels.
+    Default (None) equals::
+
+        dict(fontsize='medium', fontweight='bold')
+"""
 docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -3200,6 +3235,15 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.20.1
 """
 
+docdict["on_outside_epochs"] = """
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["on_rank_mismatch"] = """
 on_rank_mismatch : str
     If an explicit MEG value is passed, what to do when it does not match
@@ -3835,9 +3879,21 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict["regularize_maxwell_reg"] = """
 regularize : str | None
-    Basis regularization type, must be ``"in"`` or None.
-    ``"in"`` is the same algorithm as the ``-regularize in`` option in
-    MaxFilter™.
+    Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+    Both ``"in"`` options use the same information-theoretic component ordering
+    as the ``-regularize in`` option in MaxFilter™, and differ only in where
+    the total-information curve is cut:
+
+    ``"in"`` (default)
+      Keeps the components giving at least 98% of the peak total information. The curve
+      can be quite flat, so this errs on the side of including rather than excluding
+      components. This is the criterion MaxFilter™ 3.0 uses.
+    ``"in_argmax"``
+      Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+      Use this to match MaxFilter™ 2.2 output more closely; it generally excludes more
+      components than ``"in"``.
+
+      .. versionadded:: 1.13
 """
 
 
@@ -4150,6 +4206,13 @@ Some common referencing schemes and the corresponding value for the
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
     automatically excluded if they are properly set in ``info['bads']``.
 
+.. note::
+    When performing average referencing in sensor-space analyses, the original reference
+    electrode should be present as a zero-filled channel. If it is not, this must first
+    be added using :func:`~mne.add_reference_channels`, before calling
+    :func:`~mne.set_eeg_reference`. This is necessary to avoid biasing the reference
+    :footcite:`KimEtAl2023`.
+
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
     will act as the new reference, for example ``ref_channels=['Cz']``.
@@ -4242,6 +4305,17 @@ show_traces : bool | str | float
     equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
+"""
+
+docdict["show_zero_line"] = """
+show_zero_line : bool
+    Whether to show the zero line for each channel trace when the plot is
+    initialized. The line always marks the true zero of the channel, even
+    if the currently-visible window's mean has been subtracted for display
+    (see ``remove_dc``). Can be toggled after initialization by pressing
+    :kbd:`0` while the plot window is focused. Default is ``False``.
+
+    .. versionadded:: 1.13
 """
 
 docdict["size_topomap"] = """
@@ -4379,6 +4453,12 @@ volume_options : float | dict | None
         will use ``0.25 * surface_alpha``.
     - ``'silhouette_linewidth'`` : float
         The line width to use for the silhouette. Default is 2.
+    - ``'interpolation'`` : str
+        The interpolation method to use for resampling the volume source space
+        to the specified resolution (and for sampling in the volume rendering).
+        Can be "linear" (default) or "nearest".
+
+        .. versionadded:: 1.13
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
