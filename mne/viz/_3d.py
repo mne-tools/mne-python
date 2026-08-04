@@ -4365,7 +4365,7 @@ def plot_stat_cluster(cluster, src, brain, initial_time=None, color="magenta", w
         The source space that was used for the inverse computation.
     brain : Brain
         The brain figure on which to plot the cluster. This should be a figure
-        containing a `SourceEstimate` with the same time indices as are used in the
+        containing a SourceEstimate with the same time indices as are used in the
         statistical cluster.
     initial_time : float | None
         The time (in seconds) at which to plot the spatial extent of the cluster.
