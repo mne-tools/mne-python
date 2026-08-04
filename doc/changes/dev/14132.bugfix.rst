@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.gui.coregistration` where "Save Scaled Anatomy" failed with an ``Error scaling ...`` message and no scaled subject was created, by `Eric Larson`_.
