@@ -3868,6 +3868,7 @@ class Brain:
             self.geo[h] = geo
             self.layered_meshes[h].update_geometry(geo.coords, geo.nn)
             self._reposition_vertex_glyphs(h, geo.coords)
+            self._reposition_vector_glyphs(h, geo.coords)
         self._surf = surf
         if self.silhouette:
             for actor in self._silhouette_actors:
@@ -4282,6 +4283,25 @@ class Brain:
                 scalar_bar=None,
                 rng=self._cmap_range,
             )
+
+    def _reposition_vector_glyphs(self, hemi, coords):
+        """Move vector-glyph arrow bases to match new surface geometry.
+
+        Like the picked-vertex spheres (see ``_reposition_vertex_glyphs``),
+        the arrow glyphs drawn for vector-valued data (``_update_glyphs``)
+        are built from a static set of vertex coordinates, so switching
+        surfaces leaves them behind unless repositioned here.
+        """
+        for data in self._all_data.values():
+            hemi_data = data.get(hemi)
+            if hemi_data is None:
+                continue
+            glyph_dataset = hemi_data.get("glyph_dataset")
+            if glyph_dataset is None:
+                continue
+            vertices = hemi_data["vertices"]
+            vertices = slice(None) if vertices is None else vertices
+            glyph_dataset.points = np.array(coords)[vertices]
 
     @property
     def _cmap_range(self):
