@@ -68,9 +68,9 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
     mult : float
         Multiplier for particular BEM surface (Iso Skull Approach discussed in
         Mosher et al., 1999 and Hämäläinen and Sarvas, 1989 Section III?)
-    rmag : ndarray, shape (n_integration_pts, 3)
+    rmags : ndarray, shape (n_integration_pts, 3)
         3D positions of MEG coil integration points (from coil['rmag'])
-    cosmag : ndarray, shape (n_integration_pts, 3)
+    cosmags : ndarray, shape (n_integration_pts, 3)
         Direction of the MEG coil integration points (from coil['cosmag'])
     ws : ndarray, shape (n_integration_pts,)
         Weights for MEG coil integration points
@@ -116,9 +116,9 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
         Triangle unit normal vectors
     ta : ndarray, shape (n_BEM_vertices,)
         Triangle areas
-    rmag : ndarray, shape (n_sensor_pts, 3)
+    rmags : ndarray, shape (n_sensor_pts, 3)
         3D positions of MEG coil integration points (from coil['rmag'])
-    cosmag : ndarray, shape (n_sensor_pts, 3)
+    cosmags : ndarray, shape (n_sensor_pts, 3)
         Direction of the MEG coil integration points (from coil['cosmag'])
     ws : ndarray, shape (n_sensor_pts,)
         Weights for MEG coil integration points

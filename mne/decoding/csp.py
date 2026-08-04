@@ -613,7 +613,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
         A set of covariance matrices to diagonalize.
     eps : float, default 1e-6
         The tolerance for stopping criterion.
-    max_iter : int, default 1000
+    max_iter : int, default 15
         The maximum number of iteration to reach convergence.
 
     Returns

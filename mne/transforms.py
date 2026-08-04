@@ -773,7 +773,7 @@ def _cart_to_sph(cart):
 
     Parameters
     ----------
-    cart_pts : ndarray, shape (n_points, 3)
+    cart : ndarray, shape (n_points, 3)
         Array containing points in Cartesian coordinates (x, y, z)
 
     Returns
