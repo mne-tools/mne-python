@@ -281,5 +281,7 @@ difference_plot = difference.plot(
 )
 
 # Plot one cluster at the time of maximal spatial extent of that cluster. The cluster
-# will update when scrolling through time.
-plot_stat_cluster(good_clusters[2], src, difference_plot, color="magenta", width=1)
+# will update when scrolling through time. In this example, we suppress a warning about
+# the source space not having distances pre-computed.
+with mne.use_log_level("error"):
+    plot_stat_cluster(good_clusters[0], src, difference_plot, color="magenta", width=1)
