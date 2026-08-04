@@ -13,7 +13,7 @@ from scipy import ndimage
 
 from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
+from ..utils import Bunch, _check_option, _clean_names, _is_numeric, fill_doc
 from .ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from .utils import (
     DraggableColorbar,
@@ -21,6 +21,7 @@ from .utils import (
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
+    _is_dark,
     _plot_masked_image,
     _setup_ax_spines,
     _setup_vmin_vmax,
@@ -658,12 +659,11 @@ def _plot_timeseries(
 
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
-    facecol = _to_rgb(ax.get_facecolor())
-    face_brightness = np.dot(facecol, [299, 587, 114])
-    ax._cursorcolor = "white" if face_brightness < 150 else "black"
+    line_color = "white" if _is_dark(ax.get_facecolor()) else "black"
+    ax._cursorcolor = line_color
 
     ax._selectline = None
-    ax._selectcolor = "white" if face_brightness < 150 else "black"
+    ax._selectcolor = line_color
     if orig_fig._current_time is not None:
         _update_selectline(orig_fig._current_time)
 
