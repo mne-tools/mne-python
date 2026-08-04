@@ -855,6 +855,8 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
 def _check_scale_subjects(subject_from, subject_to):
     """Check that scaling will not overwrite the subject being scaled from."""
+    _validate_type(subject_from, str, "subject_from")
+    _validate_type(subject_to, str, "subject_to")
     # Scaling in place would delete subject_from before its files could be read
     if subject_to == subject_from:
         raise ValueError(

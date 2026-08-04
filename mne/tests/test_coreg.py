@@ -152,6 +152,8 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
             func(*args, **kwargs)
     with pytest.raises(ValueError, match="must be different from subject_from"):
         scale_mri("fsaverage", "fsaverage", scale, True, subjects_dir=tmp_path)
+    with pytest.raises(TypeError, match="subject_to must be an instance of str"):
+        scale_mri("fsaverage", tmp_path / "flachkopf", scale, subjects_dir=tmp_path)
     assert _is_mri_subject("fsaverage", tmp_path)
     scale_mri(
         "fsaverage",
