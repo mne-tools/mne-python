@@ -341,18 +341,18 @@ def _check_names_inc(names, urls):
 
 
 def _append_names_inc_anchors(anchors):
-    """Insert anchors into names.inc, sorted like the file-contents-sorter hook."""
+    """Insert anchors into names.inc, sorted the way our pre-commit hook sorts."""
     path = doc_root / "changes" / "names.inc"
     lines = path.read_text("utf-8").splitlines() + list(anchors)
-    lines.sort(key=str.lower)
+    lines.sort(key=_fold)
     path.write_text("\n".join(lines) + "\n", "utf-8")
 
 
 def _append_mailmap_entries(entries):
-    """Insert entries into .mailmap, sorted like the file-contents-sorter hook."""
+    """Insert entries into .mailmap, sorted the way our pre-commit hook sorts."""
     path = repo_root / ".mailmap"
     lines = path.read_text("utf-8").splitlines() + list(entries)
-    lines.sort(key=str.lower)
+    lines.sort(key=_fold)
     path.write_text("\n".join(lines) + "\n", "utf-8")
 
 
