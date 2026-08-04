@@ -1632,6 +1632,22 @@ class Brain:
         self._picked_points[(hemi, vertex_id)] = spheres
         return sphere
 
+    def _reposition_vertex_glyphs(self, hemi, coords):
+        """Move picked-vertex glyph spheres to match new surface geometry.
+
+        The spheres are standalone actors placed at a vertex's 3D position
+        when picked (see ``_add_vertex_glyph``), so switching surfaces (which
+        moves the underlying mesh, e.g. via ``set_surf``) leaves them behind
+        unless they are explicitly repositioned here.
+        """
+        for (pt_hemi, vertex_id), spheres in self._picked_points.items():
+            if pt_hemi != hemi:
+                continue
+            center = np.array(coords[vertex_id])
+            for sphere in spheres:
+                mesh = sphere["mesh"]
+                mesh.points = mesh.points + (center - np.array(mesh.center))
+
     def _remove_vertex_glyph(self, *, hemi, vertex_id, render=True):
         _ensure_int(vertex_id)
         assert isinstance(hemi, str), f"got {type(hemi)} for {hemi=}"
@@ -3851,6 +3867,7 @@ class Brain:
             geo.load_curvature()
             self.geo[h] = geo
             self.layered_meshes[h].update_geometry(geo.coords, geo.nn)
+            self._reposition_vertex_glyphs(h, geo.coords)
         self._surf = surf
         if self.silhouette:
             for actor in self._silhouette_actors:
