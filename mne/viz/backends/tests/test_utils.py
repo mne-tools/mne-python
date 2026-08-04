@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from colorsys import rgb_to_hls
-
 import numpy as np
 import pytest
 
@@ -15,6 +13,7 @@ from mne.viz.backends._utils import (
     _pixmap_to_ndarray,
     _qt_is_dark,
 )
+from mne.viz.utils import _is_dark
 
 
 def test_get_colormap_from_array():
@@ -52,7 +51,7 @@ def _assert_correct_darkness(widget, want_dark):
     __tracebackhide__ = True  # noqa
     # The override propagates to children, so both palette and pixels should match.
     bgcolor = widget.palette().color(widget.backgroundRole()).getRgbF()[:3]
-    dark = rgb_to_hls(*bgcolor)[1] < 0.5
+    dark = _is_dark(bgcolor)
     assert dark == want_dark, f"{widget} palette dark={dark} want_dark={want_dark}"
     colors = _pixmap_to_ndarray(widget.grab())[:, :, :3]
     dark = colors.mean() < 0.5

@@ -38,7 +38,6 @@ matplotlib.figure.Figure
 import datetime
 import platform
 from collections import OrderedDict, defaultdict
-from colorsys import rgb_to_hsv
 from contextlib import contextmanager
 from functools import partial
 
@@ -58,7 +57,7 @@ from .._fiff.pick import (
 )
 from ..defaults import DEFAULTS
 from ..fixes import _close_event
-from ..utils import Bunch, _click_ch_name, _to_rgb, logger
+from ..utils import Bunch, _click_ch_name, logger
 from ._figure import BrowserBase
 from .utils import (
     _BLIT_KWARGS,
@@ -67,6 +66,7 @@ from .utils import (
     _fake_click,
     _fake_keypress,
     _fake_scroll,
+    _is_dark,
     _merge_annotations,
     _set_window_title,
     _validate_if_list_of_axes,
@@ -135,13 +135,6 @@ def _resolve_mpl_theme(theme):
 
         return _qt_detect_theme()
     return theme
-
-
-def _is_dark(color):
-    """Check whether a background color calls for light foreground colors."""
-    # mne-qt-browser decides this via oklab lightness; HSV value agrees with it across
-    # the range of backgrounds we care about
-    return rgb_to_hsv(*_to_rgb(color))[2] < 0.5
 
 
 def _apply_mpl_theme_to_kwargs(kwargs):
