@@ -344,6 +344,7 @@ class _AbstractRenderer(ABC):
         colormap="RdBu",
         normalized_colormap=False,
         reverse_lut=False,
+        opacity=None,
     ):
         """Add tube in the scene.
 
@@ -369,12 +370,12 @@ class _AbstractRenderer(ABC):
             If None, the max of the data will be used.
         colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
-        opacity : float
-            The opacity of the tube(s).
-        backface_culling : bool
-            If True, enable backface culling on the tube(s).
+        normalized_colormap : bool
+            Specify if the values of the colormap are between 0 and 1.
         reverse_lut : bool
             If True, reverse the lookup table.
+        opacity : float | None
+            The opacity of the tube(s). If None, the renderer default is used.
 
         Returns
         -------

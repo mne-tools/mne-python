@@ -28,6 +28,7 @@
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 .. _Antoine Collas: https://www.antoinecollas.fr
 .. _Antoine Gauthier: https://github.com/Okamille
+.. _Anton Karpov: https://github.com/karpovantonme
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
