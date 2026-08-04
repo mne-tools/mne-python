@@ -29,10 +29,10 @@ from mne_doc_utils import sphinx_logger
 from sphinx.errors import ExtensionError
 from sphinx.util.display import status_iterator
 
-# If a package is in MNE-Installers (preferred method), no need to add it here.
-# But still add it to doc/sphinxext/related_software.txt!
+# 1. If a package is in MNE-Installers (preferred method), no need to add it here.
+#    But still add it to doc/sphinxext/related_software.txt!
 
-# If it's available on PyPI, add it to this set:
+# 2. If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
     "cross-domain-saliency-maps",
     "meggie",
@@ -41,7 +41,7 @@ PYPI_PACKAGES = {
     "zuna",
 }
 
-# If it's not available on PyPI, add it to this dict:
+# 3. If it's not available on PyPI, add it to this dict:
 MANUAL_PACKAGES = {
     # TODO: These packages are not pip-installable as of 2025/11/19, so we have to
     # manually populate them -- should open issues on their package repos.

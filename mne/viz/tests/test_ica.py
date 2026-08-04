@@ -23,7 +23,7 @@ from mne import (
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import _record_warnings, catch_logging
+from mne.utils import _record_warnings, catch_logging, check_version
 from mne.viz import ui_events
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
@@ -89,7 +89,7 @@ def test_plot_ica_components():
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8, random_state=0)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match="(projection)|(unstable mixing matrix)"):
         ica.fit(raw, picks=ica_picks)
@@ -99,6 +99,19 @@ def test_plot_ica_components():
             components, image_interp="cubic", colorbar=True, **fast_test
         )
     plt.close("all")
+
+    # TODO VERSION: non-GUI get_window_title() always returned "image" before
+    # matplotlib 3.10.3; simplify once that's the minimum supported version (currently
+    # the "old" job pins matplotlib 3.9.0)
+    if check_version("matplotlib", "3.10.3"):
+        # window title shows the component range when picks are contiguous
+        fig = ica.plot_components(None, **fast_test)
+        assert fig.canvas.manager.get_window_title() == "Independent Components (0-7)"
+        fig = ica.plot_components([3], **fast_test)  # single component
+        assert fig.canvas.manager.get_window_title() == "Independent Components (3)"
+        fig = ica.plot_components([0, 1] * 2, **fast_test)  # not contiguous
+        assert fig.canvas.manager.get_window_title() == "Independent Components"
+        plt.close("all")
 
     # test interactive mode (passing 'inst' arg)
     with catch_logging() as log:
@@ -559,6 +572,7 @@ def test_plot_ica_overlay():
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(
         n_components=2,
+        random_state=0,
     )
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match="longer than"):
@@ -577,7 +591,7 @@ def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -615,7 +629,7 @@ def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]
@@ -671,7 +685,8 @@ def test_plot_components_opm():
     ica = ICA(max_iter=1, random_state=0, n_components=10)
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
-    assert len(fig.axes) == 10
+    # Biaxial OPM overlaps render grouped radial+tangential maps.
+    assert len(fig.axes) == 20
 
 
 @pytest.mark.slowtest
@@ -683,4 +698,4 @@ def test_plot_components_opm_triaxial(triaxial_raw):
     ica = ICA(max_iter=1, random_state=0, n_components=3)
     ica.fit(triaxial_raw, picks="mag", verbose="error")
     fig = ica.plot_components()
-    assert len(fig.axes) == 3
+    assert len(fig.axes) == 6

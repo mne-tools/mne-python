@@ -29,6 +29,9 @@ pip_deps = {
     "pymef",  # not on conda-forge
 }
 deps -= pip_deps
+deps -= {
+    "typing-extensions >= 4.15; python_version < '3.11'"
+}  # for typing.Self TODO VERSION
 
 
 def remove_spaces(version_spec):

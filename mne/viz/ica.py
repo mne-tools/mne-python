@@ -1435,6 +1435,7 @@ def _plot_sources(
         clipping=None,
         scrollbars_visible=show_scrollbars,
         scalebars_visible=False,
+        zero_line_visible=False,
         window_title=title,
         precompute=precompute,
         use_opengl=use_opengl,

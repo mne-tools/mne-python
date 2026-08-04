@@ -174,19 +174,46 @@ support multithreading:
 - `OpenBLAS <http://www.openblas.net/>`_
 - `Intel Math Kernel Library (MKL) <https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html>`_,
   which uses `OpenMP <https://www.openmp.org/>`_
+- `Accelerate <https://developer.apple.com/accelerate/>`_, used by the NumPy and
+  SciPy wheels on PyPI for macOS on Apple silicon
 
 To control how many cores are used for linear-algebra-heavy functions like
-:func:`mne.preprocessing.maxwell_filter`, you can set the ``OMP_NUM_THREADS``
-or ``OPENBLAS_NUM_THREADS`` environment variable to the desired number of cores
-for MKL or OpenBLAS, respectively. This can be done before running Python, or
-inside Python you can achieve the same effect by, e.g.::
+:func:`mne.preprocessing.maxwell_filter`, you can set an environment variable
+to the desired number of cores. **Which variable works depends on the threading
+layer your BLAS was built against, not just on which BLAS it is.**
+:func:`mne.sys_info` reports both, for example
+``OpenBLAS 0.3.33 with 10 threads (openmp threading layer)``.
 
-    >>> import os
-    >>> num_cpu = '4' # Set as a string
-    >>> os.environ['OMP_NUM_THREADS'] = num_cpu
+- OpenBLAS with the ``pthreads`` threading layer, typically shipped by the
+  NumPy and SciPy wheels on PyPI: use ``OPENBLAS_NUM_THREADS``.
+- OpenBLAS with the ``openmp`` threading layer, typically shipped by
+  ``conda-forge`` and by the :ref:`standalone installers <installers>`: use
+  ``OMP_NUM_THREADS``. On these builds ``OPENBLAS_NUM_THREADS`` is silently
+  ignored, because OpenBLAS delegates threading to OpenMP.
+- MKL: use ``MKL_NUM_THREADS``, or ``OMP_NUM_THREADS`` for any OpenMP-based
+  threading layer.
+- Accelerate: there is no effective setting, and none is needed. Accelerate
+  manages its own threads and ignores all of the variables above;
+  ``VECLIB_MAXIMUM_THREADS`` is advisory at best. Its performance is also
+  essentially flat with respect to thread settings, so there is nothing to tune.
 
-This must be done *before* running linear algebra functions; subsequent
-changes in the same Python session will have no effect.
+Using more threads is not always faster. In particular, decomposition-heavy
+operations such as :func:`mne.preprocessing.maxwell_filter` and
+:func:`mne.compute_covariance` with ``method="shrunk"`` can be much slower when
+OpenBLAS or MKL uses all logical CPU cores. If one of these operations is
+unexpectedly slow, compare a few settings, for example 1, 2, 3, 4, and the
+number of physical CPU cores, using a representative part of your analysis. The
+best setting depends on the operation, CPU, and BLAS library.
+
+Set the environment variable before importing MNE-Python, NumPy, or SciPy. For
+example, start the analysis from the shell with:
+
+.. code-block:: console
+
+    $ OMP_NUM_THREADS=4 python analysis.py
+
+Changes made after the linear algebra library has been loaded might have no
+effect in the same Python session.
 
 
 I have a mystery FIF file, how do I read it?

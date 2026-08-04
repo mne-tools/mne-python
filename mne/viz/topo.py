@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 from functools import partial
+from inspect import signature
 
 import numpy as np
 from scipy import ndimage
@@ -13,7 +14,7 @@ from scipy import ndimage
 from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
-from .ui_events import ChannelsSelect, publish, subscribe
+from .ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
@@ -57,7 +58,7 @@ def iter_topography(
     on_pick : callable | None
         The callback function to be invoked on clicking one
         of the axes. Is supposed to instantiate the following
-        API: ``function(axis, channel_index)``.
+        API: ``function(axis, channel_index, orig_fig)``.
     fig : matplotlib.figure.Figure | None
         The figure object to be considered. If None, a new
         figure will be created.
@@ -413,14 +414,18 @@ def _plot_topo_onpick(event, show_func):
             return
         ch_idx = orig_ax._mne_ch_idx
         face_color = orig_ax._mne_ax_face_color
-        fig, ax = plt.subplots(1)
+        subfig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
         ax.set_facecolor(face_color)
 
         # allow custom function to override parameters
-        show_func(ax, ch_idx)
-        plt_show(fig=fig)
+        if "orig_fig" in signature(show_func).parameters:
+            show_func(ax, ch_idx, orig_fig=fig)
+            plt_show(fig=subfig)
+        else:
+            show_func(ax, ch_idx)
+            plt_show(fig=fig)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -568,6 +573,7 @@ def _plot_timeseries(
     hline=None,
     hvline_color="w",
     labels=None,
+    orig_fig=None,
 ):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
@@ -627,7 +633,7 @@ def _plot_timeseries(
             return
         if ax._cursorline is not None:
             ax._cursorline.remove()
-        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor)
+        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor, alpha=0.2)
         ax.figure.canvas.draw()
 
     def _rm_cursor(event):
@@ -637,14 +643,37 @@ def _plot_timeseries(
             ax._cursorline = None
         ax.figure.canvas.draw()
 
+    def _on_click(event):
+        if event.inaxes == ax:
+            publish(ax.figure, TimeChange(time=event.xdata))
+
+    def _on_time_change_sub(event):
+        _update_selectline(event.time)
+
+    def _update_selectline(time):
+        if ax._selectline is not None:
+            ax._selectline.remove()
+        ax._selectline = ax.axvline(time, color=ax._selectcolor, alpha=1)
+        ax.figure.canvas.draw()
+
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
     facecol = _to_rgb(ax.get_facecolor())
     face_brightness = np.dot(facecol, [299, 587, 114])
     ax._cursorcolor = "white" if face_brightness < 150 else "black"
 
+    ax._selectline = None
+    ax._selectcolor = "white" if face_brightness < 150 else "black"
+    if orig_fig._current_time is not None:
+        _update_selectline(orig_fig._current_time)
+
     plt.connect("motion_notify_event", _cursor_vline)
     plt.connect("axes_leave_event", _rm_cursor)
+    plt.connect("button_press_event", _on_click)
+
+    subscribe(ax.figure, "time_change", _on_time_change_sub)
+
+    link(orig_fig, ax.figure, recursive=True)
 
     ymin, ymax = ax.get_ylim()
     # don't pass vline or hline here (this fxn doesn't do hvline_color):
@@ -1137,6 +1166,41 @@ def _plot_evoked_topo(
         unified=True,
         axes=axes,
         select=select,
+    )
+
+    setattr(fig, "_current_time", None)
+
+    def _on_time_change(event, fig, tmin, tmax):
+        """Respond to a time change UI event."""
+        fig._current_time = event.time
+
+        # Draw a vertical line at the current time.
+        axs = fig.axes[0]._mne_axs
+        for subax in axs:
+            time = subax.x_s * event.time + subax.x_t
+            if "time_cursor" not in subax:
+                subax["time_cursor"] = subax.ax.axvline(
+                    time,
+                    subax.pos[1],
+                    subax.pos[1] + subax.pos[3],
+                    color=font_color,
+                    linewidth=0.5,
+                )
+            else:
+                subax.time_cursor.set_xdata([time, time])
+            # Hide the vertical line when the time is out of bounds.
+            subax.time_cursor.set_visible(tmin <= event.time <= tmax)
+        fig.canvas.draw()
+
+    subscribe(
+        fig,
+        "time_change",
+        partial(
+            _on_time_change,
+            fig=fig,
+            tmin=np.min([t[0] for t in times]),
+            tmax=np.max([t[-1] for t in times]),
+        ),
     )
 
     add_background_image(fig, fig_background)

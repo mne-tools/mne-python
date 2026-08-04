@@ -21,7 +21,7 @@ def get_deps_to_check():
         + pyproject_data["project"]["dependencies"]
         + pyproject_data["dependency-groups"]["lockfile_extras"]
     )
-    n_want_deps = 12  # update when we add more core deps or auto-bumped pins!
+    n_want_deps = 13  # update when we add more core deps or auto-bumped pins!
     assert len(check_deps) == n_want_deps, (
         f"Number of dependencies being checked ({len(check_deps)=}) is not as "
         f"expected {n_want_deps=}"

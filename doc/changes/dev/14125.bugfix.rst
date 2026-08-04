@@ -1,0 +1,1 @@
+Fix the ``tube`` method of the abstract 3D renderer, whose signature was missing the ``opacity`` parameter that the PyVista implementation accepts, and whose docstring documented ``backface_culling``, which ``tube`` does not take, while omitting ``normalized_colormap``, which it does, by :newcontrib:`Anton Karpov`.

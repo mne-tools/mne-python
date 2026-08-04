@@ -192,6 +192,7 @@ ecg_evoked = mne.Epochs(
     tmin=-0.5,
     tmax=0.5,
     baseline=(None, None),
+    on_outside="ignore",
 ).average()
 report.img_max_width = None  # do not constrain image width
 report.add_projs(
@@ -244,6 +245,7 @@ del raw_full, events, ecg_evoked
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
     fit_params=dict(tol=0.01),  # assume very early on that ICA has converged
+    random_state=97,
 )
 
 ica.fit(inst=raw)

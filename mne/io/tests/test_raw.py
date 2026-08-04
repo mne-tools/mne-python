@@ -131,7 +131,7 @@ def _test_raw_reader(
         A preloaded Raw object.
     """
     tempdir = _TempDir()
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     montage = None
     if "montage" in kwargs:
         montage = kwargs["montage"]
@@ -1068,7 +1068,8 @@ def test_resamp_noop():
 
 def test_concatenate_raw_dev_head_t():
     """Test concatenating raws with dev-head-t including nans."""
-    data = np.random.randn(3, 10)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((3, 10))
     info = create_info(3, 1000.0, ["mag", "grad", "grad"])
     raw = RawArray(data, info)
     raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))

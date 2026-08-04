@@ -30,7 +30,7 @@ bad_missing = []
 bad_version = []
 for dep in check_deps:
     mod_name, pyproject_ver = get_min_pinned_ver(dep)
-    mod_import_name = mod_name_mapping.get(mod_name, mod_name)
+    mod_import_name = mod_name_mapping.get(mod_name, mod_name).replace("-", "_")
 
     # Be wary of uv treating lowest Python vs. module versions differently.
     # For Python, the latest micro version for the major.minor release specified will be

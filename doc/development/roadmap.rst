@@ -145,15 +145,10 @@ We should deprecate `MNE-Realtime`_ in favor of the newly minted `MNE-LSL`_.
 We should then fully support MNE-LSL using modern coding best practices such as CI
 integration.
 
-Core components of commonly used real-time processing pipelines should be implemented in
-MNE-LSL, including but not limited to realtime IIR filtering, artifact rejection,
-montage and reference setting, and online averaging. Integration with standard
-MNE-Python plotting routines (evoked joint plots, topomaps, etc.) should be
-supported with continuous updating.
-
 For closed-loop applications such as neurofeedback and BCI, `MNE-RT`_ builds on
-MNE-LSL and MNE-Python to provide real-time feature extraction, adaptive protocols,
-artifact correction, and live visualisation in a single researcher-friendly API.
+MNE-LSL and MNE-Python for sensor- and source-space feature extraction, adaptive
+feedback protocols, real-time artifact correction, and live visualisation that
+integrates with standard MNE-Python plotting routines with continuous updating.
 
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^

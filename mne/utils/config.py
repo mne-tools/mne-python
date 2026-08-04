@@ -633,6 +633,13 @@ def _get_root_dir():
     return root_dir
 
 
+_blas_rename = dict(
+    openblas="OpenBLAS",
+    mkl="MKL",
+    accelerate="Accelerate",
+)
+
+
 def _get_numpy_libs():
     bad_lib = "unknown linalg bindings"
     try:
@@ -640,18 +647,37 @@ def _get_numpy_libs():
     except Exception as exc:
         return bad_lib + f" (threadpoolctl module not found: {exc})"
     pools = threadpool_info()
-    rename = dict(
-        openblas="OpenBLAS",
-        mkl="MKL",
-    )
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
+            layer = pool.get("threading_layer")
+            layer = f" via {layer}" if layer else ""
+            name = pool["internal_api"]
+            name = _blas_rename.get(name, name)
             return (
-                f"{rename[pool['internal_api']]} "
+                f"{name} "
                 f"{pool['version']} with "
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
+                f"{layer}"
             )
-    return bad_lib
+    return _get_numpy_build_blas() or bad_lib
+
+
+def _get_numpy_build_blas():
+    """Name the BLAS from the build config, for backends threadpoolctl can't see."""
+    # Accelerate has no threadpoolctl controller, so macOS wheels otherwise report only
+    # "unknown linalg bindings"
+    import numpy as np
+
+    try:
+        blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        name = blas["name"].lower()
+    except Exception:
+        return None
+    version = blas.get("version", "")
+    name = _blas_rename.get(name, name)
+    if version and version != "unknown":  # Accelerate reports a literal "unknown"
+        name = f"{name} {version}"
+    return f"{name}, threads not introspectable"
 
 
 _gpu_cmd = """\
@@ -697,6 +723,16 @@ def _get_total_memory():
         raise UnknownPlatformError("Could not determine total memory")
 
     return total_memory
+
+
+def _get_linux_windowing_system():
+    """Return the windowing system on Linux ("Wayland", "X11", or None)."""
+    session_type = os.getenv("XDG_SESSION_TYPE", "").lower()
+    if session_type == "wayland" or os.getenv("WAYLAND_DISPLAY"):
+        return "Wayland"
+    if session_type == "x11" or os.getenv("DISPLAY"):
+        return "X11"
+    return None
 
 
 def _get_cpu_brand():
@@ -770,6 +806,10 @@ def sys_info(
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
+    if platform.system() == "Linux":
+        windowing_system = _get_linux_windowing_system()
+        if windowing_system is not None:
+            platform_str += f" ({windowing_system})"
 
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")
@@ -809,6 +849,7 @@ def sys_info(
         "",
         "# Numerical (optional)",
         "scikit-learn",
+        "threadpoolctl",
         "numba",
         "nibabel",
         "nilearn",
@@ -863,9 +904,10 @@ def sys_info(
             "pytest-qt",
             "pytest-rerunfailures",
             "pytest-timeout",
+            "pytest-xdist",
+            "refleak",
             "codespell",
             "ipython",
-            "mypy",
             "pillow",
             "pre-commit",
             "ruff",

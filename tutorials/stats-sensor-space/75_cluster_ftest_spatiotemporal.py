@@ -144,6 +144,7 @@ cluster_stats = spatio_temporal_cluster_test(
     n_jobs=None,
     buffer_size=None,
     adjacency=adjacency,
+    seed=0,
 )
 F_obs, clusters, p_values, _ = cluster_stats
 
@@ -317,6 +318,7 @@ cluster_stats = spatio_temporal_cluster_test(
     n_jobs=None,
     buffer_size=None,
     adjacency=tfr_adjacency,
+    seed=0,
 )
 
 # %%

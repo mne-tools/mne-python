@@ -278,6 +278,7 @@ def test_io_set_raw_more(tmp_path):
 
     # test reading file with one channel
     one_chan_fname = tmp_path / "test_one_channel.set"
+    rng = np.random.default_rng(0)
     io.savemat(
         one_chan_fname,
         {
@@ -285,7 +286,7 @@ def test_io_set_raw_more(tmp_path):
                 "trials": eeg.trials,
                 "srate": eeg.srate,
                 "nbchan": 1,
-                "data": np.random.random((1, 3)),
+                "data": rng.random((1, 3)),
                 "epoch": eeg.epoch,
                 "event": eeg.epoch,
                 "chanlocs": {"labels": "E1", "Y": -6.6069, "X": 6.3023, "Z": -2.9423},
@@ -325,7 +326,7 @@ def test_io_set_raw_more(tmp_path):
                 "trials": eeg.trials,
                 "srate": eeg.srate,
                 "nbchan": 3,
-                "data": np.random.random((3, 2)),
+                "data": rng.random((3, 2)),
                 "epoch": eeg.epoch,
                 "event": eeg.epoch,
                 "chanlocs": nopos_chanlocs,

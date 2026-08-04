@@ -3232,7 +3232,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         if isinstance(block, np.ndarray):
             block[block == 0] = -np.inf
         else:
-            block.data[block.data == 0] == -1
+            block.data[block.data == 0] = -1
         blocks[bi] = sparse.csr_array(block)  # avoid SciPy dep warning about mat->arr
     edges = sparse.block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
