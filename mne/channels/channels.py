@@ -646,9 +646,10 @@ class UpdateChannelsMixin:
 
         if isinstance(self, BaseRaw):
             self.annotations._prune_ch_names(self.info, on_missing="ignore")
-            self._orig_units = {
-                k: v for k, v in self._orig_units.items() if k in self.ch_names
-            }
+            if self._orig_units:
+                self._orig_units = {
+                    k: v for k, v in self._orig_units.items() if k in self.ch_names
+                }
 
         self._pick_projs()
         return self
