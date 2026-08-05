@@ -34,28 +34,28 @@ class CSP(_GEDTransformer):
 
     Parameters
     ----------
-    n_components : int (default 4)
+    n_components : int
         The number of components to decompose M/EEG signals. This number should
         be set by cross-validation.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow regularization
         for covariance estimation. If float (between 0 and 1), shrinkage is
         used. For str values, ``reg`` will be passed as ``method`` to
         :func:`mne.compute_covariance`.
-    log : None | bool (default None)
+    log : None | bool
         If ``transform_into`` equals ``'average_power'`` and ``log`` is None or
         True, then apply a log transform to standardize features, else features
         are z-scored. If ``transform_into`` is ``'csp_space'``, ``log`` must be
         None.
-    cov_est : 'concat' | 'epoch' (default 'concat')
+    cov_est : 'concat' | 'epoch'
         If ``'concat'``, covariance matrices are estimated on concatenated
         epochs for each class. If ``'epoch'``, covariance matrices are
         estimated on each epoch separately and then averaged over each class.
-    transform_into : 'average_power' | 'csp_space' (default 'average_power')
+    transform_into : 'average_power' | 'csp_space'
         If 'average_power' then ``self.transform`` will return the average
         power of each spatial filter. If ``'csp_space'``, ``self.transform``
         will return the data in CSP space.
-    norm_trace : bool (default False)
+    norm_trace : bool
         Normalize class covariance by its trace. Trace normalization is a step
         of the original CSP algorithm :footcite:`KolesEtAl1990` to eliminate
         magnitude variations in the EEG between individuals. It is not applied
@@ -89,7 +89,7 @@ class CSP(_GEDTransformer):
     %(rank_none)s
 
         .. versionadded:: 0.17
-    component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
+    component_order : 'mutual_info' | 'alternate'
         If ``'mutual_info'`` order components by decreasing mutual information
         (in the two-class case this uses a simplification which orders
         components by decreasing absolute deviation of the eigenvalues from 0.5
@@ -611,9 +611,9 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     ----------
     X : ndarray, shape (n_epochs, n_channels, n_channels)
         A set of covariance matrices to diagonalize.
-    eps : float, default 1e-6
+    eps : float
         The tolerance for stopping criterion.
-    max_iter : int, default 1000
+    max_iter : int
         The maximum number of iteration to reach convergence.
 
     Returns
@@ -705,13 +705,13 @@ class SPoC(CSP):
     ----------
     n_components : int
         The number of components to decompose M/EEG signals.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).
         For str options, ``reg`` will be passed to ``method`` to
         :func:`mne.compute_covariance`.
-    log : None | bool (default None)
+    log : None | bool
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.

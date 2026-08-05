@@ -236,7 +236,7 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
+    *args, **kwargs : arguments
         Additional arguments and keyword arguments to be passed to the
         `open` function.
 
