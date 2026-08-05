@@ -113,9 +113,6 @@ jobs:
           # frozen: true
           run-install: false
         if: matrix.kind == 'pixi'
-      - name: Install development version of MNE into pixi environment
-        run: pixi add --editable --pypi 'mne @ file:///Users/runner/work/mne-python/mne-python' --manifest-path /Users/runner/work/mne-python/mne-python/tools/ci/macos-intel
-        if: matrix.kind == 'pixi'
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
           manifest-path: tools/ci/macos-intel/pixi.toml
