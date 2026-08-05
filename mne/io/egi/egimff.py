@@ -617,9 +617,7 @@ class RawMff(BaseRaw):
         # Keep idx as-is (slice or ndarray) for _mult_cal_one — the slice path
         # avoids np.take and is significantly faster on large buffers.
         bounds = egi_info["kind_bounds"]
-        idx_arr = (
-            np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
-        )
+        idx_arr = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
         eeg_out = np.where(idx_arr < bounds[1])[0]
         eeg_one = idx_arr[eeg_out, np.newaxis]
         eeg_in = idx_arr[eeg_out]
