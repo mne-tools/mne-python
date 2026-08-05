@@ -1,7 +1,6 @@
 name: Scheduled updates
 
 on:  # yamllint disable-line rule:truthy
-  pull_request:
   schedule:
     - cron: '0 0 * * 1'  # At 00:00 every Monday
   workflow_dispatch:
@@ -78,24 +77,24 @@ jobs:
         id: status
       - uses: j178/prek-action@v2.0.6
         if: steps.status.outputs.dirty == 'true'
-        # - name: Create PR
-        #   env:
-        #     BRANCH: ${{ matrix.id }}
-        #     TITLE: ${{ matrix.title }}
-        #     BODY: ${{ matrix.body }}
-        #     RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        #   run: |
-        #     set -xeo pipefail
-        #     git diff
-        #     git config --global user.email "50266005+mne-bot@users.noreply.github.com"
-        #     git config --global user.name "mne[bot]"
-        #     git checkout -b "$BRANCH"
-        #     git add -A  # doc/changes/dev/dependency.rst is a new file, the others are changed
-        #     git commit -m "mne[bot]: ${TITLE#MAINT: }"
-        #     git push origin "$BRANCH"
-        #     printf '%s\n\n%s\n' \
-        #       "Created by the \`$BRANCH\` job of this [GitHub Action run]($RUN_URL)." \
-        #       "$BODY" > "$RUNNER_TEMP/pr_body.md"
-        #     PR_NUM=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr_body.md")
-        #     echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
-        #   if: steps.status.outputs.dirty == 'true' && (success() || failure())
+      - name: Create PR
+        env:
+          BRANCH: ${{ matrix.id }}
+          TITLE: ${{ matrix.title }}
+          BODY: ${{ matrix.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -xeo pipefail
+          git diff
+          git config --global user.email "50266005+mne-bot@users.noreply.github.com"
+          git config --global user.name "mne[bot]"
+          git checkout -b "$BRANCH"
+          git add -A  # doc/changes/dev/dependency.rst is a new file, the others are changed
+          git commit -m "mne[bot]: ${TITLE#MAINT: }"
+          git push origin "$BRANCH"
+          printf '%s\n\n%s\n' \
+            "Created by the \`$BRANCH\` job of this [GitHub Action run]($RUN_URL)." \
+            "$BODY" > "$RUNNER_TEMP/pr_body.md"
+          PR_NUM=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr_body.md")
+          echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+        if: steps.status.outputs.dirty == 'true' && (success() || failure())
