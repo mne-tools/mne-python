@@ -90,3 +90,4 @@ xlrd = "*"
 
 [pypi-dependencies]
 pymef = "*"
+mne = { path="/Users/runner/work/mne-python/mne-python", editable=true }
