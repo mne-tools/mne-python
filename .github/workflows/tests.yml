@@ -128,6 +128,10 @@ jobs:
           python-version: ${{ matrix.python }}
         if: matrix.kind == 'old'
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libopenblas-dev
+        if: matrix.kind == 'old' && startswith(matrix.os, 'ubuntu')
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
       - run: python ./tools/github_actions_check_old_env.py
