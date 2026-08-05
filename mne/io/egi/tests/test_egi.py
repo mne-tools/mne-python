@@ -5,7 +5,7 @@
 
 import os
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -543,7 +543,7 @@ def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
     raw = read_raw_egi(fname, verbose="warning")
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
-    measdate = dt.astimezone(timezone.utc)
+    measdate = dt.astimezone(UTC)
     hour_local = int(dt.strftime("%H"))
     hour_utc = int(raw.info["meas_date"].strftime("%H"))
     local_utc_diff = hour_local - hour_utc

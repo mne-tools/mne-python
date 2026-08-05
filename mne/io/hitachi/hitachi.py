@@ -306,7 +306,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         )
     if meas_date is None:
         meas_date = dt.datetime(2000, 1, 1, 0, 0, 0)
-    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+    meas_date = meas_date.replace(tzinfo=dt.UTC)
     if subject_info:
         info_extra["subject_info"] = subject_info
 

@@ -11,7 +11,7 @@ import os
 import shutil
 import sys
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO, StringIO
 from math import ceil, sqrt
 from pathlib import Path
@@ -981,7 +981,7 @@ def _julian_to_date(jd):
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
     # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
-    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=UTC)
 
     dt = timedelta(days=(jd - jd_t0))
     return (datetime_t0 + dt).date()
@@ -1013,11 +1013,7 @@ def _date_to_julian(jd_date):
 
 
 def _check_dt(dt):
-    if (
-        not isinstance(dt, datetime)
-        or dt.tzinfo is None
-        or dt.tzinfo is not timezone.utc
-    ):
+    if not isinstance(dt, datetime) or dt.tzinfo is None or dt.tzinfo is not UTC:
         raise ValueError(f"Date must be datetime object in UTC: {repr(dt)}")
 
 
@@ -1033,7 +1029,7 @@ def _stamp_to_dt(utc_stamp):
     stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return datetime.fromtimestamp(0, tz=timezone.utc) + timedelta(
+    return datetime.fromtimestamp(0, tz=UTC) + timedelta(
         seconds=stamp[0], microseconds=stamp[1]
     )
 

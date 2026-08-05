@@ -279,7 +279,7 @@ def test_nirx_15_2_short():
     assert raw._data.shape == (26, 145)
     assert raw.info["sfreq"] == 12.5
     assert raw.info["meas_date"] == dt.datetime(
-        2019, 8, 23, 7, 37, 4, 540000, tzinfo=dt.timezone.utc
+        2019, 8, 23, 7, 37, 4, 540000, tzinfo=dt.UTC
     )
 
     # Test channel naming
@@ -486,7 +486,7 @@ def test_locale_encoding(tmp_path):
         for line in hdr:
             fid.write(line)
     raw = read_raw_nirx(fname, verbose="debug")
-    want_dt = dt.datetime(2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.timezone.utc)
+    want_dt = dt.datetime(2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.UTC)
     assert raw.info["meas_date"] == want_dt
 
 
@@ -499,7 +499,7 @@ def test_nirx_15_2():
     assert raw._data.shape == (64, 67)
     assert raw.info["sfreq"] == 3.90625
     assert raw.info["meas_date"] == dt.datetime(
-        2019, 10, 2, 9, 8, 47, 511000, tzinfo=dt.timezone.utc
+        2019, 10, 2, 9, 8, 47, 511000, tzinfo=dt.UTC
     )
 
     # Test channel naming
@@ -596,7 +596,7 @@ def test_nirx_15_0():
     assert raw._data.shape == (20, 92)
     assert raw.info["sfreq"] == 6.25
     assert raw.info["meas_date"] == dt.datetime(
-        2019, 10, 27, 13, 53, 34, 209000, tzinfo=dt.timezone.utc
+        2019, 10, 27, 13, 53, 34, 209000, tzinfo=dt.UTC
     )
 
     # Test channel naming

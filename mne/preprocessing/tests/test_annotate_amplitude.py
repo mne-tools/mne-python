@@ -16,7 +16,7 @@ from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import annotate_amplitude
 
-date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305, tzinfo=datetime.timezone.utc)
+date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305, tzinfo=datetime.UTC)
 data_path = Path(testing.data_path(download=False))
 skip_fname = data_path / "misc" / "intervalrecording_raw.fif"
 
