@@ -3,7 +3,7 @@ name: mne
 channels:
   - conda-forge
 dependencies:
-  - python >=3.10
+  - python >=3.11
   - antio >=0.5.0
   - conda
   - curryreader >=0.1.2

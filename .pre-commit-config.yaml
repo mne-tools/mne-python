@@ -43,7 +43,6 @@ repos:
           - pymef  # for mne/io/mef
           - quantities  # for mne/io/neuralynx
           - scipy
-          - typing_extensions  # TODO VERSION remove once we require Python 3.11
         args: [--no-python-downloads, --no-project]
 
   # Codespell

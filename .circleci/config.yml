@@ -116,7 +116,7 @@ jobs:
             - uv-cache-0
       - restore_cache:
           keys:
-            - user-install-bin-cache-310
+            - user-install-bin-cache-311
 
       # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
       - run:
@@ -129,9 +129,9 @@ jobs:
           paths:
             - ~/.cache/uv
       - save_cache:
-          key: user-install-bin-cache-310
+          key: user-install-bin-cache-311
           paths:
-            - ~/.local/lib/python3.10/site-packages
+            - ~/.local/lib/python3.11/site-packages
             - ~/.local/bin
 
       - run:
