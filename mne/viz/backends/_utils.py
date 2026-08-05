@@ -91,6 +91,24 @@ def _qt_init_icons():
     return str(_ICONS_PATH)
 
 
+@functools.lru_cache(1)
+def _splash_class():
+    """Get a QSplashScreen subclass that does not stall for a second on show.
+
+    Qt 6's QSplashScreen hangs for 1s no matter what as of 6.11, so work around it.
+    """
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QSplashScreen, QWidget
+
+    class _Splash(QSplashScreen):
+        def event(self, e):
+            if e.type() == QEvent.Show:
+                return QWidget.event(self, e)
+            return super().event(e)
+
+    return _Splash
+
+
 @contextmanager
 def _qt_disable_paint(widget):
     paintEvent = widget.paintEvent
@@ -129,7 +147,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """
     from qtpy.QtCore import Qt
     from qtpy.QtGui import QGuiApplication, QIcon, QPixmap
-    from qtpy.QtWidgets import QApplication, QSplashScreen
+    from qtpy.QtWidgets import QApplication
 
     app_name = "MNE-Python"
     organization_name = "MNE"
@@ -198,7 +216,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         args = (pixmap,)
         if _should_raise_window():
             args += (Qt.WindowStaysOnTopHint,)
-        qsplash = QSplashScreen(*args)
+        qsplash = _splash_class()(*args)
         qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
