@@ -55,8 +55,11 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - name: Setup Python
-        uses: actions/setup-python@v6.2.0
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          python-version: "3.12"
       - name: Install dependencies
         run: pip install --upgrade packaging requests tomlkit
       - name: Update tracked dependencies

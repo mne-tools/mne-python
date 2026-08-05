@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "c9f717cf5454814f877c3f488539e63474b398e8",
+  "authors": [
+    {
+      "n": "Samarth D N",
+      "e": "66175879+TheGreatApollyon@users.noreply.github.com",
+      "l": "TheGreatApollyon"
+    }
+  ],
+  "changes": {
+    "mne/io/curry/curry.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
