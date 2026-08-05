@@ -20,7 +20,6 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from packaging.version import Version
 from pytest import StashKey, register_assert_rewrite
 from refleak.testing import Snapshot, assert_no_instances, gc_collect_once
 
@@ -236,19 +235,9 @@ def pytest_configure(config: pytest.Config):
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
     try:
-        import pandas
+        pass
     except Exception:
         pass
-    else:
-        if Version(pandas.__version__) >= Version("3.1.0.dev0"):
-            # TODO VERSION once statsmodels dev has updated for pip-pre
-            # (failing as of 2026/02/04)
-            config.addinivalue_line(
-                "filterwarnings",
-                "ignore:"
-                ".+ is deprecated and will be removed in a future version.*:"
-                "pandas.errors.Pandas4Warning",
-            )
 
     # Deal with pytest-qt -- everything should already be skipped for example by not
     # having pyvistaqt installed, so we just need to take care of defining dummy
