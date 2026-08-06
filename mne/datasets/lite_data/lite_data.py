@@ -4,13 +4,19 @@
 
 """Curated data subset used by the JupyterLite browser documentation.
 
-The full MNE datasets (``sample``, ``kiloword``, ``erp_core``, ``mtrf``,
-``eegbci``) ship as separate multi-GB archives, so the docs build would download
-several gigabytes just to serve a handful of files to the browser notebooks.
-``lite_data`` is a small curated archive holding only those files -- same data,
-same checksums -- so the build fetches just what the JupyterLite notebooks need.
-It extracts to ``MNE-lite-data/`` with the files under their original dataset
-folders (``MNE-sample-data/``, ``MNE-kiloword-data/``, ...).
+``lite_data`` holds the data files needed to run the tutorials and examples in
+the browser, taken from ``sample``, ``kiloword``, ``erp_core``, ``mtrf`` and
+``eegbci``. The files are unchanged and keep the same checksums as the full
+datasets. It extracts to ``MNE-lite-data/`` with each file under its original
+dataset folder (``MNE-sample-data/``, ``MNE-kiloword-data/``, ...), so paths
+match.
+
+Those datasets ship as separate multi-GB archives, so without this the
+documentation build would download several gigabytes to serve a handful of
+files.
+
+The ``somato`` dataset is not included, so the somatosensory tutorials and
+examples do not run in the browser.
 """
 
 from ...utils import verbose
