@@ -52,7 +52,7 @@ stages:
               set -xeo pipefail
               git clone https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
             displayName: Clone mne-tools
-          - bash: bash $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
+          - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
           - task: Cache@2
             inputs:
@@ -71,7 +71,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --only-binary=":all:" -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef openmeeg
             displayName: Install dependencies with pip
-          - bash: bash $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
+          - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
           - bash: |
               set -xeo pipefail
@@ -110,7 +110,7 @@ stages:
               set -xeo pipefail
               git clone https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
             displayName: Clone mne-tools
-          - bash: bash $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
+          - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
           - task: UsePythonVersion@0
             inputs:
@@ -138,7 +138,7 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - bash: bash $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
+          - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
           - bash: |
               set -xeo pipefail
