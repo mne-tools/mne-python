@@ -7,6 +7,7 @@
 import os
 import os.path as op
 import warnings
+import weakref
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -82,6 +83,7 @@ from ..utils import (
 )
 from ._dipole import _check_concat_dipoles, _plot_dipole_3d, _plot_dipole_mri_outlines
 from .evoked_field import EvokedField
+from .ui_events import TimeChange, publish, subscribe
 from .utils import (
     _check_time_unit,
     _get_cmap,
@@ -4347,3 +4349,124 @@ def _get_3d_option(key):
         else:
             opt = opt.lower() == "true"
     return opt
+
+
+def plot_stat_cluster(cluster, src, brain, initial_time=None, color="magenta", width=1):
+    """Plot the spatial extent of a cluster on top of a brain.
+
+    Parameters
+    ----------
+    cluster : tuple
+        The cluster to plot. A cluster is a tuple of two elements:
+            an array of time indices
+            and an array of vertex indices.
+    src : SourceSpaces
+        The source space that was used for the inverse computation.
+    brain : Brain
+        The brain figure on which to plot the cluster. This should be a figure
+        containing a SourceEstimate with the same time indices as are used in the
+        statistical cluster.
+    initial_time : float | None
+        The time (in seconds) at which to plot the spatial extent of the cluster.
+        If ``None``, the time of maximal spatial extent is chosen.
+    color : str
+        A maplotlib-style color specification indicating the color to use when plotting
+        the spatial extent of the cluster.
+    width : int
+        The width of the lines used to draw the outlines.
+
+    Returns
+    -------
+    brain : Brain
+        The brain figure, now with the cluster plotted on top of it.
+
+    Notes
+    -----
+    The figure will publish and subscribe to the following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange`
+    """
+    # Here due to circular import
+    from ..label import Label
+
+    # args check
+    if not isinstance(cluster, tuple):
+        raise TypeError(f"Tuple expected, got {type(cluster)} instead.")
+    elif len(cluster) != 2:
+        raise ValueError(
+            "A cluster is a tuple of two elements, a list of time indices "
+            "and list of vertex indices."
+        )
+    elif len(cluster[0]) != len(cluster[1]):
+        raise ValueError(
+            "The number of time indices ({len(cluster[0]}) does not match "
+            "the number of vertex indices ({len(cluster[1]})."
+        )
+
+    cluster_time_idx, cluster_vertex_idx = cluster
+    cluster_time_idx = np.asarray(cluster_time_idx)
+    cluster_vertex_idx = np.asarray(cluster_vertex_idx)
+
+    # A cluster is defined both in space and time. If we want to plot the boundaries of
+    # the cluster in space, we must choose a specific time for which to show the
+    # boundaries (as they change over time).
+    if initial_time is None:
+        time_idx, n_vertices = np.unique(cluster_time_idx, return_counts=True)
+        time_idx = time_idx[np.argmax(n_vertices)]
+    else:
+        time_idx = np.searchsorted(brain._times[:-1], initial_time)
+
+    # The source space object is actually a list of two source spaces, left and right
+    # hemisphere.
+    lh_src, rh_src = src
+    lh_verts, rh_verts = lh_src["vertno"], rh_src["vertno"]
+    n_lh_verts = len(lh_verts)
+
+    # Find a unique name for the cluster.
+    cluster_index = 0
+    for label in brain.labels["lh"] + brain.labels["rh"]:
+        if label.name.startswith("cluster-"):
+            try:
+                cluster_index = max(cluster_index, int(label.name.split("-", 1)[1]))
+            except ValueError:
+                pass
+    cluster_name = f"cluster-{cluster_index + 1}"
+
+    # This event-handling function draws the cluster at the given time.
+    brain_ref = weakref.ref(brain)  # to avoid circular references
+
+    def _on_time_change(event):
+        brain = brain_ref()
+        if brain is None:
+            return
+        time_idx = int(round(brain._to_time_index(event.time)))
+
+        # Remove any existing Label objects of this cluster.
+        for hemi in brain._hemis:
+            mesh = brain.layered_meshes[hemi]
+            for i, label in enumerate(brain.labels[hemi]):
+                if label.name == cluster_name:
+                    del brain.labels[hemi][i]
+                    mesh.remove_overlay(label.name)
+
+        # Create a new Label object containing the vertices of the cluster at the
+        # current time.
+        draw_vertex_idx = cluster_vertex_idx[cluster_time_idx == time_idx]
+        draw_vertex_idx = np.unique(draw_vertex_idx)
+        split_point = np.searchsorted(draw_vertex_idx, n_lh_verts)
+        draw_lh_verts = lh_verts[draw_vertex_idx[:split_point]]
+        draw_rh_verts = rh_verts[draw_vertex_idx[split_point:] - n_lh_verts]
+        lh_label = Label(draw_lh_verts, hemi="lh", name=cluster_name)
+        rh_label = Label(draw_rh_verts, hemi="rh", name=cluster_name)
+        if len(lh_label) > 0:
+            lh_label = lh_label.fill(src)
+            brain.add_label(lh_label, borders=width, color=color)
+        if len(rh_label) > 0:
+            rh_label = rh_label.fill(src)
+            brain.add_label(rh_label, borders=width, color=color)
+        brain._renderer._update()
+
+    # Scroll to the selected time, causing the _on_time_change event handler above to
+    # draw the cluster.
+    subscribe(brain, "time_change", _on_time_change)
+    publish(brain, TimeChange(brain._times[time_idx]))
