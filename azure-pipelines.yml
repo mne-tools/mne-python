@@ -50,7 +50,7 @@ stages:
         steps:
           - bash: |
               set -xeo pipefail
-              git clone https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
+              git clone --depth 1 https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
             displayName: Clone mne-tools
           - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
