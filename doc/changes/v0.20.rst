@@ -360,7 +360,7 @@ People who contributed to this release  (in alphabetical order):
 * Alexandre Gramfort
 * Ariel Rokem
 * Britta Westner
-* Carlos de la Torre
+* Carlos de la Torre-Ortiz
 * Christian Brodbeck
 * Christian O'Reilly
 * Chun-Hui Li

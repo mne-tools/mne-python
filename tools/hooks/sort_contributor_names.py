@@ -13,7 +13,7 @@ def sort_key(line):
     """Sort ignoring case and accents, so "Sébastien" lands next to "Sebastian".
 
     A plain sort puts every accented character after "z", which exiles names
-    like "Théodore Papadopoulo" and "Zvi Baratz" to the end of the file.
+    like "Théodore" after "Thucydides".
     """
     decomposed = unicodedata.normalize("NFKD", line)
     return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()

@@ -24,8 +24,8 @@
 .. _Andreas Højlund: https://github.com/ahoejlund
 .. _Andres Rodriguez: https://github.com/infinitejest/
 .. _Andrew Dykstra: https://scholar.google.com/citations?hl=en&user=uCxafoMAAAAJ
+.. _Andrew Gilbert: https://github.com/adgilbert
 .. _Andrew Quinn: https://github.com/ajquinn
-.. _Andy Gilbert: https://github.com/adgilbert
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 .. _Aniket Singh Yadav: https://github.com/Aniketsy
 .. _Anna Padee: https://github.com/apadee/
@@ -63,7 +63,7 @@
 .. _Burkhard Maess: https://github.com/bmaess
 .. _Camilo Lamus: https://github.com/clamus
 .. _Carina Forster: https://github.com/CarinaFo
-.. _Carlos de la Torre: https://github.com/c-torre
+.. _Carlos de la Torre-Ortiz: https://github.com/c-torre
 .. _Catalina María Galván: https://github.com/catalinamagalvan
 .. _Cathy Nangini: https://github.com/KatiRG
 .. _Cedric Conday: https://github.com/CedricConday
@@ -244,7 +244,7 @@
 .. _Larry Eisenman:  https://github.com/lneisenman
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 .. _Laura Gwilliams: https://lauragwilliams.github.io
-.. _Laurent Lementec: https://github.com/LaurentLM
+.. _Laurent Le Mentec: https://github.com/LaurentLM
 .. _Leonardo Barbosa: https://github.com/noreun
 .. _Leonardo Rochael Almeida: https://github.com/leorochael
 .. _Liberty Hamilton: https://github.com/libertyh
@@ -269,7 +269,7 @@
 .. _Marcin Koculak: https://github.com/mkoculak
 .. _Marian Dovgialo: https://github.com/mdovgialo
 .. _Marijn van Vliet: https://github.com/wmvanvliet
-.. _Mark Henney: https://github.com/henneysq
+.. _Mark Alexander Henney: https://github.com/henneysq
 .. _Mark Wronkiewicz: https://github.com/wronk
 .. _Marmaduke Woodman: https://github.com/maedoc
 .. _Martin BaBer: https://github.com/MartinBaBer
@@ -294,7 +294,7 @@
 .. _Matti Hämäläinen: https://research.aalto.fi/en/persons/matti-h%C3%A4m%C3%A4l%C3%A4inen/
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Maureen Shader: https://github.com/mshader
-.. _Mauricio Cespedes: https://github.com/mcespedes99
+.. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 .. _Melih Yayli: https://github.com/yaylim
 .. _Michael Krause: https://github.com/octomike
 .. _Michael Straube: https://github.com/mistraube
@@ -360,7 +360,7 @@
 .. _Rahul Nadkarni: https://github.com/rahuln
 .. _Ram Pari: https://github.com/ramkpari
 .. _Ramiro Gatti: https://github.com/ragatti
-.. _Ramonapariciog Apariciogarcia: https://github.com/ramonapariciog
+.. _ramonapariciog: https://github.com/ramonapariciog
 .. _Rasmus Aagaard: https://github.com/rasgaard
 .. _Rasmus Zetter: https://github.com/rzetter
 .. _Reza Nasri: https://github.com/rznas

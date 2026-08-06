@@ -54,7 +54,7 @@ Changelog
 
 - Add ``mne.channels.find_ch_connectivity`` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
-- Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `Ramonapariciog Apariciogarcia`_
+- Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
 
 - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
 
@@ -320,7 +320,7 @@ People who contributed to this release  (in alphabetical order):
 * Nicolas Barascud
 * Nicole Proulx
 * Phillip Alday
-* Ramonapariciog Apariciogarcia
+* ramonapariciog
 * Robin Tibor Schirrmeister
 * Rodrigo Hübner
 * S. M. Gutstein
