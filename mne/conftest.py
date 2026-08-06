@@ -242,7 +242,7 @@ def pytest_configure(config: pytest.Config):
     else:
         if Version(pandas.__version__) >= Version("3.1.0.dev0"):
             # TODO VERSION once statsmodels dev has updated for pip-pre
-            # (failing as of 2026/02/04)
+            # (failing as of 2026/08/05)
             config.addinivalue_line(
                 "filterwarnings",
                 "ignore:"
