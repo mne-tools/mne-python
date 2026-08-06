@@ -58,6 +58,66 @@ def test_bad_annot_handling():
     np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
 
 
+def test_psd_welch_short_span_kept():
+    """Good spans shorter than n_per_seg are kept with a warning (gh-13039)."""
+    n_fft = 256
+    n_overlap = n_fft // 2  # 128
+    n_chan = 2
+    rng = np.random.default_rng(0)
+    # A short good span (100 samples < n_per_seg), then a bad-annotation
+    # (aligned NaN), then a long span. The short span cannot hold a full Welch
+    # window; instead of raising from SciPy ("noverlap must be less than
+    # nperseg") or being dropped, it is now zero-padded up to n_per_seg (matching
+    # SciPy's own direction for short input, scipy#25608) with a warning.
+    short = rng.standard_normal((n_chan, 100))
+    long = rng.standard_normal((n_chan, 5 * n_fft))
+    x = np.concatenate((short, np.full((n_chan, 1), np.nan), long), axis=-1)
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        psds, freqs = psd_array_welch(x, sfreq=100, n_fft=n_fft, n_overlap=n_overlap)
+    assert psds.shape == (n_chan, len(freqs))
+    assert np.all(np.isfinite(psds))
+
+    # Even when *every* good span is shorter than n_per_seg, each is analyzed on
+    # its own; the estimate is still computed (previously this raised). Use three
+    # short spans so the total length exceeds n_fft (else the n_fft > n_times
+    # guard fires first).
+    nan_col = np.full((n_chan, 1), np.nan)
+    x_all_short = np.concatenate((short, nan_col, short, nan_col, short), axis=-1)
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        psds, freqs = psd_array_welch(
+            x_all_short, sfreq=100, n_fft=n_fft, n_overlap=n_overlap
+        )
+    assert psds.shape == (n_chan, len(freqs))
+    assert np.all(np.isfinite(psds))
+
+
+def test_psd_welch_short_span_array_window():
+    """A fixed-length ndarray window still fits a zero-padded short span (gh-13039)."""
+    n_fft = 256
+    n_overlap = n_fft // 2
+    n_chan = 2
+    rng = np.random.default_rng(0)
+    short = rng.standard_normal((n_chan, 100))
+    long = rng.standard_normal((n_chan, 5 * n_fft))
+    x = np.concatenate((short, np.full((n_chan, 1), np.nan), long), axis=-1)
+    # Zero-padding the short span up to n_per_seg means an explicit full-length
+    # window array (which SciPy requires to equal nperseg) now fits it too, so the
+    # earlier fixed-length-window special case is unnecessary; it just warns.
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        psds, freqs = psd_array_welch(
+            x, sfreq=100, n_fft=n_fft, n_overlap=n_overlap, window=np.hamming(n_fft)
+        )
+    assert psds.shape == (n_chan, len(freqs))
+    assert np.all(np.isfinite(psds))
+    # A full-length array window on all-long spans still works (no padding, no warn).
+    x_ok = np.concatenate((long, np.full((n_chan, 1), np.nan), long), axis=-1)
+    psds, freqs = psd_array_welch(
+        x_ok, sfreq=100, n_fft=n_fft, n_overlap=n_overlap, window=np.hamming(n_fft)
+    )
+    assert psds.shape == (n_chan, len(freqs))
+    assert np.all(np.isfinite(psds))
+
+
 def _make_psd_data():
     """Make noise data with sinusoids in 2 out of 7 channels."""
     rng = np.random.default_rng(0)

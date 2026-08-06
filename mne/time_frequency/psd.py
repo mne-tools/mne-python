@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import warnings
 from functools import partial
 
 import numpy as np
@@ -10,7 +9,7 @@ from scipy.signal import spectrogram
 
 from ..fixes import _reshape_view
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, logger, verbose, warn
+from ..utils import _check_option, _ensure_int, _pl, logger, verbose, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
@@ -259,37 +258,49 @@ def psd_array_welch(
         good_mask = ~nan_mask_full
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
-        # weights reflect the number of samples used from each span. For spans longer
-        # than `n_per_seg`, trailing samples may be discarded. For spans shorter than
-        # `n_per_seg`, the wrapped function (`scipy.signal.spectrogram`) automatically
-        # reduces `n_per_seg` to match the span length (with a warning).
-        step = n_per_seg - n_overlap
+        if not x_splits:
+            raise ValueError(
+                "No good data spans remain to compute the PSD (all samples are "
+                "excluded by bad annotations)."
+            )
+        # A good data span shorter than n_per_seg cannot hold a full-length Welch
+        # window. SciPy clamps nperseg down to the span length internally but leaves
+        # noverlap unchanged, then raises "noverlap must be less than nperseg"
+        # (#13039). Zero-pad each short span up to n_per_seg instead. This matches
+        # the direction SciPy itself is taking for short input (scipy#25608; scipy
+        # PR #25633 zero-pads the csd input up to nperseg rather than shrinking the
+        # window), so every span keeps the same window length and frequency grid and
+        # an explicit ``window`` array still fits. A padded span yields a single
+        # full-length segment; its weight counts only the real (pre-padding) samples
+        # so the zeros do not inflate its share of the average.
         span_lengths = [span.shape[-1] for span in x_splits]
+        n_short = sum(span_len < n_per_seg for span_len in span_lengths)
+        if n_short:
+            x_splits = [
+                np.pad(span, [(0, 0)] * (span.ndim - 1) + [(0, n_per_seg - span_len)])
+                if span_len < n_per_seg
+                else span
+                for span, span_len in zip(x_splits, span_lengths)
+            ]
+            warn(
+                f"{n_short} good data span{_pl(n_short)} shorter than n_per_seg "
+                f"({n_per_seg}) {'was' if n_short == 1 else 'were'} zero-padded up to "
+                "n_per_seg; the padding biases their spectral estimates. Reduce "
+                "n_per_seg (or n_fft) to avoid this."
+            )
+        step = n_per_seg - n_overlap
+        # weight each span by the samples covered by whole windows (trailing
+        # remainder is discarded); a zero-padded short span counts its real length.
         weights = [
             w if w < n_per_seg else w - ((w - n_overlap) % step) for w in span_lengths
         ]
         agg_func = partial(np.average, weights=weights)
+        func = _func
         if n_jobs > 1:
             logger.info(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
                 '"bad_*" annotations. Parallelization may be sub-optimal.'
             )
-        if (np.array(span_lengths) < n_per_seg).any():
-            logger.info(
-                "At least one good data span is shorter than n_per_seg, and will be "
-                "analyzed with a shorter window than the rest of the file."
-            )
-
-        def func(*args, **kwargs):
-            # swallow SciPy warnings caused by short good data spans
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action="ignore",
-                    module="scipy",
-                    category=UserWarning,
-                    message=r"nperseg = \d+ is greater than input length",
-                )
-                return _func(*args, **kwargs)
 
     else:
         # Either no NaNs, or NaNs are not aligned across channels.
