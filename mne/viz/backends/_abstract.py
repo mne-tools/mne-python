@@ -555,10 +555,10 @@ class _AbstractRenderer(ABC):
 
         Parameters
         ----------
-        x : float
+        x_window : float
             The X component to use as position of the text in the
             window coordinates system (window_width, window_height).
-        y : float
+        y_window : float
             The Y component to use as position of the text in the
             window coordinates system (window_width, window_height).
         text : str

@@ -103,7 +103,7 @@ def write_named_matrix(fid, kind, mat):
         The opened file descriptor.
     kind : int
         The kind of the matrix.
-    matkind : int
+    mat : int
         The type of matrix.
     """
     # let's save ourselves from disaster
