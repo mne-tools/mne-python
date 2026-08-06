@@ -332,7 +332,7 @@
 .. _Ole Jensen: https://www.psy.ox.ac.uk/people/ole-jensen
 .. _Oleh Kozynets: https://github.com/OlehKSS
 .. _Omer Shubi: https://github.com/OmerShubi
-.. _Pablo Arias: https://github.com/Pablo-Arias
+.. _Pablo Arias Sarah: https://github.com/Pablo-Arias
 .. _Pablo Mainar: https://github.com/pablomainar
 .. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
 .. _Paul Anders: https://github.com/Mettphysik

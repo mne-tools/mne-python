@@ -47,6 +47,7 @@ compound_surnames = (
     "De Santis",
     "Dupré la Tour",
     "de la Torre-Ortiz",
+    "Arias Sarah",
     "de la Torre",
     "Cespedes Tenorio",
     "Le Mentec",
@@ -59,6 +60,9 @@ compound_surnames = (
     "van Harmelen",
     "Visconti di Oleggio Castello",
     "van Es",
+    "de Zuazo",
+    "Niso Galán",
+    "Montoya Martinez",
 )
 
 
@@ -104,7 +108,9 @@ assert len(split_version) == 3, msg
 args = ["git", "shortlog", "-nse"]
 result = subprocess.run(args, capture_output=True, text=True)
 lines = result.stdout.strip().split("\n")
-all_names = [parse_name(line) for line in lines if "[bot]" not in line]
+# "Lumberbot (aka Jack)" is the only one of ours without a "[bot]" suffix
+bots = ("[bot]", "Lumberbot")
+all_names = [parse_name(line) for line in lines if not any(bot in line for bot in bots)]
 
 
 # CONSTRUCT JSON AUTHORS LIST
