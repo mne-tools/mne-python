@@ -1,0 +1,1 @@
+Added :class:`mne.preprocessing.GED` for generalized eigendecomposition-based contrast preprocessing of EEG data, including component visualization and signal reconstruction after component exclusion, by `Sahar Sattari`_.

@@ -101,6 +101,7 @@ Projections:
    find_ecg_events
    find_eog_events
    fix_stim_artifact
+   GED
    ica_find_ecg_events
    ica_find_eog_events
    infomax
