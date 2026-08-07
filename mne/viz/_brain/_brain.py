@@ -1182,7 +1182,6 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
-            vertex_id = vertices[ind[0]]
             publish(
                 self,
                 VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0]),
