@@ -10,7 +10,11 @@ compound_surnames:
   - van Vliet
   - De Santis
   - Dupré la Tour
+  - de la Torre-Ortiz
+  - Arias Sarah
   - de la Torre
+  - Cespedes Tenorio
+  - Le Mentec
   - de Jong
   - de Montalivet
   - van den Bosch
@@ -20,6 +24,9 @@ compound_surnames:
   - van Harmelen
   - Visconti di Oleggio Castello
   - van Es
+  - de Zuazo
+  - Niso Galán
+  - Montoya Martinez
 preferred_citation:
   title: MEG and EEG Data Analysis with MNE-Python
   journal: Frontiers in Neuroscience
