@@ -249,6 +249,23 @@ jobs:
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
+      # Ensure the data the JupyterLite notebooks need is on disk so conf.py can
+      # copy the required subset for the build. lite_data fetches only the
+      # curated files the browser notebooks use (from the MNE-lite-data OSF
+      # project) instead of the full sample/kiloword/erp_core/mtrf/eegbci
+      # datasets, which slims the build. The curated files share hashes with the
+      # full datasets, so on a full build that already downloaded them nothing
+      # extra is fetched.
+      - run:
+          name: Ensure MNE data for JupyterLite
+          command: |
+            python -c "import mne; mne.datasets.lite_data.data_path(update_path=True)"
+      # Build the dev MNE wheel the JupyterLite browser kernel installs, once,
+      # before Sphinx runs. conf.py reuses it and only builds it itself if this
+      # step did not run (e.g. a local build).
+      - run:
+          name: Build MNE wheel for JupyterLite
+          command: python doc/sphinxext/build_lite_wheel.py
       # Build docs
       - run:
           name: make html
