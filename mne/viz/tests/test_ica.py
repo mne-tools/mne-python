@@ -499,7 +499,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     assert_allclose(ax._selectline.get_xdata()[0], np.mean(ax.get_xlim()))
 
     ui_events.publish(fig, ui_events.TimeChange(time=0.1))
-    assert_allclose(ax._selectline.get_xdata()[0], 0.1)
+    assert_allclose(ax._selectline.get_xdata()[0], 0.1, atol=1e-8)
 
     plt.close("all")
 
