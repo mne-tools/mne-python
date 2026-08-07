@@ -127,11 +127,7 @@ class GradientRemover:
         data : ndarray, shape (n_channels, tr_spacing)
             The detrended data at the given TR.
         """
-        # Some BLAS/LAPACK builds can emit floating-point RuntimeWarnings from
-        # SciPy's least-squares internals even when the detrended result is
-        # finite and correct.
-        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
-            return detrend(self.get_tr(n))
+        return detrend(self.get_tr(n))
 
     def get_tr_template(self, n):
         """Get the gradient artifact template at a given TR.

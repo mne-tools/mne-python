@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import warnings
 
 import numpy as np
 import pytest
@@ -124,16 +123,6 @@ def test_correction_removes_artifact():
     # in the interior (where a full template exists) the artifact is removed
     interior = corrected[:, 4 * SAMPS_PER_TR : 6 * SAMPS_PER_TR]
     assert_allclose(interior, 0, atol=1e-10)
-
-
-def test_detrend_does_not_warn():
-    """Test that detrending does not emit numerical RuntimeWarnings."""
-    rng = np.random.default_rng(0)
-    data = rng.standard_normal((N_CHANNELS, N_TRS * SAMPS_PER_TR))
-    gr = GradientRemover(data, _sample_trs())
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", RuntimeWarning)
-        gr.get_tr_detrended(0)
 
 
 def test_template_window_uses_requested_trs():
