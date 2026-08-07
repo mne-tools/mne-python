@@ -17,6 +17,15 @@ appended to ``.mailmap`` automatically when running with ``--fix-mailmap``
 (what the monthly credit GitHub Action does). In that mode, the name from the
 PR's changelog ``:newcontrib:`` entry is preferred when one exists, since new
 contributors pick that name themselves.
+
+Every credited name is shown as a link to that person, so it also needs an
+entry in doc/changes/names.inc (the same links changelogs use). ``--fix-mailmap``
+adds one pointing at the contributor's GitHub profile where we know it;
+anything left over is an error, since the badge would have nowhere to point.
+
+Two names that look like the same person are also an error: it usually means an
+address is missing from .mailmap, so someone is credited twice under slightly
+different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
 """
 
 # Authors: The MNE-Python contributors.
@@ -25,10 +34,12 @@ contributors pick that name themselves.
 
 import argparse
 import dataclasses
+import difflib
 import fnmatch
 import json
 import os
 import re
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
@@ -56,20 +67,66 @@ BOTS = (
     "Lumberbot",
     "Deleted user",
 )
-# Surnames where we know we have more than one distinct contributor; a surname
-# appearing more often than this makes the monthly report warn about possible
-# duplicates (e.g., the same person under two name variants).
-NAME_COUNTS = dict(
-    Bailey=2,
-    Das=2,
-    Drew=2,
-    Jin=2,
-    Li=2,
-    Peterson=2,
-    Wong=2,
-    Yadav=2,
-    Zhang=3,
-)
+# Pairs of similar-looking names that really are different contributors, so the
+# duplicate check below leaves them alone. Keep them sorted within each pair.
+DISTINCT_NAMES = set()
+
+
+def _reference_key(name):
+    """Normalize a name the way docutils normalizes reST reference names."""
+    return re.sub(r"\s+", " ", name).strip().lower()
+
+
+def _fold(name):
+    """Strip accents and case so "Victor Férat" and "Victor Ferat" compare equal."""
+    decomposed = unicodedata.normalize("NFKD", _reference_key(name))
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
+def _similar_names(names):
+    """Find pairs of credited names that look like the same person.
+
+    One person credited under two spellings means an email is missing from
+    .mailmap: whoever it is should be routed to a single preferred name there.
+    Genuinely distinct people whose names happen to look alike go in
+    DISTINCT_NAMES.
+    """
+    problems = []
+    names = sorted(names)
+    for ii, one in enumerate(names):
+        for other in names[ii + 1 :]:
+            if tuple(sorted((one, other))) in DISTINCT_NAMES:
+                continue
+            first, second = _fold(one).split(), _fold(other).split()
+            why = None
+            if first == second:  # differ only by accents or case
+                why = "differ only in accents or capitalization"
+            elif set(first) <= set(second) or set(second) <= set(first):
+                why = "one is the other plus a middle name, initial, or suffix"
+            elif first[-1] == second[-1] and (  # same surname, shortened first name
+                first[0].startswith(second[0]) or second[0].startswith(first[0])
+            ):
+                why = "one first name is a shortening of the other"
+            if why is None:  # catch-all for typos and spelling variants
+                ratio = difflib.SequenceMatcher(None, _fold(one), _fold(other)).ratio()
+                if ratio > 0.9:
+                    why = "the names are nearly identical"
+            if why is not None:
+                problems.append(
+                    f"{one!r} and {other!r} may be the same person ({why}). If so, "
+                    "add the missing address to .mailmap so both map to one name; "
+                    "if not, add the pair to DISTINCT_NAMES in credit_tools.py"
+                )
+    return problems
+
+
+def _github_login(author):
+    """Get an author's GitHub login, from the JSON or their noreply address."""
+    if author.get("l"):
+        return author["l"]
+    # e.g. "12345678+octocat@users.noreply.github.com"
+    match = re.match(r"^\d+\+(.+)@users\.noreply\.github\.com$", author.get("e") or "")
+    return match.group(1) if match else None
 
 
 def _is_bot(name, email):
@@ -93,12 +150,19 @@ def _good_name(name, *, name_ok=frozenset()):
 
 
 def _normalize_name(name):
-    """Fix simple fixable problems (whitespace, ALL-CAPS first/last name)."""
+    """Fix simple fixable problems (whitespace, first/last name capitalization).
+
+    Only single-case first/last names are touched, so mixed case like "McCloy"
+    and particles like the "van" in "Mats van Es" are left alone. A contributor
+    who prefers e.g. an all-lowercase name can always be pinned in .mailmap,
+    which wins over anything derived here.
+    """
     parts = name.strip().split()
     if len(parts) >= 2:
-        for idx in (0, -1):  # e.g., KING instead of King
-            if parts[idx] == parts[idx].upper() and len(parts[idx]) > 1:
-                parts[idx] = parts[idx].capitalize()
+        for idx in (0, -1):  # e.g., KING or king instead of King
+            part = parts[idx]
+            if len(part) > 1 and part in (part.upper(), part.lower()):
+                parts[idx] = part.capitalize()
     return " ".join(parts)
 
 
@@ -172,13 +236,15 @@ class _Unresolved:
         return entry
 
 
-def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved):
+def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins):
     """Resolve one PR JSON author dict to a display name (or None to skip)."""
     name, email, login = author.get("n"), author.get("e"), author.get("l")
     if _is_bot(name, email):
         return None
-    if email in mailmap.names:
-        return mailmap.names[email]
+    resolved = mailmap.names.get(email)
+    if resolved is not None:
+        logins.setdefault(resolved, _github_login(author))
+        return resolved
     # GitHub-derived fallback; first good name seen for an email wins so that
     # later profile-name tweaks don't split one person into two entries
     if email in fallback_names:
@@ -187,6 +253,7 @@ def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved):
     if candidate is not None and _good_name(candidate):
         if email is not None:
             fallback_names[email] = candidate
+        logins.setdefault(candidate, _github_login(author))
         return candidate
     key = email or f"{name} #{pr}"
     if key not in unresolved:
@@ -222,6 +289,7 @@ def _load_pr_stats(mailmap):
     ignores = _load_pr_ignores()
     fallback_names = dict()  # email -> good GitHub-derived name
     unresolved = dict()  # email (or name#pr) -> _Unresolved
+    logins = dict()  # credited name -> GitHub login (None if unknown)
     # (name, pr) -> total change count, used for logging the biggest PRs
     commits = defaultdict(int)
     # filename -> name -> [additions, deletions]
@@ -232,7 +300,7 @@ def _load_pr_stats(mailmap):
         data = json.loads(fname.read_text("utf-8"))
         assert data != {}, fname
         names = [
-            _resolve_name(author, pr, data, mailmap, fallback_names, unresolved)
+            _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
             for author in data["authors"]
         ]
         # dedup, keeping author order (so ties in the output sort stay stable)
@@ -248,56 +316,43 @@ def _load_pr_stats(mailmap):
             for name in names:
                 commits[(name, pr)] += p + m
                 stats[file][name] += [p, m]
-    return stats, commits, ignores, unresolved
+    return stats, commits, ignores, unresolved, logins
 
 
-def _check_duplicate_names(names):
-    """Check surname sharing against the NAME_COUNTS allowances.
+def _load_names_inc():
+    """Map contributor names to their doc/changes/names.inc link.
 
-    Returns advisory warnings (more sharers than allowed — possibly the same
-    person under two name variants) and fatal problems (stale NAME_COUNTS
-    entries allowing more sharers than actually exist).
+    Keys are normalized the way docutils normalizes reST reference names, i.e.
+    case-insensitively and with collapsed whitespace.
     """
-    last_map = defaultdict(set)
-    for name in names:
-        last_map[name.split()[-1]].add(name)
-    warnings = [
-        f"surname {last!r} is shared by {sorted(these)}; if these are the same "
-        "person, merge them in .mailmap, otherwise bump NAME_COUNTS in "
-        "credit_tools.py"
-        for last, these in last_map.items()
-        if len(these) > NAME_COUNTS.get(last, 1)
-    ]
-    problems = [
-        f"NAME_COUNTS[{last!r}] = {allowed} but only {len(last_map.get(last, ()))} "
-        "distinct contributor(s) share that surname; remove or lower the stale "
-        "entry in credit_tools.py"
-        for last, allowed in NAME_COUNTS.items()
-        if len(last_map.get(last, ())) < allowed
-    ]
-    return warnings, problems
+    return {
+        _reference_key(name): url
+        for name, url in re.findall(
+            r"^\.\. _(.+?):\s+(\S+)\s*$",
+            (doc_root / "changes" / "names.inc").read_text("utf-8"),
+            re.M,
+        )
+    }
 
 
-def _check_names_inc(names):
-    """List credited names that have no doc/changes/names.inc link anchor.
+def _check_names_inc(names, urls):
+    """List credited names that have no doc/changes/names.inc link."""
+    return sorted(name for name in names if _reference_key(name) not in urls)
 
-    Advisory only: names.inc is what changelogs link against, so drift here
-    means a contributor's changelog credit and code credit use different
-    spellings (or the anchor is missing entirely).
-    """
-    anchors = re.findall(
-        r"^\.\. _(.+?): \S",
-        (doc_root / "changes" / "names.inc").read_text("utf-8"),
-        re.M,
-    )
-    return sorted(set(names) - set(anchors))
+
+def _append_names_inc_anchors(anchors):
+    """Insert anchors into names.inc, sorted the way our pre-commit hook sorts."""
+    path = doc_root / "changes" / "names.inc"
+    lines = path.read_text("utf-8").splitlines() + list(anchors)
+    lines.sort(key=_fold)
+    path.write_text("\n".join(lines) + "\n", "utf-8")
 
 
 def _append_mailmap_entries(entries):
-    """Insert entries into .mailmap, sorted like the file-contents-sorter hook."""
+    """Insert entries into .mailmap, sorted the way our pre-commit hook sorts."""
     path = repo_root / ".mailmap"
     lines = path.read_text("utf-8").splitlines() + list(entries)
-    lines.sort(key=str.lower)
+    lines.sort(key=_fold)
     path.write_text("\n".join(lines) + "\n", "utf-8")
 
 
@@ -331,14 +386,14 @@ def generate_credit_rst(
     """Get the credit RST."""
     sphinx_logger.info("Creating code credit RST inclusion file")
     mailmap = _load_mailmap()
-    stats, commits, ignores, unresolved = _load_pr_stats(mailmap)
+    stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
     added = [un for un in unresolved.values() if un.email is not None]
     if fix_mailmap and added and not mailmap.problems:
         _apply_newcontrib_names(added)
         _append_mailmap_entries(un.mailmap_entry for un in added)
         sphinx_logger.info(f"Added {len(added)} entries to .mailmap")
         mailmap = _load_mailmap()  # second pass with the appended entries
-        stats, commits, ignores, unresolved = _load_pr_stats(mailmap)
+        stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
     else:
         added = []
     problems = _report_problems(mailmap, unresolved)
@@ -346,19 +401,42 @@ def generate_credit_rst(
         raise RuntimeError(problems)
 
     all_names = {name for these in stats.values() for name in these}
-    duplicate_warnings, count_problems = _check_duplicate_names(all_names)
-    if count_problems:
-        raise RuntimeError("\n".join(count_problems))
-    for warning in duplicate_warnings:
-        sphinx_logger.info(f"Possible duplicate contributor: {warning}")
-    missing_anchors = _check_names_inc(all_names)
+    duplicates = _similar_names(all_names)
+    if duplicates:
+        raise RuntimeError(
+            f"{len(duplicates)} possible duplicate contributor(s):\n"
+            + "\n".join(duplicates)
+        )
+
+    # Every credited name is shown as a link on the credit page, so it needs an
+    # entry in names.inc. In --fix-mailmap mode add the ones we can derive from
+    # the contributor's GitHub login, so the monthly update stays green.
+    urls = _load_names_inc()
+    missing_anchors = _check_names_inc(all_names, urls)
+    anchors_added = []
+    if fix_mailmap and missing_anchors:
+        anchors_added = [
+            f".. _{name}: https://github.com/{logins[name]}"
+            for name in missing_anchors
+            if logins.get(name)
+        ]
+        if anchors_added:
+            _append_names_inc_anchors(anchors_added)
+            sphinx_logger.info(f"Added {len(anchors_added)} entries to names.inc")
+            urls = _load_names_inc()
+            missing_anchors = _check_names_inc(all_names, urls)
     if missing_anchors:
-        sphinx_logger.info(
-            f"{len(missing_anchors)} credited name(s) have no "
-            "doc/changes/names.inc anchor"
+        raise RuntimeError(
+            f"{len(missing_anchors)} credited name(s) have no link in "
+            "doc/changes/names.inc, which the code credit page needs to link "
+            "their badge. Add a line for each of them (the file is sorted "
+            "alphabetically, ignoring case), or run\n"
+            "`python doc/sphinxext/credit_tools.py --fix-mailmap` to fill in "
+            "the ones whose GitHub profile we know:\n"
+            + "\n".join(f".. _{name}: https://..." for name in missing_anchors)
         )
     if report_file is not None:
-        _write_report(report_file, added, duplicate_warnings, missing_anchors)
+        _write_report(report_file, added, anchors_added)
 
     logger.info("Biggest included commits/PRs:")
     biggest = sorted(commits, key=lambda key: commits[key], reverse=True)
@@ -371,7 +449,7 @@ def generate_credit_rst(
         assert len(files) >= 1, (pr, files)
 
     mod_stats, link_overrides, mod_file_map = _aggregate_module_stats(stats)
-    _write_credit_rst(mod_stats, link_overrides, mod_file_map)
+    _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls)
 
 
 def _apply_newcontrib_names(unresolved):
@@ -432,7 +510,7 @@ def _github_website(login):
     return website or None
 
 
-def _write_report(report_file, added, duplicate_warnings, missing_anchors):
+def _write_report(report_file, added, anchors_added):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
     if added:
@@ -453,20 +531,18 @@ def _write_report(report_file, added, duplicate_warnings, missing_anchors):
             lines.append(f"- `{un.mailmap_entry}` — {', '.join(links)}")
     else:
         lines += ["All contributor names resolved cleanly."]
-    if duplicate_warnings:
-        lines += ["", "Possible duplicate contributors:", ""]
-        lines += [f"- {warning}" for warning in duplicate_warnings]
-    if missing_anchors:
+    if anchors_added:
         lines += [
             "",
-            f"{len(missing_anchors)} credited name(s) have no anchor in "
-            "`doc/changes/names.inc` (changelog credit will use a different "
-            "spelling or link):",
+            f"{len(anchors_added)} link(s) were added to `doc/changes/names.inc` "
+            "from the contributor's GitHub profile. Changelogs link to these, "
+            "as do the badges on the code credit page, so adjust any that "
+            "should point somewhere else:",
             "",
+            "```",
+            *anchors_added,
+            "```",
         ]
-        lines += [f"- {name}" for name in missing_anchors[:20]]
-        if len(missing_anchors) > 20:
-            lines += [f"- … and {len(missing_anchors) - 20} more"]
     Path(report_file).write_text("\n".join(lines) + "\n", "utf-8")
 
 
@@ -622,9 +698,11 @@ def _abbreviate_count(count):
     raise RuntimeError(f"Too many digits in {count}")
 
 
-def _write_credit_rst(mod_stats, link_overrides, mod_file_map):
-    # sphinx-design badges that we use for contributors
+def _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls):
+    # sphinx-design badges that we use for contributors; the linked variants
+    # point at each contributor's doc/changes/names.inc link
     BADGE_KINDS = ["bdg-info-line", "bdg"]
+    LINK_BADGE_KINDS = ["bdg-link-info-line", "bdg-link"]
     content = f"""\
 .. THIS FILE IS AUTO-GENERATED BY {Path(__file__).stem} AND WILL BE OVERWRITTEN
 
@@ -638,6 +716,13 @@ def _write_credit_rst(mod_stats, link_overrides, mod_file_map):
    /* Limit max card height */
    div.sd-card-body {{
      max-height: 15em;
+   }}
+   /* Each card is itself a link, laid over its body by an absolutely
+      positioned ::after; lift the contributor badges above it so they keep
+      linking to the contributor rather than to the card target */
+   div.sd-card-body a.sd-badge {{
+     position: relative;
+     z-index: 2;
    }}
    </style>
 
@@ -692,8 +777,10 @@ contributions by submodule as well below.
         for ki, (name, count) in enumerate(these_stats.items()):
             # if there are 10 this is 100, if there are 100 this is 100
             idx = 0 if ki < (len(these_stats) - 1) // 10 + 1 else 1
+            url = urls[_reference_key(name)]
             stat_lines.append(
-                f":{BADGE_KINDS[idx]}:`{name} ({_abbreviate_count(count)})`"
+                f":{LINK_BADGE_KINDS[idx]}:"
+                f"`{name} ({_abbreviate_count(count)}) <{url}>`"
             )
         stat_lines = f"\n{indent}".join(stat_lines)
         directive = ".. card::" if mi == 0 else "   .. grid-item-card::"

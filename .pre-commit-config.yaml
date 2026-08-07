@@ -80,7 +80,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt|^ignore_words.txt
+        files: ^doc/sphinxext/related_software.txt|^ignore_words.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
@@ -88,6 +88,14 @@ repos:
     hooks:
       - id: toml-sort-fix
         files: pyproject.toml
+
+  - repo: local  # file-contents-sorter would put every accented name after "z"
+    hooks:
+      - id: sort-contributor-names
+        name: Sort contributor names ignoring case and accents
+        language: python
+        entry: ./tools/hooks/sort_contributor_names.py
+        files: '^(doc/changes/names.inc|.mailmap)$'
 
   # dependencies
   - repo: local

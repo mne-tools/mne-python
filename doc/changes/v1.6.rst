@@ -96,7 +96,7 @@ Authors
 * Alex Rockhill
 * Alexandre Gramfort
 * Ana Radanovic
-* Andy Gilbert+
+* Andrew Gilbert+
 * Clemens Brunner
 * Daniel McCloy
 * Denis A. Engemann
