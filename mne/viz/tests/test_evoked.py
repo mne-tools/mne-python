@@ -240,12 +240,13 @@ def test_plot_evoked():
     assert not hasattr(ax, "_cursorline")
     _fake_click(fig, ax, (0.5, 0.5), kind="motion")
     assert hasattr(ax, "_cursorline")
-    assert ax._cursorline.get_xdata()[0] == 0.0
+    assert_allclose(ax._cursorline.get_xdata()[0], 0.0)
     # check if text of channel name is displayed due to hover
     text = ax.texts[0]
     assert text.get_alpha() == 0.0
     trace = ax.get_lines()[0]  # pick the first trace (MEG 0111)
-    x, y = trace.get_xdata(), trace.get_ydata()
+    x = trace.get_xdata()
+    y = trace.get_ydata()
     i = len(x) // 2
     _fake_click(fig, ax, (x[i], y[i]), xform="data", kind="motion")
     assert text.get_alpha() == 1.0
@@ -254,7 +255,7 @@ def test_plot_evoked():
     assert not hasattr(ax, "_selectline")
     _fake_click(fig, ax, (0.5, 0.5), kind="press")
     assert hasattr(ax, "_selectline")
-    assert ax._selectline.get_xdata()[0] == 0.0
+    assert_allclose(ax._selectline.get_xdata()[0], 0.0)
 
     _fake_click(fig, ax, (0.6, 0.5), kind="press")
     assert ax._selectline.get_xdata()[0] > 0.0
@@ -270,10 +271,10 @@ def test_plot_evoked_timechange():
     ax = fig.axes[0]
 
     _fake_click(fig, ax, (0.5, 0.5), kind="press")
-    assert ax._selectline.get_xdata()[0] == 0.0
+    assert_allclose(ax._selectline.get_xdata()[0], 0.0)
 
     ui_events.publish(fig, ui_events.TimeChange(time=0.1))
-    assert ax._selectline.get_xdata()[0] == 0.1
+    assert_allclose(ax._selectline.get_xdata()[0], 0.1)
 
     plt.close("all")
 

@@ -479,7 +479,8 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     text = ax.texts[0]
     assert text.get_alpha() == 0.0
     trace = ax.get_lines()[0]  # pick the first trace (MEG 0111)
-    x, y = trace.get_xdata(), trace.get_ydata()
+    x = trace.get_xdata()
+    y = trace.get_ydata()
     i = len(x) // 2
     _fake_click(fig, ax, (x[i], y[i]), xform="data", kind="motion")
     assert text.get_alpha() == 1.0
@@ -498,7 +499,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     assert_allclose(ax._selectline.get_xdata()[0], np.mean(ax.get_xlim()))
 
     ui_events.publish(fig, ui_events.TimeChange(time=0.1))
-    assert ax._selectline.get_xdata()[0] == 0.1
+    assert_allclose(ax._selectline.get_xdata()[0], 0.1)
 
     plt.close("all")
 

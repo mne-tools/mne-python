@@ -834,7 +834,7 @@ def _plot_lines(
     if selectable:
         for ax in np.array(axes)[selectables]:
             # To not select in EOG or other non-EEG/MEG axes like ICA source plots
-            if len(ax.lines) == 1 or ch_types_used[axes.index(ax)] not in (
+            if len(ax.lines) == 1 or ch_types_used[list(axes).index(ax)] not in (
                 "eeg",
                 "grad",
                 "mag",
