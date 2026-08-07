@@ -1,0 +1,1 @@
+Added the ``sensitivity`` parameter to :meth:`mne.Report.add_forward` to include forward sensitivity maps in reports, by :newcontrib:`Mariam Husain`.
