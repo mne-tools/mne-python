@@ -109,7 +109,6 @@ jobs:
         if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
-        id: setup-micromamba
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
