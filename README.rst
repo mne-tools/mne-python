@@ -70,20 +70,21 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓
+.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↓↓↓
 
-- `Python <https://www.python.org>`__ ≥ 3.10
-- `NumPy <https://numpy.org>`__ ≥ 2.0
-- `SciPy <https://scipy.org>`__ ≥ 1.14
-- `Matplotlib <https://matplotlib.org>`__ ≥ 3.9
-- `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
+- `python <https://www.python.org>`__ ≥ 3.10
+- `decorator <https://pypi.org/project/decorator/>`__ ≥ 5.1
+- `jinja2 <https://jinja.palletsprojects.com/>`__ ≥ 3.1
+- `lazy_loader <https://pypi.org/project/lazy-loader/>`__ ≥ 0.3
+- `matplotlib <https://matplotlib.org>`__ ≥ 3.9
+- `numpy <https://numpy.org>`__ ≥ 2.0,
+- `packaging <https://packaging.pypa.io/>`__
+- `pooch <https://www.fatiando.org/pooch>`__ ≥ 1.5
+- `scipy <https://scipy.org/>`__ ≥ 1.14
 - `tqdm <https://tqdm.github.io>`__ ≥ 4.66
-- `Jinja2 <https://palletsprojects.com/p/jinja/>`__ ≥ 3.1
-- `decorator <https://github.com/micheles/decorator>`__ ≥ 5.1
-- `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
-- `packaging <https://packaging.pypa.io/en/stable/>`__
+- `typing-extensions <https://typing-extensions.readthedocs.io/>`__ ≥ 4.15
 
-.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑
+.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↑↑↑
 
 Contributing
 ^^^^^^^^^^^^
