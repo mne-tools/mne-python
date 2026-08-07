@@ -1,5 +1,6 @@
 #!/bin/bash -ef
 
+# TODO: I think that DEPS is cruft. Its not set anywhere??
 if [ "${MNE_CI_KIND}" != "minimal" ]; then
 	python -uc "import mne; mne.datasets.testing.data_path(verbose=True)"
 	# Make read-only to make sure we don't modify its contents
