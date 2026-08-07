@@ -57,7 +57,10 @@ _dir_ignore_names = (
     "viewkeys",
     "viewvalues",  # Py2
 )
-_tag_ignore_names = ()  # for fiff-constants pending updates
+_tag_ignore_names = (
+    # pending addition to fiff-constants, see mne-tools/mne-python#14130
+    "FIFFV_MNE_SURF_SUBCORTICAL_ID_BASE",
+)
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     "bem_surf_id",
     "cardinal_point_cardiac",

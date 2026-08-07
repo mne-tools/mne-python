@@ -164,6 +164,7 @@ __all__ = [
     "set_log_level",
     "set_memmap_min_size",
     "setup_source_space",
+    "setup_subcortical_source_space",
     "setup_volume_source_space",
     "simulation",
     "source_space",
@@ -404,6 +405,7 @@ from .source_space._source_space import (
     morph_source_spaces,
     read_source_spaces,
     setup_source_space,
+    setup_subcortical_source_space,
     setup_volume_source_space,
     write_source_spaces,
 )
