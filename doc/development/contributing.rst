@@ -648,7 +648,8 @@ contain:
       Short description of the changes, by `Firstname Lastname`_.
 
 Make sure that your name is included in the list of authors in
-:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+:file:`doc/changes/names.inc`, otherwise the changelog check on your pull
+request (and later the documentation build) will fail.
 To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
 
