@@ -121,8 +121,7 @@ def _safe_svd(A, **kwargs):
     """Get around the SVD did not converge error of death."""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
-    # For SciPy 0.18 and up, we can work around it by using
-    # lapack_driver='gesvd' instead.
+    # We can work around it by using lapack_driver='gesvd' instead.
     from scipy import linalg
 
     if kwargs.get("overwrite_a", False):
@@ -137,7 +136,7 @@ def _safe_svd(A, **kwargs):
 
 
 ###############################################################################
-# NumPy Generator (NumPy 1.17)
+# NumPy Generator vs. RandomState
 
 
 def rng_uniform(rng):
@@ -634,8 +633,6 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 try:
     import numba
 
-    if _compare_version(numba.__version__, "<", "0.56.4"):
-        raise ImportError
     prange = numba.prange
 
     def jit(nopython=True, nogil=True, fastmath=True, cache=True, **kwargs):  # noqa

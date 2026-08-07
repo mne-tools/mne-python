@@ -290,11 +290,15 @@ numpydoc_xref_aliases = {
     "EpochsFIF": "mne.Epochs",
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
+    "BaseRaw": "mne.io.Raw",
     "RawANT": "mne.io.Raw",
+    "RawArtemis123": "mne.io.Raw",
     "RawBCI2k": "mne.io.Raw",
+    "RawBDF": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
+    "RawCNT": "mne.io.Raw",
     "RawCTF": "mne.io.Raw",
     "RawCurry": "mne.io.Raw",
     "RawEDF": "mne.io.Raw",
@@ -308,7 +312,9 @@ numpydoc_xref_aliases = {
     "RawKIT": "mne.io.Raw",
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
+    "RawNicolet": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawNSX": "mne.io.Raw",
     "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
@@ -732,6 +738,9 @@ linkcheck_report_timeouts_as_broken = False
 # autodoc / autosummary
 autosummary_generate = True
 autodoc_default_options = {"inherited-members": None}
+# Types are documented (in human-readable numpydoc form) in the docstrings
+# themselves, so don't also render the annotations into the signatures.
+autodoc_typehints = "none"
 
 # sphinxcontrib-bibtex
 bibtex_bibfiles = ["./references.bib"]

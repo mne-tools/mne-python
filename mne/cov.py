@@ -43,7 +43,7 @@ from .defaults import (
 )
 from .epochs import Epochs
 from .event import make_fixed_length_events
-from .evoked import EvokedArray
+from .evoked import Evoked, EvokedArray
 from .fixes import (
     EmpiricalCovariance,
     _EstimatorMixin,
@@ -58,6 +58,7 @@ from .utils import (
     _check_fname,
     _check_on_missing,
     _check_option,
+    _limit_blas_threads,
     _on_missing,
     _pl,
     _scaled_array,
@@ -327,6 +328,7 @@ class Covariance(dict):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -362,6 +364,9 @@ class Covariance(dict):
         %(show_names_topomap)s
         %(mask_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -435,6 +440,7 @@ class Covariance(dict):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             outlines=outlines,
             contours=contours,
             image_interp=image_interp,
@@ -866,14 +872,30 @@ def _check_method_params(
     return method, _method_params
 
 
+def _unpack_covariance_inputs(inst):
+    """Normalize covariance inputs to a list."""
+    if isinstance(inst, Evoked):
+        return [inst]
+    if not isinstance(inst, list):
+        inst = [inst]
+    out = list()
+    for inst_t in inst:
+        if len(inst_t.event_id) > 1:
+            out.extend(inst_t[k] for k in inst_t.event_id)
+        else:
+            out.append(inst_t)
+    return out
+
+
 @verbose
 def compute_covariance(
-    epochs,
+    inst=None,
     keep_sample_mean=True,
     tmin=None,
     tmax=None,
     projs=None,
     *,
+    epochs=None,  # deprecated
     on_few_samples="warn",
     method="empirical",
     method_params=None,
@@ -885,7 +907,7 @@ def compute_covariance(
     rank=None,
     verbose=None,
 ):
-    """Estimate noise covariance matrix from epochs.
+    """Estimate a covariance matrix from epochs or an evoked response.
 
     The noise covariance is typically estimated on pre-stimulus periods
     when the stimulus onset is defined from events.
@@ -904,22 +926,29 @@ def compute_covariance(
 
     Parameters
     ----------
-    epochs : instance of Epochs, or list of Epochs
-        The epochs.
+    inst : instance of Epochs | Evoked | list of Epochs
+        The epochs or evoked response. For an evoked response, time samples
+        are treated as observations.
     keep_sample_mean : bool (default True)
         If False, the average response over epochs is computed for
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
         previous stimulus extends into the baseline period of the next.
         Note. This option is only implemented for method='empirical'.
+        This option cannot be used when ``inst`` is an Evoked instance.
     tmin : float | None (default None)
         Start time for baseline. If None start at first sample.
     tmax : float | None (default None)
         End time for baseline. If None end at last sample.
     projs : list of Projection | None (default None)
         List of projectors to use in covariance calculation, or None
-        to indicate that the projectors from the epochs should be
+        to indicate that the projectors from the input should be
         inherited. If None, then projectors from all epochs must match.
+    epochs : instance of Epochs | Evoked | list of Epochs | None
+        This parameter is deprecated and will be removed in MNE 1.15. Use
+        ``inst`` instead.
+
+        .. deprecated:: 1.13
     on_few_samples : str
         Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
         there are fewer samples than channels, which can lead to inaccurate
@@ -1000,9 +1029,15 @@ def compute_covariance(
 
     Notes
     -----
-    Baseline correction or sufficient high-passing should be used
-    when creating the :class:`Epochs` to ensure that the data are zero mean,
-    otherwise the computed covariance matrix will be inaccurate.
+    Baseline correction or sufficient high-passing should be used when
+    creating the :class:`Epochs` or :class:`Evoked` to ensure that the data
+    are zero mean, otherwise the computed covariance matrix will be
+    inaccurate.
+
+    For :class:`Evoked`, time samples are observations, so the covariance
+    describes spatial variation over time rather than trial-to-trial
+    variability. ``Evoked.nave`` is ignored, and post-stimulus covariance can
+    contain both signal and noise.
 
     Valid ``method`` strings are:
 
@@ -1055,6 +1090,25 @@ def compute_covariance(
     ----------
     .. footbibliography::
     """
+    if epochs is not None:
+        message = (
+            "The `epochs` parameter is deprecated and will be removed in MNE 1.15. "
+            "Use `inst` instead."
+        )
+        if inst is None:
+            inst = epochs
+        else:
+            message += " Since both were provided, `epochs` will be ignored."
+        warn(message, FutureWarning)
+    if inst is None:
+        raise ValueError("The `inst` parameter must be provided")
+
+    is_evoked = isinstance(inst, Evoked)
+    if is_evoked and not keep_sample_mean:
+        raise ValueError(
+            "`keep_sample_mean=False` cannot be used when `inst` is an Evoked instance"
+        )
+
     # scale to natural unit for best stability with MEG/EEG
     scalings = _check_scalings_user(scalings)
     method, _method_params = _check_method_params(
@@ -1062,79 +1116,65 @@ def compute_covariance(
     )
     del method_params
 
-    # for multi condition support epochs is required to refer to a list of
-    # epochs objects
-
-    def _unpack_epochs(epochs):
-        if len(epochs.event_id) > 1:
-            epochs = [epochs[k] for k in epochs.event_id]
-        else:
-            epochs = [epochs]
-        return epochs
-
-    if not isinstance(epochs, list):
-        epochs = _unpack_epochs(epochs)
-    else:
-        epochs = sum([_unpack_epochs(epoch) for epoch in epochs], [])
+    inst = _unpack_covariance_inputs(inst)
 
     # check for baseline correction
     if any(
-        epochs_t.baseline is None
-        and epochs_t.info["highpass"] < 0.5
-        and keep_sample_mean
-        for epochs_t in epochs
+        inst_t.baseline is None and inst_t.info["highpass"] < 0.5 and keep_sample_mean
+        for inst_t in inst
     ):
-        warn("Epochs are not baseline corrected, covariance matrix may be inaccurate")
+        kind = "Evoked is" if is_evoked else "Epochs are"
+        warn(f"{kind} not baseline corrected, covariance matrix may be inaccurate")
 
-    orig = epochs[0].info["dev_head_t"]
+    orig = inst[0].info["dev_head_t"]
     _check_on_missing(on_mismatch, "on_mismatch")
-    for ei, epoch in enumerate(epochs):
-        epoch.info._check_consistency()
-        if (orig is None) != (epoch.info["dev_head_t"] is None) or (
+    for ii, inst_t in enumerate(inst):
+        inst_t.info._check_consistency()
+        if (orig is None) != (inst_t.info["dev_head_t"] is None) or (
             orig is not None
-            and not np.allclose(orig["trans"], epoch.info["dev_head_t"]["trans"])
+            and not np.allclose(orig["trans"], inst_t.info["dev_head_t"]["trans"])
         ):
             msg = (
-                "MEG<->Head transform mismatch between epochs[0]:\n{}\n\n"
-                "and epochs[{}]:\n{}".format(orig, ei, epoch.info["dev_head_t"])
+                "MEG<->Head transform mismatch between inst[0]:\n{}\n\n"
+                "and inst[{}]:\n{}".format(orig, ii, inst_t.info["dev_head_t"])
             )
             _on_missing(on_mismatch, msg, "on_mismatch")
 
-    bads = epochs[0].info["bads"]
+    bads = inst[0].info["bads"]
     if projs is None:
-        projs = epochs[0].info["projs"]
-        # make sure Epochs are compatible
-        for epochs_t in epochs[1:]:
-            if epochs_t.proj != epochs[0].proj:
-                raise ValueError("Epochs must agree on the use of projections")
-            for proj_a, proj_b in zip(epochs_t.info["projs"], projs):
+        projs = inst[0].info["projs"]
+        # make sure inputs are compatible
+        for inst_t in inst[1:]:
+            if inst_t.proj != inst[0].proj:
+                raise ValueError("Inputs must agree on the use of projections")
+            for proj_a, proj_b in zip(inst_t.info["projs"], projs):
                 if not _proj_equal(proj_a, proj_b):
-                    raise ValueError("Epochs must have same projectors")
+                    raise ValueError("Inputs must have same projectors")
     projs = _check_projs(projs)
-    ch_names = epochs[0].ch_names
+    ch_names = inst[0].ch_names
 
-    # make sure Epochs are compatible
-    for epochs_t in epochs[1:]:
-        if epochs_t.info["bads"] != bads:
-            raise ValueError("Epochs must have same bad channels")
-        if epochs_t.ch_names != ch_names:
-            raise ValueError("Epochs must have same channel names")
-    picks_list = _picks_by_type(epochs[0].info)
+    # make sure inputs are compatible
+    for inst_t in inst[1:]:
+        if inst_t.info["bads"] != bads:
+            raise ValueError("Inputs must have same bad channels")
+        if inst_t.ch_names != ch_names:
+            raise ValueError("Inputs must have same channel names")
+    picks_list = _picks_by_type(inst[0].info)
     picks_meeg = np.concatenate([b for _, b in picks_list])
     picks_meeg = np.sort(picks_meeg)
-    ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
-    info = epochs[0].info  # we will overwrite 'epochs'
+    ch_names = [inst[0].ch_names[k] for k in picks_meeg]
+    info = inst[0].info  # we will overwrite 'inst'
 
     if not keep_sample_mean:
         # prepare mean covs
-        n_epoch_types = len(epochs)
+        n_epoch_types = len(inst)
         data_mean = [0] * n_epoch_types
         n_samples = np.zeros(n_epoch_types, dtype=np.int64)
         n_epochs = np.zeros(n_epoch_types, dtype=np.int64)
 
-        for ii, epochs_t in enumerate(epochs):
-            tslice = _get_tslice(epochs_t, tmin, tmax)
-            for e in epochs_t:
+        for ii, inst_t in enumerate(inst):
+            tslice = _get_tslice(inst_t, tmin, tmax)
+            for e in inst_t:
                 e = e[picks_meeg, tslice]
                 if not keep_sample_mean:
                     data_mean[ii] += e
@@ -1148,24 +1188,27 @@ def compute_covariance(
             for n_epoch, mean in zip(n_epochs, data_mean)
         ]
 
-    info = pick_info(info, picks_meeg)
-    tslice = _get_tslice(epochs[0], tmin, tmax)
-    epochs = [ee.get_data(picks=picks_meeg)[..., tslice] for ee in epochs]
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, picks_meeg)
+    tslice = _get_tslice(inst[0], tmin, tmax)
+    inst = [ee.get_data(picks=picks_meeg)[..., tslice] for ee in inst]
+    if is_evoked:
+        inst[0] = inst[0][np.newaxis]
     picks_meeg = np.arange(len(picks_meeg))
     picks_list = _picks_by_type(info)
 
-    if len(epochs) > 1:
-        epochs = np.concatenate(epochs, 0)
+    if len(inst) > 1:
+        inst = np.concatenate(inst, 0)
     else:
-        epochs = epochs[0]
+        inst = inst[0]
 
-    epochs = np.hstack(epochs)
-    n_samples_tot = epochs.shape[-1]
+    inst = np.hstack(inst)
+    n_samples_tot = inst.shape[-1]
     _check_n_samples(n_samples_tot, len(picks_meeg), on_few_samples)
 
-    epochs = epochs.T  # sklearn | C-order
+    inst = inst.T  # sklearn | C-order
     cov_data = _compute_covariance_auto(
-        epochs,
+        inst,
         method=method,
         method_params=_method_params,
         info=info,
@@ -1253,6 +1296,7 @@ def _compute_rank_raw_array(
     )
 
 
+@_limit_blas_threads()
 def _compute_covariance_auto(
     data,
     method,
@@ -1730,16 +1774,6 @@ def write_cov(fname, cov, *, overwrite=False, verbose=None):
 # Prepare for inverse modeling
 
 
-def _unpack_epochs(epochs):
-    """Aux Function."""
-    if len(epochs.event_id) > 1:
-        epochs = [epochs[k] for k in epochs.event_id]
-    else:
-        epochs = [epochs]
-
-    return epochs
-
-
 def _get_ch_whitener(A, pca, ch_type, rank):
     """Get whitener params for a set of channels."""
     # whitening operator
@@ -2146,7 +2180,8 @@ def regularize(
                     )
         else:
             this_picks = pick_channels(info["ch_names"], this_ch_names)
-            this_info = pick_info(info, this_picks)
+            with info._skip_checks():  # info is already consistent
+                this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
             _, eigvec, mask = _smart_eigh(this_C, this_info, rank)

@@ -5,29 +5,17 @@
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
-import os
-import os.path as op
+from functools import partial
 
 import numpy as np
 from numpy.polynomial import legendre
 
 from ..fixes import _reshape_view
 from ..parallel import parallel_func
-from ..utils import _get_extra_data_path, _open_lock, fill_doc, logger, verbose
+from ..utils import fill_doc
 
 ##############################################################################
-# FAST LEGENDRE (DERIVATIVE) POLYNOMIALS USING LOOKUP TABLE
-
-
-def _next_legen_der(n, x, p0, p01, p0d, p0dd):
-    """Compute the next Legendre polynomial and its derivatives."""
-    # only good for n > 1 !
-    old_p0 = p0
-    old_p0d = p0d
-    p0 = ((2 * n - 1) * x * old_p0 - (n - 1) * p01) / n
-    p0d = n * old_p0 + x * old_p0d
-    p0dd = (n + 1) * old_p0d + x * p0dd
-    return p0, p0d, p0dd
+# LEGENDRE (DERIVATIVE) POLYNOMIALS
 
 
 def _get_legen(x, n_coeff=100):
@@ -37,59 +25,21 @@ def _get_legen(x, n_coeff=100):
 
 def _get_legen_der(xx, n_coeff=100):
     """Get Legendre polynomial derivatives expanded about x."""
-    coeffs = np.empty((len(xx), n_coeff, 3))
-    for c, x in zip(coeffs, xx):
-        p0s, p0ds, p0dds = c[:, 0], c[:, 1], c[:, 2]
-        p0s[:2] = [1.0, x]
-        p0ds[:2] = [0.0, 1.0]
-        p0dds[:2] = [0.0, 0.0]
-        for n in range(2, n_coeff):
-            p0s[n], p0ds[n], p0dds[n] = _next_legen_der(
-                n, x, p0s[n - 1], p0s[n - 2], p0ds[n - 1], p0dds[n - 1]
-            )
-    return coeffs
+    xx = np.asarray(xx)
+    # vectorized over all points at once; loop only over the (small) degree
+    coeffs = np.empty((n_coeff, len(xx), 3))
+    p0, p0d, p0dd = coeffs[..., 0], coeffs[..., 1], coeffs[..., 2]
+    p0[0], p0d[0], p0dd[0] = 1.0, 0.0, 0.0
+    p0[1], p0d[1], p0dd[1] = xx, 1.0, 0.0
+    for n in range(2, n_coeff):
+        p0[n] = ((2 * n - 1) * xx * p0[n - 1] - (n - 1) * p0[n - 2]) / n
+        p0d[n] = n * p0[n - 1] + xx * p0d[n - 1]
+        p0dd[n] = (n + 1) * p0d[n - 1] + xx * p0dd[n - 1]
+    return np.moveaxis(coeffs, 0, 1)
 
 
-@verbose
-def _get_legen_table(
-    ch_type,
-    volume_integral=False,
-    n_coeff=100,
-    n_interp=20000,
-    force_calc=False,
-    verbose=None,
-):
-    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs."""
-    if n_interp % 2 != 0:
-        raise RuntimeError("n_interp must be even")
-    fname = op.join(_get_extra_data_path(), "tables")
-    if not op.isdir(fname):
-        # Updated due to API change (GH 1167)
-        os.makedirs(fname)
-    if ch_type == "meg":
-        fname = op.join(fname, f"legder_{n_coeff}_{n_interp}.bin")
-        leg_fun = _get_legen_der
-        extra_str = " derivative"
-        lut_shape = (n_interp + 1, n_coeff, 3)
-    else:  # 'eeg'
-        fname = op.join(fname, f"legval_{n_coeff}_{n_interp}.bin")
-        leg_fun = _get_legen
-        extra_str = ""
-        lut_shape = (n_interp + 1, n_coeff)
-    if not op.isfile(fname) or force_calc:
-        logger.info(f"Generating Legendre{extra_str} table...")
-        x_interp = np.linspace(-1, 1, n_interp + 1)
-        lut = leg_fun(x_interp, n_coeff).astype(np.float32)
-        if not force_calc:
-            with _open_lock(fname, "wb") as fid:
-                fid.write(lut.tobytes())
-    else:
-        logger.info(f"Reading Legendre{extra_str} table...")
-        with _open_lock(fname, "rb", buffering=0) as fid:
-            lut = np.fromfile(fid, np.float32)
-    lut = _reshape_view(lut, lut_shape)
-
-    # we need this for the integration step
+def _get_legen_n_fact(ch_type, volume_integral, n_coeff):
+    """Get the coefficients used to weight the Legendre (derivative) series."""
     n_fact = np.arange(1, n_coeff, dtype=float)
     if ch_type == "meg":
         n_facts = list()  # multn, then mult, then multn * (n + 1)
@@ -99,20 +49,35 @@ def _get_legen_table(
             n_facts.append(n_fact / (2.0 * n_fact + 1.0))
         n_facts.append(n_facts[0] / (n_fact + 1.0))
         n_facts.append(n_facts[0] * (n_fact + 1.0))
-        # skip the first set of coefficients because they are not used
-        lut = lut[:, 1:, [0, 1, 1, 2]]  # for multiplicative convenience later
-        # reshape this for convenience, too
         n_facts = np.array(n_facts)[[2, 0, 1, 1], :].T
-        n_facts = np.ascontiguousarray(n_facts)
-        n_fact = n_facts
+        n_fact = np.ascontiguousarray(n_facts)
     else:  # 'eeg'
         n_fact = (2.0 * n_fact + 1.0) * (2.0 * n_fact + 1.0) / n_fact
-        # skip the first set of coefficients because they are not used
-        lut = lut[:, 1:].copy()
-    return lut, n_fact
+    return n_fact
 
 
-def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
+def _eval_legen_meg(x, n_coeff):
+    """Evaluate the (sliced) Legendre (derivative) series at x."""
+    # Drop the unused n=0 term and rearrange columns
+    return _get_legen_der(x, n_coeff)[:, 1:, [0, 1, 1, 2]]
+
+
+def _eval_legen_eeg(x, n_coeff):
+    # Drop the unused n=0 term
+    return _get_legen(x, n_coeff)[:, 1:]
+
+
+def _get_legen_fun(ch_type, volume_integral=False, n_coeff=100):
+    """Return an evaluator for the Legendre (derivative) series."""
+    n_fact = _get_legen_n_fact(ch_type, volume_integral, n_coeff)
+    if ch_type == "meg":
+        leg_fun = partial(_eval_legen_meg, n_coeff=n_coeff)
+    else:
+        leg_fun = partial(_eval_legen_eeg, n_coeff=n_coeff)
+    return leg_fun, n_fact
+
+
+def _comp_sum_eeg(beta, ctheta, leg_fun, n_fact):
     """Lead field dot products using Legendre polynomial (P_n) series."""
     # Compute the sum occurring in the evaluation.
     # The result is
@@ -121,7 +86,7 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     lims = np.concatenate([np.arange(0, beta.size, n_chunk), [beta.size]])
     s0 = np.empty(beta.shape)
     for start, stop in zip(lims[:-1], lims[1:]):
-        coeffs = lut_fun(ctheta[start:stop])
+        coeffs = leg_fun(ctheta[start:stop])
         betans = np.tile(beta[start:stop][:, np.newaxis], (1, n_fact.shape[0]))
         np.cumprod(betans, axis=1, out=betans)  # run inplace
         coeffs *= betans
@@ -129,7 +94,7 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     return s0
 
 
-def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
+def _comp_sums_meg(beta, ctheta, leg_fun, n_fact, volume_integral):
     """Lead field dot products using Legendre polynomial (P_n) series.
 
     Parameters
@@ -138,8 +103,8 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
         Coefficients of the integration.
     ctheta : array, shape (n_points * n_points, 1)
         Cosine of the angle between the sensor integration points.
-    lut_fun : callable
-        Look-up table for evaluating Legendre polynomials.
+    leg_fun : callable
+        Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
     volume_integral : bool
@@ -162,7 +127,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
     # or
-    # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
+    # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, leg_fun(ctheta)))
     sums = np.empty((n_fact.shape[1], len(beta)))
     # beta can be e.g. 3 million elements, which ends up using lots of memory
     # so we split up the computations into ~50 MB blocks
@@ -176,7 +141,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
             "ji,jk,ijk->ki",
             bbeta,
             n_fact,
-            lut_fun(ctheta[start:stop]),
+            leg_fun(ctheta[start:stop]),
             out=sums[:, start:stop],
         )
     return sums
@@ -200,7 +165,7 @@ def _fast_sphere_dot_r0(
     w1,
     w2s,
     volume_integral,
-    lut,
+    leg_fun,
     n_fact,
     ch_type,
 ):
@@ -229,8 +194,8 @@ def _fast_sphere_dot_r0(
         Weights of integration points in the second sensor.
     volume_integral : bool
         If True, compute volume integral.
-    lut : callable
-        Look-up table for evaluating Legendre polynomials.
+    leg_fun : callable
+        Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
     ch_type : str
@@ -264,7 +229,7 @@ def _fast_sphere_dot_r0(
     beta = (r * r) / lr1lr2
     if ch_type == "meg":
         sums = _comp_sums_meg(
-            beta.flatten(), ct.flatten(), lut, n_fact, volume_integral
+            beta.flatten(), ct.flatten(), leg_fun, n_fact, volume_integral
         )
         sums = _reshape_view(sums, ((4,) + beta.shape))
 
@@ -296,7 +261,7 @@ def _fast_sphere_dot_r0(
         if volume_integral:
             result *= r
     else:  # 'eeg'
-        result = _comp_sum_eeg(beta.flatten(), ct.flatten(), lut, n_fact)
+        result = _comp_sum_eeg(beta.flatten(), ct.flatten(), leg_fun, n_fact)
         result = _reshape_view(result, beta.shape)
         # Give it a finishing touch!
         result *= _eeg_const
@@ -313,7 +278,7 @@ def _fast_sphere_dot_r0(
 
 
 @fill_doc
-def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
+def _do_self_dots(intrad, volume, coils, r0, ch_type, leg_fun, n_fact, n_jobs):
     """Perform the lead field dot product integrations.
 
     Parameters
@@ -329,8 +294,8 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'.
-    lut : callable
-        Look-up table for evaluating Legendre polynomials.
+    leg_fun : callable
+        Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
     %(n_jobs)s
@@ -350,7 +315,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     ws = [coil["w"] for coil in coils]
     parallel, p_fun, n_jobs = parallel_func(_do_self_dots_subset, n_jobs)
     prods = parallel(
-        p_fun(intrad, rmags, rlens, cosmags, ws, volume, lut, n_fact, ch_type, idx)
+        p_fun(intrad, rmags, rlens, cosmags, ws, volume, leg_fun, n_fact, ch_type, idx)
         for idx in np.array_split(np.arange(len(rmags)), n_jobs)
     )
     products = np.sum(prods, axis=0)
@@ -358,7 +323,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
 
 
 def _do_self_dots_subset(
-    intrad, rmags, rlens, cosmags, ws, volume, lut, n_fact, ch_type, idx
+    intrad, rmags, rlens, cosmags, ws, volume, leg_fun, n_fact, ch_type, idx
 ):
     """Parallelize."""
     # all possible combinations of two magnetometers
@@ -376,7 +341,7 @@ def _do_self_dots_subset(
             ws[ci1],
             ws[:ci2],
             volume,
-            lut,
+            leg_fun,
             n_fact,
             ch_type,
         )
@@ -385,7 +350,7 @@ def _do_self_dots_subset(
     return products
 
 
-def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, lut, n_fact):
+def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, leg_fun, n_fact):
     """Compute lead field dot product integrations between two coil sets.
 
     The code is a direct translation of MNE-C code found in
@@ -406,8 +371,8 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, lut, n_fact):
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'
-    lut : callable
-        Look-up table for evaluating Legendre polynomials.
+    leg_fun : callable
+        Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
 
@@ -446,7 +411,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, lut, n_fact):
             ws1[ci1],
             ws2,
             volume,
-            lut,
+            leg_fun,
             n_fact,
             ch_type,
         )
@@ -456,7 +421,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, lut, n_fact):
 
 @fill_doc
 def _do_surface_dots(
-    intrad, volume, coils, surf, sel, r0, ch_type, lut, n_fact, n_jobs
+    intrad, volume, coils, surf, sel, r0, ch_type, leg_fun, n_fact, n_jobs
 ):
     """Compute the map construction products.
 
@@ -477,8 +442,8 @@ def _do_surface_dots(
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'.
-    lut : callable
-        Look-up table for Legendre polynomials.
+    leg_fun : callable
+        Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
     %(n_jobs)s
@@ -526,7 +491,7 @@ def _do_surface_dots(
             cosmags,
             ws,
             volume,
-            lut,
+            leg_fun,
             n_fact,
             ch_type,
             idx,
@@ -549,7 +514,7 @@ def _do_surface_dots_subset(
     cosmags,
     ws,
     volume,
-    lut,
+    leg_fun,
     n_fact,
     ch_type,
     idx,
@@ -573,8 +538,8 @@ def _do_surface_dots_subset(
         Integration weights of the coils.
     volume : bool
         If True, compute volume integral.
-    lut : callable
-        Look-up table for evaluating Legendre polynomials.
+    leg_fun : callable
+        Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
     ch_type : str
@@ -598,7 +563,7 @@ def _do_surface_dots_subset(
         None,
         ws,
         volume,
-        lut,
+        leg_fun,
         n_fact,
         ch_type,
     ).T

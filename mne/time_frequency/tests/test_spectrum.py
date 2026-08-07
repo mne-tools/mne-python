@@ -450,7 +450,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
         else:
             agg_df = gb.mean()  # excludes missing values itself
     else:
-        gb = gb[df.columns]  # XXX: try removing when minimum pandas >= 2.1 is required
+        gb = gb[df.columns]  # still needed as of pandas 3.0
         agg_df = gb.apply(_agg_helper, spectrum.weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
@@ -718,12 +718,15 @@ def test_plot_spectrum(method, output, average, request):
         n_bad = sum(same_color(line.get_color(), bad_color) for line in lines)
         assert n_bad == 1
     spectrum.plot_topo()
+    with pytest.warns(FutureWarning, match="'block' parameter is deprecated"):
+        spectrum.plot_topo(block=True)
     spectrum.plot_topomap()
 
 
 def test_plot_spectrum_array_with_bads():
     """Test plotting a spectrum array with bads."""
-    raw = RawArray(np.random.randn(3, 1000), create_info(3, 1000, "eeg"))
+    rng = np.random.default_rng(0)
+    raw = RawArray(rng.standard_normal((3, 1000)), create_info(3, 1000, "eeg"))
     raw.info["bads"] = [raw.ch_names[1]]
     spectrum = raw.compute_psd()
     with pytest.raises(

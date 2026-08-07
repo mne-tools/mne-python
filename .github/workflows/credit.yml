@@ -17,13 +17,17 @@ jobs:
       GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: true
-      - uses: actions/setup-python@v6.3.0
-      - run: pip install pygithub -e .
+      - uses: actions/setup-python@v7.0.0
+      - run: pip install pygithub sphinx -e .
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json
+      # Resolve contributor names, appending .mailmap entries for any new
+      # contributors whose names need verification (listed in the PR body)
+      - run: python doc/sphinxext/credit_tools.py --fix-mailmap --report $RUNNER_TEMP/credit-report.md
+      - run: git add .mailmap
       - run: |
           git diff && git status --porcelain
           if [[ $(git status --porcelain) ]]; then
@@ -39,6 +43,9 @@ jobs:
           git checkout -b $BRANCH
           git commit -am "mne[bot]: Update code credit [skip azp] [skip actions]"
           git push origin $BRANCH
-          PR_NUM=$(gh pr create --base main --head $BRANCH --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}). <br> <br> *Adjustments may need to be made to \`doc/sphinxext/credit_tools.py\` or \`.mailmap\` etc. to get CircleCI to pass.*" --label "no-changelog-entry-needed")
+          echo "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }})." > $RUNNER_TEMP/body.md
+          echo "" >> $RUNNER_TEMP/body.md
+          cat $RUNNER_TEMP/credit-report.md >> $RUNNER_TEMP/body.md
+          PR_NUM=$(gh pr create --base main --head $BRANCH --title "MAINT: Update code credit" --body-file $RUNNER_TEMP/body.md --label "no-changelog-entry-needed")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'

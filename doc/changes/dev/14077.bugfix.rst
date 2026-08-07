@@ -1,0 +1,1 @@
+Fix Qt browser close messages from :meth:`mne.io.Raw.plot` appearing in the wrong Jupyter notebook cell, by `Mingjian He`_.

@@ -61,7 +61,7 @@ Authors
 * Alex Rockhill
 * Alexandre Gramfort
 * Britta Westner
-* Carlos de la Torre+
+* Carlos de la Torre-Ortiz+
 * Daniel Hasegan+
 * Daniel McCloy
 * Dinara Issagaliyeva+
@@ -76,7 +76,7 @@ Authors
 * Lukas Hecker
 * Mark Alexander Henney+
 * Mathieu Scheltienne
-* Mauricio Cespedes+
+* Mauricio Cespedes Tenorio+
 * Mikołaj Magnuski
 * Moritz Gerster
 * Omer Shubi+

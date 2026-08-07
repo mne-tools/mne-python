@@ -263,9 +263,9 @@ def linear_regression_raw(
         if solver == "cholesky":
 
             def solver(X, y):
-                a = (X.T * X).toarray()  # dot product of sparse matrices
+                a = (X.T @ X).toarray()  # dot product of sparse matrices
                 return linalg.solve(
-                    a, X.T * y, assume_a="pos", overwrite_a=True, overwrite_b=True
+                    a, X.T @ y, assume_a="pos", overwrite_a=True, overwrite_b=True
                 ).T
 
     elif callable(solver):
@@ -391,7 +391,7 @@ def _prepare_rerp_preds(
             values = np.ones((len(onsets), n_lags)) * v[:, np.newaxis]
 
         cond_length[cond] = len(onsets)
-        xs.append(sparse.dia_matrix((values, onsets), shape=(n_samples, n_lags)))
+        xs.append(sparse.dia_array((values, onsets), shape=(n_samples, n_lags)))
 
     return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
 

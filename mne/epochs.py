@@ -8,17 +8,21 @@ import json
 import operator
 import os.path as op
 from collections import Counter
+from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
 from functools import partial
 from inspect import getfullargspec
 from pathlib import Path
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
+from numpy.random import RandomState
 from scipy.interpolate import interp1d
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import (
     ContainsMixin,
+    Info,
     SetChannelsMixin,
     _ensure_infos_match,
     read_meas_info,
@@ -55,16 +59,17 @@ from ._fiff.write import (
     write_string,
 )
 from .annotations import (
+    Annotations,
     EpochAnnotationsMixin,
     _read_annotations_fif,
     _write_annotations,
     events_from_annotations,
 )
 from .baseline import _check_baseline, _log_rescale, rescale
-from .bem import _check_origin
+from .bem import ConductorModel, _check_origin
 from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
-from .evoked import EvokedArray
+from .evoked import Evoked, EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
 from .fixes import _reshape_view, rng_uniform
 from .html_templates import _get_html_template
@@ -105,8 +110,26 @@ from .utils import (
     verbose,
     warn,
 )
+from .utils._typing import Color, FileLike, Self
 from .utils.docs import fill_doc
 from .viz import plot_drop_log, plot_epochs, plot_epochs_image, plot_topo_image_epochs
+
+if TYPE_CHECKING:
+    # Heavy/optional deps kept out of the runtime import path (see
+    # mne/tests/test_import_nesting.py); referenced only via string annotations.
+    from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap
+    from matplotlib.figure import Figure
+    from pandas import DataFrame
+
+    from .channels.layout import Layout
+    from .cov import Covariance
+    from .io import BaseRaw
+    from .transforms import Transform
+
+    # The optional ``mne_qt_browser`` window subclasses the first-party
+    # ``BrowserBase``, so alias it to annotate ``.plot()`` returns without the dep.
+    from .viz._figure import BrowserBase as MNEQtBrowser
 
 
 def _pack_reject_params(epochs):
@@ -418,6 +441,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
@@ -439,33 +463,34 @@ class BaseEpochs(
     @verbose
     def __init__(
         self,
-        info,
-        data,
-        events,
-        event_id=None,
-        tmin=-0.2,
-        tmax=0.5,
-        baseline=(None, 0),
-        raw=None,
-        picks=None,
-        reject=None,
-        flat=None,
-        decim=1,
-        reject_tmin=None,
-        reject_tmax=None,
-        detrend=None,
-        proj=True,
-        on_missing="raise",
-        preload_at_end=False,
-        selection=None,
-        drop_log=None,
-        filename=None,
-        metadata=None,
-        event_repeated="error",
+        info: Info,
+        data: np.ndarray | None,
+        events: np.ndarray,
+        event_id: int | list[int] | dict | str | list[str] | None = None,
+        tmin: float = -0.2,
+        tmax: float = 0.5,
+        baseline: tuple[float | None, float | None] | None = (None, 0),
+        raw: "BaseRaw | list | None" = None,
+        picks: str | np.ndarray | slice | None = None,
+        reject: dict | None = None,
+        flat: dict | None = None,
+        decim: int = 1,
+        reject_tmin: float | None = None,
+        reject_tmax: float | None = None,
+        detrend: int | None = None,
+        proj: bool | Literal["delayed"] = True,
+        on_missing: Literal["raise", "warn", "ignore"] = "raise",
+        preload_at_end: bool = False,
+        selection: Iterable | None = None,
+        drop_log: tuple | None = None,
+        filename: Path | str | None = None,
+        metadata: "DataFrame | list | None" = None,
+        event_repeated: str = "error",
         *,
-        raw_sfreq=None,
-        annotations=None,
-        verbose=None,
+        on_outside: Literal["warn", "raise", "ignore"] = "warn",
+        raw_sfreq: float | None = None,
+        annotations: Annotations | None = None,
+        verbose: bool | str | int | None = None,
     ):
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
@@ -534,6 +559,9 @@ class BaseEpochs(
                 self.selection,
                 self.drop_log,
             )
+
+            # Handle events outside the data range
+            self._check_events_outside_data(on_outside, raw)
 
             # then subselect
             sub = np.where(np.isin(selection, self.selection))[0]
@@ -682,6 +710,7 @@ class BaseEpochs(
             # requested
             # we could do this with np.einsum, but iteration should be
             # more memory safe in most instances
+            assert self._data is not None
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self.filename = filename if filename is not None else filename
@@ -690,6 +719,23 @@ class BaseEpochs(
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
+
+    def _check_events_outside_data(self, on_outside, raw):
+        """Warn when events fall outside the range of the recorded data (gh-12989)."""
+        if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
+            lo = raw.first_samp
+            hi = lo + raw.n_times
+            n_oob = int(((self.events[:, 0] < lo) | (self.events[:, 0] >= hi)).sum())
+            if n_oob:
+                _on_missing(
+                    on_outside,
+                    f"{n_oob} event{_pl(n_oob)} {'is' if n_oob == 1 else 'are'} "
+                    f"outside the data range; the corresponding epoch{_pl(n_oob)} "
+                    "cannot be created. This can happen if the events were created at "
+                    "a different sampling frequency, or have entries before "
+                    "first_samp.",
+                    name="on_outside",
+                )
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
@@ -704,7 +750,7 @@ class BaseEpochs(
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
 
     @legacy(alt="mne.Epochs.reset_index()")
-    def reset_drop_log_selection(self):
+    def reset_drop_log_selection(self) -> None:
         """Reset the drop_log and selection entries.
 
         This method will simplify ``self.drop_log`` and ``self.selection``
@@ -715,7 +761,7 @@ class BaseEpochs(
         """
         self.reset_index()
 
-    def reset_index(self):
+    def reset_index(self) -> None:
         """Reset the epochs index.
 
         This resets the epochs indexing and drop log so that ``self.selection`` becomes
@@ -728,7 +774,7 @@ class BaseEpochs(
         self.drop_log = (tuple(),) * len(self.events)
         self._check_consistency()
 
-    def load_data(self):
+    def load_data(self) -> Self:
         """Load the data if not already preloaded.
 
         Returns
@@ -755,7 +801,12 @@ class BaseEpochs(
         return self
 
     @verbose
-    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
+    def apply_baseline(
+        self,
+        baseline: tuple[float | None, float | None] | None = (None, 0),
+        *,
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Baseline correct epochs.
 
         Parameters
@@ -966,7 +1017,7 @@ class BaseEpochs(
 
         return epoch
 
-    def iter_evoked(self, copy=False):
+    def iter_evoked(self, copy: bool = False) -> Iterator[Evoked]:
         """Iterate over epochs as a sequence of Evoked objects.
 
         The Evoked objects yielded will each contain a single epoch (i.e., no
@@ -1001,7 +1052,7 @@ class BaseEpochs(
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
-    def subtract_evoked(self, evoked=None):
+    def subtract_evoked(self, evoked: Evoked | None = None) -> Self:
         """Subtract an evoked response from each epoch.
 
         Can be used to exclude the evoked response when analyzing induced
@@ -1083,7 +1134,12 @@ class BaseEpochs(
         return self
 
     @fill_doc
-    def average(self, picks=None, method="mean", by_event_type=False):
+    def average(
+        self,
+        picks: str | np.ndarray | slice | None = None,
+        method: str | Callable = "mean",
+        by_event_type: bool = False,
+    ) -> Evoked | list[Evoked]:
         """Compute an average over epochs.
 
         Parameters
@@ -1135,7 +1191,11 @@ class BaseEpochs(
         return evokeds
 
     @fill_doc
-    def standard_error(self, picks=None, by_event_type=False):
+    def standard_error(
+        self,
+        picks: str | np.ndarray | slice | None = None,
+        by_event_type: bool = False,
+    ) -> Evoked | list[Evoked]:
         """Compute standard error over epochs.
 
         Parameters
@@ -1169,6 +1229,7 @@ class BaseEpochs(
         n_times = len(self.times)
 
         if self.preload:
+            assert self._data is not None
             n_events = len(self.events)
             fun = _check_combine(mode, valid=("mean", "median", "std"))
             data = fun(self._data)
@@ -1295,41 +1356,41 @@ class BaseEpochs(
         return evoked
 
     @property
-    def ch_names(self):
+    def ch_names(self) -> list[str]:
         """Channel names."""
         return self.info["ch_names"]
 
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(
         self,
-        picks=None,
-        scalings=None,
-        n_epochs=20,
-        n_channels=20,
-        title=None,
-        events=False,
-        event_color=None,
-        order=None,
-        show=True,
-        block=False,
-        decim="auto",
-        noise_cov=None,
-        butterfly=False,
-        show_scrollbars=True,
-        show_scalebars=True,
-        show_zero_line=False,
-        epoch_colors=None,
-        event_id=None,
-        group_by="type",
-        precompute=None,
-        use_opengl=None,
+        picks: str | np.ndarray | slice | None = None,
+        scalings: Literal["auto"] | dict | None = None,
+        n_epochs: int = 20,
+        n_channels: int = 20,
+        title: str | None = None,
+        events: bool | np.ndarray = False,
+        event_color: Color | dict | None = None,
+        order: np.ndarray | None = None,
+        show: bool = True,
+        block: bool = False,
+        decim: int | Literal["auto"] = "auto",
+        noise_cov: "Covariance | str | None" = None,
+        butterfly: bool = False,
+        show_scrollbars: bool = True,
+        show_scalebars: bool = True,
+        show_zero_line: bool = False,
+        epoch_colors: list | None = None,
+        event_id: bool | dict | None = None,
+        group_by: str = "type",
+        precompute: bool | str | None = None,
+        use_opengl: bool | None = None,
         *,
-        theme=None,
-        overview_mode=None,
-        splash=True,
-        annotation_colors=None,
-        figure_class=None,
-    ):
+        theme: str | Path | None = None,
+        overview_mode: str | None = None,
+        splash: bool = True,
+        annotation_colors: dict | None = None,
+        figure_class: type | None = None,
+    ) -> "Figure | MNEQtBrowser":
         return plot_epochs(
             self,
             picks=picks,
@@ -1363,23 +1424,23 @@ class BaseEpochs(
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(
         self,
-        layout=None,
-        sigma=0.0,
-        vmin=None,
-        vmax=None,
-        colorbar=None,
-        order=None,
-        cmap="RdBu_r",
-        layout_scale=0.95,
-        title=None,
-        scalings=None,
-        border="none",
-        fig_facecolor="k",
-        fig_background=None,
-        font_color="w",
-        select=False,
-        show=True,
-    ):
+        layout: "Layout | None" = None,
+        sigma: float = 0.0,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        colorbar: bool | None = None,
+        order: np.ndarray | Callable | None = None,
+        cmap: "str | Colormap" = "RdBu_r",
+        layout_scale: float = 0.95,
+        title: str | None = None,
+        scalings: dict | None = None,
+        border: str = "none",
+        fig_facecolor: Color = "k",
+        fig_background: np.ndarray | None = None,
+        font_color: Color = "w",
+        select: bool = False,
+        show: bool = True,
+    ) -> "Figure":
         return plot_topo_image_epochs(
             self,
             layout=layout,
@@ -1401,7 +1462,12 @@ class BaseEpochs(
         )
 
     @verbose
-    def drop_bad(self, reject="existing", flat="existing", verbose=None):
+    def drop_bad(
+        self,
+        reject: dict | str | None = "existing",
+        flat: dict | str | None = "existing",
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
@@ -1435,7 +1501,7 @@ class BaseEpochs(
         """
         if reject == "existing":
             if flat == "existing" and self._bad_dropped:
-                return
+                return self
             reject = self.reject
         if flat == "existing":
             flat = self.flat
@@ -1445,7 +1511,7 @@ class BaseEpochs(
         self._get_data(out=False, verbose=verbose)
         return self
 
-    def drop_log_stats(self, ignore=("IGNORED",)):
+    def drop_log_stats(self, ignore: list | tuple = ("IGNORED",)) -> float:
         """Compute the channel stats based on a drop_log from Epochs.
 
         Parameters
@@ -1467,14 +1533,14 @@ class BaseEpochs(
     @copy_function_doc_to_method_doc(plot_drop_log)
     def plot_drop_log(
         self,
-        threshold=0,
-        n_max_plot=20,
-        subject=None,
-        color=(0.9, 0.9, 0.9),
-        width=0.8,
-        ignore=("IGNORED",),
-        show=True,
-    ):
+        threshold: float = 0,
+        n_max_plot: int = 20,
+        subject: str | None = None,
+        color: Color = (0.9, 0.9, 0.9),
+        width: float = 0.8,
+        ignore: list | tuple = ("IGNORED",),
+        show: bool = True,
+    ) -> "Figure":
         if not self._bad_dropped:
             raise ValueError(
                 "You cannot use plot_drop_log since bad "
@@ -1495,26 +1561,26 @@ class BaseEpochs(
     @copy_function_doc_to_method_doc(plot_epochs_image)
     def plot_image(
         self,
-        picks=None,
-        sigma=0.0,
-        vmin=None,
-        vmax=None,
-        colorbar=True,
-        order=None,
-        show=True,
-        units=None,
-        scalings=None,
-        cmap=None,
-        fig=None,
-        axes=None,
-        overlay_times=None,
-        combine=None,
-        group_by=None,
-        evoked=True,
-        ts_args=None,
-        title=None,
-        clear=False,
-    ):
+        picks: str | np.ndarray | slice | None = None,
+        sigma: float = 0.0,
+        vmin: float | Callable | None = None,
+        vmax: float | Callable | None = None,
+        colorbar: bool = True,
+        order: np.ndarray | Callable | None = None,
+        show: bool = True,
+        units: dict | None = None,
+        scalings: dict | None = None,
+        cmap: "str | Colormap | tuple | Literal['interactive'] | None" = None,
+        fig: "Figure | None" = None,
+        axes: "list[Axes] | dict | None" = None,
+        overlay_times: np.ndarray | None = None,
+        combine: Literal["mean", "median", "std", "gfp"] | Callable | None = None,
+        group_by: dict | None = None,
+        evoked: bool = True,
+        ts_args: dict | None = None,
+        title: str | None = None,
+        clear: bool = False,
+    ) -> "list[Figure]":
         return plot_epochs_image(
             self,
             picks=picks,
@@ -1539,7 +1605,12 @@ class BaseEpochs(
         )
 
     @verbose
-    def drop(self, indices, reason="USER", verbose=None):
+    def drop(
+        self,
+        indices: np.ndarray | list,
+        reason: list | tuple | str = "USER",
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Drop epochs based on indices or boolean mask.
 
         .. note:: The indices refer to the current set of undropped epochs
@@ -1553,7 +1624,7 @@ class BaseEpochs(
 
         Parameters
         ----------
-        indices : array of int or bool
+        indices : array-like of int | array-like of bool
             Set epochs to remove by specifying indices to remove or a boolean
             mask to apply (where True values get removed). Events are
             correspondingly modified.
@@ -1706,6 +1777,7 @@ class BaseEpochs(
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
+            assert self._data is not None
             data = self._data
         else:
             # we start out with an empty array, allocate only if necessary
@@ -1774,6 +1846,7 @@ class BaseEpochs(
                 detrend_picks = self._detrend_picks
             for idx, sel in enumerate(self.selection):
                 if self.preload:  # from memory
+                    assert self._data is not None
                     if self._do_delayed_proj:
                         epoch_noproj = self._data[idx]
                         epoch = self._project_epoch(epoch_noproj)
@@ -1797,6 +1870,7 @@ class BaseEpochs(
                 good_idx.append(idx)
 
                 # store the epoch if there is a reason to (output or update)
+                assert epoch_out is not None
                 if out or self.preload:
                     # faster to pre-allocate, then trim as necessary
                     if n_out == 0 and not self.preload:
@@ -1900,15 +1974,15 @@ class BaseEpochs(
     @verbose
     def get_data(
         self,
-        picks=None,
-        item=None,
-        units=None,
-        tmin=None,
-        tmax=None,
+        picks: str | np.ndarray | slice | None = None,
+        item: slice | np.ndarray | str | list | None = None,
+        units: str | dict | None = None,
+        tmin: int | float | None = None,
+        tmax: int | float | None = None,
         *,
-        copy=True,
-        verbose=None,
-    ):
+        copy: bool = True,
+        verbose: bool | str | int | None = None,
+    ) -> np.ndarray:
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1964,14 +2038,14 @@ class BaseEpochs(
     @verbose
     def apply_function(
         self,
-        fun,
-        picks=None,
-        dtype=None,
-        n_jobs=None,
-        channel_wise=True,
-        verbose=None,
+        fun: Callable,
+        picks: str | np.ndarray | slice | None = None,
+        dtype: np.dtype | None = None,
+        n_jobs: int | None = None,
+        channel_wise: bool = True,
+        verbose: bool | str | int | None = None,
         **kwargs,
-    ):
+    ) -> Self:
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_epochs)s
@@ -1993,6 +2067,7 @@ class BaseEpochs(
             The epochs object with transformed data.
         """
         _check_preload(self, "epochs.apply_function")
+        assert self._data is not None
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -2062,7 +2137,7 @@ class BaseEpochs(
         return self._filename
 
     @filename.setter
-    def filename(self, value):
+    def filename(self, value: Path | str | None) -> None:
         if value is not None:
             value = _check_fname(value, overwrite="read", must_exist=True)
         self._filename = value
@@ -2124,19 +2199,22 @@ class BaseEpochs(
             event_strings = None
 
         t = _get_html_template("repr", "epochs.html.jinja")
+        fname = self.filename
         t = t.render(
             inst=self,
-            filenames=(
-                [Path(self.filename).name]
-                if getattr(self, "filename", None) is not None
-                else None
-            ),
+            filenames=[Path(fname).name] if fname is not None else None,
             event_counts=event_strings,
         )
         return t
 
     @verbose
-    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
+    def crop(
+        self,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        include_tmax: bool = True,
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Crop a time interval from the epochs.
 
         Parameters
@@ -2177,7 +2255,7 @@ class BaseEpochs(
             self.reject_tmax = self.tmax
         return self
 
-    def copy(self):
+    def copy(self) -> Self:
         """Return copy of Epochs instance.
 
         Returns
@@ -2204,13 +2282,13 @@ class BaseEpochs(
     @verbose
     def save(
         self,
-        fname,
-        split_size="2GB",
-        fmt="single",
-        overwrite=False,
-        split_naming="neuromag",
-        verbose=None,
-    ):
+        fname: Path | str,
+        split_size: str | int = "2GB",
+        fmt: str = "single",
+        overwrite: bool = False,
+        split_naming: Literal["neuromag", "bids"] = "neuromag",
+        verbose: bool | str | int | None = None,
+    ) -> list[Path]:
         """Save epochs in a fif file.
 
         Parameters
@@ -2365,7 +2443,14 @@ class BaseEpochs(
         return split_fnames
 
     @verbose
-    def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
+    def export(
+        self,
+        fname: str,
+        fmt: Literal["auto", "eeglab"] = "auto",
+        *,
+        overwrite: bool = False,
+        verbose: bool | str | int | None = None,
+    ) -> None:
         """Export Epochs to external formats.
 
         %(export_fmt_support_epochs)s
@@ -2394,8 +2479,12 @@ class BaseEpochs(
 
     @fill_doc
     def equalize_event_counts(
-        self, event_ids=None, method="mintime", *, random_state=None
-    ):
+        self,
+        event_ids: list | dict | None = None,
+        method: Literal["truncate", "mintime", "random"] = "mintime",
+        *,
+        random_state: int | RandomState | None = None,
+    ) -> tuple:
         """Equalize the number of trials in each condition.
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -2550,20 +2639,20 @@ class BaseEpochs(
     @verbose
     def compute_psd(
         self,
-        method="multitaper",
-        fmin=0,
-        fmax=np.inf,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
-        remove_dc=True,
-        exclude=(),
+        method: Literal["welch", "multitaper"] = "multitaper",
+        fmin: float = 0,
+        fmax: float = np.inf,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
+        remove_dc: bool = True,
+        exclude: list[str] | tuple[str, ...] | Literal["bads"] = (),
         *,
-        n_jobs=1,
-        verbose=None,
+        n_jobs: int | None = 1,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> EpochsSpectrum:
         """Perform spectral analysis on sensor data.
 
         Parameters
@@ -2615,21 +2704,21 @@ class BaseEpochs(
     @verbose
     def compute_tfr(
         self,
-        method,
-        freqs,
+        method: Literal["morlet", "multitaper", "stockwell"] | None,
+        freqs: np.ndarray | Literal["auto"] | None,
         *,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
-        output="power",
-        average=False,
-        return_itc=False,
-        decim=1,
-        n_jobs=None,
-        verbose=None,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
+        output: str = "power",
+        average: bool = False,
+        return_itc: bool = False,
+        decim: int | slice = 1,
+        n_jobs: int | None = None,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> EpochsTFR | AverageTFR | tuple:
         """Compute a time-frequency representation of epoched data.
 
         Parameters
@@ -2748,31 +2837,31 @@ class BaseEpochs(
     @verbose
     def plot_psd(
         self,
-        fmin=0,
-        fmax=np.inf,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
+        fmin: float = 0,
+        fmax: float = np.inf,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
         *,
-        method="auto",
-        average=False,
-        dB=True,
-        estimate="power",
-        xscale="linear",
-        area_mode="std",
-        area_alpha=0.33,
-        color="black",
-        line_alpha=None,
-        spatial_colors=True,
-        sphere=None,
-        exclude="bads",
-        ax=None,
-        show=True,
-        n_jobs=1,
-        verbose=None,
+        method: Literal["welch", "multitaper", "auto"] = "auto",
+        average: bool = False,
+        dB: bool = True,
+        estimate: str = "power",
+        xscale: Literal["linear", "log"] = "linear",
+        area_mode: str | None = "std",
+        area_alpha: float = 0.33,
+        color: Color = "black",
+        line_alpha: float | None = None,
+        spatial_colors: bool = True,
+        sphere: float | np.ndarray | ConductorModel | str | list[str] | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
+        ax: "Axes | list[Axes] | None" = None,
+        show: bool = True,
+        n_jobs: int | None = 1,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> "Figure":
         """%(plot_psd_doc)s.
 
         Parameters
@@ -2845,15 +2934,15 @@ class BaseEpochs(
     @verbose
     def to_data_frame(
         self,
-        picks=None,
-        index=None,
-        scalings=None,
-        copy=True,
-        long_format=False,
-        time_format=None,
+        picks: str | np.ndarray | slice | None = None,
+        index: str | list[str] | None = None,
+        scalings: dict | None = None,
+        copy: bool = True,
+        long_format: bool = False,
+        time_format: str | None = None,
         *,
-        verbose=None,
-    ):
+        verbose: bool | str | int | None = None,
+    ) -> "DataFrame":
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -2918,7 +3007,7 @@ class BaseEpochs(
         )
         return df
 
-    def as_type(self, ch_type="grad", mode="fast"):
+    def as_type(self, ch_type: str = "grad", mode: str = "fast") -> "EpochsArray":
         """Compute virtual epochs using interpolated fields.
 
         .. Warning:: Using virtual epochs to compute inverse can yield
@@ -2981,15 +3070,15 @@ def _drop_log_stats(drop_log, ignore=("IGNORED",)):
 
 
 def make_metadata(
-    events,
-    event_id,
-    tmin,
-    tmax,
-    sfreq,
-    row_events=None,
-    keep_first=None,
-    keep_last=None,
-):
+    events: np.ndarray,
+    event_id: dict,
+    tmin: float | str | list[str] | None,
+    tmax: float | str | list[str] | None,
+    sfreq: float,
+    row_events: list[str] | str | None = None,
+    keep_first: str | list[str] | None = None,
+    keep_last: list[str] | None = None,
+) -> tuple:
     """Automatically generate metadata for use with `mne.Epochs` from events.
 
     This function mimics the epoching process (it constructs time windows
@@ -3223,12 +3312,12 @@ def make_metadata(
     # This follows the approach taken in mne.Epochs
     # For strings and None, we don't know the start and stop samples in advance as the
     # time window can vary.
-    if isinstance(tmin, type(None) | list):
+    if isinstance(tmin, str | list | type(None)):
         start_sample = None
     else:
         start_sample = int(round(tmin * sfreq))
 
-    if isinstance(tmax, type(None) | list):
+    if isinstance(tmax, str | list | type(None)):
         stop_sample = None
     else:
         stop_sample = int(round(tmax * sfreq)) + 1
@@ -3491,6 +3580,7 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     %(event_repeated_epochs)s
+    %(on_outside_epochs)s
     %(verbose)s
 
     Attributes
@@ -3572,26 +3662,28 @@ class Epochs(BaseEpochs):
     @verbose
     def __init__(
         self,
-        raw,
-        events=None,
-        event_id=None,
-        tmin=-0.2,
-        tmax=0.5,
-        baseline=(None, 0),
-        picks=None,
-        preload=False,
-        reject=None,
-        flat=None,
-        proj=True,
-        decim=1,
-        reject_tmin=None,
-        reject_tmax=None,
-        detrend=None,
-        on_missing="raise",
-        reject_by_annotation=True,
-        metadata=None,
-        event_repeated="error",
-        verbose=None,
+        raw: "BaseRaw",
+        events: np.ndarray | None = None,
+        event_id: int | list[int] | dict | str | list[str] | None = None,
+        tmin: float = -0.2,
+        tmax: float = 0.5,
+        baseline: tuple[float | None, float | None] | None = (None, 0),
+        picks: str | np.ndarray | slice | None = None,
+        preload: bool = False,
+        reject: dict | None = None,
+        flat: dict | None = None,
+        proj: bool | Literal["delayed"] = True,
+        decim: int = 1,
+        reject_tmin: float | None = None,
+        reject_tmax: float | None = None,
+        detrend: int | None = None,
+        on_missing: Literal["raise", "warn", "ignore"] = "raise",
+        reject_by_annotation: bool = True,
+        metadata: "DataFrame | None" = None,
+        event_repeated: str = "error",
+        *,
+        on_outside: Literal["warn", "raise", "ignore"] = "warn",
+        verbose: bool | str | int | None = None,
     ):
         from .io import BaseRaw
 
@@ -3650,6 +3742,7 @@ class Epochs(BaseEpochs):
             on_missing=on_missing,
             preload_at_end=preload,
             event_repeated=event_repeated,
+            on_outside=on_outside,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
             annotations=annotations,
@@ -3673,6 +3766,7 @@ class Epochs(BaseEpochs):
                 "Please report this to the mne-python "
                 "developers."
             )
+        assert not isinstance(self._raw, list)  # a single Raw, unlike EpochsFIF
         sfreq = self._raw.info["sfreq"]
         event_samp = self.events[idx, 0]
         # Read a data segment from "start" to "stop" in samples
@@ -3732,6 +3826,7 @@ class EpochsArray(BaseEpochs):
 
         .. versionadded:: 0.16
     %(selection)s
+    %(on_outside_epochs)s
     %(drop_log)s
 
         .. versionadded:: 1.3
@@ -3766,24 +3861,25 @@ class EpochsArray(BaseEpochs):
     @verbose
     def __init__(
         self,
-        data,
-        info,
-        events=None,
-        tmin=0.0,
-        event_id=None,
-        reject=None,
-        flat=None,
-        reject_tmin=None,
-        reject_tmax=None,
-        baseline=None,
-        proj=True,
-        on_missing="raise",
-        metadata=None,
-        selection=None,
+        data: np.ndarray,
+        info: Info,
+        events: np.ndarray | None = None,
+        tmin: float = 0.0,
+        event_id: int | list[int] | dict | str | list[str] | None = None,
+        reject: dict | None = None,
+        flat: dict | None = None,
+        reject_tmin: float | None = None,
+        reject_tmax: float | None = None,
+        baseline: tuple[float | None, float | None] | None = None,
+        proj: bool | Literal["delayed"] = True,
+        on_missing: Literal["raise", "warn", "ignore"] = "raise",
+        metadata: "DataFrame | None" = None,
+        selection: Iterable | None = None,
         *,
-        drop_log=None,
-        raw_sfreq=None,
-        verbose=None,
+        on_outside: Literal["warn", "raise", "ignore"] = "warn",
+        drop_log: tuple | None = None,
+        raw_sfreq: float | None = None,
+        verbose: bool | str | int | None = None,
     ):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -3817,6 +3913,7 @@ class EpochsArray(BaseEpochs):
             selection=selection,
             proj=proj,
             on_missing=on_missing,
+            on_outside=on_outside,
             drop_log=drop_log,
             raw_sfreq=raw_sfreq,
             verbose=verbose,
@@ -3829,22 +3926,28 @@ class EpochsArray(BaseEpochs):
         ):
             raise ValueError("The events must only contain event numbers from event_id")
         detrend_picks = self._detrend_picks
+        assert self._data is not None
         for e in self._data:
             # This is safe without assignment b/c there is no decim
             self._detrend_offset_decim(e, detrend_picks)
         self.drop_bad()
 
 
-def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
+def combine_event_ids(
+    epochs: BaseEpochs,
+    old_event_ids: str | list,
+    new_event_id: dict | int,
+    copy: bool = True,
+) -> BaseEpochs:
     """Collapse event_ids from an epochs instance into a new event_id.
 
     Parameters
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    old_event_ids : str, or list
+    old_event_ids : str | list
         Conditions to collapse together.
-    new_event_id : dict, or int
+    new_event_id : dict | int
         A one-element dict (or a single integer) for the new
         condition. Note that for safety, this cannot be any
         existing id (in epochs.event_id.values()).
@@ -3866,7 +3969,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     'Left' and 'Right' (combining their trials).
     """
     epochs = epochs.copy() if copy else epochs
-    old_event_ids = np.asanyarray(old_event_ids)
+    old_event_id_arr = np.asanyarray(old_event_ids)
     if isinstance(new_event_id, int):
         new_event_id = {str(new_event_id): new_event_id}
     else:
@@ -3880,7 +3983,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
         raise ValueError("new_event_id value must not already exist")
     # could use .pop() here, but if a latter one doesn't exist, we're
     # in trouble, so run them all here and pop() later
-    old_event_nums = np.array([epochs.event_id[key] for key in old_event_ids])
+    old_event_nums = np.array([epochs.event_id[key] for key in old_event_id_arr])
     # find the ones to replace
     inds = np.any(
         epochs.events[:, 2][:, np.newaxis] == old_event_nums[np.newaxis, :], axis=1
@@ -3888,7 +3991,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     # replace the event numbers in the events list
     epochs.events[inds, 2] = new_event_num
     # delete old entries
-    for key in old_event_ids:
+    for key in old_event_id_arr:
         epochs.event_id.pop(key)
     # add the new entry
     epochs.event_id.update(new_event_id)
@@ -3896,12 +3999,17 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 
 
 @fill_doc
-def equalize_epoch_counts(epochs_list, method="mintime", *, random_state=None):
+def equalize_epoch_counts(
+    epochs_list: list,
+    method: Literal["truncate", "mintime", "random"] = "mintime",
+    *,
+    random_state: int | RandomState | None = None,
+) -> None:
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
     Parameters
     ----------
-    epochs_list : list of Epochs instances
+    epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
     %(random_state)s Used only if ``method='random'``.
@@ -4263,7 +4371,12 @@ def _read_one_epoch_file(f, tree, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
+def read_epochs(
+    fname: Path | str | FileLike,
+    proj: bool | Literal["delayed"] = True,
+    preload: bool = True,
+    verbose: bool | str | int | None = None,
+) -> "EpochsFIF":
     """Read epochs from a fif file.
 
     Parameters
@@ -4277,7 +4390,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
 
     Returns
     -------
-    epochs : instance of Epochs
+    epochs : instance of EpochsFIF
         The epochs.
     """
     return EpochsFIF(fname, proj, preload, verbose)
@@ -4482,6 +4595,7 @@ class EpochsFIF(BaseEpochs):
         """Load one epoch from disk."""
         # Find the right file and offset to use
         event_samp = self.events[idx, 0]
+        assert self._raw is not None
         for raw in self._raw:
             idx = np.where(raw.event_samps == event_samp)[0]
             if len(idx) == 1:
@@ -4622,15 +4736,26 @@ def _concatenate_epochs(
             )
 
         # compare event_id
-        common_keys = list(set(event_id).intersection(set(epochs.event_id)))
-        for key in common_keys:
-            if not event_id[key] == epochs.event_id[key]:
-                msg = (
-                    "event_id values must be the same for identical keys "
-                    'for all concatenated epochs. Key "{}" maps to {} in '
-                    "some epochs and to {} in others."
-                )
-                raise ValueError(msg.format(key, event_id[key], epochs.event_id[key]))
+        for kind in ("keys", "values"):
+            a = event_id
+            b = epochs.event_id
+            if kind == "keys":
+                other = "values"
+                what = "maps to"
+            else:
+                assert kind == "values"
+                other = "keys"
+                what = "is mapped from"
+                a = {v: k for k, v in a.items()}
+                b = {v: k for k, v in b.items()}
+            common = list(set(a).intersection(set(b)))
+            for k_v in common:
+                if not a[k_v] == b[k_v]:
+                    raise ValueError(
+                        f"event_id {other} must be the same for identical {kind} "
+                        f'for all concatenated epochs. {other} "{k_v}" {what} {a[k_v]} '
+                        f"in epochs_list[0] and to {b[k_v]} in epochs_list[{ii}]."
+                    )
 
         if with_data:
             epochs.drop_bad()
@@ -4706,8 +4831,12 @@ def _concatenate_epochs(
 
 @verbose
 def concatenate_epochs(
-    epochs_list, add_offset=True, *, on_mismatch="raise", verbose=None
-):
+    epochs_list: list,
+    add_offset: bool = True,
+    *,
+    on_mismatch: Literal["raise", "warn", "ignore"] = "raise",
+    verbose: bool | str | int | None = None,
+) -> EpochsArray:
     """Concatenate a list of `~mne.Epochs` into one `~mne.Epochs` object.
 
     .. note:: Unlike `~mne.concatenate_raws`, this function does **not**
@@ -4775,20 +4904,20 @@ def concatenate_epochs(
 
 @verbose
 def average_movements(
-    epochs,
-    head_pos=None,
-    orig_sfreq=None,
-    picks=None,
-    origin="auto",
-    weight_all=True,
-    int_order=8,
-    ext_order=3,
-    destination=None,
-    ignore_ref=False,
-    return_mapping=False,
-    mag_scale=100.0,
-    verbose=None,
-):
+    epochs: BaseEpochs,
+    head_pos: np.ndarray | None = None,
+    orig_sfreq: float | None = None,
+    picks: str | np.ndarray | slice | None = None,
+    origin: np.ndarray | str = "auto",
+    weight_all: bool = True,
+    int_order: int = 8,
+    ext_order: int = 3,
+    destination: "Path | str | np.ndarray | Transform | None" = None,
+    ignore_ref: bool = False,
+    return_mapping: bool = False,
+    mag_scale: float | str = 100.0,
+    verbose: bool | str | int | None = None,
+) -> Evoked | tuple:
     """Average data using Maxwell filtering, transforming using head positions.
 
     Parameters
@@ -4981,15 +5110,15 @@ def average_movements(
 
 @verbose
 def make_fixed_length_epochs(
-    raw,
-    duration=1.0,
-    preload=False,
-    reject_by_annotation=True,
-    proj=True,
-    overlap=0.0,
-    id=1,  # noqa: A002
-    verbose=None,
-):
+    raw: "BaseRaw",
+    duration: float = 1.0,
+    preload: bool = False,
+    reject_by_annotation: bool = True,
+    proj: bool | Literal["delayed"] = True,
+    overlap: float = 0.0,
+    id: int = 1,  # noqa: A002
+    verbose: bool | str | int | None = None,
+) -> BaseEpochs:
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -4998,7 +5127,9 @@ def make_fixed_length_epochs(
         Raw data to divide into segments.
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
-    %(preload)s
+    preload : bool
+        Load all epochs from disk when creating the object or wait before
+        accessing each epoch (more memory efficient but can be slower).
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.21.0

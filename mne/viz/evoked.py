@@ -55,6 +55,7 @@ from .utils import (
     _draw_proj_checkbox,
     _get_cmap,
     _get_color_list,
+    _is_dark,
     _make_combine_callable,
     _plot_masked_image,
     _prepare_joint_axes,
@@ -1265,7 +1266,7 @@ def plot_evoked_topo(
         evoked = [evoked]
 
     background_color = _to_rgb(background_color, name="background_color")
-    dark_background = np.mean(background_color) < 0.5
+    dark_background = _is_dark(background_color, name="background_color")
     if dark_background:
         fig_facecolor = background_color
         axis_facecolor = background_color

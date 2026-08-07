@@ -22,7 +22,7 @@ from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
-from .fixes import bincount, jit, prange
+from .fixes import bincount, has_numba, jit, prange
 from .parallel import parallel_func
 from .transforms import (
     Transform,
@@ -1708,9 +1708,20 @@ def _find_nearest_tri_pts(
         p, q, pt = np.float64(0.0), np.float64(1.0), np.int64(0)
         found = False
         for ii in range(len(drs)):
-            pqs[ii] = np.dot(mats[ii], np.dot(r1213s[ii], drs[ii]))
-            dists[ii] = np.dot(drs[ii], tri_nn[ii])
-            pp, qq = pqs[ii]
+            # Inlined as scalar arithmetic rather than np.dot on the tiny
+            # (2, 3)/(2, 2)/(3,) arrays: much faster under numba, which
+            # doesn't optimize away the overhead of these tiny matrix ops.
+            dr0, dr1, dr2 = drs[ii, 0], drs[ii, 1], drs[ii, 2]
+            v1 = (
+                r1213s[ii, 0, 0] * dr0 + r1213s[ii, 0, 1] * dr1 + r1213s[ii, 0, 2] * dr2
+            )
+            v2 = (
+                r1213s[ii, 1, 0] * dr0 + r1213s[ii, 1, 1] * dr1 + r1213s[ii, 1, 2] * dr2
+            )
+            pp = mats[ii, 0, 0] * v1 + mats[ii, 0, 1] * v2
+            qq = mats[ii, 1, 0] * v1 + mats[ii, 1, 1] * v2
+            pqs[ii, 0], pqs[ii, 1] = pp, qq
+            dists[ii] = dr0 * tri_nn[ii, 0] + dr1 * tri_nn[ii, 1] + dr2 * tri_nn[ii, 2]
             if pp >= 0 and qq >= 0 and pp <= 1 and qq <= 1 and pp + qq < 1:
                 found = True
                 use[ii] = False
@@ -1906,9 +1917,8 @@ def read_tri(fname_in, swap=False, verbose=None):
     return (rr, tris)
 
 
-@jit()
-def _get_solids(tri_rrs, fros):
-    """Compute _sum_solids_div total angle in chunks."""
+def _get_solids_numpy(tri_rrs, fros):
+    """Compute _sum_solids_div total angle in chunks (NumPy fallback)."""
     # NOTE: This incorporates the division by 4PI that used to be separate
     tot_angle = np.zeros(len(fros))
     for ti in range(len(tri_rrs)):
@@ -1930,6 +1940,54 @@ def _get_solids(tri_rrs, fros):
         )
         tot_angle -= np.arctan2(triple, s)
     return tot_angle
+
+
+if has_numba:
+
+    @jit()
+    def _get_solids(tri_rrs, fros):
+        """Compute _sum_solids_div total angle in chunks.
+
+        Written as an explicit double loop (points outer, triangles inner)
+        with scalar arithmetic rather than per-triangle array ops over all
+        points (see ``_get_solids_numpy``): inside a numba nopython function,
+        the array form allocates and walks several full (n_points, 3)-shaped
+        temporaries per triangle, which is much slower than keeping a
+        point's running total in a scalar register. This is ~5x faster than
+        ``_get_solids_numpy`` but, lacking numba's JIT, ~5x slower if run
+        as plain Python, hence the two separate implementations.
+        """
+        n_tris = len(tri_rrs)
+        tot_angle = np.zeros(len(fros))
+        for pi in range(len(fros)):
+            fx, fy, fz = fros[pi, 0], fros[pi, 1], fros[pi, 2]
+            angle = 0.0
+            for ti in range(n_tris):
+                tri_rr = tri_rrs[ti]
+                v1x, v1y, v1z = fx - tri_rr[0, 0], fy - tri_rr[0, 1], fz - tri_rr[0, 2]
+                v2x, v2y, v2z = fx - tri_rr[1, 0], fy - tri_rr[1, 1], fz - tri_rr[1, 2]
+                v3x, v3y, v3z = fx - tri_rr[2, 0], fy - tri_rr[2, 1], fz - tri_rr[2, 2]
+                # v4 = cross(v1, v2); triple = dot(v4, v3)
+                triple = (
+                    (v1y * v2z - v1z * v2y) * v3x
+                    + (v1z * v2x - v1x * v2z) * v3y
+                    + (v1x * v2y - v1y * v2x) * v3z
+                )
+                l1 = np.sqrt(v1x * v1x + v1y * v1y + v1z * v1z)
+                l2 = np.sqrt(v2x * v2x + v2y * v2y + v2z * v2z)
+                l3 = np.sqrt(v3x * v3x + v3y * v3y + v3z * v3z)
+                s = (
+                    l1 * l2 * l3
+                    + (v1x * v2x + v1y * v2y + v1z * v2z) * l3
+                    + (v1x * v3x + v1y * v3y + v1z * v3z) * l2
+                    + (v2x * v3x + v2y * v3y + v2z * v3z) * l1
+                )
+                angle -= np.arctan2(triple, s)
+            tot_angle[pi] = angle
+        return tot_angle
+
+else:  # pragma: no cover
+    _get_solids = _get_solids_numpy
 
 
 def _complete_sphere_surf(sphere, idx, level, complete=True):

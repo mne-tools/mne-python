@@ -10,6 +10,7 @@ import os.path as op
 import re
 from collections import OrderedDict
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -25,7 +26,6 @@ from ...utils import _check_fname, _check_option, _soft_import, logger, verbose,
 from ..base import BaseRaw
 from .events import _combine_triggers, _read_events, _triage_include_exclude
 from .general import (
-    _get_blocks,
     _get_ep_info,
     _get_signalfname,
 )
@@ -70,6 +70,7 @@ def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
 def _read_mff_header(filepath):
     """Read mff header."""
     _soft_import("mffpy", "reading EGI MFF data")
+    from mffpy import Reader
     from mffpy.xml_files import XML
 
     all_files = _get_signalfname(filepath)
@@ -88,8 +89,14 @@ def _read_mff_header(filepath):
     rt_elem = info_obj.find("recordTime")
     record_time = str(rt_elem.text) if rt_elem is not None else ""
 
-    fname = op.join(filepath, eeg_file)
-    signal_blocks = _get_blocks(fname)
+    reader = Reader(filepath)
+    signal_blocks: dict[str, Any] = dict(
+        n_channels=reader.num_channels["EEG"],
+        sfreq=reader.sampling_rates["EEG"],
+        n_blocks=len(reader.block_sample_counts["EEG"]),
+        samples_block=np.array(reader.block_sample_counts["EEG"]),
+        header_sizes=[],
+    )
     epochs = _get_ep_info(filepath)
     summaryinfo = dict(eeg_fname=eeg_file, info_fname=eeg_info_file)
     summaryinfo.update(signal_blocks)
@@ -169,9 +176,10 @@ def _read_mff_header(filepath):
 
     pns_names = []
     if "PNS" in all_files:
-        pns_fpath = op.join(filepath, all_files["PNS"]["signal"])
-        pns_blocks = _get_blocks(pns_fpath)
-        pns_samples = pns_blocks["samples_block"]
+        pns_sample_blocks = dict(
+            samples_block=np.array(reader.block_sample_counts["PNSData"])
+        )
+        pns_samples = pns_sample_blocks["samples_block"]
         signal_samples = signal_blocks["samples_block"]
         same_blocks = np.array_equal(
             pns_samples[:-1], signal_samples[:-1]
@@ -210,7 +218,7 @@ def _read_mff_header(filepath):
             pns_types=pns_types,
             pns_units=pns_units,
             pns_fname=all_files["PNS"]["signal"],
-            pns_sample_blocks=pns_blocks,
+            pns_sample_blocks=pns_sample_blocks,
         )
 
     summaryinfo.update(
@@ -262,9 +270,6 @@ def _read_header(input_fname):
         version=version,
         meas_dt_local=time_n,
         utc_offset=time_n.strftime("%z"),
-        gain=0,
-        bits=0,
-        value_range=0,
     )
     info.update(
         n_categories=0,
@@ -364,6 +369,7 @@ def _read_raw_egi_mff(
     channel_naming="E%d",
     *,
     events_as_annotations=True,
+    event_key=None,
     verbose=None,
 ):
     """Read EGI mff binary as raw object."""
@@ -376,6 +382,7 @@ def _read_raw_egi_mff(
         preload,
         channel_naming,
         events_as_annotations=events_as_annotations,
+        event_key=event_key,
         verbose=verbose,
     )
 
@@ -397,6 +404,7 @@ class RawMff(BaseRaw):
         channel_naming="E%d",
         *,
         events_as_annotations=True,
+        event_key=None,
         verbose=None,
     ):
         """Init the RawMff class."""
@@ -417,7 +425,9 @@ class RawMff(BaseRaw):
             misc = np.where(np.array(egi_info["chan_type"]) != "eeg")[0].tolist()
 
         logger.info("    Reading events ...")
-        egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
+        egi_events, egi_info, mff_events = _read_events(
+            input_fname, egi_info, event_key=event_key
+        )
         cals = np.array([CAL_SCALES[t] for t in egi_info["chan_unit"]])
         logger.info("    Assembling measurement info ...")
         event_codes = egi_info["event_codes"]
@@ -535,7 +545,9 @@ class RawMff(BaseRaw):
         first_samps = [0]
         last_samps = [egi_info["last_samps"][-1] - 1]
 
-        annot = dict(onset=list(), duration=list(), description=list(), extras=list())
+        annot: dict[str, Any] = dict(
+            onset=list(), duration=list(), description=list(), extras=list()
+        )
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
@@ -665,15 +677,19 @@ class RawMff(BaseRaw):
 
 @verbose
 def read_evokeds_mff(
-    fname, condition=None, channel_naming="E%d", baseline=None, verbose=None
-):
+    fname: Path | str,
+    condition: int | str | list[int] | list[str] | None = None,
+    channel_naming: str = "E%d",
+    baseline: tuple[float | None, float | None] | None = None,
+    verbose: bool | str | int | None = None,
+) -> "EvokedArray | list[EvokedArray]":
     """Read averaged MFF file as EvokedArray or list of EvokedArray.
 
     Parameters
     ----------
     fname : path-like
         File path to averaged MFF file. Should end in ``.mff``.
-    condition : int or str | list of int or str | None
+    condition : int | str | list of int | list of str | None
         The index (indices) or category (categories) from which to read in
         data. Averaged MFF files can contain separate averages for different
         categories. These can be indexed by the block number or the category
@@ -739,18 +755,21 @@ def read_evokeds_mff(
             f"{fname} may not be an averaged MFF file."
         )
     return_list = True
+    conditions: list
     if condition is None:
         categories = mff.categories.categories
-        condition = list(categories.keys())
+        conditions = list(categories.keys())
     elif not isinstance(condition, list):
-        condition = [condition]
+        conditions = [condition]
         return_list = False
-    logger.info(f"Reading {len(condition)} evoked datasets from {fname} ...")
+    else:
+        conditions = condition
+    logger.info(f"Reading {len(conditions)} evoked datasets from {fname} ...")
     output = [
         _read_evoked_mff(
             fname, c, channel_naming=channel_naming, verbose=verbose
         ).apply_baseline(baseline)
-        for c in condition
+        for c in conditions
     ]
     return output if return_list else output[0]
 
