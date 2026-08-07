@@ -97,9 +97,13 @@ def test_egi_mff_pause(fname, skip_times, event_times):
     else:
         events = find_events(raw)
         for event_type in event_times.keys():
-            ns_samples = np.floor(np.array(event_times[event_type]) * raw.info["sfreq"])
+            ns_samples = np.floor(
+                np.array(event_times[event_type]) * raw.info["sfreq"] + 0.5
+            ).astype(int)
+            ns_samples = ns_samples[ns_samples < raw.n_times]
             assert_array_equal(
-                events[events[:, 2] == raw.event_id[event_type], 0], ns_samples
+                events[events[:, 2] == raw.event_id[event_type], 0],
+                ns_samples,
             )
 
     # read some data from the middle of the skip, assert it's all zeros
