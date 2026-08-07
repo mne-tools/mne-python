@@ -63,15 +63,17 @@ def build_wheel():
     with open(PYPROJECT_PATH, encoding="utf-8") as f:
         orig_pyproject = f.read()
 
-    # Pyodide bundles scipy and matplotlib versions that can be older than the
-    # minimums MNE declares, so build against relaxed bounds to keep the wheel
-    # installable there. This is a safety net rather than a requirement, since
-    # piplite installs past unsatisfied bounds anyway when the caller passes
-    # keep_going=True. numpy is deliberately left alone: MNE requires >= 2.0 and
-    # Pyodide ships 2.x, so there is nothing to relax, and claiming 1.x support
-    # would put a version MNE no longer runs on into the wheel metadata.
-    patched = re.sub(r'"scipy\s*>=\s*1\.1[0-9]"', '"scipy >= 1.7"', orig_pyproject)
-    patched = re.sub(r'"matplotlib\s*>=\s*3\.[5-9]"', '"matplotlib >= 3.5"', patched)
+    # Pyodide 0.29.3, which jupyterlite-pyodide-kernel 0.7.2 pins, bundles
+    # matplotlib 3.8.4, one minor below the 3.9 MNE declares. Relax that one
+    # bound so the wheel stays installable in the browser. scipy (1.14.1) and
+    # numpy (2.2.5) already satisfy MNE there, so they are left alone rather
+    # than advertising versions MNE no longer runs on. Even matplotlib is a
+    # safety net: the notebook setup cell passes keep_going=True to piplite,
+    # which installs past unsatisfied bounds. Once the stack can move to a
+    # Pyodide that ships matplotlib >= 3.9, this whole patch can go away.
+    patched = re.sub(
+        r'"matplotlib\s*>=\s*3\.[5-9]"', '"matplotlib >= 3.5"', orig_pyproject
+    )
     os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "9999.0.1"
     try:
         with open(PYPROJECT_PATH, "w", encoding="utf-8") as f:
