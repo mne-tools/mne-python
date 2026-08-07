@@ -168,7 +168,8 @@ class VertexSelect(UIEvent):
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
     source_id : int
-        The index number of the source estimate point that was selected.
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
 
     Attributes
     ----------
@@ -179,7 +180,8 @@ class VertexSelect(UIEvent):
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
     source_id : int
-        The index number of the source estimate point that was selected.
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
     """
 
     hemi: str
