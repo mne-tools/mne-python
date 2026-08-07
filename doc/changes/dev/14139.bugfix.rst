@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.preprocessing.find_bad_channels_maxwell` where, when ``head_pos`` was provided, every interval was processed using the head positions from the beginning of the recording rather than from its own time window, by `Christian Brodbeck`_.
