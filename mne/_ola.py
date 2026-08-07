@@ -23,6 +23,11 @@ class _Interp2:
         arrays that must be interpolated.
     interp : str
         Can be 'zero', 'linear', 'hann', or 'cos2' (same as hann).
+    start : int
+        The control-point index at which feeding begins, for processing a segment
+        that does not start at the first control point. Feeding ``n`` points then
+        yields exactly what a continuous pass would yield for ``start`` to
+        ``start + n``, interpolation phase included.
 
     Notes
     -----
@@ -42,7 +47,9 @@ class _Interp2:
 
     """
 
-    def __init__(self, control_points, values, interp="hann", *, name="Interp2"):
+    def __init__(
+        self, control_points, values, interp="hann", *, name="Interp2", start=0
+    ):
         # set up interpolation
         self.control_points = np.array(control_points, int).ravel()
         if not np.array_equal(np.unique(self.control_points), self.control_points):
@@ -76,8 +83,11 @@ class _Interp2:
             values = val
         self.values = values
         self.n_last = None
-        self._position = 0  # start at zero
-        self._left_idx = 0
+        self._position = start
+        # The last control point at or before start is the one in effect there, so
+        # feeding resumes mid-interval with the correct interpolation phase.
+        left_idx = np.searchsorted(self.control_points, start, "right") - 1
+        self._left_idx = max(left_idx, 0)
         self._left = self._right = self._use_interp = None
         self.name = name
         known_types = ("cos2", "linear", "zero", "hann")
@@ -94,9 +104,13 @@ class _Interp2:
         logger.debug(f"    ~ {self.name} Feed {n_pts} ({self._position}-{stop})")
         used = np.zeros(n_pts, bool)
         if self._left is None:  # first one
-            logger.debug(f"    ~   {self.name} Eval @ 0 ({self.control_points[0]})")
-            self._left = self.values(self.control_points[0])
-            if len(self.control_points) == 1:
+            left_idx = self._left_idx
+            logger.debug(
+                f"    ~   {self.name} Eval @ {left_idx} "
+                f"({self.control_points[left_idx]})"
+            )
+            self._left = self.values(self.control_points[left_idx])
+            if left_idx == len(self.control_points) - 1:  # nothing to interpolate to
                 self._right = self._left
         n_used = 0
 

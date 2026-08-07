@@ -741,6 +741,7 @@ def _run_maxwell_filter(
     st_fixed,
     st_overlap,
     mc,
+    mc_start=0,
 ):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -776,7 +777,7 @@ def _run_maxwell_filter(
 
     # This must be initialized inside _run_maxwell_filter because
     # find_bad_channels_maxwell modifies good_mask
-    mc.initialize(_get_this_decomp_trans, info["dev_head_t"], S_recon)
+    mc.initialize(_get_this_decomp_trans, info["dev_head_t"], S_recon, mc_start)
     update_kwargs.update(reg_moments=mc.reg_moments_0)
 
     # Process each valid block of data separately
@@ -865,6 +866,10 @@ class _MoveComp:
     """Perform movement compensation."""
 
     def __init__(self, pos, head_frame, raw, interp, reconstruct):
+        #   pos[0]: (n_pos, 4, 4): the dev_head_t transformation matrices
+        #   pos[1]: (n_pos,): sample indices into the recording, starting at 0
+        #   pos[2]: (n_pos, 9): rotation quaternion (:3), translation (3:6),
+        #       goodness of fit, error and velocity (6:9)
         self.pos = pos
         self.sfreq = raw.info["sfreq"]
         self.interp = interp
@@ -890,24 +895,32 @@ class _MoveComp:
         op_resid -= np.dot(S_decomp[:, n_use_in:], pS_decomp[n_use_in:])
         return op_sss, op_in, op_resid
 
-    def initialize(self, get_decomp, dev_head_t, S_recon):
+    def initialize(self, get_decomp, dev_head_t, S_recon, start=0):
         """Secondary initialization."""
+        # Head positions are indexed relative to the start of the recording, so a
+        # segment that does not begin there (find_bad_channels_maxwell processes
+        # one interval at a time) must say where it starts, otherwise it would be
+        # compensated with the positions from the beginning of the recording.
+        self.start = start
         self.smooth = _Interp2(
             self.pos[1],
             self.get_decomp_by_offset,
             interp=self.interp,
             name="MC",
+            start=start,
         )
         _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
         self.n_good = pS_decomp.shape[1]
         self.S_recon = S_recon
-        self.offset = 0
+        self.offset = start
         self.get_decomp = get_decomp
         # For the average passes
         self.last_avg_quat = np.nan * np.ones(6)
 
     def get_avg_op(self, *, start, stop):
         """Apply an average transformation over the next interval."""
+        # _COLA counts from the start of the segment, self.pos from the recording
+        start, stop = start + self.start, stop + self.start
         n_positions, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
             self.last_avg_quat = avg_quat
@@ -2941,7 +2954,7 @@ def find_bad_channels_maxwell(
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
             with use_log_level(_verbose_safe_false()):
-                _run_maxwell_filter(chunk_raw, copy=False, **params)
+                _run_maxwell_filter(chunk_raw, copy=False, mc_start=start, **params)
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(
