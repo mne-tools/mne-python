@@ -1184,7 +1184,8 @@ class Brain:
             )
             vertex_id = vertices[ind[0]]
             publish(
-                self, VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0])
+                self,
+                VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0]),
             )
 
     def _configure_picking(self):
