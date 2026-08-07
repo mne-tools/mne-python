@@ -54,6 +54,7 @@ from mne.preprocessing.maxwell import (
     _trans_sss_basis,
 )
 from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
+from mne.transforms import rot_to_quat
 from mne.utils import (
     _record_warnings,
     assert_meg_snr,
@@ -2054,6 +2055,40 @@ def test_find_bads_maxwell_flat():
     assert " in 2 intervals " in log, log
     assert flat == want_flat
     assert noisy == want_noisy
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_find_bads_maxwell_head_pos():
+    """Test that each interval uses its own head positions."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes")
+    raw.pick("meg", exclude=()).crop(0, 10)  # two 5 s intervals
+    raw.load_data()
+    # One head position per second, translating steadily so that using the positions
+    # from the wrong time window gives a different result.
+    trans = raw.info["dev_head_t"]["trans"]
+    head_pos = np.zeros((11, 10))
+    head_pos[:, 0] = raw._first_time + np.arange(11.0)
+    head_pos[:, 1:4] = rot_to_quat(trans[:3, :3])
+    head_pos[:, 4:7] = trans[:3, 3]
+    head_pos[:, 6] += np.arange(11) * 5e-3  # 5 mm/s
+    kwargs = dict(
+        origin=(0.0, 0.0, 0.04),
+        regularize=None,
+        bad_condition="ignore",
+        min_count=1,
+        return_scores=True,
+        h_freq=None,  # keep the two calls below operating on identical data
+    )
+    scores = find_bad_channels_maxwell(raw, head_pos=head_pos, **kwargs)[2]
+    assert scores["bins"].shape == (2, 2)
+    # Processing the second interval on its own must give the same scores as
+    # processing it as part of the whole recording.
+    raw_crop = raw.copy().crop(5.0)
+    pos_crop = head_pos[5:]
+    scores_crop = find_bad_channels_maxwell(raw_crop, head_pos=pos_crop, **kwargs)[2]
+    assert scores_crop["bins"].shape == (1, 2)
+    assert_allclose(scores_crop["scores_noisy"][:, 0], scores["scores_noisy"][:, 1])
 
 
 @pytest.mark.parametrize(
