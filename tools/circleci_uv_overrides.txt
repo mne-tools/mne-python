@@ -6,12 +6,13 @@
 # command line, including its extras).
 -e .[full-pyside6]
 
-# jupyterlite-sphinx 0.22.1 (its newest release) caps jupyterlite-core at < 0.8,
-# which holds the browser kernel at Pyodide 0.29.3 and its matplotlib 3.8.4, one
-# minor below the 3.9 MNE declares. The cap is only declared, not real: 0.22.1
-# imports and builds fine against core 0.8.1. Overriding it moves the browser to
-# Pyodide 314 (matplotlib 3.10.8, scipy 1.17.1, numpy 2.4.3), so the wheel build
-# no longer has to relax any bound. Both lines are needed, since overriding core
-# alone also lifts the old kernel's own cap and would leave it in place.
+# jupyterlite-sphinx 0.22.1, its newest release, caps jupyterlite-core at < 0.8,
+# which would hold the browser kernel at Pyodide 0.29.3 and its matplotlib 3.8.4,
+# one minor below the 3.9 MNE declares. The cap is declared rather than real:
+# 0.22.1 imports and builds fine against core 0.8.1. Overriding it puts the
+# browser on Pyodide 314, whose matplotlib 3.10.8, scipy 1.17.1 and numpy 2.4.3
+# all satisfy MNE, so the wheel build needs no version patching at all. Both
+# lines are needed: overriding core alone also lifts the old kernel's own cap,
+# which would leave the old kernel and its old Pyodide in place.
 jupyterlite-core>=0.8.1
 jupyterlite-pyodide-kernel>=0.8
