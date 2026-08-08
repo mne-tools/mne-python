@@ -4,7 +4,7 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne._ola import _COLA, _Interp2, _Storer
 
@@ -143,3 +143,29 @@ def test_cola(ndim):
                             cola.feed(signal[..., n_input : n_input + next_len])
                             n_input += next_len
                         assert_allclose(out, signal / 2.0, atol=1e-7)
+
+
+def test_cola_offset():
+    """Test that COLA shifts the limits it hands to the processor."""
+    n_total, n_samples, n_overlap, offset = 1000, 100, 50, 4321
+    limits = list()
+
+    def processor(x, *, start, stop):
+        limits.append((start, stop))
+        return (x,)
+
+    signal = np.zeros(n_total)
+    runs = list()
+    for use_offset in (0, offset):
+        limits.clear()
+        _COLA(
+            processor,
+            np.zeros(n_total),
+            n_total,
+            n_samples,
+            n_overlap,
+            1000.0,
+            offset=use_offset,
+        ).feed(signal)
+        runs.append(np.array(limits))
+    assert_array_equal(runs[1] - offset, runs[0])

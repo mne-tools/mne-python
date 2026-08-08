@@ -258,6 +258,11 @@ class _COLA:
         The window to use. Default is "hann".
     tol : float
         The tolerance for COLA checking.
+    offset : int
+        The index of the first sample that will be fed. ``offset`` is added to
+        the ``start`` and ``stop`` passed to ``process``.
+        Use it when processing a data segment that does not start at the
+        beginning of the recording that ``process`` is based on.
 
     Notes
     -----
@@ -292,8 +297,10 @@ class _COLA:
         tol=1e-10,
         *,
         name="COLA",
+        offset=0,
         verbose=None,
     ):
+        self._offset = _ensure_int(offset, "offset")
         n_samples = _ensure_int(n_samples, "n_samples")
         n_overlap = _ensure_int(n_overlap, "n_overlap")
         n_total = _ensure_int(n_total, "n_total")
@@ -420,7 +427,12 @@ class _COLA:
                 raise RuntimeError("internal indexing error")
             start = self._store.idx
             stop = self._store.idx + this_len
-            outs = self._process(*this_proc, start=start, stop=stop, **kwargs)
+            outs = self._process(
+                *this_proc,
+                start=start + self._offset,
+                stop=stop + self._offset,
+                **kwargs,
+            )
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
                 self._out_buffers = [
