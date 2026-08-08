@@ -1,11 +1,10 @@
 """The setup cell prepended to every JupyterLite notebook.
 
 This installs MNE into the browser kernel and patches the bits of the
-environment Pyodide does not provide -- data fetching over HTTP, the readers
+environment Pyodide does not provide: data fetching over HTTP, the readers
 that expect files already on disk, and the 3D renderer.
 
-It is inserted by :func:`jupyterlite_cell_notes.note_unrunnable_cells`, which
-sphinx-gallery calls only for the notebooks copied into the JupyterLite
+The docs build prepends it only to the notebooks copied into the JupyterLite
 contents. It deliberately does NOT go through ``first_notebook_cell``: that is
 applied when the notebook is generated, so it would also land in the ``.ipynb``
 offered for download, where ``piplite`` does not exist and the notebook would

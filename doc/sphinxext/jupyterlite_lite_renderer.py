@@ -9,20 +9,19 @@ VTK, and VTK cannot load in WebAssembly.
 So instead of reimplementing those functions one by one, this module supplies a
 renderer that draws with pyvista-js (vtk.js) and patches the factory, along with the
 ``renderer.backend`` global that ``set_3d_view`` and the other scene-level helpers
-read directly. MNE then does all of the transform math itself -- which matters,
+read directly. MNE then does all of the transform math itself, which matters
 because getting a head/MRI/device transform subtly wrong produces a
 plausible-looking picture with the sensors in the wrong place, and several of these
 tutorials are specifically *about* coordinate alignment.
 
-What is supported: meshes, surfaces, spheres, tubes and glyphs -- enough for the
+What is supported: meshes, surfaces, spheres, tubes and glyphs, enough for the
 static figures the docs render. What is not: the interactive ``Brain`` time viewer,
 which additionally needs dock widgets and toolbars, and scalar colormaps, which
 pyvista-js 0.15 does not have (scalars fall back to a solid color).
 
 The source is kept as a string because it has to run inside the browser kernel; it
-is appended to ``LITE_SETUP_CELL`` in ``jupyterlite_setup_cell.py``, which
-``jupyterlite_cell_notes.note_unrunnable_cells`` prepends to each JupyterLite
-notebook.
+is appended to ``LITE_SETUP_CELL`` in ``jupyterlite_setup_cell.py``, which the docs
+build prepends to each JupyterLite notebook.
 """
 
 # Authors: The MNE-Python contributors.
