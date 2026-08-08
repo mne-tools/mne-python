@@ -741,7 +741,7 @@ def _run_maxwell_filter(
     st_fixed,
     st_overlap,
     mc,
-    raw_offset=0,
+    raw_offset=0,  # time offset of ``raw`` relative to ``mc``
 ):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -911,6 +911,7 @@ class _MoveComp:
         self.get_decomp = get_decomp
         # For the average passes
         self.last_avg_quat = np.nan * np.ones(6)
+        self.smooth = None  # set_offset positions us in the recording
 
     def set_offset(self, offset):
         """Position at the given sample of the recording to process a segment there.
@@ -932,7 +933,7 @@ class _MoveComp:
         """Apply an average transformation over the next interval.
 
         ``start`` and ``stop`` are relative to the start of the recording, like
-        :attr:`self.offset`.
+        ``offset``.
         """
         n_positions, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
@@ -957,6 +958,7 @@ class _MoveComp:
         return self.op_in_avg, self.op_resid_avg, n_positions
 
     def feed(self, data, good_mask, st_only):
+        assert self.smooth is not None  # set_offset must be called first
         n_samp = data.shape[1]
         pos_data, n_pos = _trans_lims(
             self.pos, self.offset, self.offset + data.shape[-1]

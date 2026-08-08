@@ -212,7 +212,7 @@ def read_crop(fname, lims=(0, None)):
 def _linear_head_pos(raw, n_pos):
     """Get head positions one second apart, translating steadily along z.
 
-    The steady motion is what makes reading the positions from the wrong time window
+    The steady motion makes reading the positions from the wrong time window
     give a different result.
     """
     trans = raw.info["dev_head_t"]["trans"]
