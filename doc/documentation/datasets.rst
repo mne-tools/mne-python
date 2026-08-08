@@ -547,15 +547,22 @@ JupyterLite data
 ================
 :func:`mne.datasets.lite_data.data_path`
 
-A small curated archive holding only the files the browser notebooks read, taken
-from the ``sample``, ``kiloword``, ``erp_core``, ``mtrf`` and ``eegbci`` datasets
-(same files, same checksums). Those ship as separate multi-GB archives, so without
-it the documentation build would download several gigabytes to serve a handful of
-files. It extracts to ``MNE-lite-data/``, keeping each file under its original
-dataset folder (``MNE-sample-data/``, ``MNE-kiloword-data/``, ...).
+A small curated archive holding the data files needed to run the tutorials and
+examples in the browser, taken from the ``sample``, ``kiloword``, ``erp_core``,
+``mtrf`` and ``eegbci`` datasets. The files are unchanged and keep the same
+checksums as the full datasets. It extracts to ``MNE-lite-data/``, keeping each
+file under its original dataset folder (``MNE-sample-data/``,
+``MNE-kiloword-data/``, ...).
 
-This exists for the documentation build; for analysis, use the individual dataset
-fetchers above.
+Those datasets ship as separate multi-GB archives, so without this the
+documentation build would download several gigabytes to serve a handful of
+files.
+
+The ``somato`` dataset is not included, so the somatosensory tutorials and
+examples are not available in the browser.
+
+This exists for the documentation build; for analysis, use the individual
+dataset fetchers above.
 
 .. note:: Not every tutorial and example can run in the browser, so the
    "Open in JupyterLite" badge is only shown on the pages that work there. A page
