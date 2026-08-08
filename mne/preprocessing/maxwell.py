@@ -896,11 +896,11 @@ class _MoveComp:
         return op_sss, op_in, op_resid
 
     def initialize(self, get_decomp, dev_head_t, S_recon, start=0):
-        """Secondary initialization."""
-        # Head positions are indexed relative to the start of the recording, so a
-        # segment that does not begin there (find_bad_channels_maxwell processes
-        # one interval at a time) must say where it starts, otherwise it would be
-        # compensated with the positions from the beginning of the recording.
+        """Secondary initialization.
+
+        :attr:`self.pos` is indexed relative to the start of the recording;
+        ``start`` adds an index offset when processing data in chunks.
+        """
         self.start = start
         self.smooth = _Interp2(
             self.pos[1],
@@ -919,7 +919,7 @@ class _MoveComp:
 
     def get_avg_op(self, *, start, stop):
         """Apply an average transformation over the next interval."""
-        # _COLA counts from the start of the segment, self.pos from the recording
+        # Start and stop are relative to the start set at .initialize()
         start, stop = start + self.start, stop + self.start
         n_positions, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
