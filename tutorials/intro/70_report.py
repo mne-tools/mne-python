@@ -181,7 +181,16 @@ report.save("report_cov.html", overwrite=True)
 
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
-report.add_projs(info=raw_path, title="Projs from info")
+raw_tmp = mne.io.read_raw(raw_path).crop(0, 60).load_data()
+ecg_epochs = mne.preprocessing.create_ecg_epochs(raw_tmp)
+ecg_projs = mne.compute_proj_epochs(ecg_epochs, n_grad=1, n_mag=1, n_eeg=0)
+report.add_projs(
+    info=ecg_epochs,
+    projs=ecg_projs,
+    title="ECG projs with estimated heart rate",
+    add_rate="auto",
+)
+del raw_tmp, ecg_epochs, ecg_projs
 
 # Now a joint plot
 events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
