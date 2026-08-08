@@ -24,7 +24,6 @@ present rather than building one on every invocation::
 
 import glob
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -33,7 +32,6 @@ REPO_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 )
 PYPI_WHEELS_DIR = os.path.join(REPO_ROOT, "doc", "pypi")
-PYPROJECT_PATH = os.path.join(REPO_ROOT, "pyproject.toml")
 
 
 def find_wheels():
@@ -60,46 +58,28 @@ def build_wheel():
     shutil.rmtree(PYPI_WHEELS_DIR, ignore_errors=True)
     os.makedirs(PYPI_WHEELS_DIR, exist_ok=True)
 
-    with open(PYPROJECT_PATH, encoding="utf-8") as f:
-        orig_pyproject = f.read()
-
-    # Pyodide 0.29.3, which jupyterlite-pyodide-kernel 0.7.2 pins, bundles
-    # matplotlib 3.8.4, one minor below the 3.9 MNE declares. Relax that one
-    # bound so the wheel stays installable in the browser. scipy (1.14.1) and
-    # numpy (2.2.5) already satisfy MNE there, so they are left alone rather
-    # than advertising versions MNE no longer runs on. Even matplotlib is a
-    # safety net: the notebook setup cell passes keep_going=True to piplite,
-    # which installs past unsatisfied bounds. Once the stack can move to a
-    # Pyodide that ships matplotlib >= 3.9, this whole patch can go away.
-    patched = re.sub(
-        r'"matplotlib\s*>=\s*3\.[5-9]"', '"matplotlib >= 3.5"', orig_pyproject
-    )
+    # The wheel is built from pyproject.toml as it stands: Pyodide 314 ships
+    # matplotlib 3.10.8, scipy 1.17.1 and numpy 2.4.3, all of which satisfy the
+    # minimums MNE declares, so none of them needs relaxing for the browser.
     os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "9999.0.1"
-    try:
-        with open(PYPROJECT_PATH, "w", encoding="utf-8") as f:
-            f.write(patched)
-        # NB: build isolation is left ON (the default). MNE uses the hatchling
-        # build backend, so pip must create an isolated build env to install
-        # hatchling/hatch-vcs; --no-build-isolation fails with "Cannot import
-        # 'hatchling.build'" on CI, where those build deps are not in the base
-        # environment. Isolation also builds from a fresh copy that reads the
-        # patched pyproject.toml above, so the relaxed bounds are picked up.
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "wheel",
-                REPO_ROOT,
-                "--no-deps",
-                "-w",
-                PYPI_WHEELS_DIR,
-            ],
-            check=True,
-        )
-    finally:
-        with open(PYPROJECT_PATH, "w", encoding="utf-8") as f:
-            f.write(orig_pyproject)
+    # NB: build isolation is left ON (the default). MNE uses the hatchling build
+    # backend, so pip must create an isolated build env to install
+    # hatchling/hatch-vcs; --no-build-isolation fails with "Cannot import
+    # 'hatchling.build'" on CI, where those build deps are not in the base
+    # environment.
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            REPO_ROOT,
+            "--no-deps",
+            "-w",
+            PYPI_WHEELS_DIR,
+        ],
+        check=True,
+    )
 
     # Fail loudly rather than silently letting the browser kernel fall back to
     # the older released MNE from PyPI.
