@@ -85,18 +85,18 @@ def test_interp_2pt():
 
 
 @pytest.mark.parametrize("interp", ("zero", "linear", "hann"))
-def test_interp_2pt_start(interp):
+def test_interp_2pt_offset(interp):
     """Test that starting mid-stream matches a continuous pass."""
-    # control points deliberately uneven, so that most starts land mid-interval
+    # control points deliberately uneven, so that most offsets land mid-interval
     control_points = [0, 100, 240, 390, 520, 680, 800]
     values = np.array(control_points, float)
     want = _Interp2(control_points, values, interp).feed(900)[0]
-    for start in range(0, 900, 7):
-        interper = _Interp2(control_points, values, interp, start=start)
-        assert_allclose(interper.feed(900 - start)[0], want[start:], atol=1e-12)
+    for offset in range(0, 900, 7):
+        interper = _Interp2(control_points, values, interp, offset=offset)
+        assert_allclose(interper.feed(900 - offset)[0], want[offset:], atol=1e-12)
     # state must carry across feeds of differing size, as when a segment is read
     # in buffer-sized blocks
-    interper = _Interp2(control_points, values, interp, start=300)
+    interper = _Interp2(control_points, values, interp, offset=300)
     out = np.concatenate([interper.feed(n)[0] for n in (70, 130, 100, 300)])
     assert_allclose(out, want[300:900], atol=1e-12)
 

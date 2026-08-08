@@ -741,7 +741,7 @@ def _run_maxwell_filter(
     st_fixed,
     st_overlap,
     mc,
-    raw_start=0,
+    raw_offset=0,
 ):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -784,8 +784,8 @@ def _run_maxwell_filter(
     for onset, end in zip(onsets, ends):
         # head positions are indexed relative to the recording, but onset and end are
         # relative to raw, which can itself be a chunk of the recording
-        segment_start = raw_start + onset
-        mc.set_start(segment_start)
+        segment_offset = raw_offset + onset
+        mc.set_offset(segment_offset)
         n = end - onset
         assert n > 0
         tsss_valid = n >= st_duration
@@ -813,7 +813,7 @@ def _run_maxwell_filter(
             sfreq,
             window,
             name="tSSS-COLA",
-            offset=segment_start,
+            offset=segment_offset,
         )
 
         # Generate time points to break up data into equal-length windows
@@ -903,7 +903,7 @@ class _MoveComp:
     def initialize(self, get_decomp, dev_head_t, S_recon):
         """Secondary initialization.
 
-        Call :meth:`set_start` before feeding data.
+        Call :meth:`set_offset` before feeding data.
         """
         _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
         self.n_good = pS_decomp.shape[1]
@@ -912,20 +912,20 @@ class _MoveComp:
         # For the average passes
         self.last_avg_quat = np.nan * np.ones(6)
 
-    def set_start(self, start):
-        """Position at a given sample of the recording, to process a segment from there.
+    def set_offset(self, offset):
+        """Position at the given sample of the recording to process a segment there.
 
-        :attr:`self.pos` is indexed relative to the start of the recording, so a segment
-        that does not begin there has to be told where it does, both to read the right
-        head positions and to resume interpolation with the right phase.
+        ``pos`` is indexed relative to the start of the recording, so a segment that
+        does not begin there has to be told where it does, both to read the right head
+        positions and to resume interpolation with the right phase.
         """
-        self.offset = start
+        self.offset = offset
         self.smooth = _Interp2(
             self.pos[1],
             self.get_decomp_by_offset,
             interp=self.interp,
             name="MC",
-            start=start,
+            offset=offset,
         )
 
     def get_avg_op(self, *, start, stop):
@@ -2967,7 +2967,7 @@ def find_bad_channels_maxwell(
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
             with use_log_level(_verbose_safe_false()):
-                _run_maxwell_filter(chunk_raw, copy=False, raw_start=start, **params)
+                _run_maxwell_filter(chunk_raw, copy=False, raw_offset=start, **params)
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(
