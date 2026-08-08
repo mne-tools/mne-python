@@ -67,7 +67,7 @@ tr_samples = int(sfreq)  # 1 TR = 1 second
 n_samples = n_trs * tr_samples
 ch_names = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "C3", "C4", "P3", "P4", "O1"]
 n_channels = len(ch_names)
-start_time = datetime.datetime(2026, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
+start_time = datetime.datetime(2026, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
 rng = np.random.default_rng(0)
 
 
