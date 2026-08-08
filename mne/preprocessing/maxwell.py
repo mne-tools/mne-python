@@ -771,8 +771,8 @@ def _run_maxwell_filter(
     if not 0.0 < st_duration <= max_samps + 1.0:
         raise ValueError(
             f"st_duration ({st_duration / sfreq:0.1f}s) must be between 0 and the "
-            "longest contiguous duration of the data "
-            "({max_samps / sfreq:0.1f}s)."
+            f"longest contiguous duration of the data "
+            f"({max_samps / sfreq:0.1f}s)."
         )
 
     # This must be initialized inside _run_maxwell_filter because
