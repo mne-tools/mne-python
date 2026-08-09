@@ -99,6 +99,8 @@ def test_interp_2pt_offset(interp):
     interper = _Interp2(control_points, values, interp, offset=300)
     out = np.concatenate([interper.feed(n)[0] for n in (70, 130, 100, 300)])
     assert_allclose(out, want[300:900], atol=1e-12)
+    with pytest.raises(ValueError, match="offset must be non-negative"):
+        _Interp2(control_points, values, interp, offset=-1)
 
 
 @pytest.mark.parametrize("ndim", (1, 2, 3))

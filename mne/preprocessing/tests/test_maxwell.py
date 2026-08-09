@@ -51,6 +51,7 @@ from mne.preprocessing.maxwell import (
     _sh_negate,
     _sh_real_to_complex,
     _sss_basis_basic,
+    _trans_lims,
     _trans_sss_basis,
 )
 from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
@@ -1846,6 +1847,18 @@ def test_mf_skips_head_pos(st_duration):
         )
 
 
+def test_trans_lims_sparse_pos():
+    """Test windows containing no head position update."""
+    # head positions sampled more coarsely than buffer_size_sec leave whole windows
+    # without an update, and those must hold the last position, not the first one
+    pos = [None, np.array([0, 100, 200]), np.zeros((3, 9))]
+    pos[2][:, 5] = [0.0, 0.1, 0.2]  # z translation
+    for start, want in ((0, 0.0), (50, 0.0), (100, 0.1), (150, 0.1), (250, 0.2)):
+        quats, n_positions, _ = _trans_lims(pos, start, start + 50)
+        assert_allclose(np.unique(quats[5]), [want], err_msg=f"start={start}")
+        assert n_positions == 1
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
@@ -2126,8 +2139,11 @@ def test_find_bads_maxwell_head_pos():
         return_scores=True,
         h_freq=None,  # keep the two calls below operating on identical data
     )
-    scores = find_bad_channels_maxwell(raw, head_pos=head_pos, **kwargs)[2]
+    flats, scores = find_bad_channels_maxwell(raw, head_pos=head_pos, **kwargs)[1:]
     assert scores["bins"].shape == (2, 2)
+    # flats found in interval 1 would be excluded from interval 2 but not from the
+    # cropped run below, making the two good_masks (and hence the scores) differ
+    assert flats == []
     # Processing the second interval on its own must give the same scores as
     # processing it as part of the whole recording.
     raw_crop = raw.copy().crop(5.0)

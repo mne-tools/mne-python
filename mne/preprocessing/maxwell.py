@@ -995,7 +995,8 @@ class _MoveComp:
 
 def _trans_lims(pos, start, stop):
     """Get all trans and limits we need."""
-    pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
+    start_idx, stop_idx = np.searchsorted(pos[1], [start, stop])
+    pos_idx = np.arange(start_idx, stop_idx)
     used = np.zeros(stop - start, bool)
     quats = np.empty((9, stop - start))
     n_positions = len(pos_idx)
@@ -1007,7 +1008,9 @@ def _trans_lims(pos, start, stop):
             rel_stop = rel_stop - start
             if rel_start == rel_stop:
                 continue  # our first pos occurs on first time sample
-            this_quat = pos[2][max(pos_idx[0] - 1 if len(pos_idx) else 0, 0)]
+            # the last position at or before start is the one in effect there, also
+            # when the window contains no position at all (pos_idx is empty)
+            this_quat = pos[2][max(start_idx - 1, 0)]
             n_positions += 1
         else:
             rel_start = pos[1][pos_idx[ti]] - start

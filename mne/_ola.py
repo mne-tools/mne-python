@@ -85,6 +85,8 @@ class _Interp2:
         self.values = values
         self.n_last = None
         self._position = offset = _ensure_int(offset, "offset")
+        if offset < 0:
+            raise ValueError(f"offset must be non-negative, got {offset}")
         # The last control point at or before offset is the one in effect there, so
         # feeding resumes mid-interval with the correct interpolation phase.
         left_idx = np.searchsorted(self.control_points, offset, "right") - 1
