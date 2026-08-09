@@ -3,34 +3,24 @@
 Version 0.22.0 (2020-12-17)
 ---------------------------
 
-.. |Austin Hurst| replace:: **Austin Hurst**
 
-.. |Aniket Pradhan| replace:: **Aniket Pradhan**
 
-.. |Eduard Ort| replace:: **Eduard Ort**
 
-.. |Evan Hathaway| replace:: **Evan Hathaway**
 
-.. |Hongjiang Ye| replace:: **Hongjiang Ye**
 
-.. |Jeff Stout| replace:: **Jeff Stout**
 
-.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
 
-.. |Qianliang Li| replace:: **Qianliang Li**
 
-.. |Tod Flak| replace:: **Tod Flak**
 
-.. |Victoria Peterson| replace:: **Victoria Peterson**
 
 
 Enhancements
 ~~~~~~~~~~~~
-- Add :func:`mne.read_evokeds_mff` to read averaged MFFs (requires mffpy >= 0.5.7) **by new contributor** |Evan Hathaway|_ (:gh:`8354`)
+- Add :func:`mne.read_evokeds_mff` to read averaged MFFs (requires mffpy >= 0.5.7) by :newcontrib:`Evan Hathaway` (:gh:`8354`)
 
-- Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
+- Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` by :newcontrib:`Victoria Peterson` and `Denis Engemann`_)
 
-- Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` (:gh:`7717` **by new contributor** |Jonathan Kuziek|_ and `Kyle Mathewson`_)
+- Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` (:gh:`7717` by :newcontrib:`Jonathan Kuziek` and `Kyle Mathewson`_)
 
 - Add options to use labels in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8275` by `Olaf Hauk`_)
 
@@ -104,19 +94,19 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix orthogonalization of power envelopes in ``mne.connectivity.envelope_correlation`` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
+- Fix orthogonalization of power envelopes in ``mne.connectivity.envelope_correlation`` (:gh:`8658` by :newcontrib:`Qianliang Li` and `Eric Larson`_)
 
-- Fix data overwrite of cascading simulation operations :`mne.simulation.simulate_raw` (:gh:`8633` **by new contributor** |Jeff Stout|_)
+- Fix data overwrite of cascading simulation operations :`mne.simulation.simulate_raw` (:gh:`8633` by :newcontrib:`Jeff Stout`)
 
-- Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
+- Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` by :newcontrib:`Hongjiang Ye`)
 
-- Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` **by new contributor** |Tod Flak|_)
+- Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` by :newcontrib:`Tod Flak`)
 
-- Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary (:gh:`8474` **by new contributor** |Aniket Pradhan|_)
+- Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary (:gh:`8474` by :newcontrib:`Aniket Pradhan`)
 
-- Fix bug with reading split files that have dashes in the filename (:gh:`8339` **by new contributor** |Eduard Ort|_)
+- Fix bug with reading split files that have dashes in the filename (:gh:`8339` by :newcontrib:`Eduard Ort`)
 
-- Fix bug with parsing EDF dates and date integers (:gh:`8558` **by new contributor** |Austin Hurst|_ and `Eric Larson`_)
+- Fix bug with parsing EDF dates and date integers (:gh:`8558` by :newcontrib:`Austin Hurst` and `Eric Larson`_)
 
 - Fix bug with reading EDF and KIT files on big endian architectures such as s390x (:gh:`8618` by `Eric Larson`_)
 
