@@ -19,14 +19,6 @@ time-segment during which an impedance measurement was performed as
 :class:`~mne.Annotations` with the description set in the argument
 ``impedance_annotation``. However, it doesn't extract the impedance values themselves.
 To do so, use the function ``antio.parser.read_triggers``.
-
-EGI
----
-
-EGI MFF files store per-channel gain (GCAL) and impedance (ICAL) calibration data in
-``info1.xml`` inside the ``.mff`` directory. :func:`mne.io.read_raw_egi` does not
-expose this information in the :class:`~mne.io.Raw` object, but it can be read
-directly from ``info1.xml`` via ``mffpy``.
 """
 
 # Authors: The MNE-Python contributors.
@@ -89,6 +81,10 @@ plt.show()
 # %%
 # EGI
 # ---
+# EGI MFF files store per-channel gain (GCAL) and impedance (ICAL) calibration data in
+# ``info1.xml`` inside the ``.mff`` directory. :func:`mne.io.read_raw_egi` does not
+# expose this information in the :class:`~mne.io.Raw` object, but it can be read
+# directly from ``info1.xml`` via ``mffpy``.
 #
 # Open the MFF file, keep only EEG channels, then read the calibration block
 # from ``info1.xml``. The ``ICAL`` entry holds one impedance value per channel
@@ -107,11 +103,9 @@ ical_vals = np.array([ical.get(i + 1, np.nan) for i in range(len(raw_egi.ch_name
 print({ch: round(float(v), 1) for ch, v in zip(raw_egi.ch_names[:5], ical_vals[:5])})
 
 # %%
-# Visualize the per-channel ICAL impedances on a topographic map. Values above
-# 50 kΩ (a common threshold for acceptable electrode contact) are clipped to the
-# maximum color.
+# Visualize the per-channel ICAL impedances on a topographic map.
 
 fig, ax = plt.subplots(layout="constrained", figsize=(5, 5))
-plot_topomap(ical_vals, raw_egi.info, vlim=(0, 50), axes=ax, show=False)
+plot_topomap(ical_vals, raw_egi.info, axes=ax, show=False)
 ax.set_title("EGI ICAL impedances (kΩ)")
 plt.show()
