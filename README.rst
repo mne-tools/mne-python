@@ -72,7 +72,7 @@ The minimum required dependencies to run MNE-Python are:
 
 .. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↓↓↓
 
-- `python <https://www.python.org>`__ ≥ 3.10
+- `python <https://www.python.org>`__ ≥ 3.11
 - `decorator <https://pypi.org/project/decorator/>`__ ≥ 5.1
 - `jinja2 <https://jinja.palletsprojects.com/>`__ ≥ 3.1
 - `lazy_loader <https://pypi.org/project/lazy-loader/>`__ ≥ 0.3
@@ -82,7 +82,6 @@ The minimum required dependencies to run MNE-Python are:
 - `pooch <https://www.fatiando.org/pooch>`__ ≥ 1.5
 - `scipy <https://scipy.org/>`__ ≥ 1.14
 - `tqdm <https://tqdm.github.io>`__ ≥ 4.66
-- `typing-extensions <https://typing-extensions.readthedocs.io/>`__ ≥ 4.15
 
 .. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↑↑↑
 
