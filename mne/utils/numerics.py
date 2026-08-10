@@ -408,6 +408,7 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     hash_ : str
         The hexadecimal digest of the hash.
     """
+    # hashlib.file_digest could replace this loop, but it has no public block size arg
     hasher = _empty_hash(kind=hash_type)
     with open(fname, "rb") as fid:
         while True:
