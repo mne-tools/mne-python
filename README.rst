@@ -70,20 +70,20 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓
+.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↓↓↓
 
 - `Python <https://www.python.org>`__ ≥ 3.11
-- `NumPy <https://numpy.org>`__ ≥ 2.0
-- `SciPy <https://scipy.org>`__ ≥ 1.14
+- `decorator <https://pypi.org/project/decorator/>`__ ≥ 5.1
+- `Jinja2 <https://jinja.palletsprojects.com/>`__ ≥ 3.1
+- `lazy-loader <https://pypi.org/project/lazy-loader/>`__ ≥ 0.3
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.9
-- `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
+- `NumPy <https://numpy.org>`__ ≥ 2.0
+- `packaging <https://packaging.pypa.io/>`__
+- `Pooch <https://www.fatiando.org/pooch>`__ ≥ 1.5
+- `SciPy <https://scipy.org/>`__ ≥ 1.14
 - `tqdm <https://tqdm.github.io>`__ ≥ 4.66
-- `Jinja2 <https://palletsprojects.com/p/jinja/>`__ ≥ 3.1
-- `decorator <https://github.com/micheles/decorator>`__ ≥ 5.1
-- `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
-- `packaging <https://packaging.pypa.io/en/stable/>`__
 
-.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑
+.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↑↑↑
 
 Contributing
 ^^^^^^^^^^^^
