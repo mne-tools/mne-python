@@ -24,9 +24,37 @@ jobs:
       - uses: j178/prek-action@v3.0.0
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
+  changed-files:
+    name: Check for dependency-relevant changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      dependencies: ${{ steps.check.outputs.dependencies }}
+    steps:
+      - name: Check whether any dependency input or generated file changed
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eo pipefail
+          # Also match the generated files themselves, so hand-edits get reverted
+          PATTERN='^(pyproject\.toml|README\.rst|environment\.yml|tools/pylock\.ci-old\.toml|\.github/workflows/autofix\.yml)$'
+          # Collect first: `grep -q` exits early, and the resulting SIGPIPE would
+          # trip `pipefail` precisely when a file does match
+          FILES=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
+          if grep -qE "$PATTERN" <<< "$FILES"; then
+            echo "dependencies=true" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "dependencies=false" | tee -a "$GITHUB_OUTPUT"
+          fi
   autofix-dependencies:
     name: Autoupdate 'old' CI lockfile, README dependencies, and environment file
     runs-on: ubuntu-latest
+    needs: changed-files
+    if: needs.changed-files.outputs.dependencies == 'true'
     steps:
       - uses: actions/checkout@v7.0.1
         with:
