@@ -13,6 +13,7 @@ dependencies:
   - dipy >=1.9
   - edfio >=0.4.10
   - eeglabio
+  - ffmpeg ==8.1.2
   - filelock >=3.18.0
   - h5io >=0.2.4
   - h5py >=2.4
