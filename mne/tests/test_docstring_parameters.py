@@ -6,6 +6,7 @@ import ast
 import importlib
 import inspect
 import re
+import tomllib
 import types
 import typing
 from pathlib import Path
@@ -55,11 +56,6 @@ public_modules = [
 pyproject_path = Path(__file__).parents[2] / "pyproject.toml"
 if not pyproject_path.is_file():
     pytest.skip(f"pyproject.toml not found: {pyproject_path}", allow_module_level=True)
-try:
-    import tomllib
-except ModuleNotFoundError:
-    # TODO VERSION: Remove this when Python 3.11+ is required
-    pytest.skip("tomllib not available", allow_module_level=True)
 
 pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
 numpydoc_checks = pyproject["tool"]["numpydoc_validation"]["checks"]

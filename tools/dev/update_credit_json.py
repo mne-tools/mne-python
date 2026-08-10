@@ -36,7 +36,7 @@ co_re = re.compile("Co-authored-by: ([^<>]+) <([^()>]+)>")
 # every PR merged within the lookback window is seen regardless of how old or
 # low-numbered it is (the monthly action runs far more often than this window).
 # For a full-history rebuild, remove the cutoff `break` below.
-cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90)
+cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=90)
 pulls_iter = repo.get_pulls(state="closed", sort="updated", direction="desc")
 iter_ = tqdm(pulls_iter, unit="pr", desc="Traversing")
 n_added = 0

@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -291,7 +291,7 @@ def _read_header(fname):
                 "millisecond",
             )
         ],
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
     basic_header["meas_date"] = time_origin
     return basic_header
