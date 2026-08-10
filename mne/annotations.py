@@ -650,7 +650,7 @@ class Annotations:
                 description=self.description[key],
                 orig_time=self.orig_time,
                 ch_names=self.ch_names[key],
-                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],  # ty: ignore[invalid-argument-type]
+                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
             )
 
     @fill_doc
