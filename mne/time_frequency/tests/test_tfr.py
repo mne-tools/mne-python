@@ -668,7 +668,7 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
         minute=0,
         second=sec_microsec_tuple[0],
         microsecond=sec_microsec_tuple[1],
-        tzinfo=datetime.timezone.utc,
+        tzinfo=datetime.UTC,
     )
     assert tfr_loaded.info["meas_date"] == want
     with tfr.info._unlock():

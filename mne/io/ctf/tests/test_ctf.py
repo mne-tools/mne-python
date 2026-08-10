@@ -5,7 +5,7 @@
 import copy
 import os
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from os import path as op
 
 import numpy as np
@@ -740,4 +740,4 @@ def test_invalid_meas_date(monkeypatch):
         raw = read_raw_ctf(ctf_dir / ctf_fname_continuous, verbose=True)
     log = log.getvalue()
     assert "No date or time found" in log
-    assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=timezone.utc)
+    assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=UTC)

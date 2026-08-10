@@ -132,7 +132,7 @@ class RawMEF(BaseRaw):
         # Indexing the start time
         meas_date = (
             (
-                dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+                dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
                 + dt.timedelta(microseconds=int(start_uutc))
             )
             if start_uutc

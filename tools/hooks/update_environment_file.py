@@ -5,9 +5,8 @@
 # Copyright the MNE-Python contributors.
 
 import re
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 repo_root = Path(__file__).resolve().parents[2]
 with open(repo_root / "pyproject.toml", "rb") as fid:
@@ -29,9 +28,6 @@ pip_deps = {
     "pymef",  # not on conda-forge
 }
 deps -= pip_deps
-deps -= {
-    "typing-extensions >= 4.15; python_version < '3.11'"
-}  # for typing.Self TODO VERSION
 
 
 def remove_spaces(version_spec):

@@ -66,7 +66,7 @@ jobs:
             python: '3.12'
             kind: minimal
           - os: ubuntu-22.04
-            python: '3.10'
+            python: '3.11'
             kind: old
           - os: ubuntu-latest
             python: '3.14t'  # free-threaded

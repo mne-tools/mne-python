@@ -8,7 +8,7 @@ import warnings
 from collections import Counter, OrderedDict, UserDict, UserList
 from collections.abc import Iterable
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from itertools import takewhile
 from textwrap import shorten
 
@@ -425,7 +425,7 @@ class Annotations:
             try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
                 if _handle_meas_date(0) == datetime.strptime(
                     orig_time, "%Y-%m-%d %H:%M:%S"
-                ).replace(tzinfo=timezone.utc):
+                ).replace(tzinfo=UTC):
                     pass
             except ValueError:  # error if incorrect datetime format AND not the default
                 warn(
@@ -650,7 +650,7 @@ class Annotations:
                 description=self.description[key],
                 orig_time=self.orig_time,
                 ch_names=self.ch_names[key],
-                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],  # ty: ignore[invalid-argument-type]
+                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
             )
 
     @fill_doc
@@ -1772,7 +1772,7 @@ def _handle_meas_date(meas_date):
         except ValueError:
             meas_date = None
         else:
-            meas_date = meas_date.replace(tzinfo=timezone.utc)
+            meas_date = meas_date.replace(tzinfo=UTC)
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
