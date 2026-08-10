@@ -47,7 +47,7 @@ import numpy as np
 import sphinx.util.logging
 
 import mne
-from mne.utils import logger, verbose
+from mne.utils import _replace_md5, logger, verbose
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 
@@ -793,7 +793,9 @@ contributions by submodule as well below.
 {indent}{stat_lines}
 
 """
-    (doc_root / "credits" / "code_credit.inc").write_text(content, encoding="utf-8")
+    out_fname = doc_root / "credits" / "code_credit.inc.new"
+    out_fname.write_text(content, encoding="utf-8")
+    _replace_md5(str(out_fname))
 
 
 if __name__ == "__main__":
