@@ -77,6 +77,5 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 echo "::endgroup::"
 
 echo "::group::Check Qt import"
-curl https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh -o check_qt_import.sh
-bash check_qt_import.sh "$MNE_QT_BACKEND"
+curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh | bash -s -- "$MNE_QT_BACKEND"
 echo "::endgroup::"

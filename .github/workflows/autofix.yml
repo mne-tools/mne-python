@@ -28,10 +28,10 @@ jobs:
     name: Autoupdate 'old' CI lockfile, README dependencies, and environment file
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -64,7 +64,8 @@ jobs:
           extras: full,full-no-qt,hdf5
           # manually specify extras groups to sync, as logic for recursion into other groups isn't implemented in the action yet (see mne-tools#40)
           # e.g., `full` includes `mne[full-no-qt]`, but the action won't recognise this, so we need to specify `full-no-qt` explicitly
-          additional-dependencies: pip,mamba,conda,nomkl,noqt5
+          # ffmpeg is pinned to work around a conda solver issue (gh-14023)
+          additional-dependencies: pip,mamba,conda,nomkl,noqt5,ffmpeg==8.1.2
           pip-dependencies: pymef
           requirements-overrides: PySide6==6.11.1,vtk==9.6.2
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
