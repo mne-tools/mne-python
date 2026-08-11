@@ -5,7 +5,7 @@
 
 import os
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -97,9 +97,13 @@ def test_egi_mff_pause(fname, skip_times, event_times):
     else:
         events = find_events(raw)
         for event_type in event_times.keys():
-            ns_samples = np.floor(np.array(event_times[event_type]) * raw.info["sfreq"])
+            ns_samples = np.floor(
+                np.array(event_times[event_type]) * raw.info["sfreq"] + 0.5
+            ).astype(int)
+            ns_samples = ns_samples[ns_samples < raw.n_times]
             assert_array_equal(
-                events[events[:, 2] == raw.event_id[event_type], 0], ns_samples
+                events[events[:, 2] == raw.event_id[event_type], 0],
+                ns_samples,
             )
 
     # read some data from the middle of the skip, assert it's all zeros
@@ -543,7 +547,7 @@ def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
     raw = read_raw_egi(fname, verbose="warning")
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
-    measdate = dt.astimezone(timezone.utc)
+    measdate = dt.astimezone(UTC)
     hour_local = int(dt.strftime("%H"))
     hour_utc = int(raw.info["meas_date"].strftime("%H"))
     local_utc_diff = hour_local - hour_utc

@@ -20,3 +20,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BOT_USERNAME: changelog-bot
+      - uses: actions/setup-python@v7.0.0
+      - run: python tools/check_changelog_names.py  # faster than CircleCI

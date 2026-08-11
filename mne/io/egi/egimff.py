@@ -458,7 +458,7 @@ class RawMff(BaseRaw):
             egi_info["new_trigger"] = None
         assert egi_events.shape[1] == egi_info["last_samps"][-1]
 
-        meas_dt_utc = egi_info["meas_dt_local"].astimezone(datetime.timezone.utc)
+        meas_dt_utc = egi_info["meas_dt_local"].astimezone(datetime.UTC)
         info = _empty_info(egi_info["sfreq"])
         info["meas_date"] = _ensure_meas_date_none_or_dt(meas_dt_utc)
         info["utc_offset"] = egi_info["utc_offset"]
@@ -613,19 +613,20 @@ class RawMff(BaseRaw):
         egi_info = self._raw_extras[fi]
         one = np.zeros((egi_info["kind_bounds"][-1], stop - start))
 
-        # Check how many channels to read are from each type
+        # Check how many channels to read are from each type.
+        # Keep idx as-is (slice or ndarray) for _mult_cal_one — the slice path
+        # avoids np.take and is significantly faster on large buffers.
         bounds = egi_info["kind_bounds"]
-        if isinstance(idx, slice):
-            idx = np.arange(idx.start, idx.stop)
-        eeg_out = np.where(idx < bounds[1])[0]
-        eeg_one = idx[eeg_out, np.newaxis]
-        eeg_in = idx[eeg_out]
-        stim_out = np.where((idx >= bounds[1]) & (idx < bounds[2]))[0]
-        stim_one = idx[stim_out]
-        stim_in = idx[stim_out] - bounds[1]
-        pns_out = np.where((idx >= bounds[2]) & (idx < bounds[3]))[0]
-        pns_in = idx[pns_out] - bounds[2]
-        pns_one = idx[pns_out, np.newaxis]
+        idx_arr = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
+        eeg_out = np.where(idx_arr < bounds[1])[0]
+        eeg_one = idx_arr[eeg_out, np.newaxis]
+        eeg_in = idx_arr[eeg_out]
+        stim_out = np.where((idx_arr >= bounds[1]) & (idx_arr < bounds[2]))[0]
+        stim_one = idx_arr[stim_out]
+        stim_in = idx_arr[stim_out] - bounds[1]
+        pns_out = np.where((idx_arr >= bounds[2]) & (idx_arr < bounds[3]))[0]
+        pns_in = idx_arr[pns_out] - bounds[2]
+        pns_one = idx_arr[pns_out, np.newaxis]
         del eeg_out, stim_out, pns_out
 
         # take into account events (already extended to correct size)

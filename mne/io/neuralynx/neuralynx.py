@@ -197,7 +197,7 @@ class RawNeuralynx(BaseRaw):
         ]
 
         with info._unlock():
-            info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
+            info["meas_date"] = meas_dates[0].astimezone(datetime.UTC)
             info["highpass"] = np.max(highpass_freqs)
             info["lowpass"] = np.min(lowpass_freqs)
 
