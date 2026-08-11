@@ -65,19 +65,6 @@ jobs:
       - name: Update tracked dependencies
         if: matrix.id == 'spec_zero'
         run: python ./tools/dev/spec_zero_update_versions.py
-      - name: Sync updated dependencies to README
-        if: matrix.id == 'spec_zero'
-        run: python tools/sync_dependencies.py
-      - name: Create lockfile for old CI
-        if: matrix.id == 'spec_zero'
-        # uv pip compile requires setting the python version explicitly in the command :(
-        run: |
-          uv pip compile pyproject.toml \
-            --python "3.10" --python-platform "x86_64-unknown-linux-gnu" \
-            --group test --group lockfile_extras \
-            --resolution lowest-direct \
-            --format pylock.toml --output-file tools/pylock.ci-old.toml
-          python tools/github_actions_check_old_lockfile.py
       - name: Update pre-commit hook versions
         if: matrix.id == 'prek_auto_update'
         run: prek auto-update
@@ -88,7 +75,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v2.0.6
+      - uses: j178/prek-action@v3.0.0
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         env:

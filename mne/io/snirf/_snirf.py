@@ -593,7 +593,7 @@ class RawSNIRF(BaseRaw):
                     meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
             else:
                 meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
-            meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
+            meas_date = meas_date.replace(tzinfo=datetime.UTC)
             with info._unlock():
                 info["meas_date"] = meas_date
 
