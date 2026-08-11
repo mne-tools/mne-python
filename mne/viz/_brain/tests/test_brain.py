@@ -588,11 +588,33 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
 @testing.requires_testing_data
 def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
-    """Test live cortex alpha and silhouette line width."""
-    brain = _create_testing_brain(hemi="lh", show_traces=False)
+    """Test live cortex alpha/colormap, surf switching, and silhouette line width."""
+    brain = _create_testing_brain(hemi="lh", show_traces=0.5, initial_time=0)
 
     brain.set_cortex_alpha(0.5)
     assert brain._alpha == 0.5
+
+    mesh = brain.layered_meshes["lh"]
+    old_colors = mesh._current_colors.copy()
+    brain.set_cortex_colormap("bone")
+    assert brain._cortex_preset == "bone"
+    assert not np.allclose(mesh._current_colors, old_colors)
+
+    old_coords = brain.geo["lh"].coords.copy()
+    sphere = next(iter(brain._picked_points.values()))[0]
+    vertex_id = sphere["vertex_id"]
+    old_center = np.array(sphere["mesh"].center)
+
+    brain.set_surf("white")
+    assert brain._surf == "white"
+    assert not np.allclose(brain.geo["lh"].coords, old_coords)
+    assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
+    new_center = np.array(sphere["mesh"].center)
+    assert not np.allclose(new_center, old_center)
+    assert_allclose(new_center, brain.geo["lh"].coords[vertex_id])
+
+    brain.set_surf("white")  # no-op, same surf
+    assert brain._surf == "white"
 
     assert not brain.silhouette
     brain.set_silhouette_line_width(3.0)
@@ -1389,6 +1411,16 @@ def test_brain_traces_vertex(
         brain._on_pick(test_picker, None)
         spheres = sum(brain._picked_points.values(), list())
         assert len(spheres) < old_len
+
+    if src == "vector":
+        glyph_dataset = brain._data["lh"]["glyph_dataset"]
+        vertices = brain._data["lh"]["vertices"]
+        old_points = np.array(glyph_dataset.points)
+        with pytest.warns(RuntimeWarning, match="Foci and label"):
+            brain.set_surf("inflated")
+        new_points = np.array(glyph_dataset.points)
+        assert not np.allclose(old_points, new_points)
+        assert_allclose(new_points, np.array(brain.geo["lh"].coords)[vertices])
 
     screenshot = brain.screenshot()
     screenshot_all = brain.screenshot(time_viewer=True)

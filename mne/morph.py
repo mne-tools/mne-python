@@ -29,8 +29,8 @@ from .utils import (
     _ensure_int,
     _import_h5io_funcs,
     _import_nibabel,
+    _soft_import,
     _validate_type,
-    check_version,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -210,7 +210,7 @@ def compute_source_morph(
     vertices_to_surf, vertices_to_vol = list(), list()
 
     if kind in ("volume", "mixed"):
-        _check_dep(nibabel="2.1.0", dipy="0.10.1")
+        _check_dep()
         nib = _import_nibabel("work with a volume source space")
 
         logger.info("Volume source space(s) present...")
@@ -889,16 +889,12 @@ def read_source_morph(fname):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
-def _check_dep(nibabel="2.1.0", dipy="0.10.1"):
+def _check_dep(nibabel=True, dipy=True):
     """Check dependencies."""
-    for lib, ver in zip(["nibabel", "dipy"], [nibabel, dipy]):
-        passed = True if not ver else check_version(lib, ver)
-
-        if not passed:
-            raise ImportError(
-                f"{lib} {ver} or higher must be correctly "
-                "installed and accessible from Python"
-            )
+    if nibabel:
+        _import_nibabel("morph source estimates")
+    if dipy:
+        _soft_import("dipy", "volumetric source morphing")
 
 
 def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
@@ -906,7 +902,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     assert isinstance(stc, _BaseVolSourceEstimate)  # should be guaranteed
     if stc._data_ndim == 3:
         stc = stc.magnitude()
-    _check_dep(nibabel="2.1.0", dipy=False)
+    _check_dep(dipy=False)
 
     NiftiImage, NiftiHeader = _triage_output(output)
 
@@ -1038,7 +1034,7 @@ def _triage_output(output):
 
 def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     """Interpolate source estimate data to MRI."""
-    _check_dep(nibabel="2.1.0", dipy=False)
+    _check_dep(dipy=False)
     NiftiImage, NiftiHeader = _triage_output(output)
     _validate_type(stc, _BaseVolSourceEstimate, "stc", "volume source estimate")
     assert morph.kind in ("volume", "mixed")
@@ -1050,7 +1046,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         mri_resolution = (float(mri_resolution),) * 3
 
     if isinstance(mri_resolution, tuple):
-        _check_dep(nibabel=False, dipy="0.10.1")  # nibabel was already checked
+        _check_dep(nibabel=False)  # nibabel was already checked
         from dipy.align.reslice import reslice
 
         voxel_size = mri_resolution

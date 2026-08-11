@@ -4,7 +4,7 @@
 # Copyright the MNE-Python contributors.
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -161,7 +161,7 @@ def _get_curry_meas_info(fname):
     try:
         year, month, day, hour, minute, second, millisec = meas_date
         meas_date = datetime(
-            year, month, day, hour, minute, second, millisec * 1000, timezone.utc
+            year, month, day, hour, minute, second, millisec * 1000, UTC
         )
     except Exception:
         meas_date = None
@@ -826,7 +826,7 @@ class RawCurry(BaseRaw):
         # "HPI-coil measurements matrix (Orion-MEG only) where every row is:
         # [measurementsample, dipolefitflag, x, y, z, deviation]"
         #
-        # that's incorrect, though. it ratehr seems to be:
+        # that's incorrect, though. it rather seems to be:
         # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
         # for all n coils.
         #

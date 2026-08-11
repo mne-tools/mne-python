@@ -9,6 +9,7 @@ import platform
 import random
 import re
 import time
+import tomllib
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -147,7 +148,6 @@ def test_sys_info_windowing_system(monkeypatch):
 
 def test_sys_info_complete():
     """Test that sys_info is sufficiently complete."""
-    tomllib = pytest.importorskip("tomllib")  # python 3.11+
     pyproject = Path(__file__).parents[3] / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("Does not appear to be a dev installation")

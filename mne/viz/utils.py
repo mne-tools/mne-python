@@ -502,24 +502,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     # make edges around checkbox areas and change already-applied projectors
     # to red
-    from ._mpl_figure import _OLD_BUTTONS
-
-    check_kwargs = dict()
-    if not _OLD_BUTTONS:
-        checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
-        check_kwargs["check_props"] = dict(facecolor=checkcolor)
-        check_kwargs["frame_props"] = dict(edgecolor="0.5", linewidth=1)
+    checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
     proj_checks = widgets.CheckButtons(
-        ax_temp, labels=labels, actives=actives, **check_kwargs
+        ax_temp,
+        labels=labels,
+        actives=actives,
+        check_props=dict(facecolor=checkcolor),
+        frame_props=dict(edgecolor="0.5", linewidth=1),
     )
-    if _OLD_BUTTONS:
-        for rect in proj_checks.rectangles:
-            rect.set_edgecolor("0.5")
-            rect.set_linewidth(1.0)
-        for ii, p in enumerate(projs):
-            if p["active"]:
-                for x in proj_checks.lines[ii]:
-                    x.set_color("#ff0000")
 
     # make minimal size
     # pass key presses from option dialog over
@@ -1819,6 +1809,28 @@ def _get_color_list(*, remove=None):
             logger.debug(f"Removing from color cycle: {colors[idx]}")
             colors.pop(idx)
     return colors
+
+
+# sRGB -> LMS and LMS -> Oklab. Adapted from https://bottosson.github.io/posts/oklab/
+# by Björn Ottosson, released to the public domain (or MIT), BSD-compatible
+_M_SRGB_TO_LMS = np.array(
+    [
+        [0.4122214708, 0.5363325363, 0.0514459929],
+        [0.2119034982, 0.6806995451, 0.1073969566],
+        [0.0883024619, 0.2817188376, 0.6299787005],
+    ]
+)
+_V_LMS_TO_OKLAB_L = np.array([0.2104542553, 0.7936177850, -0.0040720468])
+
+
+def _is_dark(color, *, name="color"):
+    """Check whether a background color calls for light foreground colors."""
+    # Oklab lightness below 0.5, which is what mne-qt-browser uses
+    rgb = np.array(_to_rgb(color, name=name), float)
+    mask = rgb > 0.04045  # sRGB -> linear sRGB
+    rgb[mask] = ((rgb[mask] + 0.055) / 1.055) ** 2.4
+    rgb[~mask] /= 12.92
+    return bool(_V_LMS_TO_OKLAB_L @ np.cbrt(_M_SRGB_TO_LMS @ rgb) < 0.5)
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):

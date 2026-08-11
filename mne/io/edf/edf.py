@@ -6,7 +6,7 @@
 
 import os
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
@@ -1144,7 +1144,7 @@ def _read_edf_header(
             except Exception:
                 hour, minute, second = 0, 0, 0
             meas_date = meas_date.replace(
-                hour=hour, minute=minute, second=second, tzinfo=timezone.utc
+                hour=hour, minute=minute, second=second, tzinfo=UTC
             )
         else:
             fid.read(8)  # skip the file's measurement time
@@ -1394,7 +1394,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     int(tm[10:12]),
                     int(tm[12:14]),
                     int(tm[14:16]) * pow(10, 4),
-                    tzinfo=timezone.utc,
+                    tzinfo=UTC,
                 )
             except Exception:
                 pass
@@ -1565,7 +1565,7 @@ def _read_gdf_header(fname, exclude, include=None):
 
             meas_date = read_from_file_or_buffer(fid, UINT64, 1)[0]
             if meas_date != 0:
-                meas_date = datetime(1, 1, 1, tzinfo=timezone.utc) + timedelta(
+                meas_date = datetime(1, 1, 1, tzinfo=UTC) + timedelta(
                     meas_date * pow(2, -32) - 367
                 )
             else:
@@ -1573,14 +1573,14 @@ def _read_gdf_header(fname, exclude, include=None):
 
             birthday = read_from_file_or_buffer(fid, UINT64, 1).tolist()[0]
             if birthday == 0:
-                birthday = datetime(1, 1, 1, tzinfo=timezone.utc)
+                birthday = datetime(1, 1, 1, tzinfo=UTC)
             else:
-                birthday = datetime(1, 1, 1, tzinfo=timezone.utc) + timedelta(
+                birthday = datetime(1, 1, 1, tzinfo=UTC) + timedelta(
                     birthday * pow(2, -32) - 367
                 )
             patient["birthday"] = birthday
-            if patient["birthday"] != datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc):
-                today = datetime.now(tz=timezone.utc)
+            if patient["birthday"] != datetime(1, 1, 1, 0, 0, tzinfo=UTC):
+                today = datetime.now(tz=UTC)
                 patient["age"] = today.year - patient["birthday"].year
                 # fudge the day by -1 if today happens to be a leap day
                 day = 28 if today.month == 2 and today.day == 29 else today.day
