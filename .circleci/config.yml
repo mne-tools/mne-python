@@ -260,9 +260,9 @@ jobs:
           name: Ensure MNE data for JupyterLite
           command: |
             python -c "import mne; mne.datasets.lite_data.data_path(update_path=True)"
-      # Build the dev MNE wheel the JupyterLite browser kernel installs, once,
-      # before Sphinx runs. conf.py reuses it and only builds it itself if this
-      # step did not run (e.g. a local build).
+      # Build the development MNE wheel that the JupyterLite browser kernel
+      # will install, once, before Sphinx runs. Building it here rather than
+      # from conf.py keeps it out of the per-invocation docs build.
       - run:
           name: Build MNE wheel for JupyterLite
           command: python doc/sphinxext/build_lite_wheel.py
