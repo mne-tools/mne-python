@@ -149,7 +149,6 @@ exclude_patterns = [
     "jupyterlite_contents",
     "lite_extra",
     "pypi",
-    "corrupt_*",
 ]
 
 # The suffix of source filenames.
