@@ -2075,6 +2075,7 @@ def setup_subcortical_source_space(
         or produced by an external mesh-fitting tool. Creates a single
         source space. Mutually exclusive with ``label``.
     %(aseg)s
+
         Only used when ``label`` is provided.
     %(subjects_dir)s
     keep_largest_component : bool
