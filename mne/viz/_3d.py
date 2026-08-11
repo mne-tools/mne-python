@@ -1357,7 +1357,7 @@ def _plot_hpi_coils(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
@@ -1460,7 +1460,7 @@ def _plot_glyphs(
         rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
         quats = rot_to_quat(rots)
     rr, tris = renderer._glyph_template(kind, **template_kw)
-    actor, _ = renderer.instanced_mesh(
+    actor, cloud = renderer.instanced_mesh(
         rr=rr,
         tris=tris,
         positions=positions,
@@ -1469,7 +1469,7 @@ def _plot_glyphs(
         scales=scales,
         backface_culling=backface_culling,
     )
-    return actor
+    return actor, cloud
 
 
 @verbose
@@ -1513,7 +1513,7 @@ def _plot_head_shape_points(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
@@ -1568,6 +1568,7 @@ def _plot_sensors_3d(
     nearest=None,
     sensor_colors=None,
     sensor_scales=None,
+    return_cloud=False,
 ):
     """Render sensors in a 3D scene."""
     from matplotlib.colors import to_rgba_array
@@ -1697,7 +1698,7 @@ def _plot_sensors_3d(
                 template = sens_loc[idxs[0]]
                 positions = np.array([sens_loc[i]["position"] for i in idxs])
                 quats = np.array([sens_loc[i]["quat"] for i in idxs])
-                actor, _ = renderer.instanced_mesh(
+                actor, cloud = renderer.instanced_mesh(
                     rr=template["rr"],
                     tris=template["tris"],
                     positions=positions,
@@ -1735,7 +1736,7 @@ def _plot_sensors_3d(
                 )
                 backface_culling = True
                 actor_key = "eeg"
-            actor = _plot_glyphs(
+            actor, cloud = _plot_glyphs(
                 renderer=renderer,
                 loc=loc * unit_scalar,
                 colors=these_colors,
@@ -1755,7 +1756,10 @@ def _plot_sensors_3d(
 
     actors = dict(actors)  # get rid of defaultdict
 
-    return actors
+    if return_cloud:
+        return actors, cloud
+    else:
+        return actors
 
 
 def _make_tris_fan(n_vert):

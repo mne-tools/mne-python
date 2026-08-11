@@ -309,7 +309,7 @@ class DipoleFitUI:
             )
             self._actors["head"].prop.culling = "back"
 
-        sensors = _plot_sensors_3d(
+        sensors, cloud = _plot_sensors_3d(
             renderer=fig_ef._renderer,
             info=self._evoked.info,
             to_cf_t=self._to_cf_t,
@@ -331,8 +331,10 @@ class DipoleFitUI:
                 meg=["gray" for _ in meg_picks],
                 eeg=["white" for _ in eeg_picks],
             ),
+            return_cloud=True,
         )
-        self._actors["sensors"] = sum(sensors.values(), [])
+        self._actors["sensors"] = sensors
+        self._sensors_cloud = cloud
 
         # Adjust camera
         fig_ef._renderer.set_camera(
@@ -440,19 +442,25 @@ class DipoleFitUI:
         """Handle closing of the sensor selection window."""
         self._fig_sensors = None
         if "sensors" in self._actors:
-            for act in self._actors["sensors"]:
-                act.prop.SetColor(1, 1, 1)
+            cloud = self._sensors_cloud
+            for i in range(len(self._ch_names)):
+                cloud.point_data["colors"][i] = [0, 0, 0, 10]
             self._renderer._update()
 
     def _on_channels_select(self, event):
         """Color selected sensor meshes."""
         selected_channels = set(event.ch_names)
         if "sensors" in self._actors:
-            for act, ch_name in zip(self._actors["sensors"], self._ch_names):
-                if ch_name in selected_channels:
-                    act.prop.SetColor(0, 1, 0)
-                else:
-                    act.prop.SetColor(1, 1, 1)
+            for ch_type, act in self._actors["sensors"].items():
+                cloud = act.GetMapper().GetInput()
+                for ch_name in self._ch_names:
+                    if ch_name in selected_channels:
+                        print("Selecting channel to green:", ch_name)
+                        idx = self._ch_names.index(ch_name)
+                        cloud.point_data["colors"][idx] = [0, 255, 0, 100]
+                    else:
+                        idx = self._ch_names.index(ch_name)
+                        cloud.point_data["colors"][idx] = [0, 0, 0, 10]
         self._renderer._update()
 
     def _on_fit_dipole(self):
