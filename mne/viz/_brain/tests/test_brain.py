@@ -1706,6 +1706,35 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     # Should remain unchanged.
     assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
 
+    # Test effect of vertex selection publishing.
+    events = list()
+    ui_events.subscribe(brain, "vertex_select", lambda event: events.append(event))
+
+    mesh = brain.layered_meshes["lh"]._polydata
+    faces = brain.geo["lh"].faces
+    vertices = brain._data["lh"]["vertices"]
+    smooth_mat = brain.act_data_smooth["lh"][1]
+
+    # each for existing and missing source vertex cases
+    for is_source in (True, False):
+        mask = np.isin(faces[:, 0], vertices)
+        # select first vertex satisfying the condition
+        cell_id = np.where(mask if is_source else ~mask)[0][0]
+        vertex_id = faces[cell_id, 0]
+        # make the selection
+        n_events = len(events)
+        brain._on_pick(TstVTKPicker(mesh, cell_id, "lh", brain), None)
+        assert len(events) == n_events + 1
+        event = events[-1]
+        assert event.vertex_id == vertex_id
+        row = smooth_mat[vertex_id, :]
+        if is_source:
+            assert event.source_id == row.argmax()
+            assert vertices[event.source_id] == event.vertex_id
+        else:
+            assert row.sum() == 0
+            assert event.source_id is None
+
     brain.close()
 
 

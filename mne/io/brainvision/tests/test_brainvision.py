@@ -1048,7 +1048,7 @@ def test_event_id_stability_when_save_and_fif_reload(tmp_path):
 def test_parse_impedance():
     """Test case for parsing the impedances from header."""
     expected_imp_meas_time = datetime.datetime(
-        2013, 11, 13, 16, 12, 27, tzinfo=datetime.timezone.utc
+        2013, 11, 13, 16, 12, 27, tzinfo=datetime.UTC
     )
     expected_imp_unit = "kOhm"
     expected_electrodes = [
