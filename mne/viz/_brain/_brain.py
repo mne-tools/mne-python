@@ -583,6 +583,8 @@ class Brain:
         self.rms = None
         self._picked_patches = {key: list() for key in all_keys}
         self._picked_points = dict()
+        self._peak_vertices = {}
+        self._trace_meta = {}
         self._mouse_no_mvt = -1
         self._show_hover_info = False
         self._hover_caption = None
@@ -1119,8 +1121,18 @@ class Brain:
         self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_surface_widget(name="Surface")
-        self._configure_dock_trace_widget(name="Trace")
+        self._configure_dock_trace_widget(name="Atlas")
+        self._configure_dock_trace_list_widget(name="Trace List")
         self._renderer._dock_finalize()
+
+    def _configure_dock_trace_list_widget(self, name):
+        if not self.show_traces or self.mpl_canvas is None:
+            return
+        add_trace_list = getattr(self._renderer, "_dock_add_trace_list", None)
+        if add_trace_list is None:
+            return
+        self.mpl_canvas._trace_list = add_trace_list(name, collapse=True)
+        self.mpl_canvas.sync_traces()
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
@@ -1151,6 +1163,7 @@ class Brain:
 
         # Plot one RMS curve per overlay so the viewer shows all overlays.
         self.rms = []
+        self._peak_vertices = {}
         multi = len(self._all_data) > 1
         for overlay_key, overlay_data in self._all_data.items():
             y_parts = []
@@ -1173,12 +1186,11 @@ class Brain:
             (line,) = self.mpl_canvas.axes.plot(
                 overlay_data["time"],
                 rms,
-                lw=3,
+                lw=3.5,
                 label=label,
                 zorder=3,
                 color=next(self.color_cycle),
                 alpha=0.5,
-                ls=":",
             )
             self.rms.append(line)
 
@@ -1207,9 +1219,11 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
+            vertex_id = vertices[ind[0]]
+            self._peak_vertices[hemi] = vertex_id
             publish(
                 self,
-                VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0]),
+                VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=ind[0]),
             )
 
     def _configure_picking(self):
@@ -1653,6 +1667,7 @@ class Brain:
             return
         color, line = spheres[0]["color"], spheres[0]["line"]
         line.remove()
+        self._trace_meta.pop(line, None)
         self.mpl_canvas.update_plot()
 
         with warnings.catch_warnings(record=True):
@@ -1665,6 +1680,42 @@ class Brain:
             self.plotter.remove_actor(sphere.pop("actor"), render=False)
         if render:
             self._renderer._update()
+
+    def _set_trace_visible(self, line, visible):
+        """Toggle a trace's 3D glyph visibility to match its plot visibility."""
+        for spheres in self._picked_points.values():
+            if spheres[0]["line"] is line:
+                for sphere in spheres:
+                    sphere["actor"].SetVisibility(visible)
+                self._renderer._update()
+                return
+
+    def _set_trace_highlight(self, line):
+        """Dim the 3D glyphs of every picked trace except the highlighted one."""
+        if not self._picked_points:
+            return
+        for spheres in self._picked_points.values():
+            opacity = 1.0 if line in (None, spheres[0]["line"]) else 0.3
+            for sphere in spheres:
+                sphere["actor"].GetProperty().SetOpacity(opacity)
+        self._renderer._update()
+
+    def _trace_display_label(self, line):
+        """Return a short, dock-friendly trace-list label.
+
+        The vertex auto-picked at peak activation for each hemisphere gets a
+        "Peak (LH)"-style name; other picked vertices get a compact
+        "LH 1000"-style name instead of the full MNI-coordinate string (still
+        available as the row's tooltip). RMS curves are returned unchanged.
+        """
+        meta = self._trace_meta.get(line)
+        if meta is None:
+            return line.get_label()
+        hemi, vertex_id = meta
+        hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
+        if self._peak_vertices.get(hemi) == vertex_id:
+            return f"Peak ({hemi_names[hemi]})"
+        return f"{hemi_names[hemi]} {vertex_id}"
 
     def clear_glyphs(self):
         """Clear the picking glyphs."""
@@ -1680,6 +1731,7 @@ class Brain:
         if self.rms is not None:
             for line in self.rms:
                 line.remove()
+                self.color_cycle.restore(line.get_color())
             self.rms = None
         self._renderer._update()
 
@@ -1739,11 +1791,14 @@ class Brain:
             time,
             act_data,
             label=label,
-            lw=1.0,
+            lw=2.4,
             color=color,
             zorder=4,
-            update=update,
+            update=False,
         )
+        self._trace_meta[line] = (hemi, vertex_id)
+        if update:
+            self.mpl_canvas.update_plot()
         return line
 
     @fill_doc
@@ -1764,7 +1819,9 @@ class Brain:
                     x=current_time,
                     label="time",
                     color=self._fg_color,
-                    lw=1,
+                    lw=1.5,
+                    ls="--",
+                    alpha=0.7,
                     update=update,
                 )
             self.time_line.set_xdata([current_time])

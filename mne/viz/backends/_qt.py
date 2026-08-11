@@ -16,6 +16,7 @@ from qtpy import API_NAME  # noqa: F401, isort: skip
 
 import pyvista
 from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
 from pyvistaqt.plotting import FileDialog, MainWindow
 from qtpy.QtCore import (
@@ -23,12 +24,13 @@ from qtpy.QtCore import (
     QLibraryInfo,
     QLocale,
     QObject,
+    QSize,
     Qt,
     QTimer,
     # non-object-based-abstraction-only, remove
     Signal,
 )
-from qtpy.QtGui import QCursor, QGuiApplication, QIcon, QKeyEvent
+from qtpy.QtGui import QCursor, QFont, QGuiApplication, QIcon, QKeyEvent
 from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -39,6 +41,8 @@ from qtpy.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
+    QGraphicsOpacityEffect,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -1166,6 +1170,19 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return hlayout
 
+    def _dock_add_trace_list(self, name, *, collapse=True, layout=None):
+        """Add a collapsible group box holding the live trace-visibility list.
+
+        Unlike the other ``_dock_add_*`` widgets this isn't backed by a single
+        value, it mirrors ``self._mplcanvas``'s current traces and grows or
+        shrinks, so it's Qt-specific rather than part
+        of the cross-backend :class:`_AbstractDock` interface.
+        """
+        group_layout = self._dock_add_group_box(name, collapse=collapse, layout=layout)
+        trace_list = _QtTraceList(self._mplcanvas)
+        self._layout_add_widget(group_layout, trace_list)
+        return trace_list
+
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QLineEdit(str(value))
@@ -1427,15 +1444,144 @@ class _QtMplCanvas(_AbstractMplCanvas, _QtMplInterface):
         self._mpl_initialize()
 
 
+class _QtTraceRow(QWidget):
+    """One row of the trace list: a color swatch, a label, a visibility toggle."""
+
+    def __init__(self, canvas, line):
+        super().__init__()
+        self._canvas = canvas
+        self._line = line
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(8)
+
+        swatch = QLabel()
+        swatch.setFixedSize(13, 13)
+        radius = 3 if line.get_label().startswith("RMS") else 6
+        swatch.setStyleSheet(
+            f"background-color: {to_hex(line.get_color())}; border-radius: {radius}px;"
+        )
+        layout.addWidget(swatch)
+
+        brain = canvas.brain
+        text = QLabel(brain._trace_display_label(line) if brain else line.get_label())
+        text.setObjectName("trace_label")
+        text.setStyleSheet("font-size: 12pt;")
+        text.setToolTip(line.get_label())
+        text.setWordWrap(True)
+        layout.addWidget(text, 1)
+
+        self._toggle = QToolButton()
+        self._toggle.setAutoRaise(True)
+        self._toggle.setIconSize(QSize(18, 18))
+        self._toggle.setFixedSize(28, 28)
+        self._toggle.setCursor(Qt.PointingHandCursor)
+        self._toggle.setToolTip("Show/hide this trace")
+        self._toggle.setStyleSheet(
+            "QToolButton { border: none; border-radius: 4px; }"
+            "QToolButton:hover { background-color: palette(midlight); }"
+        )
+        self._toggle.clicked.connect(self._on_toggle)
+        layout.addWidget(self._toggle)
+
+        self._opacity = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self._opacity)
+        self._sync_visibility()
+
+    def _sync_visibility(self):
+        visible = self._line.get_visible()
+        self._toggle.setIcon(_qicon("visibility_on" if visible else "visibility_off"))
+        self._opacity.setOpacity(1.0 if visible else 0.45)
+
+    def _on_toggle(self):
+        self._canvas.set_trace_visible(self._line, not self._line.get_visible())
+        self._sync_visibility()
+
+    def _repolish(self):
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+
+    def enterEvent(self, event):
+        """Highlight this trace when the row is hovered."""
+        self.setStyleSheet("_QtTraceRow { background-color: palette(alternate-base); }")
+        self._repolish()
+        self._canvas.set_trace_highlight(self._line)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Clear the highlight when the mouse leaves the row."""
+        self.setStyleSheet("")
+        self._repolish()
+        self._canvas.set_trace_highlight(None)
+        super().leaveEvent(event)
+
+
+class _QtTraceList(QWidget):
+    """Live-updating list of the trace panel's traces, for the "Trace List" dock.
+
+    A plain widget so it reads as part of the dock's
+    normal flow, matching the other collapsible sections, the side dock as
+    a whole already scrolls if its total content outgrows the window.
+    """
+
+    def __init__(self, canvas):
+        super().__init__()
+        self._canvas = canvas
+        self._rows_layout = QVBoxLayout(self)
+        self._rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._rows_layout.setSpacing(2)
+        self._synced_lines = None
+
+    def sync(self, lines):
+        """Rebuild the row list to match the canvas's current lines.
+
+        A no-op unless the set of traces actually changed (added/removed),
+        called on every plot update, including once per time step during
+        playback, so a per-row visibility/color change must not pay for a
+        full rebuild here; rows refresh themselves directly instead.
+        """
+        if lines == self._synced_lines:
+            return
+        self._synced_lines = list(lines)
+        while self._rows_layout.count():
+            widget = self._rows_layout.takeAt(0).widget()
+            if widget is not None:
+                widget.deleteLater()
+        if not lines:
+            placeholder = QLabel(
+                "Set Atlas to None to see\nvertex and RMS traces here."
+            )
+            placeholder.setStyleSheet(
+                "color: palette(disabled-text); font-style: italic; font-size: 9pt;"
+            )
+            self._rows_layout.addWidget(placeholder)
+            return
+        for line in lines:
+            self._rows_layout.addWidget(_QtTraceRow(self._canvas, line))
+
+
 class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
+    _legend_in_figure = False
+
     def __init__(self, brain, width, height, dpi):
         super().__init__(brain, width, height, dpi)
         self._mpl_initialize()
+        self._trace_list = None
         if brain.separate_canvas:
             self.canvas.setParent(None)
         else:
             self.canvas.setParent(brain._renderer._window)
         self._connect()
+
+    def sync_traces(self):
+        """Refresh the trace-list dock widget with the canvas's current lines."""
+        if self._trace_list is None:
+            return
+        time_line = getattr(self.brain, "time_line", None)
+        lines = [line for line in self.axes.get_lines() if line is not time_line]
+        self._trace_list.sync(lines)
 
 
 class _QtHelpDialog(QDialog):
@@ -1894,19 +2040,34 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     dock = QDockWidget(name)
     # add scroll area
     scroll = QScrollArea(dock)
+    scroll.setFrameShape(QFrame.NoFrame)
     dock.setWidget(scroll)
     # give the scroll area a child widget
     widget = QWidget(scroll)
     scroll.setWidget(widget)
     scroll.setWidgetResizable(True)
     dock.setAllowedAreas(area)
-    dock.setTitleBarWidget(QLabel(name))
+
+    title = QLabel(name.upper())
+    title_font = title.font()
+    title_font.setBold(True)
+    title_font.setPointSize(max(title_font.pointSize() - 1, 8))
+    title_font.setLetterSpacing(QFont.AbsoluteSpacing, 1.1)
+    title.setFont(title_font)
+    title.setStyleSheet(
+        "QLabel {"
+        " color: palette(mid);"
+        " padding: 7px 10px 6px 10px;"
+        " border-bottom: 1px solid palette(midlight);"
+        " }"
+    )
+    dock.setTitleBarWidget(title)
     window.addDockWidget(area, dock)
     dock_layout = QVBoxLayout()
     widget.setLayout(dock_layout)
     # Fix resize grip size
     # https://stackoverflow.com/a/65050468/2175965
-    styles = ["margin: 4px;"]
+    styles = ["margin: 4px;", "border: none;"]
     if max_width is not None:
         styles.append(f"max-width: {max_width};")
     style_sheet = "QDockWidget { " + "  \n".join(styles) + "\n}"

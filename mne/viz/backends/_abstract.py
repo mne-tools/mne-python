@@ -1435,16 +1435,38 @@ class _AbstractMplCanvas(ABC):
 
     def set_color(self, bg_color, fg_color):
         """Set the widget colors."""
+        from matplotlib.ticker import AutoMinorLocator
+
         self.axes.set_facecolor(bg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
+        self.axes.spines["top"].set_visible(False)
+        self.axes.spines["right"].set_visible(False)
+        for side in ("bottom", "left"):
+            spine = self.axes.spines[side]
+            spine.set_color(fg_color)
+            spine.set_linewidth(2.0)
+
         self.axes.xaxis.label.set_color(fg_color)
         self.axes.yaxis.label.set_color(fg_color)
-        self.axes.spines["top"].set_color(fg_color)
-        self.axes.spines["bottom"].set_color(fg_color)
-        self.axes.spines["left"].set_color(fg_color)
-        self.axes.spines["right"].set_color(fg_color)
-        self.axes.tick_params(axis="x", colors=fg_color)
-        self.axes.tick_params(axis="y", colors=fg_color)
-        self.fig.patch.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_fontsize(14)
+        self.axes.yaxis.label.set_fontsize(14)
+
+        self.axes.tick_params(
+            axis="both",
+            colors=fg_color,
+            labelsize=13,
+            length=6,
+            width=1.5,
+            direction="out",
+        )
+
+        self.axes.xaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.yaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.tick_params(which="minor", length=3, width=1.0, colors=fg_color)
+        self.axes.grid(which="major", color=fg_color, alpha=0.18, linewidth=0.9)
+        self.axes.grid(which="minor", color=fg_color, alpha=0.08, linewidth=0.6)
+        self.axes.set_axisbelow(True)
 
     def show(self):
         """Show the canvas."""
@@ -1471,22 +1493,64 @@ class _AbstractMplCanvas(ABC):
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
+    _legend_in_figure = True
+
     def __init__(self, brain, width, height, dpi):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
     def update_plot(self):
         """Update the plot."""
-        leg = self.axes.legend(
-            prop={"family": "monospace", "size": "small"},
-            framealpha=0.5,
-            handlelength=1.0,
-            facecolor=self.brain._bg_color,
-        )
-        for text in leg.get_texts():
-            text.set_color(self.brain._fg_color)
+        if self._legend_in_figure:
+            leg = self.axes.legend(
+                prop={"family": "monospace", "size": "small"},
+                framealpha=0.5,
+                handlelength=1.0,
+                facecolor=self.brain._bg_color,
+            )
+            for text in leg.get_texts():
+                text.set_color(self.brain._fg_color)
+        self.sync_traces()
         super().update_plot()
+
+    def sync_traces(self):
+        """Refresh a native trace-list widget; no-op unless a backend provides one."""
+
+    def set_trace_visible(self, line, visible):
+        """Toggle one trace's visibility, in the plot and on its 3D glyph."""
+        line.set_visible(visible)
+        self.brain._set_trace_visible(line, visible)
+        self.update_plot()
+
+    def set_trace_highlight(self, line):
+        """Highlight one trace (or none), dimming the plot's other traces."""
+        if line is not None and not line.get_visible():
+            line = None
+        if line is self._hovered_line:
+            return
+        time_line = getattr(self.brain, "time_line", None)
+        origlines = [
+            origline
+            for origline in self.axes.get_lines()
+            if origline is not time_line and origline.get_visible()
+        ]
+        if self._hovered_line is None and line is not None:
+            self._trace_base_alpha = {
+                origline: origline.get_alpha() for origline in origlines
+            }
+        self._hovered_line = line
+        for origline in origlines:
+            if line is None:
+                origline.set_alpha(self._trace_base_alpha.get(origline))
+            else:
+                origline.set_alpha(1.0 if origline is line else 0.25)
+        if line is None:
+            self._trace_base_alpha = {}
+        self.canvas.draw_idle()
+        self.brain._set_trace_highlight(line)
 
     def on_button_press(self, event):
         """Handle button presses."""
@@ -1501,6 +1565,8 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Clear internal variables."""
         super().clear()
         self.brain = None
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
 
 class _AbstractWindow(ABC):
