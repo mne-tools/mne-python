@@ -4,7 +4,7 @@
 
 import sys
 from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from itertools import repeat
 from pathlib import Path
 
@@ -97,7 +97,7 @@ def test_basics():
             assert annot.orig_time is None
         else:
             assert isinstance(annot.orig_time, datetime)
-            assert annot.orig_time.tzinfo is timezone.utc
+            assert annot.orig_time.tzinfo is UTC
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
@@ -993,7 +993,7 @@ def _assert_annotations_equal(a, b, tol=0, comp_extras_as_str=False):
             assert exa == exb, f"extras[{i}][{col}]"
 
 
-_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, UTC)
 
 
 @pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
@@ -1250,7 +1250,7 @@ def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
     if out is not None:
         assert out >= 0  # otherwise it'll break on Windows
-        out = datetime.fromtimestamp(out, timezone.utc)
+        out = datetime.fromtimestamp(out, UTC)
     assert _handle_meas_date(meas_date) == out
 
 
@@ -1268,7 +1268,7 @@ def test_read_annotation_txt_header(tmp_path):
     with open(fname, "w") as f:
         f.write(content)
     orig_time, _, n_rows_header = _read_annotations_txt_parse_header(fname)
-    want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+    want = datetime.fromtimestamp(1038942071.7201, UTC)
     assert orig_time == want
     assert n_rows_header == 5
 
@@ -1847,9 +1847,9 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
     meas_date_1 = meas_date_2 = None
     assert meas_date in (None, "first", "second", "both")
     if meas_date in ("first", "both"):
-        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     if meas_date in ("second", "both"):
-        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     del meas_date
 
     def _create_raw(eeg, sfreq, onset, description, meas_date, first_samp, setting):
