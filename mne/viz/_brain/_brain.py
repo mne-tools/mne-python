@@ -1476,15 +1476,14 @@ class Brain:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
             # grid.point_data['values'][vertices] = dists * mask
-            idx = idx[np.argmax(np.abs(scalars[idx]))]
-            vertex_id = vertices[idx]
+            source_id = idx[np.argmax(np.abs(scalars[idx]))]
+            vertex_id = vertices[source_id]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
             # shape = self._data[hemi]['grid_shape']
             # taking into account the cell vs point difference (spacing/2)
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
-            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [
