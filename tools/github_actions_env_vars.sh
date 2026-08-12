@@ -61,7 +61,6 @@ elif [[ "$MNE_CI_KIND" == "conda" ]]; then
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
     echo "MNE_TEST_ALLOW_SKIP=.*(on conda|Requires (spm|brainstorm|misc) dataset|CUDA not|Flakey verbose behavior|PySide6 causes segfaults|SCIPY_ARRAY_API).*" | tee -a $GITHUB_ENV
     echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
-# NON-DRY but just gonna get it working and then refactor.
 elif [[ "$MNE_CI_KIND" == "pixi" ]]; then
     echo "Setting env vars for $MNE_CI_KIND"
     echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV

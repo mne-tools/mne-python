@@ -16,9 +16,7 @@ def pip_to_pixi(dependencies_list):
     """Convert pip dependency specifier strings to a pixi-style dict."""
     out = dict()
     for dep in dependencies_list:
-        out[dep.name] = str(dep.specifier)
-        if str(dep.specifier) == "":
-            out[dep.name] += "*"
+        out[dep.name] = str(dep.specifier) if str(dep.specifier) != "" else "*"
     return out
 
 
