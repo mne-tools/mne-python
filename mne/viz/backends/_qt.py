@@ -675,18 +675,19 @@ class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
 def _qt_set_theme(window, theme=None):
     """(Re)apply a theme to a window, remembering any explicitly requested one."""
     if theme is not None:
+        # remembered so that reapplying on an OS theme switch keeps honoring it
         window._mne_theme = theme
-    theme = getattr(window, "_mne_theme", None)
-    if theme is None:
+    elif remembered := getattr(window, "_mne_theme", None):
+        theme = remembered  # an explicit theme= from an earlier call
+    elif config_theme := get_config("MNE_3D_OPTION_THEME", None):
+        theme = config_theme
+    else:
         theme = _qt_detect_theme()
-    theme = get_config("MNE_3D_OPTION_THEME", theme)
     stylesheet = _qt_get_stylesheet(theme)
     # our own setStyleSheet emits PaletteChange; without this the signal recurses
     window._mne_theme_updating = True
     try:
-        # re-setting an unchanged sheet costs styled children (sliders) native rendering
-        if stylesheet != window.styleSheet():
-            window.setStyleSheet(stylesheet)
+        window.setStyleSheet(stylesheet)
         QIcon.setThemeName("dark" if _qt_is_dark(window) else "light")
         # not a no-op: setStyleSheet re-parses, re-resolving palette(...) refs that a
         # palette change alone leaves stale
