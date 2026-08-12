@@ -118,7 +118,7 @@ jobs:
           manifest-path: tools/ci/macos-intel/pixi.toml
           # https://github.com/prefix-dev/setup-pixi/issues/139
           activate-environment: true
-          frozen: false
+          frozen: true
         if: matrix.kind == 'pixi'
       # Workaround macOS path behavior with login shells (which puts system Python first)
       - run: |  # zizmor: ignore[template-injection]
