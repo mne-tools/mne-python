@@ -33,7 +33,6 @@ jupyter_client = "*"
 lazy_loader = ">=0.3"
 matplotlib = ">=3.9"
 mffpy = ">=0.11.0"
-mne-qt-browser = "*"
 nbclient = "*"
 nest-asyncio2 = "*"
 nibabel = ">=2.0"
@@ -90,4 +89,5 @@ xlrd = "*"
 
 [pypi-dependencies]
 pymef = "*"
+mne-qt-browser = "*"
 mne = { path="/Users/runner/work/mne-python/mne-python", editable=true }
