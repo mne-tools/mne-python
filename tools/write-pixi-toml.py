@@ -6,21 +6,23 @@ from pathlib import Path
 
 import tomlkit
 import yaml
+from packaging.requirements import Requirement
+
+# alphabeetize
+# replace "" with "*"
 
 
 def pip_to_pixi(dependencies_list):
     """Convert pip dependency specifier strings to a pixi-style dict."""
     out = dict()
     for dep in dependencies_list:
-        if " " in dep:
-            name, version = dep.split(" ", maxsplit=1)
-        else:
-            name, version = dep, "*"
-        out[name] = "".join(version.split(" "))  # pixi hates internal spaces
+        out[dep.name] = str(dep.specifier)
+        if str(dep.specifier) == "":
+            out[dep.name] += "*"
     return out
 
 
-pypi_dependencies = ["pymef"]  # "nest-asyncio2", "pyobjc-framework-Cocoa"]
+pypi_dependencies = sorted(["mne-qt-browser", "pymef"])
 
 repo_root = Path(__file__).resolve().parent.parent
 tests_yaml_fpath = repo_root / ".github" / "workflows" / "tests.yml"
@@ -73,18 +75,24 @@ for ix, dep in enumerate(dependencies):
         dependencies[ix] = dep[:split_ix].strip()
 # handle mismatch between names on PyPI and conda-forge
 dependencies = [remapping.get(dep, dep) for dep in dependencies]
-
-# Add Python Version
-dependencies.append(f"python {python_version}")
+dependencies.sort()
 
 # exclude pypi-only deps
-dependencies = sorted(set(dependencies) - set(pypi_dependencies))
+dependencies = [Requirement(dep) for dep in dependencies]
+pypi_dependencies = [Requirement(dep) for dep in pypi_dependencies]
+
+dependencies = [
+    dep
+    for dep in dependencies
+    if dep.name not in {pdep.name for pdep in pypi_dependencies}
+]
 
 out = {
     "workspace": workspace,
     "dependencies": pip_to_pixi(dependencies),
     "pypi-dependencies": pip_to_pixi(pypi_dependencies),
 }
+out["dependencies"].update(python=python_version)
 
 doc = tomlkit.document()
 doc.add(
