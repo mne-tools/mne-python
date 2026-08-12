@@ -109,14 +109,6 @@ jobs:
         with:
           manifest-path: tools/ci/macos-intel/pixi.toml
           # https://github.com/prefix-dev/setup-pixi/issues/139
-          # activate-environment: true
-          # frozen: true
-          run-install: false
-        if: matrix.kind == 'pixi'
-      - uses: prefix-dev/setup-pixi@v0.10.0
-        with:
-          manifest-path: tools/ci/macos-intel/pixi.toml
-          # https://github.com/prefix-dev/setup-pixi/issues/139
           activate-environment: true
           frozen: true
         if: matrix.kind == 'pixi'
