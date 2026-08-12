@@ -228,6 +228,8 @@ def pytest_configure(config: pytest.Config):
     # nitime <-> NumPy 2.5 (https://github.com/nipy/nitime/pull/236)
     ignore:Setting the shape on a NumPy array has been deprecated.*:DeprecationWarning
     ignore:Implicitly cleaning up.*:ResourceWarning
+    # Scipy deprecation warning via sklearn (present as of sklearn 1.10.dev0 2026-09-31)
+    ignore:(bsr|coo|csc|csr|dia|dok|lil)_matrix is being replaced by \1_array
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -240,7 +242,7 @@ def pytest_configure(config: pytest.Config):
     else:
         if Version(pandas.__version__) >= Version("3.1.0.dev0"):
             # TODO VERSION once statsmodels dev has updated for pip-pre
-            # (failing as of 2026/02/04)
+            # (failing as of 2026/08/05)
             config.addinivalue_line(
                 "filterwarnings",
                 "ignore:"

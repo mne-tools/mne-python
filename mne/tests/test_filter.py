@@ -176,6 +176,7 @@ def test_1d_filter(n_signal, n_filter, filter_type):
 def test_iir_stability():
     """Test IIR filter stability check."""
     sig = np.random.default_rng(0).random(1000)
+    sig_orig = sig.copy()  # IIR filtering must not modify the input (gh-14110)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
     pytest.raises(
@@ -292,6 +293,8 @@ def test_iir_stability():
     # Note that this will fail for higher orders (e.g., 6) showing the
     # hopefully decreased numerical error of SOS
     assert_allclose(x_sos[100:-100], x_ba[100:-100])
+    # none of the (copy=True) calls above should have modified the input
+    assert_array_equal(sig, sig_orig)
 
 
 def test_iir_phase():

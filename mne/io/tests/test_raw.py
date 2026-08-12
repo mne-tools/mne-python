@@ -5,9 +5,8 @@
 # Copyright the MNE-Python contributors.
 
 import math
-import os
 import re
-from contextlib import redirect_stdout
+from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
 from pathlib import Path
@@ -480,12 +479,8 @@ def _test_raw_reader(
             dirname = op.dirname(this_fname)
             these_kwargs[key] = op.basename(this_fname)
             these_kwargs["preload"] = False
-            orig_dir = os.getcwd()
-            try:
-                os.chdir(dirname)
+            with chdir(dirname):
                 raw_chdir = reader(**these_kwargs)
-            finally:
-                os.chdir(orig_dir)
             raw_chdir.load_data()
 
     # make sure that cropping works (with first_samp shift)

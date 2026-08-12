@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.0
+    rev: v0.16.2
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,7 +24,7 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.63
+    rev: v0.0.69
     hooks:
       - id: ty
         additional_dependencies:
@@ -43,7 +43,6 @@ repos:
           - pymef  # for mne/io/mef
           - quantities  # for mne/io/neuralynx
           - scipy
-          - typing_extensions  # TODO VERSION remove once we require Python 3.11
         args: [--no-python-downloads, --no-project]
 
   # Codespell
@@ -65,7 +64,7 @@ repos:
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.5
+    rev: v6.3.0
     hooks:
       - id: rstcheck
         additional_dependencies:
@@ -80,7 +79,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt|^ignore_words.txt
+        files: ^doc/sphinxext/related_software.txt|^ignore_words.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
@@ -89,18 +88,17 @@ repos:
       - id: toml-sort-fix
         files: pyproject.toml
 
-  # dependencies
-  - repo: local
+  - repo: local  # file-contents-sorter would put every accented name after "z"
     hooks:
-      - id: update-env-file
-        name: Copy dependency changes from pyproject.toml to environment.yml
+      - id: sort-contributor-names
+        name: Sort contributor names ignoring case and accents
         language: python
-        entry: ./tools/hooks/update_environment_file.py
-        files: '^(pyproject.toml|tools/hooks/update_environment_file.py)$'
+        entry: ./tools/hooks/sort_contributor_names.py
+        files: '^(doc/changes/names.inc|.mailmap)$'
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.28.0
+    rev: v1.29.0
     hooks:
       - id: zizmor
         args: [--fix]

@@ -13,7 +13,7 @@ case "$MNE_CI_KIND" in
     minimal | old) ;;  # unique code paths, worth the slower C tracer
     *)
         case "$PYTHON_VERSION" in
-            3.10 | 3.11 | 3.12 | 3.13) COV_ARGS="" ;;
+            3.11 | 3.12 | 3.13) COV_ARGS="" ;;
         esac
         ;;
 esac

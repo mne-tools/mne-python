@@ -6,7 +6,7 @@
 
 from collections import Counter
 from copy import deepcopy
-from functools import partial
+from functools import lru_cache, partial
 from math import gcd
 
 import numpy as np
@@ -537,6 +537,21 @@ def _check_coefficients(system):
         )
 
 
+def _picks_chunks(picks, n_times, max_size=2**22):
+    """Group picks into chunks of channels to filter together.
+
+    Filtering several channels per call amortizes the per-call Python overhead
+    (see ``_iir_pad_apply_unpad``), which dominates for short signals and which
+    blocks other threads via the GIL. The chunks are kept below ``max_size``
+    samples so that the temporary copies do not scale with the channel count,
+    and expressed as slices where possible so that indexing stays view-only.
+    """
+    n_per_chunk = max(1, max_size // n_times)  # a single channel can be bigger
+    chunks = [picks[ii : ii + n_per_chunk] for ii in range(0, len(picks), n_per_chunk)]
+    # picks is never empty (_prep_for_filtering), so neither is any chunk
+    return [slice(c[0], c[-1] + 1) if c[-1] - c[0] == len(c) - 1 else c for c in chunks]
+
+
 def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
     """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
@@ -569,14 +584,15 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
         else:
             fun = partial(signal.lfilter, b=iir_params["b"], a=iir_params["a"], axis=-1)
             _check_coefficients((iir_params["b"], iir_params["a"]))
+    chunks = _picks_chunks(picks, x.shape[-1])
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     if n_jobs == 1:
-        for p in picks:
-            x[p] = fun(x=x[p])
+        for chunk in chunks:
+            x[chunk] = fun(x=x[chunk])
     else:
-        data_new = parallel(p_fun(x=x[p]) for p in picks)
-        for pp, p in enumerate(picks):
-            x[p] = data_new[pp]
+        data_new = parallel(p_fun(x=x[chunk]) for chunk in chunks)
+        for chunk, this_data in zip(chunks, data_new):
+            x[chunk] = this_data
     x = _reshape_view(x, orig_shape)
     return x
 
@@ -1586,6 +1602,7 @@ def notch_filter(
     return xf
 
 
+@lru_cache
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     from .time_frequency.multitaper import _compute_mt_params
 
@@ -1619,6 +1636,8 @@ def _mt_spectrum_proc(
     if filter_length is None:
         filter_length = x.shape[-1]
     filter_length = min(_to_samples(filter_length, sfreq, "", ""), x.shape[-1])
+    pick_mask = np.zeros(len(x), dtype=bool)
+    pick_mask[picks] = True
     get_wt = partial(
         _get_window_thresh, sfreq=sfreq, mt_bandwidth=mt_bandwidth, p_value=p_value
     )
@@ -1627,7 +1646,7 @@ def _mt_spectrum_proc(
     if n_jobs == 1:
         freq_list = list()
         for ii, x_ in enumerate(x):
-            if ii in picks:
+            if pick_mask[ii]:
                 x[ii], f = _mt_spectrum_remove_win(
                     x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_wt
                 )
@@ -1636,7 +1655,7 @@ def _mt_spectrum_proc(
         data_new = parallel(
             p_fun(x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_wt)
             for xi, x_ in enumerate(x)
-            if xi in picks
+            if pick_mask[xi]
         )
         freq_list = [d[1] for d in data_new]
         data_new = np.array([d[0] for d in data_new])
@@ -1748,17 +1767,16 @@ def _mt_spectrum_remove(
         indices = np.unique(np.r_[indices_1, indices_2])
         rm_freqs = freqs[indices]
 
-    fits = list()
-    for ind in indices:
-        c = 2 * A[0, ind]
-        fit = np.abs(c) * np.cos(freqs[ind] * rads + np.angle(c))
-        fits.append(fit)
-
-    if len(fits) == 0:
+    if len(indices) == 0:
         datafit = 0.0
     else:
+        c = 2 * A[0, indices]
         # fitted sinusoids are summed, and subtracted from data
-        datafit = np.sum(fits, axis=0)
+        datafit = np.sum(
+            np.abs(c)[:, np.newaxis]
+            * np.cos(freqs[indices, np.newaxis] * rads + np.angle(c)[:, np.newaxis]),
+            axis=0,
+        )
 
     return x - datafit, rm_freqs
 
@@ -2945,12 +2963,16 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
 
 
 def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
-    x_out = np.reshape(x, (-1, x.shape[-1])).copy()
-    for this_x in x_out:
-        x_ext = this_x
-        if padlen:
-            x_ext = _smart_pad(x_ext, (padlen, padlen), padtype)
-        x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
-        this_x[:] = x_ext[padlen : len(x_ext) - padlen]
-    x_out = _reshape_view(x_out, x.shape)
-    return x_out
+    # All rows are padded and filtered in a single call rather than one at a
+    # time: SciPy loops over them in C, whereas looping here costs a GIL
+    # round-trip per row, which makes filtering in a worker thread orders of
+    # magnitude slower whenever another thread is busy (e.g. a live GUI)
+    x_out = np.reshape(x, (-1, x.shape[-1]))
+    x_ext = x_out
+    if padlen:
+        x_ext = _smart_pad(x_ext, (padlen, padlen), padtype)
+    x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
+    x_out = x_ext[..., padlen : x_ext.shape[-1] - padlen]
+    if x_out.shape != x.shape:  # unpadding leaves a view that cannot be reshaped
+        x_out = np.ascontiguousarray(x_out)
+    return _reshape_view(x_out, x.shape)
