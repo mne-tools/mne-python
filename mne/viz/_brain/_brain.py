@@ -93,6 +93,14 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import _lh_views_dict, views_dicts
 
+_CORTEX_PRESETS = ("classic", "high_contrast", "low_contrast", "bone")
+
+
+def _resolve_offset(offset, surf, hemi):
+    if isinstance(offset, str):
+        offset = surf in ("inflated", "flat")
+    return None if (not offset or hemi != "both") else 0.0
+
 
 @fill_doc
 class Brain:
@@ -329,6 +337,7 @@ class Brain:
 
         _validate_type(subject, str, "subject")
         self._surf = surf
+        self._offset_request = offset
         if hemi is None:
             hemi = "vol"
         hemi = self._check_hemi(hemi, extras=("both", "split", "vol"))
@@ -421,13 +430,13 @@ class Brain:
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs["vmin"] / (geo_kwargs["vmax"] - geo_kwargs["vmin"])
         self._brain_color = geo_kwargs["colormap"](val)
+        self._cortex_preset = cortex if cortex in _CORTEX_PRESETS else "classic"
 
         # load geometry for one or both hemispheres as necessary
         _validate_type(offset, (str, bool), "offset")
         if isinstance(offset, str):
             _check_option("offset", offset, ("auto",), extra="when str")
-            offset = surf in ("inflated", "flat")
-        offset = None if (not offset or hemi != "both") else 0.0
+        offset = _resolve_offset(offset, surf, hemi)
         logger.debug(f"Hemi offset: {offset}")
         _validate_type(theme, (str, None), "theme")
         self._renderer = _get_renderer(
@@ -864,6 +873,21 @@ class Brain:
 
     def _configure_dock_surface_widget(self, name):
         layout = self._renderer._dock_add_group_box(name, collapse=True)
+        if self._surf in ("pial", "white", "inflated"):
+            self.widgets["surf"] = self._renderer._dock_add_combo_box(
+                name="Surf",
+                value=self._surf,
+                rng=("pial", "white", "inflated"),
+                callback=self.set_surf,
+                layout=layout,
+            )
+        self.widgets["cortex"] = self._renderer._dock_add_combo_box(
+            name="Cortex",
+            value=self._cortex_preset,
+            rng=_CORTEX_PRESETS,
+            callback=self.set_cortex_colormap,
+            layout=layout,
+        )
         self.widgets["cortex_alpha"] = self._renderer._dock_add_slider(
             name="Alpha",
             value=self._alpha,
@@ -1183,8 +1207,10 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
-            vertex_id = vertices[ind[0]]
-            publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+            publish(
+                self,
+                VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0]),
+            )
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1458,6 +1484,7 @@ class Brain:
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [
@@ -1467,7 +1494,12 @@ class Brain:
             vert_pos = mesh.points[cell]
             vertex_id = cell[np.argmin(np.linalg.norm(vert_pos - pos, axis=1))]
 
-        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+            # retrieve the nearest source_id from the smooth_mat
+            smooth_mat = self.act_data_smooth[hemi][1]
+            row = smooth_mat[vertex_id]
+            source_id = smooth_mat[vertex_id].argmax() if row.nnz else None
+
+        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=source_id))
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
@@ -3764,6 +3796,96 @@ class Brain:
             self.layered_meshes[hemi].update_overlay("curv", opacity=self._alpha)
         self._renderer._update()
 
+    def set_cortex_colormap(self, cortex):
+        """Set the curvature colormap preset of the cortical surface.
+
+        Parameters
+        ----------
+        cortex : str
+            One of ``'classic'``, ``'high_contrast'``, ``'low_contrast'``, ``'bone'``.
+        """
+        _check_option("cortex", cortex, _CORTEX_PRESETS)
+        geo_kwargs = self._cortex_colormap(cortex)
+        val = -geo_kwargs["vmin"] / (geo_kwargs["vmax"] - geo_kwargs["vmin"])
+        self._brain_color = geo_kwargs["colormap"](val)
+        self._cortex_preset = cortex
+        for hemi in self._hemis:
+            geo = self.geo[hemi]
+            mesh = self.layered_meshes[hemi]
+            scalars = (
+                geo.bin_curv
+                if geo.bin_curv is not None
+                else mesh._default_scalars[:, 0]
+            )
+            mesh.update_overlay(
+                "curv",
+                scalars=scalars,
+                colormap=geo_kwargs["colormap"],
+                rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
+            )
+        self._renderer._update()
+
+    def set_surf(self, surf):
+        """Set the cortical surface representation.
+
+        Parameters
+        ----------
+        surf : str
+            One of ``'pial'``, ``'white'``, ``'inflated'``. To use a flat
+            surface, close this figure and construct a new one with
+            ``Brain(..., surf="flat", views="flat")``.
+        """
+        _check_option("surf", surf, ("pial", "white", "inflated"))
+        if surf == self._surf:
+            return
+        if any(self._labels[h] for h in self._hemis) or any(
+            "foci" in self._foci_data.get(h, {}) for h in self._hemis
+        ):
+            warn(
+                "Foci and label/annotation outlines do not move when the "
+                "surface representation changes and may now be misaligned."
+            )
+        offset = _resolve_offset(self._offset_request, surf, self._hemi)
+        for h in self._hemis:
+            geo = _Surface(
+                self._subject,
+                h,
+                surf,
+                self._subjects_dir,
+                offset,
+                units=self._units,
+                x_dir=self._rigid[0, :3],
+            )
+            geo.load_geometry()
+            geo.load_curvature()
+            self.geo[h] = geo
+            self.layered_meshes[h].update_geometry(geo.coords, geo.nn)
+
+            for (pt_hemi, vertex_id), spheres in self._picked_points.items():
+                if pt_hemi != h:
+                    continue
+                center = np.array(geo.coords[vertex_id])
+                for sphere in spheres:
+                    mesh = sphere["mesh"]
+                    mesh.points = mesh.points + (center - np.array(mesh.center))
+            for data in self._all_data.values():
+                hemi_data = data.get(h)
+                if hemi_data is None:
+                    continue
+                glyph_dataset = hemi_data.get("glyph_dataset")
+                if glyph_dataset is None:
+                    continue
+                vertices = hemi_data["vertices"]
+                vertices = slice(None) if vertices is None else vertices
+                glyph_dataset.points = np.array(geo.coords)[vertices]
+        self._surf = surf
+        if self.silhouette:
+            for actor in self._silhouette_actors:
+                self.plotter.remove_actor(actor)
+            self._add_silhouette()
+        self.reset_view()
+        self._renderer._update()
+
     def _add_silhouette(self):
         self._silhouette_actors = []
         for h in self._hemis:
@@ -4051,9 +4173,11 @@ class Brain:
                     mesh = self.layered_meshes[hemi]
                     mesh.smooth_mat = hemi_data.get("smooth_mat")
                     key_rng = [
-                        -key_data["fmax"]
-                        if key_data["center"] is not None
-                        else key_data["fmin"],
+                        (
+                            -key_data["fmax"]
+                            if key_data["center"] is not None
+                            else key_data["fmin"]
+                        ),
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:

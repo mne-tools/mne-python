@@ -5,7 +5,7 @@
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -117,7 +117,7 @@ def _parse_nedf_header(header):
     dt.append(("data", np.dtype(datadt), (5,)))
 
     date = headerxml.findtext("StepDetails/StartDate_firstEEGTimestamp", 0)
-    info["meas_date"] = datetime.fromtimestamp(int(date) / 1000, timezone.utc)
+    info["meas_date"] = datetime.fromtimestamp(int(date) / 1000, UTC)
 
     n_samples = int(_getsubnodetext(eegset, "NumberOfRecordsOfEEG"))
     n_full, n_last = divmod(n_samples, 5)
