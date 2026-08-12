@@ -61,6 +61,14 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
         renderer._layout_add_widget(central_layout, widget, row=0, col=0)
         renderer._window_initialize(window=window, central_layout=central_layout)
 
+        # an OS light/dark mode switch re-applies the theme (gh-9182)
+        from qtpy.QtCore import QEvent
+        from qtpy.QtGui import QIcon
+
+        QIcon.setThemeName("bogus")
+        window.event(QEvent(QEvent.PaletteChange))
+        assert QIcon.themeName() in ("dark", "light")
+
     from unittest.mock import Mock
 
     mock = Mock()

@@ -224,17 +224,7 @@ class _Widget(_AbstractWidget, metaclass=_BaseWidget):
         self.setFocus()
 
     def _set_theme(self, theme=None):
-        if theme is None:
-            default_theme = _qt_detect_theme()
-        else:
-            default_theme = theme
-        theme = get_config("MNE_3D_OPTION_THEME", default_theme)
-        stylesheet = _qt_get_stylesheet(theme)
-        self.setStyleSheet(stylesheet)
-        if _qt_is_dark(self):
-            QIcon.setThemeName("dark")
-        else:
-            QIcon.setThemeName("light")
+        _qt_set_theme(self, theme)
 
     def _set_size(self, width=None, height=None):
         if width:
@@ -682,21 +672,50 @@ class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
 # -------
 
 
-# In theory we should be able to set the theme later (e.g., in
-# _window_initialize() below), but at least on Qt6 this has to be done
-# earlier. So let's do it immediately upon instantiation of the QMainWindow
-# class (see _AppWindow.__init__'s self._set_theme() call below).
-# TODO: This should eventually allow us to handle
-# https://github.com/mne-tools/mne-python/issues/9182
+def _qt_set_theme(window, theme=None):
+    """(Re)apply a theme to a window, remembering any explicitly requested one."""
+    if theme is not None:
+        window._mne_theme = theme
+    theme = getattr(window, "_mne_theme", None)
+    if theme is None:
+        theme = _qt_detect_theme()
+    theme = get_config("MNE_3D_OPTION_THEME", theme)
+    stylesheet = _qt_get_stylesheet(theme)
+    # our own setStyleSheet emits PaletteChange; without this the signal recurses
+    window._mne_theme_updating = True
+    try:
+        # re-setting an unchanged sheet costs styled children (sliders) native rendering
+        if stylesheet != window.styleSheet():
+            window.setStyleSheet(stylesheet)
+        QIcon.setThemeName("dark" if _qt_is_dark(window) else "light")
+        # not a no-op: setStyleSheet re-parses, re-resolving palette(...) refs that a
+        # palette change alone leaves stale
+        for widget in window.findChildren(QWidget):
+            if child_stylesheet := widget.styleSheet():
+                widget.setStyleSheet(child_stylesheet)
+    finally:
+        window._mne_theme_updating = False
+
+
 class _MNEMainWindow(MainWindow):
+    signal_theme_change = Signal()
+
     def __init__(self, parent=None, title=None, size=None):
         MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self._mne_theme = None
+        self._mne_theme_updating = False
         from . import renderer
 
         if renderer.MNE_3D_BACKEND_TESTING:
             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnBottomHint)
+
+    def event(self, ev):
+        """Turn OS light/dark mode switches into a signal (macOS only for now)."""
+        if ev.type() == QEvent.PaletteChange and not self._mne_theme_updating:
+            self.signal_theme_change.emit()
+        return super().event(ev)
 
 
 class _AppWindow(_AbstractAppWindow, _Widget, _MNEMainWindow, metaclass=_BaseWidget):
@@ -710,6 +729,7 @@ class _AppWindow(_AbstractAppWindow, _Widget, _MNEMainWindow, metaclass=_BaseWid
             self.setWindowState(Qt.WindowFullScreen)
 
         self._set_theme()
+        self.signal_theme_change.connect(self._set_theme)
         self.setLocale(QLocale(QLocale.Language.English))
         self.signal_close.connect(self._clean)
 
@@ -1514,6 +1534,8 @@ class _QtWindow(_AbstractWindow):
             central_widget.setLayout(central_layout)
         self._window_load_icons()
         self._window_set_theme()
+        if hasattr(self._window, "signal_theme_change"):  # not for a foreign window
+            self._window.signal_theme_change.connect(self._window_set_theme)
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
         self._window_before_close_callbacks = list()
@@ -1675,17 +1697,7 @@ class _QtWindow(_AbstractWindow):
                 _qt_activate_layouts(self._window, self._interactor)
 
     def _window_set_theme(self, theme=None):
-        if theme is None:
-            default_theme = _qt_detect_theme()
-        else:
-            default_theme = theme
-        theme = get_config("MNE_3D_OPTION_THEME", default_theme)
-        stylesheet = _qt_get_stylesheet(theme)
-        self._window.setStyleSheet(stylesheet)
-        if _qt_is_dark(self._window):
-            QIcon.setThemeName("dark")
-        else:
-            QIcon.setThemeName("light")
+        _qt_set_theme(self._window, theme)
 
     def _window_create(self):
         return _MNEMainWindow()
