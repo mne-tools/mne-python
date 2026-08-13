@@ -67,6 +67,42 @@ def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
         yield ei, t0, dt, ov_start - disk_start, ov_stop - disk_start
 
 
+def _read_channel_status_bads(filepath, ch_names, pns_names):
+    """Return bad channel names from categories.xml channelStatus, if present.
+
+    EGI NetStation writes per-epoch bad-channel lists into ``categories.xml``
+    as ``<channelStatus>`` elements.  This function collects the union of all
+    channels marked ``exclusion="badChannels"`` across every category and
+    segment and maps them back to MNE channel names.
+
+    Returns an empty list when ``categories.xml`` is absent or unparseable.
+    """
+    cats_path = op.join(filepath, "categories.xml")
+    if not op.isfile(cats_path):
+        return []
+    from mffpy.xml_files import XML
+
+    try:
+        cats_obj = XML.from_file(cats_path)
+    except Exception:
+        return []
+    bads = set()
+    for segments in cats_obj.categories.values():
+        for seg in segments:
+            for entry in seg.get("channelStatus") or []:
+                if entry["exclusion"] != "badChannels":
+                    continue
+                if entry["signalBin"] == 1:
+                    for ch in entry["channels"]:
+                        if 1 <= ch <= len(ch_names):
+                            bads.add(ch_names[ch - 1])
+                elif entry["signalBin"] == 2:
+                    for ch in entry["channels"]:
+                        if 1 <= ch <= len(pns_names):
+                            bads.add(pns_names[ch - 1])
+    return sorted(bads)
+
+
 def _read_mff_header(filepath):
     """Read mff header."""
     _soft_import("mffpy", "reading EGI MFF data")
@@ -513,6 +549,14 @@ class RawMff(BaseRaw):
                 for chan in info["chs"]:
                     if chan["kind"] == FIFF.FIFFV_EEG_CH:
                         chan["loc"][3:6] = ref_coords
+
+        # Mark bad channels from categories.xml channelStatus if present
+        bads = _read_channel_status_bads(
+            input_fname, ch_names, egi_info.get("pns_names", [])
+        )
+        if bads:
+            with info._unlock():
+                info["bads"] = bads
 
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events

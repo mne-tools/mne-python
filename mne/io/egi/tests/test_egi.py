@@ -605,6 +605,35 @@ def test_egi_mff_bad_xml(tmp_path):
 
 
 @requires_testing_data
+def test_egi_mff_channel_status(tmp_path):
+    """Test that bad channels from categories.xml channelStatus are read."""
+    mff_fname = copytree_rw(egi_pause_fname, tmp_path / "paused_status.mff")
+    # Minimal categories.xml marking EEG channels 5 and 23 as bad
+    cats_xml = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<categories xmlns="http://www.egi.com/categories_mff">
+    <cat>
+        <name>Recording</name>
+        <segments>
+            <seg status="unedited">
+                <beginTime>0</beginTime>
+                <endTime>1300000</endTime>
+                <evtBegin>0</evtBegin>
+                <evtEnd>0</evtEnd>
+                <channelStatus>
+                    <channels signalBin="1" exclusion="badChannels">5 23</channels>
+                </channelStatus>
+            </seg>
+        </segments>
+    </cat>
+</categories>
+"""
+    (mff_fname / "categories.xml").write_text(cats_xml, encoding="utf-8")
+    raw = read_raw_egi(mff_fname, events_as_annotations=False, verbose=False)
+    assert raw.info["bads"] == ["E23", "E5"]  # sorted alphabetically
+
+
+@requires_testing_data
 @pytest.mark.parametrize(
     "fname, expected",
     [pytest.param(egi_pause_fname, "AM40_3", id="paused")],
