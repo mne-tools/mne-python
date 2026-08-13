@@ -31,6 +31,17 @@ def _gui_with_two_dipoles():
     return g
 
 
+def _selected_sensors(g):
+    names = []
+    for actors in g._actors["sensors"].values():
+        for actor in actors:
+            cloud = actor.GetMapper().GetInput()
+            # color is hardcoded for now, so changeable
+            green = (cloud.point_data["colors"] == [0, 255, 0, 100]).all(axis=1)
+            names.extend(cloud.field_data["ch_names"][green])
+    return sorted(names)
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
@@ -65,6 +76,7 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     picks = read_vectorview_selection("Left", info=evoked.info)
     ui_events.publish(g._fig_sensors, ui_events.ChannelsSelect(picks))
     assert sorted(g._fig_sensors.lasso.selection) == sorted(picks)
+    assert _selected_sensors(g) == sorted(picks)
     ui_events.publish(g._fig, ui_events.TimeChange(0.09))  # change time
     assert g._current_time == 0.09
     g._on_fit_dipole()
@@ -74,6 +86,7 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     # During tests, matplotlib does not open an actual window so we need to force the
     # close event.
     g._fig_sensors.canvas.callbacks.process("close_event", None)
+    assert _selected_sensors(g) == []
 
     # The selected time of 0.09 is not actually in evoked.times, find the closest value
     # that is (0.08990784...). That should be the time recorded in the dipole object.
