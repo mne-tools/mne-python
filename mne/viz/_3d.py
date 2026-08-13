@@ -1568,7 +1568,6 @@ def _plot_sensors_3d(
     nearest=None,
     sensor_colors=None,
     sensor_scales=None,
-    return_cloud=False,
 ):
     """Render sensors in a 3D scene."""
     from matplotlib.colors import to_rgba_array
@@ -1580,6 +1579,7 @@ def _plot_sensors_3d(
 
     actors = defaultdict(lambda: list())
     locs = defaultdict(lambda: list())
+    ch_names_all = defaultdict(lambda: list())
     unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1613,14 +1613,19 @@ def _plot_sensors_3d(
             if ch_type == "eeg":
                 if "original" in eeg:
                     locs[ch_type].append(ch_coord)
+                    ch_names_all[ch_type].append(ch_name)
                 if "projected" in eeg:
                     locs["eegp"].append(ch_coord)
+                    ch_names_all["eegp"].append(ch_name)
             else:
                 locs[ch_type].append(ch_coord)
+                ch_names_all[ch_type].append(ch_name)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
+            ch_names_all["source"].append(ch_name)
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+            ch_names_all["detector"].append(ch_name)
         # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1681,7 +1686,7 @@ def _plot_sensors_3d(
             f"scales for {ch_type} must contain only numerical values, "
             f"got {scales} instead."
         )
-
+        ch_names = np.array(ch_names_all[ch_type], dtype="U")
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1707,6 +1712,7 @@ def _plot_sensors_3d(
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
+                cloud.field_data["ch_names"] = ch_names[idxs]
         else:
             # One GPU-instanced actor regardless of how many distinct
             # colors/scales are requested (broadcasting handles 1-vs-N).
@@ -1753,13 +1759,11 @@ def _plot_sensors_3d(
                 nearest=nearest,
             )
             actors[actor_key].append(actor)
+            cloud.field_data["ch_names"] = ch_names[mask]
 
     actors = dict(actors)  # get rid of defaultdict
 
-    if return_cloud:
-        return actors, cloud
-    else:
-        return actors
+    return actors
 
 
 def _make_tris_fan(n_vert):
