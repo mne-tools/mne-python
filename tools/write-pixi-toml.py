@@ -9,7 +9,6 @@ import yaml
 from packaging.requirements import Requirement
 
 
-
 def pip_to_pixi(dependencies_list):
     """Convert pip dependency specifier strings to a pixi-style dict."""
     out = dict()
