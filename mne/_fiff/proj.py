@@ -24,7 +24,7 @@ from .pick import _ELECTRODE_CH_TYPES, _electrode_types, pick_info, pick_types
 from .tag import _rename_list, find_tag
 from .tree import dir_tree_find
 from .write import (
-    _safe_name_list,
+    _safe_read_name_list,
     end_block,
     start_block,
     write_float,
@@ -609,7 +609,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
         if tag is not None:
-            names = _safe_name_list(tag.data, "read", "names")
+            names = _safe_read_name_list(tag.data)
         else:
             raise ValueError("Projection item channel list missing")
 

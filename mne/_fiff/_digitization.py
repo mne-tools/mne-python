@@ -12,7 +12,7 @@ from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
 from .constants import FIFF, _coord_frame_named
 from .tag import read_tag
 from .tree import dir_tree_find
-from .write import _safe_name_list, start_and_end_file, write_dig_points
+from .write import _safe_read_name_list, start_and_end_file, write_dig_points
 
 _dig_kind_dict = {
     "cardinal": FIFF.FIFFV_POINT_CARDINAL,
@@ -191,7 +191,7 @@ def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
                 coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
             elif kind == FIFF.FIFF_MNE_CH_NAME_LIST:
                 tag = read_tag(fid, pos)
-                ch_names = _safe_name_list(tag.data, "read", "ch_names")
+                ch_names = _safe_read_name_list(tag.data)
         for d in dig:
             d["coord_frame"] = coord_frame
     out = _format_dig_points(dig)
