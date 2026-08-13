@@ -35,26 +35,26 @@ egi_mff_evoked_fname = egi_path / "test_egi_evoked.mff"
 egi_txt_evoked_cat1_fname = egi_path / "test_egi_evoked_cat1.txt"
 egi_txt_evoked_cat2_fname = egi_path / "test_egi_evoked_cat2.txt"
 
-# absolute event times from NetStation
+# expected event samples in compressed (gap-free) timeline
 egi_pause_events = {
-    "AM40": [7.224, 11.928, 14.413, 16.848],
-    "bgin": [6.121, 8.434, 13.369, 15.815, 18.094],
-    "FIX+": [6.225, 10.929, 13.414, 15.849],
-    "ITI+": [8.293, 12.997, 15.482, 17.918],
+    "AM40": [1689, 2577, 3186],
+    "bgin": [1413, 1992, 2316, 2928],
+    "FIX+": [1439, 2328, 2936],
+    "ITI+": [1956, 2223, 2845, 3454],
 }
-# absolute epoch times
-egi_pause_skips = [(1304000.0, 1772000.0), (8660000.0, 12296000.0)]
+# (onset_sample+1)/sfreq*1e6 for each BAD_ACQ_SKIP; duration is 0 so start==stop
+egi_pause_skips = [(1308000.0, 1308000.0), (8196000.0, 8196000.0)]
 
 egi_eprime_pause_events = {
-    "AM40": [6.049, 8.434, 10.936, 13.321],
-    "bgin": [4.902, 7.381, 9.901, 12.268, 14.619],
-    "FIX+": [5.050, 7.435, 9.937, 12.322],
-    "ITI+": [7.185, 9.503, 12.005, 14.391],
+    "AM40": [1397, 1994, 2619, 3215],
+    "bgin": [1111, 1730, 2360, 2952, 3540],
+    "FIX+": [1148, 1744, 2369, 2966],
+    "ITI+": [1681, 2261, 2886, 3483],
 }
-egi_eprime_pause_skips = [(1344000.0, 1804000.0)]
+egi_eprime_pause_skips = [(1348000.0, 1348000.0)]
 
 egi_pause_w1337_events = None
-egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
+egi_pause_w1337_skips = [(21960000.0, 21960000.0), (42452000.0, 42452000.0)]
 
 
 # The EGI simple reader technically doesn't need these, but it's only one test
@@ -90,37 +90,31 @@ def test_egi_mff_pause(fname, skip_times, event_times):
     assert raw.info["dev_head_t"] is None  # no MEG data
     assert len(raw.annotations) == len(skip_times)
 
-    # assert event onsets match expected times
+    # assert event onsets match expected compressed-timeline samples
     if event_times is None:
         with pytest.raises(ValueError, match="Consider using .*events_from"):
             find_events(raw)
     else:
         events = find_events(raw)
         for event_type in event_times.keys():
-            ns_samples = np.floor(
-                np.array(event_times[event_type]) * raw.info["sfreq"] + 0.5
-            ).astype(int)
+            ns_samples = np.array(event_times[event_type])
             ns_samples = ns_samples[ns_samples < raw.n_times]
             assert_array_equal(
                 events[events[:, 2] == raw.event_id[event_type], 0],
                 ns_samples,
             )
 
-    # read some data from the middle of the skip, assert it's all zeros
-    stim_picks = pick_types(raw.info, meg=False, stim=True, exclude=())
-    other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), stim_picks)
+    # check BAD_ACQ_SKIP annotations: 0-duration markers at epoch transitions
     for ii, annot in enumerate(raw.annotations):
         assert annot["description"] == "BAD_ACQ_SKIP"
+        assert annot["duration"] == 0.0
         start, stop = raw.time_as_index(
             [annot["onset"], annot["onset"] + annot["duration"]]
         )
-        data, _ = raw[:, start:stop]
-        assert_array_equal(data[other_picks], 0.0)
-        if event_times is not None:
-            assert raw.ch_names[-1] == "STI 014"
-            assert not np.array_equal(data[stim_picks], 0.0)
+        # start==stop: the transition point between consecutive recording epochs
+        assert start == stop
 
-        # assert skips match expected onset and duration
+        # assert skips match expected onset position
         skip = (
             (start + 1) / raw.info["sfreq"] * 1e6,
             (stop + 1) / raw.info["sfreq"] * 1e6,

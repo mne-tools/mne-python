@@ -1,0 +1,1 @@
+Fix :func:`mne.io.read_raw_egi` to represent multi-epoch (paused) MFF recordings with a compressed, gap-free timeline: recording epochs are now placed side-by-side rather than zero-padded across the gap, and ``BAD_ACQ_SKIP`` annotations carry ``duration=0`` to mark each epoch boundary. By `Pragnya Khandelwal`_.

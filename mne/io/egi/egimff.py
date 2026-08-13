@@ -141,14 +141,6 @@ def _read_mff_header(filepath):
         )
     summaryinfo.update(epochs)
 
-    disk_samps = np.full(epochs["last_samps"][-1], -1)
-    offset = 0
-    for first, last in zip(epochs["first_samps"], epochs["last_samps"]):
-        n_this = last - first
-        disk_samps[first:last] = np.arange(offset, offset + n_this)
-        offset += n_this
-    summaryinfo["disk_samps"] = disk_samps
-
     # 2. Parse sensorLayout.xml natively via absolute path
     sensor_layout_filepath = op.join(filepath, "sensorLayout.xml")
     sensor_layout_obj = XML.from_file(sensor_layout_filepath)
@@ -542,8 +534,31 @@ class RawMff(BaseRaw):
         egi_info["kind_bounds"] = np.cumsum(egi_info["kind_bounds"])
         assert egi_info["kind_bounds"][0] == 0
         assert egi_info["kind_bounds"][-1] == info["nchan"]
+
+        # Compressed (side-by-side) timeline: recording epochs placed
+        # consecutively with no zero-padded gaps between them.
+        epoch_lengths = egi_info["last_samps"] - egi_info["first_samps"]
+        total_actual_samples = int(epoch_lengths.sum())
+        disk_offsets = np.concatenate([[0], np.cumsum(epoch_lengths)])
+
+        # Map every EGI time position to its compressed-timeline position.
+        # Gap positions (between recording epochs) map to -1.
+        egi_len = int(egi_info["last_samps"][-1])
+        egi_time_to_disk = np.full(egi_len, -1, dtype=np.int64)
+        for ei, (f, l) in enumerate(
+            zip(egi_info["first_samps"], egi_info["last_samps"])
+        ):
+            n = int(l - f)
+            start_disk = int(disk_offsets[ei])
+            egi_time_to_disk[int(f) : int(l)] = np.arange(start_disk, start_disk + n)
+
+        # Drop gap columns from egi_events and use sequential disk_samps
+        # so _read_segment_file needs no gap-aware logic.
+        egi_info["egi_events"] = egi_info["egi_events"][:, egi_time_to_disk >= 0]
+        egi_info["disk_samps"] = np.arange(total_actual_samples)
+
         first_samps = [0]
-        last_samps = [egi_info["last_samps"][-1] - 1]
+        last_samps = [total_actual_samples - 1]
 
         annot: dict[str, Any] = dict(
             onset=list(), duration=list(), description=list(), extras=list()
@@ -577,29 +592,39 @@ class RawMff(BaseRaw):
             verbose=verbose,
         )
 
-        # Annotate acquisition skips
-        for first, prev_last in zip(
-            egi_info["first_samps"][1:], egi_info["last_samps"][:-1]
+        # Annotate acquisition skips with 0-duration markers placed at the
+        # transition point between adjacent compressed recording epochs.
+        for ei, (first, prev_last) in enumerate(
+            zip(egi_info["first_samps"][1:], egi_info["last_samps"][:-1])
         ):
             gap = first - prev_last
             assert gap >= 0
             if gap:
-                annot["onset"].append((prev_last - 0.5) / egi_info["sfreq"])
-                annot["duration"].append(gap / egi_info["sfreq"])
+                annot["onset"].append(int(disk_offsets[ei + 1]) / egi_info["sfreq"])
+                annot["duration"].append(0.0)
                 annot["description"].append("BAD_ACQ_SKIP")
                 annot["extras"].append({})
 
-        # create events from annotations
+        # create events from annotations (convert EGI time → compressed position)
         if events_as_annotations:
             for code, dicts in mff_events.items():
                 if code not in include:
                     continue
-                samples = [d["start_sample"] for d in dicts]
-                extras = [d["extras"] for d in dicts]
-                annot["onset"].extend(np.array(samples) / egi_info["sfreq"])
-                annot["duration"].extend([0.0] * len(samples))
-                annot["description"].extend([code] * len(samples))
-                annot["extras"].extend(extras)
+                samples_disk = []
+                valid_extras = []
+                for d in dicts:
+                    s = d["start_sample"]
+                    if not (0 <= s < egi_len):
+                        continue
+                    disk_pos = int(egi_time_to_disk[s])
+                    if disk_pos < 0:
+                        continue  # event fell in a recording gap; drop it
+                    samples_disk.append(disk_pos)
+                    valid_extras.append(d["extras"])
+                annot["onset"].extend(np.array(samples_disk) / egi_info["sfreq"])
+                annot["duration"].extend([0.0] * len(samples_disk))
+                annot["description"].extend([code] * len(samples_disk))
+                annot["extras"].extend(valid_extras)
 
         if annot["extras"] == []:
             annot["extras"] = None
