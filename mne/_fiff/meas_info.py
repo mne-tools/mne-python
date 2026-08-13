@@ -85,7 +85,7 @@ from .tag import (
 from .tree import dir_tree_find
 from .write import (
     DATE_NONE,
-    _safe_name_list,
+    _safe_read_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -2382,7 +2382,7 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = _safe_name_list(tag.data, "read", "bads")
+                bads = _safe_read_name_list(tag.data)
         bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
 

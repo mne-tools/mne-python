@@ -1484,6 +1484,7 @@ class Brain:
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [

@@ -2441,7 +2441,7 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
-    from ._fiff.write import _safe_name_list
+    from ._fiff.write import _safe_read_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
@@ -2482,7 +2482,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
             if tag is None:
                 names = []
             else:
-                names = _safe_name_list(tag.data, "read", "names")
+                names = _safe_read_name_list(tag.data)
                 if len(names) != dim:
                     raise ValueError(
                         "Number of names does not match covariance matrix dimension"
