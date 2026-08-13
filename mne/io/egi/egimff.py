@@ -75,7 +75,7 @@ def _read_channel_status_bads(filepath, ch_names, pns_names):
     channels marked ``exclusion="badChannels"`` across every category and
     segment and maps them back to MNE channel names.
 
-    Returns an empty list when ``categories.xml`` is absent or unparseable.
+    Returns an empty list when ``categories.xml`` is absent or unparsable.
     """
     cats_path = op.join(filepath, "categories.xml")
     if not op.isfile(cats_path):
