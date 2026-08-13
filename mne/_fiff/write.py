@@ -7,6 +7,7 @@ import os.path as op
 import re
 import time
 import uuid
+from collections.abc import Sequence
 from contextlib import contextmanager
 from gzip import GzipFile
 
@@ -151,22 +152,19 @@ def write_name_list(fid, kind, data):
 
 def write_name_list_sanitized(fid, kind, lst, *, name="ch_names"):
     """Write a sanitized, colon-separated list of names."""
-    write_string(fid, kind, _safe_name_list(lst, "write", name))
+    write_string(fid, kind, _safe_write_name_list(lst, name))
 
 
-def _safe_name_list(lst, operation, name):
-    if operation == "write":
-        assert isinstance(lst, list | tuple | np.ndarray), type(lst)
-        if any("{COLON}" in val for val in lst):
-            raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
-        return ":".join(val.replace(":", "{COLON}") for val in lst)
-    else:
-        # take a sanitized string and return a list of strings
-        assert operation == "read"
-        assert lst is None or isinstance(lst, str)
-        if not lst:  # None or empty string
-            return []
-        return [val.replace("{COLON}", ":") for val in lst.split(":")]
+def _safe_write_name_list(lst: Sequence[str], name: str) -> str | list[str]:
+    if any("{COLON}" in val for val in lst):
+        raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
+    return ":".join(val.replace(":", "{COLON}") for val in lst)
+
+
+def _safe_read_name_list(lst: str | None) -> list[str]:
+    if not lst:  # None or empty string
+        return []
+    return [val.replace("{COLON}", ":") for val in lst.split(":")]
 
 
 def write_float_matrix(fid, kind, mat):
