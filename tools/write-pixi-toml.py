@@ -8,8 +8,6 @@ import tomlkit
 import yaml
 from packaging.requirements import Requirement
 
-# alphabeetize
-# replace "" with "*"
 
 
 def pip_to_pixi(dependencies_list):
