@@ -545,12 +545,14 @@ class RawMff(BaseRaw):
         # Gap positions (between recording epochs) map to -1.
         egi_len = int(egi_info["last_samps"][-1])
         egi_time_to_disk = np.full(egi_len, -1, dtype=np.int64)
-        for ei, (f, l) in enumerate(
+        for ei, (ep_first, ep_last) in enumerate(
             zip(egi_info["first_samps"], egi_info["last_samps"])
         ):
-            n = int(l - f)
+            n = int(ep_last - ep_first)
             start_disk = int(disk_offsets[ei])
-            egi_time_to_disk[int(f) : int(l)] = np.arange(start_disk, start_disk + n)
+            egi_time_to_disk[int(ep_first) : int(ep_last)] = np.arange(
+                start_disk, start_disk + n
+            )
 
         # Drop gap columns from egi_events and use sequential disk_samps
         # so _read_segment_file needs no gap-aware logic.
