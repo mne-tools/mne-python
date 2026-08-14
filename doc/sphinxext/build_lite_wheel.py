@@ -59,7 +59,7 @@ def build_wheel():
     os.makedirs(PYPI_WHEELS_DIR, exist_ok=True)
 
     # The wheel is built from pyproject.toml as it stands: Pyodide 314 ships
-    # matplotlib 3.10.8, scipy 1.17.1 and numpy 2.4.3, all of which satisfy the
+    # matplotlib 3.10.8, scipy 1.18.0 and numpy 2.4.3, all of which satisfy the
     # minimums MNE declares, so none of them needs relaxing for the browser.
     os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "9999.0.1"
     # NB: build isolation is left ON (the default). MNE uses the hatchling build
