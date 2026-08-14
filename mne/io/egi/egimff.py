@@ -82,7 +82,7 @@ def _read_channel_status_bads(filepath, ch_names, pns_names):
     from mffpy.xml_files import XML
 
     try:
-        cats_obj = XML.from_file(cats_path)
+        cats_obj = XML.from_file(str(cats_path))
     except Exception:
         return []
     bads = set()
@@ -114,7 +114,7 @@ def _read_mff_header(filepath):
 
     # 1. Parse info.xml natively via absolute path
     info_filepath = Path(filepath) / "info.xml"
-    info_obj = XML.from_file(info_filepath)
+    info_obj = XML.from_file(str(info_filepath))
 
     mff_vers_elem = info_obj.find("mffVersion")
     if mff_vers_elem is None:
@@ -186,7 +186,7 @@ def _read_mff_header(filepath):
 
     # 2. Parse sensorLayout.xml natively via absolute path
     sensor_layout_filepath = Path(filepath) / "sensorLayout.xml"
-    sensor_layout_obj = XML.from_file(sensor_layout_filepath)
+    sensor_layout_obj = XML.from_file(str(sensor_layout_filepath))
 
     summaryinfo["device"] = getattr(sensor_layout_obj, "name", "Unknown")
     chan_type = list()
@@ -227,7 +227,7 @@ def _read_mff_header(filepath):
 
         # 3. Parse pnsSet.xml using the fallback shim in fixes.py
         pns_set_filepath = Path(filepath) / "pnsSet.xml"
-        pns_obj = XML.from_file(pns_set_filepath)
+        pns_obj = XML.from_file(str(pns_set_filepath))
 
         pns_types = []
         pns_units = []
