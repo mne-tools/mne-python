@@ -6,7 +6,6 @@
 
 import datetime
 import math
-import os.path as op
 import re
 from collections import OrderedDict
 from pathlib import Path
@@ -114,7 +113,7 @@ def _read_mff_header(filepath):
     eeg_info_file = all_files["EEG"]["info"]
 
     # 1. Parse info.xml natively via absolute path
-    info_filepath = op.join(filepath, "info.xml")
+    info_filepath = Path(filepath) / "info.xml"
     info_obj = XML.from_file(info_filepath)
 
     mff_vers_elem = info_obj.find("mffVersion")
@@ -186,7 +185,7 @@ def _read_mff_header(filepath):
     summaryinfo["disk_samps"] = disk_samps
 
     # 2. Parse sensorLayout.xml natively via absolute path
-    sensor_layout_filepath = op.join(filepath, "sensorLayout.xml")
+    sensor_layout_filepath = Path(filepath) / "sensorLayout.xml"
     sensor_layout_obj = XML.from_file(sensor_layout_filepath)
 
     summaryinfo["device"] = getattr(sensor_layout_obj, "name", "Unknown")
@@ -227,7 +226,7 @@ def _read_mff_header(filepath):
             )
 
         # 3. Parse pnsSet.xml using the fallback shim in fixes.py
-        pns_set_filepath = op.join(filepath, "pnsSet.xml")
+        pns_set_filepath = Path(filepath) / "pnsSet.xml"
         pns_obj = XML.from_file(pns_set_filepath)
 
         pns_types = []
@@ -325,8 +324,8 @@ def _read_locs(filepath, egi_info, channel_naming):
     _soft_import("mffpy", "reading EGI MFF data")
     from mffpy.xml_files import XML
 
-    fname = op.join(filepath, "coordinates.xml")
-    if not op.exists(fname):
+    fname = filepath / "coordinates.xml"
+    if not fname.exists():
         warn("File coordinates.xml not found, not setting channel locations")
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
         return ch_names, None
@@ -556,7 +555,7 @@ class RawMff(BaseRaw):
             with info._unlock():
                 info["bads"] = bads
 
-        file_bin = op.join(input_fname, egi_info["eeg_fname"])
+        file_bin = input_fname / egi_info["eeg_fname"]
         egi_info["egi_events"] = egi_events
         egi_info["mff_path"] = input_fname
 
@@ -593,7 +592,7 @@ class RawMff(BaseRaw):
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
-            egi_info["pns_filepath"] = op.join(input_fname, egi_info["pns_fname"])
+            egi_info["pns_filepath"] = input_fname / egi_info["pns_fname"]
             # Check for PNS bug immediately
             pns_samples = np.sum(egi_info["pns_sample_blocks"]["samples_block"])
             eeg_samples = np.sum(egi_info["samples_block"])
