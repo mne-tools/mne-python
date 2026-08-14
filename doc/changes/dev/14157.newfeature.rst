@@ -1,0 +1,1 @@
+Add an "Open in JupyterLite" badge to the tutorials and examples that can run in the browser, by `Natneal B`_.
