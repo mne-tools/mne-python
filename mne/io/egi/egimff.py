@@ -77,8 +77,8 @@ def _read_channel_status_bads(filepath, ch_names, pns_names):
 
     Returns an empty list when ``categories.xml`` is absent or unparsable.
     """
-    cats_path = op.join(filepath, "categories.xml")
-    if not op.isfile(cats_path):
+    cats_path = Path(filepath) / "categories.xml"
+    if not cats_path.is_file():
         return []
     from mffpy.xml_files import XML
 
@@ -444,14 +444,12 @@ class RawMff(BaseRaw):
         verbose=None,
     ):
         """Init the RawMff class."""
-        input_fname = str(
-            _check_fname(
-                input_fname,
-                "read",
-                True,
-                "input_fname",
-                need_dir=True,
-            )
+        input_fname = _check_fname(
+            input_fname,
+            "read",
+            True,
+            "input_fname",
+            need_dir=True,
         )
         logger.info(f"Reading EGI MFF Header from {input_fname}...")
         egi_info = _read_header(input_fname)
