@@ -635,7 +635,10 @@ def test_egi_mff_channel_status(tmp_path):
 """
     (mff_fname / "categories.xml").write_text(cats_xml, encoding="utf-8")
     raw = read_raw_egi(mff_fname, events_as_annotations=False, verbose=False)
-    assert raw.info["bads"] == ["E23", "E5"]  # 9999 ignored (out of range); goodChannels ignored
+    assert raw.info["bads"] == [
+        "E23",
+        "E5",
+    ]  # 9999 ignored (out of range); goodChannels ignored
 
     # Corrupted categories.xml must not raise — returns empty bads gracefully
     (mff_fname / "categories.xml").write_text("NOT VALID XML", encoding="utf-8")
