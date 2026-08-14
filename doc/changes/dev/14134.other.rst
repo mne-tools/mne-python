@@ -1,0 +1,1 @@
+Fix ten docstrings in private helpers that named a parameter the function does not take, and one that documented ``max_iter=1000`` for :func:`mne.decoding.csp._ajd_pham` while the signature has ``15``, by `Anton Karpov`_.

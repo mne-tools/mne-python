@@ -1733,7 +1733,7 @@ def _sss_basis(exp, all_coils):
             ext_order : int
                 Order of the external multipolar moment space
 
-    coils : list
+    all_coils : list
         List of MEG coils. Each should contain coil information dict specifying
         position, normals, weights, number of integration points and channel
         type. All coil geometry must be in the same coordinate frame
