@@ -1704,17 +1704,17 @@ class Brain:
         """Return a short, dock-friendly trace-list label.
 
         The vertex auto-picked at peak activation for each hemisphere gets a
-        "Peak (LH)"-style name; other picked vertices get a compact
+        "Peak (LH) 1000"-style name; other picked vertices get a compact
         "LH 1000"-style name instead of the full MNI-coordinate string (still
         available as the row's tooltip). RMS curves are returned unchanged.
         """
         meta = self._trace_meta.get(line)
         if meta is None:
             return line.get_label()
-        hemi, vertex_id = meta
+        hemi, vertex_id, _ = meta
         hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
         if self._peak_vertices.get(hemi) == vertex_id:
-            return f"Peak ({hemi_names[hemi]})"
+            return f"Peak ({hemi_names[hemi]}) {vertex_id}"
         return f"{hemi_names[hemi]} {vertex_id}"
 
     def clear_glyphs(self):
@@ -1778,10 +1778,12 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
+            mni_str = ", ".join(f"{m:5.1f}" for m in mni)
+            mni_suffix = " MNI: " + mni_str
         else:
-            mni = ""
-        label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
+            mni_str = None
+            mni_suffix = ""
+        label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni_suffix}"
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = (smooth[[vertex_id]] @ act_data)[0]
@@ -1791,12 +1793,12 @@ class Brain:
             time,
             act_data,
             label=label,
-            lw=2.4,
+            lw=1.8,
             color=color,
             zorder=4,
             update=False,
         )
-        self._trace_meta[line] = (hemi, vertex_id)
+        self._trace_meta[line] = (hemi, vertex_id, mni_str)
         if update:
             self.mpl_canvas.update_plot()
         return line

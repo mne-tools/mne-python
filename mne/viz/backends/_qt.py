@@ -1465,12 +1465,25 @@ class _QtTraceRow(QWidget):
         layout.addWidget(swatch)
 
         brain = canvas.brain
+        text_col = QVBoxLayout()
+        text_col.setContentsMargins(0, 0, 0, 0)
+        text_col.setSpacing(0)
+
         text = QLabel(brain._trace_display_label(line) if brain else line.get_label())
         text.setObjectName("trace_label")
-        text.setStyleSheet("font-size: 12pt;")
         text.setToolTip(line.get_label())
         text.setWordWrap(True)
-        layout.addWidget(text, 1)
+        text_col.addWidget(text)
+
+        meta = brain._trace_meta.get(line) if brain else None
+        coords = meta[2] if meta is not None else None
+        if coords:
+            coord_label = QLabel(f"MNI: {coords}")
+            coord_label.setStyleSheet("color: palette(disabled-text); font-size: 8pt;")
+            coord_label.setWordWrap(True)
+            text_col.addWidget(coord_label)
+
+        layout.addLayout(text_col, 1)
 
         self._toggle = QToolButton()
         self._toggle.setAutoRaise(True)
@@ -1551,7 +1564,7 @@ class _QtTraceList(QWidget):
                 widget.deleteLater()
         if not lines:
             placeholder = QLabel(
-                "Set Atlas to None to see\nvertex and RMS traces here."
+                "Set Annotation to None to see\nvertex and RMS traces here."
             )
             placeholder.setStyleSheet(
                 "color: palette(disabled-text); font-style: italic; font-size: 9pt;"

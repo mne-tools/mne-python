@@ -1491,7 +1491,7 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
         ln for ln in row_lines if brain._trace_meta.get(ln, (None,))[0] == "lh"
     )
     peak_row = rows.itemAt(row_lines.index(peak_line)).widget()
-    assert row_text(peak_row) == "Peak (LH)"
+    assert row_text(peak_row) == f"Peak (LH) {brain._peak_vertices['lh']}"
     assert row_text(peak_row) != peak_line.get_label()
 
     # picking a new vertex should grow the sidebar to match, and the new
