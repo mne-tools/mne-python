@@ -5,6 +5,10 @@ Contributing guide
 
 .. highlight:: console
 
+.. important::
+   **AI Usage Policy:** Before submitting any code or documentation, please make sure to review our AI usage policy outlined in the repository `CONTRIBUTING.md file <https://github.com/mne-tools/mne-python/blob/main/CONTRIBUTING.md>`_.
+
+   
 Thanks for taking the time to contribute! MNE-Python is an open-source project
 sustained mostly by volunteer effort. We welcome contributions from anyone as
 long as they abide by our `Code of Conduct`_.
@@ -644,7 +648,8 @@ contain:
       Short description of the changes, by `Firstname Lastname`_.
 
 Make sure that your name is included in the list of authors in
-:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+:file:`doc/changes/names.inc`, otherwise the changelog check on your pull
+request (and later the documentation build) will fail.
 To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
 

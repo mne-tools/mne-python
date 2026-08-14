@@ -1447,9 +1447,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
-        # instead of csr_array
-        dists = csr_array(triu(dists, format=dists.format))
+        dists = triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -3327,8 +3325,6 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_equal(a, b, str(a ^ b))
         for name in ["nuse", "ntri", "np", "type", "id"]:
             a, b = s0[name], s1[name]
-            if name == "id":  # workaround for old NumPy bug
-                a, b = int(a), int(b)
             assert_equal(a, b, name)
         for name in ["subject_his_id"]:
             if name in s0 or name in s1:

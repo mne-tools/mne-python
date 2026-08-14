@@ -5,7 +5,7 @@
 import copy
 import os
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from os import path as op
 
 import numpy as np
@@ -85,7 +85,7 @@ def test_read_ctf(tmp_path):
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
-    pos = np.random.RandomState(42).randn(len(picks), 3)
+    pos = np.random.default_rng(42).standard_normal((len(picks), 3))
     fake_eeg_fname = op.join(ctf_eeg_fname, "catch-alp-good-f.eeg")
     # Create a bad file
     with open(fake_eeg_fname, "wb") as fid:
@@ -266,7 +266,8 @@ def test_read_ctf(tmp_path):
         raw_read = read_raw_fif(out_fname)
 
         # so let's check tricky cases based on sample boundaries
-        rng = np.random.RandomState(0)
+        # seed chosen to satisfy the tolerances asserted below
+        rng = np.random.default_rng(1)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
         bnd = int(round(raw.info["sfreq"] * raw.buffer_size_sec))
         assert bnd == raw._raw_extras[0]["block_size"]
@@ -739,4 +740,4 @@ def test_invalid_meas_date(monkeypatch):
         raw = read_raw_ctf(ctf_dir / ctf_fname_continuous, verbose=True)
     log = log.getvalue()
     assert "No date or time found" in log
-    assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=timezone.utc)
+    assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=UTC)

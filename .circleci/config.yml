@@ -110,13 +110,13 @@ jobs:
             curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
             fc-cache -f
 
-      # Load pip cache
+      # Load uv cache
       - restore_cache:
           keys:
-            - pip-cache-1
+            - uv-cache-0
       - restore_cache:
           keys:
-            - user-install-bin-cache-310
+            - user-install-bin-cache-311
 
       # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
       - run:
@@ -125,20 +125,20 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: pip-cache-1
+          key: uv-cache-0
           paths:
-            - ~/.cache/pip
+            - ~/.cache/uv
       - save_cache:
-          key: user-install-bin-cache-310
+          key: user-install-bin-cache-311
           paths:
-            - ~/.local/lib/python3.10/site-packages
+            - ~/.local/lib/python3.11/site-packages
             - ~/.local/bin
 
       - run:
           name: Check Qt
           command: |
             set -x
-            ./tools/check_qt_import.sh ${MNE_QT_BACKEND}
+            curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh | bash -s -- $MNE_QT_BACKEND
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:
@@ -442,7 +442,7 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - pip-cache-1
+            - uv-cache-0
       - run:
           name: Get Python running
           command: |

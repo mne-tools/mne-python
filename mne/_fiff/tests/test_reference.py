@@ -277,8 +277,8 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     # gh-6454
     # gh-8739 added DBS
     ch_names = ["ECOG01", "ECOG02", "DBS01", "DBS02", "MISC"]
-    rng = np.random.RandomState(0)
-    data = rng.randn(5, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((5, 1000))
     raw = RawArray(
         data, create_info(ch_names, 1000.0, ["ecog"] * 2 + ["dbs"] * 2 + ["misc"])
     )
@@ -413,7 +413,7 @@ def test_set_eeg_reference_rest():
     assert 0.006 < exp_var < 0.008
     evoked.set_eeg_reference("REST", forward=fwd)
     exp_var_old = 1 - np.linalg.norm(evoked.data[:, idx] - old) / norm
-    assert 0.005 < exp_var_old <= 0.009
+    assert 0.005 < exp_var_old <= 0.0095
     exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
     assert 0.995 < exp_var <= 1
 
@@ -976,7 +976,8 @@ def test_bipolar_combinations():
     info = create_info(
         ch_names=ch_names, sfreq=1000.0, ch_types=["eeg"] * len(ch_names)
     )
-    raw_data = np.random.randn(len(ch_names), 1000)
+    rng = np.random.default_rng(0)
+    raw_data = rng.standard_normal((len(ch_names), 1000))
     raw = RawArray(raw_data, info)
 
     def _check_bipolar(raw_test, ch_a, ch_b):

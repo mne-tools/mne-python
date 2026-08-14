@@ -12,13 +12,14 @@ from ..utils import logger
 
 
 class _Overlay:
-    def __init__(self, scalars, colormap, rng, opacity, name):
+    def __init__(self, scalars, colormap, rng, opacity, name, smooth=False):
         self._scalars = scalars
         self._colormap = colormap
         assert rng is not None
         self._rng = rng
         self._opacity = opacity
         self._name = name
+        self._smooth = smooth
 
     def to_colors(self):
         from matplotlib.colors import Colormap, ListedColormap
@@ -204,6 +205,7 @@ class LayeredMesh:
             rng=rng,
             opacity=opacity,
             name=name,
+            smooth=smooth,
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
@@ -263,7 +265,25 @@ class LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None):
+    def update_geometry(self, vertices, normals):
+        """Update the mesh's vertex positions and normals in place.
+
+        Parameters
+        ----------
+        vertices : array, shape (n_vertices, 3)
+            New vertex coordinates. Must match the existing vertex count.
+        normals : array, shape (n_vertices, 3)
+            New vertex normals.
+        """
+        self._vertices = vertices
+        self._normals = normals
+        self._polydata.points = vertices
+        self._polydata.point_data["Normals"] = normals
+        self._polydata.GetPointData().SetActiveNormals("Normals")
+
+    def update_overlay(
+        self, name, scalars=None, colormap=None, opacity=None, rng=None, update=True
+    ):
         """Update an existing overlay in-place.
 
         Parameters
@@ -281,12 +301,27 @@ class LayeredMesh:
             New opacity in ``[0, 1]``. If ``None``, opacity is unchanged.
         rng : array-like, shape (2,) | None
             New ``[min, max]`` colormap range. If ``None``, range is unchanged.
+        update : bool
+            If ``True`` (default), recompose overlays and refresh the mesh
+            immediately.  Pass ``False`` to stage the change without
+            triggering a recompose; the caller is then responsible for
+            calling :meth:`update` once all overlays have been staged.
         """
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
         if scalars is not None:
-            if self.smooth_mat is not None:
+            scalars = np.asarray(scalars)
+            smooth = overlay._smooth and self.smooth_mat is not None
+            if smooth:
+                expected = self.smooth_mat.shape[1]
+            else:
+                expected = len(overlay._scalars)
+            if scalars.shape != (expected,):
+                raise ValueError(
+                    f"scalars must have shape ({expected},), got {scalars.shape}"
+                )
+            if smooth:
                 scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
         if colormap is not None:
@@ -295,6 +330,8 @@ class LayeredMesh:
             overlay._opacity = opacity
         if rng is not None:
             overlay._rng = rng
+        if not update:
+            return
         # partial update: use cache if possible
         if name == list(self._overlays.keys())[-1]:
             self.update(colors=overlay.to_colors())

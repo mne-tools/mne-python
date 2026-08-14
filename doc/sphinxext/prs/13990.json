@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ff724e15421c6507043474dda86cc26607d25cbd",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d_overlay.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

@@ -11,7 +11,7 @@ Bugfixes
 --------
 
 - Handle scenario where an Eyelink recording switched from binocular to monocular mode during a trial by `Scott Huberty`_ (`#12847 <https://github.com/mne-tools/mne-python/pull/12847>`__)
-- Fixed ICA getting sources for concatenated raw instances, by :newcontrib:`Beige Jin`. (`#13068 <https://github.com/mne-tools/mne-python/pull/13068>`__)
+- Fixed ICA getting sources for concatenated raw instances, by :newcontrib:`Beige Jerry Jin`. (`#13068 <https://github.com/mne-tools/mne-python/pull/13068>`__)
 - Fix reading annotations with :func:`mne.read_annotations` from .csv files containing nanoseconds in times, and drop nanoseconds from times returned from :meth:`mne.Annotations.to_data_frame` and saved in .csv files by :meth:`mne.Annotations.save`, by `Thomas Binns`_. (`#13109 <https://github.com/mne-tools/mne-python/pull/13109>`__)
 - Fix bug with :func:`mne.io.read_raw_egi` where ``info["dev_head_t"]`` was an identity matrix instead of ``None``, by `Eric Larson`_. (`#13112 <https://github.com/mne-tools/mne-python/pull/13112>`__)
 - Read Nihon Kohden annotation file accurately (using sublog parsing), by `Tom Ma`_. (`#13251 <https://github.com/mne-tools/mne-python/pull/13251>`__)

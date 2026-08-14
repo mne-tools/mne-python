@@ -13,7 +13,8 @@ import faulthandler
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+import tomllib
+from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -58,7 +59,7 @@ from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa:
 # -- Project information -----------------------------------------------------
 
 project = "MNE"
-td = datetime.now(tz=timezone.utc)
+td = datetime.now(tz=UTC)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
@@ -290,11 +291,15 @@ numpydoc_xref_aliases = {
     "EpochsFIF": "mne.Epochs",
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
+    "BaseRaw": "mne.io.Raw",
     "RawANT": "mne.io.Raw",
+    "RawArtemis123": "mne.io.Raw",
     "RawBCI2k": "mne.io.Raw",
+    "RawBDF": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
+    "RawCNT": "mne.io.Raw",
     "RawCTF": "mne.io.Raw",
     "RawCurry": "mne.io.Raw",
     "RawEDF": "mne.io.Raw",
@@ -308,7 +313,9 @@ numpydoc_xref_aliases = {
     "RawKIT": "mne.io.Raw",
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
+    "RawNicolet": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawNSX": "mne.io.Raw",
     "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
@@ -323,6 +330,7 @@ numpydoc_xref_ignore = {
     "and",
     "as",
     "between",
+    "class",
     "data",
     "instance",
     "instances",
@@ -436,17 +444,11 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-try:
-    import tomllib
-    # TODO VERSION: Can be removed once Python 3.11 is required
-except Exception:
-    pass
-else:
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
-    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
-    numpydoc_validation_checks = set(pyproject_nv["checks"])
-    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
+pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+numpydoc_validation_checks = set(pyproject_nv["checks"])
+numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
@@ -731,6 +733,9 @@ linkcheck_report_timeouts_as_broken = False
 # autodoc / autosummary
 autosummary_generate = True
 autodoc_default_options = {"inherited-members": None}
+# Types are documented (in human-readable numpydoc form) in the docstrings
+# themselves, so don't also render the annotations into the signatures.
+autodoc_typehints = "none"
 
 # sphinxcontrib-bibtex
 bibtex_bibfiles = ["./references.bib"]
