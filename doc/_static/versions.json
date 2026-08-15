@@ -6,8 +6,9 @@
     },
     {
         "name": "1.12 (stable)",
-        "version": "stable",
-        "url": "https://mne.tools/stable/"
+        "version": "1.12",
+        "url": "https://mne.tools/stable/",
+        "preferred": true
     },
     {
         "name": "1.11",
