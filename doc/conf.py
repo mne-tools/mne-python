@@ -861,6 +861,7 @@ html_theme_options = {
         "json_url": "https://mne.tools/dev/_static/versions.json",
         "version_match": switcher_version_match,
     },
+    "show_version_warning_banner": True,
     "back_to_top_button": False,
 }
 
