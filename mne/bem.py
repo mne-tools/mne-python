@@ -1441,7 +1441,7 @@ def read_bem_surfaces(
     ----------
     fname : path-like
         The name of the file containing the surfaces.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
         If int, only read and return the surface with the given ``s_id``.
