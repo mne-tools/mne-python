@@ -11,7 +11,6 @@ from pathlib import Path
 
 import numpy as np
 from scipy import linalg
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -1000,6 +999,8 @@ class _TPSWarp:
     """
 
     def fit(self, source, destination, reg=1e-3):
+        from scipy.spatial.distance import cdist
+
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
         # Forward warping, different from image warping, use |dist|**2
@@ -1030,6 +1031,8 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
+        from scipy.spatial.distance import cdist
+
         logger.info(f"Transforming {len(pts)} points")
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks

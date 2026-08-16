@@ -8,7 +8,6 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy.interpolate import RectBivariateSpline
 from scipy.linalg import pinv
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import _simplify_info, create_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
@@ -257,6 +256,8 @@ def _interpolate_bads_meeg(
 
 @verbose
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
+    from scipy.spatial.distance import pdist, squareform
+
     from ..preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
@@ -302,6 +303,8 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
     # 3) remove contacts with large distances
+
+    from scipy.spatial.distance import pdist, squareform
 
     dist = squareform(pdist(pos))
     np.fill_diagonal(dist, np.inf)
