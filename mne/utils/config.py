@@ -236,9 +236,10 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
-        Additional arguments and keyword arguments to be passed to the
-        `open` function.
+    *args : list
+        Additional arguments to be passed to the `open` function.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the `open` function.
 
     """
     filelock = _soft_import(

@@ -220,7 +220,7 @@ class _EstimatorMixin:
 
         Parameters
         ----------
-        deep : bool, default=True
+        deep : bool
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
 
@@ -566,7 +566,7 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     ----------
     arr : array-like
         To be cumulatively summed as flat
-    axis : int, optional
+    axis : int | None
         Axis along which the cumulative sum is computed.
         The default (None) is to compute the cumsum over the flattened array.
     rtol : float

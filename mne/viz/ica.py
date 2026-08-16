@@ -676,9 +676,9 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
-    reject_by_annotation : bool, optional
+    reject_by_annotation : bool
         [description], by default True
-    reject : str, optional
+    reject : str
         [description], by default 'auto'
 
     Returns
@@ -1068,7 +1068,7 @@ def plot_ica_overlay(
         before and after cleaning. A second panel with the RMS for MEG sensors and the
         :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
         signals before and after cleaning will be superimposed.
-    exclude : array-like of int | None (default)
+    exclude : array-like of int | None
         The components marked for exclusion. If ``None`` (default), the components
         listed in ``ICA.exclude`` will be used.
     %(picks_base)s all channels that were included during fitting.

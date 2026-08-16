@@ -38,7 +38,7 @@ def read_raw_fil(
     ----------
     binfile : path-like
         Path to the MEG data binary (ending in ``'_meg.bin'``).
-    precision : str, optional
+    precision : str
         How is the data represented? ``'single'`` if 32-bit or ``'double'`` if
         64-bit (default is single).
     %(preload)s
@@ -65,7 +65,7 @@ class RawFIL(BaseRaw):
     ----------
     binfile : path-like
         Path to the MEG data binary (ending in ``'_meg.bin'``).
-    precision : str, optional
+    precision : str
         How is the data represented? ``'single'`` if 32-bit or
         ``'double'`` if 64-bit (default is single).
     %(preload)s

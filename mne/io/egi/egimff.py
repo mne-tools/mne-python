@@ -6,7 +6,6 @@
 
 import datetime
 import math
-import os.path as op
 import re
 from collections import OrderedDict
 from pathlib import Path
@@ -67,6 +66,42 @@ def _disk_range_to_epochs(egi_info, disk_start, disk_stop):
         yield ei, t0, dt, ov_start - disk_start, ov_stop - disk_start
 
 
+def _read_channel_status_bads(filepath, ch_names, pns_names):
+    """Return bad channel names from categories.xml channelStatus, if present.
+
+    EGI NetStation writes per-epoch bad-channel lists into ``categories.xml``
+    as ``<channelStatus>`` elements.  This function collects the union of all
+    channels marked ``exclusion="badChannels"`` across every category and
+    segment and maps them back to MNE channel names.
+
+    Returns an empty list when ``categories.xml`` is absent or unparsable.
+    """
+    cats_path = Path(filepath) / "categories.xml"
+    if not cats_path.is_file():
+        return []
+    from mffpy.xml_files import XML
+
+    try:
+        cats_obj = XML.from_file(cats_path)  # ty: ignore[invalid-argument-type]
+    except Exception:
+        return []
+    bads = set()
+    for segments in cats_obj.categories.values():
+        for seg in segments:
+            for entry in seg.get("channelStatus") or []:
+                if entry["exclusion"] != "badChannels":
+                    continue
+                if entry["signalBin"] == 1:
+                    for ch in entry["channels"]:
+                        if 1 <= ch <= len(ch_names):
+                            bads.add(ch_names[ch - 1])
+                elif entry["signalBin"] == 2:
+                    for ch in entry["channels"]:
+                        if 1 <= ch <= len(pns_names):
+                            bads.add(pns_names[ch - 1])
+    return sorted(bads)
+
+
 def _read_mff_header(filepath):
     """Read mff header."""
     _soft_import("mffpy", "reading EGI MFF data")
@@ -78,8 +113,8 @@ def _read_mff_header(filepath):
     eeg_info_file = all_files["EEG"]["info"]
 
     # 1. Parse info.xml natively via absolute path
-    info_filepath = op.join(filepath, "info.xml")
-    info_obj = XML.from_file(info_filepath)
+    info_filepath = Path(filepath) / "info.xml"
+    info_obj = XML.from_file(info_filepath)  # ty: ignore[invalid-argument-type]
 
     mff_vers_elem = info_obj.find("mffVersion")
     if mff_vers_elem is None:
@@ -150,8 +185,8 @@ def _read_mff_header(filepath):
     summaryinfo["disk_samps"] = disk_samps
 
     # 2. Parse sensorLayout.xml natively via absolute path
-    sensor_layout_filepath = op.join(filepath, "sensorLayout.xml")
-    sensor_layout_obj = XML.from_file(sensor_layout_filepath)
+    sensor_layout_filepath = Path(filepath) / "sensorLayout.xml"
+    sensor_layout_obj = XML.from_file(sensor_layout_filepath)  # ty: ignore[invalid-argument-type]
 
     summaryinfo["device"] = getattr(sensor_layout_obj, "name", "Unknown")
     chan_type = list()
@@ -191,8 +226,8 @@ def _read_mff_header(filepath):
             )
 
         # 3. Parse pnsSet.xml using the fallback shim in fixes.py
-        pns_set_filepath = op.join(filepath, "pnsSet.xml")
-        pns_obj = XML.from_file(pns_set_filepath)
+        pns_set_filepath = Path(filepath) / "pnsSet.xml"
+        pns_obj = XML.from_file(pns_set_filepath)  # ty: ignore[invalid-argument-type]
 
         pns_types = []
         pns_units = []
@@ -289,8 +324,8 @@ def _read_locs(filepath, egi_info, channel_naming):
     _soft_import("mffpy", "reading EGI MFF data")
     from mffpy.xml_files import XML
 
-    fname = op.join(filepath, "coordinates.xml")
-    if not op.exists(fname):
+    fname = filepath / "coordinates.xml"
+    if not fname.exists():
         warn("File coordinates.xml not found, not setting channel locations")
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
         return ch_names, None
@@ -408,14 +443,12 @@ class RawMff(BaseRaw):
         verbose=None,
     ):
         """Init the RawMff class."""
-        input_fname = str(
-            _check_fname(
-                input_fname,
-                "read",
-                True,
-                "input_fname",
-                need_dir=True,
-            )
+        input_fname = _check_fname(
+            input_fname,
+            "read",
+            True,
+            "input_fname",
+            need_dir=True,
         )
         logger.info(f"Reading EGI MFF Header from {input_fname}...")
         egi_info = _read_header(input_fname)
@@ -514,7 +547,15 @@ class RawMff(BaseRaw):
                     if chan["kind"] == FIFF.FIFFV_EEG_CH:
                         chan["loc"][3:6] = ref_coords
 
-        file_bin = op.join(input_fname, egi_info["eeg_fname"])
+        # Mark bad channels from categories.xml channelStatus if present
+        bads = _read_channel_status_bads(
+            input_fname, ch_names, egi_info.get("pns_names", [])
+        )
+        if bads:
+            with info._unlock():
+                info["bads"] = bads
+
+        file_bin = input_fname / egi_info["eeg_fname"]
         egi_info["egi_events"] = egi_events
         egi_info["mff_path"] = input_fname
 
@@ -551,7 +592,7 @@ class RawMff(BaseRaw):
 
         if len(idx["pns"]):
             # PNS Data is present and should be read:
-            egi_info["pns_filepath"] = op.join(input_fname, egi_info["pns_fname"])
+            egi_info["pns_filepath"] = input_fname / egi_info["pns_fname"]
             # Check for PNS bug immediately
             pns_samples = np.sum(egi_info["pns_sample_blocks"]["samples_block"])
             eeg_samples = np.sum(egi_info["samples_block"])
@@ -699,7 +740,7 @@ def read_evokeds_mff(
     channel_naming : str
         Channel naming convention for EEG channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...).
-    baseline : None (default) or tuple of length 2
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
