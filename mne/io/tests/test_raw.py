@@ -120,7 +120,7 @@ def _test_raw_reader(
         Test _init_kwargs support.
     boundary_decimal : int
         Number of decimals up to which the boundary should match.
-    **kwargs :
+    **kwargs : dict
         Arguments for the reader. Note: Do not use preload as kwarg.
         Use ``test_preloading`` instead.
 
