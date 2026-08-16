@@ -358,7 +358,7 @@ average : str | None
 """
 
 docdict["average_tfr"] = """
-average : bool, default True
+average : bool
     If ``False`` return an `EpochsTFR` containing separate TFRs for each
     epoch. If ``True`` return an `AverageTFR` containing the average of all
     TFRs across epochs.
@@ -1646,14 +1646,14 @@ extrapolate : str
 """
 
 docdict["eyelink_apply_offsets"] = """
-apply_offsets : bool (default False)
+apply_offsets : bool
     Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
     experiment messages, if offset values exist in the ASCII file. If False, any
     offset-like values will be prepended to the annotation description.
 """
 
 docdict["eyelink_create_annotations"] = """
-create_annotations : bool | list (default True)
+create_annotations : bool | list
     Whether to create :class:`~mne.Annotations` from ocular events
     (blinks, fixations, saccades) and experiment messages. If a list, must
     contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
@@ -1662,7 +1662,7 @@ create_annotations : bool | list (default True)
 """
 
 docdict["eyelink_find_overlaps"] = """
-find_overlaps : bool (default False)
+find_overlaps : bool
     Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
     saccades) if their start times and their stop times are both not
     separated by more than overlap_threshold.
@@ -1673,7 +1673,7 @@ fname : path-like
     Path to the eyelink file (``.asc``)."""
 
 docdict["eyelink_overlap_threshold"] = """
-overlap_threshold : float (default 0.05)
+overlap_threshold : float
     Time in seconds. Threshold of allowable time-gap between both the start and
     stop times of the left and right eyes. If the gap is larger than the threshold,
     the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
@@ -3685,7 +3685,7 @@ precompute : bool | str
 """
 
 docdict["preload"] = """
-preload : bool or str (default False)
+preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
@@ -3693,7 +3693,7 @@ preload : bool or str (default False)
     on the hard drive (slower, requires less memory)."""
 
 docdict["preload_concatenate"] = """
-preload : bool, str, or None (default None)
+preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
@@ -5783,7 +5783,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     ----------
     docstring : string
         docstring from function, possibly with dict formatting strings
-    docdict : dict, optional
+    docdict : dict | None
         dictionary with keys that match the dict formatting strings
         and values that are docstring fragments to be inserted.  The
         indentation of the inserted docstrings is set to match the

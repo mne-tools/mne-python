@@ -52,9 +52,8 @@ python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
-# TODO: PyVista can go back to refs/heads/main once https://github.com/pyvista/pyvista/pull/8908 lands
 python -m pip install $STD_ARGS \
-	"pyvista @ https://github.com/pyvista/pyvista/archive/2419dedb23322d926fff74b2c017497ac6e5f3d8.zip" \
+	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
 	"pyvistaqt @ https://github.com/larsoner/pyvistaqt/archive/refs/heads/qvtk-opengl-widget.zip" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
@@ -64,6 +63,7 @@ python -m pip install $STD_ARGS \
 	"mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
 	"mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
 	"nibabel @ https://github.com/nipy/nibabel/archive/refs/heads/master.zip" \
+	"nitime @ https://github.com/nipy/nitime/archive/refs/heads/master.zip" \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \

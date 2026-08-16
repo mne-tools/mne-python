@@ -176,7 +176,7 @@ def annotate_movement(
         Head translation velocity limit in meters per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
-    use_dev_head_trans : 'average' (default) | 'info'
+    use_dev_head_trans : 'average' | 'info'
         Identify the device to head transform used to define the
         fixed HPI locations for computing moving distances.
         If ``average`` the average device to head transform is
