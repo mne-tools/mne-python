@@ -740,7 +740,7 @@ def read_evokeds_mff(
     channel_naming : str
         Channel naming convention for EEG channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...).
-    baseline : None (default) or tuple of length 2
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
