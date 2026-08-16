@@ -526,18 +526,20 @@ jobs:
             git reset --hard origin/main
             git clean -xdf
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
-              rm -Rf dev;
-              cp -a /tmp/build/html dev;
-              git add -A;
-              git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
+              DIR=dev;
             else
-              echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
-              rm -Rf stable;
-              cp -a /tmp/build/html stable;
-              git add -A;
-              git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
+              DIR=${CIRCLE_BRANCH#maint/};
             fi;
+            if ! echo "${DIR}" | grep -qE '^([0-9]+\.[0-9]+|dev)$'; then
+              echo "Refusing to deploy: branch ${CIRCLE_BRANCH} maps to invalid directory '${DIR}'.";
+              circleci-agent step halt;
+            fi;
+            echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
+            rm -Rf "${DIR}";
+            cp -a /tmp/build/html "${DIR}";
+            git add -A;
+            git commit -m "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
+              -m "Deployed-version: ${DIR}" -m "Source-sha: ${CIRCLE_SHA1}";
             git push origin main;
       - save_cache:
           key: website-cache-1
