@@ -50,7 +50,6 @@ from .surface import (
 from .transforms import (
     Transform,
     _angle_between_quats,
-    _fit_matched_points,
     _quat_to_euler,
     _read_fs_xfm,
     _write_fs_xfm,
@@ -438,6 +437,8 @@ def fit_matched_points(
         tgt_pts = np.asarray(tgt_pts, float)
         if weights is not None:
             weights = np.asarray(weights, float)
+        from ._transforms_numba import _fit_matched_points
+
         x, s = _fit_matched_points(src_pts, tgt_pts, weights, bool(param_info[2]))
         x[:3] = _quat_to_euler(x[:3])
         x = np.concatenate((x, [s])) if param_info[2] else x

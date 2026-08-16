@@ -627,47 +627,6 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 
 
 ###############################################################################
-# Numba (optional requirement)
-
-# Here we choose different defaults to speed things up by default
-try:
-    import numba
-
-    prange = numba.prange
-
-    def jit(nopython=True, nogil=True, fastmath=True, cache=True, **kwargs):  # noqa
-        return numba.jit(
-            nopython=nopython, nogil=nogil, fastmath=fastmath, cache=cache, **kwargs
-        )
-
-except Exception:  # could be ImportError, SystemError, etc.
-    has_numba = False
-else:
-    has_numba = os.getenv("MNE_USE_NUMBA", "true").lower() == "true"
-
-
-if not has_numba:
-
-    def jit(**kwargs):  # noqa
-        def _jit(func):
-            return func
-
-        return _jit
-
-    prange = range
-    bincount = np.bincount
-
-else:
-
-    @jit()
-    def bincount(x, weights, minlength):  # noqa: D103
-        out = np.zeros(minlength)
-        for idx, w in zip(x, weights):
-            out[idx] += w
-        return out
-
-
-###############################################################################
 # Matplotlib
 
 

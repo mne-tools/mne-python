@@ -9,7 +9,6 @@ import os
 import os.path as op
 import re
 import sys
-import webbrowser
 from copy import deepcopy
 
 from decorator import FunctionMaker
@@ -5630,6 +5629,8 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config("MNE_DOCS_VERSION", "stable")
     _check_option("version", version, ["stable", "dev"])
+    import webbrowser
+
     webbrowser.open_new_tab(f"https://mne.tools/{version}/{kind}")
 
 

@@ -239,47 +239,81 @@ def test_import_nesting_hierarchy():
     # scheme obeys the above order
 
 
-# This test ensures that modules are lazily loaded by lazy_loader.
+# These tests ensure that modules are lazily loaded by lazy_loader, using an
+# allowlist: rather than naming the packages that must *not* be imported, we name the
+# ones that may be, and work out what those pull in themselves. Anything else is an
+# error, so a newly added eager dependency fails loudly instead of silently slowing
+# every ``import mne`` down.
 
 eager_import = os.getenv("EAGER_IMPORT", "")
-run_script = """
+
+# What plain ``import mne`` may pull in. Every addition here costs every MNE user
+# interpreter-startup time, so weigh it carefully.
+LEVEL_1_ALLOWED = ("decorator", "lazy_loader", "numpy", "packaging")
+
+# Report scipy per-submodule and everything else per top-level package
+_SPLIT_PACKAGES = ("scipy",)
+
+_imports_script = """\
 import sys
-import mne
-
+{statements}
+split = {split!r}
 out = set()
-
-# check scipy (Numba imports it to check the version)
-ok_scipy_submodules = {'version'}
-scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
-                       if x.startswith('scipy.') and '__' not in x and
-                       not x.split('.')[1].startswith('_')
-                       and sys.modules[x] is not None)
-bad = scipy_submodules - ok_scipy_submodules
-if len(bad) > 0:
-    out |= {f'scipy submodules: {list(bad)}'}
-
-# check sklearn and others
-for x in sys.modules.keys():
-    for key in ('sklearn', 'pandas', 'pyvista', 'matplotlib',
-                'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt', 'pooch',
-                'tqdm', 'jinja2'):
-        if x.startswith(key):
-            x = '.'.join(x.split('.')[:2])
-            out |= {x}
-if len(out) > 0:
-    print(f'\\nFound un-nested import(s) for {sorted(out)}', end='')
-exit(len(out))
-
-# but this should still work
-mne.io.read_raw_fif
-assert "scipy.signal" in sys.modules, "scipy.signal not in sys.modules"
+for name, mod in list(sys.modules.items()):
+    if mod is None:
+        continue
+    parts = name.split(".")
+    top = parts[0]
+    if not top or top in sys.stdlib_module_names or top.startswith("_"):
+        continue
+    out.add(".".join(parts[:2]) if top in split and len(parts) > 1 else top)
+print(" ".join(sorted(out)))
 """
+
+
+def _imported(*statements):
+    """Get the non-stdlib modules loaded by running ``statements``."""
+    script = _imports_script.format(
+        statements="\n".join(statements), split=_SPLIT_PACKAGES
+    )
+    stdout, stderr, code = run_subprocess(
+        [sys.executable, "-c", script], return_code=True
+    )
+    assert code == 0, stdout + stderr
+    return set(stdout.split())
+
+
+def _check_imports(targets, allowed, level):
+    # An empty run captures whatever the environment itself loads (.pth files,
+    # editable-install finders, namespace packages, ...) so it can be subtracted.
+    baseline = _imported()
+    ok = _imported(*(f"import {module}" for module in allowed)) | baseline | {"mne"}
+    extra = _imported(*targets) - ok
+    assert extra == set(), (
+        f"Level-{level} import check: {'; '.join(targets)} eagerly imported "
+        f"{len(extra)} disallowed module{_pl(extra)}: {sorted(extra)}. Nest the "
+        f"import{_pl(extra)} inside the function(s) that need them, or -- if truly "
+        f"required at import time -- add to LEVEL_{level}_ALLOWED."
+    )
 
 
 @pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
 def test_lazy_loading():
-    """Test that module imports are properly nested."""
+    """Test that ``import mne`` pulls in nothing beyond its allowed dependencies."""
+    _check_imports(("import mne",), LEVEL_1_ALLOWED, 1)
+
+
+@pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
+def test_lazy_loading_works():
+    """Test that lazily loaded attributes still resolve."""
+    script = (
+        "import sys\n"
+        "import mne\n"
+        "assert 'mne.io' not in sys.modules, 'mne.io imported eagerly'\n"
+        "assert callable(mne.io.read_raw_fif), 'read_raw_fif did not resolve'\n"
+        "assert 'mne.io.fiff.raw' in sys.modules, 'reader module not imported'\n"
+    )
     stdout, stderr, code = run_subprocess(
-        [sys.executable, "-c", run_script], return_code=True
+        [sys.executable, "-c", script], return_code=True
     )
     assert code == 0, stdout + stderr
