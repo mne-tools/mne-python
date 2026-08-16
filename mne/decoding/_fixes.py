@@ -79,7 +79,7 @@ except ImportError:
             `n_features_in_` are checked. Otherwise, :func:`~sklearn.utils.check_array`
             is called on `X` and `y`.
 
-        **check_params : kwargs
+        **check_params : dict
             Parameters passed to :func:`~sklearn.utils.check_array` or
             :func:`~sklearn.utils.check_X_y`. Ignored if validate_separately
             is not False.

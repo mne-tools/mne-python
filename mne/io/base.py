@@ -399,12 +399,12 @@ class BaseRaw(
         start : int
             first sample to include (first is 0). If omitted, defaults to the
             first sample in data.
-        stop : int
+        stop : int | None
             First sample to not include.
             If omitted, data is included to the end.
-        sel : array
+        sel : array | None
             Indices of channels to select.
-        data_buffer : array | str
+        data_buffer : array | str | None
             numpy array to fill with data read, must have the correct shape.
             If str, a np.memmap with the correct data type will be used
             to store the data.

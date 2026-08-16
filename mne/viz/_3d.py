@@ -3529,7 +3529,7 @@ def plot_sparse_source_estimates(
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
     Returns

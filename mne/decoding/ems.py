@@ -138,7 +138,8 @@ def compute_ems(
     %(picks_good_data)s
     %(n_jobs)s
     cv : cross-validation object | str | None
-        The cross-validation scheme.
+        The cross-validation scheme. If None,
+        :class:`sklearn.model_selection.LeaveOneOut` is used.
     %(verbose)s
 
     Returns

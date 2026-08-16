@@ -100,7 +100,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -151,7 +151,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns

@@ -1615,9 +1615,9 @@ def apply_forward(
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     %(info_not_none)s
-    start : int
+    start : int | None
         Index of first time sample (index not time is seconds).
-    stop : int
+    stop : int | None
         Index of first time sample not to include (index not time is seconds).
     %(use_cps)s
 
@@ -1694,9 +1694,9 @@ def apply_forward_raw(
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     %(info_not_none)s
-    start : int
+    start : int | None
         Index of first time sample (index not time is seconds).
-    stop : int
+    stop : int | None
         Index of first time sample not to include (index not time is seconds).
     %(on_missing_fwd)s
         Default is "raise".

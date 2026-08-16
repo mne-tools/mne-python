@@ -523,7 +523,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
             The training input samples to estimate the linear coefficients.
         y : array, shape (n_samples, [n_targets])
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -842,7 +842,7 @@ def cross_val_multiscore(
         other cases, :class:`sklearn.model_selection.KFold` is used.
     %(n_jobs)s
     %(verbose)s
-    fit_params : dict
+    fit_params : dict | None
         Parameters to pass to the fit method of the estimator.
     pre_dispatch : int | str
         Controls the number of jobs that get dispatched during parallel

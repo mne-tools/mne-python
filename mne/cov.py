@@ -610,7 +610,7 @@ def compute_raw_covariance(
     tmax : float | None
         End of time interval in seconds. If None (default), use the end of the
         recording.
-    tstep : float
+    tstep : float | None
         Length of data chunks for artifact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
         duration. This can use a lot of memory for large ``Raw``

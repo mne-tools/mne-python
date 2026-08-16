@@ -98,9 +98,9 @@ tab_ignores = [
 error_ignores_specific = {  # specific instances to skip
     ("regress_artifact", "SS05"),  # "Regress" is actually imperative
 }
+# lookarounds keep quoted literals like {"default", "pandas"} from matching
 bad_docstring_type = re.compile(
-    r"(?:\(\s*default\b|,\s*default(?=\s|=|:)|"
-    r"(?:^|,)\s*(?:optional|\(\s*optional\s*\))(?=\s*(?:$|[|,])))",
+    r"(?<!['\"])\b(?:optional|defaults?)\b(?!['\"])",
     re.IGNORECASE,
 )
 subclass_name_ignores = (
@@ -134,6 +134,9 @@ subclass_name_ignores = (
         ("bool, (optional) | str", True),
         ("bool, default=True", True),
         ("bool (default True)", True),
+        ("str (optional)", True),
+        ("bool, optional.", True),
+        ("float, defaults to 0.1", True),
         ('{"default", "pandas"}', False),
         ("{'optional', 'required'}", False),
         ("bool | None", False),
@@ -146,6 +149,7 @@ def test_bad_docstring_type(type_description, is_bad):
 
 def test_bad_docstring_type_ignores_notes():
     """Test that defaults outside parameter types are not checked."""
+    pytest.importorskip("numpydoc")
     from numpydoc.docscrape import FunctionDoc
 
     def func(param):
