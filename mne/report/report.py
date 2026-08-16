@@ -728,7 +728,7 @@ def open_report(fname, **params):
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
-    **params : kwargs
+    **params : dict
         When creating a new report, any named parameters other than ``fname``
         are passed to the ``__init__`` function of the `Report` object. When
         reading an existing report, the parameters are checked with the
@@ -4545,6 +4545,8 @@ class Report:
 
         # Plot using 3d backend if available, and use Matplotlib
         # otherwise.
+        # TODO: the Matplotlib fallback below is deprecated, remove it (and require a
+        # 3D backend here) once the mpl 3D backend goes away in 1.15
         import matplotlib.pyplot as plt
 
         stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)

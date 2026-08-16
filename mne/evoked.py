@@ -131,12 +131,12 @@ class Evoked(
     condition : int | str | None
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
-    proj : bool, optional
+    proj : bool
         Apply SSP projection vectors.
     kind : str
         Either ``'average'`` or ``'standard_error'``. The type of data to read.
         Only used if 'condition' is a str.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
@@ -1801,7 +1801,7 @@ def read_evokeds(
         Either ``'average'`` or ``'standard_error'``, the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
