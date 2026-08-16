@@ -52,9 +52,8 @@ python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
-# TODO: PyVista can go back to refs/heads/main once https://github.com/pyvista/pyvista/pull/8908 lands
 python -m pip install $STD_ARGS \
-	"pyvista @ https://github.com/pyvista/pyvista/archive/2419dedb23322d926fff74b2c017497ac6e5f3d8.zip" \
+	"pyvista @ https://github.com/pyvista/pyvista/refs/heads/main.zip" \
 	"pyvistaqt @ https://github.com/larsoner/pyvistaqt/archive/refs/heads/qvtk-opengl-widget.zip" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
