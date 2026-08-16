@@ -55,7 +55,7 @@ class Raw(BaseRaw):
 
         .. versionchanged:: 0.18
            Support for file-like objects.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
@@ -521,7 +521,7 @@ def read_raw_fif(
 
         .. versionchanged:: 0.18
            Support for file-like objects.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using

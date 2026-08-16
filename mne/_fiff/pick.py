@@ -944,9 +944,9 @@ def pick_channels_cov(
     ----------
     orig : Covariance
         A covariance.
-    include : list of str, (optional)
+    include : list of str
         List of channels to include (if empty, include all available).
-    exclude : list of str, (optional) | 'bads'
+    exclude : list of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
     %(ordered)s
     copy : bool
