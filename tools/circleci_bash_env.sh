@@ -3,7 +3,7 @@
 set -e
 set -o pipefail
 
-./tools/setup_xvfb.sh
+curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/setup_xvfb.sh | bash
 # Need different installs for 24.04 and 26.04
 if [[ $(lsb_release -rs) == "26.04" ]]; then
     EXTRA_DEPS="libgvplugin-neato-layout8"

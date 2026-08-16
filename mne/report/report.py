@@ -4545,6 +4545,8 @@ class Report:
 
         # Plot using 3d backend if available, and use Matplotlib
         # otherwise.
+        # TODO: the Matplotlib fallback below is deprecated, remove it (and require a
+        # 3D backend here) once the mpl 3D backend goes away in 1.15
         import matplotlib.pyplot as plt
 
         stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)
