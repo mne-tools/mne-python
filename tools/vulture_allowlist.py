@@ -59,6 +59,9 @@ _.setup
 
 deep
 
+# not yet referenced elsewhere in the package
+setup_subcortical_source_space
+
 # Backward compat or rarely used
 RawFIF
 estimate_head_mri_t
