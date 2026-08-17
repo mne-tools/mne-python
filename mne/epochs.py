@@ -1121,6 +1121,7 @@ class BaseEpochs(
 
         # do the subtraction
         if self.preload:
+            assert self._data is not None
             self._data[:, ep_picks, :] -= evoked.data[picks][None, :, :]
         else:
             if self._offset is None:
