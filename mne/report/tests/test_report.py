@@ -551,7 +551,18 @@ def test_add_forward(renderer_interactive_pyvistaqt):
         sensitivity=True,
     )
     assert len(report.html) == 1
-    assert report.html[0].count("<img") == 3
+    html = report.html[0]
+
+    assert html.count("<img") == 3
+    assert html.count("slider stc") == 1
+    assert html.count("Sensitivity maps") == 4
+    assert "GRAD sensitivity" not in html
+    assert "MAG sensitivity" not in html
+    assert "EEG sensitivity" not in html
+    grad_idx = html.index("Gradiometers")
+    mag_idx = html.index("Magnetometers", grad_idx)
+    eeg_idx = html.index("EEG", mag_idx)
+    assert grad_idx < mag_idx < eeg_idx
 
 
 def test_add_forward_sensitivity_parameter():
@@ -572,6 +583,9 @@ class _FakeBrain:
         return np.zeros((2, 2, 3), np.uint8)
 
     def set_time(self, time):
+        pass
+
+    def add_text(self, x, y, text, justification=None):
         pass
 
 
@@ -634,6 +648,66 @@ def test_render_stc_requires_3d_backend(monkeypatch):
             image_format="png",
             tags=(),
             stc_plot_kwargs=None,
+        )
+
+
+def test_render_forward_sensitivity_maps(monkeypatch):
+    """Tests that all sensor type maps share a single slider."""
+    calls = []
+
+    def _fake_sensitivity_map(forward, ch_type):
+        calls.append(ch_type)
+        return VolSourceEstimate(
+            data=np.ones((1, 1)),
+            vertices=[np.array([0])],
+            tmin=0,
+            tstep=1,
+            subject="sample",
+        )
+
+    class _FakeInfo:
+        def get_channel_types(self, unique=True):
+            return ["grad", "mag", "eeg"]
+
+    forward = {"info": _FakeInfo()}
+
+    report = Report()
+    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: "pyvista")
+    monkeypatch.setattr(report_mod, "sensitivity_map", _fake_sensitivity_map)
+    monkeypatch.setattr(VolSourceEstimate, "plot", _fake_stc_plot)
+
+    html = report._render_forward_sensitivity_maps(
+        forward=forward,
+        subject="sample",
+        subjects_dir=None,
+        image_format="png",
+        section=None,
+        title="My forward solution",
+        tags=(),
+    )
+    assert calls == ["grad", "mag", "eeg"]
+    assert html.count("<img") == 3
+    assert html.count('slider stc"') == 1
+    grad_idx = html.index("Gradiometers")
+    mag_idx = html.index("Magnetometers", grad_idx)
+    eeg_idx = html.index("EEG", mag_idx)
+    assert grad_idx < mag_idx < eeg_idx
+
+
+def test_render_forward_sensitivity_maps_requires_3d_backend(monkeypatch):
+    """Test that rendering forward sensitivity maps needs a 3D backend."""
+    report = Report()
+    monkeypatch.setattr(report_mod, "get_3d_backend", lambda: None)
+
+    with pytest.raises(RuntimeError, match="3D backend"):
+        report._render_forward_sensitivity_maps(
+            forward={"info": None},
+            subject="sample",
+            subjects_dir=None,
+            image_format="png",
+            section=None,
+            title="My forward solution",
+            tags=(),
         )
 
 

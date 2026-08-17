@@ -89,6 +89,13 @@ from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
+# constant for mapping of internal channel type keys to better labels
+# used in figures
+_SENSITIVITY_MAP_CH_LABELS = (
+    ("grad", "Gradiometers"),
+    ("mag", "Magnetometers"),
+    ("eeg", "EEG"),
+)
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
@@ -3729,26 +3736,15 @@ class Report:
 
         sensitivity_maps_html = ""
         if sensitivity:
-            ch_types = forward["info"].get_channel_types(unique=True)
-            for ch_type in ("grad", "mag", "eeg"):
-                if ch_type not in ch_types:
-                    continue
-                stc = sensitivity_map(forward, ch_type=ch_type)
-                html_partial = self._render_stc(
-                    stc=stc,
-                    title=f"{ch_type.upper()} sensitivity",
-                    subject=subject,
-                    subjects_dir=subjects_dir,
-                    n_time_points=1,
-                    image_format=image_format,
-                    tags=tags,
-                    stc_plot_kwargs=None,
-                )
-                sensitivity_maps_html += html_partial(
-                    id_=self._get_dom_id(
-                        section=section, title=f"{title}-{ch_type}-sensitivity"
-                    )
-                )
+            sensitivity_maps_html = self._render_forward_sensitivity_maps(
+                forward=forward,
+                subject=subject,
+                subjects_dir=subjects_dir,
+                image_format=image_format,
+                section=section,
+                title=title,
+                tags=tags,
+            )
         source_space_html = ""
         if plot:
             source_space_html = self._src_html(
@@ -3773,6 +3769,62 @@ class Report:
             tags=tags,
             html_partial=html_partial,
             replace=replace,
+        )
+
+    def _render_forward_sensitivity_maps(
+        self, *, forward, subject, subjects_dir, image_format, section, title, tags
+    ):
+        # render sensitivity maps for all available sensors as one slider
+        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
+
+        if get_3d_backend() is None:
+            raise RuntimeError(
+                "A 3D backend is needed to render source estimates in a report."
+            )
+        stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", None)
+        stc_plot_kwargs.update(
+            subject=subject,
+            subjects_dir=subjects_dir,
+            clim=dict(kind="value", lims=(0, 0.5, 1.0)),
+        )
+        if self.img_max_width is not None:
+            stc_plot_kwargs["size"] = (
+                stc_plot_kwargs["size"][0],
+                min(stc_plot_kwargs["size"][1], self.img_max_width),
+            )
+        ch_types = forward["info"].get_channel_types(unique=True)
+        figs = []
+        captions = []
+        # compute each sensitivity map and plot it
+        for ch_type, label in _SENSITIVITY_MAP_CH_LABELS:
+            if ch_type not in ch_types:
+                continue
+            stc = sensitivity_map(forward, ch_type=ch_type)
+            brain = stc.plot(**stc_plot_kwargs)
+            brain._renderer.plotter.subplot(0, 0)
+            brain.add_text(
+                x=0.5,
+                y=0.8,
+                text=label,
+                justification="center",
+            )
+            figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
+            brain.close()
+            captions.append(label)
+            # make one working slider
+        html_partial = self._render_slider(
+            figs=figs,
+            imgs=None,
+            captions=captions,
+            title="Sensitivity maps",
+            start_idx=0,
+            image_format=image_format,
+            tags=tags,
+            klass="stc",
+            own_figure=False,
+        )
+        return html_partial(
+            id_=self._get_dom_id(section=section, title=f"{title}-sensitivity")
         )
 
     def _src_html(
