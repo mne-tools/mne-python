@@ -69,15 +69,6 @@ from .utils import (
     warn,
 )
 from .utils._typing import Color, Self
-from .viz import (
-    plot_evoked,
-    plot_evoked_field,
-    plot_evoked_image,
-    plot_evoked_topo,
-    plot_evoked_topomap,
-)
-from .viz.evoked import plot_evoked_joint, plot_evoked_white
-from .viz.topomap import _topomap_animation
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -527,7 +518,7 @@ class Evoked(
         """Channel names."""
         return self.info["ch_names"]
 
-    @copy_function_doc_to_method_doc(plot_evoked)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked")
     def plot(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -554,6 +545,8 @@ class Evoked(
         highlight: np.ndarray | None = None,
         verbose: bool | str | int | None = None,
     ) -> "Figure":
+        from .viz import plot_evoked
+
         return plot_evoked(
             self,
             picks=picks,
@@ -580,7 +573,7 @@ class Evoked(
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_image)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_image")
     def plot_image(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -605,6 +598,8 @@ class Evoked(
         group_by: dict | None = None,
         sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
     ) -> "Figure":
+        from .viz import plot_evoked_image
+
         return plot_evoked_image(
             self,
             picks=picks,
@@ -630,7 +625,7 @@ class Evoked(
             sphere=sphere,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_topo)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_topo")
     def plot_topo(
         self,
         layout: Layout | None = None,
@@ -652,6 +647,8 @@ class Evoked(
         select: bool = False,
         show: bool = True,
     ) -> "Figure":
+        from .viz import plot_evoked_topo
+
         return plot_evoked_topo(
             self,
             layout=layout,
@@ -674,7 +671,7 @@ class Evoked(
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_topomap)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_topomap")
     def plot_topomap(
         self,
         times: float | np.ndarray | Literal["auto", "peaks", "interactive"] = "auto",
@@ -709,6 +706,8 @@ class Evoked(
         ncols: int | Literal["auto"] = "auto",
         show: bool = True,
     ) -> "Figure":
+        from .viz import plot_evoked_topomap
+
         return plot_evoked_topomap(
             self,
             times=times,
@@ -743,7 +742,7 @@ class Evoked(
             ncols=ncols,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_field)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_field")
     def plot_field(
         self,
         surf_maps: list,
@@ -761,6 +760,8 @@ class Evoked(
         time_viewer: bool | str = "auto",
         verbose: bool | str | int | None = None,
     ) -> "Figure3D | EvokedField":
+        from .viz import plot_evoked_field
+
         return plot_evoked_field(
             self,
             surf_maps,
@@ -778,7 +779,7 @@ class Evoked(
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_white)
+    @copy_function_doc_to_method_doc("func:mne.viz.evoked.plot_evoked_white")
     def plot_white(
         self,
         noise_cov: "list | Covariance | Path | str",
@@ -791,6 +792,8 @@ class Evoked(
         spatial_colors: bool | Literal["auto"] = "auto",
         verbose: bool | str | int | None = None,
     ) -> "Figure":
+        from .viz.evoked import plot_evoked_white
+
         return plot_evoked_white(
             self,
             noise_cov=noise_cov,
@@ -803,7 +806,7 @@ class Evoked(
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_joint)
+    @copy_function_doc_to_method_doc("func:mne.viz.evoked.plot_evoked_joint")
     def plot_joint(
         self,
         times: float | np.ndarray | Literal["auto", "peaks"] = "peaks",
@@ -814,6 +817,8 @@ class Evoked(
         ts_args: dict | None = None,
         topomap_args: dict | None = None,
     ) -> "Figure | list":
+        from .viz.evoked import plot_evoked_joint
+
         return plot_evoked_joint(
             self,
             times=times,
@@ -944,6 +949,8 @@ class Evoked(
            :meth:`~mne.Evoked.plot_topomap`.
         .. versionadded:: 0.12.0
         """
+        from .viz.topomap import _topomap_animation
+
         return _topomap_animation(
             evoked=self,
             times=times,

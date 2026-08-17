@@ -91,7 +91,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz import plot_alignment
 
 _src_kind_dict = {
     "vol": "volume",
@@ -374,6 +373,8 @@ class SourceSpaces(list):
         fig : instance of Figure3D
             The figure.
         """
+        from ..viz import plot_alignment
+
         surfaces = list()
         bem = None
 

@@ -24,7 +24,6 @@ from ._fiff.write import (
 )
 from .surface import (
     _compute_nearest,
-    _find_nearest_tri_pts,
     _get_tri_supp_geom,
     _normalize_vectors,
     _triangle_neighbors,
@@ -205,6 +204,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
+    from ._surface_numba import _find_nearest_tri_pts
+
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
