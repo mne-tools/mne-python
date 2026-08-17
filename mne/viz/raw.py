@@ -9,7 +9,7 @@ from collections import OrderedDict
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
-from ..defaults import _handle_default
+from ..defaults import _RAW_CLIP_DEF, _handle_default
 from ..filter import create_filter
 from ..utils import (
     _check_option,
@@ -29,8 +29,6 @@ from .utils import (
     _normalize_annotation_colors,
     _shorten_path_from_middle,
 )
-
-_RAW_CLIP_DEF = 3
 
 
 @verbose

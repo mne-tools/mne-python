@@ -37,9 +37,7 @@ from .fixes import _safe_svd
 from .surface import (
     _complete_sphere_surf,
     _compute_nearest,
-    _fast_cross_nd_sum,
     _get_ico_surface,
-    _get_solids,
     complete_surface_info,
     decimate_surface,
     read_surface,
@@ -69,7 +67,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz.misc import plot_bem
 
 # ############################################################################
 # Compute BEM solution
@@ -130,6 +127,8 @@ def _calc_beta(rk, rk_norm, rk1, rk1_norm):
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """Compute the linear potential matrix element computations."""
+    from ._surface_numba import _fast_cross_nd_sum
+
     omega = np.zeros((len(fros), 3))
 
     # we replicate a little bit of the _get_solids code here for speed
@@ -523,6 +522,8 @@ def _order_surfaces(surfs):
 
 def _assert_complete_surface(surf, incomplete="raise"):
     """Check the sum of solid angles as seen from inside."""
+    from ._surface_numba import _get_solids
+
     # from surface_checks.c
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
@@ -544,6 +545,8 @@ def _assert_complete_surface(surf, incomplete="raise"):
 
 def _assert_inside(fro, to):
     """Check one set of points is inside a surface."""
+    from ._surface_numba import _get_solids
+
     # this is "is_inside" in surface_checks.c
     fro_name = _bem_surf_name[fro["id"]]
     to_name = _bem_surf_name[to["id"]]
@@ -1242,6 +1245,8 @@ def make_watershed_bem(
 
     .. versionadded:: 0.10
     """
+    from .viz.misc import plot_bem
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -2146,6 +2151,8 @@ def make_flash_bem(
     outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
     images acquired with spin angles of 5 and 30 degrees.
     """
+    from .viz.misc import plot_bem
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)

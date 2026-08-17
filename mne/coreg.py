@@ -20,7 +20,7 @@ import numpy as np
 from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
 
-from ._fiff._digitization import _get_data_as_dict_from_dig
+from ._fiff._digitization import _fiducial_coords, _get_data_as_dict_from_dig
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, read_fiducials, read_info, write_fiducials
 
@@ -50,7 +50,6 @@ from .surface import (
 from .transforms import (
     Transform,
     _angle_between_quats,
-    _fit_matched_points,
     _quat_to_euler,
     _read_fs_xfm,
     _write_fs_xfm,
@@ -77,7 +76,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz._3d import _fiducial_coords
 
 # some path templates
 trans_fname = os.path.join("{raw_dir}", "{subject}-trans.fif")
@@ -438,6 +436,8 @@ def fit_matched_points(
         tgt_pts = np.asarray(tgt_pts, float)
         if weights is not None:
             weights = np.asarray(weights, float)
+        from ._transforms_numba import _fit_matched_points
+
         x, s = _fit_matched_points(src_pts, tgt_pts, weights, bool(param_info[2]))
         x[:3] = _quat_to_euler(x[:3])
         x = np.concatenate((x, [s])) if param_info[2] else x
@@ -1619,6 +1619,7 @@ class Coregistration:
             self._bem_low_res = _read_surface(low_res_path, on_defects=self._on_defects)
 
     def _setup_fiducials(self, fids):
+
         _validate_type(fids, (str, dict, list))
         # find fiducials file
         fid_accurate = None

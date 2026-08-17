@@ -10,7 +10,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
-from ..fixes import _reshape_view, jit
+from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
@@ -26,21 +26,6 @@ from ..utils import (
     warn,
 )
 from .parametric import f_oneway, ttest_1samp_no_p
-
-
-@jit()
-def _masked_sum(x, c):
-    return np.sum(x[c])
-
-
-@jit()
-def _masked_sum_power(x, c, t_power):
-    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-
-
-@jit()
-def _sum_cluster_data(data, tstep):
-    return np.sign(data) * tstep
 
 
 def _get_labels_st(x_in, adjacency, max_step):
@@ -440,6 +425,8 @@ def _find_clusters_1dir(
             raise TypeError(
                 f"adjacency must be a sparse array or False, got {type(adjacency)}"
             )
+        from ._cluster_level_numba import _masked_sum, _masked_sum_power
+
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:
@@ -1653,6 +1640,8 @@ def summarize_clusters_stc(
         )
     data = np.zeros((n_vertices, n_times))
     data_summary = np.zeros((n_vertices, len(good_cluster_inds) + 1))
+    from ._cluster_level_numba import _sum_cluster_data
+
     for ii, cluster_ind in enumerate(good_cluster_inds):
         data.fill(0)
         t_inds, v_inds = clusters[cluster_ind]
