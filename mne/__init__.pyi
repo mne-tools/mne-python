@@ -182,6 +182,7 @@ __all__ = [
     "sys_info",
     "time_frequency",
     "transform_surface_to",
+    "transforms",
     "use_coil_def",
     "use_log_level",
     "verbose",
@@ -231,6 +232,7 @@ from . import (
     stats,
     surface,
     time_frequency,
+    transforms,
     viz,
 )
 from ._fiff.meas_info import Info, create_info

@@ -33,7 +33,6 @@ from ..fixes import _reshape_view
 from ..transforms import (
     Transform,
     _ensure_trans,
-    _fit_matched_points,
     _frame_to_str,
     _quat_to_affine,
     _sph_to_cart,
@@ -56,7 +55,6 @@ from ..utils import (
     warn,
 )
 from ..utils.docs import docdict
-from ..viz import plot_montage
 from ._dig_montage_utils import (
     _parse_brainvision_dig_montage,
     _read_dig_montage_curry,
@@ -412,7 +410,7 @@ class DigMontage:
             " {fid:d} fiducials, {eeg:d} channels>"
         ).format(**n_points)
 
-    @copy_function_doc_to_method_doc(plot_montage)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_montage")
     def plot(
         self,
         *,
@@ -424,6 +422,9 @@ class DigMontage:
         axes=None,
         verbose=None,
     ):
+
+        from ..viz import plot_montage
+
         return plot_montage(
             self,
             scale=scale,
@@ -1961,6 +1962,8 @@ def compute_dev_head_t(montage):
             f" points in device and head coordinates is required. (Got {len(hpi_dev)}"
             f" points in device and {len(hpi_head)} points in head coordinate systems)"
         )
+
+    from .._transforms_numba import _fit_matched_points
 
     trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])
     return Transform(fro="meg", to="head", trans=trans)

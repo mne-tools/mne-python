@@ -59,7 +59,7 @@ from ..annotations import (
     _write_annotations,
 )
 from ..channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
-from ..defaults import _handle_default
+from ..defaults import _RAW_CLIP_DEF, _handle_default
 from ..event import concatenate_events, find_events
 from ..filter import (
     FilterMixin,
@@ -105,7 +105,6 @@ from ..utils import (
     warn,
 )
 from ..utils._typing import Color, Self
-from ..viz import _RAW_CLIP_DEF, plot_raw
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -2023,7 +2022,7 @@ class BaseRaw(
             raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
-    @copy_function_doc_to_method_doc(plot_raw)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_raw")
     def plot(
         self,
         events: np.ndarray | None = None,
@@ -2068,6 +2067,8 @@ class BaseRaw(
         verbose: bool | str | int | None = None,
         figure_class: type | None = None,
     ) -> "Figure | MNEQtBrowser":
+        from ..viz import plot_raw
+
         return plot_raw(
             self,
             events,
