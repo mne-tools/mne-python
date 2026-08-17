@@ -52,8 +52,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz import plot_dipole_amplitudes, plot_dipole_locations
-from .viz.evoked import _plot_evoked
 
 
 @fill_doc
@@ -269,8 +267,8 @@ class Dipole(TimeMixin):
         """
         return deepcopy(self)
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_dipole_locations")
     @verbose
-    @copy_function_doc_to_method_doc(plot_dipole_locations)
     def plot_locations(
         self,
         trans,
@@ -294,6 +292,8 @@ class Dipole(TimeMixin):
         width=None,
         verbose=None,
     ):
+        from .viz import plot_dipole_locations
+
         return plot_dipole_locations(
             self,
             trans,
@@ -425,6 +425,8 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
+        from .viz import plot_dipole_amplitudes
+
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
@@ -623,6 +625,8 @@ class DipoleFixed(ExtendedTimeMixin):
         fig : instance of matplotlib.figure.Figure
             The figure containing the time courses.
         """
+        from .viz.evoked import _plot_evoked
+
         return _plot_evoked(
             self,
             picks=None,

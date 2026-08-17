@@ -88,6 +88,7 @@ def _func_name(func, cls=None):
 
 # functions to ignore args / docstring of
 docstring_ignores = {
+    "mne._numba",
     "mne.fixes",
     "mne.io.meas_info.Info",
 }
@@ -358,6 +359,7 @@ def test_no_global_rng():
 
 
 documented_ignored_mods = (
+    "mne._numba",
     "mne.fixes",
     "mne.io.write",
     "mne.utils",
