@@ -26,7 +26,7 @@ from .._ola import _COLA, _Interp2, _Storer
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-from ..fixes import _reshape_view, _safe_svd, bincount, sph_harm_y
+from ..fixes import _reshape_view, _safe_svd, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
 from ..surface import _normalize_vectors
@@ -1939,6 +1939,8 @@ def _integrate_points(
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
     grads = (grads * cosmags).sum(axis=1)
+    from .._numba import bincount
+
     return bincount(bins, grads, n_coils)
 
 
