@@ -159,6 +159,7 @@ __all__ = [
     "set_bipolar_reference",
     "set_cache_dir",
     "set_config",
+    "update_config",
     "set_eeg_reference",
     "set_log_file",
     "set_log_level",
@@ -429,6 +430,7 @@ from .utils import (
     set_log_level,
     set_memmap_min_size,
     sys_info,
+    update_config,
     use_log_level,
     verbose,
 )
