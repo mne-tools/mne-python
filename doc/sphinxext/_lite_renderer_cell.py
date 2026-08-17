@@ -1,6 +1,7 @@
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # --- pyvista-js drawing backend for MNE's 3D renderer -----------------------
 # Patches mne.viz.backends.renderer._get_renderer so MNE keeps doing its own
 # geometry and coordinate-frame work and only the drawing is replaced.
