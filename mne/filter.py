@@ -16,10 +16,12 @@ from scipy.stats import f as fstat
 from ._fiff.pick import _picks_to_idx
 from ._ola import _COLA
 from .cuda import (
+    _cuda_hilbert,
     _fft_multiply_repeated,
     _fft_resample,
     _setup_cuda_fft_multiply_repeated,
     _setup_cuda_fft_resample,
+    _setup_cuda_hilbert,
     _smart_pad,
 )
 from .fixes import _reshape_view
@@ -2695,7 +2697,7 @@ class FilterMixin:
         envelope : bool
             Compute the envelope signal of each channel/vertex. Default False.
             See Notes.
-        %(n_jobs)s
+        %(n_jobs_cuda)s
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
@@ -2780,17 +2782,22 @@ class FilterMixin:
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        n_jobs, cuda_multiplier = _setup_cuda_hilbert(n_jobs, n_fft)
+        if cuda_multiplier is None:
+            hilbert_fun = _my_hilbert
+        else:
+            hilbert_fun = partial(_cuda_hilbert, multiplier=cuda_multiplier)
         parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
                 self._data[..., idx, :] = _check_fun(
-                    _my_hilbert, data_in[..., idx, :], *args, **kwargs
+                    hilbert_fun, data_in[..., idx, :], *args, **kwargs
                 )
         else:
             # use parallel function
             data_picks_new = parallel(
-                p_fun(_my_hilbert, data_in[..., p, :], *args, **kwargs) for p in picks
+                p_fun(hilbert_fun, data_in[..., p, :], *args, **kwargs) for p in picks
             )
             for pp, p in enumerate(picks):
                 self._data[..., p, :] = data_picks_new[pp]
