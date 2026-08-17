@@ -27,7 +27,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz.topomap import plot_layout
 from .channels import _get_ch_info
 
 
@@ -140,6 +139,8 @@ class Layout:
         -----
         .. versionadded:: 0.12.0
         """
+        from ..viz.topomap import plot_layout
+
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
     @verbose

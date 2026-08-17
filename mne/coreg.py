@@ -20,7 +20,7 @@ import numpy as np
 from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
 
-from ._fiff._digitization import _get_data_as_dict_from_dig
+from ._fiff._digitization import _fiducial_coords, _get_data_as_dict_from_dig
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, read_fiducials, read_info, write_fiducials
 
@@ -76,7 +76,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz._3d import _fiducial_coords
 
 # some path templates
 trans_fname = os.path.join("{raw_dir}", "{subject}-trans.fif")
@@ -1620,6 +1619,7 @@ class Coregistration:
             self._bem_low_res = _read_surface(low_res_path, on_defects=self._on_defects)
 
     def _setup_fiducials(self, fids):
+
         _validate_type(fids, (str, dict, list))
         # find fiducials file
         fid_accurate = None

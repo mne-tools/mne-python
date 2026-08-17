@@ -112,7 +112,6 @@ from .utils import (
 )
 from .utils._typing import Color, FileLike, Self
 from .utils.docs import fill_doc
-from .viz import plot_drop_log, plot_epochs, plot_epochs_image, plot_topo_image_epochs
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -1360,7 +1359,7 @@ class BaseEpochs(
         """Channel names."""
         return self.info["ch_names"]
 
-    @copy_function_doc_to_method_doc(plot_epochs)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_epochs")
     def plot(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -1391,6 +1390,9 @@ class BaseEpochs(
         annotation_colors: dict | None = None,
         figure_class: type | None = None,
     ) -> "Figure | MNEQtBrowser":
+
+        from .viz import plot_epochs
+
         return plot_epochs(
             self,
             picks=picks,
@@ -1421,7 +1423,7 @@ class BaseEpochs(
             figure_class=figure_class,
         )
 
-    @copy_function_doc_to_method_doc(plot_topo_image_epochs)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_topo_image_epochs")
     def plot_topo_image(
         self,
         layout: "Layout | None" = None,
@@ -1441,6 +1443,9 @@ class BaseEpochs(
         select: bool = False,
         show: bool = True,
     ) -> "Figure":
+
+        from .viz import plot_topo_image_epochs
+
         return plot_topo_image_epochs(
             self,
             layout=layout,
@@ -1530,7 +1535,7 @@ class BaseEpochs(
         """
         return _drop_log_stats(self.drop_log, ignore)
 
-    @copy_function_doc_to_method_doc(plot_drop_log)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_drop_log")
     def plot_drop_log(
         self,
         threshold: float = 0,
@@ -1547,6 +1552,9 @@ class BaseEpochs(
                 "epochs have not yet been dropped. "
                 "Use epochs.drop_bad()."
             )
+
+        from .viz import plot_drop_log
+
         return plot_drop_log(
             self.drop_log,
             threshold,
@@ -1558,7 +1566,7 @@ class BaseEpochs(
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_epochs_image)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_epochs_image")
     def plot_image(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -1581,6 +1589,9 @@ class BaseEpochs(
         title: str | None = None,
         clear: bool = False,
     ) -> "list[Figure]":
+
+        from .viz import plot_epochs_image
+
         return plot_epochs_image(
             self,
             picks=picks,

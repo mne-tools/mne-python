@@ -73,6 +73,14 @@ NON_ALL_SUBMODULES = (
     "utils",
 )
 IGNORE_SUBMODULES = ("commands",)  # historically these are always root level
+# mne.viz pulls in matplotlib, so importing it must always be nested rather than
+# done at module level, whatever the hierarchy above would otherwise say. Checking
+# this directly means a stray import is reported with its file and line, rather
+# than having to be traced back from "matplotlib got imported".
+MUST_ALWAYS_NEST = ("viz",)
+# ...except in the submodules that are themselves about plotting, where importing
+# mne.viz at module level is the whole point
+MUST_ALWAYS_NEST_EXEMPT = ("gui", "report")
 
 
 def test_import_nesting_hierarchy():
@@ -124,7 +132,7 @@ def test_import_nesting_hierarchy():
                         if node.col_offset:  # nested
                             if (
                                 module_name in self.must_not_nest
-                                and node.module != "viz.backends.renderer"
+                                and module_name not in MUST_ALWAYS_NEST
                             ):
                                 self.errors.append(
                                     err + (f"hierarchy: must not nest {module_name}",)
@@ -194,6 +202,8 @@ def test_import_nesting_hierarchy():
     for si, submodule_name in enumerate(IMPORT_NESTING_ORDER):
         must_not_nest = IMPORT_NESTING_ORDER[:si]
         must_nest = IMPORT_NESTING_ORDER[si + 1 :]
+        if submodule_name not in MUST_ALWAYS_NEST_EXEMPT:
+            must_nest = must_nest + MUST_ALWAYS_NEST
         submodule_path = root_dir / submodule_name
         if submodule_path.is_dir():
             # Get all .py files to parse

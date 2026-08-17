@@ -10,6 +10,8 @@ import os.path as op
 import re
 import sys
 from copy import deepcopy
+from functools import partial
+from importlib import import_module
 
 from decorator import FunctionMaker
 
@@ -5362,17 +5364,28 @@ def copy_doc(source):
     this gets appended
     <BLANKLINE>
     """
+    if isinstance(source, str):
+        # "meth:mne.time_frequency.tfr.BaseTFR.plot" -- copying from a lazily
+        # documented method has to stay lazy too, otherwise reading source.__doc__
+        # here would import the plotting module at class definition time
+        _check_lazy_doc_source(source, "meth")
+        return partial(_LazyMethodDoc, source=source)
 
     def wrapper(func):
-        if source.__doc__ is None or len(source.__doc__) == 0:
-            raise ValueError("Cannot copy docstring: docstring was empty.")
-        doc = source.__doc__
-        if func.__doc__ is not None:
-            doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
-        func.__doc__ = doc
+        _copy_doc(source, func)
         return func
 
     return wrapper
+
+
+def _copy_doc(source, func):
+    """Prepend ``source``'s docstring to ``func``'s."""
+    if source.__doc__ is None or len(source.__doc__) == 0:
+        raise ValueError("Cannot copy docstring: docstring was empty.")
+    doc = source.__doc__
+    if func.__doc__ is not None:
+        doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
+    func.__doc__ = doc
 
 
 def copy_function_doc_to_method_doc(source):
@@ -5448,82 +5461,139 @@ def copy_function_doc_to_method_doc(source):
     .. versionadded:: 0.13.0
     <BLANKLINE>
     """  # noqa: D410, D411, D214, D215
+    if isinstance(source, str):
+        # "func:mne.viz.plot_evoked", resolved on first lookup -- see _LazyMethodDoc
+        _check_lazy_doc_source(source, "func")
+        return partial(_LazyMethodDoc, source=source)
 
     def wrapper(func):
-        # Work with cleandoc'ed sources (py3.13-compat)
-        doc = inspect.cleandoc(source.__doc__).split("\n")
-        if func.__doc__ is not None:
-            func_doc = inspect.cleandoc(func.__doc__)
-            if func_doc[:2] == ".\n":
-                func_doc = func_doc[2:]
-            func_doc = f"\n{func_doc}"
-        else:
-            func_doc = ""
-
-        if len(doc) == 1:
-            func.__doc__ = f"{doc[0]}{func_doc}"
-            return func
-
-        # Find parameter block
-        for line, text in enumerate(doc[:-2]):
-            if text.strip() == "Parameters" and doc[line + 1].strip() == "----------":
-                parameter_block = line
-                break
-        else:
-            # No parameter block found
-            raise ValueError(
-                "Cannot copy function docstring: no parameter "
-                "block found. To simply copy the docstring, use "
-                "the @copy_doc decorator instead."
-            )
-
-        # Find first parameter
-        for line, text in enumerate(doc[parameter_block:], parameter_block):
-            if ":" in text:
-                first_parameter = line
-                parameter_indentation = len(text) - len(text.lstrip(" "))
-                break
-        else:
-            raise ValueError(
-                "Cannot copy function docstring: no parameters "
-                "found. To simply copy the docstring, use the "
-                "@copy_doc decorator instead."
-            )
-
-        # Find end of first parameter
-        for line, text in enumerate(doc[first_parameter + 1 :], first_parameter + 1):
-            # Ignore empty lines
-            if len(text.strip()) == 0:
-                continue
-
-            line_indentation = len(text) - len(text.lstrip(" "))
-            if line_indentation <= parameter_indentation:
-                # Reach end of first parameter
-                first_parameter_end = line
-
-                # Of only one parameter is defined, remove the Parameters
-                # heading as well
-                if ":" not in text:
-                    first_parameter = parameter_block
-
-                break
-        else:
-            # End of docstring reached
-            first_parameter_end = line + 1
-            first_parameter = parameter_block
-
-        # Copy the docstring, but remove the first parameter
-        doc = (
-            "\n".join(doc[:first_parameter])
-            + "\n"
-            + "\n".join(doc[first_parameter_end:])
-        )
-        func.__doc__ = f"{doc}{func_doc}"
-        if not func.__doc__.endswith("\n\n"):
-            func.__doc__ = func.__doc__ + "\n"
+        _copy_function_doc(source, func)
         return func
 
     return wrapper
+
+
+def _check_lazy_doc_source(source, kind):
+    """Check a lazy docstring source like ``"func:mne.viz.plot_evoked"``."""
+    got = source.partition(":")[0]
+    if got != kind or source.count(":") != 1:
+        raise ValueError(
+            f'Lazy docstring source must look like "{kind}:some.dotted.path", got '
+            f"{source!r}"
+        )
+
+
+class _LazyMethodDoc:
+    """Copy ``source``'s docstring onto ``func`` the first time it is looked up.
+
+    ``source`` is a dotted path like ``"mne.viz.plot_evoked"``; resolving it eagerly
+    is what forces core modules (mne.evoked, mne.cov, mne.time_frequency.tfr) to
+    import mne.viz -- and therefore matplotlib -- at class-definition time.
+
+    Must be the outermost decorator, since what it returns is a descriptor rather
+    than a function.
+    """
+
+    def __init__(self, func, *, source):
+        self._func = func
+        self._source = source  # dotted path, or the _LazyMethodDoc to extend
+        self._materialized = False
+        # keep introspection working before the docstring is materialized
+        self.__name__ = func.__name__
+        self.__qualname__ = func.__qualname__
+        self.__module__ = func.__module__
+        self.__wrapped__ = func
+
+    def __set_name__(self, owner, name):
+        self._owner = owner
+        self._name = name
+        if self._materialized:  # an outer decorator already read __doc__
+            setattr(owner, name, self._func)
+
+    def _materialize(self):
+        if self._materialized:
+            return self._func
+        kind, _, path = self._source.partition(":")
+        module_name, _, attr = path.rpartition(".")
+        if kind == "func":
+            _copy_function_doc(getattr(import_module(module_name), attr), self._func)
+        else:  # "meth": look the parent up in the class __dict__ rather than with
+            # getattr, so that a lazily documented parent is not materialized (and
+            # its plotting module imported) just to be read here
+            module_name, _, cls_name = module_name.rpartition(".")
+            parent = vars(getattr(import_module(module_name), cls_name))[attr]
+            if isinstance(parent, _LazyMethodDoc):
+                parent = parent._materialize()
+            _copy_doc(parent, self._func)
+        self._materialized = True
+        # swap ourselves out so later lookups have no descriptor overhead; _owner is
+        # unset if the docstring is read from inside the class body (e.g. by an outer
+        # @verbose), in which case there is nothing to replace yet
+        if getattr(self, "_owner", None) is not None:
+            setattr(self._owner, self._name, self._func)
+        return self._func
+
+    @property
+    def __doc__(self):
+        return self._materialize().__doc__
+
+    def __get__(self, obj, objtype=None):
+        return self._materialize().__get__(obj, objtype)
+
+
+def _first_parameter_span(doc):
+    """Get the (start, stop) line span of the first entry of a Parameters block.
+
+    If the block holds a single parameter, the span covers the heading and its
+    underline too, so that removing it does not leave an empty section behind.
+    """
+    head = next(
+        (
+            ii
+            for ii, (this, next_) in enumerate(zip(doc, doc[1:]))
+            if this.strip() == "Parameters" and next_.strip() == "----------"
+        ),
+        None,
+    )
+    if head is None:
+        raise ValueError(
+            "Cannot copy function docstring: no parameter block found. To simply "
+            "copy the docstring, use the @copy_doc decorator instead."
+        )
+    first = next((ii for ii in range(head, len(doc)) if ":" in doc[ii]), None)
+    if first is None:
+        raise ValueError(
+            "Cannot copy function docstring: no parameters found. To simply copy "
+            "the docstring, use the @copy_doc decorator instead."
+        )
+    indent = len(doc[first]) - len(doc[first].lstrip(" "))
+    for stop in range(first + 1, len(doc)):
+        text = doc[stop]
+        if not text.strip():  # blank lines belong to the parameter
+            continue
+        if len(text) - len(text.lstrip(" ")) <= indent:
+            # dedented again, so the first parameter ends here; if what follows is
+            # not another parameter it was the only one, so drop the heading as well
+            return (first if ":" in text else head), stop
+    return head, len(doc)  # the first parameter runs to the end
+
+
+def _copy_function_doc(source, func):
+    """Prepend ``source``'s docstring to ``func``'s, dropping the first parameter."""
+    # Work with cleandoc'ed sources (py3.13-compat)
+    doc = inspect.cleandoc(source.__doc__).split("\n")
+    func_doc = ""
+    if func.__doc__ is not None:
+        func_doc = "\n" + inspect.cleandoc(func.__doc__).removeprefix(".\n")
+
+    if len(doc) == 1:  # a one-line source has no parameters to drop
+        func.__doc__ = doc[0] + func_doc
+        return
+
+    start, stop = _first_parameter_span(doc)
+    func.__doc__ = "\n".join(doc[:start]) + "\n" + "\n".join(doc[stop:]) + func_doc
+    if not func.__doc__.endswith("\n\n"):
+        func.__doc__ += "\n"
 
 
 def linkcode_resolve(domain, info):
