@@ -86,14 +86,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz import (
-    plot_ica_components,
-    plot_ica_overlay,
-    plot_ica_scores,
-    plot_ica_sources,
-)
-from ..viz.ica import plot_ica_properties
-from ..viz.topomap import _plot_corrmap
 from .bads import _find_outliers
 from .ctps_ import ctps
 from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
@@ -2470,7 +2462,7 @@ class ICA(ContainsMixin):
         """
         return deepcopy(self)
 
-    @copy_function_doc_to_method_doc(plot_ica_components)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_components")
     def plot_components(
         self,
         picks=None,
@@ -2503,6 +2495,10 @@ class ICA(ContainsMixin):
         psd_args=None,
         verbose=None,
     ):
+        from ..viz import (
+            plot_ica_components,
+        )
+
         return plot_ica_components(
             self,
             picks=picks,
@@ -2535,7 +2531,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_properties)
+    @copy_function_doc_to_method_doc("func:mne.viz.ica.plot_ica_properties")
     def plot_properties(
         self,
         inst,
@@ -2555,6 +2551,8 @@ class ICA(ContainsMixin):
         estimate="power",
         verbose=None,
     ):
+        from ..viz.ica import plot_ica_properties
+
         return plot_ica_properties(
             self,
             inst,
@@ -2574,7 +2572,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_sources)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_sources")
     def plot_sources(
         self,
         inst,
@@ -2597,6 +2595,10 @@ class ICA(ContainsMixin):
         overview_mode=None,
         splash=True,
     ):
+        from ..viz import (
+            plot_ica_sources,
+        )
+
         return plot_ica_sources(
             self,
             inst=inst,
@@ -2619,7 +2621,7 @@ class ICA(ContainsMixin):
             splash=splash,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_scores)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_scores")
     def plot_scores(
         self,
         scores,
@@ -2631,6 +2633,10 @@ class ICA(ContainsMixin):
         n_cols=None,
         show=True,
     ):
+        from ..viz import (
+            plot_ica_scores,
+        )
+
         return plot_ica_scores(
             ica=self,
             scores=scores,
@@ -2643,7 +2649,7 @@ class ICA(ContainsMixin):
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_overlay)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_overlay")
     def plot_overlay(
         self,
         inst,
@@ -2658,6 +2664,10 @@ class ICA(ContainsMixin):
         on_baseline="warn",
         verbose=None,
     ):
+        from ..viz import (
+            plot_ica_overlay,
+        )
+
         return plot_ica_overlay(
             self,
             inst=inst,
@@ -3348,6 +3358,8 @@ def corrmap(
     ----------
     .. footbibliography::
     """
+    from ..viz.topomap import _plot_corrmap
+
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
 

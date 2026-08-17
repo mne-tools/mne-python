@@ -61,11 +61,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz import (
-    plot_source_estimates,
-    plot_vector_source_estimates,
-    plot_volume_source_estimates,
-)
 
 
 def _read_stc(filename):
@@ -752,7 +747,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             overwrite=True,
         )
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
     def plot(
         self,
         subject=None,
@@ -787,6 +782,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         brain_kwargs=None,
         verbose=None,
     ):
+        from .viz import plot_source_estimates
+
         brain = plot_source_estimates(
             self,
             subject,
@@ -2242,7 +2239,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         )
         return stc, directions
 
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
     def plot(
         self,
         subject=None,
@@ -2277,6 +2274,8 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         brain_kwargs=None,
         verbose=None,
     ):
+        from .viz import plot_vector_source_estimates
+
         return plot_vector_source_estimates(
             self,
             subject=subject,
@@ -2316,7 +2315,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     _src_type = "volume"
     _src_count = None
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -2383,7 +2382,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_volume_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_volume_source_estimates")
     def plot(
         self,
         src,
@@ -2400,7 +2399,10 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_pos=None,
         verbose=None,
     ):
+        from .viz import plot_volume_source_estimates
+
         data = self.magnitude() if self._data_ndim == 3 else self
+
         return plot_volume_source_estimates(
             data,
             src=src,
@@ -2756,7 +2758,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
     _scalar_class = VolSourceEstimate
 
     # defaults differ: hemi='both', views='axial'
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
     def plot_3d(
         self,
         subject=None,

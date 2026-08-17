@@ -22,8 +22,6 @@ from scipy import sparse
 from ..fixes import (
     _infer_dimension_,
     _safe_svd,
-    has_numba,
-    jit,
     stable_cumsum,
     svd_flip,
 )
@@ -1078,17 +1076,15 @@ def _arange_div_fallback(n, d):
     return x
 
 
-if has_numba:
+_arange_div_impl = None
 
-    @jit(fastmath=False)
-    def _arange_div(n, d):
-        out = np.empty(n, np.float64)
-        for i in range(n):
-            out[i] = i / d
-        return out
 
-else:  # pragma: no cover
-    _arange_div = _arange_div_fallback
+def _arange_div(n, d):
+    """Compute ``np.arange(n) / d``, deferring the numba import to first use."""
+    global _arange_div_impl
+    if _arange_div_impl is None:
+        from ._numerics_numba import _arange_div as _arange_div_impl
+    return _arange_div_impl(n, d)
 
 
 _LRU_CACHES = dict()
