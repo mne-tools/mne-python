@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from numpy.random import RandomState
-from scipy.interpolate import interp1d
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import (
@@ -75,7 +74,6 @@ from .fixes import _reshape_view, rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
-from .time_frequency.tfr import AverageTFR, EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -124,6 +122,7 @@ if TYPE_CHECKING:
     from .channels.layout import Layout
     from .cov import Covariance
     from .io import BaseRaw
+    from .time_frequency.tfr import AverageTFR, EpochsTFR
     from .transforms import Transform
 
     # The optional ``mne_qt_browser`` window subclasses the first-party
@@ -2730,7 +2729,7 @@ class BaseEpochs(
         n_jobs: int | None = None,
         verbose: bool | str | int | None = None,
         **method_kw,
-    ) -> EpochsTFR | AverageTFR | tuple:
+    ) -> "EpochsTFR | AverageTFR | tuple":
         """Compute a time-frequency representation of epoched data.
 
         Parameters
@@ -2774,6 +2773,8 @@ class BaseEpochs(
         ----------
         .. footbibliography::
         """
+        from .time_frequency.tfr import AverageTFR, EpochsTFR
+
         if method == "stockwell" and not average:  # stockwell method *must* average
             logger.info(
                 'Requested `method="stockwell"` so ignoring parameter `average=False`.'
@@ -4042,6 +4043,8 @@ def equalize_epoch_counts(
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
+    from .time_frequency.tfr import EpochsTFR
+
     if not all(isinstance(epoch, BaseEpochs | EpochsTFR) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
     # make sure bad epochs are dropped
@@ -4079,6 +4082,8 @@ def _get_drop_indices(sample_nums, method, random_state):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
+    from scipy.interpolate import interp1d
+
     keep = np.ones((len(t_longer)), dtype=bool)
     # special case: length zero or one
     if len(t_shorter) < 2:  # interp1d won't work

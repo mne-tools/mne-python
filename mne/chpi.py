@@ -27,8 +27,6 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import orth
-from scipy.optimize import fmin_cobyla
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, _simplify_info
@@ -540,6 +538,8 @@ def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
+    from scipy.optimize import fmin_cobyla
+
     B = whitener @ B_orig
     B2 = B @ B
     objective = partial(
@@ -952,6 +952,8 @@ def compute_head_pos(
     -----
     .. versionadded:: 0.20
     """
+    from scipy.spatial.distance import cdist
+
     _check_chpi_param(chpi_locs, "chpi_locs")
     _validate_type(info, Info, "info")
     if weighted is None:
@@ -1647,6 +1649,8 @@ def _subtract_chpi(raw, hpi, meg_picks, n_step, n_remove, include_line, interp):
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     """Compute good coils based on distances."""
+    from scipy.spatial.distance import cdist
+
     these_dists = cdist(new_pos, new_pos)
     these_dists = np.abs(hpi_coil_dists - these_dists)
     # there is probably a better algorithm for finding the bad ones...

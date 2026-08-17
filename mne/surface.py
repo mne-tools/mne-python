@@ -15,10 +15,6 @@ from os import path as op
 from pathlib import Path
 
 import numpy as np
-from scipy.ndimage import binary_dilation
-from scipy.sparse import coo_array, csr_array
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
@@ -194,6 +190,8 @@ def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
     A built-in helmet is loaded if possible. If not, a helmet surface
     will be approximated based on the sensor locations.
     """
+    from scipy.spatial import ConvexHull, Delaunay
+
     from .bem import _fit_sphere, read_bem_surfaces
     from .channels.channels import _get_meg_system
 
@@ -376,6 +374,8 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
+    from scipy.sparse import coo_array
+
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
@@ -553,6 +553,8 @@ class _CDist:
         self._xhs = xhs
 
     def query(self, rr):
+        from scipy.spatial.distance import cdist
+
         nearest = list()
         dists = list()
         for r in rr:
@@ -708,6 +710,8 @@ class _CheckInside:
         )
 
     def _init_old(self):
+        from scipy.spatial import Delaunay
+
         self.inner_r = None
         self.center = self.surf["rr"].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
@@ -1604,6 +1608,8 @@ def mesh_edges(tris):
 
 @lru_cache(maxsize=10)
 def _mesh_edges(tris=None):
+    from scipy.sparse import coo_array
+
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError("Cannot compute adjacency on a selection of triangles.")
 
@@ -1637,6 +1643,8 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     """
+    from scipy.sparse import csr_array
+
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
@@ -1830,6 +1838,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
+    from scipy.ndimage import binary_dilation
     from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
     from vtkmodules.vtkCommonDataModel import vtkDataSetAttributes, vtkImageData
     from vtkmodules.vtkFiltersCore import vtkThreshold

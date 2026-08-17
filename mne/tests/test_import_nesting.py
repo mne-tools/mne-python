@@ -181,6 +181,29 @@ def test_import_nesting_hierarchy():
             "from . import bst_raw, bst_resting, bst_auditory, bst_phantom_ctf, bst_phantom_elekta",  # noqa: E501
             "non-explicit relative import",
         ),
+        # nested on purpose: mne.time_frequency.tfr imports mne.viz.topomap at module
+        # level (for @copy_function_doc_to_method_doc), so the core containers only
+        # touch it when a TFR is actually requested
+        (
+            "mne/evoked.py",
+            "        from .time_frequency.tfr import AverageTFR",
+            "hierarchy: must not nest time_frequency",
+        ),
+        (
+            "mne/epochs.py",
+            "        from .time_frequency.tfr import AverageTFR, EpochsTFR",
+            "hierarchy: must not nest time_frequency",
+        ),
+        (
+            "mne/epochs.py",
+            "    from .time_frequency.tfr import EpochsTFR",
+            "hierarchy: must not nest time_frequency",
+        ),
+        (
+            "mne/io/base.py",
+            "        from ..time_frequency.tfr import RawTFR",
+            "hierarchy: must not nest time_frequency",
+        ),
         (
             "mne/channels/_standard_montage_utils.py",
             "from . import __file__",
@@ -190,11 +213,6 @@ def test_import_nesting_hierarchy():
             "mne/source_space/__init__.py",
             "from . import _source_space",
             "non-explicit relative import",
-        ),
-        (
-            "mne/time_frequency/spectrum.py",
-            "        from ..viz._mpl_figure import _line_figure, _split_picks_by_type",
-            "hierarchy: must not nest viz",
         ),
     )
     root_dir = Path(mne.__file__).parent.resolve()
@@ -249,6 +267,63 @@ def test_import_nesting_hierarchy():
     # scheme obeys the above order
 
 
+# SciPy submodules that must only ever be imported inside a function. They are
+# expensive relative to what MNE uses them for (a handful of call sites each), and
+# leaving one at module level silently drags it onto the import path of whatever
+# imports that module -- see the level-2 test below.
+NESTED_ONLY = ("scipy.ndimage", "scipy.sparse", "scipy.spatial", "scipy.stats")
+
+
+def test_nested_only_imports():
+    """Test that expensive SciPy submodules are only imported inside functions."""
+    roots = {module.split(".")[0] for module in NESTED_ONLY}
+    leaves = {module.split(".")[1] for module in NESTED_ONLY}
+    root_dir = Path(mne.__file__).parent.resolve()
+    bad = list()
+    for file in sorted(root_dir.rglob("*.py")):
+        if file.parent.name == "tests":
+            continue
+        tree = ast.parse(file.read_text(encoding="utf-8"), filename=file)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Import | ast.ImportFrom):
+                continue
+            if node.col_offset:  # indented, i.e. nested inside a function
+                continue
+            if isinstance(node, ast.Import):
+                names = [
+                    n.name
+                    for n in node.names
+                    if any(
+                        n.name == module or n.name.startswith(f"{module}.")
+                        for module in NESTED_ONLY
+                    )
+                ]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                # catches "scipy.spatial", "scipy.spatial.distance", ...
+                if any(
+                    node.module == module or node.module.startswith(f"{module}.")
+                    for module in NESTED_ONLY
+                ):
+                    names = [node.module]
+                elif node.module in roots:
+                    names = [
+                        f"{node.module}.{n.name}"
+                        for n in node.names
+                        if n.name in leaves
+                    ]
+                else:
+                    names = []
+            else:
+                names = []
+            rel_path = ("mne" / file.relative_to(root_dir)).as_posix()
+            bad.extend(f"{rel_path}:{node.lineno}: {name}" for name in names)
+    n = len(bad)
+    assert not bad, (
+        f"{n} module-level import{_pl(n)} of a nested-only SciPy submodule:\n"
+        + "\n".join(bad)
+    )
+
+
 # These tests ensure that modules are lazily loaded by lazy_loader, using an
 # allowlist: rather than naming the packages that must *not* be imported, we name the
 # ones that may be, and work out what those pull in themselves. Anything else is an
@@ -257,9 +332,27 @@ def test_import_nesting_hierarchy():
 
 eager_import = os.getenv("EAGER_IMPORT", "")
 
-# What plain ``import mne`` may pull in. Every addition here costs every MNE user
-# interpreter-startup time, so weigh it carefully.
+# Level 1: what plain ``import mne`` may pull in. Every addition here costs every
+# MNE user interpreter-startup time, so weigh it carefully.
 LEVEL_1_ALLOWED = ("decorator", "lazy_loader", "numpy", "packaging")
+
+# Level 2: submodules that should import without dragging in the heavy optional
+# machinery -- notably numba and matplotlib, which stay off this list on purpose.
+# SciPy is allowed, but submodule by submodule. Grow both tuples as more of MNE gets
+# cleaned up (mne.io and mne.channels are the obvious next candidates).
+LEVEL_2_TARGETS = (
+    "from mne.transforms import *",
+    "from mne import Epochs",
+    "from mne.io import BaseRaw",
+    "from mne.channels import DigMontage",
+)
+LEVEL_2_ALLOWED = LEVEL_1_ALLOWED + (
+    "scipy.constants",
+    "scipy.linalg",
+    "scipy.sparse",
+    "scipy.spatial",
+    "scipy.special",
+)
 
 # Report scipy per-submodule and everything else per top-level package
 _SPLIT_PACKAGES = ("scipy",)
@@ -311,6 +404,12 @@ def _check_imports(targets, allowed, level):
 def test_lazy_loading():
     """Test that ``import mne`` pulls in nothing beyond its allowed dependencies."""
     _check_imports(("import mne",), LEVEL_1_ALLOWED, 1)
+
+
+@pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
+def test_lazy_loading_level_2():
+    """Test that cleaned-up submodules stay free of numba, matplotlib, etc."""
+    _check_imports(LEVEL_2_TARGETS, LEVEL_2_ALLOWED, 2)
 
 
 @pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
