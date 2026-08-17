@@ -20,7 +20,6 @@ from ..utils import (
     fill_doc,
     verbose,
 )
-from ..viz import plot_regression_weights
 
 
 @verbose
@@ -263,7 +262,7 @@ class EOGRegression:
             this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
         return inst
 
-    @copy_function_doc_to_method_doc(plot_regression_weights)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_regression_weights")
     def plot(
         self,
         ch_type=None,
@@ -289,6 +288,8 @@ class EOGRegression:
         title=None,
         show=True,
     ):
+        from ..viz import plot_regression_weights
+
         return plot_regression_weights(
             self,
             ch_type=ch_type,
