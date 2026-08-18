@@ -1936,12 +1936,11 @@ class Brain:
         %(thresh)s
         %(center)s
         %(transparent)s
-        colormap : str, list of color, or array
-            Name of matplotlib colormap to use, a list of matplotlib colors,
-            or a custom look up table (an n x 4 array coded with RBGA values
-            between 0 and 255), the default "auto" chooses a default divergent
-            colormap, if "center" is given (currently "icefire"), otherwise a
-            default sequential colormap (currently "rocket").
+        colormap : str | matplotlib.colors.Colormap
+            Matplotlib colormap name or instance. The default ``"auto"`` chooses
+            a default divergent colormap if ``center`` is given (currently
+            ``"icefire"``), otherwise a default sequential colormap (currently
+            ``"rocket"``).
         alpha : float in [0, 1] | array, shape (n_vertices,)
             Alpha level to control opacity of the overlay. A scalar applies
             globally, while a 1D array applies per-vertex opacity.
