@@ -8,19 +8,20 @@ import warnings
 from collections import Counter, OrderedDict, UserDict, UserList
 from collections.abc import Iterable
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
-from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import (
-    _safe_name_list,
+    _safe_read_name_list,
+    _safe_write_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -67,7 +68,9 @@ class _AnnotationsExtrasDict(UserDict):
     strings, integers, floats, or None.
     """
 
-    def __setitem__(self, key: str, value: str | int | float | None) -> None:
+    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
+        self, key: str, value: str | int | float | None
+    ) -> None:
         _validate_type(key, str, "key")
         if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
@@ -112,7 +115,7 @@ class _AnnotationsExtrasList(UserList):
             initlist = [self._validate_value(v) for v in initlist]
         super().__init__(initlist)
 
-    def __setitem__(  # type: ignore[override]
+    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
         self,
         key: int | slice,
         value,
@@ -199,7 +202,9 @@ def _check_description(description, n):
     if description.shape == (1,):
         description = np.repeat(description, n)
     _check_length(description, n, name="description")
-    _safe_name_list(description, "write", "description")
+    # ↓ just ensures no "{COLON}" present in any descriptions;
+    # ↓ `.tolist()` is done for typing purposes
+    _safe_write_name_list(description.tolist(), "description")
     return description
 
 
@@ -422,7 +427,7 @@ class Annotations:
             try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
                 if _handle_meas_date(0) == datetime.strptime(
                     orig_time, "%Y-%m-%d %H:%M:%S"
-                ).replace(tzinfo=timezone.utc):
+                ).replace(tzinfo=UTC):
                     pass
             except ValueError:  # error if incorrect datetime format AND not the default
                 warn(
@@ -624,7 +629,7 @@ class Annotations:
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
         """Propagate indexing and slicing to the underlying numpy structure."""
-        if isinstance(key, int_like):
+        if isinstance(key, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             out_keys = ("onset", "duration", "description", "orig_time")
             out_vals = (
                 self.onset[key],
@@ -722,7 +727,7 @@ class Annotations:
         self._duration = np.delete(self._duration, idx)
         self._description = np.delete(self._description, idx)
         self._ch_names = np.delete(self._ch_names, idx)
-        if isinstance(idx, int_like):
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.extras[idx]
         elif len(idx) > 0:
             # convert slice-like idx to ints, and delete list items in reverse order
@@ -1389,7 +1394,7 @@ class HEDAnnotations(Annotations):
             indices.
         """
         super().delete(idx)
-        if isinstance(idx, int_like):
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.hed_string._objs[idx]
             del self.hed_string[idx]
         else:
@@ -1487,6 +1492,14 @@ class HEDAnnotations(Annotations):
 class EpochAnnotationsMixin:
     """Mixin class for Annotations in Epochs."""
 
+    # Attributes provided by the host class (BaseEpochs), declared here so the
+    # mixin methods type-check.
+    info: Info
+    events: np.ndarray
+    times: np.ndarray
+    _raw_sfreq: float
+    _annotations: Annotations | None
+
     @property
     def annotations(self):  # noqa: D102
         return self._annotations
@@ -1575,6 +1588,7 @@ class EpochAnnotationsMixin:
         # check if annotations exist
         if self.annotations is None:
             return epoch_annot_list
+        assert self._annotations is not None
 
         # when each epoch and annotation starts/stops
         # no need to account for first_samp here...
@@ -1676,8 +1690,8 @@ class EpochAnnotationsMixin:
             return self
 
         # get existing metadata DataFrame or instantiate an empty one
-        if self._metadata is not None:
-            metadata = self._metadata
+        if self._metadata is not None:  # ty: ignore[unresolved-attribute]  # host pandas attr
+            metadata = self._metadata  # ty: ignore[unresolved-attribute]  # host pandas attr
         else:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
@@ -1738,7 +1752,10 @@ def _combine_annotations(
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
     ch_names = np.concatenate([one.ch_names, two.ch_names])
-    return Annotations(onset, duration, description, one.orig_time, ch_names)
+    extras = one.extras + two.extras
+    return Annotations(
+        onset, duration, description, one.orig_time, ch_names, extras=extras
+    )
 
 
 def _handle_meas_date(meas_date):
@@ -1757,7 +1774,7 @@ def _handle_meas_date(meas_date):
         except ValueError:
             meas_date = None
         else:
-            meas_date = meas_date.replace(tzinfo=timezone.utc)
+            meas_date = meas_date.replace(tzinfo=UTC)
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
@@ -1860,7 +1877,7 @@ def _write_annotations_csv(fname, annot):
     annot = annot.to_data_frame()
     if "ch_names" in annot:
         annot["ch_names"] = [
-            _safe_name_list(ch, "write", name=f'annot["ch_names"][{ci}')
+            _safe_write_name_list(ch, name=f'annot["ch_names"][{ci}')
             for ci, ch in enumerate(annot["ch_names"])
         ]
     extras_columns = set(annot.columns) - {
@@ -1891,7 +1908,7 @@ def _write_annotations_txt(fname, annot):
         content += ", ch_names"
         data.append(
             [
-                _safe_name_list(ch, "write", f"annot.ch_names[{ci}]")
+                _safe_write_name_list(ch, name=f"annot.ch_names[{ci}]")
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
@@ -2074,10 +2091,7 @@ def _read_annotations_csv(fname):
     description = df["description"].values
     ch_names = None
     if "ch_names" in df.columns:
-        ch_names = [
-            _safe_name_list(val, "read", "annotation channel name")
-            for val in df["ch_names"].values
-        ]
+        ch_names = [_safe_read_name_list(val) for val in df["ch_names"].values]
     extra_columns = list(
         df.columns.difference(["onset", "duration", "description", "ch_names"])
     )
@@ -2108,6 +2122,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
+    from scipy.io import loadmat
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
@@ -2226,7 +2241,7 @@ def _read_annotations_txt(fname):
     desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     if ch_names is not None:
         ch_names = [
-            _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
+            _safe_read_name_list(ch.decode().strip())
             for ci, ch in enumerate(np.atleast_1d(ch_names))
         ]
 
@@ -2262,13 +2277,13 @@ def _read_annotations_fif(fid, tree):
                 duration = tag.data
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
-                description = _safe_name_list(tag.data, "read", "description")
+                description = _safe_read_name_list(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:
-                    orig_time = float(orig_time)  # old way
+                    orig_time = float(tag.data)  # old way
                 except TypeError:
-                    orig_time = tuple(orig_time)  # new way
+                    orig_time = tuple(tag.data)  # new way
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
             elif kind == FIFF.FIFF_FREE_LIST:

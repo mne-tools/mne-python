@@ -16,7 +16,11 @@ from ..nirx.nirx import _read_csv_rows_cols
 
 
 @fill_doc
-def read_raw_hitachi(fname, preload=False, verbose=None) -> "RawHitachi":
+def read_raw_hitachi(
+    fname: list | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawHitachi":
     """Reader for a Hitachi fNIRS recording.
 
     Parameters
@@ -233,7 +237,9 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         elif kind == "Wave Length":
             ch_regex = re.compile(r"^(.*)\(([0-9\.]+)\)$")
             for ent in parts:
-                _, v = ch_regex.match(ent).groups()
+                m = ch_regex.match(ent)
+                assert m is not None
+                _, v = m.groups()
                 ch_wavelengths[ent] = float(v)
         elif kind == "Data":
             break
@@ -268,6 +274,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         "3x11": "ETG-4000",
     }
     _check_option("Hitachi mode", mode, sorted(names))
+    assert mode is not None
     n_row, n_col = (int(x) for x in mode.split("x"))
     logger.info(f"Constructing pairing matrix for {names[mode]} ({mode})")
     pairs = _compute_pairs(n_row, n_col, n=1 + (mode == "3x3"))
@@ -299,7 +306,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         )
     if meas_date is None:
         meas_date = dt.datetime(2000, 1, 1, 0, 0, 0)
-    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+    meas_date = meas_date.replace(tzinfo=dt.UTC)
     if subject_info:
         info_extra["subject_info"] = subject_info
 

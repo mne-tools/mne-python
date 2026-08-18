@@ -4,7 +4,7 @@
 
 import re
 from contextlib import contextmanager
-from functools import partial
+from functools import cache, partial
 from pathlib import Path
 
 import numpy as np
@@ -42,15 +42,20 @@ from mne.preprocessing import (
 from mne.preprocessing.maxwell import (
     _bases_complex_to_real,
     _bases_real_to_complex,
+    _compute_sphere_activation_in,
+    _get_degrees_orders,
     _get_n_moments,
+    _mne_ord_to_mf_idx,
     _prep_mf_coils,
     _sh_complex_to_real,
     _sh_negate,
     _sh_real_to_complex,
     _sss_basis_basic,
+    _trans_lims,
     _trans_sss_basis,
 )
 from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
+from mne.transforms import rot_to_quat
 from mne.utils import (
     _record_warnings,
     assert_meg_snr,
@@ -70,6 +75,10 @@ sss_std_fname = sss_path / "test_move_anon_stdOrigin_raw_sss.fif"
 sss_nonstd_fname = sss_path / "test_move_anon_nonStdOrigin_raw_sss.fif"
 sss_bad_recon_fname = sss_path / "test_move_anon_badRecon_raw_sss.fif"
 sss_reg_in_fname = sss_path / "test_move_anon_regIn_raw_sss.fif"
+sss_mf3_reg_in_fname = sss_path / "test_move_anon_mf3_regIn_raw_sss.fif"
+sss_mf3_reg_in_nonstd_fname = (
+    sss_path / "test_move_anon_mf3_regIn_nonStdOrigin_raw_sss.fif"
+)
 sss_fine_cal_fname = sss_path / "test_move_anon_fineCal_raw_sss.fif"
 sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
 sss_trans_default_fname = sss_path / "test_move_anon_transDefault_raw_sss.fif"
@@ -186,9 +195,34 @@ def _assert_mag_coil_type(info, coil_type):
     assert coil_types == {coil_type}
 
 
+@cache
+def _read_raw_maxshield(fname, _mtime, _size):
+    # Cache the (unloaded) raw so files read many times (e.g. raw_fname, ~14x)
+    # are parsed only once. Keyed on (path, mtime, size) so a rewritten temp file
+    # is not served stale. read_crop() returns an independent copy of this.
+    return read_raw_fif(fname, allow_maxshield="yes")
+
+
 def read_crop(fname, lims=(0, None)):
-    """Read and crop."""
-    return read_raw_fif(fname, allow_maxshield="yes").crop(*lims)
+    """Read (cached) and crop a copy."""
+    st = Path(fname).stat()
+    raw = _read_raw_maxshield(str(fname), st.st_mtime, st.st_size)
+    return raw.copy().crop(*lims)
+
+
+def _linear_head_pos(raw, n_pos):
+    """Get head positions one second apart, translating steadily along z.
+
+    The steady motion makes reading the positions from the wrong time window
+    give a different result.
+    """
+    trans = raw.info["dev_head_t"]["trans"]
+    head_pos = np.zeros((n_pos, 10))
+    head_pos[:, 0] = raw._first_time + np.arange(float(n_pos))
+    head_pos[:, 1:4] = rot_to_quat(trans[:3, :3])
+    head_pos[:, 4:7] = trans[:3, 3]
+    head_pos[:, 6] += np.arange(n_pos) * 5e-3  # 5 mm/s
+    return head_pos
 
 
 # For backward compat and to be most like MaxFilter, we make "maxwell_filter"
@@ -552,13 +586,15 @@ def test_multipolar_bases():
             S_tot_fast = _trans_sss_basis(
                 exp, all_coils=_prep_mf_coils(info), trans=info["dev_head_t"]
             )
-        # there are some sign differences for columns (order/degrees)
-        # in here, likely due to Condon-Shortley. Here we use a
-        # Magnetometer channel to figure out the flips because the
-        # gradiometer channels have effectively zero values for first three
-        # external components (i.e., S_tot[grad_picks, 80:83])
-        flips = np.sign(S_tot_fast[2]) != np.sign(S_tot[2])
-        flips = 1 - 2 * flips
+        # The two implementations differ in sign for negative orders only:
+        # _sss_basis_basic carries the Condon-Shortley (-1)**order there (via
+        # _sh_negate), whereas _sss_basis follows MaxFilter and builds the
+        # -order column directly without it. The flips are therefore known
+        # analytically rather than detected empirically.
+        orders = np.concatenate(
+            [_get_degrees_orders(order)[1] for order in (int_order, ext_order)]
+        )
+        flips = np.where(orders < 0, (-1.0) ** orders, 1.0)
         assert_allclose(S_tot, S_tot_fast * flips, atol=1e-16)
 
 
@@ -947,24 +983,138 @@ def test_regularization():
     raw_fnames = (raw_fname, erm_fname, sample_fname)
     sss_fnames = (sss_reg_in_fname, sss_erm_reg_in_fname, sss_samp_reg_in_fname)
     comp_tols = [0, 1, 4]
+    # These references are from MaxFilter 2.2, whose cut "in_argmax" implements.
+    # It is exact for the empty-room file but looser for the two head-frame
+    # cases, since the cut is not the only thing that changed between 2.2 and
+    # 3.0; test_regularization_mf3 matches 3.0 exactly.
+    argmax_comp_tols = [3, 0, 8]
     for ii, rf in enumerate(raw_fnames):
         raw = read_crop(rf, (0.0, 1.0))
         sss_reg_in = read_crop(sss_fnames[ii])
 
         # Test "in" regularization
-        raw_sss = maxwell_filter(raw, coord_frame=coord_frames[ii], origin=origins[ii])
+        with catch_logging() as log:
+            raw_sss = maxwell_filter(
+                raw, coord_frame=coord_frames[ii], origin=origins[ii], verbose="debug"
+            )
         assert_meg_snr(raw_sss, sss_reg_in, min_tols[ii], med_tols[ii], msg=rf)
 
         # check components match
         _check_reg_match(raw_sss, sss_reg_in, comp_tols[ii])
 
+        if rf is erm_fname:
+            # NenonenEtAl2007 report a peak total information of ~480
+            # bits/sample for this array. Our snr carries an empirical scale
+            # factor (see _regularize_in) and this is the only check on it, so
+            # keep the range loose: the peak also grows with int_order and
+            # varies with the expansion origin.
+            peak = float(re.search(r"of peak ([0-9.]+)", log.getvalue()).group(1))
+            assert 400 < peak < 560, peak
+
+        # Test "in_argmax" (MaxFilter 2.2-like) regularization
+        raw_sss = maxwell_filter(
+            raw,
+            coord_frame=coord_frames[ii],
+            origin=origins[ii],
+            regularize="in_argmax",
+        )
+        _check_reg_match(raw_sss, sss_reg_in, argmax_comp_tols[ii])
+
+    with pytest.raises(ValueError, match="Invalid value for the 'regularize'"):
+        maxwell_filter(raw, regularize="both")
+    with pytest.raises(TypeError, match="must be an instance of str or None"):
+        maxwell_filter(raw, regularize=1)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "origin, fname, nfree",
+    [
+        pytest.param(mf_head_origin, sss_mf3_reg_in_fname, 67, id="std origin"),
+        pytest.param(
+            (0.0, 0.02, 0.02), sss_mf3_reg_in_nonstd_fname, 54, id="non-std origin"
+        ),
+    ],
+)
+def test_regularization_mf3(origin, fname, nfree):
+    """Test regularize="in" against MaxFilter 3.0."""
+    # "in" implements 3.0's cut, so unlike the 2.2 references in
+    # test_regularization these match component-for-component rather than to a
+    # tolerance. The two MaxFilter versions differ from each other by more than
+    # we differ from 3.0: at the non-standard origin 2.2 keeps 65, 3.0 keeps 54.
+    raw = read_crop(raw_fname, (0.0, 1.0))
+    sss_mf3 = read_crop(fname)
+    raw_sss = maxwell_filter(raw, origin=origin, regularize="in")
+    assert_meg_snr(raw_sss, sss_mf3, 20.0, 100.0, msg=fname.name)
+    info_py, info_mf3 = _sss_info(raw_sss), _sss_info(sss_mf3)
+    assert info_mf3["nfree"] == nfree
+    assert_array_equal(info_py["components"], info_mf3["components"])
+    # ...so the SSS rank read back from the file agrees too
+    assert _get_rank_sss(sss_mf3) == nfree
+
+
+def test_sphere_activation_model():
+    """Test the random brain current model against Nenonen et al. 2004."""
+    degrees = np.arange(int_order + 1)
+    a_power, rho_i = _compute_sphere_activation_in(degrees)
+    # Knuutila's random brain current density estimate, 0.6 µA/m²/√Hz
+    assert_allclose(rho_i, 0.6e-6, rtol=0.02)
+    # rho_i is stored precomputed, so make sure it still matches the derivation
+    # documented beside it (100 fT radial field at r_s=0.13 m, r_in=0.08 m)
+    ll = np.arange(1, 100)
+    in_sum = (
+        4
+        * np.pi
+        * np.sum(ll * (ll + 1.0) / (2.0 * ll + 1.0) * (0.08 / 0.13) ** (2 * ll + 2))
+    )
+    assert_allclose(rho_i, 100e-15 * 1e7 / np.sqrt(in_sum), rtol=1e-6)
+    # Degree 0 carries no signal; the rest falls off steeply and monotonically
+    assert a_power[0] == 0
+    assert (np.diff(a_power[1:]) < 0).all()
+    assert a_power[int_order] / a_power[1] < 1e-15
+
+
+def test_mf_component_order():
+    """Test that used moments are encoded in MaxFilter's even-odd order."""
+    idx = _mne_ord_to_mf_idx(int_order)
+    n_in = _get_n_moments(int_order)
+    assert_array_equal(np.sort(idx), np.arange(n_in))  # a permutation
+    # NenonenEtAl2007 Fig 2 sweeps L=7..11, i.e. N=63..143 virtual channels
+    assert_array_equal(
+        [_get_n_moments(L) for L in range(7, 12)], [63, 80, 99, 120, 143]
+    )
+    degrees, orders = _get_degrees_orders(int_order)
+    # MaxFilter gives each degree 2 * degree + 1 slots, so these are the flat
+    # indices of each degree's first moment.
+    starts = np.cumsum([0] + [2 * d + 1 for d in range(1, int_order)])
+    assert_array_equal(starts, [0, 3, 8, 15, 24, 35, 48, 63])
+    assert_array_equal(degrees[idx][starts], np.arange(1, int_order + 1))
+    assert_array_equal(orders[idx][starts], 0)  # every degree starts at m=0
+    # and within a degree the orders run 0, +1, -1, +2, -2, ...
+    assert_array_equal(degrees[idx][24:35], 5)
+    assert_array_equal(orders[idx][24:35], [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5])
+
+
+def _sss_info(inst):
+    """Get the SSS record from proc_history.
+
+    MaxFilter 3.0 writes an empty sss_info ahead of the populated one, so the
+    first proc_history entry is not necessarily the one we want.
+    """
+    for pp in inst.info["proc_history"]:
+        sss_info = pp.get("max_info", {}).get("sss_info", {})
+        if sss_info.get("in_order") is not None:
+            return sss_info
+    raise RuntimeError(f"No SSS info found in {inst}")
+
 
 def _check_reg_match(sss_py, sss_mf, comp_tol):
     """Check regularization."""
-    info_py = sss_py.info["proc_history"][0]["max_info"]["sss_info"]
+    info_py = _sss_info(sss_py)
     assert info_py is not None
     assert len(info_py) > 0
-    info_mf = sss_mf.info["proc_history"][0]["max_info"]["sss_info"]
+    info_mf = _sss_info(sss_mf)
     n_in = None
     for inf in (info_py, info_mf):
         if n_in is None:
@@ -974,6 +1124,16 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
         assert inf["components"][:n_in].sum() == inf["nfree"]
     assert_allclose(
         info_py["nfree"], info_mf["nfree"], atol=comp_tol, err_msg=sss_py.filenames[0]
+    )
+    # nfree is a sum, so it says nothing about *which* components were dropped.
+    # Both masks use MaxFilter's order (see _mne_ord_to_mf_idx) and we follow its
+    # removal sequence, so whichever dropped fewer must be a subset of the other.
+    drop_mf = set(np.nonzero(np.asarray(info_mf["components"][:n_in]) == 0)[0])
+    drop_py = set(np.nonzero(np.asarray(info_py["components"][:n_in]) == 0)[0])
+    smaller, larger = sorted((drop_py, drop_mf), key=len)
+    assert smaller <= larger, (
+        f"{sss_py.filenames[0]}: removal sequences diverge, "
+        f"MNE-only={sorted(drop_py - drop_mf)}, MF-only={sorted(drop_mf - drop_py)}"
     )
 
 
@@ -1651,6 +1811,56 @@ def test_mf_skips():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.parametrize("st_duration", (None, 2.0))
+def test_mf_skips_head_pos(st_duration):
+    """Test that segments after a skip use their own head positions."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes")
+    raw.pick("meg", exclude=()).crop(0, 16).load_data()
+    head_pos = _linear_head_pos(raw, 17)
+    # A 2 s skip, leaving segments of 3 s and 11 s. The latter must stay above the 10 s
+    # chunk size that st_duration=None falls back to.
+    raw.set_annotations(
+        mne.Annotations(
+            onset=[raw._first_time + 3.0],
+            duration=[2.0],
+            description=["bad_acq_skip"],
+            orig_time=raw.info["meas_date"],
+        )
+    )
+    kwargs = dict(
+        origin=(0.0, 0.0, 0.04),
+        regularize=None,
+        bad_condition="ignore",
+        st_duration=st_duration,
+    )
+    # use the default mc_interp="hann" rather than the "zero" of this module's
+    # maxwell_filter, so that each sample blends two head positions and picking the
+    # wrong one on either side of the interval shows up
+    raw_sss = _maxwell_filter_ola(raw, head_pos=head_pos, **kwargs)
+    # Processing the second segment on its own must give the same result as processing
+    # it as part of the whole recording.
+    raw_crop = raw.copy().crop(5.0).set_annotations(None)
+    raw_crop_sss = _maxwell_filter_ola(raw_crop, head_pos=head_pos[5:], **kwargs)
+    for picks in ("meg", "chpi"):  # chpi holds the head positions written back out
+        assert_allclose(
+            raw_sss.get_data(picks, tmin=5.0), raw_crop_sss.get_data(picks), atol=1e-20
+        )
+
+
+def test_trans_lims_sparse_pos():
+    """Test windows containing no head position update."""
+    # head positions sampled more coarsely than buffer_size_sec leave whole windows
+    # without an update, and those must hold the last position, not the first one
+    pos = [None, np.array([0, 100, 200]), np.zeros((3, 9))]
+    pos[2][:, 5] = [0.0, 0.1, 0.2]  # z translation
+    for start, want in ((0, 0.0), (50, 0.0), (100, 0.1), (150, 0.1), (250, 0.2)):
+        quats, n_positions, _ = _trans_lims(pos, start, start + 50)
+        assert_allclose(np.unique(quats[5]), [want], err_msg=f"start={start}")
+        assert n_positions == 1
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     (
         "fname",
@@ -1780,7 +1990,7 @@ def test_find_bad_channels_maxwell(
         # Fake a bad one, otherwise we don't find any
         assert 42 in pick_types(raw.info, meg=True, ref_meg=False)
         assert raw.ch_names[42:43] == want_bads
-        raw._data[42] += np.random.RandomState(0).randn(len(raw.times))
+        raw._data[42] += np.random.default_rng(0).standard_normal(len(raw.times))
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     if annot:
         # do a problematic one (gh-7741): exactly one "step" unit
@@ -1911,6 +2121,36 @@ def test_find_bads_maxwell_flat():
     assert " in 2 intervals " in log, log
     assert flat == want_flat
     assert noisy == want_noisy
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_find_bads_maxwell_head_pos():
+    """Test that each interval uses its own head positions."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes")
+    raw.pick("meg", exclude=()).crop(0, 10)  # two 5 s intervals
+    raw.load_data()
+    head_pos = _linear_head_pos(raw, 11)
+    kwargs = dict(
+        origin=(0.0, 0.0, 0.04),
+        regularize=None,
+        bad_condition="ignore",
+        min_count=1,
+        return_scores=True,
+        h_freq=None,  # keep the two calls below operating on identical data
+    )
+    flats, scores = find_bad_channels_maxwell(raw, head_pos=head_pos, **kwargs)[1:]
+    assert scores["bins"].shape == (2, 2)
+    # flats found in interval 1 would be excluded from interval 2 but not from the
+    # cropped run below, making the two good_masks (and hence the scores) differ
+    assert flats == []
+    # Processing the second interval on its own must give the same scores as
+    # processing it as part of the whole recording.
+    raw_crop = raw.copy().crop(5.0)
+    pos_crop = head_pos[5:]
+    scores_crop = find_bad_channels_maxwell(raw_crop, head_pos=pos_crop, **kwargs)[2]
+    assert scores_crop["bins"].shape == (1, 2)
+    assert_allclose(scores_crop["scores_noisy"][:, 0], scores["scores_noisy"][:, 1])
 
 
 @pytest.mark.parametrize(

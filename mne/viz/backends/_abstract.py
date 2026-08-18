@@ -344,6 +344,7 @@ class _AbstractRenderer(ABC):
         colormap="RdBu",
         normalized_colormap=False,
         reverse_lut=False,
+        opacity=None,
     ):
         """Add tube in the scene.
 
@@ -369,12 +370,12 @@ class _AbstractRenderer(ABC):
             If None, the max of the data will be used.
         colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
-        opacity : float
-            The opacity of the tube(s).
-        backface_culling : bool
-            If True, enable backface culling on the tube(s).
+        normalized_colormap : bool
+            Specify if the values of the colormap are between 0 and 1.
         reverse_lut : bool
             If True, reverse the lookup table.
+        opacity : float | None
+            The opacity of the tube(s). If None, the renderer default is used.
 
         Returns
         -------
@@ -619,6 +620,13 @@ class _AbstractRenderer(ABC):
             The number of labels to display on the scalar bar.
         bgcolor : tuple | str
             The color of the background when there is transparency.
+
+        Returns
+        -------
+        actor
+            The scalar bar actor.
+        tick_actor
+            The actor drawing tick marks along the scalar bar.
         """
         pass
 
@@ -739,14 +747,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _get_tooltip(self):
-        pass
-
-    @abstractmethod
-    def _set_tooltip(self, tooltip: str):
-        pass
-
-    @abstractmethod
     def _add_keypress(self, callback):
         pass
 
@@ -756,10 +756,6 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def _set_focus(self):
-        pass
-
-    @abstractmethod
-    def _set_layout(self, layout):
         pass
 
     @abstractmethod
@@ -799,10 +795,6 @@ class _AbstractButton(_AbstractWidget):
     def _click(self):
         pass
 
-    @abstractmethod
-    def _set_icon(self, icon):
-        pass
-
 
 class _AbstractSlider(_AbstractWidget):
     @classmethod
@@ -816,10 +808,6 @@ class _AbstractSlider(_AbstractWidget):
 
     @abstractmethod
     def _get_value(self):
-        pass
-
-    @abstractmethod
-    def _set_range(self, rng):
         pass
 
 
@@ -985,10 +973,6 @@ class _AbstractBoxLayout(ABC):
     def _add_widget(self, widget):
         pass
 
-    @abstractmethod
-    def _add_stretch(self, amount=1):
-        pass
-
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
     @abstractmethod
@@ -1021,31 +1005,7 @@ class _AbstractAppWindow(ABC):
         pass
 
     @abstractmethod
-    def _get_dpi(self):
-        pass
-
-    @abstractmethod
     def _get_size(self):
-        pass
-
-    @abstractmethod
-    def _get_cursor(self):
-        pass
-
-    @abstractmethod
-    def _set_cursor(self, cursor):
-        pass
-
-    @abstractmethod
-    def _new_cursor(self, name):
-        pass
-
-    @abstractmethod
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    @abstractmethod
-    def _close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -1277,7 +1237,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         pass
 
     @abstractmethod
@@ -1582,6 +1542,15 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_get_simple_canvas(self, width, height, dpi):
+        pass
+
+    @abstractmethod
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        """Return a widget listing ``(key, description)`` pairs.
+
+        ``pairs`` are keyboard shortcuts; ``mouse_pairs``, if given, are
+        ``(action, description)`` pairs shown in a separate section.
+        """
         pass
 
     @abstractmethod

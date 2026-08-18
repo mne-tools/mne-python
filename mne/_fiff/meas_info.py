@@ -7,6 +7,7 @@ import datetime
 import operator
 import re
 import string
+import weakref
 from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
@@ -84,7 +85,7 @@ from .tag import (
 from .tree import dir_tree_find
 from .write import (
     DATE_NONE,
-    _safe_name_list,
+    _safe_read_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -689,7 +690,7 @@ class SetChannelsMixin(MontageMixin):
         ch_groups=None,
         to_sphere=True,
         axes=None,
-        block=False,
+        block=None,
         show=True,
         sphere=None,
         *,
@@ -735,11 +736,18 @@ class SetChannelsMixin(MontageMixin):
             instance of Axes3D. If None (default), a new axes will be created.
 
             .. versionadded:: 0.13.0
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Defaults to False.
+        block : bool | None
+            Whether to halt program execution until the figure is closed. By default
+            (``None``) this follows :func:`matplotlib.pyplot.show`: it blocks unless
+            Matplotlib's interactive mode is on (see :func:`matplotlib.pyplot.ion`), in
+            which case it returns immediately. Set to ``True`` to force blocking, which
+            is useful with ``kind="select"`` to collect the interactive selection
+            synchronously when interactive mode is on.
 
             .. versionadded:: 0.13.0
+            .. versionchanged:: 1.13
+               The default changed from ``False`` to ``None`` (follow
+               Matplotlib).
         show : bool
             Show figure if True. Defaults to True.
         %(sphere_topomap_auto)s
@@ -1152,18 +1160,17 @@ class MNEBadsList(list):
 
     def __init__(self, *, bads, info):
         _check_bads_info_compat(bads, info)
-        self._mne_info = info
+        # avoid an info <-> bads reference cycle
+        self._mne_info = weakref.ref(info)
         super().__init__(bads)
 
     def extend(self, iterable):
         if not isinstance(iterable, list):
             iterable = list(iterable)
-        # can happen during pickling
-        try:
-            info = self._mne_info
-        except AttributeError:
-            pass  # can happen during pickling
-        else:
+        # info may be absent (during unpickling) or already gone (dead weakref)
+        info_ref = getattr(self, "_mne_info", None)
+        info = info_ref() if info_ref is not None else None
+        if info is not None:
             _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
@@ -1173,6 +1180,11 @@ class MNEBadsList(list):
     def __iadd__(self, x):
         self.extend(x)
         return self
+
+    def __reduce__(self):
+        # The weakref is not picklable, and the parent Info re-wraps it as an
+        # MNEBadsList (via __setitem__) on load.
+        return (list, (list(self),))
 
 
 # As options are added here, test_meas_info.py:test_info_bad should be updated
@@ -1817,6 +1829,19 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         finally:
             self._unlocked = state
 
+    @contextlib.contextmanager
+    def _skip_checks(self):
+        """Skip ``_check_consistency()`` on this instance within the block."""
+        # dominates frequently used pick/copy operations an already-consistent info
+        # flag is transient: not pickled (see ``__getstate__``) and ``__deepcopy__``
+        # builds a fresh instance
+        prev = getattr(self, "_no_check", False)
+        self._no_check = True
+        try:
+            yield
+        finally:
+            self._no_check = prev
+
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
 
@@ -1943,6 +1968,18 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "ch_names":
                 # we know it's list of str, shallow okay and saves ~100 µs
                 result[k] = v.copy()
+            elif k == "dig":
+                # DigPoint has a fast __deepcopy__ (only copies its "r" array);
+                # calling it directly avoids the generic list-deepcopy dispatch.
+                # dig is almost always DigPoints, but can hold plain dicts (e.g.
+                # appended directly), which lack __deepcopy__; fall back for those.
+                if v is None:
+                    result[k] = None
+                else:
+                    try:
+                        result[k] = [d.__deepcopy__(memodict) for d in v]
+                    except AttributeError:
+                        result[k] = deepcopy(v, memodict)
             elif k == "hpi_meas":
                 hms = list()
                 for hm in v:
@@ -1966,12 +2003,14 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def _check_consistency(self, prepend_error=""):
         """Do some self-consistency checks and datatype tweaks."""
+        if getattr(self, "_no_check", False):
+            return
         meas_date = self.get("meas_date")
         if meas_date is not None:
             if (
                 not isinstance(self["meas_date"], datetime.datetime)
                 or self["meas_date"].tzinfo is None
-                or self["meas_date"].tzinfo is not datetime.timezone.utc
+                or self["meas_date"].tzinfo is not datetime.UTC
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
@@ -2343,7 +2382,7 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = _safe_name_list(tag.data, "read", "bads")
+                bads = _safe_read_name_list(tag.data)
         bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
 
@@ -3738,9 +3777,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         for field in keep_fields:
             _check_option("keep_his", field, valid_fields)
 
-    default_anon_dos = datetime.datetime(
-        2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_sex = 0

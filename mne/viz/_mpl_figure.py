@@ -57,7 +57,7 @@ from .._fiff.pick import (
 )
 from ..defaults import DEFAULTS
 from ..fixes import _close_event
-from ..utils import Bunch, _click_ch_name, check_version, logger
+from ..utils import Bunch, _click_ch_name, logger
 from ._figure import BrowserBase
 from .utils import (
     _BLIT_KWARGS,
@@ -66,6 +66,7 @@ from .utils import (
     _fake_click,
     _fake_keypress,
     _fake_scroll,
+    _is_dark,
     _merge_annotations,
     _set_window_title,
     _validate_if_list_of_axes,
@@ -81,7 +82,6 @@ ANNOTATION_FIG_PAD = 0.1
 ANNOTATION_FIG_MIN_H = 2.9  # fixed part, not including radio buttons/labels
 ANNOTATION_FIG_W = 5.0
 ANNOTATION_FIG_CHECKBOX_COLUMN_W = 0.5
-_OLD_BUTTONS = not check_version("matplotlib", "3.7")
 
 # DARK THEME COLORS
 # These colors are duplicated from mne-qt-browser (_dark_dict). If you change one, make
@@ -140,11 +140,15 @@ def _resolve_mpl_theme(theme):
 def _apply_mpl_theme_to_kwargs(kwargs):
     """Apply dark theme colors to browser kwargs in-place."""
     theme = kwargs.get("theme", "auto")
-    if _resolve_mpl_theme(theme) != "dark":
+    if _resolve_mpl_theme(theme) == "dark":
+        # bgcolor: override if absent or still at the light default "w"
+        if kwargs.get("bgcolor", "w") == "w":
+            kwargs["bgcolor"] = _DARK_BGCOLOR
+    # follow the resolved background rather than the theme, so an explicitly light
+    # bgcolor never gets light-on-light styling (mne-qt-browser derives it the same way)
+    kwargs["dark"] = _is_dark(kwargs.get("bgcolor", "w"))
+    if not kwargs["dark"]:
         return
-    # bgcolor: override if absent or still at the light default "w"
-    if kwargs.get("bgcolor", "w") == "w":
-        kwargs["bgcolor"] = _DARK_BGCOLOR
     # fgcolor: inject if not explicitly set by the caller
     kwargs.setdefault("fgcolor", _DARK_FGCOLOR)
     # bad channel colors: override if still at the light default
@@ -180,7 +184,9 @@ class MNEFigure(Figure):
         super().__init__(figsize=figsize)
         # things we'll almost always want
         defaults = dict(
-            fgcolor=rcParams["axes.edgecolor"], bgcolor=rcParams["axes.facecolor"]
+            fgcolor=rcParams["axes.edgecolor"],
+            bgcolor=rcParams["axes.facecolor"],
+            dark=False,
         )
         for key, value in defaults.items():
             if key not in kwargs:
@@ -220,6 +226,14 @@ class MNEFigure(Figure):
         """Handle buttonpress events."""
         pass
 
+    def _buttonrelease(self, event):
+        """Handle button release events."""
+        pass
+
+    def _mouse_move(self, event):
+        """Handle mouse motion events."""
+        pass
+
     def _scroll(self, event):
         """Handle scroll wheel events."""
         pass
@@ -245,6 +259,8 @@ class MNEFigure(Figure):
             resize_event=self._resize,
             key_press_event=self._keypress,
             button_press_event=self._buttonpress,
+            button_release_event=self._buttonrelease,
+            motion_notify_event=self._mouse_move,
             scroll_event=self._scroll,
             close_event=self._close,
             pick_event=self._pick,
@@ -325,25 +341,6 @@ class MNEAnnotationFigure(MNEFigure):
         if draw:
             self.canvas.draw()
 
-    def _click_override(self, event):
-        """Override MPL radiobutton click detector to use transData."""
-        assert _OLD_BUTTONS
-        ax = self.mne.radio_ax
-        buttons = ax.buttons
-        if buttons.ignore(event) or event.button != 1 or event.inaxes != ax:
-            return
-        pclicked = ax.transData.inverted().transform((event.x, event.y))
-        distances = {}
-        for i, (p, t) in enumerate(zip(buttons.circles, buttons.labels)):
-            if (
-                t.get_window_extent().contains(event.x, event.y)
-                or np.linalg.norm(pclicked - p.center) < p.radius
-            ):
-                distances[i] = np.linalg.norm(pclicked - p.center)
-        if len(distances) > 0:
-            closest = min(distances, key=distances.get)
-            buttons.set_active(closest)
-
     def _set_active_button(self, idx, *, draw=True):
         """Set active button in annotation dialog figure."""
         buttons = self.mne.radio_ax.buttons
@@ -351,15 +348,6 @@ class MNEAnnotationFigure(MNEFigure):
         logger.debug(f"active idx: {idx}")
         with _events_off(buttons):
             buttons.set_active(idx)
-        if _OLD_BUTTONS:
-            logger.debug(f"circles: {buttons.circles}")
-            for circle in buttons.circles:
-                circle.set_facecolor(self.mne.parent_fig.mne.bgcolor)
-            # active circle gets filled in, partially transparent
-            color = list(buttons.circles[idx].get_edgecolor())
-            logger.debug(f"color: {color}")
-            color[-1] = 0.5
-            buttons.circles[idx].set_facecolor(color)
         if draw:
             self.canvas.draw()
 
@@ -415,15 +403,15 @@ class MNESelectionFigure(MNEFigure):
 
     def _style_radio_buttons_butterfly(self):
         """Handle RadioButton state for keyboard interactions."""
-        # Show all radio buttons as selected when in butterfly mode
         parent = self.mne.parent_fig
         buttons = self.mne.radio_ax.buttons
-        color = buttons.activecolor if parent.mne.butterfly else parent.mne.bgcolor
-        if _OLD_BUTTONS:
-            for circle in buttons.circles:
-                circle.set_facecolor(color)
-        # when leaving butterfly mode, make most-recently-used selection active
-        if not parent.mne.butterfly:
+        if parent.mne.butterfly:
+            # Show all radio buttons as selected. RadioButtons keeps its markers in a
+            # single scatter collection, so recolor that; set_active() would undo it.
+            facecolors = [buttons.activecolor] * len(buttons.labels)
+            buttons.ax.collections[0].set_facecolor(facecolors)
+        else:
+            # when leaving butterfly mode, make most-recently-used selection active
             with _events_off(buttons):
                 buttons.set_active(self.mne.old_selection)
         # update the sensors too
@@ -661,13 +649,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch,
             hsel_patch=hsel_patch,
+            vscroll_drag_offset=None,
+            hscroll_drag_offset=None,
             vline=vline,
             vline_hscroll=vline_hscroll,
             vline_text=vline_text,
         )
 
         # apply theme colors (dark mode only)
-        if self.mne.bgcolor == _DARK_BGCOLOR:
+        if self.mne.dark:
             self.patch.set_facecolor(self.mne.bgcolor)
             for _ax in (ax_hscroll, ax_vscroll):
                 _ax.set_facecolor(self.mne.bgcolor)
@@ -795,7 +785,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.mne.ch_start = np.clip(ch_start, 0, ceiling)
                 self._update_picks()
                 self._update_vscroll()
-                self._redraw()
+                self._redraw(skip_hscroll=True)
         # scroll left/right
         elif key in ("right", "left", "shift+right", "shift+left"):
             old_t_start = self.mne.t_start
@@ -809,12 +799,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
             if self.mne.t_start != old_t_start:
                 self._update_hscroll()
-                self._redraw(annotations=True)
+                self._redraw(annotations=True, skip_hscroll=True)
         # scale traces
         elif key in ("=", "+", "-"):
             scaler = 1 / 1.1 if key == "-" else 1.1
             self.mne.scale_factor *= scaler
-            self._redraw(update_data=False)
+            self._redraw(update_data=False, skip_hscroll=True)
         # change number of visible channels
         elif (
             key in ("pageup", "pagedown")
@@ -832,7 +822,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if self.mne.n_channels != n_channels:
                 self._update_picks()
                 self._update_trace_offsets()
-                self._redraw(annotations=True)
+                self._redraw(annotations=True, skip_hscroll=True)
         # change duration
         elif key in ("home", "end"):
             old_dur = self.mne.duration
@@ -856,7 +846,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 if self.mne.t_start + self.mne.duration > last_time:
                     self.mne.t_start = last_time - self.mne.duration
                 self._update_hscroll()
-                self._redraw(annotations=True)
+                self._redraw(annotations=True, skip_hscroll=True)
         elif key == "?":  # help window
             self._toggle_help_fig(event)
         elif key == "a":  # annotation mode
@@ -865,7 +855,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._toggle_butterfly()
         elif key == "d":  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
-            self._redraw()
+            self._redraw(skip_hscroll=True)
         elif key == "h":  # histogram
             self._toggle_epoch_histogram()
         elif key == "j" and len(self.mne.projs):  # SSP window
@@ -924,12 +914,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.inaxes == self.mne.ax_vscroll:
                 if self.mne.fig_selection is not None:
                     self._change_selection_vscroll(event)
-                elif self._check_update_vscroll_clicked(event):
-                    self._redraw()
+                else:
+                    if self._check_update_vscroll_clicked(event):
+                        self._redraw(skip_hscroll=True)
+                    self.mne.vscroll_drag_offset = event.ydata - self.mne.ch_start
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw(annotations=True)
+                    self._redraw(annotations=True, skip_hscroll=True)
+                self.mne.hscroll_drag_offset = event.xdata - self.mne.t_start
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -971,6 +964,46 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
+    def _buttonrelease(self, event):
+        """Handle mouse button releases (end scrollbar handle drags)."""
+        self.mne.vscroll_drag_offset = None
+        self.mne.hscroll_drag_offset = None
+
+    def _mouse_move(self, event):
+        """Handle mouse motion (drag the scrollbar handles)."""
+        if self.mne.vscroll_drag_offset is not None:
+            if event.y is None:
+                return
+            ydata = self.mne.ax_vscroll.transData.inverted().transform((0, event.y))[1]
+            new_ch_start = np.clip(
+                int(round(ydata - self.mne.vscroll_drag_offset)),
+                0,
+                len(self.mne.ch_order) - self.mne.n_channels,
+            )
+            if self.mne.ch_start != new_ch_start:
+                self.mne.ch_start = new_ch_start
+                self._update_picks()
+                self._update_vscroll()
+                self._redraw()
+        elif self.mne.hscroll_drag_offset is not None:
+            if event.x is None:
+                return
+            xdata = self.mne.ax_hscroll.transData.inverted().transform((event.x, 0))[0]
+            time = xdata - self.mne.hscroll_drag_offset
+            max_time = (
+                self.mne.n_times / self.mne.info["sfreq"]
+                + self.mne.first_time
+                - self.mne.duration
+            )
+            time = np.clip(time, self.mne.first_time, max_time)
+            if self.mne.is_epochs:
+                ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
+                time = self.mne.boundary_times[ix]
+            if self.mne.t_start != time:
+                self.mne.t_start = time
+                self._update_hscroll()
+                self._redraw(annotations=True)
+
     def _scroll(self, event):
         """Handle scroll wheel events for channel navigation."""
         if self.mne.butterfly or self.mne.fig_selection is not None:
@@ -1008,6 +1041,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Instantiate a new MNE dialog figure (with event listeners)."""
         kwargs.setdefault("bgcolor", self.mne.bgcolor)
         kwargs.setdefault("fgcolor", self.mne.fgcolor)
+        kwargs.setdefault("dark", self.mne.dark)
         fig = _figure(
             toolbar=False,
             parent_fig=self,
@@ -1248,24 +1282,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         aspect = width_ax / fig._inch_to_rel(drag_ax_height)
         drag_ax.set(xlim=(0, aspect), ylim=(0, 1))
         drag_ax.set_axis_off()
-        if _OLD_BUTTONS:
-            rect = checkbox.rectangles[0]
-            _pad, _size = (0.2, 0.6)
-            rect.set_bounds(_pad, _pad, _size, _size)
-            lines = checkbox.lines[0]
-            for line, direction in zip(lines, (1, -1)):
-                line.set_xdata((_pad, _pad + _size)[::direction])
-                line.set_ydata((_pad, _pad + _size))
-            text = checkbox.labels[0]
-            text.set(position=(3 * _pad + _size, 0.45), va="center")
-            for artist in lines + (rect, text):
-                artist.set_transform(drag_ax.transData)
-            rect.set_edgecolor(fig.mne.fgcolor)
-            for line in lines:
-                line.set_color(fig.mne.fgcolor)
-            text.set_color(fig.mne.fgcolor)
-        else:
-            checkbox.labels[0].set_color(fig.mne.fgcolor)
+        checkbox.labels[0].set_color(fig.mne.fgcolor)
         # setup interactivity in plot window
         if fig.mne.radio_ax.buttons is None:
             col = "#ff0000"
@@ -1287,7 +1304,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
 
         # apply theme colors to annotation dialog (dark mode only)
-        if fig.mne.bgcolor == _DARK_BGCOLOR:
+        if fig.mne.dark:
             fig.patch.set_facecolor(fig.mne.bgcolor)
             for _ax in fig.axes:
                 _ax.set_facecolor(fig.mne.bgcolor)
@@ -1329,35 +1346,17 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         title = "Existing labels:" if len(labels) else "No existing labels"
         ax.set_title(title, size=None, loc="left").set_color(fig.mne.fgcolor)
         if len(labels):
-            if _OLD_BUTTONS:
-                ax.buttons = RadioButtons(ax, labels, **_BLIT_KWARGS)
-                radius = 0.15
-                circles = ax.buttons.circles
-                for circle, label in zip(circles, ax.buttons.labels):
-                    circle.set_transform(ax.transData)
-                    center = ax.transData.inverted().transform(
-                        ax.transAxes.transform((0.1, 0))
-                    )
-                    circle.set_center((center[0], circle.center[1]))
-                    circle.set_edgecolor(
-                        self.mne.annotation_segment_colors[label.get_text()]
-                    )
-                    circle.set_linewidth(4)
-                    circle.set_radius(radius / len(labels))
-            else:
-                edgecolors = [
-                    self.mne.annotation_segment_colors[label] for label in labels
-                ]
-                facecolors = [to_rgba(col)[:3] + (0.5,) for col in edgecolors]
-                radio_props = dict(
-                    s=144,
-                    linewidth=4,
-                    edgecolor=edgecolors,
-                    facecolor=facecolors,
-                )
-                ax.buttons = RadioButtons(
-                    ax, labels, radio_props=radio_props, **_BLIT_KWARGS
-                )
+            edgecolors = [self.mne.annotation_segment_colors[label] for label in labels]
+            facecolors = [to_rgba(col)[:3] + (0.5,) for col in edgecolors]
+            radio_props = dict(
+                s=144,
+                linewidth=4,
+                edgecolor=edgecolors,
+                facecolor=facecolors,
+            )
+            ax.buttons = RadioButtons(
+                ax, labels, radio_props=radio_props, **_BLIT_KWARGS
+            )
         else:
             ax.buttons = None
         if ax.buttons is not None:
@@ -1373,11 +1372,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             fig._set_active_button(0, draw=False)
         # add event listeners
         if ax.buttons is not None:
-            if _OLD_BUTTONS:
-                ax.buttons.disconnect_events()  # clear MPL default listeners
             ax.buttons.on_clicked(fig._radiopress)
-            if _OLD_BUTTONS:
-                ax.buttons.connect_event("button_press_event", fig._click_override)
         ax.set_axis_off()
 
         # now do the show/hide checkboxes
@@ -1404,25 +1399,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for label in checkboxes.labels:
             label.set_visible(False)
         show_hide_ax.set_axis_off()
-        # fix aspect and right-align
-        if _OLD_BUTTONS:
-            if len(labels) == 1:
-                bounds = (0.05, 0.375, 0.25, 0.25)  # undo MPL special case
-                checkboxes.rectangles[0].set_bounds(bounds)
-                for line, step in zip(checkboxes.lines[0], (1, -1)):
-                    line.set_xdata((bounds[0], bounds[0] + bounds[2]))
-                    line.set_ydata((bounds[1], bounds[1] + bounds[3])[::step])
-            for rect in checkboxes.rectangles:
-                rect.set_transform(show_hide_ax.transData)
-                bbox = rect.get_bbox()
-                bounds = (aspect, bbox.ymin, -bbox.width, bbox.height)
-                rect.set_bounds(bounds)
-                rect.set_clip_on(False)
-                rect.set_edgecolor(fig.mne.fgcolor)
-            for line in np.array(checkboxes.lines).ravel():
-                line.set_transform(show_hide_ax.transData)
-                line.set_xdata(aspect + 0.05 - np.array(line.get_xdata()))
-                line.set_color(fig.mne.fgcolor)
         # store state
         self.mne.visible_annotations = check_values
         self.mne.show_hide_annotation_checkboxes = checkboxes
@@ -1551,21 +1527,22 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._remove_annotation_hover_line()
         self.canvas.draw_idle()
 
-    def _clear_annotations(self):
+    def _clear_annotations(self, *, skip_hscroll=False):
         """Clear all annotations from the figure."""
         for annot in list(self.mne.annotations):
             annot.remove()
             self.mne.annotations.remove(annot)
-        for annot in list(self.mne.hscroll_annotations):
-            annot.remove()
-            self.mne.hscroll_annotations.remove(annot)
+        if not skip_hscroll:
+            for annot in list(self.mne.hscroll_annotations):
+                annot.remove()
+                self.mne.hscroll_annotations.remove(annot)
         for text in list(self.mne.annotation_texts):
             text.remove()
             self.mne.annotation_texts.remove(text)
 
-    def _draw_annotations(self):
+    def _draw_annotations(self, *, skip_hscroll=False):
         """Draw (or redraw) the annotation spans."""
-        self._clear_annotations()
+        self._clear_annotations(skip_hscroll=skip_hscroll)
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         onscreen_annotations = np.zeros(len(segments), dtype=bool)
@@ -1578,9 +1555,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             zorder = self.mne.zorder["ann"] + idx
             kwargs = dict(color=segment_color, alpha=0.3, zorder=zorder)
             if self.mne.visible_annotations[descr]:
-                # draw all segments on ax_hscroll
-                annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
-                self.mne.hscroll_annotations.append(annot)
+                if not skip_hscroll:
+                    # draw all segments on ax_hscroll
+                    annot = self.mne.ax_hscroll.fill_betweenx(
+                        (0, 1), start, end, **kwargs
+                    )
+                    self.mne.hscroll_annotations.append(annot)
                 # draw only visible segments on ax_main
                 visible_segment = np.clip([start, end], times[0], times[-1])
                 if np.diff(visible_segment) > 0:
@@ -1607,7 +1587,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
-        from matplotlib.colors import to_rgb
+        from matplotlib.colors import to_rgba
         from matplotlib.widgets import RadioButtons
 
         # make figure
@@ -1639,17 +1619,17 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         selections_dict = self.mne.ch_selections
         selections_dict.update(Custom=np.array([], dtype=int))  # for lasso
         labels = list(selections_dict)
-        # make & style the radio buttons
-        activecolor = to_rgb(self.mne.fgcolor) + (0.5,)
+        # make & style the radio buttons (fgcolor is black under the light theme, so
+        # these match matplotlib's defaults there)
         radio_ax.buttons = RadioButtons(
-            radio_ax, labels, activecolor=activecolor, **_BLIT_KWARGS
+            radio_ax,
+            labels,
+            activecolor=self.mne.fgcolor,
+            radio_props=dict(edgecolor=self.mne.fgcolor),
+            label_props=dict(color=[self.mne.fgcolor] * len(labels)),
+            **_BLIT_KWARGS,
         )
         fig.mne.old_selection = 0
-        if _OLD_BUTTONS:
-            for circle in radio_ax.buttons.circles:
-                circle.set_radius(0.25 / len(labels))
-                circle.set_linewidth(2)
-                circle.set_edgecolor(self.mne.fgcolor)
         fig._style_radio_buttons_butterfly()
         # add instructions at bottom
         instructions = (
@@ -1660,10 +1640,27 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             "existing selection."
         )
         instructions_ax = fig.add_subplot(gs[-3:], frame_on=False)
-        instructions_ax.text(
-            0.04, 0.08, instructions, va="bottom", ha="left", ma="left", wrap=True
+        instr_text = instructions_ax.text(
+            0.04,
+            0.08,
+            instructions,
+            va="bottom",
+            ha="left",
+            ma="left",
+            wrap=True,
+            color=self.mne.fgcolor,
         )
         instructions_ax.set_axis_off()
+        # apply theme colors (dark mode only)
+        if fig.mne.dark:
+            fig.patch.set_facecolor(fig.mne.bgcolor)
+            for _ax in fig.axes:
+                _ax.set_facecolor(fig.mne.bgcolor)
+            instr_text.set_color(fig.mne.fgcolor)
+            # head outline / nose / ears are drawn black; the lasso line is red
+            for _line in fig.mne.sensor_ax.lines:
+                if to_rgba(_line.get_color()) == to_rgba("black"):
+                    _line.set_color(fig.mne.fgcolor)
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
         fig.lasso.callbacks.append(fig._set_custom_selection)
@@ -1771,16 +1768,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             actives=self.mne.projs_on,
             **_get_check_kwargs(labels=labels, fgcolor=fig.mne.fgcolor),
         )
-        # gray-out already applied projectors
-        if _OLD_BUTTONS:
-            for label, rect, lines in zip(
-                checkboxes.labels, checkboxes.rectangles, checkboxes.lines
-            ):
-                if label.get_text().endswith("(already applied)"):
-                    label.set_color("0.5")
-                    rect.set_edgecolor("0.7")
-                    [x.set_color("0.7") for x in lines]
-                rect.set_linewidth(1)
         # add "toggle all" button
         ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frame_on=True)
         fig.mne.proj_all = Button(ax_all, "Toggle all")
@@ -1791,6 +1778,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
         # save params
         fig.mne.proj_checkboxes = checkboxes
+        # apply theme colors (dark mode only); the checkbox labels already use fgcolor
+        if fig.mne.dark:
+            fig.patch.set_facecolor(fig.mne.bgcolor)
+            ax.set_facecolor(fig.mne.bgcolor)
+            ax.title.set_color(fig.mne.fgcolor)
+            ax_all.set_facecolor(_DARK_BUTTON_COLOR)
+            fig.mne.proj_all.color = _DARK_BUTTON_COLOR
+            fig.mne.proj_all.label.set_color(fig.mne.fgcolor)
         # show figure
         self.mne.fig_proj.canvas.draw()
         plt_show(fig=self.mne.fig_proj, warn=False)
@@ -2353,9 +2348,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.event_times is not None:
             self._draw_event_lines()
 
-    def _redraw(self, update_data=True, annotations=False):
+    def _redraw(self, update_data=True, annotations=False, *, skip_hscroll=False):
         """Redraw (convenience method for frequently grouped actions)."""
-        super()._redraw(update_data, annotations)
+        super()._redraw(update_data, annotations, skip_hscroll=skip_hscroll)
         if self.mne.vline_visible and self.mne.is_epochs:
             # prevent flickering
             _ = self._recompute_epochs_vlines(None)
@@ -2724,28 +2719,26 @@ def _init_browser(**kwargs):
 
 
 def _get_check_kwargs(labels=None, fgcolor=None):
-    check_kwargs = dict()
-    if not _OLD_BUTTONS:
-        check_kwargs.update(
-            check_props=dict(s=144, clip_on=False),
-            frame_props=dict(s=144, clip_on=False),
-        )
-        if fgcolor is not None:
-            # Color check marks (unfilled 'x' marker uses facecolor) and frame borders
-            check_kwargs["check_props"].update(facecolor=fgcolor)
-            check_kwargs["frame_props"].update(edgecolor=fgcolor)
-        if labels is not None:
-            textcolor = list()
-            checkcolor = list()
-            for label in labels:
-                if label.endswith("(already applied)"):
-                    textcolor.append("0.5")
-                    checkcolor.append("0.7")
-                else:
-                    _clr = fgcolor if fgcolor is not None else "k"
-                    textcolor.append(_clr)
-                    checkcolor.append(_clr)
-            check_kwargs["check_props"].update(facecolor=checkcolor, linewidth=1)
-            check_kwargs["frame_props"].update(edgecolor=checkcolor, linewidth=1)
-            check_kwargs["label_props"] = dict(color=textcolor)
+    check_kwargs = dict(
+        check_props=dict(s=144, clip_on=False),
+        frame_props=dict(s=144, clip_on=False),
+    )
+    if fgcolor is not None:
+        # Color check marks (unfilled 'x' marker uses facecolor) and frame borders
+        check_kwargs["check_props"].update(facecolor=fgcolor)
+        check_kwargs["frame_props"].update(edgecolor=fgcolor)
+    if labels is not None:
+        textcolor = list()
+        checkcolor = list()
+        for label in labels:
+            if label.endswith("(already applied)"):
+                textcolor.append("0.5")
+                checkcolor.append("0.7")
+            else:
+                _clr = fgcolor if fgcolor is not None else "k"
+                textcolor.append(_clr)
+                checkcolor.append(_clr)
+        check_kwargs["check_props"].update(facecolor=checkcolor, linewidth=1)
+        check_kwargs["frame_props"].update(edgecolor=checkcolor, linewidth=1)
+        check_kwargs["label_props"] = dict(color=textcolor)
     return check_kwargs

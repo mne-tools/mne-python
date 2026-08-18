@@ -89,7 +89,9 @@ __all__ = [
     "_is_numeric",
     "_is_vtk",
     "_julian_to_date",
+    "_limit_blas_threads",
     "_mask_to_onsets_offsets",
+    "_no_filelock",
     "_on_missing",
     "_open_lock",
     "_parse_verbose",
@@ -288,6 +290,7 @@ from .config import (
     _get_numpy_libs,
     _get_root_dir,
     _get_stim_channel,
+    _no_filelock,
     _open_lock,
     get_config,
     get_config_path,
@@ -317,6 +320,7 @@ from .docs import (
 from .fetching import _url_to_local_path
 from .linalg import (
     _get_blas_funcs,
+    _limit_blas_threads,
     _repeated_svd,
     _svd_lwork,
     _sym_mat_pow,

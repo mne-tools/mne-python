@@ -12,11 +12,10 @@ import os.path as op
 import shutil
 from collections import OrderedDict
 from copy import deepcopy
-from functools import partial
+from functools import cache, partial
 from pathlib import Path
 
 import numpy as np
-from scipy.optimize import fmin_cobyla
 
 from ._fiff._digitization import _dig_kind_dict, _dig_kind_ints, _dig_kind_rev
 from ._fiff.constants import FIFF, FWD
@@ -33,13 +32,11 @@ from ._fiff.write import (
     write_int_matrix,
     write_string,
 )
-from .fixes import _compare_version, _safe_svd
+from .fixes import _safe_svd
 from .surface import (
     _complete_sphere_surf,
     _compute_nearest,
-    _fast_cross_nd_sum,
     _get_ico_surface,
-    _get_solids,
     complete_surface_info,
     decimate_surface,
     read_surface,
@@ -69,7 +66,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz.misc import plot_bem
 
 # ############################################################################
 # Compute BEM solution
@@ -130,6 +126,8 @@ def _calc_beta(rk, rk_norm, rk1, rk1_norm):
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """Compute the linear potential matrix element computations."""
+    from ._surface_numba import _fast_cross_nd_sum
+
     omega = np.zeros((len(fros), 3))
 
     # we replicate a little bit of the _get_solids code here for speed
@@ -356,8 +354,6 @@ def _import_openmeeg(what="compute a BEM solution using OpenMEEG"):
             f"The OpenMEEG module must be installed to {what}, but "
             f'"import openmeeg" resulted in: {exc}'
         ) from None
-    if not _compare_version(om.__version__, ">=", "2.5.6"):
-        raise ImportError(f"OpenMEEG 2.5.6+ is required, got {om.__version__}")
     return om
 
 
@@ -525,6 +521,8 @@ def _order_surfaces(surfs):
 
 def _assert_complete_surface(surf, incomplete="raise"):
     """Check the sum of solid angles as seen from inside."""
+    from ._surface_numba import _get_solids
+
     # from surface_checks.c
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
@@ -546,6 +544,8 @@ def _assert_complete_surface(surf, incomplete="raise"):
 
 def _assert_inside(fro, to):
     """Check one set of points is inside a surface."""
+    from ._surface_numba import _get_solids
+
     # this is "is_inside" in surface_checks.c
     fro_name = _bem_surf_name[fro["id"]]
     to_name = _bem_surf_name[to["id"]]
@@ -791,23 +791,46 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
+    # The fit depends only on the relative radii and conductivities of the
+    # layers, not the absolute head radius or origin, so cache on those
+    # Using the exact relative-radius ratio also keeps scipy's COBYLA out of a
+    # near-degenerate regime where it fails to converge
+    rel_rads = tuple(float(layer["rel_rad"]) for layer in m["layers"])
+    sigmas = tuple(float(layer["sigma"]) for layer in m["layers"])
+    mu, lambda_, rv = _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit)
+
+    m["mu"] = np.array(mu)
+    # This division takes into account the actual conductivities
+    m["lambda"] = np.array(lambda_) / m["layers"][-1]["sigma"]
+    m["nfit"] = nfit
+    return rv
+
+
+@cache
+def _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit):
+    """Fit Berg-Scherg params (pure function of relative radii and sigmas)."""
+    from scipy.optimize import fmin_cobyla
+
     assert nfit >= 2
+    # Only rel_rad and sigma are read to compute the coefficients and weighting.
+    m = dict(layers=[dict(rel_rad=r, sigma=s) for r, s in zip(rel_rads, sigmas)])
     u = dict(nfit=nfit, nterms=nterms)
 
     # (1) Calculate the coefficients of the true expansion
     u["fn"] = _fwd_eeg_get_multi_sphere_model_coeffs(m, nterms + 1)
 
-    # (2) Calculate the weighting
-    f = min([layer["rad"] for layer in m["layers"]]) / max(
-        [layer["rad"] for layer in m["layers"]]
-    )
+    # (2) Calculate the weighting from the relative-radius ratio
+    f = min(rel_rads) / max(rel_rads)
 
     # correct weighting
     k = np.arange(1, nterms + 1)
     u["w"] = np.sqrt((2.0 * k + 1) * (3.0 * k + 1.0) / k) * np.power(f, (k - 1.0))
     u["w"][-1] = 0
 
-    # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
+    # rhobeg (initial trust-region radius) is ~half the (-1, 1) variable range
+    # rhoend (final radius) sets the resolution of mu. The dipoles sit at radii
+    # proportional to mu (order 1) while the fit's residual var is ~1e-4, so resolving
+    # below that gains nothing and can prevent convergence
     mu_0 = np.zeros(3)
     fun = partial(_one_step, u=u)
     catol = 1e-6
@@ -816,18 +839,13 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     def cons(x):
         return max_ - np.abs(x)
 
-    mu = fmin_cobyla(fun, mu_0, [cons], rhobeg=0.5, rhoend=1e-5, catol=catol)
+    mu = fmin_cobyla(fun, mu_0, [cons], rhobeg=0.5, rhoend=1e-4, catol=catol)
 
     # (6) Do the final step: calculation of the linear parameters
     rv, lambda_ = _compute_linear_parameters(mu, u)
     order = np.argsort(mu)[::-1]
     mu, lambda_ = mu[order], lambda_[order]  # sort: largest mu first
-
-    m["mu"] = mu
-    # This division takes into account the actual conductivities
-    m["lambda"] = lambda_ / m["layers"][-1]["sigma"]
-    m["nfit"] = nfit
-    return rv
+    return tuple(mu), tuple(lambda_), rv
 
 
 @verbose
@@ -1228,6 +1246,8 @@ def make_watershed_bem(
 
     .. versionadded:: 0.10
     """
+    from .viz.misc import plot_bem
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -1384,6 +1404,8 @@ def make_watershed_bem(
 
     # Show computed BEM surfaces
     if show:
+        from .viz.misc import plot_bem
+
         plot_bem(
             subject=subject,
             subjects_dir=subjects_dir,
@@ -1427,7 +1449,7 @@ def read_bem_surfaces(
     ----------
     fname : path-like
         The name of the file containing the surfaces.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
         If int, only read and return the surface with the given ``s_id``.
@@ -2132,6 +2154,8 @@ def make_flash_bem(
     outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
     images acquired with spin angles of 5 and 30 degrees.
     """
+    from .viz.misc import plot_bem
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -2278,6 +2302,8 @@ def make_flash_bem(
     )
     # Show computed BEM surfaces
     if show:
+        from .viz.misc import plot_bem
+
         plot_bem(
             subject=subject,
             subjects_dir=subjects_dir,

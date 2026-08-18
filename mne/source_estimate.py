@@ -8,8 +8,6 @@ import os.path as op
 from types import GeneratorType
 
 import numpy as np
-from scipy import sparse
-from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
@@ -60,11 +58,6 @@ from .utils import (
     sizeof_fmt,
     verbose,
     warn,
-)
-from .viz import (
-    plot_source_estimates,
-    plot_vector_source_estimates,
-    plot_volume_source_estimates,
 )
 
 
@@ -752,7 +745,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             overwrite=True,
         )
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
     def plot(
         self,
         subject=None,
@@ -787,6 +780,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         brain_kwargs=None,
         verbose=None,
     ):
+        from .viz import plot_source_estimates
+
         brain = plot_source_estimates(
             self,
             subject,
@@ -2242,7 +2237,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         )
         return stc, directions
 
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
     def plot(
         self,
         subject=None,
@@ -2277,6 +2272,8 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         brain_kwargs=None,
         verbose=None,
     ):
+        from .viz import plot_vector_source_estimates
+
         return plot_vector_source_estimates(
             self,
             subject=subject,
@@ -2316,7 +2313,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     _src_type = "volume"
     _src_count = None
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -2383,7 +2380,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_volume_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_volume_source_estimates")
     def plot(
         self,
         src,
@@ -2400,7 +2397,10 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_pos=None,
         verbose=None,
     ):
+        from .viz import plot_volume_source_estimates
+
         data = self.magnitude() if self._data_ndim == 3 else self
+
         return plot_volume_source_estimates(
             data,
             src=src,
@@ -2756,7 +2756,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
     _scalar_class = VolSourceEstimate
 
     # defaults differ: hemi='both', views='axial'
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -3183,6 +3183,8 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy import sparse
+
     if remap_vertices:
         logger.info("Reassigning vertex indices.")
         tris = np.searchsorted(np.unique(tris), tris)
@@ -3232,7 +3234,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         if isinstance(block, np.ndarray):
             block[block == 0] = -np.inf
         else:
-            block.data[block.data == 0] == -1
+            block.data[block.data == 0] = -1
         blocks[bi] = sparse.csr_array(block)  # avoid SciPy dep warning about mat->arr
     edges = sparse.block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
@@ -3332,6 +3334,9 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         existing intra-hemispheric adjacency matrix, e.g. computed
         using geodesic distances.
     """
+    from scipy import sparse
+    from scipy.spatial.distance import cdist
+
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
     adj = sparse.csr_array(adj <= dist, dtype=int)
@@ -3345,6 +3350,8 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
+    from scipy import sparse
+
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d", n_vertices)
     nnz = edges.col.size
@@ -3434,6 +3441,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
+    from scipy import sparse
+
     from .label import BiHemiLabel, Label, label_sign_flip
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3664,6 +3673,8 @@ def _gen_extract_label_time_course(
     verbose=None,
 ):
     # loop through source estimates and extract time series
+    from scipy import sparse
+
     if src is None and mode in ["mean", "max"]:
         kind = "surface"
     else:
@@ -3922,6 +3933,8 @@ def stc_near_sensors(
 
     .. versionadded:: 0.22
     """
+    from scipy.spatial.distance import cdist, pdist
+
     from .evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")

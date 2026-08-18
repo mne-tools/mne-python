@@ -138,7 +138,7 @@ class Scaler(MNETransformerMixin, BaseEstimator):
     Parameters
     ----------
     %(info)s Only necessary if ``scalings`` is a dict or None.
-    scalings : dict, str, default None
+    scalings : dict | str | None
         Scaling method to be applied to data channel wise.
 
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,
@@ -152,10 +152,10 @@ class Scaler(MNETransformerMixin, BaseEstimator):
           :class:`sklearn.preprocessing.StandardScaler`
           is used.
 
-    with_mean : bool, default True
+    with_mean : bool
         If True, center the data using mean (or median) before scaling.
         Ignored for channel-type scaling.
-    with_std : bool, default True
+    with_std : bool
         If True, scale the data to unit variance (``scalings='mean'``),
         quantile range (``scalings='median``), or using channel type
         if ``scalings`` is a dict or None).
@@ -654,7 +654,7 @@ class UnsupervisedSpatialFilter(MNETransformerMixin, BaseEstimator):
     ----------
     estimator : instance of sklearn.base.BaseEstimator
         Estimator using some decomposition algorithm.
-    average : bool, default False
+    average : bool
         If True, the estimator is fitted on the average across samples
         (e.g. epochs).
     """
@@ -797,9 +797,9 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    sfreq : float, default 1.0
+    sfreq : float
         Sampling frequency in Hz.
-    filter_length : str | int, default 'auto'
+    filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
             * int: specified length in samples.
@@ -828,17 +828,17 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
             min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
 
         Only used for ``method='fir'``.
-    n_jobs : int | str, default 1
+    n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
-    method : str, default 'fir'
+    method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict | None, default None
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    fir_window : str, default 'hamming'
+    fir_window : str
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     fir_design : str

@@ -146,8 +146,7 @@ fig.suptitle("Dipole Fits Scaled by Amplitude and Colored by GOF")
 # ``brain.layered_meshes``.  Calling
 # :meth:`~mne.viz.LayeredMesh.update_overlay` pushes new scalar data without
 # rebuilding the full rendering pipeline — the key operation for packages that
-# stream source-space data onto the brain in real time, such as
-# `MNE-RT <https://payamsash.github.io/mne-rt/>`_.
+# stream source-space data onto the brain in real time, such as `MNE-RT`_.
 #
 # Here we add an initial bottom-to-top gradient as the first data frame.
 

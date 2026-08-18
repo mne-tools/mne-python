@@ -5,7 +5,6 @@
 import logging
 
 import numpy as np
-from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
@@ -100,7 +99,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -151,7 +150,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -289,7 +288,6 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     def _check_Xy(self, X, y=None, fit=False):
         """Aux. function to check input data."""
-        # Once we require sklearn 1.1+ we should do something like:
         X = self._check_data(X, y=y, atleast_3d=False, fit=fit)
         is_nd = X.ndim >= 3
         if not is_nd:
@@ -800,6 +798,8 @@ def _make_batched_score(score_func, response_method, method, y, sign, kwargs):
             # Mann-Whitney U identity with average-rank tie correction.
             # Equivalent to sklearn's roc_auc within floating point precision,
             # but different computation.
+            from scipy.stats import rankdata
+
             ranks = rankdata(y_pred, method="average", axis=0)
             return (
                 sign

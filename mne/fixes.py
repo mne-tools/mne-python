@@ -121,8 +121,7 @@ def _safe_svd(A, **kwargs):
     """Get around the SVD did not converge error of death."""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
-    # For SciPy 0.18 and up, we can work around it by using
-    # lapack_driver='gesvd' instead.
+    # We can work around it by using lapack_driver='gesvd' instead.
     from scipy import linalg
 
     if kwargs.get("overwrite_a", False):
@@ -137,7 +136,7 @@ def _safe_svd(A, **kwargs):
 
 
 ###############################################################################
-# NumPy Generator (NumPy 1.17)
+# NumPy Generator vs. RandomState
 
 
 def rng_uniform(rng):
@@ -221,7 +220,7 @@ class _EstimatorMixin:
 
         Parameters
         ----------
-        deep : bool, default=True
+        deep : bool
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
 
@@ -567,7 +566,7 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     ----------
     arr : array-like
         To be cumulatively summed as flat
-    axis : int, optional
+    axis : int | None
         Axis along which the cumulative sum is computed.
         The default (None) is to compute the cumsum over the flattened array.
     rtol : float
@@ -625,49 +624,6 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 
     cbar.set_ticks(new_tick_locs)
     cbar.update_ticks()
-
-
-###############################################################################
-# Numba (optional requirement)
-
-# Here we choose different defaults to speed things up by default
-try:
-    import numba
-
-    if _compare_version(numba.__version__, "<", "0.56.4"):
-        raise ImportError
-    prange = numba.prange
-
-    def jit(nopython=True, nogil=True, fastmath=True, cache=True, **kwargs):  # noqa
-        return numba.jit(
-            nopython=nopython, nogil=nogil, fastmath=fastmath, cache=cache, **kwargs
-        )
-
-except Exception:  # could be ImportError, SystemError, etc.
-    has_numba = False
-else:
-    has_numba = os.getenv("MNE_USE_NUMBA", "true").lower() == "true"
-
-
-if not has_numba:
-
-    def jit(**kwargs):  # noqa
-        def _jit(func):
-            return func
-
-        return _jit
-
-    prange = range
-    bincount = np.bincount
-
-else:
-
-    @jit()
-    def bincount(x, weights, minlength):  # noqa: D103
-        out = np.zeros(minlength)
-        for idx, w in zip(x, weights):
-            out[idx] += w
-        return out
 
 
 ###############################################################################

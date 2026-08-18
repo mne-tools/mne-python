@@ -1,0 +1,1 @@
+When reading EGI MFF files with :func:`mne.io.read_raw_egi`, passing ``event_key='cel#'`` now returns compound event codes (e.g. ``stm+_1`` and ``stm+_2``) so that trials from different conditions can be distinguished via ``raw.event_id``, by `Pragnya Khandelwal`_ and `Scott Huberty`_.

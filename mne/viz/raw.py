@@ -9,7 +9,7 @@ from collections import OrderedDict
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
-from ..defaults import _handle_default
+from ..defaults import _RAW_CLIP_DEF, _handle_default
 from ..filter import create_filter
 from ..utils import (
     _check_option,
@@ -29,8 +29,6 @@ from .utils import (
     _normalize_annotation_colors,
     _shorten_path_from_middle,
 )
-
-_RAW_CLIP_DEF = 3
 
 
 @verbose
@@ -554,7 +552,7 @@ def plot_raw_psd_topo(
     fig_facecolor="k",
     axis_facecolor="k",
     axes=None,
-    block=False,
+    block=None,
     show=True,
     n_jobs=None,
     verbose=None,
@@ -587,9 +585,9 @@ def plot_raw_psd_topo(
         A matplotlib-compatible color to use for the axis background.
         Defaults to black.
     %(axes_spectrum_plot_topo)s
-    block : bool
-        Whether to halt program execution until the figure is closed.
-        May not work on all systems / platforms. Defaults to False.
+    block : bool | None
+        This parameter is deprecated and will be removed in MNE 1.15; blocking now
+        follows Matplotlib's behavior (see ``show``).
     %(show)s
     %(n_jobs)s
     %(verbose)s

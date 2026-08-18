@@ -10,15 +10,13 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
-from scipy.stats import rankdata
 
+from .._fiff._digitization import _fiducial_coords
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info, read_fiducials
 from .._fiff.pick import (
@@ -70,9 +68,9 @@ from ..utils import (
     _ensure_int,
     _import_nibabel,
     _pl,
+    _soft_import,
     _to_rgb,
     _validate_type,
-    check_version,
     fill_doc,
     get_config,
     get_subjects_dir,
@@ -91,33 +89,6 @@ from .utils import (
 )
 
 verbose_dec = verbose
-FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
-
-
-# XXX: to unify with digitization
-def _fiducial_coords(points, coord_frame=None):
-    """Generate 3x3 array of fiducial coordinates."""
-    points = points or []  # None -> list
-    if coord_frame is not None:
-        points = [p for p in points if p["coord_frame"] == coord_frame]
-    points_ = {p["ident"]: p for p in points if p["kind"] == FIFF.FIFFV_POINT_CARDINAL}
-    if points_:
-        return np.array([points_[i]["r"] for i in FIDUCIAL_ORDER])
-    else:
-        # XXX eventually this should probably live in montage.py
-        if coord_frame is None or coord_frame == FIFF.FIFFV_COORD_HEAD:
-            # Try converting CTF HPI coils to fiducials
-            out = np.empty((3, 3))
-            out.fill(np.nan)
-            for p in points:
-                if p["kind"] == FIFF.FIFFV_POINT_HPI:
-                    if np.isclose(p["r"][1:], 0, atol=1e-6).all():
-                        out[0 if p["r"][0] < 0 else 2] = p["r"]
-                    elif np.isclose(p["r"][::2], 0, atol=1e-6).all():
-                        out[1] = p["r"]
-            if np.isfinite(out).all():
-                return out
-        return np.array([])
 
 
 @fill_doc
@@ -182,6 +153,7 @@ def plot_head_positions(
         The figure.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
@@ -1768,13 +1740,55 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    try:
-        from scipy.spatial import QhullError
-    except ImportError:  # scipy < 1.8
-        from scipy.spatial.qhull import QhullError
+    from scipy.spatial import ConvexHull, Delaunay
+
     id_ = coil["type"] & 0xFFFF
-    add_z_coord = True  # almost all geometry is planar
-    extra_z = 0.0
+    # Offset for visibility (using heuristic for sanely named Neuromag coils).
+    # It depends on the channel name, so keep it out of the cached template.
+    if id_ in (
+        FIFF.FIFFV_COIL_NM_122,
+        FIFF.FIFFV_COIL_VV_PLANAR_W,
+        FIFF.FIFFV_COIL_VV_PLANAR_T1,
+        FIFF.FIFFV_COIL_VV_PLANAR_T2,
+    ):
+        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
+    else:
+        extra_z = 0.0
+    # The template geometry depends only on the coil id/size/base, so it is
+    # cached: a real system has only a handful of coil types but often hundreds
+    # of channels sharing them.
+    base = coil["base"] if id_ in (5004, 4005) else 0.0
+    out = _sensor_template(id_, float(coil["size"]), float(base))
+    if out is not None:
+        rrs, tris = out
+    else:
+        # 3D convex hull (will fail for 2D geometry). This depends on the full
+        # (per-channel) integration geometry, so it is not cached.
+        from scipy.spatial import QhullError
+
+        rrs = coil["rmag_orig"].copy()
+        try:
+            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
+        except QhullError:  # 2D geometry likely
+            logger.debug("Falling back to planar geometry")
+            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
+            u[:, 2] = 0
+            rr_rot = rrs @ u
+            tris = Delaunay(rr_rot[:, :2]).simplices
+            tris = np.concatenate((tris, tris[:, ::-1]))
+    assert rrs.ndim == 2 and rrs.shape[1] == 3
+    return rrs, tris, extra_z
+
+
+@cache
+def _sensor_template(id_, size, base):
+    """Get the local sensor template geometry for a coil type.
+
+    Returns the ``(x, y, z)`` vertices and triangles in the coil's local frame,
+    or ``None`` for coil types without an explicit 2D template (handled by the
+    caller via a convex hull). Pure function of the coil id/size/base, so the
+    result is cached and shared across all channels of the same type.
+    """
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1783,7 +1797,7 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_VV_PLANAR_T2,
     ):
         # wound by right hand rule such that +x side is "up" (+z)
-        long_side = coil["size"]  # length of long side (meters)
+        long_side = size  # length of long side (meters)
         offset = 0.0025  # offset of the center portion of planar grad coil
         rrs = np.array(
             [
@@ -1800,8 +1814,6 @@ def _sensor_shape(coil):
         tris = np.concatenate(
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
-        # Offset for visibility (using heuristic for sanely named Neuromag coils)
-        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1811,8 +1823,8 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_KIT_REF_MAG,
     ):
         # square magnetometer (potentially point-type)
-        size = 0.001 if id_ == 2000 else (coil["size"] / 2.0)
-        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * size
+        half = 0.001 if id_ == 2000 else (size / 2.0)
+        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * half
         tris = _make_tris_fan(4)
     # Circle
     elif id_ in (
@@ -1826,7 +1838,7 @@ def _sensor_shape(coil):
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
         circle = np.concatenate(([0.0], circle))
-        circle *= coil["size"] / 2.0  # radius of coil
+        circle *= size / 2.0  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
     # Circle
@@ -1843,12 +1855,12 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ):
         # round coil 1st order (off-diagonal) gradiometer
-        baseline = coil["base"] if id_ in (5004, 4005) else 0.0
+        baseline = base if id_ in (5004, 4005) else 0.0
         n_pts = 16  # number of points for circle
         # This time, go all the way around circle to close it fully
         circle = np.exp(2j * np.pi * np.arange(-1, n_pts) / float(n_pts - 1))
         circle[0] = 0  # center pt for triangulation
-        circle *= coil["size"] / 2.0
+        circle *= size / 2.0
         rrs = np.array(
             [  # first, second coil
                 np.concatenate(
@@ -1861,24 +1873,16 @@ def _sensor_shape(coil):
             [_make_tris_fan(n_pts + 1), _make_tris_fan(n_pts + 1) + n_pts + 1]
         )
     else:
-        # 3D convex hull (will fail for 2D geometry)
-        rrs = coil["rmag_orig"].copy()
-        try:
-            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
-        except QhullError:  # 2D geometry likely
-            logger.debug("Falling back to planar geometry")
-            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
-            u[:, 2] = 0
-            rr_rot = rrs @ u
-            tris = Delaunay(rr_rot[:, :2]).simplices
-            tris = np.concatenate((tris, tris[:, ::-1]))
-        add_z_coord = False
+        return None
 
     # Go from (x,y) -> (x,y,z)
-    if add_z_coord:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
-    assert rrs.ndim == 2 and rrs.shape[1] == 3
-    return rrs, tris, extra_z
+    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
+    # The cached arrays are shared across channels, so make them read-only to
+    # guard against accidental in-place mutation by callers.
+    tris = np.ascontiguousarray(tris)
+    rrs.flags.writeable = False
+    tris.flags.writeable = False
+    return rrs, tris
 
 
 def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
@@ -2139,6 +2143,12 @@ def _smooth_plot(this_time, params, *, draw=True):
         ax.figure.canvas.draw()
 
 
+_MPL_STC_DEPRECATION = (
+    "Plotting source estimates with the matplotlib 3D backend is deprecated and will "
+    "be removed in MNE 1.15, use a proper 3D backend (e.g., pyvistaqt) instead"
+)
+
+
 def _plot_mpl_stc(
     stc,
     subject=None,
@@ -2164,6 +2174,7 @@ def _plot_mpl_stc(
     import nibabel as nib
     from matplotlib.widgets import Slider
     from mpl_toolkits.mplot3d import Axes3D
+    from scipy.stats import rankdata
 
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
@@ -2485,6 +2496,8 @@ def plot_source_estimates(
         pyvistaqt, but resorts to matplotlib if no 3d backend is available.
 
         .. versionadded:: 0.15.0
+        .. versionchanged:: 1.13
+           The ``'matplotlib'`` backend is deprecated and will be removed in 1.15.
     spacing : str
         Only affects the matplotlib backend.
         The spacing to use for the source space. Can be ``'ico#'`` for a
@@ -2494,6 +2507,8 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
+        .. deprecated:: 1.13
+           Will be removed in 1.15 along with the ``'matplotlib'`` backend.
     %(title_stc)s
 
         .. versionadded:: 0.17.0
@@ -2536,6 +2551,8 @@ def plot_source_estimates(
             except (ImportError, ModuleNotFoundError):
                 warn("No 3D backend found. Resorting to matplotlib 3d.")
                 plot_mpl = True
+    if plot_mpl:
+        warn(f"{_MPL_STC_DEPRECATION}.", FutureWarning)
     kwargs = dict(
         subject=subject,
         surface=surface,
@@ -3071,8 +3088,7 @@ def plot_volume_source_estimates(
     from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
-    if not check_version("nilearn", "0.4"):
-        raise RuntimeError("This function requires nilearn >= 0.4")
+    _soft_import("nilearn", "plotting volume source estimates")
 
     from nilearn.image import index_img
 
@@ -3500,7 +3516,7 @@ def plot_sparse_source_estimates(
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
     Returns

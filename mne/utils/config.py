@@ -20,10 +20,6 @@ import sys
 import tempfile
 from functools import lru_cache, partial
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
-
-from packaging.version import parse
 
 from ._logging import logger, warn
 from .check import (
@@ -221,6 +217,24 @@ _known_config_wildcards = (
 )
 
 
+_use_filelock = True
+
+
+@contextlib.contextmanager
+def _no_filelock():
+    """Skip the config file lock, to avoid importing filelock.
+
+    Used only for the single config read during ``import mne``: filelock pulls in
+    asyncio and sqlite3, which costs ~20 ms on every interpreter start.
+    """
+    global _use_filelock
+    _use_filelock = False
+    try:
+        yield
+    finally:
+        _use_filelock = True
+
+
 @contextlib.contextmanager
 def _open_lock(path, *args, **kwargs):
     """
@@ -236,14 +250,17 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
-        Additional arguments and keyword arguments to be passed to the
-        `open` function.
+    *args : list
+        Additional arguments to be passed to the `open` function.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the `open` function.
 
     """
-    filelock = _soft_import(
-        "filelock", purpose="parallel config set and get", strict=False
-    )
+    filelock = None
+    if _use_filelock:
+        filelock = _soft_import(
+            "filelock", purpose="parallel config set and get", strict=False
+        )
 
     lock_context = contextlib.nullcontext()  # default to no lock
 
@@ -633,6 +650,13 @@ def _get_root_dir():
     return root_dir
 
 
+_blas_rename = dict(
+    openblas="OpenBLAS",
+    mkl="MKL",
+    accelerate="Accelerate",
+)
+
+
 def _get_numpy_libs():
     bad_lib = "unknown linalg bindings"
     try:
@@ -640,18 +664,37 @@ def _get_numpy_libs():
     except Exception as exc:
         return bad_lib + f" (threadpoolctl module not found: {exc})"
     pools = threadpool_info()
-    rename = dict(
-        openblas="OpenBLAS",
-        mkl="MKL",
-    )
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
+            layer = pool.get("threading_layer")
+            layer = f" via {layer}" if layer else ""
+            name = pool["internal_api"]
+            name = _blas_rename.get(name, name)
             return (
-                f"{rename[pool['internal_api']]} "
+                f"{name} "
                 f"{pool['version']} with "
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
+                f"{layer}"
             )
-    return bad_lib
+    return _get_numpy_build_blas() or bad_lib
+
+
+def _get_numpy_build_blas():
+    """Name the BLAS from the build config, for backends threadpoolctl can't see."""
+    # Accelerate has no threadpoolctl controller, so macOS wheels otherwise report only
+    # "unknown linalg bindings"
+    import numpy as np
+
+    try:
+        blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        name = blas["name"].lower()
+    except Exception:
+        return None
+    version = blas.get("version", "")
+    name = _blas_rename.get(name, name)
+    if version and version != "unknown":  # Accelerate reports a literal "unknown"
+        name = f"{name} {version}"
+    return f"{name}, threads not introspectable"
 
 
 _gpu_cmd = """\
@@ -697,6 +740,16 @@ def _get_total_memory():
         raise UnknownPlatformError("Could not determine total memory")
 
     return total_memory
+
+
+def _get_linux_windowing_system():
+    """Return the windowing system on Linux ("Wayland", "X11", or None)."""
+    session_type = os.getenv("XDG_SESSION_TYPE", "").lower()
+    if session_type == "wayland" or os.getenv("WAYLAND_DISPLAY"):
+        return "Wayland"
+    if session_type == "x11" or os.getenv("DISPLAY"):
+        return "X11"
+    return None
 
 
 def _get_cpu_brand():
@@ -770,6 +823,10 @@ def sys_info(
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
+    if platform.system() == "Linux":
+        windowing_system = _get_linux_windowing_system()
+        if windowing_system is not None:
+            platform_str += f" ({windowing_system})"
 
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")
@@ -809,6 +866,7 @@ def sys_info(
         "",
         "# Numerical (optional)",
         "scikit-learn",
+        "threadpoolctl",
         "numba",
         "nibabel",
         "nilearn",
@@ -863,10 +921,10 @@ def sys_info(
             "pytest-qt",
             "pytest-rerunfailures",
             "pytest-timeout",
+            "pytest-xdist",
             "refleak",
             "codespell",
             "ipython",
-            "mypy",
             "pillow",
             "pre-commit",
             "ruff",
@@ -988,6 +1046,9 @@ def sys_info(
 
 
 def _get_latest_version(timeout):
+    from urllib.error import URLError
+    from urllib.request import urlopen
+
     # Bandit complains about urlopen, but we know the URL here
     url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
     try:
@@ -1009,6 +1070,8 @@ def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
+    from packaging.version import parse
+
     rel_ver = parse(rel_ver)
     this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:

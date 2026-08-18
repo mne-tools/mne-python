@@ -9,6 +9,8 @@ import platform
 import random
 import re
 import time
+import tomllib
+import urllib.request
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -122,9 +124,31 @@ def test_sys_info_basic():
         assert "Platform Linux" in out
 
 
+def test_sys_info_windowing_system(monkeypatch):
+    """Test that sys_info reports the windowing system on Linux."""
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    for var in ("XDG_SESSION_TYPE", "WAYLAND_DISPLAY", "DISPLAY"):
+        monkeypatch.delenv(var, raising=False)
+
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    line = out.getvalue().splitlines()[0]
+    assert line.startswith("Platform")
+    assert "(" not in line
+
+    monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    assert "(Wayland)" in out.getvalue().splitlines()[0]
+
+    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    assert "(X11)" in out.getvalue().splitlines()[0]
+
+
 def test_sys_info_complete():
     """Test that sys_info is sufficiently complete."""
-    tomllib = pytest.importorskip("tomllib")  # python 3.11+
     pyproject = Path(__file__).parents[3] / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("Does not appear to be a dev installation")
@@ -218,7 +242,7 @@ def test_sys_info_check_other(monkeypatch):
     # SSL error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="SSL: CERT"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="SSL: CERT"))
         sys_info(fid=out)
     out = out.getvalue()
     assert re.match(".*unable to check.*SSL.*", out, re.DOTALL) is not None
@@ -226,7 +250,7 @@ def test_sys_info_check_other(monkeypatch):
     # Other error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="foo bar"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="foo bar"))
         sys_info(fid=out)
     out = out.getvalue()
     match = re.match(".*unable to .*unknown error: .*foo bar.*", out, re.DOTALL)

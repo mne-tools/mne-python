@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "88618bcfe1380c77a957bfdbc808fe600d9d2382",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

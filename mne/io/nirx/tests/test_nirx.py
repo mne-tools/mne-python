@@ -55,6 +55,7 @@ nirsport1_w_fullsat = (
 nirsport2 = testing_path / "NIRx" / "nirsport_v2" / "aurora_recording _w_short_and_acc"
 nirsport2_2021_9 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 nirsport2_2021_9_6 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9_6"
+nirsport2_2025_2 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2025_2"
 
 
 def test_nirsport_v2_matches_snirf(nirx_snirf):
@@ -278,7 +279,7 @@ def test_nirx_15_2_short():
     assert raw._data.shape == (26, 145)
     assert raw.info["sfreq"] == 12.5
     assert raw.info["meas_date"] == dt.datetime(
-        2019, 8, 23, 7, 37, 4, 540000, tzinfo=dt.timezone.utc
+        2019, 8, 23, 7, 37, 4, 540000, tzinfo=dt.UTC
     )
 
     # Test channel naming
@@ -485,7 +486,7 @@ def test_locale_encoding(tmp_path):
         for line in hdr:
             fid.write(line)
     raw = read_raw_nirx(fname, verbose="debug")
-    want_dt = dt.datetime(2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.timezone.utc)
+    want_dt = dt.datetime(2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.UTC)
     assert raw.info["meas_date"] == want_dt
 
 
@@ -498,7 +499,7 @@ def test_nirx_15_2():
     assert raw._data.shape == (64, 67)
     assert raw.info["sfreq"] == 3.90625
     assert raw.info["meas_date"] == dt.datetime(
-        2019, 10, 2, 9, 8, 47, 511000, tzinfo=dt.timezone.utc
+        2019, 10, 2, 9, 8, 47, 511000, tzinfo=dt.UTC
     )
 
     # Test channel naming
@@ -552,6 +553,41 @@ def test_nirx_aurora_2021_9_6():
 
 
 @requires_testing_data
+@pytest.mark.filterwarnings("ignore:.*Extraction of measurement.*:")
+def test_nirx_aurora_2025_2():
+    """Test reading Aurora dataset with probeInfo.json."""
+    raw = read_raw_nirx(nirsport2_2025_2, preload=True)
+
+    # 50 channels × 2 wavelengths
+    assert raw._data.shape[0] == 100
+
+    # Test triggers
+    assert len(raw.annotations) == 10
+    assert (raw.annotations.description == "1.0").sum() == 5
+    assert (raw.annotations.description == "2.0").sum() == 5
+
+    # Test detector locations derived from probeInfo.json (MNI coords in mm)
+    allowed_dist_error = 0.0002
+    locs = [ch["loc"][6:9] for ch in raw.info["chs"]]
+    head_mri_t, _ = _get_trans("fsaverage", "head", "mri")
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info["ch_names"][0][3:5] == "D1"
+    assert_allclose(
+        mni_locs[0], [-0.035971, 0.027644, 0.077821], atol=allowed_dist_error
+    )
+
+    # Test source locations
+    locs = [ch["loc"][3:6] for ch in raw.info["chs"]]
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info["ch_names"][0][:2] == "S1"
+    assert_allclose(
+        mni_locs[0], [-0.02948, 0.060438, 0.057351], atol=allowed_dist_error
+    )
+
+
+@requires_testing_data
 def test_nirx_15_0():
     """Test reading NIRX files."""
     raw = read_raw_nirx(fname_nirx_15_0, preload=True)
@@ -560,7 +596,7 @@ def test_nirx_15_0():
     assert raw._data.shape == (20, 92)
     assert raw.info["sfreq"] == 6.25
     assert raw.info["meas_date"] == dt.datetime(
-        2019, 10, 27, 13, 53, 34, 209000, tzinfo=dt.timezone.utc
+        2019, 10, 27, 13, 53, 34, 209000, tzinfo=dt.UTC
     )
 
     # Test channel naming
