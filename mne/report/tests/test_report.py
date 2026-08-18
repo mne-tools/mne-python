@@ -575,6 +575,7 @@ class _FakeBrain:
 
     def __init__(self):
         self._renderer = Bunch(plotter=Bunch(subplot=lambda *_: None))
+        self.texts = []
 
     def close(self):
         pass
@@ -585,8 +586,16 @@ class _FakeBrain:
     def set_time(self, time):
         pass
 
-    def add_text(self, x, y, text, justification=None):
-        pass
+    def add_text(self, x, y, text, font_size=None, justification=None):
+        self.texts.append(
+            dict(
+                x=x,
+                y=y,
+                text=text,
+                font_size=font_size,
+                justification=justification,
+            )
+        )
 
 
 def _fake_stc_plot(*args, **kwargs):
@@ -654,6 +663,14 @@ def test_render_stc_requires_3d_backend(monkeypatch):
 def test_render_forward_sensitivity_maps(monkeypatch):
     """Tests that all sensor type maps share a single slider."""
     calls = []
+    plot_kwargs = []
+    brains = []
+
+    def _fake_sensitivity_stc_plot(*args, **kwargs):
+        plot_kwargs.append(kwargs)
+        brain = _FakeBrain()
+        brains.append(brain)
+        return brain
 
     def _fake_sensitivity_map(forward, ch_type):
         calls.append(ch_type)
@@ -674,7 +691,7 @@ def test_render_forward_sensitivity_maps(monkeypatch):
     report = Report()
     monkeypatch.setattr(report_mod, "get_3d_backend", lambda: "pyvista")
     monkeypatch.setattr(report_mod, "sensitivity_map", _fake_sensitivity_map)
-    monkeypatch.setattr(VolSourceEstimate, "plot", _fake_stc_plot)
+    monkeypatch.setattr(VolSourceEstimate, "plot", _fake_sensitivity_stc_plot)
 
     html = report._render_forward_sensitivity_maps(
         forward=forward,
@@ -686,6 +703,16 @@ def test_render_forward_sensitivity_maps(monkeypatch):
         tags=(),
     )
     assert calls == ["grad", "mag", "eeg"]
+    assert all(
+        kwargs["clim"] == dict(kind="value", lims=(0, 0.5, 1.0))
+        for kwargs in plot_kwargs
+    )
+    assert [brain.texts[0]["text"] for brain in brains] == [
+        "Gradiometers",
+        "Magnetometers",
+        "EEG",
+    ]
+    assert all(brain.texts[0]["font_size"] == 8 for brain in brains)
     assert html.count("<img") == 3
     assert html.count('slider stc"') == 1
     grad_idx = html.index("Gradiometers")
