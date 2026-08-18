@@ -112,7 +112,7 @@ from ._pyvista import (
 from ._utils import (
     _ICONS_PATH,
     _init_mne_qtapp,
-    _qt_app_exec,
+    _qt_block,
     _qt_detect_theme,
     _qt_disable_paint,
     _qt_get_stylesheet,
@@ -736,7 +736,7 @@ class _AppWindow(_AbstractAppWindow, _Widget, _MNEMainWindow, metaclass=_BaseWid
         _qt_raise_window(self)
         _Widget._show(self)
         if block:
-            _qt_app_exec(self._app)
+            _qt_block(self)
 
     def _close(self):
         self.close()
