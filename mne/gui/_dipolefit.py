@@ -36,7 +36,7 @@ from ..utils import (
 from ..viz import EvokedField, create_3d_figure
 from ..viz._3d import _plot_head_surface, _plot_sensors_3d
 from ..viz.backends._utils import _qt_app_exec
-from ..viz.ui_events import link, subscribe
+from ..viz.ui_events import ChannelsSelect, link, publish, subscribe
 from ..viz.utils import _get_color_list
 
 
@@ -223,7 +223,7 @@ class DipoleFitUI:
 
     def _configure_main_display(self, show=True):
         """Configure main 3D display of the GUI."""
-        fig_into = create_3d_figure((1500, 1020), bgcolor="white", show=show)
+        fig_into = create_3d_figure((1080, 720), bgcolor="white", show=show)
 
         self._stc_brain = None
         if self._stc is not None:
@@ -340,6 +340,7 @@ class DipoleFitUI:
         )
 
         subscribe(fig_ef, "time_change", self._on_time_change)
+        subscribe(fig_ef, "channels_select", self._on_channels_select)
         self._fig = fig_ef
 
     def _configure_dock(self):
@@ -436,30 +437,26 @@ class DipoleFitUI:
         subscribe(fig, "channels_select", self._on_channels_select)
         self._fig_sensors = fig
 
-    def _color_sensors(self, ch_names):
-        # iterate through each channel type
-        for actors in self._actors["sensors"].values():
-            # possible multiple coils
-            for actor in actors:
-                cloud = actor.GetMapper().GetInput()
-                selected_idx = np.isin(cloud.field_data["ch_names"], list(ch_names))
-                colors = cloud.point_data["colors"]
-                colors[selected_idx] = [0, 255, 0, 100]
-                colors[~selected_idx] = [0, 0, 0, 10]
-                cloud.point_data["colors"] = colors
-        self._renderer._update()
-
     def _on_sensor_data_close(self, event):
         """Handle closing of the sensor selection window."""
+        publish(self._fig, ChannelsSelect(ch_names=[]))
         self._fig_sensors = None
-        if "sensors" in self._actors:
-            self._color_sensors([])
 
     def _on_channels_select(self, event):
         """Color selected sensor meshes."""
         selected_channels = set(event.ch_names)
         if "sensors" in self._actors:
-            self._color_sensors(selected_channels)
+            for actors in self._actors["sensors"].values():
+                # possible multiple coils
+                for actor in actors:
+                    cloud = actor.GetMapper().GetInput()
+                    selected_idx = np.isin(
+                        cloud.field_data["ch_names"], list(selected_channels)
+                    )
+                    colors = cloud.point_data["colors"]
+                    colors[selected_idx] = [0, 255, 0, 100]
+                    colors[~selected_idx] = [0, 0, 0, 10]
+                    cloud.point_data["colors"] = colors
         self._renderer._update()
 
     def _on_fit_dipole(self):
