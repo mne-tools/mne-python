@@ -22,6 +22,13 @@ types occur in two or more sub-types, the sub-type abbreviations are given in
 parentheses. More information about measurement units is given in the
 :ref:`units` section.
 
+.. note::
+   MNE-Python distinguishes ``mag`` and ``grad`` channels using the measurement
+   unit stored in the data file: teslas for ``mag`` and teslas per meter for
+   ``grad``. Consequently, an axial gradiometer whose data are stored in teslas
+   is reported as ``mag``; the label reflects the data unit rather than the
+   physical sensor geometry.
+
 .. NOTE: To include only the table, here's a different target for :start-after:
    channel-types-begin-table
 
