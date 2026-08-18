@@ -3609,13 +3609,14 @@ class Epochs(BaseEpochs):
         A tuple of the same length as the event array used to initialize the
         Epochs object. If the i-th original event is still part of the
         selection, drop_log[i] will be an empty tuple; otherwise it will be
-        a tuple of the reasons the event is not longer in the selection, e.g.:
+        a tuple of the reasons the event is no longer in the selection, e.g.:
 
         - 'IGNORED'
             If it isn't part of the current subset defined by the user
-        - 'NO_DATA' or 'TOO_SHORT'
-            If epoch didn't contain enough data names of channels that exceeded
-            the amplitude threshold
+        - 'NO_DATA'
+            If the epoch would start before the beginning of the recording.
+        - 'TOO_SHORT'
+            If the epoch would end after the end of the recording.
         - 'EQUALIZED_COUNTS'
             See :meth:`~mne.Epochs.equalize_event_counts`
         - 'USER'
