@@ -73,7 +73,6 @@ from ..filter import (
 from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
-from ..time_frequency.tfr import RawTFR
 from ..utils import (
     SizeMixin,
     TimeMixin,
@@ -113,6 +112,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
     from ..cov import Covariance
+    from ..time_frequency.tfr import RawTFR
 
     # The optional ``mne_qt_browser`` window subclasses the first-party
     # ``BrowserBase``, so alias it to annotate ``.plot()`` returns without the dep.
@@ -2507,7 +2507,7 @@ class BaseRaw(
         n_jobs: int | None = None,
         verbose: bool | str | int | None = None,
         **method_kw,
-    ) -> RawTFR:
+    ) -> "RawTFR":
         """Compute a time-frequency representation of sensor data.
 
         Parameters
@@ -2537,6 +2537,8 @@ class BaseRaw(
         ----------
         .. footbibliography::
         """
+        from ..time_frequency.tfr import RawTFR
+
         _check_option("output", output, ("power", "phase", "complex"))
         method_kw["output"] = output
         return RawTFR(

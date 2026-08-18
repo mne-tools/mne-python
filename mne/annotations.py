@@ -13,7 +13,6 @@ from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
-from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
@@ -2123,6 +2122,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
+    from scipy.io import loadmat
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))

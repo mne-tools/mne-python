@@ -14,8 +14,6 @@ from io import BytesIO
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.sparse import csr_array
-from scipy.spatial.distance import cdist
 
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
@@ -1214,6 +1212,8 @@ class Brain:
 
     def _configure_picking(self):
         # get data for each hemi
+        from scipy.sparse import csr_array
+
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -2895,6 +2895,8 @@ class Brain:
         resolution : int
             The resolution of the spheres.
         """
+        from scipy.spatial.distance import cdist
+
         hemi = self._check_hemi(hemi, extras=["vol"])
 
         # Figure out how to interpret the first parameter
