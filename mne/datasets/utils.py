@@ -136,7 +136,7 @@ def _get_path(path, key, name):
     if not path.is_dir():
         logger.info(f"Creating {path}")
         try:
-            path.mkdir()
+            path.mkdir(exist_ok=True)  # exist_ok for parallel calls
         except OSError:
             raise OSError(
                 "User does not have write permissions "
