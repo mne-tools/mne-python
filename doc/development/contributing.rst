@@ -549,6 +549,19 @@ like this:
     from mne.utils import warn
 
     def my_other_function(new_param=None, old_param=None):
+        """Do something with a parameter.
+
+        Parameters
+        ----------
+        new_param : int | None
+            The parameter to use.
+        old_param : int | None
+            The parameter that is being replaced.
+
+            .. deprecated:: 0.XX
+               Use ``new_param`` instead. ``old_param`` will be removed in
+               version 0.YY.
+        """
         if old_param is not None:
             depr_message = ('old_param is deprecated and will be replaced by '
                             'new_param in 0.XX.')
