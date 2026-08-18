@@ -16,7 +16,6 @@ from functools import cache, partial
 from pathlib import Path
 
 import numpy as np
-from scipy.optimize import fmin_cobyla
 
 from ._fiff._digitization import _dig_kind_dict, _dig_kind_ints, _dig_kind_rev
 from ._fiff.constants import FIFF, FWD
@@ -810,6 +809,8 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
 @cache
 def _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit):
     """Fit Berg-Scherg params (pure function of relative radii and sigmas)."""
+    from scipy.optimize import fmin_cobyla
+
     assert nfit >= 2
     # Only rel_rad and sigma are read to compute the coefficients and weighting.
     m = dict(layers=[dict(rel_rad=r, sigma=s) for r, s in zip(rel_rads, sigmas)])
@@ -1403,6 +1404,8 @@ def make_watershed_bem(
 
     # Show computed BEM surfaces
     if show:
+        from .viz.misc import plot_bem
+
         plot_bem(
             subject=subject,
             subjects_dir=subjects_dir,
@@ -2299,6 +2302,8 @@ def make_flash_bem(
     )
     # Show computed BEM surfaces
     if show:
+        from .viz.misc import plot_bem
+
         plot_bem(
             subject=subject,
             subjects_dir=subjects_dir,

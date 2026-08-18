@@ -7,7 +7,6 @@
 import warnings
 
 import numpy as np
-from scipy.stats import gaussian_kde
 
 from .._fiff.meas_info import create_info
 from .._fiff.pick import _picks_to_idx, pick_types
@@ -225,6 +224,7 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 

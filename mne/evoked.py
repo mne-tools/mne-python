@@ -45,7 +45,6 @@ from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
-from .time_frequency.tfr import AverageTFR
 from .utils import (
     ExtendedTimeMixin,
     SizeMixin,
@@ -81,6 +80,7 @@ if TYPE_CHECKING:
 
     from .bem import ConductorModel
     from .cov import Covariance
+    from .time_frequency.tfr import AverageTFR
     from .viz import Brain, EvokedField, Figure3D
 
 _aspect_dict = {
@@ -1304,7 +1304,7 @@ class Evoked(
         n_jobs: int | None = None,
         verbose: bool | str | int | None = None,
         **method_kw,
-    ) -> AverageTFR:
+    ) -> "AverageTFR":
         """Compute a time-frequency representation of evoked data.
 
         Parameters
@@ -1333,6 +1333,8 @@ class Evoked(
         ----------
         .. footbibliography::
         """
+        from .time_frequency.tfr import AverageTFR
+
         _check_option("output", output, ("power", "phase", "complex"))
         method_kw["output"] = output
         return AverageTFR(
