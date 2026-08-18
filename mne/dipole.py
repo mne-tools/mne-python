@@ -11,7 +11,6 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
-from scipy.optimize import fmin_cobyla
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
@@ -1069,6 +1068,8 @@ def _fit_dipoles(
     rhoend,
 ):
     """Fit a single dipole to the given whitened, projected data."""
+    from scipy.optimize import fmin_cobyla
+
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(

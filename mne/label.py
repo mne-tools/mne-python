@@ -10,7 +10,7 @@ from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
@@ -916,6 +916,8 @@ class Label:
 
         .. versionadded:: 0.24
         """
+        from scipy import sparse
+
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -2560,6 +2562,8 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
+
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])
