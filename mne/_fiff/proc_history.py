@@ -5,7 +5,6 @@
 from functools import partial
 
 import numpy as np
-from scipy.sparse import csc_array
 
 from ..utils import _check_fname, logger, warn
 from .constants import FIFF
@@ -240,12 +239,21 @@ _sss_ctc_writers = (
     write_float_sparse,
     partial(write_name_list_sanitized, name="ch_names"),
 )
+
+
+def _csc_array(*args, **kwargs):
+    """Defer the scipy.sparse import (see mne/tests/test_import_nesting.py)."""
+    from scipy.sparse import csc_array
+
+    return csc_array(*args, **kwargs)
+
+
 _sss_ctc_casters = (
     dict,
     dict,
     np.array,
     str,
-    csc_array,
+    _csc_array,
     _sss_ctc_ch_name_clean,
 )
 

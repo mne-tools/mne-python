@@ -5,7 +5,6 @@
 import logging
 
 import numpy as np
-from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
@@ -799,6 +798,8 @@ def _make_batched_score(score_func, response_method, method, y, sign, kwargs):
             # Mann-Whitney U identity with average-rank tie correction.
             # Equivalent to sklearn's roc_auc within floating point precision,
             # but different computation.
+            from scipy.stats import rankdata
+
             ranks = rankdata(y_pred, method="average", axis=0)
             return (
                 sign

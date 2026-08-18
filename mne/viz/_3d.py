@@ -15,9 +15,6 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
-from scipy.stats import rankdata
 
 from .._fiff._digitization import _fiducial_coords
 from .._fiff.constants import FIFF
@@ -156,6 +153,7 @@ def plot_head_positions(
         The figure.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
@@ -1742,6 +1740,8 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
+    from scipy.spatial import ConvexHull, Delaunay
+
     id_ = coil["type"] & 0xFFFF
     # Offset for visibility (using heuristic for sanely named Neuromag coils).
     # It depends on the channel name, so keep it out of the cached template.
@@ -2174,6 +2174,7 @@ def _plot_mpl_stc(
     import nibabel as nib
     from matplotlib.widgets import Slider
     from mpl_toolkits.mplot3d import Axes3D
+    from scipy.stats import rankdata
 
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing

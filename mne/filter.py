@@ -10,8 +10,6 @@ from functools import lru_cache, partial
 from math import gcd
 
 import numpy as np
-from scipy import fft, signal
-from scipy.stats import f as fstat
 
 from ._fiff.pick import _picks_to_idx
 from ._ola import _COLA
@@ -387,6 +385,8 @@ def _1d_overlap_filter(x, n_h, n_edge, phase, cuda_dict, pad, n_fft):
 
 def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency."""
+    from scipy import signal
+
     _, filt_resp = signal.freqz(h.ravel(), worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp[np.where(gain == 1)] = 0
@@ -420,6 +420,8 @@ def _prep_for_filtering(x, copy, picks=None):
 
 def _firwin_design(N, freq, gain, window, sfreq):
     """Construct a FIR filter using firwin."""
+    from scipy import signal
+
     assert freq[0] == 0
     assert len(freq) > 1
     assert len(freq) == len(gain)
@@ -473,6 +475,8 @@ def _construct_fir_filter(
 
     If x is multi-dimensional, this operates along the last dimension.
     """
+    from scipy import signal
+
     assert freq[0] == 0
     if fir_design == "firwin2":
         fir_design = signal.firwin2
@@ -525,6 +529,8 @@ def _check_zero_phase_length(N, phase, gain_nyq=0):
 
 def _check_coefficients(system):
     """Check for filter stability."""
+    from scipy import signal
+
     if isinstance(system, tuple):
         z, p, k = signal.tf2zpk(*system)
     else:  # sos
@@ -555,6 +561,8 @@ def _picks_chunks(picks, n_times, max_size=2**22):
 def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
     """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
+    from scipy import signal
+
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if phase in ("zero", "zero-double"):
         padlen = min(iir_params["padlen"], x.shape[-1] - 1)
@@ -613,6 +621,8 @@ def estimate_ringing_samples(system, max_try=100000):
     n : int
         The approximate ringing.
     """
+    from scipy import signal
+
     if isinstance(system, tuple):  # TF
         kind = "ba"
         b, a = system
@@ -792,6 +802,8 @@ def construct_iir_filter(
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
+    from scipy import signal
+
     known_filters = (
         "bessel",
         "butter",
@@ -1604,6 +1616,8 @@ def notch_filter(
 
 @lru_cache
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
+    from scipy.stats import f as fstat
+
     from .time_frequency.multitaper import _compute_mt_params
 
     # figure out what tapers to use
@@ -1911,6 +1925,8 @@ def resample(
 
 
 def _prep_polyphase(ratio, x_len, final_len, window):
+    from scipy import signal
+
     if isinstance(window, str) and window == "auto":
         window = ("kaiser", 5.0)  # SciPy default
     up = final_len
@@ -1929,6 +1945,8 @@ def _prep_polyphase(ratio, x_len, final_len, window):
 
 
 def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
+    from scipy import signal
+
     if pad == "auto":
         pad = "reflect"
     kwargs = dict(padtype=pad, window=window, up=up, down=down)
@@ -1944,6 +1962,8 @@ def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
 
 
 def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
+    from scipy import fft, signal
+
     x_len = x_flat.shape[-1]
     pad = "reflect_limited" if pad == "auto" else pad
     if (isinstance(window, str) and window == "auto") or window is None:
@@ -2078,6 +2098,8 @@ def detrend(x, order=1, axis=-1):
         >>> bool((detrend(x) - noise).max() < 0.01)
         True
     """
+    from scipy import signal
+
     if axis > len(x.shape):
         raise ValueError(f"x does not have {axis} axes")
     if order == 0:
@@ -2435,6 +2457,8 @@ class FilterMixin:
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from scipy import signal
+
         from .source_estimate import _BaseSourceEstimate
 
         _check_preload(self, "inst.savgol_filter")
@@ -2827,6 +2851,8 @@ def _my_hilbert(x, n_fft=None, envelope=False):
     out : array, shape (n_times)
         The hilbert transform of the signal, or the envelope.
     """
+    from scipy import signal
+
     n_x = x.shape[-1]
     out = signal.hilbert(x, N=n_fft, axis=-1)[..., :n_x]
     if envelope:
@@ -2875,6 +2901,8 @@ def design_mne_c_filter(
     4197 frequencies are directly constructed, with zeroes in the stop-band
     and ones in the passband, with squared cosine ramps in between.
     """
+    from scipy import fft
+
     n_freqs = (4096 + 2 * 2048) // 2 + 1
     freq_resp = np.ones(n_freqs)
     l_freq = 0 if l_freq is None else float(l_freq)
