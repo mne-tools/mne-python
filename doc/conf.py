@@ -526,6 +526,7 @@ sphinx_gallery_conf = {
         "mne_doc_utils.reset_modules",
     ),  # called w/each script
     "reset_modules_order": "both",
+    "recommender": {"enable": True},
     "image_scrapers": scrapers,
     "show_memory": sys.platform == "linux" and sphinx_gallery_parallel == 1,
     "line_numbers": False,  # messes with style
