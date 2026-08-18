@@ -8,7 +8,7 @@ import configparser
 import os
 import os.path as op
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
 from typing import Literal
@@ -517,7 +517,7 @@ def _str_to_meas_date(date_str):
         else:
             raise
 
-    meas_date = meas_date.replace(tzinfo=timezone.utc)
+    meas_date = meas_date.replace(tzinfo=UTC)
     return meas_date
 
 

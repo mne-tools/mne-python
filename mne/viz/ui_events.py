@@ -19,10 +19,14 @@ import re
 import weakref
 from dataclasses import dataclass
 from functools import partial
-
-from matplotlib.colors import Colormap
+from typing import TYPE_CHECKING
 
 from ..utils import _validate_type, fill_doc, logger, verbose, warn
+
+if TYPE_CHECKING:
+    # matplotlib is ~40 ms to import and this module is on the import path of
+    # mne.viz.utils (see mne/tests/test_import_nesting.py)
+    from matplotlib.colors import Colormap
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -152,7 +156,7 @@ class ColormapRange(UIEvent):
     fmid: float | None = None
     fmax: float | None = None
     alpha: bool | None = None
-    cmap: Colormap | str | None = None
+    cmap: "Colormap | str | None" = None
 
 
 @dataclass
@@ -167,6 +171,9 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
 
     Attributes
     ----------
@@ -176,10 +183,14 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
     """
 
     hemi: str
     vertex_id: int
+    source_id: int = None
 
 
 @dataclass

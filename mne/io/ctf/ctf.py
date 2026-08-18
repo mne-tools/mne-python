@@ -50,7 +50,7 @@ def read_raw_ctf(
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
     %(preload)s
-    clean_names : bool, optional
+    clean_names : bool
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
     %(verbose)s
@@ -92,7 +92,7 @@ class RawCTF(BaseRaw):
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
     %(preload)s
-    clean_names : bool, optional
+    clean_names : bool
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
     %(verbose)s

@@ -14,8 +14,6 @@ from io import BytesIO
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.sparse import csr_array
-from scipy.spatial.distance import cdist
 
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
@@ -1207,11 +1205,15 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
-            vertex_id = vertices[ind[0]]
-            publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+            publish(
+                self,
+                VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0]),
+            )
 
     def _configure_picking(self):
         # get data for each hemi
+        from scipy.sparse import csr_array
+
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -1474,14 +1476,15 @@ class Brain:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
             # grid.point_data['values'][vertices] = dists * mask
-            idx = idx[np.argmax(np.abs(scalars[idx]))]
-            vertex_id = vertices[idx]
+            source_id = idx[np.argmax(np.abs(scalars[idx]))]
+            vertex_id = vertices[source_id]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
             # shape = self._data[hemi]['grid_shape']
             # taking into account the cell vs point difference (spacing/2)
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [
@@ -1491,7 +1494,12 @@ class Brain:
             vert_pos = mesh.points[cell]
             vertex_id = cell[np.argmin(np.linalg.norm(vert_pos - pos, axis=1))]
 
-        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+            # retrieve the nearest source_id from the smooth_mat
+            smooth_mat = self.act_data_smooth[hemi][1]
+            row = smooth_mat[vertex_id]
+            source_id = smooth_mat[vertex_id].argmax() if row.nnz else None
+
+        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=source_id))
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
@@ -1970,7 +1978,7 @@ class Brain:
         initial_time : float | None
             Time initially shown in the plot. ``None`` to use the first time
             sample (default).
-        scale_factor : float | None (default)
+        scale_factor : float | None
             The scale factor to use when displaying glyphs for vector-valued
             data.
         vector_alpha : float | None
@@ -2887,6 +2895,8 @@ class Brain:
         resolution : int
             The resolution of the spheres.
         """
+        from scipy.spatial.distance import cdist
+
         hemi = self._check_hemi(hemi, extras=["vol"])
 
         # Figure out how to interpret the first parameter
@@ -4165,9 +4175,11 @@ class Brain:
                     mesh = self.layered_meshes[hemi]
                     mesh.smooth_mat = hemi_data.get("smooth_mat")
                     key_rng = [
-                        -key_data["fmax"]
-                        if key_data["center"] is not None
-                        else key_data["fmin"],
+                        (
+                            -key_data["fmax"]
+                            if key_data["center"] is not None
+                            else key_data["fmin"]
+                        ),
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:

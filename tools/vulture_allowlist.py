@@ -59,6 +59,10 @@ _.setup
 
 deep
 
+# Module-level __getattr__ (PEP 562), used by mne/surface.py and
+# mne/transforms.py to re-export their numba helpers lazily
+__getattr__
+
 # Backward compat or rarely used
 RawFIF
 estimate_head_mri_t

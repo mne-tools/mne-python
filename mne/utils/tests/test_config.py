@@ -9,6 +9,8 @@ import platform
 import random
 import re
 import time
+import tomllib
+import urllib.request
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -147,7 +149,6 @@ def test_sys_info_windowing_system(monkeypatch):
 
 def test_sys_info_complete():
     """Test that sys_info is sufficiently complete."""
-    tomllib = pytest.importorskip("tomllib")  # TODO VERSION remove on Python 3.11+
     pyproject = Path(__file__).parents[3] / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("Does not appear to be a dev installation")
@@ -241,7 +242,7 @@ def test_sys_info_check_other(monkeypatch):
     # SSL error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="SSL: CERT"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="SSL: CERT"))
         sys_info(fid=out)
     out = out.getvalue()
     assert re.match(".*unable to check.*SSL.*", out, re.DOTALL) is not None
@@ -249,7 +250,7 @@ def test_sys_info_check_other(monkeypatch):
     # Other error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="foo bar"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="foo bar"))
         sys_info(fid=out)
     out = out.getvalue()
     match = re.match(".*unable to .*unknown error: .*foo bar.*", out, re.DOTALL)

@@ -5,12 +5,8 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import ndimage, sparse
-from scipy.sparse.csgraph import connected_components
-from scipy.stats import f as fstat
-from scipy.stats import t as tstat
 
-from ..fixes import _reshape_view, jit
+from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
@@ -28,21 +24,6 @@ from ..utils import (
 from .parametric import f_oneway, ttest_1samp_no_p
 
 
-@jit()
-def _masked_sum(x, c):
-    return np.sum(x[c])
-
-
-@jit()
-def _masked_sum_power(x, c, t_power):
-    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-
-
-@jit()
-def _sum_cluster_data(data, tstep):
-    return np.sign(data) * tstep
-
-
 def _get_labels_st(x_in, adjacency, max_step):
     """Label connected components among the active spatio-temporal points.
 
@@ -51,6 +32,9 @@ def _get_labels_st(x_in, adjacency, max_step):
     of active points rather than with the full ``n_times * n_src`` extent
     of ``x_in`` -- important since this is called on every permutation.
     """
+    from scipy import sparse
+    from scipy.sparse.csgraph import connected_components
+
     n_src = adjacency.shape[0]
     n_total = len(x_in)
     active = np.where(x_in)[0]
@@ -129,6 +113,9 @@ def _get_labels(x_in, adjacency):
     Same idea as :func:`_get_labels_st`, but for a plain (non spatio-temporal)
     sparse adjacency matrix that already spans all of ``x_in``.
     """
+    from scipy import sparse
+    from scipy.sparse.csgraph import connected_components
+
     active = np.where(x_in)[0]
     if len(active) == 0:
         return active, None
@@ -239,6 +226,8 @@ def _find_clusters(
     sums : array
         Sum of x values in clusters.
     """
+    from scipy import ndimage
+
     _check_option("tail", tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
@@ -390,6 +379,8 @@ def _find_clusters_1dir(
     x, x_in, adjacency, max_step, t_power, ndimage, sums_only=False
 ):
     """Actually call the clustering algorithm."""
+    from scipy import sparse
+
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -440,6 +431,8 @@ def _find_clusters_1dir(
             raise TypeError(
                 f"adjacency must be a sparse array or False, got {type(adjacency)}"
             )
+        from ._cluster_level_numba import _masked_sum, _masked_sum_power
+
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:
@@ -498,6 +491,8 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_adjacency(adjacency, n_tests, n_times):
+    from scipy import sparse
+
     if not sparse.issparse(adjacency):
         raise ValueError(
             "If adjacency matrix is given, it must be a SciPy sparse matrix."
@@ -1072,6 +1067,9 @@ def _permutation_cluster_test(
 
 def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     """Check the stat_fun and threshold values."""
+    from scipy.stats import f as fstat
+    from scipy.stats import t as tstat
+
     if kind == "within":
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
@@ -1653,6 +1651,8 @@ def summarize_clusters_stc(
         )
     data = np.zeros((n_vertices, n_times))
     data_summary = np.zeros((n_vertices, len(good_cluster_inds) + 1))
+    from ._cluster_level_numba import _sum_cluster_data
+
     for ii, cluster_ind in enumerate(good_cluster_inds):
         data.fill(0)
         t_inds, v_inds = clusters[cluster_ind]

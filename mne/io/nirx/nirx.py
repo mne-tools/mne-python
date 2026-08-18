@@ -11,7 +11,6 @@ from configparser import ConfigParser, RawConfigParser
 from pathlib import Path
 
 import numpy as np
-from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info
@@ -104,6 +103,8 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        from scipy.io import loadmat
+
         logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
@@ -272,7 +273,7 @@ class RawNIRX(BaseRaw):
                 except ValueError:
                     pass
                 else:
-                    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                    meas_date = meas_date.replace(tzinfo=dt.UTC)
                     do_break = True
                     logger.debug(f"Measurement date language {loc} detected: {dt_code}")
                     break
@@ -287,7 +288,7 @@ class RawNIRX(BaseRaw):
                 "The date is being set to January 1st, 2000, "
                 f"instead of {repr(datetime_str)}."
             )
-            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.UTC)
 
         # Extract frequencies of light used by machine
         if is_aurora:

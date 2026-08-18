@@ -20,10 +20,6 @@ import sys
 import tempfile
 from functools import lru_cache, partial
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
-
-from packaging.version import parse
 
 from ._logging import logger, warn
 from .check import (
@@ -221,6 +217,24 @@ _known_config_wildcards = (
 )
 
 
+_use_filelock = True
+
+
+@contextlib.contextmanager
+def _no_filelock():
+    """Skip the config file lock, to avoid importing filelock.
+
+    Used only for the single config read during ``import mne``: filelock pulls in
+    asyncio and sqlite3, which costs ~20 ms on every interpreter start.
+    """
+    global _use_filelock
+    _use_filelock = False
+    try:
+        yield
+    finally:
+        _use_filelock = True
+
+
 @contextlib.contextmanager
 def _open_lock(path, *args, **kwargs):
     """
@@ -236,14 +250,17 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
-        Additional arguments and keyword arguments to be passed to the
-        `open` function.
+    *args : list
+        Additional arguments to be passed to the `open` function.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the `open` function.
 
     """
-    filelock = _soft_import(
-        "filelock", purpose="parallel config set and get", strict=False
-    )
+    filelock = None
+    if _use_filelock:
+        filelock = _soft_import(
+            "filelock", purpose="parallel config set and get", strict=False
+        )
 
     lock_context = contextlib.nullcontext()  # default to no lock
 
@@ -1029,6 +1046,9 @@ def sys_info(
 
 
 def _get_latest_version(timeout):
+    from urllib.error import URLError
+    from urllib.request import urlopen
+
     # Bandit complains about urlopen, but we know the URL here
     url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
     try:
@@ -1050,6 +1070,8 @@ def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
+    from packaging.version import parse
+
     rel_ver = parse(rel_ver)
     this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:

@@ -116,7 +116,7 @@ jobs:
             - uv-cache-0
       - restore_cache:
           keys:
-            - user-install-bin-cache-310
+            - user-install-bin-cache-311
 
       # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
       - run:
@@ -129,16 +129,16 @@ jobs:
           paths:
             - ~/.cache/uv
       - save_cache:
-          key: user-install-bin-cache-310
+          key: user-install-bin-cache-311
           paths:
-            - ~/.local/lib/python3.10/site-packages
+            - ~/.local/lib/python3.11/site-packages
             - ~/.local/bin
 
       - run:
           name: Check Qt
           command: |
             set -x
-            ./tools/check_qt_import.sh ${MNE_QT_BACKEND}
+            curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh | bash -s -- $MNE_QT_BACKEND
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:
@@ -509,18 +509,20 @@ jobs:
             git reset --hard origin/main
             git clean -xdf
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
-              rm -Rf dev;
-              cp -a /tmp/build/html dev;
-              git add -A;
-              git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
+              DIR=dev;
             else
-              echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
-              rm -Rf stable;
-              cp -a /tmp/build/html stable;
-              git add -A;
-              git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
+              DIR=${CIRCLE_BRANCH#maint/};
             fi;
+            if ! echo "${DIR}" | grep -qE '^([0-9]+\.[0-9]+|dev)$'; then
+              echo "Refusing to deploy: branch ${CIRCLE_BRANCH} maps to invalid directory '${DIR}'.";
+              circleci-agent step halt;
+            fi;
+            echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
+            rm -Rf "${DIR}";
+            cp -a /tmp/build/html "${DIR}";
+            git add -A;
+            git commit -m "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
+              -m "Deployed-version: ${DIR}" -m "Source-sha: ${CIRCLE_SHA1}";
             git push origin main;
       - save_cache:
           key: website-cache-1

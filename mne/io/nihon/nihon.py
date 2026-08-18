@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +91,7 @@ def _read_nihon_metadata(fname):
         fid.seek(0x40)
         meas_str = np.fromfile(fid, "|S14", 1).astype("U14")[0]
         meas_date = datetime.strptime(meas_str, "%Y%m%d%H%M%S")
-        meas_date = meas_date.replace(tzinfo=timezone.utc)
+        meas_date = meas_date.replace(tzinfo=UTC)
         metadata["meas_date"] = meas_date
 
     return metadata
