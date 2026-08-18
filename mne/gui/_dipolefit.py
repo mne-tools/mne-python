@@ -434,7 +434,7 @@ class DipoleFitUI:
             return
         fig = self._evoked.plot_topo(select=True)
         fig.canvas.mpl_connect("close_event", self._on_sensor_data_close)
-        subscribe(fig, "channels_select", self._on_channels_select)
+        link(self._fig, fig, recursive=True)
         self._fig_sensors = fig
 
     def _on_sensor_data_close(self, event):
