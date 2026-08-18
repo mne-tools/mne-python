@@ -3806,6 +3806,7 @@ class Report:
                 x=0.5,
                 y=0.8,
                 text=label,
+                font_size=8,
                 justification="center",
             )
             figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
