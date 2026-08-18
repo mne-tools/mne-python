@@ -6,7 +6,6 @@ import warnings
 from functools import partial
 
 import numpy as np
-from scipy.signal import spectrogram
 
 from ..fixes import _reshape_view
 from ..parallel import parallel_func
@@ -174,6 +173,8 @@ def psd_array_welch(
     ----------
     .. footbibliography::
     """
+    from scipy.signal import spectrogram
+
     _check_option("average", average, (None, False, "mean", "median"))
     _check_option("output", output, ("power", "complex"))
     detrend = "constant" if remove_dc else False

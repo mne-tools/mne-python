@@ -16,8 +16,6 @@ from time import time
 from typing import Literal
 
 import numpy as np
-from scipy import stats
-from scipy.spatial import distance
 from scipy.special import expit
 
 from .._fiff.constants import FIFF
@@ -133,6 +131,9 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
+    from scipy import stats
+    from scipy.spatial import distance
+
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -1990,6 +1991,8 @@ class ICA(ContainsMixin):
         -----
         .. versionadded:: 1.1
         """
+        from scipy.spatial import distance
+
         _validate_type(threshold, "numeric", "threshold")
 
         slope_score, focus_score, smoothness_score = None, None, None
