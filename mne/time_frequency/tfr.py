@@ -12,8 +12,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.fft import fft, ifft
-from scipy.signal import argrelmax
 
 from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _picks_to_idx, pick_info
@@ -350,6 +348,8 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
+    from scipy.fft import fft, ifft
+
     _check_option("mode", mode, ["same", "valid", "full"])
     decim = _ensure_slice(decim)
     X = np.asarray(X)
@@ -4205,6 +4205,8 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
 def _get_timefreqs(tfr, timefreqs):
     """Find and/or setup timefreqs for `tfr.plot_joint`."""
     # Input check
+    from scipy.signal import argrelmax
+
     timefreq_error_msg = (
         "Supplied `timefreqs` are somehow malformed. Please supply None, "
         "a list of tuple pairs, or a dict of such tuple pairs, not {}"

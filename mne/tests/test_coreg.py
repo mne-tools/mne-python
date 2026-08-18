@@ -24,7 +24,6 @@ from mne.coreg import (
     _is_mri_subject,
     coregister_fiducials,
     create_default_subject,
-    fit_matched_points,
     get_mni_fiducials,
     scale_bem,
     scale_labels,
@@ -38,6 +37,7 @@ from mne.transforms import (
     Transform,
     _angle_between_quats,
     apply_trans,
+    fit_matched_points,
     invert_transform,
     read_trans,
     rot_to_quat,
@@ -358,6 +358,8 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points."""
+    # still reachable from its historical home
+    assert mne.coreg.fit_matched_points is fit_matched_points
     tgt_pts = np.random.default_rng(42).uniform(size=(6, 3))
 
     # rotation only

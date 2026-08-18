@@ -8,7 +8,6 @@
 import os
 
 import numpy as np
-from scipy.sparse import csr_array, eye_array
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -204,6 +203,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
+    from scipy.sparse import csr_array, eye_array
+
     from ._surface_numba import _find_nearest_tri_pts
 
     # add speedy short-circuit for self-maps
