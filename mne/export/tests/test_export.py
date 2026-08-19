@@ -15,6 +15,7 @@ from numpy.testing import assert_allclose, assert_array_almost_equal, assert_arr
 from mne import (
     Annotations,
     Epochs,
+    EpochsArray,
     create_info,
     read_epochs_eeglab,
     read_evokeds,
@@ -560,7 +561,10 @@ def test_export_epochs_eeglab(tmp_path, preload):
     cart_coords = np.array([d["loc"][:3] for d in epochs.info["chs"]])  # just xyz
     cart_coords_read = np.array([d["loc"][:3] for d in epochs_read.info["chs"]])
     assert_allclose(cart_coords, cart_coords_read)
-    assert_array_equal(epochs.events[:, 0], epochs_read.events[:, 0])  # latency
+    event_samples = (
+        np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
+    )
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
     assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
     assert_allclose(epochs.times, epochs_read.times)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
@@ -581,6 +585,43 @@ def test_export_epochs_eeglab(tmp_path, preload):
         RuntimeWarning, match="Epochs instance has unapplied projectors."
     ):
         epochs.export(Path(temp_fname), overwrite=True)
+
+
+def test_export_epochs_eeglab_after_drop(tmp_path):
+    """Test EEGLAB event mapping after dropping epochs with tmax=0."""
+    pytest.importorskip("eeglabio", minversion="0.1.2")
+    sfreq = 100.0
+    n_epochs, n_times = 5, 11
+    info = create_info(["Cz"], sfreq, "eeg")
+    data = np.zeros((n_epochs, 1, n_times))
+    events = np.column_stack(
+        (
+            np.arange(1, n_epochs + 1) * 100,
+            np.zeros(n_epochs, int),
+            [1, 2, 3, 4, 5],
+        )
+    )
+    event_id = {f"event-{code}": code for code in events[:, 2]}
+    epochs = EpochsArray(
+        data, info, events=events, event_id=event_id, tmin=-0.1, verbose=False
+    )
+    assert epochs.tmax == 0
+    epochs.drop([1, 3])
+    assert_array_equal(epochs.selection, [0, 2, 4])
+
+    fname = tmp_path / "dropped.set"
+    epochs.export(fname)
+    epochs_read = read_epochs_eeglab(fname, verbose="error")
+
+    event_samples = (
+        np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
+    )
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
+    kept_codes = set(epochs.events[:, 2])
+    kept_names = {name for name, code in epochs.event_id.items() if code in kept_codes}
+    assert set(epochs_read.event_id) == kept_names
+    assert_allclose(epochs.times, epochs_read.times)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
 
 
 @testing.requires_testing_data
