@@ -312,6 +312,11 @@ def maxwell_filter(
     -----
     .. versionadded:: 0.11
 
+    When ``head_pos`` is provided, the returned object contains cHPI result
+    channels that have no counterpart in the source file. It therefore cannot
+    be concatenated using ``raw_sss.append(..., preload=False)``. Use
+    ``preload=True`` or a memory-mapped filename instead.
+
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
     from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`.
@@ -1258,6 +1263,20 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
         raw.info["chs"].extend(chpi_chs)
         raw.info._update_redundant()
         raw.info._check_consistency()
+        # The remaining per-channel attributes must grow along with info, otherwise
+        # any later channel operation (e.g., raw_sss.drop_channels) indexes them out
+        # of bounds
+        raw._cals = np.concatenate([raw._cals, raw.info._cals[off:]])
+        # The added channels have no counterpart in the source file, but the data are
+        # preloaded, so _read_picks (and _raw_extras) will never be used to read from
+        # disk again -- use indices that are likely to break loudly if they ever are
+        extra_idx = [2147483647] * len(chpi_chs)  # 2 ** 31 - 1
+        raw._read_picks = [np.concatenate([r, extra_idx]) for r in raw._read_picks]
+        assert raw._comp is None  # preloading the data above unsets it
+        if raw._projector is not None:  # identity for the added channels
+            projector = np.eye(raw.info["nchan"])
+            projector[:off, :off] = raw._projector
+            raw._projector = projector
         assert raw._data.shape == (raw.info["nchan"], len(raw.times))
         # Return the pos picks
         pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs), len(raw.ch_names))
