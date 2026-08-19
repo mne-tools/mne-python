@@ -22,16 +22,16 @@ present rather than building one on every invocation::
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import glob
+import json
 import os
 import shutil
 import subprocess
 import sys
+import urllib.request
+from pathlib import Path
 
-REPO_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-)
-PYPI_WHEELS_DIR = os.path.join(REPO_ROOT, "doc", "pypi")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PYPI_WHEELS_DIR = REPO_ROOT / "doc" / "pypi"
 
 
 def find_wheels():
@@ -39,10 +39,28 @@ def find_wheels():
 
     Returns
     -------
-    wheels : list of str
+    wheels : list of pathlib.Path
         Paths of the MNE wheels found, empty if there are none.
     """
-    return glob.glob(os.path.join(PYPI_WHEELS_DIR, "mne-*.whl"))
+    return sorted(PYPI_WHEELS_DIR.glob("mne-*.whl"))
+
+
+def _latest_pypi_version():
+    """Return the newest MNE version on PyPI, or None if it cannot be reached.
+
+    Returns
+    -------
+    version : str | None
+        The version string, or None if PyPI could not be queried.
+    """
+    # Broad on purpose: this only ever runs while raising, so a network problem
+    # here must not replace the real error with a less useful one.
+    try:
+        url = "https://pypi.org/pypi/mne/json"
+        with urllib.request.urlopen(url, timeout=10) as response:
+            return json.load(response)["info"]["version"]
+    except Exception:
+        return None
 
 
 def build_wheel():
@@ -50,13 +68,15 @@ def build_wheel():
 
     Returns
     -------
-    wheels : list of str
+    wheels : list of pathlib.Path
         Paths of the MNE wheels that were built.
     """
-    # Clean first so stale wheels from previous runs do not accumulate and
-    # pollute the piplite all.json index.
+    # The version below is pinned, so each build writes the same filename and
+    # wheels do not pile up. Clearing first is about determinism instead: this
+    # directory is the piplite index, so it should hold the wheel this build
+    # produced and nothing else, including anything left by a manual pip wheel.
     shutil.rmtree(PYPI_WHEELS_DIR, ignore_errors=True)
-    os.makedirs(PYPI_WHEELS_DIR, exist_ok=True)
+    PYPI_WHEELS_DIR.mkdir(parents=True, exist_ok=True)
 
     # The wheel is built from pyproject.toml as it stands: Pyodide 314 ships
     # matplotlib 3.10.8, scipy 1.18.0 and numpy 2.4.3, all of which satisfy the
@@ -82,16 +102,19 @@ def build_wheel():
     )
 
     # Fail loudly rather than silently letting the browser kernel fall back to
-    # the older released MNE from PyPI.
+    # the released MNE from PyPI.
     wheels = find_wheels()
     if not wheels:
+        latest = _latest_pypi_version()
+        fallback = f"MNE {latest}" if latest else "the latest MNE release"
         raise RuntimeError(
-            f"JupyterLite: no MNE wheel was built into {PYPI_WHEELS_DIR!r}; the "
-            "browser kernel would fall back to the released PyPI version. Check "
-            "the 'pip wheel' output above."
+            f"JupyterLite: no MNE wheel was built into {PYPI_WHEELS_DIR}; the "
+            f"browser kernel would fall back to {fallback} from PyPI. Check the "
+            "'pip wheel' output above."
         )
     return wheels
 
 
 if __name__ == "__main__":
-    print(f"[JupyterLite] Built MNE wheel(s) for the browser kernel: {build_wheel()}")
+    built = ", ".join(str(wheel) for wheel in build_wheel())
+    print(f"[JupyterLite] Built MNE wheel(s) for the browser kernel: {built}")
