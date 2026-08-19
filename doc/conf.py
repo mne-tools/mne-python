@@ -805,7 +805,10 @@ for _folder, _ds_files in (
 # invocation; if none is present we build it here, so the docs build never
 # depends on the pre-step having run.
 _lite_wheels = find_wheels() or build_wheel()
-sphinx_logger.info(f"[JupyterLite] MNE wheel for the browser kernel: {_lite_wheels}")
+_lite_wheel_names = ", ".join(str(_wheel) for _wheel in _lite_wheels)
+sphinx_logger.info(
+    f"[JupyterLite] MNE wheel for the browser kernel: {_lite_wheel_names}"
+)
 
 sphinx_gallery_conf = {
     "jupyterlite": {
