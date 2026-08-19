@@ -2750,7 +2750,7 @@ class FilterMixin:
                     ``envelope=False`` and compute the envelope after the
                     inverse solution has been obtained.
 
-        If envelope=False, more memory is required since the original raw data
+        If ``envelope=False``, more memory is required since the original raw data
         as well as the analytic signal have temporarily to be stored in memory.
         If n_jobs > 1, more memory is required as ``len(picks) * n_times``
         additional time points need to be temporarily stored in memory.
