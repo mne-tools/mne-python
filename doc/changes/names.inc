@@ -247,6 +247,7 @@
 .. _Laurent Le Mentec: https://github.com/LaurentLM
 .. _Leonardo Barbosa: https://github.com/noreun
 .. _Leonardo Rochael Almeida: https://github.com/leorochael
+.. _Leonardo Zaggia: https://github.com/leonardozaggia
 .. _Liberty Hamilton: https://github.com/libertyh
 .. _Lifeng Qiu Lin: https://github.com/Gnefil
 .. _Lorenz Esch: https://github.com/LorenzE
