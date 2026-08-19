@@ -312,6 +312,11 @@ def maxwell_filter(
     -----
     .. versionadded:: 0.11
 
+    When ``head_pos`` is provided, the returned object contains cHPI result
+    channels that have no counterpart in the source file. It therefore cannot
+    be concatenated using ``raw_sss.append(..., preload=False)``. Use
+    ``preload=True`` or a memory-mapped filename instead.
+
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
     from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`.
