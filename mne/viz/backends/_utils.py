@@ -275,6 +275,19 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+def _qt_block(renderer):
+    """Halt execution until the renderer's window is closed.
+
+    Does nothing for backends that have no Qt application to run, such as the
+    notebook backend.
+    """
+    if renderer._kind == "notebook":
+        return
+    app = renderer.figure.store.get("app")
+    if app is not None:
+        _qt_app_exec(app)
+
+
 def _qt_detect_theme():
     try:
         import darkdetect

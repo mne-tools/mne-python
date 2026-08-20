@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -11,6 +13,7 @@ from mne.viz.backends._utils import (
     _check_color,
     _get_colormap_from_array,
     _pixmap_to_ndarray,
+    _qt_block,
     _qt_is_dark,
 )
 from mne.viz.utils import _is_dark
@@ -28,6 +31,38 @@ def test_get_colormap_from_array():
     assert isinstance(cmap, ListedColormap)
     cmap = _get_colormap_from_array(colormap=[255, 255, 255], normalized_colormap=False)
     assert isinstance(cmap, ListedColormap)
+
+
+def _fake_renderer(kind, store):
+    return SimpleNamespace(_kind=kind, figure=SimpleNamespace(store=store))
+
+
+def test_qt_block_without_qt_app():
+    """Test that _qt_block is a no-op when there is no Qt app to run."""
+    # the notebook backend never has a Qt application
+    _qt_block(_fake_renderer("notebook", {}))
+    # neither does a renderer whose plotter was supplied by the caller
+    _qt_block(_fake_renderer("qt", {}))
+
+
+def test_qt_block_runs_event_loop():
+    """Test that _qt_block does not return until the Qt application quits."""
+    pytest.importorskip("qtpy")
+    from qtpy.QtCore import QTimer
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    quit_ran = []
+
+    def _quit():
+        quit_ran.append(True)
+        app.quit()
+
+    # If _qt_block returned without running the event loop, the timer would never
+    # fire and quit_ran would still be empty when we check it.
+    QTimer.singleShot(100, _quit)
+    _qt_block(_fake_renderer("qt", {"app": app}))
+    assert quit_ran == [True]
 
 
 def test_check_color():
