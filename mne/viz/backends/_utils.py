@@ -4,10 +4,12 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc
+import contextlib
 import functools
 import os
 import platform
 import signal
+import socket
 import sys
 from contextlib import contextmanager
 from ctypes import c_char_p, c_void_p, cdll
@@ -273,6 +275,79 @@ def _qt_app_exec(app):
         # reset the SIGINT exception handler
         if is_python_signal_handler:
             signal.signal(signal.SIGINT, old_signal)
+
+
+@contextmanager
+def _allow_qt_interrupt(loop):
+    """Let SIGINT out of a Qt event loop, which otherwise never lets Python run.
+
+    Adapted from Matplotlib: a socketpair registered as the signal wakeup fd makes Qt
+    wake up on delivery, and running any Python at all (the notifier callback) is what
+    lets the interpreter reach the handler.
+    """
+    from qtpy.QtCore import QSocketNotifier
+
+    old_handler = signal.getsignal(signal.SIGINT)
+    if old_handler in (None, signal.SIG_IGN, signal.SIG_DFL):
+        yield  # a non-Python handler owns SIGINT; don't get in its way
+        return
+    wsock, rsock = socket.socketpair()
+    wsock.setblocking(False)
+    rsock.setblocking(False)
+    old_wakeup_fd = signal.set_wakeup_fd(wsock.fileno())
+    notifier = QSocketNotifier(rsock.fileno(), QSocketNotifier.Type.Read)
+
+    def _drain():
+        with contextlib.suppress(BlockingIOError):
+            rsock.recv(1)  # re-arm the notifier, which the wakeup write triggered
+
+    notifier.activated.connect(_drain)
+    handler_args = []
+    signal.signal(signal.SIGINT, lambda *args: (handler_args.append(args), loop.quit()))
+    try:
+        yield
+    finally:
+        notifier.setEnabled(False)
+        signal.set_wakeup_fd(old_wakeup_fd)
+        signal.signal(signal.SIGINT, old_handler)
+        wsock.close()
+        rsock.close()
+        # Hand the signal to whoever owned it (a notebook kernel, IPython, plain
+        # Python) with the frame it arrived on, so it is reported their way
+        if handler_args:
+            old_handler(*handler_args[0])
+
+
+def _qt_block(window):
+    """Block until ``window`` is closed, keeping it interactive.
+
+    Unlike :func:`_qt_app_exec` this runs a nested loop instead of the application's
+    own, so it neither quits the app nor stops an event loop something else owns (a
+    notebook kernel, an IDE), and it returns when this window closes rather than when
+    the last one does.
+    """
+    from qtpy.QtCore import QEvent, QEventLoop, QObject
+
+    if not window.isVisible():
+        return
+
+    loop = QEventLoop()
+
+    class _CloseWatcher(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Close:
+                loop.quit()
+            return False
+
+    watcher = _CloseWatcher()
+    window.installEventFilter(watcher)
+    window.destroyed.connect(loop.quit)  # closed without a Close event
+    try:
+        with _allow_qt_interrupt(loop):
+            loop.exec()
+    finally:
+        with contextlib.suppress(RuntimeError):  # window may already be deleted
+            window.removeEventFilter(watcher)
 
 
 def _qt_detect_theme():
