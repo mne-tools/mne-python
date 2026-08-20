@@ -1465,6 +1465,100 @@ something
         assert_allclose(img.shape[0], screenshot_all.shape[0], atol=1)
 
 
+@testing.requires_testing_data
+def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the native Qt trace-list sidebar that replaces the mpl legend."""
+    from qtpy.QtWidgets import QLabel
+
+    brain = _create_testing_brain(hemi="lh", show_traces=True, initial_time=0)
+    canvas = brain.mpl_canvas
+    assert canvas._legend_in_figure is False
+    trace_list = canvas._trace_list
+    assert trace_list is not None
+
+    def row_text(row):
+        return row.findChild(QLabel, "trace_label").text()
+
+    rows = trace_list._rows_layout
+    row_lines = [rows.itemAt(i).widget()._line for i in range(rows.count())]
+    assert row_lines == [
+        line for line in canvas.axes.get_lines() if line is not brain.time_line
+    ]
+
+    # the auto-picked peak-activation vertex gets a friendly display label,
+    # distinct from the underlying matplotlib line label
+    peak_line = next(
+        ln for ln in row_lines if brain._trace_meta.get(ln, (None,))[0] == "lh"
+    )
+    peak_row = rows.itemAt(row_lines.index(peak_line)).widget()
+    assert row_text(peak_row) == f"Peak (LH) {brain._peak_vertices['lh']}"
+    assert row_text(peak_row) != peak_line.get_label()
+
+    # picking a new vertex should grow the sidebar to match, and the new
+    # row's displayed label must be correct immediately -- this guards
+    # against a real bug where the label lookup ran before the line was
+    # tagged with its hemi/vertex_id, showing the raw label for one redraw
+    picked = set(brain.get_picked_points()["lh"])
+    n_verts = len(brain.geo["lh"].coords)
+    vertex_id = next(v for v in range(n_verts) if v not in picked)
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=vertex_id))
+    assert rows.count() == len(row_lines) + 1
+    row = rows.itemAt(rows.count() - 1).widget()
+    line = row._line
+    assert str(vertex_id) in line.get_label()
+    assert row_text(row) == f"LH {vertex_id}"
+
+    # toggling a row hides the trace and its 3D glyph together, without
+    # rebuilding the row list (sync() must skip unchanged trace sets --
+    # the whole point of the native list was to stop rebuilding on every
+    # update, which is what caused the original matplotlib-legend lag)
+    assert line.get_visible()
+    row._on_toggle()
+    assert not line.get_visible()
+    assert rows.itemAt(rows.count() - 1).widget() is row  # not rebuilt
+    sphere = next(s[0] for s in brain._picked_points.values() if s[0]["line"] is line)
+    assert not sphere["actor"].GetVisibility()
+    row._on_toggle()
+    assert line.get_visible()
+    assert sphere["actor"].GetVisibility()
+    assert rows.itemAt(rows.count() - 1).widget() is row  # still not rebuilt
+
+    # hovering a row dims the other traces without disturbing the RMS
+    # curve's own (deliberately non-default) alpha
+    rms_line = next(
+        ln for ln in canvas.axes.get_lines() if ln.get_label().startswith("RMS")
+    )
+    assert rms_line.get_alpha() == 0.5
+    canvas.set_trace_highlight(line)
+    assert line.get_alpha() == 1.0
+    assert rms_line.get_alpha() == 0.25
+    canvas.set_trace_highlight(None)
+    assert rms_line.get_alpha() == 0.5  # restored, not clobbered to 1.0
+
+    # hovering a *hidden* trace must not dim its still-visible siblings
+    row._on_toggle()  # hide it again
+    assert not line.get_visible()
+    canvas.set_trace_highlight(line)
+    assert rms_line.get_alpha() == 0.5  # untouched, not dimmed to 0.25
+    row._on_toggle()
+
+    # switching to Atlas/label mode and back to "None" must not shift trace
+    # colors -- regression: clear_glyphs() used to drop RMS lines without
+    # returning their color to brain.color_cycle, leaking a color (and
+    # shifting every subsequent one) on each round trip. Only RMS/peak are
+    # compared: the manually-added second pick above is legitimately not
+    # restored by a mode switch, only the auto-picked peak vertex is.
+    rms_colors = [ln.get_color() for ln in brain.rms]
+    peak_color = peak_line.get_color()
+    brain.widgets["annotation"].set_value("aparc")
+    brain.widgets["annotation"].set_value("None")
+    assert [ln.get_color() for ln in brain.rms] == rms_colors
+    new_peak_line = next(iter(brain._picked_points.values()))[0]["line"]
+    assert new_peak_line.get_color() == peak_color
+
+    brain.close()
+
+
 def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc):
     """Test colormap selection."""
     brain = _create_testing_brain(
