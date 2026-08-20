@@ -153,7 +153,7 @@ fig4.set_time(0.1)
 # Clicking a vertex on a :class:`~mne.viz.Brain` figure publishes a
 # :class:`~mne.viz.ui_events.VertexSelect` event. Alongside ``vertex_id``, which is
 # specific to the brain figure itself, a more useful payload is the ``source_id``: the
-# index of the nearest point in the source space, what other plots need.
+# index of the nearest point in the source space, which other plots need.
 #
 # Here we show an example to index the lead field (gain matrix) of a forward solution.
 # The lead field shows the sensor pattern a unit dipole at that location would produce.
