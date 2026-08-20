@@ -65,7 +65,7 @@ from ..viz._3d import (
     _plot_mri_fiducials,
     _plot_sensors_3d,
 )
-from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
+from ..viz.backends._utils import _qt_block, _qt_safe_window
 from ..viz.utils import safe_event
 
 
@@ -381,8 +381,8 @@ class CoregistrationUI(HasTraits):
         self._trans_modified = False
         self._mri_fids_modified = False
         self._mri_scale_modified = False
-        if block and self._renderer._kind != "notebook":
-            _qt_app_exec(self._renderer.figure.store["app"])
+        if block:
+            _qt_block(self._renderer)
 
     def _set_subjects_dir(self, subjects_dir):
         if subjects_dir is None or not subjects_dir:
