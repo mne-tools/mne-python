@@ -2396,6 +2396,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_time=None,
         initial_pos=None,
         verbose=None,
+        plot_abs=False,
     ):
         from .viz import plot_volume_source_estimates
 
