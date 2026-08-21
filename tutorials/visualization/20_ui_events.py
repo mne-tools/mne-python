@@ -16,15 +16,17 @@ hooking our own custom plot into MNE-Python's event system.
 Since the figures on our website don't have any interaction capabilities, this example
 will only work properly when run in an interactive environment.
 """
+
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.viz.ui_events import TimeChange, link, publish, subscribe
+from mne.viz.ui_events import TimeChange, VertexSelect, link, publish, subscribe
 
 # Turn on interactivity
 plt.ion()
@@ -143,3 +145,55 @@ link(fig3, fig4, fig5)
 
 # Method calls like this also emit the appropriate UI event.
 fig4.set_time(0.1)
+
+
+########################################################################################
+# Reacting to a vertex selection
+# ==============================
+# Clicking a vertex on a :class:`~mne.viz.Brain` figure publishes a
+# :class:`~mne.viz.ui_events.VertexSelect` event. Alongside ``vertex_id``, which is
+# specific to the brain figure itself, a more useful payload is the ``source_id``: the
+# index of the nearest point in the source space, which other plots need.
+#
+# Here we show an example to index the lead field (gain matrix) of a forward solution.
+# The lead field shows the sensor pattern a unit dipole at that location would produce.
+# Plotting the topomap after clicking the vertex answers the question: if this patch of
+# cortex were active, which sensors would see it?
+
+fwd = mne.read_forward_solution(
+    data_path / "MEG" / "sample" / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+)
+fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True, use_cps=True)
+fwd = mne.pick_types_forward(fwd, meg="mag", eeg=False)
+gain = fwd["sol"]["data"]  # (n_channels, n_sources)
+
+hemi_offset = dict(
+    lh=0, rh=len(stc.vertices[0])
+)  # right hemisphere after left (offset)
+
+fig6 = stc.plot("sample", subjects_dir=data_path / "subjects", hemi="both")
+fig7, ax = plt.subplots(figsize=(4, 4), layout="constrained")
+
+
+def on_vertex_select(event):
+    ax.clear()
+    if event.source_id is None:
+        # Parts of the mesh outside the source space
+        ax.set_title(f"vertex {event.vertex_id}:\nno nearby source point")
+    else:
+        column = hemi_offset[event.hemi] + event.source_id
+        mne.viz.plot_topomap(gain[:, column], fwd["info"], axes=ax, show=False)
+        ax.set_title(f"{event.hemi} source {event.source_id}")
+    fig7.canvas.draw()
+
+
+subscribe(fig6, "vertex_select", on_vertex_select)
+
+# Publishing an example with the strongest source in the left hemisphere.
+source_id = int(np.abs(stc.lh_data).max(axis=1).argmax())
+publish(
+    fig6,
+    VertexSelect(
+        hemi="lh", vertex_id=int(stc.vertices[0][source_id]), source_id=source_id
+    ),
+)
