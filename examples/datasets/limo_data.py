@@ -30,7 +30,6 @@ In summary, the example:
 .. _LIMO MEEG: https://github.com/LIMO-EEG-Toolbox
 .. _EEGLAB: https://sccn.ucsd.edu/eeglab/index.php
 .. _Fig 1: https://bmcneurosci.biomedcentral.com/articles/10.1186/1471-2202-9-98/figures/1
-.. _least squares: https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.lstsq.html
 """  # noqa: E501
 # Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
 #

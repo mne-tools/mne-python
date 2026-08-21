@@ -4,6 +4,7 @@
 
 import itertools
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -747,6 +748,16 @@ def test_plot_raw_traces(raw, events, browser_backend):
         raw.plot(order="foo")
     with pytest.raises(TypeError, match="title must be None or a string, got"):
         raw.plot(title=1)
+    # in-memory raw has filenames == (None,); title should fall back to class + size
+    fig = RawArray(raw.get_data(), raw.info).plot()
+    if browser_backend.name != "matplotlib":
+        title = fig.windowTitle()
+    elif check_version("matplotlib", "3.10.3"):
+        title = fig.canvas.manager.get_window_title()
+    else:  # matplotlib < 3.10.3 hard-codes "image" for non-GUI window titles
+        title = None
+    if title is not None:
+        assert re.match(r"RawArray \(~[\d.]+ (bytes|[KMGT]iB)\)", title), title
     raw.plot(show_options=True)
     browser_backend._close_all()
 

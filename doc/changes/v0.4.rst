@@ -50,3 +50,5 @@ of commits):
 *  4  Christian Brodbeck
 *  4  Louis Thibault
 *  2  Brad Buran
+
+.. include:: names.inc
