@@ -99,11 +99,17 @@ cropping, projections, export) lives in mixins under `mne/channels/`, `mne/filte
 `mne/utils/mixin.py`, etc. and is composed via multiple inheritance rather than duplicated per
 class.
 
-### Shared/templated docstrings
-Common parameter descriptions live in a central dict in `mne/utils/docs.py` and are spliced into
-function/method docstrings via the `@fill_doc` decorator + `%(param_name)s` placeholders — grep
-for `docdict[` / `@fill_doc` before writing out a parameter docstring by hand, it's likely already
-defined.
+### Shared docstrings (`docdict`)
+Common parameter descriptions live in a central dict in `mne/utils/docs.py`; grep for `docdict[`
+before writing out a parameter docstring by hand, it's likely already defined. New code should use
+`@fill_doc_static("key", ...)` / `@verbose_static("key", ...)` with the full text written out in
+the docstring (and `@copy_function_doc_to_method_doc_static("func:...")` for methods that copy a
+function's docstring); `tools/hooks/check_static_docs.py --fix FILE` expands `%(key)s`
+placeholders and keeps the expanded text in sync with `docdict`. Shared text can be edited either
+in `docdict` or in any one expanded copy; the pre-commit hook (which runs with `--fix`)
+propagates the edit to the other side and fails the commit once so the changes can be reviewed
+and staged. The legacy `@fill_doc`/`@verbose` decorators substitute `%(key)s` at import time
+(IDEs can't see the result); don't add new uses.
 
 ### Changelog is per-PR fragment files (towncrier), not a single hand-edited file
 User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types: `notable`,

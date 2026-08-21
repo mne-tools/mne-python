@@ -48,6 +48,7 @@ from ..utils import (
     copy_doc,
     copy_function_doc_to_method_doc,
     fill_doc,
+    fill_doc_static,
     legacy,
     logger,
     object_diff,
@@ -61,9 +62,9 @@ from .multitaper import dpss_windows, tfr_array_multitaper
 from .spectrum import EpochsSpectrum
 
 
-@fill_doc
+@fill_doc_static("morlet_reference", "fwhm_morlet_notes")
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
-    """Compute Morlet wavelets for the given frequency range.
+    r"""Compute Morlet wavelets for the given frequency range.
 
     Parameters
     ----------
@@ -97,8 +98,35 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Notes
     -----
-    %(morlet_reference)s
-    %(fwhm_morlet_notes)s
+    The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
+    Convolution of a signal with a Morlet wavelet will impose temporal smoothing
+    that is determined by the duration of the wavelet. In MNE-Python, the duration
+    of the wavelet is determined by the ``sigma`` parameter, which gives the
+    standard deviation of the wavelet's Gaussian envelope (our wavelets extend to
+    ±5 standard deviations to ensure values very close to zero at the endpoints).
+    Some authors (e.g., :footcite:t:`Cohen2019`) recommend specifying and reporting
+    wavelet duration in terms of the full-width half-maximum (FWHM) of the
+    wavelet's Gaussian envelope. The FWHM is related to ``sigma`` by the following
+    identity: :math:`\mathrm{FWHM} = \sigma \times 2 \sqrt{2 \ln{2}}` (or the
+    equivalent in Python code: ``fwhm = sigma * 2 * np.sqrt(2 * np.log(2))``).
+    If ``sigma`` is not provided, it is computed from ``n_cycles`` as
+    :math:`\frac{\mathtt{n\_cycles}}{2 \pi f}` where :math:`f` is the frequency of
+    the wavelet oscillation (given by ``freqs``). Thus when ``sigma=None`` the FWHM
+    will be given by
+
+    .. math::
+
+        \mathrm{FWHM} = \frac{\mathtt{n\_cycles} \times \sqrt{2 \ln{2}}}{\pi \times f}
+
+    (cf. eq. 4 in :footcite:`Cohen2019`). To create wavelets with a chosen FWHM,
+    one can compute::
+
+        n_cycles = desired_fwhm * np.pi * np.array(freqs) / np.sqrt(2 * np.log(2))
+
+    to get an array of values for ``n_cycles`` that yield the desired FWHM at each
+    frequency in ``freqs``.  If you want different FWHM values at each frequency,
+    do the same computation with ``desired_fwhm`` as an array of the same shape as
+    ``freqs``.
 
     References
     ----------
@@ -134,7 +162,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
                 color='k', linestyle='-', label='FWHM', zorder=6)
         ax.legend(loc='upper right')
         ax.set(xlabel='Time (s)', ylabel='Amplitude')
-    """  # noqa: E501
+    """
     Ws = list()
     n_cycles = np.array(n_cycles, float).ravel()
 
@@ -1293,11 +1321,21 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         tfr.data = np.abs(tfr.data)
         return tfr
 
-    @fill_doc
+    @fill_doc_static("__add__tfr")
     def __add__(self, other):
         """Add two TFR instances.
 
-        %(__add__tfr)s
+        Parameters
+        ----------
+        other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The TFR instance to add. Must have the same type as ``self``, and matching
+            ``.times`` and ``.freqs`` attributes.
+
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            A new TFR instance, of the same type as ``self``.
         """
         self._check_compatibility(other)
         out = self.copy()

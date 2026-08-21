@@ -95,6 +95,14 @@ repos:
         language: python
         entry: ./tools/hooks/sort_contributor_names.py
         files: '^(doc/changes/names.inc|.mailmap)$'
+      - id: check-static-docs
+        name: Check statically filled docstrings against docdict
+        language: python
+        entry: ./tools/hooks/check_static_docs.py
+        args: [--fix]
+        additional_dependencies: [numpy, scipy, matplotlib, decorator, lazy_loader, packaging, jinja2, pooch, tqdm]
+        files: '^mne/.*\.py$'
+        exclude: '^mne/.*/tests/'
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit

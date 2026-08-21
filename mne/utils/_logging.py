@@ -103,7 +103,40 @@ def verbose(function: _FuncT) -> _FuncT:
         fill_doc(function)
     except TypeError:  # nothing to add
         pass
+    return _wrap_verbose(function)
 
+
+def verbose_static(*keys: str) -> Callable[[_FuncT], _FuncT]:
+    """Verbose decorator for functions whose docstrings are statically filled.
+
+    Behaves like :func:`mne.verbose` for log-level handling, but does **not**
+    modify the docstring at import time. The docstring must already contain the
+    fully expanded text of ``docdict["verbose"]`` (and of every key in ``keys``);
+    this is enforced by ``tools/hooks/check_static_docs.py`` (run via
+    pre-commit), which can also update the docstring with ``--fix`` when the
+    ``docdict`` entry changes.
+
+    Parameters
+    ----------
+    *keys : str
+        Additional ``docdict`` keys whose expanded text this docstring contains
+        (``"verbose"`` is implied).
+
+    Returns
+    -------
+    dec : callable
+        The decorator.
+    """
+
+    def dec(function: _FuncT) -> _FuncT:
+        out = _wrap_verbose(function)
+        out._static_doc_keys = ("verbose", *keys)
+        return out
+
+    return dec
+
+
+def _wrap_verbose(function: _FuncT) -> _FuncT:
     # Anything using verbose should have `verbose=None` in the signature.
     # This code path will raise an error if this is not the case.
     body = """\

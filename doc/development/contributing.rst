@@ -846,6 +846,82 @@ relatively complex. To run some basic tests on documentation, you can use::
     $ make ruff
 
 
+Shared parameter descriptions (the ``docdict``)
+-----------------------------------------------
+
+Many parameters (``picks``, ``n_jobs``, ``verbose``, ``baseline``, ...) and some
+longer passages (e.g., the notes on plotting backends) recur across the API.
+Their text is written once, in the ``docdict`` dictionary in
+:file:`mne/utils/docs.py`, and reused everywhere. Before writing a parameter
+description by hand, ``git grep`` the parameter name in :file:`mne/utils/docs.py`
+--- it is probably already there.
+
+There are two ways a docstring can use ``docdict`` entries:
+
+**Static (preferred for new code):** the docstring contains the *complete*
+text, and the function is decorated with ``@fill_doc_static(...)`` (or
+``@verbose_static(...)`` if it takes a ``verbose`` argument) listing the
+``docdict`` keys it contains::
+
+    @verbose_static("picks_all", "n_jobs")
+    def my_function(inst, picks=None, n_jobs=None, verbose=None):
+        """Do something.
+
+        Parameters
+        ----------
+        inst : instance of Raw
+            The data.
+        picks : str | array-like | slice | None
+            Channels to include. ...          <-- full text of docdict["picks_all"]
+        n_jobs : int | None
+            The number of jobs to run in parallel. ...
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. ...
+        """
+
+Nothing is substituted at import time, so the text you see in the source is
+exactly what ``help()``, Sphinx, and your IDE's hover tooltips show. Methods
+whose docstring is copied from a function (e.g., :meth:`mne.io.Raw.plot` from
+:func:`mne.viz.plot_raw`) work the same way with
+``@copy_function_doc_to_method_doc_static("func:mne.viz.plot_raw")`` (or
+``@copy_doc_static("meth:...")``) above the fully written-out docstring.
+
+A pre-commit hook (``tools/hooks/check_static_docs.py``) keeps every copy in
+sync with its source. It runs with ``--fix``, so it *rewrites* files and fails
+the commit when it had to; review the changes, ``git add`` them, and commit
+again. You can also run it by hand::
+
+    $ python tools/hooks/check_static_docs.py --fix mne/some_module.py
+
+In practice this means:
+
+- **Adding a shared parameter to a function:** write ``%(key)s`` on its own
+  line in the parameter list; the hook expands it and adds the key to the
+  decorator.
+- **Changing shared text:** edit it *either* in :file:`mne/utils/docs.py` *or*
+  in any one docstring that uses it --- the hook detects which side changed
+  (by comparing ``docdict`` with ``git HEAD``) and propagates the edit to
+  ``docdict`` and every other docstring. Entries that are built from templates
+  in :file:`mne/utils/docs.py` rather than written as plain strings can only be
+  edited there; the hook tells you when that is the case.
+- **Site-specific additions** (a ``.. versionadded::`` note, an extra
+  sentence) may follow the shared text within the same parameter block or
+  paragraph; the hook only manages the shared part. When adding such text,
+  start it with a blank line --- lines added directly after the shared text are
+  taken to be shared, and propagated everywhere.
+- **Text that is nearly but not quite shared:** add a new ``docdict`` entry
+  (e.g., ``picks_good_data`` next to ``picks_all``) rather than editing one
+  copy.
+
+**Dynamic (legacy):** the docstring contains ``%(key)s`` placeholders and the
+function is decorated with ``@fill_doc`` (or ``@verbose``), which substitutes
+them at import time. This keeps the source short, but static analysis tools
+only ever see the placeholders (see :gh:`8218`). Existing uses are being
+migrated; please do not add new ones. ``@fill_doc``, ``@verbose``,
+``@copy_doc`` and ``@copy_function_doc_to_method_doc`` remain available (and
+unchanged) for downstream packages.
+
+
 Cross-reference everywhere
 --------------------------
 

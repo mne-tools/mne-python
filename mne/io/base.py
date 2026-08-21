@@ -95,7 +95,7 @@ from ..utils import (
     _validate_type,
     check_fname,
     copy_doc,
-    copy_function_doc_to_method_doc,
+    copy_function_doc_to_method_doc_static,
     fill_doc,
     logger,
     repr_html,
@@ -2022,7 +2022,7 @@ class BaseRaw(
             raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_raw")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_raw")
     def plot(
         self,
         events: np.ndarray | None = None,
@@ -2067,6 +2067,303 @@ class BaseRaw(
         verbose: bool | str | int | None = None,
         figure_class: type | None = None,
     ) -> "Figure | MNEQtBrowser":
+        """Plot raw data.
+
+        Parameters
+        ----------
+        events : array | None
+            Events to show with vertical bars.
+        duration : float
+            Time window (s) to plot. The lesser of this value and the duration
+            of the raw file will be used.
+        start : float
+            Initial time to show (can be changed dynamically once plotted). If
+            show_first_samp is True, then it is taken relative to
+            ``raw.first_samp``.
+        n_channels : int
+            Number of channels to plot at once. Defaults to 20. The lesser of
+            ``n_channels`` and ``len(raw.ch_names)`` will be shown.
+            Has no effect if ``order`` is 'position', 'selection' or 'butterfly'.
+        bgcolor : color object
+            Color of the background.
+        color : dict | color object | None
+            Color for the data traces. If None, defaults to::
+
+                dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
+                     emg='k', ref_meg='steelblue', misc='k', stim='k',
+                     resp='k', chpi='k')
+
+            If a dict, keys can be channel *types* (e.g., ``'eeg'``) and/or
+            channel *names* (e.g., ``'SFG, Left'``); name-based entries
+            take precedence over type-based ones.
+
+        bad_color : color object
+            Color to make bad channels.
+        event_color : color object | dict | None
+            Color(s) to use for :term:`events`. To show all :term:`events` in the same
+            color, pass any matplotlib-compatible color. To color events differently,
+            pass a `dict` that maps event names or integer event numbers to colors
+            (must include entries for *all* events, or include a "fallback" entry with
+            key ``-1``). If ``None``, colors are chosen from the current Matplotlib
+            color cycle.
+        annotation_colors : dict | None
+            A dictionary mapping annotation description strings to colors. Use this to
+            override the default color assigned to specific annotation types (e.g.,
+            ``dict(bad_segment='orange')``). Colors can be any valid Matplotlib color
+            specification. Keys that do not match any annotation description in the data
+            will trigger a warning. If ``None`` (default), automatic colors are used.
+
+            .. versionadded:: 1.12.1
+        annotation_regex : str
+            A regex pattern applied to each annotation's label.
+            Matching labels remain visible, non-matching labels are hidden.
+
+            .. versionadded:: 1.11
+        scalings : 'auto' | dict | None
+            Scaling factors for the traces. If a dictionary where any
+            value is ``'auto'``, the scaling factor is set to match the 99.5th
+            percentile of the respective data. If ``'auto'``, all scalings (for all
+            channel types) are set to ``'auto'``. If any values are ``'auto'`` and the
+            data is not preloaded, a subset up to 100 MB will be loaded. If ``None``,
+            defaults to::
+
+                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                     resp=1, chpi=1e-4, whitened=1e2)
+
+            .. note::
+                A particular scaling value ``s`` corresponds to half of the visualized
+                signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+                ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+                signals means that the visualized range will be 40 µV (20 µV in the
+                positive direction and 20 µV in the negative direction).
+        remove_dc : bool
+            If True remove DC component when plotting data.
+        order : array of int | None
+            Order in which to plot data. If the array is shorter than the number of
+            channels, only the given channels are plotted. If None (default), all
+            channels are plotted. If ``group_by`` is ``'position'`` or
+            ``'selection'``, the ``order`` parameter is used only for selecting the
+            channels to be plotted.
+        show_options : bool
+            If True, a dialog for options related to projection is shown.
+        title : str | None
+            The title of the window. If None, the filename of the raw object is
+            used; for in-memory instances without a filename (e.g.,
+            `~mne.io.RawArray`), the class name and approximate size are used.
+        show : bool
+            Show figure if True.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for setting bad channels on the fly by clicking on a line.
+            May not work on all systems / platforms.
+            (Only Qt) If you run from a script, this needs to
+            be ``True`` or a Qt-eventloop needs to be started somewhere
+            else in the script (e.g. if you want to implement the browser
+            inside another Qt-Application).
+        highpass : float | None
+            Highpass to apply when displaying data.
+        lowpass : float | None
+            Lowpass to apply when displaying data.
+            If highpass > lowpass, a bandstop rather than bandpass filter
+            will be applied.
+        filtorder : int
+            Filtering order. 0 will use FIR filtering with MNE defaults.
+            Other values will construct an IIR filter of the given order
+            and apply it with :func:`~scipy.signal.filtfilt` (making the effective
+            order twice ``filtorder``). Filtering may produce some edge artifacts
+            (at the left and right edges) of the signals during display.
+
+            .. versionchanged:: 0.18
+               Support for ``filtorder=0`` to use FIR filtering.
+        clipping : str | float | None
+            If None, channels are allowed to exceed their designated bounds in
+            the plot. If "clamp", then values are clamped to the appropriate
+            range for display, creating step-like artifacts. If "transparent",
+            then excessive values are not shown, creating gaps in the traces.
+            If float, clipping occurs for values beyond the ``clipping`` multiple
+            of their dedicated range, so ``clipping=1.`` is an alias for
+            ``clipping='transparent'``.
+
+            .. versionchanged:: 0.21
+               Support for float, and default changed from None to 1.5.
+        show_first_samp : bool
+            If True, show time axis relative to the ``raw.first_samp``.
+        proj : bool
+            Whether to apply projectors prior to plotting (default is ``True``).
+            Individual projectors can be enabled/disabled interactively (see
+            Notes). This argument only affects the plot; use ``raw.apply_proj()``
+            to modify the data stored in the Raw object.
+        group_by : str
+            How to group channels. ``'type'`` groups by channel type,
+            ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+            Elekta's channel groupings (only works for Neuromag data),
+            ``'position'`` groups the channels by the positions of the sensors.
+            ``'selection'`` and ``'position'`` modes allow custom selections by
+            using a lasso selector on the topomap. In butterfly mode, ``'type'``
+            and ``'original'`` group the channels by type, whereas ``'selection'``
+            and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+            modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
+        butterfly : bool
+            Whether to start in butterfly mode. Defaults to False.
+        decim : int | 'auto'
+            Amount to decimate the data during display for speed purposes.
+            You should only decimate if the data are sufficiently low-passed,
+            otherwise aliasing can occur. The 'auto' mode (default) uses
+            the decimation that results in a sampling rate least three times
+            larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
+            will result in at least a 120 Hz displayed sample rate).
+        noise_cov : instance of Covariance | str | None
+            Noise covariance used to whiten the data while plotting.
+            Whitened data channels are scaled by ``scalings['whitened']``,
+            and their channel names are shown in italic.
+            Can be a string to load a covariance from disk.
+            See also :meth:`mne.Evoked.plot_white` for additional inspection
+            of noise covariance properties when whitening evoked data.
+            For data processed with SSS, the effective dependence between
+            magnetometers and gradiometers may introduce differences in scaling,
+            consider using :meth:`mne.Evoked.plot_white`.
+
+            .. versionadded:: 0.16.0
+        event_id : dict | None
+            Event IDs used to show at event markers (default None shows
+            the event numbers).
+
+            .. versionadded:: 0.16.0
+        show_scrollbars : bool
+            Whether to show scrollbars when the plot is initialized. Can be toggled
+            after initialization by pressing :kbd:`z` ("zen mode") while the plot
+            window is focused. Default is ``True``.
+
+            .. versionadded:: 0.19.0
+        show_scalebars : bool
+            Whether to show scale bars when the plot is initialized. Can be toggled
+            after initialization by pressing :kbd:`s` while the plot window is focused.
+            Default is ``True``.
+        show_zero_line : bool
+            Whether to show the zero line for each channel trace when the plot is
+            initialized. The line always marks the true zero of the channel, even
+            if the currently-visible window's mean has been subtracted for display
+            (see ``remove_dc``). Can be toggled after initialization by pressing
+            :kbd:`0` while the plot window is focused. Default is ``False``.
+
+            .. versionadded:: 1.13
+        time_format : 'float' | 'clock'
+            Style of time labels on the horizontal axis. If ``'float'``, labels will be
+            number of seconds from the start of the recording. If ``'clock'``,
+            labels will show "clock time" (hours/minutes/seconds) inferred from
+            ``raw.info['meas_date']``. Default is ``'float'``.
+
+            .. versionadded:: 0.24
+        precompute : bool | str
+            Whether to load all data (not just the visible portion) into RAM and
+            apply preprocessing (e.g., projectors) to the full data array in a separate
+            processor thread, instead of window-by-window during scrolling. The default
+            None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
+            ``'auto'``. ``'auto'`` compares available RAM space to the expected size of
+            the precomputed data, and precomputes only if enough RAM is available.
+            This is only used with the Qt backend.
+
+            .. versionadded:: 0.24
+            .. versionchanged:: 1.0
+               Support for the ``MNE_BROWSER_PRECOMPUTE`` config variable.
+        use_opengl : bool | None
+            Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+            May increase performance, but effect is dependent on system CPU and
+            graphics hardware. Only works if using the Qt backend. Default is
+            None, which will use False unless the user configuration variable
+            ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+            see :func:`mne.set_config`.
+
+            .. versionadded:: 0.24
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
+        theme : str | path-like
+            Can be "auto", "light", or "dark" or a path-like to a
+            custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+            `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+            `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+            respectively, are required.
+            If None (default), the config option MNE_BROWSER_THEME will be used,
+            defaulting to "auto" if it's not found.
+
+            For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``, and
+            ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a
+            custom stylesheet is also accepted.
+        overview_mode : str | None
+            Can be "channels", "empty", or "hidden" to set the overview bar mode
+            for the ``'qt'`` backend. If None (default), the config option
+            ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+            if it's not found.
+        splash : bool
+            If True (default), a splash screen is shown during the application
+            startup. Only applicable to the ``qt`` backend.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        figure_class : class
+            The backend specific ``MNEBrowseFigure`` class to use. This is typically
+            used to pass a subclass in order to customize the plot. This parameter
+            requires cooperation from the backend, and is currently only supported by
+            the ``matplotlib`` backend.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
+            Browser instance.
+
+        Notes
+        -----
+        The arrow keys (up/down/left/right) can typically be used to navigate
+        between channels and time ranges, but this depends on the backend
+        matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
+        left/right arrows will scroll by 25%% of ``duration``, whereas
+        shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
+        can be adjusted with - and + (or =) keys. The viewport dimensions can be
+        adjusted with page up/page down and home/end keys. Full screen mode can be
+        toggled with the F11 key, and scrollbars can be hidden/shown by pressing
+        'z'. Right-click a channel label to view its location. To mark or un-mark a
+        channel as bad, click on a channel label or a channel trace. The changes
+        will be reflected immediately in the raw object's ``raw.info['bads']``
+        entry.
+
+        If projectors are present, a button labelled "Prj" in the lower right
+        corner of the plot window opens a secondary control window, which allows
+        enabling/disabling specific projectors individually. This provides a means
+        of interactively observing how each projector would affect the raw data if
+        it were applied.
+
+        Annotation mode is toggled by pressing 'a', butterfly mode by pressing
+        'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
+        By default, the channel means are removed when ``remove_dc`` is set to
+        ``True``. This flag can be toggled by pressing 'd'.
+
+        MNE-Python provides two different backends for browsing plots (i.e.,
+        :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
+        and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
+        based on :mod:`matplotlib`, and the other is based on
+        :doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the
+        context manager :func:`mne.viz.use_browser_backend`, you can set it for the
+        duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
+        can set the default for your computer via
+        :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib')<mne.set_config>`
+        (or ``'qt'``).
+
+        .. note:: For the PyQtGraph backend to run in IPython with ``block=False``
+                  you must run the magic command ``%gui qt5`` first.
+        .. note:: To report issues with the PyQtGraph backend, please use the
+                  `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+                  of ``mne-qt-browser``.
+        """
         from ..viz import plot_raw
 
         return plot_raw(
