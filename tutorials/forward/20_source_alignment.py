@@ -395,8 +395,7 @@ mne.viz.plot_alignment(
 # %%
 # It is also possible to use :func:`mne.gui.coregistration`
 # to warp a subject (usually ``fsaverage``) to subject digitization data, see
-# `these slides
-# <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+# `these slides <MRI scaling slides_>`__.
 #
 # .. _right-handed: https://en.wikipedia.org/wiki/Right-hand_rule
 # .. _wiki_xform: https://en.wikipedia.org/wiki/Transformation_matrix
@@ -405,3 +404,5 @@ mne.viz.plot_alignment(
 # .. _RPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
 # .. _Polhemus: https://polhemus.com/scanning-digitizing/digitizing-products/
 # .. _FieldTrip FAQ on coordinate systems: http://www.fieldtriptoolbox.org/faq/how_are_the_different_head_and_mri_coordinate_systems_defined/  # noqa:E501
+#
+# .. include:: ../../links.inc
