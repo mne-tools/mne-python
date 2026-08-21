@@ -502,7 +502,7 @@ def tfr_array_multitaper(
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
     %(decim_tfr)s
-    output : str, default 'complex'
+    output : str
 
         * ``'complex'`` : single trial per taper complex values.
         * ``'power'`` : single trial power.
@@ -513,7 +513,7 @@ def tfr_array_multitaper(
           coherence across trials.
     %(n_jobs)s
         The parallelization is implemented across channels.
-    return_weights : bool, default False
+    return_weights : bool
         If True, return the taper weights. Only applies if ``output='complex'`` or
         ``'phase'``.
 

@@ -2420,7 +2420,7 @@ def plot_evoked_topomap(
         interactive_colorbar=True,
         single_time_point=False,
     )
-    plt_show(show, block=False)
+    plt_show(show)
     if axes is not None:
         fig.canvas.draw()
     return fig
@@ -3885,7 +3885,7 @@ def plot_arrowmap(
     info_to : instance of Info | None
         The measurement info to interpolate to. If None, it is assumed
         to be the same as info_from.
-    scale : float, default 3e-10
+    scale : float
         To scale the arrows.
     %(vlim_plot_topomap)s
 

@@ -66,13 +66,13 @@ jobs:
             python: '3.12'
             kind: minimal
           - os: ubuntu-22.04
-            python: '3.10'
+            python: '3.11'
             kind: old
           - os: ubuntu-latest
             python: '3.14t'  # free-threaded
             kind: pip-ft
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -99,7 +99,7 @@ jobs:
           pyvista: false
           wm: false
       # Python (if pip)
-      - uses: actions/setup-python@v6.3.0
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
@@ -119,7 +119,7 @@ jobs:
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v8.3.2
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -130,7 +130,11 @@ jobs:
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
-      - run: python ./tools/github_actions_check_old_env.py
+      - name: Check 'old' CI environment
+        uses: mne-tools/mne-tools/actions/check-environment@main
+        with:
+          project-root: ${{ github.workspace }}
+          groups: lockfile_extras
         if: matrix.kind == 'old'
       # Minimal commands on Linux (macOS stalls)
       - uses: actions/cache@v6.1.0
@@ -141,8 +145,10 @@ jobs:
       - run: bash ./tools/get_minimal_commands.sh
         if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
-      # Check Qt
-      - run: bash ./tools/check_qt_import.sh $MNE_QT_BACKEND
+      - name: Check Qt import
+        uses: mne-tools/mne-tools/actions/check-qt-import@main
+        with:
+          qt-backend: ${{ env.MNE_QT_BACKEND }}
         if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/

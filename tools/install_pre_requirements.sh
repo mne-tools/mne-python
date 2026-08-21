@@ -2,7 +2,6 @@
 
 set -eo pipefail
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
@@ -64,6 +63,7 @@ python -m pip install $STD_ARGS \
 	"mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
 	"mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
 	"nibabel @ https://github.com/nipy/nibabel/archive/refs/heads/master.zip" \
+	"nitime @ https://github.com/nipy/nitime/archive/refs/heads/master.zip" \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
@@ -78,5 +78,5 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 echo "::endgroup::"
 
 echo "::group::Check Qt import"
-${SCRIPT_DIR}/check_qt_import.sh "$MNE_QT_BACKEND"
+curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/check_qt_import.sh | bash -s -- "$MNE_QT_BACKEND"
 echo "::endgroup::"

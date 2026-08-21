@@ -366,28 +366,35 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_li
 
 # this has to go in mne.cuda instead of mne.filter to avoid import errors
 def _smart_pad(x, n_pad, pad="reflect_limited"):
-    """Pad vector x."""
+    """Pad the last axis of x."""
     n_pad = np.asarray(n_pad)
     assert n_pad.shape == (2,)
     if (n_pad == 0).all():
         return x
     elif (n_pad < 0).any():
         raise RuntimeError("n_pad must be non-negative")
+    n_times = x.shape[-1]
     if pad == "reflect_limited":
-        l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
-        r_z_pad = np.zeros(max(n_pad[1] - len(x) + 1, 0), dtype=x.dtype)
+        l_z_pad = np.zeros(
+            x.shape[:-1] + (max(n_pad[0] - n_times + 1, 0),), dtype=x.dtype
+        )
+        r_z_pad = np.zeros(
+            x.shape[:-1] + (max(n_pad[1] - n_times + 1, 0),), dtype=x.dtype
+        )
         out = np.concatenate(
             [
                 l_z_pad,
-                2 * x[0] - x[n_pad[0] : 0 : -1],
+                2 * x[..., :1] - x[..., n_pad[0] : 0 : -1],
                 x,
-                2 * x[-1] - x[-2 : -n_pad[1] - 2 : -1],
+                2 * x[..., -1:] - x[..., -2 : -n_pad[1] - 2 : -1],
                 r_z_pad,
-            ]
+            ],
+            axis=-1,
         )
     else:
         kwargs = dict()
         if pad == "reflect":
             kwargs["reflect_type"] = "odd"
-        out = np.pad(x, (tuple(n_pad),), pad, **kwargs)
+        pad_width = [(0, 0)] * (x.ndim - 1) + [tuple(n_pad)]
+        out = np.pad(x, pad_width, pad, **kwargs)
     return out

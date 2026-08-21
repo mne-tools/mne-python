@@ -5,7 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 from contextlib import nullcontext
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import numpy as np
@@ -52,7 +52,7 @@ misc_path = misc.data_path(download=False)
     ["meas_date", "orig_time", "ext"],
     [
         [None, None, ".vhdr"],
-        [datetime(2022, 12, 3, 19, 1, 10, 720100, tzinfo=timezone.utc), None, ".eeg"],
+        [datetime(2022, 12, 3, 19, 1, 10, 720100, tzinfo=UTC), None, ".eeg"],
     ],
 )
 def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
@@ -198,7 +198,7 @@ edfio_mark = pytest.mark.skipif(
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
-    raw.info.set_meas_date(datetime(2023, 9, 4, 14, 53, 9, tzinfo=timezone.utc))
+    raw.info.set_meas_date(datetime(2023, 9, 4, 14, 53, 9, tzinfo=UTC))
     raw.set_annotations(Annotations(onset=[1], duration=[0], description=["test"]))
 
     # include subject info and measurement date
@@ -379,7 +379,7 @@ def test_rawarray_edf(tmp_path):
         hour=time_now.hour,
         minute=time_now.minute,
         second=time_now.second,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
     raw.set_meas_date(meas_date)
     temp_fname = tmp_path / "test.edf"
@@ -427,7 +427,7 @@ def test_channel_label_too_long_for_edf_raises_error(tmp_path):
 def test_measurement_date_outside_range_valid_for_edf(tmp_path):
     """Test trying to save an EDF with a measurement date before 1985-01-01."""
     raw = _create_raw_for_edf_tests()
-    raw.set_meas_date(datetime(year=1984, month=1, day=1, tzinfo=timezone.utc))
+    raw.set_meas_date(datetime(year=1984, month=1, day=1, tzinfo=UTC))
     with pytest.raises(ValueError, match="EDF only allows dates from 1985 to 2084"):
         raw.export(tmp_path / "test.edf", overwrite=True)
 

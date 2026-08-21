@@ -849,7 +849,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
         An open file descriptor.
     tree : dict
         The FIF tree structure if source is a file id.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
 
@@ -886,7 +886,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     fname : path-like
         The name of the file, which should end with ``-src.fif`` or
         ``-src.fif.gz``.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
 
@@ -1421,9 +1421,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
-        # instead of csr_array
-        dists = csr_array(triu(dists, format=dists.format))
+        dists = triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,

@@ -408,7 +408,7 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
         The color (value) for each label (key).
     picks : list | tuple
         The channels to consider.
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments for
         :func:`mne_connectivity.viz.plot_connectivity_circle`.
 

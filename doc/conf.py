@@ -13,7 +13,8 @@ import faulthandler
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+import tomllib
+from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -58,7 +59,7 @@ from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa:
 # -- Project information -----------------------------------------------------
 
 project = "MNE"
-td = datetime.now(tz=timezone.utc)
+td = datetime.now(tz=UTC)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
@@ -444,17 +445,11 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-try:
-    import tomllib
-    # TODO VERSION: Can be removed once Python 3.11 is required
-except Exception:
-    pass
-else:
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
-    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
-    numpydoc_validation_checks = set(pyproject_nv["checks"])
-    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
+pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+numpydoc_validation_checks = set(pyproject_nv["checks"])
+numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
@@ -856,6 +851,7 @@ html_theme_options = {
         "json_url": "https://mne.tools/dev/_static/versions.json",
         "version_match": switcher_version_match,
     },
+    "show_version_warning_banner": True,
     "back_to_top_button": False,
 }
 

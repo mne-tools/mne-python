@@ -51,6 +51,7 @@ from ..utils import (
     _check_option,
     _clean_names,
     _ensure_int,
+    _limit_blas_threads,
     _pl,
     _time_mask,
     _validate_type,
@@ -713,6 +714,7 @@ def _prep_maxwell_filter(
     return params
 
 
+@_limit_blas_threads()
 def _run_maxwell_filter(
     raw,
     skip_by_annotation,
@@ -739,6 +741,7 @@ def _run_maxwell_filter(
     st_fixed,
     st_overlap,
     mc,
+    raw_offset=0,  # time offset of ``raw`` relative to ``mc``
 ):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -768,8 +771,8 @@ def _run_maxwell_filter(
     if not 0.0 < st_duration <= max_samps + 1.0:
         raise ValueError(
             f"st_duration ({st_duration / sfreq:0.1f}s) must be between 0 and the "
-            "longest contiguous duration of the data "
-            "({max_samps / sfreq:0.1f}s)."
+            f"longest contiguous duration of the data "
+            f"({max_samps / sfreq:0.1f}s)."
         )
 
     # This must be initialized inside _run_maxwell_filter because
@@ -779,6 +782,10 @@ def _run_maxwell_filter(
 
     # Process each valid block of data separately
     for onset, end in zip(onsets, ends):
+        # head positions are indexed relative to the recording, but onset and end are
+        # relative to raw, which can itself be a chunk of the recording
+        segment_offset = raw_offset + onset
+        mc.set_offset(segment_offset)
         n = end - onset
         assert n > 0
         tsss_valid = n >= st_duration
@@ -806,6 +813,7 @@ def _run_maxwell_filter(
             sfreq,
             window,
             name="tSSS-COLA",
+            offset=segment_offset,
         )
 
         # Generate time points to break up data into equal-length windows
@@ -863,6 +871,10 @@ class _MoveComp:
     """Perform movement compensation."""
 
     def __init__(self, pos, head_frame, raw, interp, reconstruct):
+        #   pos[0]: (n_pos, 4, 4): the dev_head_t transformation matrices
+        #   pos[1]: (n_pos,): sample indices into the recording, starting at 0
+        #   pos[2]: (n_pos, 9): rotation quaternion (:3), translation (3:6),
+        #       goodness of fit, error and velocity (6:9)
         self.pos = pos
         self.sfreq = raw.info["sfreq"]
         self.interp = interp
@@ -889,23 +901,40 @@ class _MoveComp:
         return op_sss, op_in, op_resid
 
     def initialize(self, get_decomp, dev_head_t, S_recon):
-        """Secondary initialization."""
+        """Secondary initialization.
+
+        Call :meth:`set_offset` before feeding data.
+        """
+        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
+        self.n_good = pS_decomp.shape[1]
+        self.S_recon = S_recon
+        self.get_decomp = get_decomp
+        # For the average passes
+        self.last_avg_quat = np.nan * np.ones(6)
+        self.smooth = None  # set_offset positions us in the recording
+
+    def set_offset(self, offset):
+        """Position at the given sample of the recording to process a segment there.
+
+        ``pos`` is indexed relative to the start of the recording, so a segment that
+        does not begin there has to be told where it does, both to read the right head
+        positions and to resume interpolation with the right phase.
+        """
+        self.offset = offset
         self.smooth = _Interp2(
             self.pos[1],
             self.get_decomp_by_offset,
             interp=self.interp,
             name="MC",
+            offset=offset,
         )
-        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
-        self.n_good = pS_decomp.shape[1]
-        self.S_recon = S_recon
-        self.offset = 0
-        self.get_decomp = get_decomp
-        # For the average passes
-        self.last_avg_quat = np.nan * np.ones(6)
 
     def get_avg_op(self, *, start, stop):
-        """Apply an average transformation over the next interval."""
+        """Apply an average transformation over the next interval.
+
+        ``start`` and ``stop`` are relative to the start of the recording, like
+        ``offset``.
+        """
         n_positions, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
             self.last_avg_quat = avg_quat
@@ -929,6 +958,7 @@ class _MoveComp:
         return self.op_in_avg, self.op_resid_avg, n_positions
 
     def feed(self, data, good_mask, st_only):
+        assert self.smooth is not None  # set_offset must be called first
         n_samp = data.shape[1]
         pos_data, n_pos = _trans_lims(
             self.pos, self.offset, self.offset + data.shape[-1]
@@ -965,7 +995,8 @@ class _MoveComp:
 
 def _trans_lims(pos, start, stop):
     """Get all trans and limits we need."""
-    pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
+    start_idx, stop_idx = np.searchsorted(pos[1], [start, stop])
+    pos_idx = np.arange(start_idx, stop_idx)
     used = np.zeros(stop - start, bool)
     quats = np.empty((9, stop - start))
     n_positions = len(pos_idx)
@@ -977,7 +1008,9 @@ def _trans_lims(pos, start, stop):
             rel_stop = rel_stop - start
             if rel_start == rel_stop:
                 continue  # our first pos occurs on first time sample
-            this_quat = pos[2][max(pos_idx[0] - 1 if len(pos_idx) else 0, 0)]
+            # the last position at or before start is the one in effect there, also
+            # when the window contains no position at all (pos_idx is empty)
+            this_quat = pos[2][max(start_idx - 1, 0)]
             n_positions += 1
         else:
             rel_start = pos[1][pos_idx[ti]] - start
@@ -2939,7 +2972,7 @@ def find_bad_channels_maxwell(
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
             with use_log_level(_verbose_safe_false()):
-                _run_maxwell_filter(chunk_raw, copy=False, **params)
+                _run_maxwell_filter(chunk_raw, copy=False, raw_offset=start, **params)
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(
