@@ -747,7 +747,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
     sfreq = raw.info["sfreq"]
     ch_names = raw.ch_names
     anno = [
-        raw.annotations.description,
+        raw.annotations.description.tolist(),
         raw.annotations.onset,
         raw.annotations.duration,
     ]

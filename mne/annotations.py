@@ -56,6 +56,11 @@ from .utils import (
 )
 from .utils.check import _soft_import
 
+# Variable-width string dtype used for annotation descriptions. Unlike the fixed-width
+# "<U" dtypes, it does not silently truncate when assigning into an existing array,
+# e.g. ``annotations.description[0] = "a_much_longer_description"``.
+_DESCRIPTION_DTYPE = np.dtypes.StringDType()
+
 # For testing windows_like_datetime, we monkeypatch "datetime" in this module.
 # Keep the true datetime object around for _validate_type use.
 _datetime = datetime
@@ -198,7 +203,7 @@ def _check_duration(duration, n):
 
 def _check_description(description, n):
     """Convert and validate description to a 1D str array of length n."""
-    description = _ensure_1d(description, dtype=str, name="description")
+    description = _ensure_1d(description, dtype=_DESCRIPTION_DTYPE, name="description")
     if description.shape == (1,):
         description = np.repeat(description, n)
     _check_length(description, n, name="description")
@@ -499,7 +504,13 @@ class Annotations:
         -------
         description : array of shape (n_annotations,)
             A string description for each annotation (e.g., event
-            label or condition name).
+            label or condition name). The array uses NumPy's variable-width
+            :obj:`~numpy.dtypes.StringDType`, so assigning a longer string into an
+            existing entry does not truncate it.
+
+            .. versionchanged:: 1.13
+               Previously a fixed-width (``"<U"``) dtype was used, which silently
+               truncated values assigned in place.
 
         See Also
         --------
@@ -974,7 +985,7 @@ class Annotations:
         self._onset = np.array(onsets, float)
         self._duration = np.array(durations, float)
         assert (self._duration >= 0).all()
-        self._description = np.array(descriptions, dtype=str)
+        self._description = np.array(descriptions, dtype=_DESCRIPTION_DTYPE)
         self._ch_names = _ndarray_ch_names(ch_names)
         self._extras = extras
 
@@ -1065,7 +1076,9 @@ class Annotations:
             valid_key_source="data",
             key_description="Annotation description(s)",
         )
-        self.description = np.array([str(mapping.get(d, d)) for d in self.description])
+        self.description = np.array(
+            [str(mapping.get(d, d)) for d in self.description], dtype=_DESCRIPTION_DTYPE
+        )
         return self
 
 
@@ -1924,7 +1937,7 @@ def _write_annotations_txt(fname, annot):
                 )
             data.append([val if val is not None else "" for val in values])
     content += "\n"
-    data = np.array(data, dtype=str).T
+    data = np.array(data, dtype=_DESCRIPTION_DTYPE).T
     assert data.ndim == 2
     assert data.shape[0] == len(annot.onset)
     assert data.shape[1] == n_cols

@@ -367,6 +367,15 @@ def test_hash():
     d1["d"][0] = 0
     assert object_hash(d0) != object_hash(d1)
 
+    # variable-width strings (hashing must look at the data, not the pointers)
+    d1 = deepcopy(d0)
+    d1["f"] = np.array(["a" * 40], dtype=np.dtypes.StringDType())
+    d2 = deepcopy(d1)
+    assert object_hash(d1) == object_hash(d2)
+    d2["f"][0] = "b" * 40
+    assert len(object_diff(d1, d2)) > 0
+    assert object_hash(d1) != object_hash(d2)
+
     d1 = deepcopy(d0)
     assert object_hash(d0) == object_hash(d1)
     d1["a"]["a"] = 0.11
