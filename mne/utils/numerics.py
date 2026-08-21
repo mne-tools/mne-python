@@ -657,7 +657,12 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode("utf-8"))
         h.update(str(x.dtype).encode("utf-8"))
-        h.update(x.tobytes())
+        if x.dtype.kind == "T":
+            # variable-width strings store a pointer to the heap, so tobytes() does
+            # not contain the actual string data
+            h.update(repr(x.tolist()).encode("utf-8"))
+        else:
+            h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):

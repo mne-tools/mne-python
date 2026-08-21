@@ -29,7 +29,8 @@ def _export_raw(fname, raw):
 
     if raw.annotations:
         annotations = [
-            raw.annotations.description,
+            # eeglabio builds a structured array, which does not support StringDType
+            raw.annotations.description.tolist(),
             # subtract raw.first_time because EEGLAB marks events starting from
             # the first available data point and ignores raw.first_time
             _sync_onset(raw, raw.annotations.onset, inverse=False),
@@ -59,7 +60,8 @@ def _export_epochs(fname, epochs):
 
     if epochs.annotations:
         annot = [
-            epochs.annotations.description,
+            # eeglabio builds a structured array, which does not support StringDType
+            epochs.annotations.description.tolist(),
             epochs.annotations.onset,
             epochs.annotations.duration,
         ]
