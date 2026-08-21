@@ -39,12 +39,11 @@ def _gui_with_two_dipoles():
 
 def _selected_sensors(g):
     names = []
-    for actors in g._actors["sensors"].values():
-        for actor in actors:
-            cloud = actor.GetMapper().GetInput()
-            # color is hardcoded for now, so changeable
-            green = (cloud.point_data["colors"] == [0, 255, 0, 100]).all(axis=1)
-            names.extend(cloud.field_data["ch_names"][green])
+    for actor in g._actors["sensors"]:
+        cloud = actor.GetMapper().GetInput()
+        # color is hardcoded for now, so changeable
+        green = (cloud.point_data["colors"] == [0, 255, 0, 100]).all(axis=1)
+        names.extend(cloud.field_data["ch_names"][green])
     return sorted(names)
 
 
@@ -224,7 +223,7 @@ def test_dipolefit_params(renderer_interactive_pyvistaqt):
 
     surf_maps = mne.make_field_map(
         evoked,
-        trans=None,
+        trans=fname_trans,
         origin="auto",
         subject="sample",
         subjects_dir=subjects_dir,
@@ -258,7 +257,7 @@ def test_dipolefit_params(renderer_interactive_pyvistaqt):
     g = dipolefit(
         evoked,
         ch_type="eeg",
-        surf_maps=surf_maps,
+        surf_maps=[surf_maps[0]],
         cov=cov,
         bem=bem,
         initial_time=initial_time,

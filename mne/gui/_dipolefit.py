@@ -457,17 +457,16 @@ class DipoleFitUI:
         """Color selected sensor meshes."""
         selected_channels = set(event.ch_names)
         if "sensors" in self._actors:
-            for actors in self._actors["sensors"].values():
-                # possible multiple coils
-                for actor in actors:
-                    cloud = actor.GetMapper().GetInput()
-                    selected_idx = np.isin(
-                        cloud.field_data["ch_names"], list(selected_channels)
-                    )
-                    colors = cloud.point_data["colors"]
-                    colors[selected_idx] = [0, 255, 0, 100]
-                    colors[~selected_idx] = [0, 0, 0, 10]
-                    cloud.point_data["colors"] = colors
+            # Possibly multiple sensor types.
+            for actor in self._actors["sensors"]:
+                cloud = actor.GetMapper().GetInput()
+                selected_idx = np.isin(
+                    cloud.field_data["ch_names"], list(selected_channels)
+                )
+                colors = cloud.point_data["colors"]
+                colors[selected_idx] = [0, 255, 0, 100]
+                colors[~selected_idx] = [0, 0, 0, 10]
+                cloud.point_data["colors"] = colors
         self._renderer._update()
 
     def _on_fit_dipole(self):
