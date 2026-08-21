@@ -370,7 +370,9 @@ def test_hash():
     # variable-width strings (hashing must look at the data, not the pointers)
     d1 = deepcopy(d0)
     d1["f"] = np.array(["a" * 40], dtype=np.dtypes.StringDType())
-    d2 = deepcopy(d1)
+    d2 = deepcopy(d0)
+    # TODO VERSION: deepcopy segfaults on NumPy < 2.2.5 (numpy/numpy#28609)
+    d2["f"] = d1["f"].copy()
     assert object_hash(d1) == object_hash(d2)
     d2["f"][0] = "b" * 40
     assert len(object_diff(d1, d2)) > 0
