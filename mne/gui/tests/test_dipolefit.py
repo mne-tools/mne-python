@@ -21,11 +21,6 @@ fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 fname_stc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg"
 
 
-def fake(*args, **kwargs):
-    """Just a fake function."""
-    print("I am fake!")
-
-
 def _gui_with_two_dipoles():
     """Create a dipolefit GUI and add two dipoles to it."""
     from mne.gui import dipolefit
