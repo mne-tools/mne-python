@@ -5,7 +5,7 @@
 import json
 import pickle
 import string
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -350,7 +350,7 @@ def test_read_write_info(tmp_path):
 
     # Check that having a very old date in fine until you try to save it to fif
     with info._unlock(check_after=True):
-        info["meas_date"] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        info["meas_date"] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=UTC)
     fname = tmp_path / "test.fif"
     with pytest.raises(RuntimeError, match="must be between "):
         write_info(fname, info, overwrite=True)
@@ -406,7 +406,7 @@ def test_info_serialization_special_types():
     info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
 
     # Test meas_date (datetime)
-    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=timezone.utc)
+    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=UTC)
     with info._unlock():
         info["meas_date"] = meas_date
 
@@ -726,7 +726,7 @@ def _test_anonymize_info(base_info, tmp_path):
     assert isinstance(base_info, Info)
     base_info = base_info.copy()
 
-    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=UTC)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_desc = "Anonymized using a time shift" + " to preserve age at acquisition"
@@ -739,7 +739,7 @@ def _test_anonymize_info(base_info, tmp_path):
 
     # Fake some additional data
     _complete_info(base_info)
-    meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=UTC)
     with base_info._unlock():
         base_info["meas_date"] = meas_date
         base_info["subject_info"].update(
@@ -940,7 +940,7 @@ def test_meas_date_convert(stamp, dt):
     meas_datetime = _stamp_to_dt(stamp)
     stamp2 = _dt_to_stamp(meas_datetime)
     assert stamp == stamp2
-    assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
+    assert meas_datetime == datetime(*dt, tzinfo=UTC)
     # smoke test for info __repr__
     info = create_info(1, 1000.0, "eeg")
     with info._unlock():
@@ -988,7 +988,7 @@ def _complete_info(info):
     info["helium_info"] = dict(
         he_level_raw=np.float32(12.34),
         helium_level=np.float32(45.67),
-        meas_date=datetime(2024, 11, 14, 14, 8, 2, tzinfo=timezone.utc),
+        meas_date=datetime(2024, 11, 14, 14, 8, 2, tzinfo=UTC),
         orig_file_guid="e",
     )
     info["experimenter"] = "f"

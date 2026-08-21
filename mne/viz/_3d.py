@@ -70,9 +70,9 @@ from ..utils import (
     _ensure_int,
     _import_nibabel,
     _pl,
+    _soft_import,
     _to_rgb,
     _validate_type,
-    check_version,
     fill_doc,
     get_config,
     get_subjects_dir,
@@ -2177,6 +2177,12 @@ def _smooth_plot(this_time, params, *, draw=True):
         ax.figure.canvas.draw()
 
 
+_MPL_STC_DEPRECATION = (
+    "Plotting source estimates with the matplotlib 3D backend is deprecated and will "
+    "be removed in MNE 1.15, use a proper 3D backend (e.g., pyvistaqt) instead"
+)
+
+
 def _plot_mpl_stc(
     stc,
     subject=None,
@@ -2523,6 +2529,8 @@ def plot_source_estimates(
         pyvistaqt, but resorts to matplotlib if no 3d backend is available.
 
         .. versionadded:: 0.15.0
+        .. versionchanged:: 1.13
+           The ``'matplotlib'`` backend is deprecated and will be removed in 1.15.
     spacing : str
         Only affects the matplotlib backend.
         The spacing to use for the source space. Can be ``'ico#'`` for a
@@ -2532,6 +2540,8 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
+        .. deprecated:: 1.13
+           Will be removed in 1.15 along with the ``'matplotlib'`` backend.
     %(title_stc)s
 
         .. versionadded:: 0.17.0
@@ -2574,6 +2584,8 @@ def plot_source_estimates(
             except (ImportError, ModuleNotFoundError):
                 warn("No 3D backend found. Resorting to matplotlib 3d.")
                 plot_mpl = True
+    if plot_mpl:
+        warn(f"{_MPL_STC_DEPRECATION}.", FutureWarning)
     kwargs = dict(
         subject=subject,
         surface=surface,
@@ -3109,8 +3121,7 @@ def plot_volume_source_estimates(
     from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
-    if not check_version("nilearn", "0.4"):
-        raise RuntimeError("This function requires nilearn >= 0.4")
+    _soft_import("nilearn", "plotting volume source estimates")
 
     from nilearn.image import index_img
 
@@ -3538,7 +3549,7 @@ def plot_sparse_source_estimates(
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
     Returns

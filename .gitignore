@@ -103,3 +103,4 @@ venv/
 .hypothesis/
 .ruff_cache/
 .ipynb_checkpoints/
+/.claude/

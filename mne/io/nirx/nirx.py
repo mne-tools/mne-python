@@ -272,7 +272,7 @@ class RawNIRX(BaseRaw):
                 except ValueError:
                     pass
                 else:
-                    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                    meas_date = meas_date.replace(tzinfo=dt.UTC)
                     do_break = True
                     logger.debug(f"Measurement date language {loc} detected: {dt_code}")
                     break
@@ -287,7 +287,7 @@ class RawNIRX(BaseRaw):
                 "The date is being set to January 1st, 2000, "
                 f"instead of {repr(datetime_str)}."
             )
-            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.UTC)
 
         # Extract frequencies of light used by machine
         if is_aurora:

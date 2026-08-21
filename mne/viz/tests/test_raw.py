@@ -37,16 +37,11 @@ raw_fname = base_dir / "test_raw.fif"
 
 
 def _get_button_xy(buttons, idx):
-    from mne.viz._mpl_figure import _OLD_BUTTONS
-
-    if _OLD_BUTTONS:
-        return buttons.circles[idx].center
-    else:
-        # Each transform is to display coords, and our offsets are in Axes
-        # coords. We want data coords, so we go Axes -> display -> data.
-        return buttons.ax.transData.inverted().transform(
-            buttons.ax.transAxes.transform(buttons.ax.collections[0].get_offsets()[idx])
-        )
+    # Each transform is to display coords, and our offsets are in Axes
+    # coords. We want data coords, so we go Axes -> display -> data.
+    return buttons.ax.transData.inverted().transform(
+        buttons.ax.transAxes.transform(buttons.ax.collections[0].get_offsets()[idx])
+    )
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -292,9 +287,15 @@ def _child_fig_helper(fig, key, attr, browse_backend):
     )
 
 
-def test_scale_bar(browser_backend):
+@pytest.mark.parametrize("butterfly", (False, True))
+def test_scale_bar(browser_backend, butterfly):
     """Test scale bar for raw."""
     ismpl = browser_backend.name == "matplotlib"
+    if butterfly and not ismpl:
+        import mne_qt_browser._pg_figure
+
+        if not getattr(mne_qt_browser._pg_figure, "_SCALEBARS_FIXED", False):
+            pytest.skip("butterfly scalebars fixed in a later mne-qt-browser")
     sfreq = 1000.0
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10.0 * t)
@@ -302,9 +303,11 @@ def test_scale_bar(browser_backend):
     data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
     info = create_info(3, sfreq, ("mag", "grad", "eeg"))
     raw = RawArray(data, info)
-    fig = raw.plot()
+    fig = raw.plot(butterfly=butterfly)
     texts = fig._get_scale_bar_texts()
     assert len(texts) == 3  # ch_type scale-bars
+    # butterfly mode draws traces at half amplitude, but the scalebars shrink to
+    # match, so the reported values are identical either way
     wants = ("800.0 fT/cm", "2000.0 fT", "40.0 µV")
     assert texts == wants
     if ismpl:
@@ -312,6 +315,7 @@ def test_scale_bar(browser_backend):
         assert len(fig.mne.ax_main.lines) == 7
     else:
         assert len(fig.mne.scalebars) == 3
+    # each trace spans exactly its scalebar (peak/trough == bar top/bottom)
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
         y = data.get_ydata()
         y_lims = [y.min(), y.max()]
@@ -408,6 +412,11 @@ def test_plot_raw_selection(raw, browser_backend):
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
     if ismpl:
+        # in butterfly mode all radio buttons show as selected
+        buttons = sel_fig.mne.radio_ax.buttons
+        facecolors = buttons.ax.collections[0].get_facecolor()
+        want = mcolors.to_rgba(buttons.activecolor)
+        assert_allclose(facecolors, [want] * len(facecolors))
         print(f"Clicking button: {repr(left_temp)}")
         assert sel_fig.mne.radio_ax.buttons.labels[0].get_text() == left_temp
         xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, 0)
@@ -1422,10 +1431,17 @@ def test_plotting_scalebars(browser_backend, qtbot):
     ismpl = browser_backend.name == "matplotlib"
     raw = mne.io.read_raw_fif(raw_fname).crop(0, 1).load_data()
     fig = raw.plot(butterfly=True)
+    # in butterfly mode the traces are drawn at half amplitude, so each scalebar
+    # spans half of the y-unit that its channel type occupies
+    delta = 0.25
+    if not ismpl:
+        import mne_qt_browser._pg_figure
+
+        if not getattr(mne_qt_browser._pg_figure, "_SCALEBARS_FIXED", False):
+            delta = 0.5  # traces were drawn at full amplitude before then
     if ismpl:
         ch_types = [text.get_text() for text in fig.mne.ax_main.get_yticklabels()]
         assert ch_types == ["mag", "grad", "eeg", "eog", "stim"]
-        delta = 0.25
         offset = 0
     else:
         qtbot.wait_exposed(fig)
@@ -1436,7 +1452,6 @@ def test_plotting_scalebars(browser_backend, qtbot):
             qtbot.wait(100)  # pragma: no cover
         # the grad/mag difference here is intentional in _pg_figure.py
         assert ch_types == ["grad", "mag", "eeg", "eog", "stim"]
-        delta = 0.5  # TODO: Probably should also be 0.25?
         offset = 1
     assert ch_types.pop(-1) == "stim"
     for ci, ch_type in enumerate(ch_types, offset):

@@ -18,6 +18,12 @@ fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 fname_evokeds = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_stc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg"
+
+
+def fake(*args, **kwargs):
+    """Just a fake function."""
+    print("I am fake!")
 
 
 def _gui_with_two_dipoles():
@@ -25,7 +31,7 @@ def _gui_with_two_dipoles():
     from mne.gui import dipolefit
 
     evoked = mne.read_evokeds(fname_evokeds, condition=0)
-    g = dipolefit(evoked)
+    g = dipolefit(evoked, show_sensors=False)
     dip = mne.read_dipole(fname_dip)[[12, 15]]  # 80ms and 90ms
     g.add_dipole(dip, name=["rh", "lh"])
     return g
@@ -51,6 +57,7 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     # Test basic interface elements.
     evoked = mne.read_evokeds(fname_evokeds, condition=0)
     g = dipolefit(evoked)
+
     assert evoked.comment == "Left Auditory"  # MNE-Sample data should be loaded
     assert g._current_time == evoked.times[84]  # time of max GFP
 
@@ -126,10 +133,10 @@ def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
     from mne.gui import dipolefit
 
     evoked = mne.read_evokeds(fname_evokeds, condition=0)
-    g = dipolefit(evoked)
+    g = dipolefit(evoked, show_sensors=False)
 
     # Test toggling the visibility of the meshes.
-    assert list(g._actors.keys()) == ["helmet", "occlusion_surf", "head", "sensors"]
+    assert list(g._actors.keys()) == ["helmet", "occlusion_surf", "head"]
     g.toggle_mesh("helmet", show=True)
     assert g._actors["helmet"].visibility
     g.toggle_mesh("helmet")
@@ -208,19 +215,31 @@ def test_dipolefit_gui_save_load(tmpdir, renderer_interactive_pyvistaqt):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_dipolefit_cov(renderer_interactive_pyvistaqt):
-    """Test setting the covariance matrix in the dipole fitting GUI."""
+def test_dipolefit_params(renderer_interactive_pyvistaqt):
+    """Test setting various parameters in the dipole fitting GUI."""
     from mne.gui import dipolefit
 
     # Test different type of covariance estimators.
     evoked = mne.read_evokeds(fname_evokeds, condition=0)
-    g = dipolefit(evoked, cov=None)  # ah-hoc cov
+
+    surf_maps = mne.make_field_map(
+        evoked,
+        trans=None,
+        origin="auto",
+        subject="sample",
+        subjects_dir=subjects_dir,
+        verbose=False,
+    )
+
+    g = dipolefit(
+        evoked, surf_maps=surf_maps, cov=None, show_sensors=False
+    )  # ah-hoc cov
     assert g._cov["diag"]
     assert_allclose(  # default ad-hoc variation for grads, mags and eeg
         g._cov["data"][[0, 1, 2, 306]], [2.5e-25, 2.5e-25, 4e-28, 4e-14], atol=0
     )
 
-    g = dipolefit(evoked, cov="baseline")
+    g = dipolefit(evoked, surf_maps=surf_maps, cov="baseline", show_sensors=False)
     assert_allclose(  # compute var on baseline period
         g._cov["data"][[0, 1, 2, 306]],
         [3.5e-24, 3.5e-24, 3.0e-27, 2.3e-12],
@@ -228,7 +247,58 @@ def test_dipolefit_cov(renderer_interactive_pyvistaqt):
         atol=0,
     )
 
-    # Specify custom covariance.
+    # The following tests are rolled into one call to `dipolefit` in order to save time.
+    #  - Specify a channel type
+    #  - Specify custom covariance.
+    #  - Specify BEM model.
+    #  - Specify an initial time.
     cov = mne.read_cov(fname_cov)
-    g = dipolefit(evoked, cov=cov)
+    bem = mne.make_sphere_model(r0=(1, 2, 3))
+    initial_time = 0.0123
+    g = dipolefit(
+        evoked,
+        ch_type="eeg",
+        surf_maps=surf_maps,
+        cov=cov,
+        bem=bem,
+        initial_time=initial_time,
+        show_sensors=False,
+    )
+    assert set(evoked.copy().pick("eeg").get_channel_types()) == {"eeg"}
     assert_allclose(g._cov["data"], cov["data"], atol=0)
+    assert_equal(g._bem["r0"], bem["r0"])
+    assert g._current_time == initial_time
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_dipolefit_stc(renderer_interactive_pyvistaqt):
+    """Test showing a SourceEstimate underneath the fieldlines."""
+    from mne.gui import dipolefit
+
+    # Test different type of covariance estimators.
+    evoked = mne.read_evokeds(fname_evokeds, condition=0)
+
+    # By default, the STC file has different timestamps from the evoked.
+    with pytest.raises(ValueError, match="The time samples of the source estimate"):
+        g = dipolefit(evoked, stc=fname_stc, show_sensors=False)
+
+    # Make the evoked timestamps line up with those of the STC.
+    stc = mne.read_source_estimate(fname_stc)
+    with pytest.warns():
+        evoked = evoked.copy().crop(0, 0.245).decimate(3)
+    with evoked.info._unlock():
+        evoked.info["sfreq"] = 100
+    evoked._set_times(stc.times)
+
+    # Now it should work.
+    g = dipolefit(
+        evoked,
+        stc=stc,
+        trans=fname_trans,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        show_sensors=False,
+        baseline=(0, 0),
+    )
+    assert isinstance(g._stc, mne.SourceEstimate)

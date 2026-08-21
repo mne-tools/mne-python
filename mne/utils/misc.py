@@ -116,8 +116,10 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
 
         .. versionadded:: 0.20
     %(verbose)s
-    *args, **kwargs : arguments
+    *args : list
         Additional arguments to pass to subprocess.Popen.
+    **kwargs : dict
+        Additional keyword arguments to pass to subprocess.Popen.
 
     Returns
     -------
@@ -209,8 +211,10 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
         - "kill" to use :meth:`~python:subprocess.Popen.kill`
 
     %(verbose)s
-    *args, **kwargs : arguments
+    *args : list
         Additional arguments to pass to subprocess.Popen.
+    **kwargs : dict
+        Additional keyword arguments to pass to subprocess.Popen.
 
     Returns
     -------

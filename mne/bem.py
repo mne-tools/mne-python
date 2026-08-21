@@ -33,7 +33,7 @@ from ._fiff.write import (
     write_int_matrix,
     write_string,
 )
-from .fixes import _compare_version, _safe_svd
+from .fixes import _safe_svd
 from .surface import (
     _complete_sphere_surf,
     _compute_nearest,
@@ -356,8 +356,6 @@ def _import_openmeeg(what="compute a BEM solution using OpenMEEG"):
             f"The OpenMEEG module must be installed to {what}, but "
             f'"import openmeeg" resulted in: {exc}'
         ) from None
-    if not _compare_version(om.__version__, ">=", "2.5.6"):
-        raise ImportError(f"OpenMEEG 2.5.6+ is required, got {om.__version__}")
     return om
 
 
@@ -1443,7 +1441,7 @@ def read_bem_surfaces(
     ----------
     fname : path-like
         The name of the file containing the surfaces.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
         If int, only read and return the surface with the given ``s_id``.

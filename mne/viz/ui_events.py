@@ -167,6 +167,9 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
 
     Attributes
     ----------
@@ -176,10 +179,14 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
     """
 
     hemi: str
     vertex_id: int
+    source_id: int = None
 
 
 @dataclass

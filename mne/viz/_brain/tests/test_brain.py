@@ -586,6 +586,54 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
 
+@testing.requires_testing_data
+def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
+    """Test live cortex alpha/colormap, surf switching, and silhouette line width."""
+    brain = _create_testing_brain(hemi="lh", show_traces=0.5, initial_time=0)
+
+    brain.set_cortex_alpha(0.5)
+    assert brain._alpha == 0.5
+
+    mesh = brain.layered_meshes["lh"]
+    old_colors = mesh._current_colors.copy()
+    brain.set_cortex_colormap("bone")
+    assert brain._cortex_preset == "bone"
+    assert not np.allclose(mesh._current_colors, old_colors)
+
+    old_coords = brain.geo["lh"].coords.copy()
+    sphere = next(iter(brain._picked_points.values()))[0]
+    vertex_id = sphere["vertex_id"]
+    old_center = np.array(sphere["mesh"].center)
+
+    brain.set_surf("white")
+    assert brain._surf == "white"
+    assert not np.allclose(brain.geo["lh"].coords, old_coords)
+    assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
+    new_center = np.array(sphere["mesh"].center)
+    assert not np.allclose(new_center, old_center)
+    assert_allclose(new_center, brain.geo["lh"].coords[vertex_id])
+
+    brain.set_surf("white")  # no-op, same surf
+    assert brain._surf == "white"
+
+    assert not brain.silhouette
+    brain.set_silhouette_line_width(3.0)
+    assert brain.silhouette
+    actors = brain._silhouette_actors
+    assert len(actors) > 0
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(0.0)
+    assert not brain.silhouette
+    assert all(not a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(5.0)
+    assert brain._silhouette_actors is actors
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.close()
+
+
 def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
     """Test add_annotation."""
     annots = [
@@ -658,6 +706,62 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(a, b, p, color=color)
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_scalar_bar_ticks_title_and_hover(renderer_interactive_pyvistaqt, brain_gc):
+    """Test scalar bar tick marks, title truncation, and hover info toggle."""
+    long_title = "a" * 40
+    brain = _create_testing_brain(
+        hemi="lh",
+        show_traces=False,
+        add_data_kwargs=dict(colorbar_kwargs=dict(title=long_title)),
+    )
+    n_labels = brain._scalar_bar.GetNumberOfLabels()
+    ticks = brain._scalar_bar_ticks
+    assert ticks.GetNumberOfLabels() == n_labels
+    assert ticks.GetTickVisibility()
+    assert not ticks.GetLabelVisibility()
+    title = brain._scalar_bar.GetTitle()
+    assert title.endswith("…")
+    assert len(title) <= 20
+
+    assert brain._show_hover_info is False
+
+    class MockIren:
+        def GetEventPosition(self):
+            return 50, 50
+
+        def FindPokedRenderer(self, x, y):
+            return brain.plotter.renderers[0]
+
+    class MockPicker:
+        def Pick(self, x, y, z, renderer):
+            pass
+
+        def GetCellId(self):
+            return 0
+
+        def GetMapper(self):
+            return brain.plotter.mapper
+
+        def GetPickPosition(self):
+            return np.zeros(3)
+
+    brain._renderer._picker = MockPicker()
+    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    assert not brain._hover_caption.GetVisibility()  # toggle is off
+
+    brain._toggle_hover_info()
+    assert brain._show_hover_info is True
+    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    assert brain._hover_caption.GetVisibility()
+    assert "vertex" in brain._hover_caption.GetCaption()
+
+    brain._toggle_hover_info()
+    assert brain._show_hover_info is False
+    assert not brain._hover_caption.GetVisibility()
     brain.close()
 
 
@@ -1308,6 +1412,16 @@ def test_brain_traces_vertex(
         spheres = sum(brain._picked_points.values(), list())
         assert len(spheres) < old_len
 
+    if src == "vector":
+        glyph_dataset = brain._data["lh"]["glyph_dataset"]
+        vertices = brain._data["lh"]["vertices"]
+        old_points = np.array(glyph_dataset.points)
+        with pytest.warns(RuntimeWarning, match="Foci and label"):
+            brain.set_surf("inflated")
+        new_points = np.array(glyph_dataset.points)
+        assert not np.allclose(old_points, new_points)
+        assert_allclose(new_points, np.array(brain.geo["lh"].coords)[vertices])
+
     screenshot = brain.screenshot()
     screenshot_all = brain.screenshot(time_viewer=True)
     assert screenshot.shape[0] < screenshot_all.shape[0]
@@ -1591,6 +1705,35 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     )
     # Should remain unchanged.
     assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+
+    # Test effect of vertex selection publishing.
+    events = list()
+    ui_events.subscribe(brain, "vertex_select", lambda event: events.append(event))
+
+    mesh = brain.layered_meshes["lh"]._polydata
+    faces = brain.geo["lh"].faces
+    vertices = brain._data["lh"]["vertices"]
+    smooth_mat = brain.act_data_smooth["lh"][1]
+
+    # each for existing and missing source vertex cases
+    for is_source in (True, False):
+        mask = np.isin(faces[:, 0], vertices)
+        # select first vertex satisfying the condition
+        cell_id = np.where(mask if is_source else ~mask)[0][0]
+        vertex_id = faces[cell_id, 0]
+        # make the selection
+        n_events = len(events)
+        brain._on_pick(TstVTKPicker(mesh, cell_id, "lh", brain), None)
+        assert len(events) == n_events + 1
+        event = events[-1]
+        assert event.vertex_id == vertex_id
+        row = smooth_mat[vertex_id, :]
+        if is_source:
+            assert event.source_id == row.argmax()
+            assert vertices[event.source_id] == event.vertex_id
+        else:
+            assert row.sum() == 0
+            assert event.source_id is None
 
     brain.close()
 

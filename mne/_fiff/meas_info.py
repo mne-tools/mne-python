@@ -85,7 +85,7 @@ from .tag import (
 from .tree import dir_tree_find
 from .write import (
     DATE_NONE,
-    _safe_name_list,
+    _safe_read_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -690,7 +690,7 @@ class SetChannelsMixin(MontageMixin):
         ch_groups=None,
         to_sphere=True,
         axes=None,
-        block=False,
+        block=None,
         show=True,
         sphere=None,
         *,
@@ -736,11 +736,18 @@ class SetChannelsMixin(MontageMixin):
             instance of Axes3D. If None (default), a new axes will be created.
 
             .. versionadded:: 0.13.0
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Defaults to False.
+        block : bool | None
+            Whether to halt program execution until the figure is closed. By default
+            (``None``) this follows :func:`matplotlib.pyplot.show`: it blocks unless
+            Matplotlib's interactive mode is on (see :func:`matplotlib.pyplot.ion`), in
+            which case it returns immediately. Set to ``True`` to force blocking, which
+            is useful with ``kind="select"`` to collect the interactive selection
+            synchronously when interactive mode is on.
 
             .. versionadded:: 0.13.0
+            .. versionchanged:: 1.13
+               The default changed from ``False`` to ``None`` (follow
+               Matplotlib).
         show : bool
             Show figure if True. Defaults to True.
         %(sphere_topomap_auto)s
@@ -2003,7 +2010,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             if (
                 not isinstance(self["meas_date"], datetime.datetime)
                 or self["meas_date"].tzinfo is None
-                or self["meas_date"].tzinfo is not datetime.timezone.utc
+                or self["meas_date"].tzinfo is not datetime.UTC
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
@@ -2375,7 +2382,7 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = _safe_name_list(tag.data, "read", "bads")
+                bads = _safe_read_name_list(tag.data)
         bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
 
@@ -3770,9 +3777,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         for field in keep_fields:
             _check_option("keep_his", field, valid_fields)
 
-    default_anon_dos = datetime.datetime(
-        2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_sex = 0

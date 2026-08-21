@@ -358,7 +358,7 @@ average : str | None
 """
 
 docdict["average_tfr"] = """
-average : bool, default True
+average : bool
     If ``False`` return an `EpochsTFR` containing separate TFRs for each
     epoch. If ``True`` return an `AverageTFR` containing the average of all
     TFRs across epochs.
@@ -1646,23 +1646,23 @@ extrapolate : str
 """
 
 docdict["eyelink_apply_offsets"] = """
-apply_offsets : bool (default False)
+apply_offsets : bool
     Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
     experiment messages, if offset values exist in the ASCII file. If False, any
     offset-like values will be prepended to the annotation description.
 """
 
 docdict["eyelink_create_annotations"] = """
-create_annotations : bool | list (default True)
-    Whether to create :class:`~mne.Annotations` from occular events
+create_annotations : bool | list
+    Whether to create :class:`~mne.Annotations` from ocular events
     (blinks, fixations, saccades) and experiment messages. If a list, must
     contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
-    If True, creates :class:`~mne.Annotations` for both occular events and
+    If True, creates :class:`~mne.Annotations` for both ocular events and
     experiment messages.
 """
 
 docdict["eyelink_find_overlaps"] = """
-find_overlaps : bool (default False)
+find_overlaps : bool
     Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
     saccades) if their start times and their stop times are both not
     separated by more than overlap_threshold.
@@ -1673,7 +1673,7 @@ fname : path-like
     Path to the eyelink file (``.asc``)."""
 
 docdict["eyelink_overlap_threshold"] = """
-overlap_threshold : float (default 0.05)
+overlap_threshold : float
     Time in seconds. Threshold of allowable time-gap between both the start and
     stop times of the left and right eyes. If the gap is larger than the threshold,
     the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
@@ -1755,25 +1755,23 @@ docdict["filter_length_notch"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
-    * **'auto' (default)**: The filter length is chosen based
-      on the size of the transition regions (6.6 times the reciprocal
-      of the shortest transition band for fir_window='hamming'
-      and fir_design="firwin2", and half that for "firwin").
-    * **str**: A human-readable time in
-      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-      converted to that number of samples if ``phase="zero"``, or
-      the shortest power-of-two length at least that duration for
-      ``phase="zero-double"``.
-    * **int**: Specified length in samples. For fir_design="firwin",
-      this should not be used.
+    ``"auto"`` (default)
+        The filter length is chosen based on the size of the transition regions (6.6
+        times the reciprocal of the shortest transition band for
+        ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+        ``fir_design="firwin"``).
+    str
+        A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or ``"5500ms"``)
+        will be converted to that number of samples if ``phase="zero"``, or the shortest
+        power-of-two length at least that duration for ``phase="zero-double"``.
+    int
+        Specified length in samples. For ``fir_design="firwin"``, this should not be
+        used.
 
-    When ``method=='spectrum_fit'``, this sets the effective window duration
-    over which fits are computed. See :func:`mne.filter.create_filter`
-    for options. Longer window lengths will give more stable frequency
-    estimates, but require (potentially much) more processing and are not able
-    to adapt as well to non-stationarities.
-
-    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
+    When ``method=="spectrum_fit"``, this sets the effective window duration over which
+    fits are computed. Longer window lengths will give more stable frequency estimates,
+    but require (potentially much) more processing and are not able to adapt as well to
+    non-stationarities. The default ``"auto"`` corresponds to ``"10s"``.
 """
 
 docdict["fir_design"] = """
@@ -3687,7 +3685,7 @@ precompute : bool | str
 """
 
 docdict["preload"] = """
-preload : bool or str (default False)
+preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
@@ -3695,7 +3693,7 @@ preload : bool or str (default False)
     on the hard drive (slower, requires less memory)."""
 
 docdict["preload_concatenate"] = """
-preload : bool, str, or None (default None)
+preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
@@ -4265,7 +4263,13 @@ shape : tuple of int
 
 docdict["show"] = """\
 show : bool
-    Show the figure if ``True``.
+    Show the figure if ``True``. When shown, blocking follows
+    :func:`matplotlib.pyplot.show`: the call blocks until the window is closed unless
+    Matplotlib's interactive mode is on (enabled with :func:`matplotlib.pyplot.ion` or
+    IPython's ``%%matplotlib`` magic command), in which case it returns immediately.
+    Interactive mode is off by default, so a plain script or REPL blocks. Pass
+    ``show=False`` to build several figures and display them together with a single
+    :func:`matplotlib.pyplot.show` call.
 """
 
 docdict["show_names_topomap"] = """
@@ -5779,7 +5783,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     ----------
     docstring : string
         docstring from function, possibly with dict formatting strings
-    docdict : dict, optional
+    docdict : dict | None
         dictionary with keys that match the dict formatting strings
         and values that are docstring fragments to be inserted.  The
         indentation of the inserted docstrings is set to match the

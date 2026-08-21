@@ -5,7 +5,7 @@
 import os
 import os.path as op
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -183,7 +183,7 @@ class RawPersyst(BaseRaw):
                     hour=testtime.hour,
                     minute=testtime.minute,
                     second=testtime.second,
-                    tzinfo=timezone.utc,
+                    tzinfo=UTC,
                 )
 
         # Create mne structure
