@@ -4,6 +4,7 @@
 
 import sys
 from collections import OrderedDict
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from itertools import repeat
 from pathlib import Path
@@ -1745,8 +1746,14 @@ def _assert_no_truncation(annot):
 @pytest.mark.parametrize("fmt", ("fif", "csv", "txt"))
 def test_description_assignment_not_truncated(tmp_path, fmt):
     """Test that assigning into description does not truncate strings."""
+    if fmt != "fif":
+        pytest.importorskip("pandas")
     annot = Annotations([1.0, 2.0], [1.0, 1.0], ["short", "b"], extras=[dict(a=1)] * 2)
     _assert_no_truncation(annot.copy())
+    # the copy must be independent (and not crash: numpy/numpy#28609)
+    annot_copy = deepcopy(annot)
+    annot_copy.description[0] = "changed"
+    assert annot.description[0] == "short"
     annot.append(3.0, 1.0, "c", extras=[dict(a=1)])
     annot.rename({"b": "b_renamed"})
     other = annot.copy()
