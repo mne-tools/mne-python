@@ -1357,7 +1357,7 @@ def _plot_hpi_coils(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
@@ -1460,7 +1460,7 @@ def _plot_glyphs(
         rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
         quats = rot_to_quat(rots)
     rr, tris = renderer._glyph_template(kind, **template_kw)
-    actor, _ = renderer.instanced_mesh(
+    actor, cloud = renderer.instanced_mesh(
         rr=rr,
         tris=tris,
         positions=positions,
@@ -1469,7 +1469,7 @@ def _plot_glyphs(
         scales=scales,
         backface_culling=backface_culling,
     )
-    return actor
+    return actor, cloud
 
 
 @verbose
@@ -1513,7 +1513,7 @@ def _plot_head_shape_points(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
@@ -1579,6 +1579,7 @@ def _plot_sensors_3d(
 
     actors = defaultdict(lambda: list())
     locs = defaultdict(lambda: list())
+    ch_names_all = defaultdict(lambda: list())
     unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1612,14 +1613,19 @@ def _plot_sensors_3d(
             if ch_type == "eeg":
                 if "original" in eeg:
                     locs[ch_type].append(ch_coord)
+                    ch_names_all[ch_type].append(ch_name)
                 if "projected" in eeg:
                     locs["eegp"].append(ch_coord)
+                    ch_names_all["eegp"].append(ch_name)
             else:
                 locs[ch_type].append(ch_coord)
+                ch_names_all[ch_type].append(ch_name)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
+            ch_names_all["source"].append(ch_name)
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+            ch_names_all["detector"].append(ch_name)
         # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1680,7 +1686,7 @@ def _plot_sensors_3d(
             f"scales for {ch_type} must contain only numerical values, "
             f"got {scales} instead."
         )
-
+        ch_names = np.array(ch_names_all[ch_type], dtype="U")
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1697,7 +1703,7 @@ def _plot_sensors_3d(
                 template = sens_loc[idxs[0]]
                 positions = np.array([sens_loc[i]["position"] for i in idxs])
                 quats = np.array([sens_loc[i]["quat"] for i in idxs])
-                actor, _ = renderer.instanced_mesh(
+                actor, cloud = renderer.instanced_mesh(
                     rr=template["rr"],
                     tris=template["tris"],
                     positions=positions,
@@ -1706,6 +1712,7 @@ def _plot_sensors_3d(
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
+                cloud.field_data["ch_names"] = ch_names[idxs]
         else:
             # One GPU-instanced actor regardless of how many distinct
             # colors/scales are requested (broadcasting handles 1-vs-N).
@@ -1735,7 +1742,7 @@ def _plot_sensors_3d(
                 )
                 backface_culling = True
                 actor_key = "eeg"
-            actor = _plot_glyphs(
+            actor, cloud = _plot_glyphs(
                 renderer=renderer,
                 loc=loc * unit_scalar,
                 colors=these_colors,
@@ -1752,6 +1759,7 @@ def _plot_sensors_3d(
                 nearest=nearest,
             )
             actors[actor_key].append(actor)
+            cloud.field_data["ch_names"] = ch_names[mask]
 
     actors = dict(actors)  # get rid of defaultdict
 
