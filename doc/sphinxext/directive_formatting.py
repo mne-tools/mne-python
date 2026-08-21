@@ -6,6 +6,7 @@ import re
 
 from mne_doc_utils import sphinx_logger
 
+# Recognised Sphinx directives (current as of v9.1.0)
 DIRECTIVE_NAMES = [
     # Table of contents
     "toctree",
@@ -88,7 +89,7 @@ def check_directive_formatting(*args):
     else:
         raise RuntimeError("Unexpected number of arguments from Sphinx event")
 
-    # Check if text resembling directives are present
+    # Check if text resembling directives is present
     if re.search(r"\.\.\s*[a-zA-Z\-]+\s*:", source_concat) is None:
         return
 
@@ -108,12 +109,12 @@ def check_directive_formatting(*args):
         # Extra spaces after '..' don't affect formatting
 
         # Check for bad number of final colons (should be exactly 2)
-        bad_colons = re.search(r"\.\.\s*[a-zA-Z\-]+\s*(?<!:)(:{3,}|:)(?!:)", line)
+        bad_colons = re.search(r"\.\.\s*([a-zA-Z\-]+)\s*(?<!:)(:{3,}|:)(?!:)", line)
         if bad_colons is not None:
-            # Strip out name
-            directive_name = re.sub(
-                r"\.\.\s*([a-zA-Z\-]+)\s*(?<!:)(:{3,}|:)(?!:)", r"\1", line
-            )
+            # Strip out directive name and check if it's a recognised directive
+            # (links for files/sections take the same form, but are valid with a single
+            # colon)
+            directive_name = bad_colons.group(1)
             if directive_name in DIRECTIVE_NAMES:
                 sphinx_logger.warning(
                     f"{source_type} '{name}' has bad number of final colons (i.e., not "
