@@ -226,21 +226,21 @@ def test_hitachi_basic(
     want = [np.nan] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.0)
     raw_od_bad = optical_density(raw)
-    with pytest.warns(RuntimeWarning, match="will be zero"):
+    with pytest.raises(ValueError, match="all zero or NaN"):
         beer_lambert_law(raw_od_bad, ppf=6)
     # bad distances (too big)
     if versions[0] == "1.18" and len(fnames) == 1:
         need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]
         have = "P7 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 F3".split()
         assert len(need) == len(have)
-        mon = make_standard_montage("standard_1020")
+        mon = make_standard_montage("spherical_1005")
         mon.rename_channels(dict(zip(have, need)))
         raw.set_montage(mon)
         raw_od_bad = optical_density(raw)
         with pytest.warns(RuntimeWarning, match="greater than 10 cm"):
             beer_lambert_law(raw_od_bad, ppf=6)
     # good distances
-    mon = make_standard_montage("standard_1020")
+    mon = make_standard_montage("spherical_1005")
     if versions[0] == "1.18":
         assert len(fnames) in (1, 2)
         need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]

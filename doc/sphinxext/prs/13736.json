@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b3524b6948213cbb560b7d6417263b7976127746",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13736.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 30,
+      "d": 3
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 97,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

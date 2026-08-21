@@ -36,9 +36,9 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
     svd = np.linalg.svd
     # make n-dimensional matrix
     n_extra = 2  # how many we add along the other dims
-    rng = np.random.RandomState(73)
+    rng = np.random.default_rng(73)
     shape = (n_extra,) * (ndim - 2) + (n, n)
-    mat = rng.randn(*shape) + 1j * rng.randn(*shape)
+    mat = rng.standard_normal(shape) + 1j * rng.standard_normal(shape)
     proj = np.eye(n)
     if deficient:
         vec = np.ones(n) / np.sqrt(n)

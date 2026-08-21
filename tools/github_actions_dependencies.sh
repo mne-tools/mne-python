@@ -3,48 +3,46 @@
 set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+ONLY_BINARY_ARG="--only-binary=:all:"
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
+EXTRAS=""
+GROUP="test_extra"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	# This will fail if mne-base is not in the env (like in our minimal env, so ||true them):
 	echo "::group::Uninstalling MNE"
-	conda remove -c conda-forge --force -yq mne-base || true
-	python -m pip uninstall -y mne || true
+	conda remove -c conda-forge --force -y mne-base
 	echo "::endgroup::"
-	# If using bare environment.yml and not on windows, do a non-editable install
-	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
+	# If not on windows, do a non-editable install
+	if [[ "${CI_OS_NAME}" != "windows"* ]]; then
 		INSTALL_ARGS=""
 	fi
-	# If on minimal, just install testing deps
-	if [[ "${MNE_CI_KIND}" == "minimal" ]]; then
-		GROUP="test"
-		EXTRAS=""
-		STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
-		echo "::group::Upgrading pip installation"
-		python -m pip install --upgrade pip  # upgrade pip to support --group
-		echo "::endgroup::"
-	else
-		GROUP="test_extra"
-		EXTRAS="[hdf5]"
-	fi
+	EXTRAS="[hdf5]"
+elif [[ "${MNE_CI_KIND}" == "minimal" ]]; then
+	GROUP="test"
+	STD_ARGS="--progress-bar off ${MNE_QT_BACKEND}"
+	echo "::group::Upgrading pip installation"
+	python -m pip install --upgrade pip setuptools
+	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	GROUP=""  # group "test" already included when pylock file generated
-	EXTRAS=""
 	STD_ARGS="--progress-bar off"
 	echo "::group::Syncing old environment dependencies from lockfile using uv"
 	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
 	uv pip install pip tomlkit ${MNE_QT_BACKEND}
 	echo "::endgroup::"
+elif [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
+	# This one is free-threaded so can't have PySide6/PyQt6 as of 2026/06/16
+	EXTRAS="[hdf5] numba scikit-learn nibabel antio curryreader pandas!=3.0.4 pillow patsy python-picard xlrd mffpy defusedxml"
+	GROUP="test_extra_ft"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	GROUP="test_extra"
 	EXTRAS="[full-pyside6]"
+	python -m pip install --upgrade pip setuptools
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
+	python -m pip install $STD_ARGS pip setuptools
 	STD_ARGS="$STD_ARGS --pre"
-	${SCRIPT_DIR}/install_pre_requirements.sh || exit 1
-	GROUP="test_extra"
-	EXTRAS=""
+	${SCRIPT_DIR}/install_pre_requirements.sh
 fi
 echo ""
 
@@ -61,6 +59,12 @@ else
 	echo "::group::Installing MNE in development mode using pip"
 fi
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS $GROUP_ARG
-set +x
+python -m pip install $STD_ARGS $ONLY_BINARY_ARG $INSTALL_ARGS .$EXTRAS $GROUP_ARG
 echo "::endgroup::"
+
+if [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
+	echo "::group::Removing pytest-qt and adding prerelease lxml for pip-ft environment"
+	python -m pip uninstall -y pytest-qt
+	python -m pip install --pre --upgrade --only-binary=:all: "lxml>=7.0.0a3"
+	echo "::endgroup::"
+fi

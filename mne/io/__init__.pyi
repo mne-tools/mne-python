@@ -19,6 +19,7 @@ __all__ = [
     "read_raw",
     "read_raw_ant",
     "read_raw_artemis123",
+    "read_raw_bci2k",
     "read_raw_bdf",
     "read_raw_boxy",
     "read_raw_brainvision",
@@ -65,6 +66,7 @@ from .ant import read_raw_ant
 from .array import RawArray
 from .artemis123 import read_raw_artemis123
 from .base import BaseRaw, concatenate_raws, match_channel_orders
+from .bci2k import read_raw_bci2k
 from .besa import read_evoked_besa
 from .boxy import read_raw_boxy
 from .brainvision import read_raw_brainvision

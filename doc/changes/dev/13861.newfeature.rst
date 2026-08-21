@@ -1,0 +1,1 @@
+Add dark theme support (``theme="light"``, ``"dark"``, or ``"auto"``) to the ``'matplotlib'`` browser backend used by :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, and :meth:`mne.preprocessing.ICA.plot_sources`, by `Clemens Brunner`_.

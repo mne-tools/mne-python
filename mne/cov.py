@@ -327,6 +327,7 @@ class Covariance(dict):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -362,6 +363,9 @@ class Covariance(dict):
         %(show_names_topomap)s
         %(mask_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -435,6 +439,7 @@ class Covariance(dict):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             outlines=outlines,
             contours=contours,
             image_interp=image_interp,
@@ -1148,7 +1153,8 @@ def compute_covariance(
             for n_epoch, mean in zip(n_epochs, data_mean)
         ]
 
-    info = pick_info(info, picks_meeg)
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
     epochs = [ee.get_data(picks=picks_meeg)[..., tslice] for ee in epochs]
     picks_meeg = np.arange(len(picks_meeg))
@@ -1538,6 +1544,7 @@ class _RegCovariance(_EstimatorMixin):
         grad=0.1,
         mag=0.1,
         eeg=0.1,
+        *,
         seeg=0.1,
         ecog=0.1,
         hbo=0.1,
@@ -1546,6 +1553,10 @@ class _RegCovariance(_EstimatorMixin):
         fnirs_fd_ac_amplitude=0.1,
         fnirs_fd_phase=0.1,
         fnirs_od=0.1,
+        fnirs_td_gated_amplitude=0.1,
+        fnirs_td_moments_intensity=0.1,
+        fnirs_td_moments_mean=0.1,
+        fnirs_td_moments_variance=0.1,
         csd=0.1,
         dbs=0.1,
         store_precision=False,
@@ -1566,6 +1577,10 @@ class _RegCovariance(_EstimatorMixin):
         self.fnirs_fd_ac_amplitude = fnirs_fd_ac_amplitude
         self.fnirs_fd_phase = fnirs_fd_phase
         self.fnirs_od = fnirs_od
+        self.fnirs_td_gated_amplitude = fnirs_td_gated_amplitude
+        self.fnirs_td_moments_intensity = fnirs_td_moments_intensity
+        self.fnirs_td_moments_mean = fnirs_td_moments_mean
+        self.fnirs_td_moments_variance = fnirs_td_moments_variance
         self.csd = csd
         self.store_precision = store_precision
         self.assume_centered = assume_centered
@@ -1598,6 +1613,15 @@ class _RegCovariance(_EstimatorMixin):
             dbs=self.dbs,
             hbo=self.hbo,
             hbr=self.hbr,
+            fnirs_cw_amplitude=self.fnirs_cw_amplitude,
+            fnirs_fd_ac_amplitude=self.fnirs_fd_ac_amplitude,
+            fnirs_fd_phase=self.fnirs_fd_phase,
+            fnirs_od=self.fnirs_od,
+            fnirs_td_gated_amplitude=self.fnirs_td_gated_amplitude,
+            fnirs_td_moments_intensity=self.fnirs_td_moments_intensity,
+            fnirs_td_moments_mean=self.fnirs_td_moments_mean,
+            fnirs_td_moments_variance=self.fnirs_td_moments_variance,
+            csd=self.csd,
             rank="full",
         )
         self.estimator_.covariance_ = self.covariance_ = cov_.data
@@ -1926,6 +1950,7 @@ def regularize(
     eeg=0.1,
     exclude="bads",
     proj=True,
+    *,
     seeg=0.1,
     ecog=0.1,
     hbo=0.1,
@@ -1934,6 +1959,10 @@ def regularize(
     fnirs_fd_ac_amplitude=0.1,
     fnirs_fd_phase=0.1,
     fnirs_od=0.1,
+    fnirs_td_gated_amplitude=0.1,
+    fnirs_td_moments_intensity=0.1,
+    fnirs_td_moments_mean=0.1,
+    fnirs_td_moments_variance=0.1,
     csd=0.1,
     dbs=0.1,
     rank=None,
@@ -1985,6 +2014,14 @@ def regularize(
         Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
+    fnirs_td_gated_amplitude : float (default 0.1)
+        Regularization factor for fNIRS time domain gated amplitude signals.
+    fnirs_td_moments_intensity : float (default 0.1)
+        Regularization factor for fNIRS time domain moments amplitude signals.
+    fnirs_td_moments_mean : float (default 0.1)
+        Regularization factor for fNIRS time domain moments mean signals.
+    fnirs_td_moments_variance : float (default 0.1)
+        Regularization factor for fNIRS time domain moments variance signals.
     csd : float (default 0.1)
         Regularization factor for EEG-CSD signals.
     dbs : float (default 0.1)
@@ -2025,6 +2062,10 @@ def regularize(
         fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
         fnirs_fd_phase=fnirs_fd_phase,
         fnirs_od=fnirs_od,
+        fnirs_td_gated_amplitude=fnirs_td_gated_amplitude,
+        fnirs_td_moments_intensity=fnirs_td_moments_intensity,
+        fnirs_td_moments_mean=fnirs_td_moments_mean,
+        fnirs_td_moments_variance=fnirs_td_moments_variance,
         csd=csd,
     )
 
@@ -2111,7 +2152,8 @@ def regularize(
                     )
         else:
             this_picks = pick_channels(info["ch_names"], this_ch_names)
-            this_info = pick_info(info, this_picks)
+            with info._skip_checks():  # info is already consistent
+                this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
             _, eigvec, mask = _smart_eigh(this_C, this_info, rank)
@@ -2527,7 +2569,7 @@ def _write_cov(fid, cov):
     #   Channel names
     if cov["names"] is not None and len(cov["names"]) > 0:
         write_name_list_sanitized(
-            fid, FIFF.FIFF_MNE_ROW_NAMES, cov["names"], 'cov["names"]'
+            fid, FIFF.FIFF_MNE_ROW_NAMES, cov["names"], name='cov["names"]'
         )
 
     #   Data

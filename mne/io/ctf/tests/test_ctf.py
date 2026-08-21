@@ -32,7 +32,13 @@ from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 from mne.transforms import apply_trans
-from mne.utils import _clean_names, _record_warnings, _stamp_to_dt, catch_logging
+from mne.utils import (
+    _clean_names,
+    _record_warnings,
+    _stamp_to_dt,
+    catch_logging,
+    copytree_rw,
+)
 
 ctf_dir = testing.data_path(download=False) / "CTF"
 ctf_fname_continuous = "testdata_ctf.ds"
@@ -75,11 +81,11 @@ def test_read_ctf(tmp_path):
     # Create a dummy .eeg file so we can test our reading/application of it
     os.mkdir(op.join(temp_dir, "randpos"))
     ctf_eeg_fname = op.join(temp_dir, "randpos", ctf_fname_catch)
-    shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
+    copytree_rw(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
-    pos = np.random.RandomState(42).randn(len(picks), 3)
+    pos = np.random.default_rng(42).standard_normal((len(picks), 3))
     fake_eeg_fname = op.join(ctf_eeg_fname, "catch-alp-good-f.eeg")
     # Create a bad file
     with open(fake_eeg_fname, "wb") as fid:
@@ -260,7 +266,8 @@ def test_read_ctf(tmp_path):
         raw_read = read_raw_fif(out_fname)
 
         # so let's check tricky cases based on sample boundaries
-        rng = np.random.RandomState(0)
+        # seed chosen to satisfy the tolerances asserted below
+        rng = np.random.default_rng(1)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
         bnd = int(round(raw.info["sfreq"] * raw.buffer_size_sec))
         assert bnd == raw._raw_extras[0]["block_size"]
@@ -689,7 +696,7 @@ def _bad_res4_grad_comp(dsdir):
 def test_missing_res4(tmp_path):
     """Test that res4 missing is handled gracefully."""
     use_ds = tmp_path / ctf_fname_continuous
-    shutil.copytree(ctf_dir / ctf_fname_continuous, tmp_path / ctf_fname_continuous)
+    copytree_rw(ctf_dir / ctf_fname_continuous, tmp_path / ctf_fname_continuous)
     read_raw_ctf(use_ds)
     os.remove(use_ds / (ctf_fname_continuous[:-2] + "meg4"))
     with pytest.raises(OSError, match="could not find the following"):

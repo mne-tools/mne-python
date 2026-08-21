@@ -11,8 +11,12 @@ from .._fiff.meas_info import Info
 from ..cov import Covariance
 from ..decoding._covs_ged import _xdawn_estimate
 from ..decoding._mod_ged import _xdawn_mod
-from ..decoding.base import _GEDTransformer
-from ..utils import _validate_type, fill_doc
+from ..decoding.base import _GEDTransformer, _read_ged
+from ..utils import (
+    _validate_type,
+    fill_doc,
+    verbose,
+)
 
 
 @fill_doc
@@ -123,6 +127,30 @@ class XdawnTransformer(_GEDTransformer):
         tags.target_tags.required = True
         return tags
 
+    _save_fname_type = "xdawn_transformer"
+
+    _required_state_keys = (
+        "cov_method_params",
+        "info",
+        "n_components",
+        "rank",
+        "reg",
+        "restr_type",
+        "signal_cov",
+    )
+
+    def _restore_callables(self):
+        """Restore XdawnTransformer-specific callables after loading state."""
+        self.cov_callable = partial(
+            _xdawn_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            R=self.signal_cov,
+            info=self.info,
+            rank=self.rank,
+        )
+        self.mod_ged_callable = _xdawn_mod
+
     def _validate_params(self, X):
         _validate_type(self.n_components, int, "n_components")
 
@@ -211,3 +239,30 @@ class XdawnTransformer(_GEDTransformer):
         pick_patterns = self._subset_multi_components(name="patterns")
         # Transform
         return np.dot(pick_patterns.T, X).transpose(1, 0, 2)
+
+
+@verbose
+def read_xdawn_transformer(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.XdawnTransformer` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to an XdawnTransformer file in HDF5 format, which should end with
+        ``.h5`` or ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    xdawn_transformer : instance of :class:`~mne.decoding.XdawnTransformer`
+        The loaded XdawnTransformer object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.XdawnTransformer.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, XdawnTransformer, verbose=verbose)

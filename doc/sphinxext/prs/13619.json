@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "93fb1c8db9443ea9fdd01c561942ce9f0380ca13",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13619.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 8,
+      "d": 10
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 20,
+      "d": 1
+    }
+  }
+}

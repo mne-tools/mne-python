@@ -1,0 +1,1 @@
+Fix handling of optional dependencies that don't specify a version attribute, by :newcontrib:`Baris Talar`.

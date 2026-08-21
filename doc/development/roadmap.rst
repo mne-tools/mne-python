@@ -151,6 +151,10 @@ montage and reference setting, and online averaging. Integration with standard
 MNE-Python plotting routines (evoked joint plots, topomaps, etc.) should be
 supported with continuous updating.
 
+For closed-loop applications such as neurofeedback and BCI, `MNE-RT`_ builds on
+MNE-LSL and MNE-Python to provide real-time feature extraction, adaptive protocols,
+artifact correction, and live visualisation in a single researcher-friendly API.
+
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 The current clustering statistics code has limited functionality. It should be
@@ -269,7 +273,7 @@ Time-frequency visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We implemented a viewer for interactive visualization of volumetric
 source-time-frequency (5-D) maps on MRI slices (orthogonal 2D viewer).
-`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/master/contrib/nutmegtrip>`__
+`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/20260408/contrib/nutmegtrip>`__
 (written by Sarang Dalal) provides similar functionality in MATLAB in
 conjunction with FieldTrip. Example of NutmegTrip's source-time-frequency mode
 in action (click for link to YouTube):

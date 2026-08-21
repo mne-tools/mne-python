@@ -1,0 +1,1 @@
+Add ``annotation_colors`` parameter to :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` to allow users to specify custom colors for annotations by passing a dict mapping annotation description strings to colors (for example, ``annotation_colors=dict(bad_segment="orange")``), by `Clemens Brunner`_.

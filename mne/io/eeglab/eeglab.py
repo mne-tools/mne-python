@@ -5,6 +5,7 @@
 import os.path as op
 from os import PathLike
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -287,12 +288,12 @@ def _handle_montage_units(montage_units, mean_radius):
 
 @fill_doc
 def read_raw_eeglab(
-    input_fname,
-    eog=(),
-    preload=False,
-    uint16_codec=None,
-    montage_units="auto",
-    verbose=None,
+    input_fname: Path | str,
+    eog: list | tuple | Literal["auto"] = (),
+    preload: bool | str = False,
+    uint16_codec: str | None = None,
+    montage_units: str = "auto",
+    verbose: bool | str | int | None = None,
 ) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
@@ -339,14 +340,14 @@ def read_raw_eeglab(
 
 @fill_doc
 def read_epochs_eeglab(
-    input_fname,
-    events=None,
-    event_id=None,
-    eog=(),
+    input_fname: Path | str,
+    events: Path | str | np.ndarray | None = None,
+    event_id: int | list[int] | dict | None = None,
+    eog: list | tuple | Literal["auto"] = (),
     *,
-    uint16_codec=None,
-    montage_units="auto",
-    verbose=None,
+    uint16_codec: str | None = None,
+    montage_units: str = "auto",
+    verbose: bool | str | int | None = None,
 ) -> "EpochsEEGLAB":
     r"""Reader function for EEGLAB epochs files.
 
@@ -385,7 +386,7 @@ def read_epochs_eeglab(
 
     Returns
     -------
-    EpochsEEGLAB : instance of BaseEpochs
+    EpochsEEGLAB : instance of EpochsEEGLAB
         The epochs.
 
     See Also
@@ -697,6 +698,7 @@ class EpochsEEGLAB(BaseEpochs):
 
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
+            assert event_id is not None
             for idx in range(0, eeg.trials):
                 if idx == 0:
                     prev_stim = 0
@@ -711,6 +713,8 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info(f"Extracting parameters from {input_fname}...")
         info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
+        assert event_id is not None
+        assert events is not None
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(f"No matching events found for {key} (event id {val})")

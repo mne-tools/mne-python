@@ -136,12 +136,26 @@ def test_import_nesting_hierarchy():
                                 )
             super().generic_visit(node)
 
+        def visit_If(self, node):
+            # The capital "I" is intentional: ``ast.NodeVisitor`` dispatches on the
+            # node class name (``ast.If``), so the method must be ``visit_If``.
+            # Imports guarded by ``if TYPE_CHECKING:`` never execute at runtime,
+            # so they are exempt from the import-nesting hierarchy.
+            test = node.test
+            if (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+                isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+            ):
+                for child in node.orelse:  # only the (runtime) else branch
+                    self.visit(child)
+                return
+            self.generic_visit(node)
+
     ignores = (
         # File, statement, kind (omit line number because this can change)
         ("mne/utils/docs.py", "    import mne", "non-relative mne import"),
         (
             "mne/io/_read_raw.py",
-            "    from . import read_raw_ant, read_raw_artemis123, read_raw_bdf, read_raw_boxy, read_raw_brainvision, read_raw_cnt, read_raw_ctf, read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia, read_raw_eyelink, read_raw_fieldtrip, read_raw_fif, read_raw_fil, read_raw_gdf, read_raw_kit, read_raw_mef, read_raw_nedf, read_raw_nicolet, read_raw_nihon, read_raw_nirx, read_raw_nsx, read_raw_persyst, read_raw_snirf",  # noqa: E501
+            "    from . import read_raw_ant, read_raw_artemis123, read_raw_bci2k, read_raw_bdf, read_raw_boxy, read_raw_brainvision, read_raw_cnt, read_raw_ctf, read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia, read_raw_eyelink, read_raw_fieldtrip, read_raw_fif, read_raw_fil, read_raw_gdf, read_raw_kit, read_raw_mef, read_raw_nedf, read_raw_nicolet, read_raw_nihon, read_raw_nirx, read_raw_nsx, read_raw_persyst, read_raw_snirf",  # noqa: E501
             "non-explicit relative import",
         ),
         (

@@ -157,7 +157,12 @@ def plt_show(show=True, fig=None, **kwargs):
         backend = get_backend()
     if show and backend != "agg":
         logger.debug(f"Showing plot for backend {repr(backend)}")
-        (fig or plt).show(**kwargs)
+        # if backend is inline and therefore non-interactive,
+        # fig.show() fails with UserWarning. See gh-14076
+        if "inline" in str(backend).lower():
+            plt.show(**kwargs)
+        else:
+            (fig or plt).show(**kwargs)
 
 
 def _show_browser(show=True, block=True, fig=None, **kwargs):
@@ -1402,7 +1407,9 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
-            ixs_epochs = np.random.choice(range(len(inst)), n_epochs, False)
+            ixs_epochs = np.random.default_rng().choice(
+                len(inst), n_epochs, replace=False
+            )
             inst = inst.copy()[ixs_epochs].load_data()
     else:
         data = inst._data
@@ -2866,3 +2873,34 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 f"No plottable channel types found. Allowed types are: {allowed_types}"
             )
     return ch_type
+
+
+def _normalize_annotation_colors(annotation_colors, annotations):
+    """Normalize annotation_colors and check that keys match annotation descriptions.
+
+    Parameters
+    ----------
+    annotation_colors : dict[str, color]
+        The annotation colors to normalize (``color`` can be any valid Matplotlib color
+        specification).
+    annotations : mne.Annotations
+        The Annotations object to check against.
+    """
+    from matplotlib.colors import to_hex
+
+    _validate_type(annotation_colors, dict, "annotation_colors")
+    normalized = {}
+    for k, v in annotation_colors.items():
+        try:
+            normalized[k] = to_hex(v)
+        except ValueError:
+            raise ValueError(
+                f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
+            ) from None
+    unknown = set(normalized) - set(annotations.description)
+    if unknown:
+        warn(
+            "The following annotation_colors keys do not match any annotation "
+            f"description in the data: {sorted(unknown)}"
+        )
+    return normalized

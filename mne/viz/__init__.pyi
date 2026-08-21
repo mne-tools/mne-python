@@ -1,5 +1,6 @@
 __all__ = [
     "Brain",
+    "LayeredMesh",
     "ClickableImage",
     "EvokedField",
     "Figure3D",
@@ -102,7 +103,7 @@ from ._3d import (
     set_3d_options,
     snapshot_brain_montage,
 )
-from ._brain import Brain
+from ._brain import Brain, LayeredMesh
 from ._figure import get_browser_backend, set_browser_backend, use_browser_backend
 from ._proj import plot_projs_joint
 from .backends._abstract import Figure3D

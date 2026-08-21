@@ -2,12 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import platform
+from functools import wraps
 from inspect import signature
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 sklearn = pytest.importorskip("sklearn")
 
@@ -15,7 +15,7 @@ from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import BaggingClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
-from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.metrics import check_scoring, make_scorer, roc_auc_score
 from sklearn.model_selection import cross_val_predict
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
@@ -32,10 +32,11 @@ NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 def make_data():
     """Make data."""
     n_epochs, n_chan, n_time = 50, 32, 10
-    X = np.random.rand(n_epochs, n_chan, n_time)
+    rng = np.random.default_rng(0)
+    X = rng.random((n_epochs, n_chan, n_time))
     y = np.arange(n_epochs) % 2
     for ii in range(n_time):
-        coef = np.random.randn(n_chan)
+        coef = rng.standard_normal(n_chan)
         X[y == 0, :, ii] += coef
         X[y == 1, :, ii] -= coef
     return X, y
@@ -43,10 +44,6 @@ def make_data():
 
 def test_search_light_basic():
     """Test SlidingEstimator."""
-    # https://github.com/scikit-learn/scikit-learn/issues/27711
-    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
-        pytest.skip("sklearn int_t / long long mismatch")
-
     logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
     X, y = make_data()
@@ -132,8 +129,8 @@ def test_search_light_basic():
     # Now use string as scoring
     sl1 = SlidingEstimator(logreg, scoring="roc_auc")
     sl1.fit(X, y)
-    rng = np.random.RandomState(0)
-    X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal(X.shape)  # randomize X to avoid AUCs in [0, 1]
     score_sl = sl1.score(X, y)
     assert_array_equal(score_sl.shape, [n_time])
     assert score_sl.dtype == np.dtype(float)
@@ -173,7 +170,7 @@ def test_search_light_basic():
     pipe.predict(X)
 
     # n-dimensional feature space
-    X = np.random.rand(10, 3, 4, 2)
+    X = rng.random((10, 3, 4, 2))
     y = np.arange(10) % 2
     y_preds = list()
     for n_jobs in [1, 2]:
@@ -184,7 +181,7 @@ def test_search_light_basic():
     assert_array_equal(y_preds[0], y_preds[1])
 
     # Bagging classifiers
-    X = np.random.rand(10, 3, 4)
+    X = rng.random((10, 3, 4))
     for n_jobs in (1, 2):
         pipe = SlidingEstimator(BaggingClassifier(None, 2), n_jobs=n_jobs)
         pipe.fit(X, y)
@@ -246,7 +243,11 @@ def test_generalization_light(metadata_routing):
     gl.fit(X, y)
     score = gl.score(X, y)
     auc = roc_auc_score(y, gl.estimators_[0].predict_proba(X[..., 0])[..., 1])
-    assert_equal(score[0, 0], auc)
+
+    # The rank identity implemented when batching gives the same AUC as sklearn
+    # within floating point precision, but implements it with different
+    # operations. A bit-exact match would need a loop, defeating the batching.
+    assert_allclose(score[0, 0], auc)
 
     for scoring in ["foo", 999]:
         gl = GeneralizingEstimator(logreg, scoring=scoring)
@@ -267,7 +268,8 @@ def test_generalization_light(metadata_routing):
         [roc_auc_score(y - 1, _y_pred) for _y_pred in _y_preds]
         for _y_preds in gl.decision_function(X).transpose(1, 2, 0)
     ]
-    assert_array_equal(score, manual_score)
+    # allclose instead of equal: see above, batching roc_auc forces this.
+    assert_allclose(score, manual_score)
 
     # n_jobs
     gl = GeneralizingEstimator(logreg, n_jobs=2)
@@ -282,7 +284,8 @@ def test_generalization_light(metadata_routing):
     gl.predict(X[..., [0]])
 
     # n-dimensional feature space
-    X = np.random.rand(10, 3, 4, 2)
+    rng = np.random.default_rng(0)
+    X = rng.random((10, 3, 4, 2))
     y = np.arange(10) % 2
     y_preds = list()
     for n_jobs in [1, 2]:
@@ -291,6 +294,78 @@ def test_generalization_light(metadata_routing):
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
+
+
+@pytest.mark.parametrize(
+    "scoring, est_name, method",
+    [
+        (None, "logreg", "predict"),
+        ("accuracy", "logreg", "predict"),
+        ("balanced_accuracy", "logreg", "predict"),
+        ("roc_auc", "logreg", "decision_function"),
+        ("neg_log_loss", "logreg", "predict_proba"),
+        (None, "ridge", "predict"),
+        ("roc_auc_multiclass", "logreg", "predict_proba"),
+        ("accuracy_kwargs", "logreg", "predict"),
+    ],
+)
+def test_gl_score_branches(scoring, est_name, method):
+    """Test _gl_score against its own can_batch=False nested-loop fallback."""
+    n_trials, n_sensors, n_iter = 12, 3, 4
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((n_trials, n_sensors, n_iter))
+    y = rng.integers(0, 3 if scoring == "roc_auc_multiclass" else 2, n_trials)
+    per_slice = scoring in ("neg_log_loss", "roc_auc_multiclass", "accuracy_kwargs")
+    # liblinear is binary-only, switch to lbfgs for the multi-class case.
+    solver = "lbfgs" if scoring == "roc_auc_multiclass" else "liblinear"
+    if scoring == "roc_auc_multiclass":
+        scoring = make_scorer(
+            roc_auc_score, response_method="predict_proba", multi_class="ovr"
+        )
+    elif scoring == "accuracy_kwargs":
+        # start from the default scorer but add a kwarg to prevent batching
+        acc_func = check_scoring(LogisticRegression(), "accuracy")._score_func
+        scoring = make_scorer(acc_func, normalize=False)
+    est = Ridge() if est_name == "ridge" else LogisticRegression(solver=solver)
+    gl = GeneralizingEstimator(est, scoring=scoring).fit(X, y)
+
+    # Measure batching: count pred/call scores. Wraps `fn` calls so they append
+    # to a bucket; @wraps preserves __name__ (needed as _gl_score matches it)
+    def counting(fn, bucket):
+        @wraps(fn)
+        def wrapped(*a, **k):
+            bucket.append(1)
+            return fn(*a, **k)
+
+        return wrapped
+
+    # First we count calls to scorer
+    score_calls = []
+    scorer = check_scoring(est, scoring)
+    if getattr(scorer, "_score_func", None) is not None:
+        scorer._score_func = counting(scorer._score_func, score_calls)
+
+    # Now we count calls to the estimator that _gl_score will call (hardcoded)
+    pred_calls = []
+    for e in gl.estimators_:
+        setattr(e, method, counting(getattr(e, method), pred_calls))
+
+    # Batched path: assert call counts immediately so the buckets only reflect
+    # this run (the reference run below would otherwise add to them).
+    gl.scoring = scorer
+    actual = gl.score(X, y)
+    assert len(pred_calls) == (n_iter if est_name != "ridge" else n_iter**2)
+    assert len(score_calls) == (n_iter**2 if per_slice else 0)
+
+    # Reference: force can_batch=False. _score_func set (non-None) bypasses the
+    # qname coercion; missing _response_method makes can_batch False.
+    def force_fallback(e, X, y):
+        return scorer(e, X, y)
+
+    force_fallback._score_func = id
+    gl.scoring = force_fallback
+    expected = gl.score(X, y)
+    assert_allclose(actual, expected)
 
 
 @pytest.mark.parametrize(
@@ -318,9 +393,9 @@ def test_verbose_arg(capsys, n_jobs, verbose):
 
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    rng = np.random.RandomState(42)
-    X = rng.randn(10, 1, 3)
-    y = rng.randint(0, 2, 10)
+    rng = np.random.default_rng(42)
+    X = rng.standard_normal((10, 1, 3))
+    y = rng.integers(0, 2, 10)
 
     estimator = SlidingEstimator(LinearRegression())
     cross_val_predict(estimator, X, y, cv=2)

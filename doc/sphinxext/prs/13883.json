@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6f2f8afbedd8c3c72850965cbb232189c83af037",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "a": 16,
+      "d": 2
+    },
+    "CONTRIBUTING.md": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

@@ -14,7 +14,6 @@ from numpy.testing import (
     assert_array_equal,
     assert_equal,
 )
-from scipy.interpolate import interp1d
 
 import mne
 from mne import Epochs, make_fixed_length_events, pick_types, read_evokeds
@@ -26,7 +25,7 @@ from mne.forward._lead_dots import (
     _comp_sum_eeg,
     _comp_sums_meg,
     _do_cross_dots,
-    _get_legen_table,
+    _get_legen_fun,
 )
 from mne.forward._make_forward import _create_meg_coils
 from mne.io import read_raw_fif
@@ -63,68 +62,59 @@ def test_field_map_ctf():
 
 
 def test_legendre_val():
-    """Test Legendre polynomial (derivative) equivalence."""
-    rng = np.random.RandomState(0)
-    # check table equiv
+    """Test Legendre polynomial (derivative) evaluation."""
+    rng = np.random.default_rng(0)
     xs = np.linspace(-1.0, 1.0, 1000)
     n_terms = 100
 
     # True, numpy
     vals_np = legendre.legvander(xs, n_terms - 1)
 
-    # Table approximation
-    for nc, interp in zip([100, 50], ["nearest", "linear"]):
-        lut, n_fact = _get_legen_table("eeg", n_coeff=nc, force_calc=True)
-        lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp, axis=0)
-        vals_i = lut_fun(xs)
-        # Need a "1:" here because we omit the first coefficient in our table!
-        assert_allclose(
-            vals_np[:, 1 : vals_i.shape[1] + 1], vals_i, rtol=1e-2, atol=5e-3
-        )
+    # Our (exact, on-the-fly) evaluator
+    leg_fun, n_fact = _get_legen_fun("eeg", n_coeff=n_terms)
+    vals_i = leg_fun(xs)
+    # Need a "1:" here because we omit the first coefficient!
+    assert_allclose(vals_np[:, 1:], vals_i)
 
-        # Now let's look at our sums
-        ctheta = rng.rand(20, 30) * 2.0 - 1.0
-        beta = rng.rand(20, 30) * 0.8
-        c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), lut_fun, n_fact)
-        c1 = _reshape_view(c1, beta.shape)
+    # Now let's look at our sums
+    ctheta = rng.random((20, 30)) * 2.0 - 1.0
+    beta = rng.random((20, 30)) * 0.8
+    c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), leg_fun, n_fact)
+    c1 = _reshape_view(c1, beta.shape)
 
-        # compare to numpy
-        n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]
-        coeffs = np.zeros((n_terms,) + beta.shape)
-        coeffs[1:] = (
-            np.cumprod([beta] * (n_terms - 1), axis=0)
-            * (2.0 * n + 1.0)
-            * (2.0 * n + 1.0)
-            / n
-        )
-        # can't use tensor=False here b/c it isn't in old numpy
-        c2 = np.empty((20, 30))
-        for ci1 in range(20):
-            for ci2 in range(30):
-                c2[ci1, ci2] = legendre.legval(ctheta[ci1, ci2], coeffs[:, ci1, ci2])
-        assert_allclose(c1, c2, 1e-2, 1e-3)  # close enough...
+    # compare to numpy
+    n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]
+    coeffs = np.zeros((n_terms,) + beta.shape)
+    coeffs[1:] = (
+        np.cumprod([beta] * (n_terms - 1), axis=0)
+        * (2.0 * n + 1.0)
+        * (2.0 * n + 1.0)
+        / n
+    )
+    c2 = legendre.legval(ctheta, coeffs, tensor=False)
+    assert_allclose(c1, c2)
 
-    # compare fast and slow for MEG
-    ctheta = rng.rand(20 * 30) * 2.0 - 1.0
-    beta = rng.rand(20 * 30) * 0.8
-    lut, n_fact = _get_legen_table("meg", n_coeff=10, force_calc=True)
-    fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, "nearest", axis=0)
-    coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
-    lut, n_fact = _get_legen_table("meg", n_coeff=20, force_calc=True)
-    fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, "linear", axis=0)
-    coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
+    # smoke test for MEG at a couple of n_coeff values
+    ctheta = rng.random(20 * 30) * 2.0 - 1.0
+    beta = rng.random(20 * 30) * 0.8
+    for n_coeff in (10, 20):
+        leg_fun, n_fact = _get_legen_fun("meg", n_coeff=n_coeff)
+        _comp_sums_meg(beta, ctheta, leg_fun, n_fact, False)
 
 
-def test_legendre_table():
-    """Test Legendre table calculation."""
-    # double-check our table generation
+def test_legendre_fun():
+    """Test that our Legendre evaluator truncates consistently."""
+    # values/coefficients for a small n_coeff should match a truncated
+    # evaluation using a larger n_coeff
     n = 10
+    x = np.linspace(-1, 1, 5)
     for ch_type in ["eeg", "meg"]:
-        lut1, n_fact1 = _get_legen_table(ch_type, n_coeff=25, force_calc=True)
-        lut1 = lut1[:, : n - 1].copy()
+        leg_fun1, n_fact1 = _get_legen_fun(ch_type, n_coeff=25)
+        vals1 = leg_fun1(x)[:, : n - 1].copy()
         n_fact1 = n_fact1[: n - 1].copy()
-        lut2, n_fact2 = _get_legen_table(ch_type, n_coeff=n, force_calc=True)
-        assert_allclose(lut1, lut2)
+        leg_fun2, n_fact2 = _get_legen_fun(ch_type, n_coeff=n)
+        vals2 = leg_fun2(x)
+        assert_allclose(vals1, vals2)
         assert_allclose(n_fact1, n_fact2)
 
 
@@ -252,8 +242,8 @@ def test_make_field_map_meeg():
     assert_equal(maps[0]["data"].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]["data"].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges
-    maxs = (1.2, 2.0)  # before #4418, was (1.1, 2.0)
-    mins = (-0.8, -1.3)  # before #4418, was (-0.6, -1.2)
+    maxs = (1.23, 2.15)  # before #4418, was (1.1, 2.0)
+    mins = (-0.83, -1.34)  # before #4418, was (-0.6, -1.2)
     assert_equal(len(maxs), len(maps))
     for map_, max_, min_ in zip(maps, maxs, mins):
         assert_allclose(map_["data"].max(), max_, rtol=5e-2)
@@ -267,7 +257,7 @@ def test_make_field_map_meeg():
     )
     assert_allclose(
         np.sqrt(np.sum(maps[1]["data"] ** 2)),
-        19.4748,
+        20.0589,
         atol=1e-3,
         rtol=1e-3,
     )
@@ -276,7 +266,7 @@ def test_make_field_map_meeg():
 def _setup_args(info):
     """Configure args for test_as_meg_type_evoked."""
     coils = _create_meg_coils(info["chs"], "normal", info["dev_head_t"])
-    int_rad, _, lut_fun, n_fact = _setup_dots("fast", info, coils, "meg")
+    int_rad, _, leg_fun, n_fact = _setup_dots("fast", info, coils, "meg")
     my_origin = np.array([0.0, 0.0, 0.04])
     args_dict = dict(
         intrad=int_rad,
@@ -284,7 +274,7 @@ def _setup_args(info):
         coils1=coils,
         r0=my_origin,
         ch_type="meg",
-        lut=lut_fun,
+        leg_fun=leg_fun,
         n_fact=n_fact,
     )
     return args_dict

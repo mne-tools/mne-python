@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2c008ad546ff08b083229cd887783952116a3857",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13746.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 28,
+      "d": 15
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

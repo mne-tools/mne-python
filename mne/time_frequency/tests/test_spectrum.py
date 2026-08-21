@@ -723,7 +723,8 @@ def test_plot_spectrum(method, output, average, request):
 
 def test_plot_spectrum_array_with_bads():
     """Test plotting a spectrum array with bads."""
-    raw = RawArray(np.random.randn(3, 1000), create_info(3, 1000, "eeg"))
+    rng = np.random.default_rng(0)
+    raw = RawArray(rng.standard_normal((3, 1000)), create_info(3, 1000, "eeg"))
     raw.info["bads"] = [raw.ch_names[1]]
     spectrum = raw.compute_psd()
     with pytest.raises(
