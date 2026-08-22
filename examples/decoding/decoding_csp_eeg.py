@@ -11,7 +11,7 @@ classifier is then applied to features extracted on CSP-filtered signals.
 See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 :footcite:`Koles1991`. The EEGBCI dataset is documented in
 :footcite:`SchalkEtAl2004` and on the
-`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+`PhysioNet documentation page`_.
 The dataset is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 """
 
@@ -145,3 +145,5 @@ plt.show()
 # References
 # ----------
 # .. footbibliography::
+#
+# .. include:: ../../links.inc
