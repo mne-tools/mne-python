@@ -104,7 +104,8 @@ raw.load_data()
 # :footcite:`AblinEtAl2018` for more information.
 #
 # The ICA interface in MNE-Python is similar to the interface in
-# `scikit-learn`_: some general parameters are specified when creating an
+# `scikit-learn <https://scikit-learn.org/stable/>`__: some general parameters
+# are specified when creating an
 # `~mne.preprocessing.ICA` object, then the `~mne.preprocessing.ICA` object is
 # fit to the data using its `~mne.preprocessing.ICA.fit` method. The results of
 # the fitting are added to the `~mne.preprocessing.ICA` object as attributes
