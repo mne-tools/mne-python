@@ -10,7 +10,7 @@ else
 fi
 WANT_PYTHON_VERSION=$(echo "$WANT_PYTHON_VERSION" | sed 's/t$//g')
 if [[ -z "$WANT_PYTHON_VERSION" ]]; then
-	echo "✕ ERROR: Missing required argument: want Python version (e.g., 3.11)"
+	echo "::error::Missing required argument: want Python version (e.g., 3.11)"
 	exit 1
 fi
 
@@ -30,24 +30,24 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 elif [[ "${MNE_CI_KIND}" == 'pip'* ]] || [[ "${MNE_CI_KIND}" == "minimal" ]]; then
 	WANT="/hostedtoolcache/"
 else
-	echo "✕ ERROR: Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
+	echo "::error::Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
 	exit 1
 fi
 if [[ "${GOT_PYTHON}" != *"${WANT}"* ]]; then
-	echo "✕ ERROR: Did not find \"${WANT}\" from PATH:"
+	echo "::error::Did not find \"${WANT}\" in PATH (dumped below)"
 	tr ':' '\n' <<< "$PATH"
 	exit 1
 else
 	echo "☑ Found expected \"${WANT}\""
 fi
 if [[ "${GOT_PYTHON_VERSION}" != *"${WANT_PYTHON_VERSION}"* ]]; then
-	echo "✕ ERROR: Did not find expected Python version \"${WANT_PYTHON_VERSION}\""
+	echo "::error::Did not find expected Python version \"${WANT_PYTHON_VERSION}\""
 	exit 1
 else
 	echo "☑ Found expected Python version \"${WANT_PYTHON_VERSION}\""
 fi
 if [[ "${GOT_FREETHREADED}" != "${WANT_FREETHREADED}" ]]; then
-	echo "✕ ERROR: Expected free-threaded=${WANT_FREETHREADED} but got ${GOT_FREETHREADED}"
+	echo "::error::Expected free-threaded=${WANT_FREETHREADED} but got ${GOT_FREETHREADED}"
 	exit 1
 else
 	echo "☑ Found expected free-threaded=${WANT_FREETHREADED}"

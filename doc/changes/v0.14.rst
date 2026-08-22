@@ -248,3 +248,5 @@ People who contributed to this release  (in alphabetical order):
 * Stefan Repplinger
 * Teon Brooks
 * Yaroslav Halchenko
+
+.. include:: names.inc
