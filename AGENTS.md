@@ -114,6 +114,14 @@ User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types:
 to `doc/changes/names.inc` (build fails otherwise) and are credited with `:newcontrib:` in their
 changelog entry instead of a plain name link.
 
+The `<PR-number>` for a not-yet-opened PR is one more than the highest number currently in use;
+issues and PRs share a single number sequence, so query the most recently created of either
+(the `issues` API endpoint includes PRs):
+```bash
+gh api "repos/mne-tools/mne-python/issues?state=all&per_page=1&sort=created&direction=desc" \
+    --jq '.[0].number'
+```
+
 ## Code conventions (beyond what ruff enforces)
 
 - Classes: `CamelCase`. Functions/variables: `snake_case`, no abbreviated names like `nsamples`.
