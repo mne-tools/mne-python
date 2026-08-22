@@ -326,7 +326,7 @@ addopts = [
   "--ignore=mne/report/js_and_css",
   "--junit-xml=junit-results.xml",
   "--tb=short",
-  "-rfEXs",
+  "-ra",
 ]
 testpaths = [
   "mne",

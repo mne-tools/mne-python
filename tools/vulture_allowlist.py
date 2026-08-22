@@ -174,3 +174,7 @@ _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
 _show_help_fig
+
+# Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
+eventFilter
+_sigint_impl

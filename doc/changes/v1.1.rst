@@ -269,3 +269,5 @@ Authors
 * Stefan Appelhoff
 * T. Wang+
 * Tziona NessAiver+
+
+.. include:: names.inc
