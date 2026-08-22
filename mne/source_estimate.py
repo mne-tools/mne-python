@@ -2546,8 +2546,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         format : str
             Either ``'nifti1'`` (default) or ``'nifti2'``.
 
@@ -2596,8 +2596,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
