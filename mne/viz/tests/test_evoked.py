@@ -126,6 +126,7 @@ def test_plot_evoked():
     fig = evoked.plot(
         proj=True, hline=[1], exclude=[], window_title="foo", time_unit="s"
     )
+    assert fig.__class__.__name__ == "MNELineFigure"
     amplitudes = _get_amplitudes(fig)
     assert len(amplitudes) == len(default_picks)
     assert evoked.proj is False
