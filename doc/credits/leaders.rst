@@ -79,7 +79,7 @@ Advisory Board
 Community Participation Guidelines Response Leads
 -------------------------------------------------
 
-See our `Community Participation Guidelines <https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md>`__
+See our `Community Participation Guidelines <code of conduct_>`__
 for explanation. Current Response Leads are:
 
 * `Daniel McCloy`_
@@ -90,3 +90,7 @@ Document history
 ----------------
 
 https://github.com/mne-tools/mne-python/commits/main/doc/overview/people.rst
+
+.. include:: ../changes/names.inc
+
+.. include:: ../links.inc

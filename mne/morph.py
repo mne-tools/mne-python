@@ -37,9 +37,7 @@ from .utils import (
     verbose,
     warn,
 )
-from .utils import (
-    warn as warn_,
-)
+from .utils import warn as warn_
 
 
 @verbose
@@ -523,8 +521,8 @@ class SourceMorph:
         mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.

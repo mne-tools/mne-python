@@ -327,3 +327,5 @@ People who contributed to this release  (in alphabetical order):
 * Simon Kern
 * Teon Brooks
 * Yousra Bekhti
+
+.. include:: names.inc

@@ -2744,11 +2744,11 @@ class FilterMixin:
         channels/vertices defined in ``picks`` is computed, resulting in the envelope
         signal.
 
-        .. warning: Do not use ``envelope=True`` if you intend to compute
-                    an inverse solution from the raw data. If you want to
-                    compute the envelope in source space, use
-                    ``envelope=False`` and compute the envelope after the
-                    inverse solution has been obtained.
+        .. warning::
+            Do not use ``envelope=True`` if you intend to compute an inverse solution
+            from the raw data. If you want to compute the envelope in source space, use
+            ``envelope=False`` and compute the envelope after the inverse solution has
+            been obtained.
 
         If ``envelope=False``, more memory is required since the original raw data
         as well as the analytic signal have temporarily to be stored in memory.

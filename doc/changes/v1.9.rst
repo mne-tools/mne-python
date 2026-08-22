@@ -6,7 +6,7 @@ Version 1.9.0 (2024-12-18)
 Dependencies
 ------------
 
-- Minimum supported dependencies were updated in accordance with SPEC0_, most notably Python 3.10+ is now required. (`#12798 <https://github.com/mne-tools/mne-python/pull/12798>`__)
+- Minimum supported dependencies were updated in accordance with `SPEC0 <https://scientific-python.org/specs/spec-0000>`__, most notably Python 3.10+ is now required. (`#12798 <https://github.com/mne-tools/mne-python/pull/12798>`__)
 - Importing from ``mne.decoding`` now explicitly requires ``scikit-learn`` to be installed,
   by `Eric Larson`_. (`#12834 <https://github.com/mne-tools/mne-python/pull/12834>`__)
 - Compatibility improved for Python 3.13, by `Eric Larson`_. (`#13021 <https://github.com/mne-tools/mne-python/pull/13021>`__)
@@ -126,3 +126,5 @@ Authors
 * Thomas S. Binns
 * Victor Férat
 * Ziyi ZENG+
+
+.. include:: names.inc
