@@ -1088,10 +1088,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         # so do a divergent MIP in one volume with baked colors instead of two
         signed_mip = center is not None and blending == "mip"
         if signed_mip:
-            grid.point_data[_RGBA_NAME] = np.zeros((grid.n_points, 4), np.uint8)
+            grid.point_data["rgba"] = np.zeros((grid.n_points, 4), np.uint8)
             # the reslicer and mapper both act on the active scalars; "values"
             # stays under its own name for picking
-            grid.point_data.active_scalars_name = _RGBA_NAME
+            grid.point_data.active_scalars_name = "rgba"
 
         mapper = vtkSmartVolumeMapper()
         interp_map_meth = "SetInterpolationModeTo"
@@ -1160,9 +1160,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
 
-_RGBA_NAME = "rgba"
-
-
 def _bake_volume_rgba(values, ctable, rng):
     """Encode signed scalars as dependent-component RGBA for a signed MIP.
 
@@ -1183,9 +1180,9 @@ def _bake_volume_rgba(values, ctable, rng):
 
 def _update_volume_rgba(grid, ctable, rng):
     """Re-bake the color array of a signed-MIP volume, if the grid has one."""
-    if _RGBA_NAME not in grid.point_data:
+    if "rgba" not in grid.point_data:
         return
-    grid.point_data[_RGBA_NAME][:] = _bake_volume_rgba(
+    grid.point_data["rgba"][:] = _bake_volume_rgba(
         np.asarray(grid.point_data["values"]), ctable, rng
     )
 
