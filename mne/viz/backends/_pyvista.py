@@ -1175,7 +1175,7 @@ def _bake_volume_rgba(values, ctable, rng):
     idx = np.clip((values - lo) / (hi - lo) * (n_colors - 1), 0, n_colors - 1)
     rgba = ctable[idx.astype(np.int64)].copy()
     # magnitude, not mapped opacity (saturates at fmax -> ties); from the table
-    # center, where a divergent colormap changes sign (rng may be asymmetric)
+    # center, where a divergent colormap changes sign (`rng` may be asymmetric)
     half = (n_colors - 1) / 2.0
     rgba[:, 3] = np.round(np.abs(idx - half) / half * 255).astype(np.uint8)
     return rgba
