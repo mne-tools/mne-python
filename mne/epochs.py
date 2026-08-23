@@ -4907,7 +4907,7 @@ def concatenate_epochs(
         events=events,
         event_id=event_id,
         tmin=tmin,
-        baseline=baseline,
+        baseline=None,
         selection=selection,
         drop_log=drop_log,
         proj=False,
@@ -4915,6 +4915,8 @@ def concatenate_epochs(
         metadata=metadata,
         raw_sfreq=raw_sfreq,
     )
+    # Don't reapply baseline correction. Restore the original baseline metadata.
+    out.baseline = baseline
     out.drop_bad()
     return out
 
