@@ -7,9 +7,7 @@ from copy import deepcopy
 from math import log
 
 import numpy as np
-from scipy.sparse import issparse
 
-from . import viz
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import _read_bad_channels, _write_bad_channels, create_info
 from ._fiff.pick import (
@@ -299,8 +297,8 @@ class Covariance(dict):
 
         return self
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_cov")
     @verbose
-    @copy_function_doc_to_method_doc(viz.plot_cov)
     def plot(
         self,
         info,
@@ -311,6 +309,8 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
+        from . import viz
+
         return viz.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
@@ -2441,6 +2441,8 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy.sparse import issparse
+
     from ._fiff.write import _safe_read_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)

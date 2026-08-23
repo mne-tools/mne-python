@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.ndimage import gaussian_filter
 
 from ..._fiff.constants import FIFF
 from ...utils import _validate_type, fill_doc, logger
@@ -60,6 +59,8 @@ def plot_gaze(
     -----
     .. versionadded:: 1.6
     """
+    from scipy.ndimage import gaussian_filter
+
     from mne import BaseEpochs
     from mne._fiff.pick import _picks_to_idx
 

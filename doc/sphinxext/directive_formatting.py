@@ -6,6 +6,58 @@ import re
 
 from mne_doc_utils import sphinx_logger
 
+# Recognised Sphinx directives (current as of v9.1.0)
+DIRECTIVE_NAMES = [
+    # Table of contents
+    "toctree",
+    # Admonitions, messages, warnings
+    "attention",
+    "caution",
+    "danger",
+    "error",
+    "hint",
+    "important",
+    "note",
+    "tip",
+    "warning",
+    "admonition",
+    "seealso",
+    # Changes between versions
+    "version-added",
+    "versionadded",
+    "versionchanged",
+    "version-changed",
+    "version-deprecated",
+    "deprecated",
+    "version-removed",
+    "versionremoved",
+    # Presentational
+    "rubric",
+    "centered",
+    "hlist",
+    # Code examples
+    "highlight",
+    "code-block",
+    "sourcecode",
+    "code",
+    "literalinclude",
+    # Glossary
+    "glossary",
+    # Meta-information
+    "sectionauthor",
+    "codeauthor",
+    # Index-generating markup
+    "index",
+    # Including content
+    "only",
+    # Tables
+    "tabularcolumns",
+    # Math
+    "math",
+    # Grammar production
+    "productionlist",
+]
+
 
 def setup(app):
     app.connect("source-read", check_directive_formatting)
@@ -19,7 +71,7 @@ def setup_module():
 
 
 def check_directive_formatting(*args):
-    """Check that directives are not missing a space.
+    """Check that directives are not malformed.
 
     For args, see Sphinx events 'source-read' and 'autodoc-process-docstring'.
     """
@@ -37,8 +89,8 @@ def check_directive_formatting(*args):
     else:
         raise RuntimeError("Unexpected number of arguments from Sphinx event")
 
-    # Check if any directives are present
-    if re.search(r"\.\.\s*[a-zA-Z]+::", source_concat) is None:
+    # Check if text resembling directives is present
+    if re.search(r"\.\.\s*[a-zA-Z\-]+\s*:", source_concat) is None:
         return
 
     # Separate content into lines (docstrings already are)
@@ -48,7 +100,7 @@ def check_directive_formatting(*args):
     # Check for bad formatting
     for idx, line in enumerate(source):
         # Check for missing space after '..'
-        missing = re.search(r"\.\.[a-zA-Z]+::", line)
+        missing = re.search(r"\.\.[a-zA-Z\-]+\s*:", line)
         if missing is not None:
             sphinx_logger.warning(
                 f"{source_type} '{name}' is missing a space after '..' in the "
@@ -56,12 +108,26 @@ def check_directive_formatting(*args):
             )
         # Extra spaces after '..' don't affect formatting
 
+        # Check for bad number of final colons (should be exactly 2)
+        bad_colons = re.search(r"\.\.\s*([a-zA-Z\-]+)\s*(?<!:)(:{3,}|:)(?!:)", line)
+        if bad_colons is not None:
+            # Strip out directive name and check if it's a recognised directive
+            # (links for files/sections take the same form, but are valid with a single
+            # colon)
+            directive_name = bad_colons.group(1)
+            if directive_name in DIRECTIVE_NAMES:
+                sphinx_logger.warning(
+                    f"{source_type} '{name}' has bad number of final colons (i.e., not "
+                    f"2) in the directive '{bad_colons.group()}'"
+                )
+        # Space(s) between directive name and final colons don't affect formatting
+
         # Check for missing preceding blank line
         # (exceptions are for directives at the start of files, after a header, or after
         # another directive/another directive's content)
         if idx == 0:
             continue
-        dir_pattern = r"^\s*\.\. \w+::"  # line might start with whitespace
+        dir_pattern = r"^\s*\.\.\s*[a-zA-Z\-]+\s*::"  # line might start with whitespace
         head_pattern = r"^[-|=|\^]+$"
         directive = re.search(dir_pattern, line)
         if directive is not None:

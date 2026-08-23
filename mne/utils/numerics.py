@@ -17,13 +17,10 @@ from math import ceil, sqrt
 from pathlib import Path
 
 import numpy as np
-from scipy import sparse
 
 from ..fixes import (
     _infer_dimension_,
     _safe_svd,
-    has_numba,
-    jit,
     stable_cumsum,
     svd_flip,
 )
@@ -640,6 +637,8 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
+
     if h is None:
         h = _empty_hash()
     if hasattr(x, "keys"):
@@ -658,7 +657,12 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode("utf-8"))
         h.update(str(x.dtype).encode("utf-8"))
-        h.update(x.tobytes())
+        if x.dtype.kind == "T":
+            # variable-width strings store a pointer to the heap, so tobytes() does
+            # not contain the actual string data
+            h.update(repr(x.tolist()).encode("utf-8"))
+        else:
+            h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):
@@ -732,6 +736,8 @@ def object_size(x, memo=None):
 
 
 def _is_sparse_cs(x):
+    from scipy import sparse
+
     return isinstance(
         x, sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array
     )
@@ -777,6 +783,8 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
+
     out = ""
     if type(a) is not type(b):
         # Deal with NamedInt and NamedFloat
@@ -1078,17 +1086,15 @@ def _arange_div_fallback(n, d):
     return x
 
 
-if has_numba:
+_arange_div_impl = None
 
-    @jit(fastmath=False)
-    def _arange_div(n, d):
-        out = np.empty(n, np.float64)
-        for i in range(n):
-            out[i] = i / d
-        return out
 
-else:  # pragma: no cover
-    _arange_div = _arange_div_fallback
+def _arange_div(n, d):
+    """Compute ``np.arange(n) / d``, deferring the numba import to first use."""
+    global _arange_div_impl
+    if _arange_div_impl is None:
+        from ._numerics_numba import _arange_div as _arange_div_impl
+    return _arange_div_impl(n, d)
 
 
 _LRU_CACHES = dict()

@@ -4,9 +4,7 @@
 
 
 import numpy as np
-from scipy.ndimage import distance_transform_edt, label
 from scipy.signal import find_peaks
-from scipy.stats import zscore
 
 from ..annotations import (
     Annotations,
@@ -92,6 +90,9 @@ def annotate_muscle_zscore(
     ----------
     .. footbibliography::
     """
+    from scipy.ndimage import label
+    from scipy.stats import zscore
+
     raw_copy = raw.copy()
 
     if ch_type is None:
@@ -409,6 +410,8 @@ def _raw_hp_weights(raw, pos):
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
+    from scipy.ndimage import distance_transform_edt
+
     mask_tf = distance_transform_edt(mask)
     # Overcome the shortcoming of find_peaks
     # in finding a marginal peak, by

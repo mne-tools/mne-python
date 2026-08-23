@@ -394,6 +394,45 @@ def test_io_set_epochs_events(tmp_path):
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat, epochs.events, None)
 
 
+@pytest.mark.parametrize("include_event_fields", (True, False))
+def test_io_set_epochs_without_events(tmp_path, include_event_fields):
+    """Read epoched EEGLAB files that have no event information."""
+    n_epochs, n_channels, n_times = 3, 2, 20
+    data = np.arange(n_channels * n_times * n_epochs, dtype=float).reshape(
+        n_channels, n_times, n_epochs
+    )
+    fname = tmp_path / "no-events.set"
+    eeg = {
+        "trials": n_epochs,
+        "nbchan": n_channels,
+        "pnts": n_times,
+        "srate": 100.0,
+        "xmin": -0.1,
+        "xmax": 0.09,
+        "data": data,
+        "chanlocs": np.array(
+            [{"labels": "EEG 001"}, {"labels": "EEG 002"}], dtype=object
+        ),
+    }
+    if include_event_fields:
+        eeg.update(epoch=np.array([], dtype=object), event=np.array([], dtype=object))
+    io.savemat(fname, {"EEG": eeg}, appendmat=False)
+
+    with pytest.warns(RuntimeWarning, match="contains no event information"):
+        epochs = read_epochs_eeglab(fname)
+
+    expected_events = np.column_stack(
+        (
+            np.arange(n_epochs),
+            np.zeros(n_epochs, dtype=int),
+            np.ones(n_epochs, dtype=int),
+        )
+    )
+    assert epochs.event_id == {"unknown": 1}
+    assert_array_equal(epochs.events, expected_events)
+    assert_allclose(epochs.get_data(copy=False), data.transpose(2, 0, 1) * 1e-6)
+
+
 @testing.requires_testing_data
 @pytest.mark.filterwarnings("ignore:At least one epoch has multiple events")
 @pytest.mark.filterwarnings("ignore:The data contains 'boundary' events")
@@ -747,7 +786,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
     sfreq = raw.info["sfreq"]
     ch_names = raw.ch_names
     anno = [
-        raw.annotations.description,
+        raw.annotations.description.tolist(),
         raw.annotations.onset,
         raw.annotations.duration,
     ]

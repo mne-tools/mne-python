@@ -15,10 +15,8 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
-from scipy.stats import rankdata
 
+from .._fiff._digitization import _fiducial_coords
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info, read_fiducials
 from .._fiff.pick import (
@@ -91,33 +89,6 @@ from .utils import (
 )
 
 verbose_dec = verbose
-FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
-
-
-# XXX: to unify with digitization
-def _fiducial_coords(points, coord_frame=None):
-    """Generate 3x3 array of fiducial coordinates."""
-    points = points or []  # None -> list
-    if coord_frame is not None:
-        points = [p for p in points if p["coord_frame"] == coord_frame]
-    points_ = {p["ident"]: p for p in points if p["kind"] == FIFF.FIFFV_POINT_CARDINAL}
-    if points_:
-        return np.array([points_[i]["r"] for i in FIDUCIAL_ORDER])
-    else:
-        # XXX eventually this should probably live in montage.py
-        if coord_frame is None or coord_frame == FIFF.FIFFV_COORD_HEAD:
-            # Try converting CTF HPI coils to fiducials
-            out = np.empty((3, 3))
-            out.fill(np.nan)
-            for p in points:
-                if p["kind"] == FIFF.FIFFV_POINT_HPI:
-                    if np.isclose(p["r"][1:], 0, atol=1e-6).all():
-                        out[0 if p["r"][0] < 0 else 2] = p["r"]
-                    elif np.isclose(p["r"][::2], 0, atol=1e-6).all():
-                        out[1] = p["r"]
-            if np.isfinite(out).all():
-                return out
-        return np.array([])
 
 
 @fill_doc
@@ -182,6 +153,7 @@ def plot_head_positions(
         The figure.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
@@ -1768,6 +1740,8 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
+    from scipy.spatial import ConvexHull, Delaunay
+
     id_ = coil["type"] & 0xFFFF
     # Offset for visibility (using heuristic for sanely named Neuromag coils).
     # It depends on the channel name, so keep it out of the cached template.
@@ -2200,6 +2174,7 @@ def _plot_mpl_stc(
     import nibabel as nib
     from matplotlib.widgets import Slider
     from mpl_toolkits.mplot3d import Axes3D
+    from scipy.stats import rankdata
 
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing

@@ -59,6 +59,10 @@ _.setup
 
 deep
 
+# Module-level __getattr__ (PEP 562), used by mne/surface.py and
+# mne/transforms.py to re-export their numba helpers lazily
+__getattr__
+
 # Backward compat or rarely used
 RawFIF
 estimate_head_mri_t
@@ -170,3 +174,7 @@ _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
 _show_help_fig
+
+# Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
+eventFilter
+_sigint_impl
