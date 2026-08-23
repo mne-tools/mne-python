@@ -657,11 +657,15 @@ class DipoleFitUI:
         # Get the closest vertex (=point) of the helmet mesh
         dip_pos = apply_trans(self._head_mri_t, dip.pos[0])
         helmet = self._actors["helmet"].GetMapper().GetInput()
-        distances = ((helmet.points - dip_pos) * helmet.point_normals).sum(axis=1)
+        if helmet.points is None:
+            raise ValueError("why is this happening?")
+        points = np.array(helmet.points.data)
+        normals = np.array(helmet.point_data.normals)
+        distances = ((points - dip_pos) * normals).sum(axis=1)
         closest_point = np.argmin(distances)
 
         # Compute the position of the projected dipole on the helmet
-        norm = helmet.point_normals[closest_point]
+        norm = normals[closest_point]
         helmet_pos = dip_pos + (distances[closest_point] + 0.003) * norm
 
         # Create a coordinate system where X and Y are tangential to the helmet
