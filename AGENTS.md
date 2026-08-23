@@ -135,6 +135,13 @@ changelog entry instead of a plain name link.
 - Deprecations use the `@mne.utils.deprecated` decorator (functions/classes) or
   `mne.utils.warn(..., FutureWarning)` (parameters); add a test asserting the warning fires, and
   grep for internal call sites to update immediately rather than at end-of-cycle.
+- Workarounds that exist only because of a minimum-version floor (an upstream bug fixed in a
+  newer release, a fallback for an older Python/NumPy/SciPy/...) must be marked with a
+  `# TODO VERSION` comment naming the version at which they can be removed and, when there is
+  one, the upstream issue, e.g.
+  `# TODO VERSION: segfaults on NumPy < 2.2.5 (numpy/numpy#28609)`. These are grepped for
+  when bumping minimum versions, so a workaround without the marker tends to outlive its
+  reason for existing.
 - Prefer the `testing` dataset over `sample`/other large datasets in tests (smaller, faster).
 - Prefer to keep unit tests compact and add to existing tests when possible. The full test suite takes about an hour on CIs, so minimizing test time (for CIs) and test verbosity (for reviewers) is important.
 - When new functionality is added, it is good in general to add it somewhere in an example (`examples/`) or a tutorial (`tutorials/`) to help with discoverability and documentation.
