@@ -4165,6 +4165,9 @@ class Brain:
                         fill = 0 if active["center"] is not None else rng[0]
                         grid.point_data["values"].fill(fill)
                         grid.point_data["values"][vertices] = values
+                        self._renderer._update_volume_rgba(
+                            grid, self._data["ctable"], rng
+                        )
                         # This can be useful for debugging fsaverage-5 source space by
                         # making the value at (0, -5, 5) high
                         # if 21334 in vertices:
