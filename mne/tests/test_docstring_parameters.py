@@ -242,7 +242,14 @@ def _public_api_objects():
     from numpydoc.docscrape import ClassDoc
 
     seen = set()
-    candidates = [(dotted, _resolve_dotted(dotted)) for dotted in _documented_names()]
+    candidates = list()
+    for dotted in _documented_names():
+        try:
+            candidates.append((dotted, _resolve_dotted(dotted)))
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
     candidates += [(where, obj) for where, _, obj in _public_module_members()]
     for where, obj in candidates:
         if id(obj) in seen:

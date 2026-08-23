@@ -1004,8 +1004,8 @@ class ValidatedDict(dict):
 
         Parameters
         ----------
-        other : dict | iterable of (key, value) | None
-            The entries to set.
+        other : dict | iterable of pair | None
+            The entries to set, as a mapping or as ``(key, value)`` pairs.
         **kwargs : dict
             Additional entries to set, as keyword arguments.
         """
