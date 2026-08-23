@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import inspect
 import webbrowser
 from pathlib import Path
 from types import SimpleNamespace
@@ -481,3 +482,64 @@ def test_check_static_docs(tmp_path, monkeypatch):
     path.write_text(path.read_text().replace("First shared paragraph, edited.", "?"))
     errors = hook.process_file(path, False, {})
     assert len(errors) == 1 and "could not find" in errors[0]
+
+
+_PARA_TWO = "\nPara one line A.\nPara one line B.\n\nPara two.\n"
+_PARA_ONE = "\nPara one collapsed.\n"
+_PARA_THREE = _PARA_TWO + "\nPara three added.\n"
+_PARA_FIRST = "\nPara one line A.\nPara one line B.\n"
+
+
+def _para_module(note):
+    body = note.strip("\n").replace("\n", "\n    ")
+    return f'''from mne.utils import fill_doc_static
+@fill_doc_static("note")
+def f():
+    """Do.
+
+    Notes
+    -----
+    {body}
+
+    This paragraph is unrelated local text.
+    """
+'''
+
+
+@pytest.mark.parametrize(
+    "docdict_now, module_now, n_errors, reverse_keys",
+    [
+        (_PARA_ONE, _PARA_TWO, 0, []),  # collapsed in docdict, first line new
+        (_PARA_FIRST, _PARA_TWO, 0, []),  # collapsed in docdict, first para kept
+        (_PARA_THREE, _PARA_TWO, 0, []),  # expanded in docdict
+        (_PARA_TWO, _PARA_ONE, 1, []),  # collapsed locally, first line new: error
+        (_PARA_TWO, _PARA_FIRST, 0, ["note"]),  # collapsed locally, first para kept
+        (_PARA_TWO, _PARA_TWO, 0, []),  # untouched
+    ],
+)
+def test_check_static_docs_paragraph_count(
+    tmp_path, monkeypatch, docdict_now, module_now, n_errors, reverse_keys
+):
+    """Test shared blocks growing or shrinking by whole paragraphs."""
+    hook = _load_hook()
+    head_module = _para_module(_PARA_TWO)
+    path = tmp_path / "mod.py"
+    path.write_text(_para_module(module_now))
+    monkeypatch.setattr(hook, "docdict", {"note": docdict_now})
+    monkeypatch.setattr(hook, "DOCS_PY", tmp_path / "docs.py")
+    monkeypatch.setattr(hook, "_old_docdict", lambda: {"note": _PARA_TWO})
+    monkeypatch.setattr(hook, "REPO", tmp_path)
+    monkeypatch.setattr(
+        hook.subprocess, "run", lambda *a, **k: SimpleNamespace(stdout=head_module)
+    )
+    hook._old_bodies.cache_clear()
+    reverse = {}
+    errors = hook.process_file(path, True, reverse)
+    assert len(errors) == n_errors, errors
+    assert list(reverse) == reverse_keys
+    body = path.read_text()
+    # the docstring's own local paragraph is never swallowed or dropped
+    assert "This paragraph is unrelated local text." in body
+    assert "unrelated local text" not in str(reverse)
+    if not n_errors and not reverse_keys:  # forward: docstring matches docdict
+        assert docdict_now.strip("\n") in inspect.cleandoc(body.split('"""')[1]), body

@@ -295,10 +295,13 @@ def _expand_placeholders(lines, keys, entries=None):
     return found
 
 
-def _old_own_text(old_body, key, entry, old_entry):
-    """Return the site-specific text that followed the block in the old docstring.
+def _old_block_info(old_body, key, entry, old_entry):
+    """Return ``(old own text, first line after the old block)`` from ``git HEAD``.
 
-    Returns ``None`` if the old docstring (or the block in it) cannot be found.
+    The own text is what followed the shared text *inside* the old block; the
+    line after the block bounds it from below when the block's extent cannot be
+    determined from its content. Returns ``None`` if the old docstring (or the
+    block in it) cannot be found.
     """
     if old_body is None:
         return None
@@ -307,14 +310,39 @@ def _old_own_text(old_body, key, entry, old_entry):
     try:
         # the old docstring may predate its migration and still hold placeholders
         _expand_placeholders(old_lines, [], _old_docdict() or docdict)
-        start, stop, _ = _locate(old_lines, key, entry, min(widths) if widths else 0)
+        # the old body holds the *old* text, so locate with the old entry's extent
+        look_for = old_entry if old_entry is not None else entry
+        start, stop, _ = _locate(old_lines, key, look_for, min(widths) if widths else 0)
     except DocError:
         return None
     block = _deindent(old_lines[start:stop], _indent_of(old_lines[start]))
+    old_next = next((x.strip() for x in old_lines[stop:] if x.strip()), None)
+    if old_next is not None and old_next.startswith(('"', "'")):
+        old_next = None  # the closing quotes: the block ended the docstring
     for known in (old_entry, entry):
         if known is not None and block[: len(known)] == known:
-            return block[len(known) :]
+            return block[len(known) :], old_next
     return None
+
+
+def _bounded_stop(lines, start, old_next):
+    """End of the block at ``start``, bounded by the line that used to follow it."""
+    if old_next is None:  # the old block ran to the end of the docstring
+        stop = len(lines)
+    else:
+        stop = next(
+            (
+                ii
+                for ii in range(start + 1, len(lines))
+                if lines[ii].strip() == old_next
+            ),
+            None,
+        )
+        if stop is None:
+            return None
+    while stop > start + 1 and not lines[stop - 1].strip():
+        stop -= 1
+    return stop
 
 
 def _split_block(current, entry, old_entry, old_own):
@@ -333,7 +361,10 @@ def _split_block_raw(current, entry, old_entry, old_own):
     they start with a blank line, which marks a site-specific addition (as in
     the ``.. versionadded::`` notes that follow many parameters).
     """
+    # prefer the longest matching version: a verbatim match of a longer (old)
+    # entry outweighs a shorter match followed by what looks like own text
     knowns = [k for k in (entry, old_entry) if k is not None]
+    knowns = sorted({tuple(k): list(k) for k in knowns}.values(), key=len, reverse=True)
     if old_own is None:  # no previous version of this docstring (not in git)
         for known in knowns:
             if current[: len(known)] == known:
@@ -354,10 +385,15 @@ def _split_block_raw(current, entry, old_entry, old_own):
             "both the shared text and the text following it changed in this "
             "docstring; make the shared change in mne/utils/docs.py instead"
         )
-    head = current[: len(current) - len(old_own)]
+    head = current[: len(current) - len(old_own)] if old_own else list(current)
     for known in knowns:
-        if head[: len(known)] == known and head[len(known) : len(known) + 1] == [""]:
-            return list(head[: len(known)]), list(head[len(known) :]) + list(old_own)
+        if head[: len(known)] != known:
+            continue
+        rest = head[len(known) :]
+        if not rest:  # the whole head is this version of the shared text
+            return list(known), list(old_own)
+        if rest[:1] == [""]:  # a blank line marks a site-specific addition
+            return list(known), list(rest) + list(old_own)
     return list(head), list(old_own)
 
 
@@ -386,8 +422,31 @@ def expected_fill(body, keys, reverse, old_body=None):
         current = _deindent(lines[start:stop], indent)
         old_entry = _old_docdict().get(key)
         old_entry = _entry_lines(old_entry) if old_entry is not None else None
+        old_info = _old_block_info(old_body, key, entry, old_entry)
+        old_own = old_info[0] if old_info is not None else None
+        knowns = [k for k in (entry, old_entry) if k is not None]
+        if old_info is not None and old_entry is not None and old_entry != entry:
+            # a stale copy may extend past the new entry's extent (e.g. the
+            # entry lost a paragraph); recognize it by the old entry's full text
+            bounded = _bounded_stop(lines, start, old_info[1])
+            if bounded is not None and bounded > stop:
+                extended = _deindent(lines[start:bounded], indent)
+                if extended[: len(old_entry)] == old_entry:
+                    stop, current = bounded, extended
+        if old_info is not None and not any(current[: len(k)] == k for k in knowns):
+            # The block content matches no known version of the entry, so its
+            # extent cannot be trusted either; bound it by the line that
+            # followed the old block instead.
+            bounded = _bounded_stop(lines, start, old_info[1])
+            if bounded is None:
+                raise DocError(
+                    f"docdict[{key!r}]: cannot tell where the edited shared text "
+                    "ends (the text that used to follow it is gone); make the "
+                    "change in mne/utils/docs.py instead"
+                )
+            stop = bounded
+            current = _deindent(lines[start:stop], indent)
         try:
-            old_own = _old_own_text(old_body, key, entry, old_entry)
             shared, own = _split_block(current, entry, old_entry, old_own)
         except DocError as exc:
             raise DocError(f"docdict[{key!r}]: {exc}") from None
