@@ -1,0 +1,1 @@
+Fix bug where assigning into :attr:`mne.Annotations.description` (e.g., ``annotations.description[0] = "a_longer_description"``) silently truncated the new value, by storing descriptions using NumPy's variable-width string dtype (``numpy.dtypes.StringDType``) instead of a fixed-width ``"<U"`` dtype, by `Eric Larson`_.

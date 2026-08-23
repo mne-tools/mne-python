@@ -1003,16 +1003,28 @@ class _PyVistaRenderer(_AbstractRenderer):
                 scalar_bar.SetLabelFormat(fmt)
 
     def _set_volume_range(self, volume, ctable, alpha, scalar_bar, rng, fmt=None):
-        color_tf = vtkColorTransferFunction()
-        opacity_tf = vtkPiecewiseFunction()
-        for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
-            color_tf.AddRGBPoint(loc, *(color[:-1] / 255.0))
-            opacity_tf.AddPoint(loc, color[-1] * alpha / 255.0)
-        color_tf.ClampingOn()
-        opacity_tf.ClampingOn()
         prop = volume.GetProperty()
-        prop.SetColor(color_tf)
-        prop.SetScalarOpacity(opacity_tf)
+        if not prop.GetIndependentComponents():
+            # signed MIP: color is baked into the data, so re-bake it here and
+            # keep only magnitude -> opacity in a transfer function
+            opacity_tf = vtkPiecewiseFunction()
+            for loc, opacity in zip(*_volume_rgba_opacity(ctable, alpha)):
+                opacity_tf.AddPoint(float(loc), float(opacity))
+            opacity_tf.ClampingOn()
+            prop.SetScalarOpacity(opacity_tf)
+            grid = getattr(volume, "_mne_grid", None)
+            if grid is not None:
+                _update_volume_rgba(grid, ctable, rng)
+        else:
+            color_tf = vtkColorTransferFunction()
+            opacity_tf = vtkPiecewiseFunction()
+            for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
+                color_tf.AddRGBPoint(loc, *(color[:-1] / 255.0))
+                opacity_tf.AddPoint(loc, color[-1] * alpha / 255.0)
+            color_tf.ClampingOn()
+            opacity_tf.ClampingOn()
+            prop.SetColor(color_tf)
+            prop.SetScalarOpacity(opacity_tf)
         if scalar_bar is not None:
             lut = vtkLookupTable()
             lut.SetRange(*rng)
@@ -1020,6 +1032,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             scalar_bar.SetLookupTable(lut)
             if fmt is not None:
                 scalar_bar.SetLabelFormat(fmt)
+
+    def _update_volume_rgba(self, grid, ctable, rng):
+        _update_volume_rgba(grid, ctable, rng)
 
     def _sphere(self, center, color, radius):
         mesh = pyvista.Sphere(
@@ -1041,7 +1056,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         interpolation="linear",
     ):
         # Note: this method is used by mne-gui-addons, so we should be mindful of
-        # backwards compatibility when changing it.
+        # backwards compatibility when changing it. volume_neg is always None now.
 
         # Now we can actually construct the visualization
         grid = pyvista.ImageData(
@@ -1069,6 +1084,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         else:
             grid_mesh = None
 
+        # VTK composites overlapping volume actors in add order, not by depth,
+        # so do a divergent MIP in one volume with baked colors instead of two
+        signed_mip = center is not None and blending == "mip"
+        if signed_mip:
+            grid.point_data["rgba"] = np.zeros((grid.n_points, 4), np.uint8)
+            # the reslicer and mapper both act on the active scalars; "values"
+            # stays under its own name for picking
+            grid.point_data.active_scalars_name = "rgba"
+
         mapper = vtkSmartVolumeMapper()
         interp_map_meth = "SetInterpolationModeTo"
         interp_map_meth += dict(nearest="NearestNeighbor", linear="Linear")[
@@ -1076,6 +1100,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         ]
         interp_prop_meth = "SetInterpolationTypeTo"
         interp_prop_meth += dict(nearest="Nearest", linear="Linear")[interpolation]
+        # shading needs a gradient: VTK ignores it for MIP, and with nearest
+        # the gradient is a spike at each voxel face (bright lattice)
+        shade = blending == "composite" and interpolation == "linear"
         del interpolation
         if resolution is None:  # native
             mapper.SetScalarModeToUsePointData()
@@ -1097,25 +1124,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         dist = grid.length / np.mean(grid.dimensions)
         volume_pos_prop = volume_pos.GetProperty()
         volume_pos_prop.SetScalarOpacityUnitDistance(dist)
-        volume_pos_prop.ShadeOn()
+        volume_pos_prop.SetShade(shade)
         getattr(volume_pos_prop, interp_prop_meth)()
-        if center is not None and blending == "mip":
-            # We need to create a minimum intensity projection for the neg half
-            mapper_neg = vtkSmartVolumeMapper()
-            if resolution is None:  # native
-                mapper_neg.SetScalarModeToUsePointData()
-                mapper_neg.SetInputDataObject(grid)
-            else:
-                mapper_neg.SetInputConnection(upsampler.GetOutputPort())
-            mapper_neg.SetBlendModeToMinimumIntensity()
-            volume_neg = vtkVolume()
-            volume_neg.SetMapper(mapper_neg)
-            volume_neg_prop = volume_neg.GetProperty()
-            volume_neg_prop.SetScalarOpacityUnitDistance(dist)
-            volume_neg_prop.ShadeOn()
-            getattr(volume_neg_prop, interp_prop_meth)()
-        else:
-            volume_neg = None
+        if signed_mip:
+            # components 0-2 are color, component 3 is the maximized magnitude
+            volume_pos_prop.IndependentComponentsOff()
+            # stashed (not passed) so _set_volume_range() can re-bake without a
+            # signature change, which mne-gui-addons relies on
+            volume_pos._mne_grid = grid
+        volume_neg = None  # kept only for backward compatibility
         return grid, grid_mesh, volume_pos, volume_neg
 
     def _silhouette(self, mesh, color=None, line_width=None, alpha=None, decimate=None):
@@ -1141,6 +1158,48 @@ class _PyVistaRenderer(_AbstractRenderer):
             prop.SetLineWidth(line_width)
         _hide_testing_actor(actor)
         return actor
+
+
+def _bake_volume_rgba(values, ctable, rng):
+    """Encode signed scalars as dependent-component RGBA for a signed MIP.
+
+    VTK maximizes over component 3, so putting the magnitude there makes MIP a
+    maximum *absolute* intensity projection: largest ``|value|`` along the ray
+    wins, ties go to the nearest sample.
+    """
+    n_colors = len(ctable)
+    lo, hi = float(rng[0]), float(rng[1])
+    idx = np.clip((values - lo) / (hi - lo) * (n_colors - 1), 0, n_colors - 1)
+    rgba = ctable[idx.astype(np.int64)].copy()
+    # magnitude, not mapped opacity (saturates at fmax -> ties); from the table
+    # center, where a divergent colormap changes sign (`rng` may be asymmetric)
+    half = (n_colors - 1) / 2.0
+    rgba[:, 3] = np.round(np.abs(idx - half) / half * 255).astype(np.uint8)
+    return rgba
+
+
+def _update_volume_rgba(grid, ctable, rng):
+    """Re-bake the color array of a signed-MIP volume, if the grid has one."""
+    if "rgba" not in grid.point_data:
+        return
+    grid.point_data["rgba"][:] = _bake_volume_rgba(
+        np.asarray(grid.point_data["values"]), ctable, rng
+    )
+
+
+def _volume_rgba_opacity(ctable, alpha):
+    """Map magnitude (component 3, 0-255) to opacity using the colormap alpha."""
+    # magnitude is a distance from the table center, so walk outward both ways;
+    # halves agree for the center-symmetric tables calculate_lut() emits
+    n_colors = len(ctable)
+    half = (n_colors - 1) / 2.0
+    mag = np.arange(256)
+    offset = mag / 255.0 * half
+    opacity = np.maximum(
+        ctable[np.round(half + offset).astype(np.int64), 3],
+        ctable[np.round(half - offset).astype(np.int64), 3],
+    )
+    return mag, opacity * alpha / 255.0
 
 
 def _compute_normals(mesh):

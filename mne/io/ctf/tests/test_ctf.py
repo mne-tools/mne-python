@@ -704,6 +704,36 @@ def test_missing_res4(tmp_path):
 
 
 @testing.requires_testing_data
+@pytest.mark.parametrize(
+    "names",
+    [
+        pytest.param(("Nasion", "LPA", "RPA"), id="Nasion-LPA-RPA"),
+        pytest.param(("NASION", "Left Ear", "RIGHT EAR"), id="mixed-case"),
+    ],
+)
+def test_hc_coil_name_variants(tmp_path, names):
+    """Test that alternate spellings of the .hc coil descriptors are read."""
+    raw_orig = read_raw_ctf(ctf_dir / ctf_fname_continuous)
+    use_ds = tmp_path / ctf_fname_continuous
+    copytree_rw(ctf_dir / ctf_fname_continuous, use_ds)
+    hc_fname = use_ds / (ctf_fname_continuous[:-2] + "hc")
+    hc = hc_fname.read_text()
+    for old, new in zip(("nasion", "left ear", "right ear"), names):
+        assert old in hc
+        hc = hc.replace(old, new)
+    hc_fname.write_text(hc)
+    raw = read_raw_ctf(use_ds)
+    assert_allclose(
+        raw.info["dev_head_t"]["trans"], raw_orig.info["dev_head_t"]["trans"]
+    )
+    assert len(raw.info["dig"]) == len(raw_orig.info["dig"])
+    for dig, dig_orig in zip(raw.info["dig"], raw_orig.info["dig"]):
+        assert dig["kind"] == dig_orig["kind"]
+        assert dig["ident"] == dig_orig["ident"]
+        assert_allclose(dig["r"], dig_orig["r"])
+
+
+@testing.requires_testing_data
 def test_read_ctf_mag_bad_comp(tmp_path, monkeypatch):
     """Test CTF reader with mag comps and bad comps."""
     path = op.join(ctf_dir, ctf_fname_continuous)
