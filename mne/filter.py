@@ -2723,8 +2723,8 @@ class FilterMixin:
             See Notes.
         %(n_jobs_cuda)s
 
-        .. versionchanged:: 1.13
-           Added support for CUDA.
+            .. versionchanged:: 1.13
+               Added support for CUDA.
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back

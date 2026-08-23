@@ -75,8 +75,8 @@ def annotate_muscle_zscore(
         Default is ``(110, 140)``.
     %(n_jobs_cuda)s
     
-    .. versionchanged:: 1.13
-       Added support for CUDA.
+        .. versionchanged:: 1.13
+           Added support for CUDA.
     %(verbose)s
 
     Returns
