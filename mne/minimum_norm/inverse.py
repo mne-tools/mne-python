@@ -85,7 +85,13 @@ class InverseOperator(dict):
     """InverseOperator class to represent info from inverse operator."""
 
     def copy(self):
-        """Return a copy of the InverseOperator."""
+        """Return a copy of the InverseOperator.
+
+        Returns
+        -------
+        inv : instance of InverseOperator
+            The copied inverse operator.
+        """
         return InverseOperator(deepcopy(self))
 
     @property

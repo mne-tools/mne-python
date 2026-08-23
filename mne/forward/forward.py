@@ -161,7 +161,13 @@ class Forward(dict):
     """
 
     def copy(self):
-        """Copy the Forward instance."""
+        """Copy the Forward instance.
+
+        Returns
+        -------
+        fwd : instance of Forward
+            The copied forward solution.
+        """
         return Forward(deepcopy(self))
 
     @verbose
