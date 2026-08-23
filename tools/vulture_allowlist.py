@@ -16,6 +16,7 @@ brain_gc
 windows_like_datetime
 garbage_collect
 renderer_notebook
+lite_scene
 qt_windows_closed
 download_is_error
 exitstatus

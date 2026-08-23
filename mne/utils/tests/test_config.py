@@ -167,7 +167,7 @@ def test_sys_info_complete():
     ]
     missing = []
     for dep in deps:
-        dep = dep.split("[")[0].split(">")[0].strip()
+        dep = dep.split(";")[0].split("[")[0].split(">")[0].strip()
         if f" {dep}" not in out:
             missing.append(dep)
     if missing:

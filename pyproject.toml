@@ -68,6 +68,9 @@ test_extra = [
   "nbclient",  # requires jupyter_client
   "nitime >= 0.7",
   "pymef",
+  # drawing backend for the browser docs, see mne/viz/backends/_lite.py; it
+  # needs 3.12, which every CI job that installs this group is already on
+  "pyvista-js; python_version >= '3.12'",
   "statsmodels",
   {include-group = "test_extra_ft"},
 ]

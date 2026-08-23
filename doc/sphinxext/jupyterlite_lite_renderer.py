@@ -1,43 +1,33 @@
-"""A pyvista-js drawing backend for MNE's 3D renderer, for JupyterLite.
+"""Turn on MNE's pyvista-js 3D renderer inside the JupyterLite kernel.
 
-MNE's 3D functions (``plot_alignment``, ``plot_bem``, ``plot_sparse_source_estimates``,
-``SourceSpaces.plot``, ...) all build their figure the same way: they do their own
-geometry and coordinate-frame work in numpy, then hand the result to a renderer
-obtained from ``mne.viz.backends.renderer._get_renderer``. Only that last step needs
-VTK, and VTK cannot load in WebAssembly.
+VTK cannot load in WebAssembly, so MNE's 3D output would otherwise be
+unavailable in the browser. The renderer that replaces it lives in MNE itself,
+at ``mne/viz/backends/_lite.py``, so it is ordinary library code: linted,
+formatted and unit tested like any other module, and shipped in the wheel the
+browser kernel installs.
 
-So instead of reimplementing those functions one by one, this module supplies a
-renderer that draws with pyvista-js (vtk.js) and patches the factory, along with the
-``renderer.backend`` global that ``set_3d_view`` and the other scene-level helpers
-read directly. MNE then does all of the transform math itself, which matters
-because getting a head/MRI/device transform subtly wrong produces a
-plausible-looking picture with the sensors in the wrong place, and several of these
-tutorials are specifically *about* coordinate alignment.
+That leaves this module with one job. It exposes the few lines of notebook code
+that import the renderer and switch MNE over to it. ``LITE_RENDERER_CELL`` is
+appended to ``LITE_SETUP_CELL`` in ``jupyterlite_setup_cell.py``, which the docs
+build prepends to each JupyterLite notebook.
 
-What is supported: meshes, surfaces, spheres, tubes and glyphs, enough for the
-static figures the docs render. What is not: the interactive ``Brain`` time viewer,
-which additionally needs dock widgets and toolbars, and scalar colormaps, which
-pyvista-js 0.15 does not have (scalars fall back to a solid color).
-
-The renderer itself lives in ``_lite_renderer_cell.py`` as ordinary Python, so ruff
-lints and formats it like any other module. This module only reads that file and
-exposes it as a string, which is the form the browser kernel needs: it is appended
-to ``LITE_SETUP_CELL`` in ``jupyterlite_setup_cell.py``, which the docs build
-prepends to each JupyterLite notebook.
+The cell degrades quietly: if the installed MNE predates the renderer, or
+pyvista-js is missing, the notebook prints why and carries on with everything
+that does not need 3D.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from pathlib import Path
+LITE_RENDERER_CELL = """
+# Draw MNE's 3D figures with pyvista-js (vtk.js). VTK has no WebAssembly build,
+# so this swaps only the drawing step; MNE still does its own geometry and
+# coordinate-frame work. See mne/viz/backends/_lite.py.
+try:
+    from mne.viz.backends._lite import _activate as _mne_activate_lite_renderer
 
-_SOURCE = Path(__file__).parent / "_lite_renderer_cell.py"
-# Everything from the banner onwards is what the notebook runs. The license header
-# above it belongs to the file rather than to the cell, so it is left behind.
-_BANNER = "# --- pyvista-js drawing backend"
-
-_text = _SOURCE.read_text()
-if _BANNER not in _text:
-    raise RuntimeError(f"{_SOURCE.name} is missing the {_BANNER!r} banner")
-LITE_RENDERER_CELL = "\n" + _text[_text.index(_BANNER) :]
+    _mne_activate_lite_renderer()
+except Exception as _e:
+    print("[JupyterLite] could not install the pyvista-js renderer: " + repr(_e))
+"""

@@ -1,10 +1,39 @@
+"""
+A pyvista-js drawing backend for MNE's 3D renderer.
+
+MNE's 3D functions (``plot_alignment``, ``plot_bem``,
+``plot_sparse_source_estimates``, ``SourceSpaces.plot``, ...) all build their
+figure the same way: they do their own geometry and coordinate-frame work in
+numpy, then hand the result to a renderer obtained from
+:func:`mne.viz.backends.renderer._get_renderer`. Only that last step needs VTK,
+and VTK cannot load in WebAssembly.
+
+Rather than reimplement those functions one by one, this module supplies a
+renderer that draws with `pyvista-js <https://github.com/tkoyama010/pyvista-js>`__
+(vtk.js) and, via :func:`_activate`, patches that factory along with the
+``renderer.backend`` global that ``set_3d_view`` and the other scene-level
+helpers read directly. MNE keeps doing all of the transform math itself, which
+matters because getting a head/MRI/device transform subtly wrong produces a
+plausible-looking picture with the sensors in the wrong place.
+
+Supported: meshes, surfaces, spheres, tubes and glyphs, which covers the static
+figures the documentation renders. Not supported: the interactive
+:class:`mne.viz.Brain` time viewer, which additionally needs dock widgets and a
+time slider, and scalar colormaps, which pyvista-js 0.15 does not implement
+(scalars fall back to a solid color).
+
+Importing this module has no side effects and does not require pyvista-js;
+:func:`_activate` is what installs the renderer, and pyvista-js is imported
+lazily when a scene is first built.
+"""
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# --- pyvista-js drawing backend for MNE's 3D renderer -----------------------
-# Patches mne.viz.backends.renderer._get_renderer so MNE keeps doing its own
-# geometry and coordinate-frame work and only the drawing is replaced.
+from ._abstract import _AbstractRenderer
+
+
 def _lite_view_vector(azimuth):
     """Map an MNE azimuth in degrees onto the nearest pyvista-js view vector."""
     _a = float(azimuth) % 360.0
@@ -87,8 +116,15 @@ def _lite_trim_live_plotters():
     return None
 
 
-class _LiteRenderer:
+class _LiteRenderer(_AbstractRenderer):
     """Minimal MNE 3D renderer backed by pyvista-js."""
+
+    # Callers branch on this to pick behaviour rather than to identify a
+    # backend, and "notebook" is the branch that is right here: it matches the
+    # MNE_3D_BACKEND that _activate registers, and it keeps code such as
+    # mne/gui/_coreg.py from taking its `_kind != "notebook"` path, which
+    # starts a Qt event loop that does not exist in a browser.
+    _kind = "notebook"
 
     def __init__(self, *args, **kwargs):
         import numpy as _np
@@ -638,13 +674,41 @@ class _LiteBackend:
         return None
 
 
-try:
-    import mne.viz.backends.renderer as _mne_rend
+_LITE_SAVED = {}
 
+
+def _activate():
+    """Install this renderer as the one MNE draws with.
+
+    Replaces the ``_get_renderer`` factory and the ``renderer.backend`` global
+    that ``set_3d_view``, ``set_3d_title`` and the ``close_*`` helpers read
+    directly, so that patching the factory alone does not leave them calling
+    into ``None``. Returns the previous state, which :func:`_deactivate` puts
+    back.
+    """
+    from . import renderer as _mne_rend
+
+    if not _LITE_SAVED:
+        _LITE_SAVED.update(
+            _get_renderer=_mne_rend._get_renderer,
+            backend=_mne_rend.backend,
+            MNE_3D_BACKEND=_mne_rend.MNE_3D_BACKEND,
+        )
     _mne_rend._get_renderer = _lite_get_renderer
     _mne_rend.backend = _LiteBackend()
-    # naming a backend keeps _get_3d_backend() from walking VALID_3D_BACKENDS and
-    # importing _qt, which would overwrite the stub above on its way to failing
+    # Naming a backend keeps _get_3d_backend() from walking VALID_3D_BACKENDS and
+    # importing _qt, which would overwrite the stub above on its way to failing.
     _mne_rend.MNE_3D_BACKEND = "notebook"
-except Exception as _e:
-    print("[JupyterLite] could not install the pyvista-js renderer: " + repr(_e))
+    return dict(_LITE_SAVED)
+
+
+def _deactivate():
+    """Undo :func:`_activate`, restoring whatever MNE was drawing with before."""
+    if not _LITE_SAVED:
+        return None
+    from . import renderer as _mne_rend
+
+    for _name, _value in _LITE_SAVED.items():
+        setattr(_mne_rend, _name, _value)
+    _LITE_SAVED.clear()
+    return None
