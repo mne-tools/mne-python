@@ -301,14 +301,6 @@ def test_tabs():
             )
 
 
-def _is_private(dotted):
-    """Return True if any component is private (dunders are public)."""
-    return any(
-        part.startswith("_") and not (part.startswith("__") and part.endswith("__"))
-        for part in dotted.split(".")
-    )
-
-
 # Use ``np.random.default_rng(seed)`` and its modern methods. The global RNG
 # (``np.random.seed``/``np.random.randn``/...) makes tests order-dependent and
 # flaky, and the legacy ``RandomState`` methods below don't exist on a
