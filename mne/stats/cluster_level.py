@@ -6,12 +6,11 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy import sparse
 
 from ..epochs import BaseEpochs, EvokedArray
 from ..evoked import Evoked
@@ -34,6 +33,9 @@ from ..utils import (
 )
 from ..viz import plot_compare_evokeds
 from .parametric import f_oneway, ttest_1samp_no_p
+
+if TYPE_CHECKING:
+    from scipy import sparse  # Used in type hints for cluster_test
 
 # need this at top-level of file due to type hints
 pd = _soft_import("pandas", purpose="DataFrame integration", strict=False)
