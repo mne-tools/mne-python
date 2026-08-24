@@ -1003,7 +1003,19 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         self._times.flags.writeable = False
 
     def __add__(self, a):
-        """Add source estimates."""
+        """Add source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            add.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the sum as data.
+        """
         stc = self.copy()
         stc += a
         return stc
@@ -1051,7 +1063,19 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         return sum_stc
 
     def __sub__(self, a):
-        """Subtract source estimates."""
+        """Subtract source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            subtract.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the difference as data.
+        """
         stc = self.copy()
         stc -= a
         return stc
@@ -1068,8 +1092,20 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def __truediv__(self, a):  # noqa: D105
         return self.__div__(a)
 
-    def __div__(self, a):  # noqa: D105
-        """Divide source estimates."""
+    def __div__(self, a):
+        """Divide source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            divide by.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the quotient as data.
+        """
         stc = self.copy()
         stc /= a
         return stc
@@ -1087,7 +1123,19 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         return self
 
     def __mul__(self, a):
-        """Multiply source estimates."""
+        """Multiply source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            multiply by.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the product as data.
+        """
         stc = self.copy()
         stc *= a
         return stc
@@ -1123,8 +1171,14 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def __rdiv__(self, a):  # noqa: D105
         return self / a
 
-    def __neg__(self):  # noqa: D105
-        """Negate the source estimate."""
+    def __neg__(self):
+        """Negate the source estimate.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with negated data.
+        """
         stc = self.copy()
         stc._remove_kernel_sens_data_()
         stc.data *= -1
