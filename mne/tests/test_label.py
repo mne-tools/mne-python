@@ -1029,7 +1029,7 @@ def test_random_parcellation():
 
     # Parcellation
     labels = random_parcellation(
-        subject, n_parcel, hemi, subjects_dir, surface=surface, random_state=rng
+        subject, n_parcel, hemi, subjects_dir, surface=surface, rng=rng
     )
 
     # test number of labels

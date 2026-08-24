@@ -39,10 +39,10 @@ from .surface import (
 from .utils import (
     _check_fname,
     _check_option,
+    _check_rng_compat,
     _check_subject,
     _import_nibabel,
     _validate_type,
-    check_random_state,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -1997,7 +1997,14 @@ def _grow_nonoverlapping_labels(
 
 @fill_doc
 def random_parcellation(
-    subject, n_parcel, hemi, subjects_dir=None, surface="white", random_state=None
+    subject,
+    n_parcel,
+    hemi,
+    subjects_dir=None,
+    surface="white",
+    random_state=None,
+    *,
+    rng=None,
 ):
     """Generate random cortex parcellation by growing labels.
 
@@ -2017,6 +2024,7 @@ def random_parcellation(
     %(subjects_dir)s
     %(surface)s
     %(random_state)s
+    %(rng)s
 
     Returns
     -------
@@ -2036,7 +2044,8 @@ def random_parcellation(
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
+    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, rng)
 
     # add a unique color to each label
     colors = _n_colors(len(labels))
@@ -2046,12 +2055,9 @@ def random_parcellation(
     return labels
 
 
-def _cortex_parcellation(
-    subject, n_parcel, hemis, vertices_, graphs, random_state=None
-):
+def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs, rng):
     """Random cortex parcellation."""
     labels = []
-    rng = check_random_state(random_state)
     for hemi in set(hemis):
         parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
         graph = graphs[hemi]  # distance graph
@@ -2947,6 +2953,8 @@ def select_sources(
     name=None,
     random_state=None,
     surf="white",
+    *,
+    rng=None,
 ):
     """Select sources from a label.
 
@@ -2973,6 +2981,7 @@ def select_sources(
     %(random_state)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
+    %(rng)s
 
     Returns
     -------
@@ -3010,7 +3019,9 @@ def select_sources(
                 subject, restrict_vertices=True, subjects_dir=subjects_dir, surf=surf
             )
         else:
-            rng = check_random_state(random_state)
+            rng = _check_rng_compat(
+                rng, legacy=random_state, legacy_name="random_state"
+            )
             seed = rng.choice(label.vertices)
     else:
         seed = label.vertices[location]
