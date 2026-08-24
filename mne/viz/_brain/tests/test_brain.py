@@ -90,6 +90,10 @@ class TstVTKPicker:
         """Return the picked mesh."""
         return self.mesh
 
+    def GetMapper(self):
+        """Return the picked mapper."""
+        return None
+
     def GetPickPosition(self):
         """Return the picked position."""
         if self.hemi == "vol":
@@ -633,7 +637,7 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     brain.close()
 
 
-def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
+def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc, qtbot):
     """Test add_annotation."""
     annots = [
         "aparc",
@@ -653,63 +657,56 @@ def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc):
     )
     with pytest.raises(FileNotFoundError, match="does not exist"):
         brain.add_annotation("foo")
-    brain.add_annotation(annots[1], hover=True)
-
-    # mock some events
-    class MockIrenAndPicker:
-        def __init__(self):
-            self._cell_id = 0
-
-        def GetEventPosition(self):
-            return 50, 50  # middle of display
-
-        def FindPokedRenderer(self, x, y):
-            return brain.plotter.renderers[0]
-
-        def Pick(self, x, y, z, renderer):
-            pass
-
-        def GetMapper(self):
-            return brain.plotter.mapper
-
-        def GetCellId(self):
-            return self._cell_id
-
-        def GetPickPosition(self):
-            return np.zeros(3)
-
-    mocked = MockIrenAndPicker()
-    brain._renderer._picker = mocked
-
-    with catch_logging(verbose="debug") as log:
-        brain._on_annotation_hover(mocked, "MouseMoveEvent")
-    log = log.getvalue()
-    assert "Hovering label LOBE.FRONTAL" in log
-    with catch_logging(verbose="debug") as log:
-        brain._on_annotation_hover(mocked, "MouseMoveEvent")
-    log = log.getvalue()
-    assert "Same label hovered" in log
-    mocked._cell_id = -1
-    with catch_logging(verbose="debug") as log:
-        brain._on_annotation_hover(mocked, "MouseMoveEvent")
-    log = log.getvalue()
-    assert "No mesh picked, hiding" in log
+    brain.add_annotation(annots[1])
     brain.close()
 
     brain = Brain(
         subject="fsaverage",
         hemi="lh",
-        size=size,
+        size=(300, 300),
         surf="inflated",
         subjects_dir=subjects_dir,
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(a, b, p, color=color)
+
+    # hover the annotation through the real event chain (Qt mouse move ->
+    # VTK MouseMoveEvent -> observer -> vtkCellPicker -> caption); the hover
+    # observer reads the most recently added annotation, so add it last
+    brain.add_annotation(annots[1], hover=True)
+    from qtpy.QtCore import QPoint
+
+    # MNE_3D_BACKEND_TESTING hides all actors, but VTK only picks visible ones
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    brain.show_view("lateral")
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    # hover the vertex closest to the camera (cannot be occluded)
+    _, point = _closest_vertex_point(brain, widget)
+    caption = brain._annots["lh"][-1]["caption"]
+    assert not caption.GetVisibility()
+    with catch_logging(verbose="debug") as log:
+        _send_mouse_move(widget, point)
+    assert "Hovering label" in log.getvalue()
+    assert caption.GetVisibility()
+    names = {label.name for label in brain._annots["lh"][-1]["labels"]}
+    assert caption.GetCaption() in names
+    with catch_logging(verbose="debug") as log:
+        _send_mouse_move(widget, point)
+    assert "Same label hovered" in log.getvalue()
+    with catch_logging(verbose="debug") as log:
+        _send_mouse_move(widget, QPoint(1, 1))  # background corner
+    assert "No mesh picked, hiding" in log.getvalue()
+    assert not caption.GetVisibility()
     brain.close()
 
 
 @testing.requires_testing_data
-def test_scalar_bar_ticks_title_and_hover(renderer_interactive_pyvistaqt, brain_gc):
+def test_scalar_bar_ticks_title_and_hover(
+    renderer_interactive_pyvistaqt, brain_gc, qtbot
+):
     """Test scalar bar tick marks, title truncation, and hover info toggle."""
     long_title = "a" * 40
     brain = _create_testing_brain(
@@ -727,38 +724,29 @@ def test_scalar_bar_ticks_title_and_hover(renderer_interactive_pyvistaqt, brain_
     assert len(title) <= 20
 
     assert brain._show_hover_info is False
+    from qtpy.QtCore import QPoint, Qt
+    from qtpy.QtTest import QTest
 
-    class MockIren:
-        def GetEventPosition(self):
-            return 50, 50
-
-        def FindPokedRenderer(self, x, y):
-            return brain.plotter.renderers[0]
-
-    class MockPicker:
-        def Pick(self, x, y, z, renderer):
-            pass
-
-        def GetCellId(self):
-            return 0
-
-        def GetMapper(self):
-            return brain.plotter.mapper
-
-        def GetPickPosition(self):
-            return np.zeros(3)
-
-    brain._renderer._picker = MockPicker()
-    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    # MNE_3D_BACKEND_TESTING hides all actors, but VTK only picks visible ones
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    brain.show_view("lateral")
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    vertex_id, point = _closest_vertex_point(brain, widget)
+    _send_mouse_move(widget, point)
     assert not brain._hover_caption.GetVisibility()  # toggle is off
 
-    brain._toggle_hover_info()
+    QTest.keyClick(widget, Qt.Key_V)  # the hover-info toggle shortcut
     assert brain._show_hover_info is True
-    brain._on_surface_hover(MockIren(), "MouseMoveEvent")
+    _send_mouse_move(widget, point)
     assert brain._hover_caption.GetVisibility()
     assert "vertex" in brain._hover_caption.GetCaption()
+    _send_mouse_move(widget, QPoint(1, 1))  # background corner hides it
+    assert not brain._hover_caption.GetVisibility()
 
-    brain._toggle_hover_info()
+    QTest.keyClick(widget, Qt.Key_V)
     assert brain._show_hover_info is False
     assert not brain._hover_caption.GetVisibility()
     brain.close()
@@ -1462,6 +1450,196 @@ something
         assert img.shape[0] > screenshot.shape[0]  # larger height
         assert_allclose(img.shape[1], screenshot_all.shape[1], atol=1)
         assert_allclose(img.shape[0], screenshot_all.shape[0], atol=1)
+
+
+def _send_mouse_move(widget, point, buttons=None):
+    """Deliver a synthetic Qt mouse move (QTest.mouseMove warps the real cursor)."""
+    from qtpy.QtCore import QEvent, QPointF, Qt
+    from qtpy.QtGui import QMouseEvent
+    from qtpy.QtWidgets import QApplication
+
+    event = QMouseEvent(
+        QEvent.Type.MouseMove,
+        QPointF(point),
+        QPointF(widget.mapToGlobal(point)),
+        QPointF(widget.mapToGlobal(point)),
+        Qt.NoButton,
+        Qt.NoButton if buttons is None else buttons,
+        Qt.NoModifier,
+    )
+    QApplication.sendEvent(widget, event)
+    QApplication.processEvents()
+
+
+def _closest_vertex_point(brain, widget, hemi="lh"):
+    """Return (vertex_id, widget point) of the mesh vertex nearest the camera."""
+    rr = brain.layered_meshes[hemi]._polydata.points
+    cam = np.array(brain.plotter.renderer.GetActiveCamera().GetPosition())
+    vertex_id = int(np.argmin(np.linalg.norm(rr - cam, axis=1)))
+    return vertex_id, _world_to_widget_point(brain, widget, rr[vertex_id])
+
+
+def _world_to_widget_point(brain, widget, target):
+    """Project a world coordinate to a Qt widget-local click position."""
+    from qtpy.QtCore import QPoint
+
+    ren = brain.plotter.renderer
+    ren.SetWorldPoint(*target, 1.0)
+    ren.WorldToDisplay()
+    x, y, _ = ren.GetDisplayPoint()
+    # inverse of the Qt -> VTK event mapping ((height - y - 1) * dpr)
+    dpr = widget.devicePixelRatioF()
+    return QPoint(round(x / dpr), round(widget.height() - 1 - y / dpr))
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("src", ["surface", "volume"])
+def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, src):
+    """Test that clicking on the brain like a user adds and removes traces.
+
+    Unlike the TstVTKPicker-based tests, this exercises the full event chain
+    (Qt click -> VTK interactor -> FindPokedRenderer -> vtkCellPicker.Pick ->
+    Brain._on_pick -> vertex glyph and trace), which broke silently when
+    PyVista started giving the mapper an internal copy of the brain polydata.
+    The surface case uses full-resolution data, whose lack of a smoothing
+    matrix used to make _on_pick raise inside the VTK observer.
+    """
+    from qtpy.QtCore import Qt
+    from qtpy.QtTest import QTest
+
+    # MNE_3D_BACKEND_TESTING hides all actors (so cameras never see any
+    # bounds), but VTK only picks visible props, so show the cortex/volume
+    # again and then fix the camera before clicking
+    if src == "surface":
+        hemi = "lh"
+        brain = Brain(
+            "fsaverage", hemi=hemi, surf="inflated", size=300, subjects_dir=subjects_dir
+        )
+        n_verts = len(brain.geo[hemi].coords)
+        brain.add_data(
+            np.random.default_rng(0).random((n_verts, 2)),
+            fmin=0.0,
+            fmid=0.5,
+            fmax=1.0,
+            vertices=np.arange(n_verts),
+            time=np.array([0.0, 1.0]),
+            colormap="hot",
+        )
+        brain.setup_time_viewer(show_traces=True)
+        assert brain.act_data_smooth[hemi][1] is None  # full-res data
+        for mesh in brain.layered_meshes.values():
+            mesh._actor.SetVisibility(True)
+        brain.show_view("lateral")
+    else:
+        hemi = "vol"
+        brain = _create_testing_brain(
+            hemi="rh",
+            src="volume",
+            show_traces=0.5,
+            initial_time=0,
+            volume_options=None,  # for speed, don't upsample
+        )
+        brain._data[hemi]["grid_volume_pos"].SetVisibility(True)
+        brain.plotter.reset_camera()
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    (peak_key,) = brain._picked_points  # the auto-picked peak vertex
+    assert peak_key[0] == hemi
+    if src == "surface":
+        # the middle of the view, which the lateral view fills with brain
+        point = widget.rect().center()
+    else:
+        # aim at the source point farthest from the peak so the click adds a
+        # new vertex instead of hitting the already-picked one
+        vertices = brain._data[hemi]["vertices"]
+        coords = brain._data[hemi]["grid_coords"][vertices]
+        peak_pos = brain._data[hemi]["grid_coords"][peak_key[1]]
+        target = coords[np.argmax(np.linalg.norm(coords - peak_pos, axis=1))]
+        point = _world_to_widget_point(brain, widget, target)
+    events = list()
+    ui_events.subscribe(brain, "vertex_select", lambda event: events.append(event))
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(events) == 1
+    assert events[0].hemi == hemi
+    # regressions: source_id must be a scalar, not the masked array (vol), and
+    # must come through despite the missing smooth_mat (full-res surface)
+    assert isinstance(events[0].source_id, int | np.integer)
+    assert len(brain._picked_points) == 2
+    # clicking the new sphere removes it again (make it pickable and big
+    # enough that the click cannot miss, then aim at its actual center)
+    new_key = next(key for key in brain._picked_points if key != peak_key)
+    for sphere in sum(brain._picked_points.values(), list()):
+        sphere["actor"].SetVisibility(True)
+        sphere["actor"].SetScale(3.0)
+    brain._renderer._process_events()
+    center = brain._picked_points[new_key][0]["actor"].GetCenter()
+    QTest.mouseClick(
+        widget,
+        Qt.LeftButton,
+        Qt.NoModifier,
+        _world_to_widget_point(brain, widget, center),
+    )
+    assert list(brain._picked_points) == [peak_key]
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtbot):
+    """Test label-mode picking, drag suppression, and shortcuts via Qt events.
+
+    Covers the real event chain for traces_mode="label" (click toggles a
+    label patch), the keyboard shortcuts registered with add_key_event, and
+    that a press-move-release drag rotates the camera instead of picking
+    (the _mouse_no_mvt suppression).
+    """
+    from qtpy.QtCore import QPoint, Qt
+    from qtpy.QtTest import QTest
+
+    brain = _create_testing_brain(
+        hemi="lh", surf="white", show_traces="label", initial_time=0
+    )
+    assert brain.traces_mode == "label"
+    # MNE_3D_BACKEND_TESTING hides all actors, but VTK only picks visible ones
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    brain.show_view("lateral")
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    _, point = _closest_vertex_point(brain, widget)
+    assert len(brain._picked_patches["lh"]) == 0
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(brain._picked_patches["lh"]) == 1
+    # clicking the same label again removes it
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(brain._picked_patches["lh"]) == 0
+    # the clear-glyphs shortcut clears a picked label
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(brain._picked_patches["lh"]) == 1
+    QTest.keyClick(widget, Qt.Key_C)
+    assert len(brain._picked_patches["lh"]) == 0
+    # auto-scaling and restore shortcuts
+    fmax = brain._data["fmax"]
+    QTest.keyClick(widget, Qt.Key_S)
+    assert brain._data["fmax"] != fmax
+    QTest.keyClick(widget, Qt.Key_R)
+    assert brain._data["fmax"] == fmax
+    # arrow keys rotate the camera
+    azimuth = brain._renderer.get_camera(rigid=brain._rigid)[2]
+    QTest.keyClick(widget, Qt.Key_Left)
+    azimuth_moved = brain._renderer.get_camera(rigid=brain._rigid)[2]
+    assert not np.isclose(azimuth_moved, azimuth, atol=1)
+    # dragging (press, move, release) rotates the camera instead of picking
+    _, point = _closest_vertex_point(brain, widget)
+    QTest.mousePress(widget, Qt.LeftButton, Qt.NoModifier, point)
+    for offset in range(5, 30, 5):
+        _send_mouse_move(widget, point + QPoint(offset, 0), buttons=Qt.LeftButton)
+    QTest.mouseRelease(widget, Qt.LeftButton, Qt.NoModifier, point + QPoint(25, 0))
+    assert len(brain._picked_patches["lh"]) == 0  # suppressed by _mouse_no_mvt
+    azimuth_dragged = brain._renderer.get_camera(rigid=brain._rigid)[2]
+    assert not np.isclose(azimuth_dragged, azimuth_moved, atol=1)  # but rotated
+    brain.close()
 
 
 @pytest.mark.parametrize("src", ("surface", "volume"))
