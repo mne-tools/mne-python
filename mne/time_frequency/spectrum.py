@@ -1225,6 +1225,7 @@ class Spectrum(BaseSpectrum):
         # save memory
         del self.inst
 
+    @fill_doc
     def __getitem__(self, item):
         """Get Spectrum data.
 
@@ -1500,6 +1501,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         # save memory
         del self.inst
 
+    @fill_doc
     def __getitem__(self, item):
         """Subselect epochs from an EpochsSpectrum.
 

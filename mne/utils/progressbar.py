@@ -139,7 +139,13 @@ class ProgressBar:
             pass
 
     def __iter__(self):
-        """Iterate to auto-increment the pbar with 1."""
+        """Iterate to auto-increment the pbar with 1.
+
+        Yields
+        ------
+        item : object
+            The next item of the wrapped iterable.
+        """
         yield from self._tqdm
 
     def subset(self, idx):

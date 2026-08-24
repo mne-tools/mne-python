@@ -911,7 +911,6 @@ class BaseRaw(
             >>> picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # doctest: +SKIP
             >>> t_idx = raw.time_as_index([10., 20.])  # doctest: +SKIP
             >>> data, times = raw[picks, t_idx[0]:t_idx[1]]  # doctest: +SKIP
-
         """  # noqa: E501
         return self._getitem(item)
 
