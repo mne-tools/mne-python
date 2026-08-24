@@ -10,7 +10,6 @@ from functools import partial
 import numpy as np
 from numpy.polynomial import legendre
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import fill_doc
 
@@ -231,7 +230,7 @@ def _fast_sphere_dot_r0(
         sums = _comp_sums_meg(
             beta.flatten(), ct.flatten(), leg_fun, n_fact, volume_integral
         )
-        sums = _reshape_view(sums, ((4,) + beta.shape))
+        sums = sums.reshape((4,) + beta.shape, copy=False)
 
         # Accumulate the result, a little bit streamlined version
         # cosmags1 = cosmags1[:, np.newaxis, :]
@@ -262,7 +261,7 @@ def _fast_sphere_dot_r0(
             result *= r
     else:  # 'eeg'
         result = _comp_sum_eeg(beta.flatten(), ct.flatten(), leg_fun, n_fact)
-        result = _reshape_view(result, beta.shape)
+        result = result.reshape(beta.shape, copy=False)
         # Give it a finishing touch!
         result *= _eeg_const
         result /= lr1lr2

@@ -6,7 +6,6 @@
 
 import numpy as np
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _check_option, logger, verbose, warn
 
@@ -462,7 +461,7 @@ def psd_array_multitaper(
 
     # Combining/reshaping to original data shape
     last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
-    psd = _reshape_view(psd, dshape + last_dims)
+    psd = psd.reshape(dshape + last_dims, copy=False)
     if ndim_in == 1:
         psd = psd[0]
 

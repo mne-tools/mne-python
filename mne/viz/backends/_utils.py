@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _compare_version, _reshape_view
+from ...fixes import _compare_version
 from ...utils import _check_qt_version, _validate_type, logger, warn
 from ..utils import _get_cmap, _is_dark
 
@@ -390,22 +390,12 @@ def _qt_get_stylesheet(theme):
                 "pip install qdarkstyle\n"
             )
         else:
-            # TODO VERSION remove on qdarkstyle 3.2.3+
-            if api in ("PySide6", "PyQt6") and _compare_version(
-                qdarkstyle.__version__, "<", "3.2.3"
-            ):
-                warn(
-                    f"Setting theme={repr(theme)} is not supported for {api} in "
-                    f"qdarkstyle {qdarkstyle.__version__}, it will be ignored. "
-                    "Consider upgrading qdarkstyle to >=3.2.3."
+            stylesheet = qdarkstyle.load_stylesheet(
+                getattr(
+                    getattr(qdarkstyle, theme).palette,
+                    f"{theme.capitalize()}Palette",
                 )
-            else:
-                stylesheet = qdarkstyle.load_stylesheet(
-                    getattr(
-                        getattr(qdarkstyle, theme).palette,
-                        f"{theme.capitalize()}Palette",
-                    )
-                )
+            )
         return stylesheet
     else:
         try:
@@ -449,7 +439,7 @@ def _pixmap_to_ndarray(pixmap):
     if hasattr(ptr, "setsize"):  # PyQt
         ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
-    data = _reshape_view(data, (img.height(), img.width(), 4))
+    data = data.reshape((img.height(), img.width(), 4), copy=False)
     return data / 255.0
 
 

@@ -44,7 +44,6 @@ from .channels.channels import _get_meg_system
 from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
 from .event import find_events
-from .fixes import _reshape_view
 from .forward import _concatenate_coils, _create_meg_coils, _magnetic_dipole_field_vec
 from .io import BaseRaw, RawArray
 from .io.ctf.trans import _make_ctf_coord_trans_set
@@ -117,7 +116,9 @@ def read_head_pos(fname):
     """
     _check_fname(fname, must_exist=True, overwrite="read")
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
-    data = _reshape_view(data, (-1, 10))  # ensure it's the right size even if empty
+    data = data.reshape(
+        (-1, 10), copy=False
+    )  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
         raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
@@ -1390,7 +1391,7 @@ def compute_chpi_locs(
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
     fwd = fwd @ whitener.T
-    fwd = _reshape_view(fwd, (guesses.shape[0], 3, -1))
+    fwd = fwd.reshape((guesses.shape[0], 3, -1), copy=False)
     fwd = np.linalg.svd(fwd, full_matrices=False)[2]
     guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
     del fwd, R
