@@ -289,7 +289,15 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def _update(self):
         for plotter in self._all_plotters:
+            # PyVistaQt resolves plotter.update() to QWidget.update(), which only
+            # schedules a repaint, and it makes Plotter.render() asynchronous (the
+            # synchronous one being _render()). So render synchronously to update the
+            # scene, schedule the repaint, then flush it: without the flush the paint
+            # is delivered whenever events happen to be processed next, which can be
+            # long after the scene has changed again.
+            getattr(plotter, "_render", plotter.render)()
             plotter.update()
+            _process_events(plotter)
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -333,7 +341,11 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.plotter.enable_rubber_band_2d_style()
         else:
             for renderer in self._all_renderers:
-                renderer.disable_parallel_projection()
+                # Only disable it if it is actually on: PyVista recomputes the camera
+                # position from parallel_scale here, which moves the camera even when
+                # parallel projection was never enabled in the first place
+                if renderer.parallel_projection:
+                    renderer.disable_parallel_projection()
             kwargs = dict()
             if interaction == "terrain":
                 kwargs["mouse_wheel_zooms"] = True
@@ -1381,6 +1393,11 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
 
 def _check_3d_figure(figure):
     _validate_type(figure, PyVistaFigure, "figure")
+
+
+def _clear_3d_figure(figure):
+    figure.plotter.clear()  # remove all actors, lights are restored on the next plot
+    _process_events(figure.plotter)
 
 
 def _close_3d_figure(figure):
