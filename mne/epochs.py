@@ -91,6 +91,7 @@ from .utils import (
     _convert_times,
     _ensure_events,
     _gen_events,
+    _legacy_rng,
     _on_missing,
     _path_like,
     _pl,
@@ -99,6 +100,7 @@ from .utils import (
     _scale_dataframe_data,
     _validate_type,
     check_fname,
+    check_random_state,
     copy_function_doc_to_method_doc,
     legacy,
     logger,
@@ -2488,6 +2490,7 @@ class BaseEpochs(
 
         export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
+    @_legacy_rng("random_state")
     @fill_doc
     def equalize_event_counts(
         self,
@@ -2537,8 +2540,10 @@ class BaseEpochs(
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
         %(equalize_events_method)s
-        %(random_state)s Used only if ``method='random'``.
-        %(rng)s Used only if ``method='random'``.
+        %(random_state_deprecated)s
+            Used only if ``method='random'``.
+        %(rng)s
+            Used only if ``method='random'``.
 
         Returns
         -------
@@ -2642,8 +2647,11 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
+        legacy_seed = (
+            random_state if isinstance(random_state, int | np.integer) else None
+        )
         rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
-        indices = _get_drop_indices(sample_nums, method, rng)
+        indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -4014,6 +4022,7 @@ def combine_event_ids(
     return epochs
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def equalize_epoch_counts(
     epochs_list: list,
@@ -4029,8 +4038,10 @@ def equalize_epoch_counts(
     epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
-    %(random_state)s Used only if ``method='random'``.
-    %(rng)s Used only if ``method='random'``.
+    %(random_state_deprecated)s
+        Used only if ``method='random'``.
+    %(rng)s
+        Used only if ``method='random'``.
 
     Notes
     -----
@@ -4057,13 +4068,14 @@ def equalize_epoch_counts(
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
     rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
-    indices = _get_drop_indices(sample_nums, method, rng)
+    indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method, rng):
+def _get_drop_indices(sample_nums, method, rng, *, legacy_seed=None):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
@@ -4077,7 +4089,13 @@ def _get_drop_indices(sample_nums, method, rng):
             mask[small_epoch_indices.size :] = False
         elif method == "random":
             mask = np.zeros(event.size, dtype=bool)
-            idx = rng.choice(
+            # Historically an integer seed was normalized inside this loop,
+            # restarting the same stream for every event list. Preserve that
+            # behavior only for the deprecated parameter; ``rng`` advances.
+            this_rng = (
+                check_random_state(legacy_seed) if legacy_seed is not None else rng
+            )
+            idx = this_rng.choice(
                 np.arange(event.size), size=small_epoch_indices.size, replace=False
             )
             mask[idx] = True
@@ -4658,6 +4676,7 @@ class EpochsFIF(BaseEpochs):
         return data
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def bootstrap(epochs, random_state=None, *, rng=None):
     """Compute epochs selected by bootstrapping.
@@ -4666,7 +4685,7 @@ def bootstrap(epochs, random_state=None, *, rng=None):
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    %(random_state)s
+    %(random_state_deprecated)s
     %(rng)s
 
     Returns

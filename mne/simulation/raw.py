@@ -45,6 +45,7 @@ from ..transforms import Transform, _get_trans, transform_surface_to
 from ..utils import (
     _check_preload,
     _check_rng_compat,
+    _legacy_rng,
     _pl,
     _validate_type,
     _verbose_safe_false,
@@ -387,6 +388,7 @@ def simulate_raw(
     return raw
 
 
+@_legacy_rng("random_state")
 @verbose
 def add_eog(
     raw,
@@ -407,7 +409,7 @@ def add_eog(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
-    %(random_state)s
+    %(random_state_deprecated)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
     %(verbose)s
@@ -451,6 +453,7 @@ def add_eog(
     return _add_exg(raw, "blink", head_pos, interp, n_jobs, rng)
 
 
+@_legacy_rng("random_state")
 @verbose
 def add_ecg(
     raw,
@@ -471,7 +474,7 @@ def add_ecg(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
-    %(random_state)s
+    %(random_state_deprecated)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
     %(verbose)s

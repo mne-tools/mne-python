@@ -9,7 +9,14 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_if_nan, _check_rng_compat, fill_doc, logger, verbose
+from ..utils import (
+    _check_if_nan,
+    _check_rng_compat,
+    _legacy_rng,
+    fill_doc,
+    logger,
+    verbose,
+)
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -21,6 +28,7 @@ def _max_stat(X, X2, perms, dof_scaling):
     return max_abs
 
 
+@_legacy_rng("seed")
 @verbose
 def permutation_t_test(
     X,
@@ -59,8 +67,7 @@ def permutation_t_test(
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
     %(n_jobs)s
-    seed : None | int | instance of ~numpy.random.RandomState
-        Deprecated. Use ``rng`` instead.
+    %(seed_deprecated)s
     %(verbose)s
     %(rng)s
 
@@ -114,6 +121,7 @@ def permutation_t_test(
     return T_obs, p_values, H0
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def bootstrap_confidence_interval(
     arr,
@@ -136,8 +144,7 @@ def bootstrap_confidence_interval(
         Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along ``axis=0``.
-    random_state : int | float | array_like | None
-        Deprecated. Use ``rng`` instead.
+    %(random_state_deprecated)s
     %(rng)s
 
     Returns

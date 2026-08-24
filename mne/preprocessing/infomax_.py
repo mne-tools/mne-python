@@ -7,11 +7,12 @@ import math
 import numpy as np
 from scipy.special import expit
 
-from ..utils import _check_rng_compat, logger, random_permutation, verbose
+from ..utils import _check_rng_compat, _legacy_rng, fill_doc, logger, verbose
+from ..utils.numerics import _random_permutation
 
 
-@verbose
-def infomax(
+@fill_doc
+def _infomax(
     data,
     weights=None,
     l_rate=None,
@@ -24,7 +25,6 @@ def infomax(
     kurt_size=6000,
     ext_blocks=1,
     max_iter=200,
-    random_state=None,
     blowup=1e4,
     blowup_fac=0.5,
     n_small_angle=20,
@@ -32,7 +32,7 @@ def infomax(
     verbose=None,
     return_n_iter=False,
     *,
-    rng=None,
+    rng,
 ):
     """Run (extended) Infomax ICA decomposition on raw data.
 
@@ -80,7 +80,7 @@ def infomax(
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    %(random_state)s
+    %(random_state_deprecated)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.
@@ -119,8 +119,6 @@ def infomax(
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
     from scipy.stats import kurtosis
-
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
 
     # define some default parameters
     max_weight = 1e8
@@ -185,7 +183,7 @@ def infomax(
     olddelta, oldchange = 1.0, 0.0
     while step < max_iter:
         # shuffle data at each step
-        permute = random_permutation(n_samples, rng=rng)
+        permute = _random_permutation(n_samples, rng)
 
         # ICA training block
         # loop across block samples
@@ -337,3 +335,55 @@ def infomax(
         return weights.T, step
     else:
         return weights.T
+
+
+def infomax(
+    data,
+    weights=None,
+    l_rate=None,
+    block=None,
+    w_change=1e-12,
+    anneal_deg=60.0,
+    anneal_step=0.9,
+    extended=True,
+    n_subgauss=1,
+    kurt_size=6000,
+    ext_blocks=1,
+    max_iter=200,
+    random_state=None,
+    blowup=1e4,
+    blowup_fac=0.5,
+    n_small_angle=20,
+    use_bias=True,
+    verbose=None,
+    return_n_iter=False,
+    *,
+    rng=None,
+):
+    """Run (extended) Infomax ICA decomposition on raw data."""
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
+    return _infomax(
+        data,
+        weights=weights,
+        l_rate=l_rate,
+        block=block,
+        w_change=w_change,
+        anneal_deg=anneal_deg,
+        anneal_step=anneal_step,
+        extended=extended,
+        n_subgauss=n_subgauss,
+        kurt_size=kurt_size,
+        ext_blocks=ext_blocks,
+        max_iter=max_iter,
+        blowup=blowup,
+        blowup_fac=blowup_fac,
+        n_small_angle=n_small_angle,
+        use_bias=use_bias,
+        verbose=verbose,
+        return_n_iter=return_n_iter,
+        rng=rng,
+    )
+
+
+infomax.__doc__ = _infomax.__doc__
+infomax = _legacy_rng("random_state")(verbose(infomax))

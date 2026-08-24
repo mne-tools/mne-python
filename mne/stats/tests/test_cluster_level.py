@@ -28,7 +28,7 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
-from mne.utils import _record_warnings, catch_logging
+from mne.utils import _record_warnings, catch_logging, check_random_state
 
 n_space = 50
 
@@ -63,6 +63,33 @@ def test_cluster_rng_transition():
         permutation_cluster_1samp_test(X, threshold=0, n_permutations=2, seed=0)
     with pytest.raises(TypeError, match="Specify only one"):
         permutation_cluster_1samp_test(X, threshold=0, n_permutations=2, seed=0, rng=0)
+
+
+def test_spatio_temporal_cluster_legacy_rng_nested():
+    """Test legacy RNGs survive nested spatio-temporal wrappers."""
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((8, 3, 1))
+    cases = (
+        (spatio_temporal_cluster_1samp_test, X),
+        (spatio_temporal_cluster_test, [X, rng.standard_normal(X.shape)]),
+    )
+    for function, data in cases:
+        results = []
+        for kind in ("int", "state"):
+            seed = 0 if kind == "int" else check_random_state(0)
+            with pytest.warns(FutureWarning, match="seed"):
+                results.append(
+                    function(
+                        data,
+                        threshold=0,
+                        n_permutations=2,
+                        seed=seed,
+                        out_type="mask",
+                    )
+                )
+        assert_array_equal(results[0][0], results[1][0])
+        assert_array_equal(results[0][2], results[1][2])
+        assert_array_equal(results[0][3], results[1][3])
 
 
 def test_thresholds(numba_conditional):

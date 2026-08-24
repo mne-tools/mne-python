@@ -19,6 +19,7 @@ from ..utils import (
     _check_depth,
     _check_option,
     _check_rng_compat,
+    _legacy_rng,
     _validate_type,
     logger,
     sum_squared,
@@ -341,6 +342,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     return stc
 
 
+@_legacy_rng("random_state")
 @verbose
 def mixed_norm(
     evoked,
@@ -434,9 +436,8 @@ def mixed_norm(
         grid is directly specified. Ignored if alpha is not "sure".
 
         .. versionadded:: 0.24
-    random_state : int | None
-        The random state used in a random number generator for delta and
-        epsilon used for the SURE computation. Defaults to None.
+    %(random_state_deprecated)s
+        Used for the random delta and epsilon in the SURE computation.
 
         .. versionadded:: 0.24
     %(verbose)s

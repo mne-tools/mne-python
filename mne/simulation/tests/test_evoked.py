@@ -14,10 +14,12 @@ from numpy.testing import (
 )
 
 from mne import (
+    Covariance,
     EpochsArray,
     compute_covariance,
     compute_raw_covariance,
     convert_forward_solution,
+    create_info,
     pick_channels_cov,
     pick_types,
     pick_types_forward,
@@ -146,6 +148,35 @@ def test_add_noise():
         assert cov["names"] == cov_new["names"]
         r = np.corrcoef(cov["data"].ravel(), cov_new["data"].ravel())[0, 1]
         assert r > 0.99
+
+    info = create_info(["EEG 001"], 100.0, "eeg")
+    small_cov = Covariance(np.ones(1), info["ch_names"], [], [], 1)
+    legacy = EpochsArray(np.zeros((2, 1, 5)), info, verbose=False)
+    with pytest.warns(FutureWarning, match="random_state"):
+        add_noise(legacy, small_cov, random_state=0)
+    want = np.array(
+        [
+            1.764052345967664,
+            0.4001572083672233,
+            0.9787379841057392,
+            2.240893199201458,
+            1.8675579901499675,
+        ]
+    )
+    assert_array_equal(legacy.get_data(copy=False)[0, 0], want)
+    assert_array_equal(legacy.get_data(copy=False)[1, 0], want)
+
+    modern = EpochsArray(np.zeros((2, 1, 5)), info, verbose=False)
+    add_noise(modern, small_cov, rng=0)
+    assert not np.array_equal(
+        modern.get_data(copy=False)[0], modern.get_data(copy=False)[1]
+    )
+
+
+def test_simulate_evoked_rng_conflict_without_noise():
+    """Test RNG spelling conflicts are checked when noise is inactive."""
+    with pytest.raises(TypeError, match="only one"):
+        simulate_evoked(None, None, None, cov=None, random_state=None, rng=None)
 
 
 def test_rank_deficiency():

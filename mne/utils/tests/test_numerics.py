@@ -4,6 +4,7 @@
 
 from copy import deepcopy
 from datetime import date
+from inspect import signature
 from io import StringIO
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from mne.utils import (
     _time_mask,
     _undo_scaling_array,
     _undo_scaling_cov,
+    check_random_state,
     compute_corr,
     create_slices,
     grand_average,
@@ -235,6 +237,34 @@ def test_random_permutation():
     )
     with pytest.raises(TypeError, match="only one"):
         random_permutation(n_samples, random_state=42, rng=42)
+
+
+@pytest.mark.parametrize("use_keyword", (False, True))
+def test_random_permutation_legacy_none(use_keyword):
+    """Test explicit legacy None uses NumPy's global RandomState."""
+    global_rng = check_random_state(None)
+    original_state = global_rng.get_state()
+    seeded_state = check_random_state(42).get_state()
+    want = np.array([6, 5, 4, 0, 3, 8, 9, 2, 7, 1])
+    try:
+        global_rng.set_state(seeded_state)
+        with pytest.warns(FutureWarning, match="random_state"):
+            if use_keyword:
+                got = random_permutation(10, random_state=None)
+            else:
+                got = random_permutation(10, None)
+        assert_array_equal(got, want)
+    finally:
+        global_rng.set_state(original_state)
+
+    with pytest.raises(TypeError, match="only one"):
+        random_permutation(10, None, rng=None)
+    with pytest.raises(TypeError, match="only one"):
+        random_permutation(10, random_state=None, rng=0)
+    assert (
+        str(signature(random_permutation))
+        == "(n_samples, random_state=None, *, rng=None)"
+    )
 
 
 def test_cov_scaling():

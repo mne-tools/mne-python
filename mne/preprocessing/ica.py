@@ -65,9 +65,9 @@ from ..utils import (
     _check_option,
     _check_preload,
     _check_rng,
-    _check_rng_compat,
     _ensure_int,
     _get_inst_data,
+    _legacy_rng,
     _limit_blas_threads,
     _on_missing,
     _pl,
@@ -90,7 +90,7 @@ from .bads import _find_outliers
 from .ctps_ import ctps
 from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
 from .eog import _find_eog_events, _get_eog_channel_index
-from .infomax_ import infomax
+from .infomax_ import _infomax
 
 __all__ = (
     "ICA",
@@ -248,7 +248,7 @@ class ICA(ContainsMixin):
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
-    %(random_state)s
+    %(random_state_deprecated)s
     %(rng)s
     method : 'fastica' | 'infomax' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
@@ -436,6 +436,7 @@ class ICA(ContainsMixin):
     .. footbibliography::
     """  # noqa: E501
 
+    @_legacy_rng("random_state")
     @verbose
     def __init__(
         self,
@@ -477,8 +478,6 @@ class ICA(ContainsMixin):
         self._max_pca_components = None
         self.n_pca_components = None
         self.ch_names = None
-        if rng is not None or random_state is not None:
-            _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
         self.random_state = random_state
         self.rng = rng
 
@@ -980,7 +979,7 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
-            unmixing_matrix, n_iter = infomax(
+            unmixing_matrix, n_iter = _infomax(
                 data[:, sel],
                 rng=rng,
                 return_n_iter=True,

@@ -28,6 +28,7 @@ from ._logging import logger, verbose, warn
 from .check import (
     _check_rng_compat,
     _ensure_int,
+    _legacy_rng,
     _validate_type,
 )
 from .docs import fill_doc
@@ -265,6 +266,7 @@ def compute_corr(x, y):
     return (np.dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def random_permutation(n_samples, random_state=None, *, rng=None):
     """Emulate the randperm matlab function.
@@ -288,7 +290,7 @@ def random_permutation(n_samples, random_state=None, *, rng=None):
     n_samples : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
-    %(random_state)s
+    %(random_state_deprecated)s
     %(rng)s
 
     Returns
@@ -297,6 +299,11 @@ def random_permutation(n_samples, random_state=None, *, rng=None):
         Randomly permuted sequence between 0 and n-1.
     """
     rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
+    return _random_permutation(n_samples, rng)
+
+
+def _random_permutation(n_samples, rng):
+    """Generate a MATLAB-compatible permutation with a normalized RNG."""
     # This can't just be rng.permutation(n_samples) because it's not identical
     # to what MATLAB produces
     idx = rng.uniform(size=n_samples)

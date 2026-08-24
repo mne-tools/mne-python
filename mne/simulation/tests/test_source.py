@@ -7,6 +7,7 @@ import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
 from mne import (
+    SourceSpaces,
     convert_forward_solution,
     pick_types_forward,
     read_forward_solution,
@@ -15,6 +16,7 @@ from mne import (
 from mne.datasets import testing
 from mne.label import Label
 from mne.simulation import SourceSimulator, simulate_sparse_stc, simulate_stc
+from mne.utils import check_random_state
 
 data_path = testing.data_path(download=False)
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
@@ -45,6 +47,44 @@ def _get_idx_label_stc(label, stc):
     if hemi_idx == 1:
         idx += len(stc.vertices[0])
     return idx
+
+
+def test_simulate_sparse_stc_legacy_rng_nested():
+    """Test legacy RNGs survive nested label-source selection."""
+    src = SourceSpaces(
+        [
+            dict(
+                type="surf",
+                vertno=np.array([1, 2, 3]),
+                nuse=3,
+                subject_his_id="sample",
+            ),
+            dict(
+                type="surf",
+                vertno=np.array([4, 5, 6]),
+                nuse=3,
+                subject_his_id="sample",
+            ),
+        ]
+    )
+    labels = [
+        Label([1, 2, 3], hemi="lh", subject="sample"),
+        Label([4, 5, 6], hemi="rh", subject="sample"),
+    ]
+    results = []
+    for random_state in (0, check_random_state(0)):
+        with pytest.warns(FutureWarning, match="random_state"):
+            results.append(
+                simulate_sparse_stc(
+                    src,
+                    2,
+                    np.arange(2.0),
+                    labels=labels,
+                    random_state=random_state,
+                )
+            )
+    for hemi in (0, 1):
+        assert_array_equal(results[0].vertices[hemi], results[1].vertices[hemi])
 
 
 def test_simulate_stc(_get_fwd_labels):
@@ -147,6 +187,22 @@ def test_simulate_sparse_stc(_get_fwd_labels):
         this_label = label.copy()
         this_label.values.fill(1.0)
         mylabels.append(this_label)
+
+    legacy_stcs = []
+    for random_state in (0, check_random_state(0)):
+        with pytest.warns(FutureWarning, match="random_state"):
+            legacy_stcs.append(
+                simulate_sparse_stc(
+                    fwd["src"],
+                    len(mylabels),
+                    times,
+                    labels=mylabels,
+                    random_state=random_state,
+                    subjects_dir=subjects_dir,
+                )
+            )
+    for hemi in (0, 1):
+        assert_array_equal(legacy_stcs[0].vertices[hemi], legacy_stcs[1].vertices[hemi])
 
     for location in ("random", "center"):
         random_state = 0 if location == "random" else None

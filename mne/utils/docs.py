@@ -3760,11 +3760,21 @@ projs : bool | None
 docdict["random_state"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
+"""
+
+docdict["random_state_deprecated"] = """
+random_state : None | int | instance of ~numpy.random.RandomState
+    The legacy random-number control. If explicitly passed as ``None``, NumPy's
+    global :class:`~numpy.random.RandomState` singleton is used. An int creates
+    a legacy ``RandomState`` seeded with that value. Passing the same int to
+    ``rng`` uses :func:`numpy.random.default_rng` and produces a different
+    stream. If both parameters are omitted, a fresh ``Generator`` is used.
+
+    .. deprecated:: 1.13
+       Use ``rng`` instead.
 """
 
 _rank_base = """
@@ -4039,7 +4049,11 @@ rng : None | seed accepted by numpy.random.default_rng
     The random number generator. If ``None`` (default), a new generator seeded
     from entropy is used. Pass a seed accepted by :func:`numpy.random.default_rng`
     for reproducible results, or a :class:`numpy.random.Generator` to control the
-    random-number stream.
+    random-number stream. An integer seed uses ``default_rng`` and therefore
+    produces a different stream than the same integer passed to a legacy
+    ``random_state`` or ``seed`` parameter.
+
+    .. versionadded:: 1.13
 """
 
 docdict["roll"] = """
@@ -4135,11 +4149,21 @@ section : str | None
 docdict["seed"] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
+"""
+
+docdict["seed_deprecated"] = """
+seed : None | int | instance of ~numpy.random.RandomState
+    The legacy random-number control. If explicitly passed as ``None``, NumPy's
+    global :class:`~numpy.random.RandomState` singleton is used. An int creates
+    a legacy ``RandomState`` seeded with that value. Passing the same int to
+    ``rng`` uses :func:`numpy.random.default_rng` and produces a different
+    stream. If both parameters are omitted, a fresh ``Generator`` is used.
+
+    .. deprecated:: 1.13
+       Use ``rng`` instead.
 """
 
 docdict["seeg"] = """

@@ -3024,6 +3024,76 @@ def test_equalize_epoch_counts_random():
     assert len(epochs_1) == len(epochs_2)
 
 
+def _make_equalization_epochs(lengths):
+    """Create small EpochsArray instances for RNG stream tests."""
+    info = create_info(["EEG 001"], 100.0, "eeg")
+    epochs = []
+    for index, length in enumerate(lengths):
+        events = np.column_stack(
+            (np.arange(length), np.zeros(length, int), np.full(length, index + 1))
+        )
+        epochs.append(
+            EpochsArray(
+                np.zeros((length, 1, 1)),
+                info,
+                events=events,
+                event_id={str(index): index + 1},
+                verbose=False,
+            )
+        )
+    return epochs
+
+
+def test_equalize_epoch_counts_rng_streams():
+    """Test legacy integers re-seed while new RNG streams advance."""
+    epochs = _make_equalization_epochs((3, 5, 6))
+    with pytest.warns(FutureWarning, match="random_state"):
+        equalize_epoch_counts(epochs, method="random", random_state=0)
+    got = [
+        np.flatnonzero([entry == ("EQUALIZED_COUNT",) for entry in epoch.drop_log])
+        for epoch in epochs
+    ]
+    for this_got, want in zip(got, ([], [3, 4], [0, 3, 4])):
+        assert_array_equal(this_got, want)
+
+    epochs = _make_equalization_epochs((3, 5, 6))
+    equalize_epoch_counts(epochs, method="random", rng=0)
+    got = [
+        np.flatnonzero([entry == ("EQUALIZED_COUNT",) for entry in epoch.drop_log])
+        for epoch in epochs
+    ]
+    for this_got, want in zip(got, ([], [1, 2], [0, 1, 2])):
+        assert_array_equal(this_got, want)
+
+    events = np.column_stack(
+        (
+            np.arange(14),
+            np.zeros(14, int),
+            np.repeat((1, 2, 3), (3, 5, 6)),
+        )
+    )
+    epochs = EpochsArray(
+        np.zeros((14, 1, 1)),
+        create_info(["EEG 001"], 100.0, "eeg"),
+        events=events,
+        event_id={"a": 1, "b": 2, "c": 3},
+        verbose=False,
+    )
+    with pytest.warns(FutureWarning, match="random_state"):
+        _, dropped = epochs.equalize_event_counts(method="random", random_state=0)
+    assert_array_equal(dropped, [6, 7, 8, 11, 12])
+
+    epochs = EpochsArray(
+        np.zeros((14, 1, 1)),
+        create_info(["EEG 001"], 100.0, "eeg"),
+        events=events,
+        event_id={"a": 1, "b": 2, "c": 3},
+        verbose=False,
+    )
+    _, dropped = epochs.equalize_event_counts(method="random", rng=0)
+    assert_array_equal(dropped, [4, 5, 8, 9, 10])
+
+
 def test_access_by_name(tmp_path):
     """Test accessing epochs by event name and on_missing for rare events."""
     raw, events, picks = _get_data()

@@ -14,12 +14,14 @@ from ..utils import (
     _check_rng_compat,
     _ensure_events,
     _ensure_int,
+    _legacy_rng,
     _validate_type,
     fill_doc,
     warn,
 )
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def select_source_in_label(
     src,
@@ -40,7 +42,7 @@ def select_source_in_label(
         The source space.
     label : Label
         The label.
-    %(random_state)s
+    %(random_state_deprecated)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass` (restricting to vertices
@@ -72,11 +74,23 @@ def select_source_in_label(
     rh_vertno : list
         Selected source coefficients on the right hemisphere.
     """
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
+    return _select_source_in_label(
+        src,
+        label,
+        location=location,
+        subject=subject,
+        subjects_dir=subjects_dir,
+        surf=surf,
+        rng=rng,
+    )
+
+
+def _select_source_in_label(src, label, *, location, subject, subjects_dir, surf, rng):
+    """Select a source in a label using an already normalized RNG."""
     lh_vertno = list()
     rh_vertno = list()
     _check_option("location", location, ["random", "center"])
-
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     if label.hemi == "lh":
         vertno = lh_vertno
         hemi_idx = 0
@@ -94,6 +108,7 @@ def select_source_in_label(
     return lh_vertno, rh_vertno
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def simulate_sparse_stc(
     src,
@@ -131,7 +146,7 @@ def simulate_sparse_stc(
         the same length containing the time courses.
     labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    %(random_state)s
+    %(random_state_deprecated)s
     location : str
         The label location to choose. Can be ``'random'`` (default) or
         ``'center'`` to use :func:`mne.Label.center_of_mass`. Note that for
@@ -211,7 +226,7 @@ def simulate_sparse_stc(
         lh_data = [np.empty((0, data.shape[1]))]
         rh_data = [np.empty((0, data.shape[1]))]
         for i, label in enumerate(labels):
-            lh_vertno, rh_vertno = select_source_in_label(
+            lh_vertno, rh_vertno = _select_source_in_label(
                 src,
                 label,
                 location=location,

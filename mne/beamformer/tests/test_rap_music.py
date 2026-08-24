@@ -71,11 +71,11 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
     tmin, tstep = times.min(), 1 / evoked.info["sfreq"]
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
-    # noise seed chosen to keep the explained-variance and gof values well
-    # inside the bounds asserted in the tests
-    sim_evoked = mne.simulation.simulate_evoked(
-        forward, stc, evoked.info, noise_cov, nave=nave, random_state=106
-    )
+    # The bounds below were calibrated against this legacy noise stream.
+    with pytest.warns(FutureWarning, match="random_state"):
+        sim_evoked = mne.simulation.simulate_evoked(
+            forward, stc, evoked.info, noise_cov, nave=nave, random_state=106
+        )
 
     return sim_evoked, stc
 

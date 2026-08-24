@@ -10,6 +10,7 @@ import os
 import re
 from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
+from functools import wraps
 from importlib import import_module
 from inspect import signature
 from pathlib import Path
@@ -237,16 +238,63 @@ def _check_rng(rng):
     return np.random.default_rng(rng)
 
 
+def _legacy_rng(legacy_name):
+    """Handle presence-sensitive legacy RNG parameters at the call boundary."""
+
+    def decorator(function):
+        parameters = signature(function).parameters
+        positional = [
+            name
+            for name, parameter in parameters.items()
+            if parameter.kind
+            in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        legacy_position = (
+            positional.index(legacy_name) if legacy_name in positional else None
+        )
+        rng_position = positional.index("rng") if "rng" in positional else None
+
+        @wraps(function)
+        def _legacy_rng_wrapper(*args, **kwargs):
+            legacy_in_args = legacy_position is not None and len(args) > legacy_position
+            legacy_in_kwargs = legacy_name in kwargs
+            rng_in_args = rng_position is not None and len(args) > rng_position
+            rng_in_kwargs = "rng" in kwargs
+            if (legacy_in_args and legacy_in_kwargs) or (rng_in_args and rng_in_kwargs):
+                return function(*args, **kwargs)
+            legacy_supplied = legacy_in_args or legacy_in_kwargs
+            rng_supplied = rng_in_args or rng_in_kwargs
+            if legacy_supplied and rng_supplied:
+                raise TypeError(f"Specify only one of rng or {legacy_name}")
+            if legacy_supplied:
+                warn(
+                    f"{legacy_name} is deprecated and will be removed in a future "
+                    "release; use rng instead.",
+                    FutureWarning,
+                )
+                if legacy_in_kwargs and kwargs[legacy_name] is None:
+                    kwargs = kwargs.copy()
+                    kwargs[legacy_name] = check_random_state(None)
+                elif legacy_in_args and args[legacy_position] is None:
+                    args = list(args)
+                    args[legacy_position] = check_random_state(None)
+                    args = tuple(args)
+            elif rng_supplied:
+                rng = args[rng_position] if rng_in_args else kwargs["rng"]
+                if isinstance(rng, np.random.mtrand.RandomState):
+                    raise TypeError("rng must not be a RandomState")
+            return function(*args, **kwargs)
+
+        return _legacy_rng_wrapper
+
+    return decorator
+
+
 def _check_rng_compat(rng, *, legacy=None, legacy_name):
     """Check an RNG while temporarily supporting a legacy parameter."""
     if legacy is not None:
         if rng is not None:
             raise TypeError(f"Specify only one of rng or {legacy_name}")
-        warn(
-            f"{legacy_name} is deprecated and will be removed in a future release; "
-            "use rng instead.",
-            FutureWarning,
-        )
         return check_random_state(legacy)
     return _check_rng(rng)
 

@@ -305,7 +305,7 @@ def test_tabs():
 # (``np.random.seed``/``np.random.randn``/...) makes tests order-dependent and
 # flaky, and the legacy ``RandomState`` methods below don't exist on a
 # ``Generator``, so calling them silently locks code to the old bit stream.
-global_rng_ok = ("default_rng", "RandomState", "Generator", "mtrand")
+global_rng_ok = ("default_rng", "Generator")
 legacy_rng_methods = {
     "randn": "standard_normal",
     "rand": "random",
@@ -346,6 +346,82 @@ mne_rng_functions = {
     "spatio_temporal_cluster_1samp_test",
     "spatio_temporal_cluster_test",
 }
+# Zero-based position of the legacy RNG argument when it can be positional.
+mne_rng_legacy_positions = {
+    "add_ecg": 4,
+    "add_eog": 4,
+    "add_noise": 3,
+    "bootstrap": 1,
+    "bootstrap_confidence_interval": 4,
+    "infomax": 12,
+    "mixed_norm": 21,
+    "permutation_cluster_1samp_test": 7,
+    "permutation_cluster_test": 7,
+    "permutation_t_test": 4,
+    "random_parcellation": 5,
+    "random_permutation": 1,
+    "select_source_in_label": 2,
+    "select_sources": 7,
+    "simulate_evoked": 6,
+    "simulate_sparse_stc": 5,
+    "spatio_temporal_cluster_1samp_test": 7,
+    "spatio_temporal_cluster_test": 7,
+}
+
+# These are compatibility implementations or reference fixtures whose expected
+# values were generated from the legacy bit stream. Keep this allowlist at the
+# function level so a new legacy RNG use elsewhere in the same file still fails.
+legacy_rng_allowlist = {
+    ("mne/decoding/tests/test_csp.py", "test_ajd"),
+    ("mne/preprocessing/ica.py", "_serialize"),
+    ("mne/stats/tests/test_parametric.py", "generate_data"),
+    ("mne/tests/test_cov.py", "test_auto_low_rank_ignores_global_rng"),
+    ("mne/tests/test_dipole.py", "test_dipole_fitting"),
+    ("mne/utils/check.py", "_check_rng"),
+    ("mne/utils/check.py", "_legacy_rng_wrapper"),
+    ("mne/utils/check.py", "check_random_state"),
+    ("mne/utils/tests/test_check.py", "test_check_rng"),
+    ("mne/utils/tests/test_check.py", "test_check_rng_compat"),
+    (
+        "mne/viz/tests/test_circle.py",
+        "test_plot_connectivity_circle_jitter_reproducible",
+    ),
+    ("mne/viz/tests/test_utils.py", "test_auto_scale_epoch_sampling_reproducible"),
+}
+
+
+def _enclosing_function(node, parents):
+    """Get the name of the function containing an AST node."""
+    while node in parents:
+        node = parents[node]
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            return node.name
+    return None
+
+
+def _expected_legacy_mne_call(node, parents):
+    """Return whether a deprecated call explicitly checks its transition."""
+    while node in parents:
+        node = parents[node]
+        if not isinstance(node, ast.With):
+            continue
+        for item in node.items:
+            context = item.context_expr
+            if not isinstance(context, ast.Call):
+                continue
+            name = getattr(context.func, "id", None) or getattr(
+                context.func, "attr", None
+            )
+            if name not in ("raises", "warns") or not context.args:
+                continue
+            category = context.args[0]
+            category = getattr(category, "id", None) or getattr(category, "attr", None)
+            if (name, category) in (
+                ("raises", "TypeError"),
+                ("warns", "FutureWarning"),
+            ):
+                return True
+    return False
 
 
 def _is_np_random(node):
@@ -368,12 +444,33 @@ def test_no_global_rng():
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
-            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
+            tree = ast.parse(path.read_text("utf-8"))
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            import_aliases = {
+                alias.asname or alias.name: alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom)
+                for alias in node.names
+            }
+            for node in ast.walk(tree):
+                function = _enclosing_function(node, parents)
+                legacy_allowed = (rel, function) in legacy_rng_allowlist
+                called_name = None
+                if isinstance(node, ast.Call):
+                    called_name = getattr(node.func, "id", None) or getattr(
+                        node.func, "attr", None
+                    )
+                    called_name = import_aliases.get(called_name, called_name)
                 # 1. the global RNG: ``np.random.<attr>`` / ``numpy.random.<attr>``
                 if (
                     isinstance(node, ast.Attribute)
                     and node.attr not in global_rng_ok
                     and _is_np_random(node.value)
+                    and not legacy_allowed
                 ):
                     bad.append(
                         f"{rel}:{node.lineno}: np.random.{node.attr} "
@@ -385,6 +482,7 @@ def test_no_global_rng():
                     and isinstance(node.func, ast.Attribute)
                     and node.func.attr in legacy_rng_methods
                     and not _is_np_random(node.func.value)
+                    and not legacy_allowed
                 ):
                     want = legacy_rng_methods[node.func.attr]
                     bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
@@ -392,26 +490,34 @@ def test_no_global_rng():
                 elif (
                     "/tests/" not in rel
                     and isinstance(node, ast.Call)
-                    and isinstance(node.func, ast.Name)
-                    and node.func.id in sklearn_rng_estimators
+                    and called_name in sklearn_rng_estimators
                     and not any(kw.arg == "random_state" for kw in node.keywords)
                 ):
                     bad.append(
-                        f"{rel}:{node.lineno}: {node.func.id}() "
+                        f"{rel}:{node.lineno}: {called_name}() "
                         "(set random_state explicitly)"
                     )
                 # 4. authored calls to deprecated MNE RNG parameters
-                elif "/tests/" not in rel and isinstance(node, ast.Call):
-                    func_name = getattr(node.func, "id", None) or getattr(
-                        node.func, "attr", None
-                    )
+                elif isinstance(node, ast.Call):
                     legacy = {"random_state", "seed"}.intersection(
                         kw.arg for kw in node.keywords
                     )
-                    if func_name in mne_rng_functions and legacy:
+                    legacy_position = mne_rng_legacy_positions.get(called_name)
+                    legacy_positional = (
+                        legacy_position is not None and len(node.args) > legacy_position
+                    )
+                    if (
+                        called_name in mne_rng_functions
+                        and (legacy or legacy_positional)
+                        and not _expected_legacy_mne_call(node, parents)
+                    ):
+                        spelling = ", ".join(sorted(legacy))
+                        if legacy_positional:
+                            spelling = f"{spelling}, " if spelling else ""
+                            spelling += "a positional legacy RNG"
                         bad.append(
-                            f"{rel}:{node.lineno}: {func_name}() uses "
-                            f"{', '.join(sorted(legacy))} (use rng)"
+                            f"{rel}:{node.lineno}: {called_name}() uses "
+                            f"{spelling} (use rng)"
                         )
     if bad:
         raise AssertionError(

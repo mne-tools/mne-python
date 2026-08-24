@@ -13,9 +13,18 @@ from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..forward import apply_forward
 from ..io import BaseRaw
-from ..utils import _check_preload, _check_rng_compat, _validate_type, logger, verbose
+from ..utils import (
+    _check_preload,
+    _check_rng_compat,
+    _legacy_rng,
+    _validate_type,
+    check_random_state,
+    logger,
+    verbose,
+)
 
 
+@_legacy_rng("random_state")
 @verbose
 def simulate_evoked(
     fwd,
@@ -53,7 +62,7 @@ def simulate_evoked(
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    %(random_state)s
+    %(random_state_deprecated)s
     %(use_cps)s
 
         .. versionadded:: 0.15
@@ -102,6 +111,7 @@ def _simulate_noise_evoked(evoked, cov, iir_filter, rng):
     return _add_noise(noise, cov, iir_filter, rng, allow_subselection=False)
 
 
+@_legacy_rng("random_state")
 @verbose
 def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rng=None):
     """Create noise as a multivariate Gaussian.
@@ -116,7 +126,7 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rn
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    %(random_state)s
+    %(random_state_deprecated)s
     %(verbose)s
     %(rng)s
 
@@ -135,11 +145,14 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rn
     .. versionadded:: 0.18.0
     """
     # We always allow subselection here
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
     rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
-    return _add_noise(inst, cov, iir_filter, rng)
+    return _add_noise(inst, cov, iir_filter, rng, legacy_seed=legacy_seed)
 
 
-def _add_noise(inst, cov, iir_filter, rng, allow_subselection=True):
+def _add_noise(
+    inst, cov, iir_filter, rng, allow_subselection=True, *, legacy_seed=None
+):
     """Add noise, possibly with channel subselection."""
     _validate_type(cov, Covariance, "cov")
     _validate_type(
@@ -168,8 +181,11 @@ def _add_noise(inst, cov, iir_filter, rng, allow_subselection=True):
 
         gen_picks = np.arange(info["nchan"])
     for epoch in data:
+        # An integer passed to the deprecated parameter historically restarted
+        # the same stream for each epoch. ``rng`` intentionally advances.
+        this_rng = check_random_state(legacy_seed) if legacy_seed is not None else rng
         epoch[picks] += _generate_noise(
-            info, cov, iir_filter, rng, epoch.shape[1], picks=gen_picks
+            info, cov, iir_filter, this_rng, epoch.shape[1], picks=gen_picks
         )[0]
     return inst
 

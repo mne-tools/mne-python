@@ -42,6 +42,7 @@ from .utils import (
     _check_rng_compat,
     _check_subject,
     _import_nibabel,
+    _legacy_rng,
     _validate_type,
     fill_doc,
     get_subjects_dir,
@@ -1995,6 +1996,7 @@ def _grow_nonoverlapping_labels(
     return labels
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def random_parcellation(
     subject,
@@ -2023,7 +2025,7 @@ def random_parcellation(
         parcels per hemisphere.
     %(subjects_dir)s
     %(surface)s
-    %(random_state)s
+    %(random_state_deprecated)s
     %(rng)s
 
     Returns
@@ -2942,6 +2944,7 @@ def write_labels_to_annot(
         _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def select_sources(
     subject,
@@ -2978,7 +2981,7 @@ def select_sources(
     %(subjects_dir)s
     name : None | str
         Assign name to the new label.
-    %(random_state)s
+    %(random_state_deprecated)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
     %(rng)s

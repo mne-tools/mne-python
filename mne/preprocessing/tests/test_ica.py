@@ -4,7 +4,6 @@
 
 import os
 import shutil
-import warnings
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -55,7 +54,7 @@ from mne.preprocessing.ica import (
     read_ica_eeglab,
 )
 from mne.rank import _compute_rank_int
-from mne.utils import _record_warnings, catch_logging, check_version
+from mne.utils import _record_warnings, catch_logging, check_random_state, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -84,12 +83,7 @@ _baseline_corrected = pytest.warns(RuntimeWarning, match="were baseline-correcte
 def ICA(*args, **kwargs):
     """Fix the random state in tests."""
     if "random_state" not in kwargs and "rng" not in kwargs:
-        kwargs["random_state"] = 0
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", category=FutureWarning, message=".*random_state.*"
-            )
-            return _ICA(*args, **kwargs)
+        kwargs["rng"] = 0
     return _ICA(*args, **kwargs)
 
 
@@ -302,6 +296,23 @@ def test_ica_rng_transition():
         _ICA(random_state=0)
     with pytest.raises(TypeError, match="only one"):
         _ICA(random_state=0, rng=0)
+
+    info = create_info(["Fz", "Cz", "Pz"], 100.0, "eeg")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
+    unmixings = []
+    for random_state in (0, check_random_state(0)):
+        with pytest.warns(FutureWarning, match="random_state"):
+            ica = _ICA(
+                n_components=2,
+                method="infomax",
+                max_iter=1,
+                random_state=random_state,
+            )
+        ica.fit(raw)
+        unmixings.append(ica.unmixing_matrix_)
+    assert_array_equal(unmixings[0], unmixings[1])
 
 
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])

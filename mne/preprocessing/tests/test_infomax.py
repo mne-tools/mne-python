@@ -6,11 +6,11 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy import stats
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import pinv
+from mne.utils import check_random_state, pinv
 
 pytest.importorskip("sklearn")
 
@@ -188,6 +188,24 @@ def test_infomax_n_iter(return_n_iter):
         assert r[1] == max_iter
     else:
         assert isinstance(r, np.ndarray)
+
+
+def test_infomax_legacy_rng_nested():
+    """Test legacy RNGs survive Infomax's nested permutation path."""
+    X = np.random.default_rng(0).standard_normal((20, 2))
+    results = []
+    for random_state in (0, check_random_state(0)):
+        with pytest.warns(FutureWarning, match="random_state"):
+            results.append(
+                infomax(
+                    X,
+                    block=5,
+                    extended=False,
+                    max_iter=1,
+                    random_state=random_state,
+                )
+            )
+    assert_array_equal(results[0], results[1])
 
 
 def _get_pca(rng=None):

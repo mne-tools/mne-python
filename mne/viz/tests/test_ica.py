@@ -326,7 +326,7 @@ def test_plot_ica_properties_reject(kind):
     raw.set_montage("spherical_1005")
     ica = ICA(
         n_components=2,
-        random_state=0,
+        rng=0,
         max_iter=1,
     )
     with (
@@ -571,7 +571,7 @@ def test_plot_ica_overlay():
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(
         n_components=2,
-        random_state=0,
+        rng=0,
     )
     ica.fit(raw, picks=picks)
     with pytest.warns(RuntimeWarning, match="longer than"):

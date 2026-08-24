@@ -67,8 +67,7 @@ def test_check_rng():
 
 def test_check_rng_compat():
     """Test compatibility with legacy random-number parameters."""
-    with pytest.warns(FutureWarning, match="seed"):
-        rng = _check_rng_compat(None, legacy=0, legacy_name="seed")
+    rng = _check_rng_compat(None, legacy=0, legacy_name="seed")
     assert isinstance(rng, np.random.RandomState)
     assert isinstance(_check_rng_compat(None, legacy_name="seed"), np.random.Generator)
     with pytest.raises(TypeError, match="rng"):
