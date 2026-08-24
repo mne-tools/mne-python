@@ -100,9 +100,7 @@ def test_plot_ica_components():
         )
     plt.close("all")
 
-    # TODO VERSION: non-GUI get_window_title() always returned "image" before
-    # matplotlib 3.10.3; simplify once that's the minimum supported version (currently
-    # the "old" job pins matplotlib 3.9.0)
+    # TODO VERSION: non-GUI get_window_title() returned "image" before mpl 3.10.3
     if check_version("matplotlib", "3.10.3"):
         # window title shows the component range when picks are contiguous
         fig = ica.plot_components(None, **fast_test)

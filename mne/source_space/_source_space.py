@@ -38,7 +38,7 @@ from .._freesurfer import (
     read_freesurfer_lut,
 )
 from ..bem import ConductorModel, read_bem_surfaces
-from ..fixes import _get_img_fdata, _reshape_view
+from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
@@ -437,9 +437,21 @@ class SourceSpaces(list):
             fig=fig,
         )
 
-    def __getitem__(self, *args, **kwargs):
-        """Get an item."""
-        out = super().__getitem__(*args, **kwargs)
+    def __getitem__(self, key):
+        """Get one or more source spaces.
+
+        Parameters
+        ----------
+        key : int | slice
+            The source space(s) to get.
+
+        Returns
+        -------
+        src : dict | instance of SourceSpaces
+            A single source space if ``key`` is an integer, otherwise a new
+            :class:`~mne.SourceSpaces` instance.
+        """
+        out = super().__getitem__(key)
         if isinstance(out, list):
             out = SourceSpaces(out)
         return out
@@ -474,7 +486,18 @@ class SourceSpaces(list):
         return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
-        """Combine source spaces."""
+        """Combine source spaces.
+
+        Parameters
+        ----------
+        other : instance of SourceSpaces
+            The source spaces to append.
+
+        Returns
+        -------
+        src : instance of SourceSpaces
+            A new instance containing the source spaces of both objects.
+        """
         out = self.copy()
         out += other
         return SourceSpaces(out)
@@ -2315,7 +2338,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh = _reshape_view(neigh, old_shape)
+        neigh = neigh.reshape(old_shape, copy=False)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]

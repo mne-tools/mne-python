@@ -7,7 +7,6 @@ from functools import partial
 
 import numpy as np
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _check_option, _ensure_int, logger, verbose, warn
 from ..utils.numerics import _mask_to_onsets_offsets
@@ -314,5 +313,5 @@ def psd_array_welch(
     if bad_ch.any():
         psds[bad_ch] = np.nan
 
-    psds = _reshape_view(psds, shape)
+    psds = psds.reshape(shape, copy=False)
     return psds, freqs
