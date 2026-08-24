@@ -17,7 +17,6 @@ import numpy as np
 
 from .._fiff.constants import FIFF
 from ..bem import _import_openmeeg, _make_openmeeg_geometry
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface
 from ..transforms import apply_trans, invert_transform
@@ -324,7 +323,7 @@ def _do_prim_curr(rr, coils):
     for start, stop in _rr_bounds(rr):
         pp = _bem_inf_fields(rr[start:stop], rmags, cosmags)
         pp *= ws
-        pp = _reshape_view(pp, (3 * (stop - start), -1))
+        pp = pp.reshape((3 * (stop - start), -1), copy=False)
         pc[3 * start : 3 * stop] = [
             bincount(bins, this_pp, bins[-1] + 1) for this_pp in pp
         ]
