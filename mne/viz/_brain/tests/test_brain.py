@@ -1571,20 +1571,16 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
     # must come through despite the missing smooth_mat (full-res surface)
     assert isinstance(events[0].source_id, int | np.integer)
     assert len(brain._picked_points) == 2
-    # clicking the new sphere removes it again (make it pickable and big
-    # enough that the click cannot miss)
+    # clicking the new sphere removes it again; the sphere can be around a
+    # single pixel at the default zoom (and projection rounding differs
+    # across HiDPI setups), so zoom in on it first to make it unmissable
     new_key = next(key for key in brain._picked_points if key != peak_key)
     for sphere in sum(brain._picked_points.values(), list()):
         sphere["actor"].SetVisibility(True)
-        sphere["actor"].SetScale(3.0)
+    center = np.array(brain._picked_points[new_key][0]["actor"].GetCenter())
+    brain._renderer.set_camera(focalpoint=center, distance=40.0)
     brain._renderer._process_events()
-    if src == "volume":
-        # the picked voxel can be up to half a voxel off the original click
-        # ray, so aim at the sphere's actual center
-        center = brain._picked_points[new_key][0]["actor"].GetCenter()
-        point = _world_to_widget_point(brain, widget, center)
-    # else: the surface sphere sits on the first click's ray, so reuse point
-    # as-is (projecting its center can be a pixel off on odd HiDPI setups)
+    point = _world_to_widget_point(brain, widget, center)
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert list(brain._picked_points) == [peak_key]
     brain.close()
