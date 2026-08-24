@@ -102,7 +102,13 @@ class ConductorModel(dict):
         return f"<ConductorModel | {extra}>"
 
     def copy(self):
-        """Return copy of ConductorModel instance."""
+        """Return copy of ConductorModel instance.
+
+        Returns
+        -------
+        bem : instance of ConductorModel
+            The copied conductor model.
+        """
         return deepcopy(self)
 
     @property

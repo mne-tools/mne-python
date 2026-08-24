@@ -362,6 +362,11 @@ class GetEpochsMixin:
 
         This method resets the object iteration state to the first epoch.
 
+        Returns
+        -------
+        epochs : instance of Epochs
+            The instance itself, to iterate over with :meth:`~mne.Epochs.next`.
+
         Notes
         -----
         This enables the use of this Python pattern::
