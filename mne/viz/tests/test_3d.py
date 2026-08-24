@@ -32,7 +32,6 @@ from mne._fiff.constants import FIFF
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
 from mne.defaults import DEFAULTS
-from mne.fixes import _reshape_view
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate
@@ -138,7 +137,7 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
         np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"
@@ -1050,7 +1049,7 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.random.default_rng(0).random(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
     # Test for simple use cases
@@ -1172,7 +1171,7 @@ def test_stc_mpl():
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.ones(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
     dep_match = "matplotlib 3D backend is deprecated"
     with pytest.warns(FutureWarning, match=dep_match):
@@ -1512,7 +1511,7 @@ def test_link_brains(renderer_interactive):
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
         np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"
