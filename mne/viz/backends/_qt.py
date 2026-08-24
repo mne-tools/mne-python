@@ -106,6 +106,7 @@ from ._abstract import (
 )
 from ._pyvista import (
     _check_3d_figure,  # noqa: F401
+    _clear_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
     _PyVistaRenderer,
@@ -2012,22 +2013,26 @@ class _Renderer(
 
     @_qt_safe_window()
     def show(self):
-        super().show()
-        with _qt_disable_paint(self.plotter):
-            with self._window_ensure_minimum_sizes():
-                self.plotter.app_window.show()
-        self._update()
-        for plotter in self._all_plotters:
-            plotter.updateGeometry()
-            plotter._render()
-        # Ideally we would just put a `splash.finish(plotter.window())` in the
-        # same place that we initialize this (_init_qt_app call). However,
-        # the window show event is triggered (closing the splash screen) well
-        # before the window actually appears for complex scenes like the coreg
-        # GUI. Therefore, we close after all these events have been processed
-        # here.
-        self._process_events()
-        _qt_raise_window(self.plotter.app_window)
+        # Setting up and repainting the window is expensive, so skip it when the
+        # window is already up. This matters when a figure is reused for many plots,
+        # where it also avoids the scene visibly flashing on each plot.
+        if not self.plotter.app_window.isVisible():
+            super().show()
+            with _qt_disable_paint(self.plotter):
+                with self._window_ensure_minimum_sizes():
+                    self.plotter.app_window.show()
+            self._update()
+            for plotter in self._all_plotters:
+                plotter.updateGeometry()
+                plotter._render()
+            # Ideally we would just put a `splash.finish(plotter.window())` in the
+            # same place that we initialize this (_init_qt_app call). However,
+            # the window show event is triggered (closing the splash screen) well
+            # before the window actually appears for complex scenes like the coreg
+            # GUI. Therefore, we close after all these events have been processed
+            # here.
+            self._process_events()
+            _qt_raise_window(self.plotter.app_window)
 
 
 def _qt_activate_layouts(window, widget):

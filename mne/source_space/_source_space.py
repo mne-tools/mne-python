@@ -329,6 +329,7 @@ class SourceSpaces(list):
         trans=None,
         *,
         fig=None,
+        set_view=True,
         verbose=None,
     ):
         """Plot the source space.
@@ -363,6 +364,12 @@ class SourceSpaces(list):
             If ``None``, creates a new 600x600 pixel figure with black background.
 
             .. versionadded:: 1.10
+        set_view : bool
+            If True (default), set the view of the figure to a default one. Can be
+            set to False to keep the view a figure passed via ``fig`` already has,
+            which is useful when reusing a single figure for multiple plots.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -435,6 +442,7 @@ class SourceSpaces(list):
             bem=bem,
             src=self,
             fig=fig,
+            set_view=set_view,
         )
 
     def __getitem__(self, key):
