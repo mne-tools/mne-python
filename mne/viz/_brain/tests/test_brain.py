@@ -1677,6 +1677,17 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
     point = _world_to_widget_point(brain, widget, center)
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert list(brain._picked_points) == [peak_key]
+    if src == "surface":
+        # label mode must work with directly-passed data too: an stc gets
+        # synthesized for extract_label_time_course, and the default extract
+        # mode must be valid (not None) with src=None
+        assert brain.label_extract_mode is not None
+        brain.widgets["annotation"].set_value("aparc")
+        assert brain.traces_mode == "label"
+        assert brain.widgets["extract_mode"].get_value() == brain.label_extract_mode
+        _, point = _closest_vertex_point(brain, widget)
+        QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+        assert len(brain._picked_patches[hemi]) == 1
     brain.close()
 
 
@@ -1704,6 +1715,11 @@ def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtb
         brain.show()
     widget = brain.plotter.interactor
     _, point = _closest_vertex_point(brain, widget)
+    # hovering with no prior click must not pick labels: the hover handlers
+    # used to Pick() with the picker carrying the EndPickEvent observer, so
+    # every hover movement acted like a click
+    for dx in range(-40, 41, 10):
+        _send_mouse_move(widget, point + QPoint(dx, 0))
     assert len(brain._picked_patches["lh"]) == 0
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1

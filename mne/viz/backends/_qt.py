@@ -1150,7 +1150,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             " border: none;"
             " font-size: 13pt;"
             " font-weight: 600;"
-            " color: palette(mid);"
+            " color: palette(placeholder-text);"
             " }"
             "QToolButton:hover { color: palette(text); }"
         )
@@ -1480,7 +1480,9 @@ class _QtTraceRow(QWidget):
         coords = meta[2] if meta is not None else None
         if coords:
             coord_label = QLabel(f"MNI: {coords}")
-            coord_label.setStyleSheet("color: palette(disabled-text); font-size: 8pt;")
+            coord_label.setStyleSheet(
+                "color: palette(placeholder-text); font-size: 8pt;"
+            )
             coord_label.setWordWrap(True)
             text_col.addWidget(coord_label)
 
@@ -1568,7 +1570,7 @@ class _QtTraceList(QWidget):
                 "Set Annotation to None to see\nvertex and RMS traces here."
             )
             placeholder.setStyleSheet(
-                "color: palette(disabled-text); font-style: italic; font-size: 9pt;"
+                "color: palette(placeholder-text); font-style: italic; font-size: 9pt;"
             )
             self._rows_layout.addWidget(placeholder)
             return
@@ -1804,6 +1806,19 @@ class _QtWindow(_AbstractWindow):
             # 1. Settle the layout
             self._window.ensurePolished()
             _qt_activate_layouts(self._window, self._interactor)
+            # Never grow the shown window beyond the available screen
+            # geometry below: on macOS the compositor can stop presenting
+            # such a window entirely (fully blank until the user resizes
+            # it). Measure the true frame overhead from the live window
+            # rather than guessing at decoration sizes.
+            screen = self._window.screen()
+            if screen is None:
+                max_w = max_h = 10**6
+            else:
+                frame = self._window.frameGeometry()
+                avail = screen.availableGeometry()
+                max_w = avail.width() - (frame.width() - self._window.width())
+                max_h = avail.height() - (frame.height() - self._window.height())
             # 2. Get the window and interactor sizes that work
             win_sz = self._window.size()
             ren_sz = self._interactor.size()
@@ -1818,7 +1833,10 @@ class _QtWindow(_AbstractWindow):
             if adjust_mpl:
                 win_h += max(self._mpl_dock.widget().size().height() - mpl_h, 0)
             # 5. Resize the window to the size that gave us ren_sz
-            self._interactor.window_size = (win_sz.width(), win_h)
+            self._interactor.window_size = (
+                min(win_sz.width(), max_w),
+                min(win_h, max_h),
+            )
             _qt_activate_layouts(self._window, self._interactor)
             # 6. Zeroing the frame's layout margins above avoids the interactor
             #    drifting on most platforms, but not always (e.g. CI's macOS
@@ -1829,9 +1847,11 @@ class _QtWindow(_AbstractWindow):
                 err_h = ren_sz.height() - self._interactor.height()
                 if not (err_w or err_h):
                     break
-                self._window.resize(
-                    self._window.width() + err_w, self._window.height() + err_h
-                )
+                new_w = min(self._window.width() + err_w, max_w)
+                new_h = min(self._window.height() + err_h, max_h)
+                if (new_w, new_h) == (self._window.width(), self._window.height()):
+                    break  # cannot converge without leaving the screen
+                self._window.resize(new_w, new_h)
                 _qt_activate_layouts(self._window, self._interactor)
 
     def _window_set_theme(self, theme=None):
@@ -2074,7 +2094,7 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     title.setFont(title_font)
     title.setStyleSheet(
         "QLabel {"
-        " color: palette(mid);"
+        " color: palette(placeholder-text);"
         " padding: 7px 10px 6px 10px;"
         " border-bottom: 1px solid palette(midlight);"
         " }"

@@ -616,6 +616,10 @@ class Brain:
             self.separate_canvas = False
         del show_traces
 
+        # Start with the first-added overlay active (the colormap dock's
+        # default) so that the scalar bar, picking, and traces are all
+        # configured against the same overlay
+        self._active_data_key = next(iter(self._all_data))
         self._configure_time_label()
         self._configure_scalar_bar()
         self._configure_shortcuts()
@@ -670,8 +674,9 @@ class Brain:
         self.plotter._Iren = _FakeIren()
         if getattr(self.plotter, "picker", None) is not None:
             self.plotter.picker = None
-        if getattr(self._renderer, "_picker", None) is not None:
-            self._renderer._picker = None
+        for picker in ("_picker", "_hover_picker"):
+            if getattr(self._renderer, picker, None) is not None:
+                setattr(self._renderer, picker, None)
         # XXX end PyVista
         for key in (
             "plotter",
@@ -1046,6 +1051,7 @@ class Brain:
         layout = self._renderer._dock_add_group_box(name, collapse=True)
 
         # setup candidate annots
+        @safe_event
         @_auto_weakref
         def _set_annot(annot):
             self.clear_glyphs()
@@ -1062,6 +1068,7 @@ class Brain:
             self._renderer._update()
 
         # setup label extraction parameters
+        @safe_event
         @_auto_weakref
         def _set_label_mode(mode):
             if self.traces_mode != "label":
@@ -1087,7 +1094,10 @@ class Brain:
         cands = cands + ["None"]
         self.annot = cands[0]
         stc = self._data["stc"]
-        modes = _get_allowed_label_modes(stc)
+        # None (no extraction) is allowed by _get_allowed_label_modes but is
+        # not a valid choice here; with src=None it would otherwise end up
+        # last and become the default, breaking label extraction
+        modes = [m for m in _get_allowed_label_modes(stc) if m is not None]
         if self._data["src"] is None:
             modes = [
                 m for m in modes if m not in self.default_label_extract_modes["src"]
@@ -1128,7 +1138,7 @@ class Brain:
         add_trace_list = getattr(self._renderer, "_dock_add_trace_list", None)
         if add_trace_list is None:
             return
-        self.mpl_canvas._trace_list = add_trace_list(name, collapse=True)
+        self.mpl_canvas._trace_list = add_trace_list(name, collapse=False)
         self.mpl_canvas.sync_traces()
 
     def _configure_mplcanvas(self):
@@ -1274,7 +1284,7 @@ class Brain:
 
         x, y = iren.GetEventPosition()
         picked_renderer = iren.FindPokedRenderer(x, y)
-        vtk_picker = self._renderer._picker
+        vtk_picker = self._renderer._hover_picker
         vtk_picker.Pick(x, y, 0, picked_renderer)
         cell_id = vtk_picker.GetCellId()
         mapper = vtk_picker.GetMapper()
@@ -1593,11 +1603,19 @@ class Brain:
 
     def _remove_label_glyph(self, hemi, label_id):
         label = self._annotation_labels[hemi][label_id]
-        label._line.remove()
+        # do the bookkeeping first so that a failure partway cannot leave a
+        # picked label whose line is already detached, which would make every
+        # subsequent removal (and clear_glyphs at annotation changes) fail too
+        self._picked_patches[hemi].remove(label_id)
+        line, label._line = label._line, None
+        if line is not None:
+            try:
+                line.remove()
+            except ValueError:  # already detached from the axes
+                pass
         self.color_cycle.restore(label._color)
         self.mpl_canvas.update_plot()
         self.layered_meshes[hemi].remove_overlay(label.name)
-        self._picked_patches[hemi].remove(label_id)
 
     def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
         _ensure_int(vertex_id)
@@ -2192,6 +2210,36 @@ class Brain:
         self._all_data[key][hemi]["glyph_actor"] = None
         self._all_data[key][hemi]["array"] = array
         self._all_data[key][hemi]["vertices"] = vertices
+        if (
+            stc is None
+            and hemi in ("lh", "rh")
+            and vertices is not None
+            and len(array) == len(vertices)
+        ):
+            # Synthesize an stc from the raw arrays so that label-mode traces
+            # (which use stc.extract_label_time_course) also work when data
+            # is passed directly rather than plotted from an stc
+            from ...source_estimate import SourceEstimate, VectorSourceEstimate
+
+            stc_verts, stc_data = list(), list()
+            for stc_hemi in ("lh", "rh"):
+                hemi_data = self._all_data[key].get(stc_hemi)
+                if not isinstance(hemi_data, dict) or "array" not in hemi_data:
+                    stc_verts.append(np.array([], int))
+                    continue
+                stc_array = hemi_data["array"]
+                if stc_array.ndim == 1:
+                    stc_array = stc_array[:, np.newaxis]
+                stc_verts.append(hemi_data["vertices"])
+                stc_data.append(stc_array)
+            if time is not None and len(time) > 1:
+                tmin, tstep = time[0], time[1] - time[0]
+            else:
+                tmin, tstep = 0.0, 1.0
+            klass = VectorSourceEstimate if stc_data[0].ndim == 3 else SourceEstimate
+            self._all_data[key]["stc"] = klass(
+                np.concatenate(stc_data), stc_verts, tmin, tstep, subject=self._subject
+            )
         self._all_data[key]["alpha"] = alpha
         self._all_data[key]["colormap"] = colormap
         self._all_data[key]["center"] = center
@@ -2561,7 +2609,9 @@ class Brain:
             tc = stc.extract_label_time_course(
                 label, src=src, mode=self.label_extract_mode
             )
-            tc = tc[0] if tc.ndim == 2 else tc[0, 0, :]
+            tc = tc[0]
+            if tc.ndim == 2:  # vector data: show the norm across orientations
+                tc = np.linalg.norm(tc, axis=0)
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
                 self._data["time"], tc, label=label_name, color=color
@@ -3527,7 +3577,7 @@ class Brain:
 
         x, y = iren.GetEventPosition()
         picked_renderer = iren.FindPokedRenderer(x, y)
-        vtk_picker = self._renderer._picker
+        vtk_picker = self._renderer._hover_picker
         vtk_picker.Pick(x, y, 0, picked_renderer)
         cell_id = vtk_picker.GetCellId()
         # This returns a vtkPolyData we don't seem to have access to:
