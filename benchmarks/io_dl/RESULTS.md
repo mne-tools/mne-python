@@ -489,3 +489,38 @@ New test `test_engine_edfio` compares engines on an exported fixture.
 - Documented: `_get_windows(..., out=float32_buffer)` halves output memory
   traffic for DL collation (dtype of provided buffer is honored by all fused
   write paths).
+
+## 15. Session 8: depth round — direct-to-output kernel, byteorder guard
+
+- `decode_window_into(dst, view, cal, off, gain, s0, w)` in `_edf_numba.py`:
+  decodes straight into the caller's output slice (arbitrary strides), with
+  per-element sample addressing (`s0`/`w`) so edge records at window
+  boundaries need no temporaries.
+- EDF fast path now decodes **directly into `data[:, pos:pos+w]`** when safe
+  (no projector/comp, unit cals): removes the per-chunk intermediate and its
+  copy. numpy fallback mirrors via temp+single copy.
+- **Byteorder guard**: real-world EDF is big-endian and numba only types
+  native byteorder — non-native chunks are byteswapped to a native copy per
+  chunk before the kernel (synthetic LE files had masked this).
+- Kernel gated strictly on `write_direct`; projector/compensation paths keep
+  the exact legacy route (a first draft double-applied calibration there —
+  caught by `test_bdf_data`, fixed by the gate).
+- Attempted mixed-sfreq partial decode inside the fast path; reverted to the
+  strict uniform-file gate: ragged record layouts break the zero-copy reshape,
+  and replicating the legacy slow-row packing quirks bit-exactly needs its own
+  round (documented, not silently approximated).
+
+### Round numbers (BIG file, best-of interleaved vs pristine main)
+
+| format | window µs | speedup | full load |
+|---|---|---|---|
+| EDF | 301 | 5.7× | 1.1× |
+| BDF | 406 | 6.1× | **2.0×** |
+| BrainVision | 200 | 5.9× | 1.3–1.5× |
+| FIF | 257 | 5.1× | 1.4× |
+
+Cumulative vs where this effort started: **~6.5–7.5× per-window**, full loads
+1.1–2×, preloads at the numpy floor. The residual per-window cost is now
+genuinely I/O + format decode + one fused pass; further order-of-magnitude
+gains require changing what is stored (window-shaped HDF5/NWB-style layouts,
+§11.2) rather than how MNE reads classic formats.

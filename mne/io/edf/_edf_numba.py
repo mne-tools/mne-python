@@ -39,3 +39,31 @@ def decode_window(digital, cal_v, off_v, gain_v, out):  # pragma: no cover
             base = b * n_smp
             for j in range(n_smp):
                 out_i[base + j] = ((digital[i, b, j] * cal) + off) * gain
+
+
+@jit(fastmath=False)
+def decode_window_into(
+    dst, digital, cal_v, off_v, gain_v, s0, w
+):  # pragma: no cover
+    """Decode into a possibly-strided 2-D destination.
+
+    ``dst`` is ``(k, w)`` with arbitrary strides (e.g., a column slice of the
+    caller's output buffer); ``digital`` is the ``(k, n_blocks, buf_len)``
+    strided integer view covering whole data records; ``s0`` is the first
+    sample to take from that view and ``w`` the number of samples to write,
+    so edge records at window boundaries are handled without temporaries.
+    Elementwise op order is identical to :func:`decode_window`.
+    """
+    k = digital.shape[0]
+    n_smp = digital.shape[2]
+    for i in range(k):
+        cal = cal_v[i]
+        off = off_v[i]
+        gain = gain_v[i]
+        dst_i = dst[i]
+        dig_i = digital[i]
+        for t in range(w):
+            g = s0 + t
+            b = g // n_smp
+            j = g - b * n_smp
+            dst_i[t] = ((dig_i[b, j] * cal) + off) * gain
