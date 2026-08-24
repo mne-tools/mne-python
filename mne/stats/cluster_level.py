@@ -1808,8 +1808,8 @@ def cluster_test(
     parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
     formula = formulaic.Formula(formula, _parser=parser)
     # extract the dependent and independent variable names
-    dv_name = str(np.array(formula.lhs.root).item())
-    iv_name = str(np.array(formula.rhs.root).item())
+    dv_name = str(formula.lhs)
+    iv_name = str(formula.rhs)
 
     # validate the input dataframe and return the type of the data column entries
     is_epo, is_tfr, is_arr = _validate_cluster_df(df, dv_name, iv_name)
