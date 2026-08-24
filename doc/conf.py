@@ -1848,6 +1848,7 @@ custom_redirects = {
     f"{ex}/{co}/sensor_connectivity": f"{mne_conn}/{ex}/sensor_connectivity",
     f"{ex}/{vi}/publication_figure": f"{tu}/{vi}/10_publication_figure",
     f"{ex}/{vi}/sensor_noise_level": f"{tu}/{pr}/50_artifact_correction_ssp",
+    f"{ex}/{vi}/montage_sgskip": f"{ex}/{vi}/montage",
 }
 
 # Adapted from sphinxcontrib/redirects (BSD-2-Clause)

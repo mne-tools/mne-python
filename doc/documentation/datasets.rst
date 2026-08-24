@@ -255,7 +255,7 @@ based on Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
+    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
 
 
 mTRF Dataset
