@@ -1487,9 +1487,14 @@ def _world_to_widget_point(brain, widget, target):
     ren.SetWorldPoint(*target, 1.0)
     ren.WorldToDisplay()
     x, y, _ = ren.GetDisplayPoint()
-    # inverse of the Qt -> VTK event mapping ((height - y - 1) * dpr)
-    dpr = widget.devicePixelRatioF()
-    return QPoint(round(x / dpr), round(widget.height() - 1 - y / dpr))
+    # Invert the Qt -> VTK event mapping, (x * scale, (height - y - 1) * scale).
+    # Derive the per-axis scale from the render-window size (which QVTK sets to
+    # round(scale * widget size)) rather than using devicePixelRatioF, which
+    # can disagree with it on unusual HiDPI setups (e.g., macOS Intel CI).
+    rw_w, rw_h = brain.plotter.render_window.GetSize()
+    sx = rw_w / widget.width()
+    sy = rw_h / widget.height()
+    return QPoint(round(x / sx), round(widget.height() - 1 - y / sy))
 
 
 @testing.requires_testing_data
@@ -1567,19 +1572,20 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
     assert isinstance(events[0].source_id, int | np.integer)
     assert len(brain._picked_points) == 2
     # clicking the new sphere removes it again (make it pickable and big
-    # enough that the click cannot miss, then aim at its actual center)
+    # enough that the click cannot miss)
     new_key = next(key for key in brain._picked_points if key != peak_key)
     for sphere in sum(brain._picked_points.values(), list()):
         sphere["actor"].SetVisibility(True)
         sphere["actor"].SetScale(3.0)
     brain._renderer._process_events()
-    center = brain._picked_points[new_key][0]["actor"].GetCenter()
-    QTest.mouseClick(
-        widget,
-        Qt.LeftButton,
-        Qt.NoModifier,
-        _world_to_widget_point(brain, widget, center),
-    )
+    if src == "volume":
+        # the picked voxel can be up to half a voxel off the original click
+        # ray, so aim at the sphere's actual center
+        center = brain._picked_points[new_key][0]["actor"].GetCenter()
+        point = _world_to_widget_point(brain, widget, center)
+    # else: the surface sphere sits on the first click's ray, so reuse point
+    # as-is (projecting its center can be a pixel off on odd HiDPI setups)
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert list(brain._picked_points) == [peak_key]
     brain.close()
 
