@@ -474,3 +474,18 @@ wrapper + output copy; raw parser delta is larger). Windows on the preloaded
 result sit at the ~78 µs numpy floor like every other preloaded path.
 
 New test `test_engine_edfio` compares engines on an exported fixture.
+
+## 14. Session 7: syscall-glue removal + edfio PR verification
+
+- `mne/io/edf/_open.py`: PID-keyed LRU persistent read handles (NoClose wrapper,
+  seek(0)-on-reuse preserving fresh-open semantics, LRU cap 8). Removes
+  open/close per `get_data` on EDF/BDF/GDF paths. Gates: all suites green,
+  equivalence exact; windows now **EDF 291-295 µs / BDF 402-424 µs** vs pristine.
+- edfio PR #114: upstream Actions require maintainer approval for fork PRs
+  (0 check runs). Replicated their pinned toolchain locally instead:
+  ruff==0.9.10 clean after refactor (RUF059), ruff-format applied,
+  mypy==1.15.0's 6 unused-ignore errors confirmed pre-existing on main,
+  pytest 1022 passed @ 100% coverage; fix commit pushed + verification comment posted.
+- Documented: `_get_windows(..., out=float32_buffer)` halves output memory
+  traffic for DL collation (dtype of provided buffer is honored by all fused
+  write paths).

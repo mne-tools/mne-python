@@ -921,9 +921,9 @@ class BaseRaw(
                 f"out has shape {out.shape}, need "
                 f"{(len(starts), n_out, width)}"
             )
-        elif out.dtype != self._dtype:
+        elif out.dtype not in (np.float64, np.float32):
             raise ValueError(
-                f"out dtype must be {self._dtype}, got {out.dtype}"
+                f"out dtype must be float64 or float32, got {out.dtype}"
             )
         for j, s0 in enumerate(starts):
             self._read_segment(
