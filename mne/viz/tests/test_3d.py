@@ -49,6 +49,7 @@ from mne.viz import (
     plot_head_positions,
     plot_source_estimates,
     plot_sparse_source_estimates,
+    set_3d_view,
     snapshot_brain_montage,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
@@ -603,7 +604,14 @@ def test_plot_alignment_surf_errors(renderer, evoked):
 def test_plot_alignment_info(renderer, evoked):
     """Test plotting with info, but no trans, fwd, bem, or src."""
     info = evoked.info
-    plot_alignment(info)  # works: surfaces='auto' default
+    fig = plot_alignment(info)  # works: surfaces='auto' default
+    # set_view=False keeps the view of the figure it is given, True resets it
+    set_3d_view(fig, azimuth=11, elevation=22, distance=0.33)
+    pos = np.array(fig.plotter.camera.position, float)
+    plot_alignment(info, fig=fig, set_view=False)
+    assert_allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    plot_alignment(info, fig=fig)
+    assert not np.allclose(fig.plotter.camera.position, pos, atol=1e-4)
     # check error raised if incorrect info provided
     with pytest.raises(TypeError, match="instance of Info"):
         plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)

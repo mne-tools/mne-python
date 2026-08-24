@@ -86,6 +86,13 @@ def plot_montage_grid(images, titles):
 # The figure must be created and closed within a single code block, because
 # Sphinx-Gallery screenshots (and closes) every open 3D figure at the end of a block.
 fig_3d = create_3d_figure(size=size, bgcolor=bgcolor)
+set_3d_view(
+    figure=fig_3d,
+    azimuth=135,
+    elevation=80,
+    distance=0.6,
+    focalpoint=(0.0, 0.0, 0.0),
+)
 images = list()
 for current_montage in montages:
     montage = mne.channels.make_standard_montage(current_montage)
@@ -103,8 +110,8 @@ for current_montage in montages:
         bem=sphere,
         info=info,
         fig=fig_3d,
+        set_view=False,  # keep the view we set above
     )
-    set_3d_view(figure=fig_3d, azimuth=135, elevation=80)
     images.append(fig_3d.plotter.screenshot())
     clear_3d_figure(fig_3d)  # reuse the same figure for the next montage
     gc.collect()
@@ -118,6 +125,13 @@ plot_montage_grid(images, montages)
 subjects_dir = op.dirname(fetch_fsaverage())
 
 fig_3d = create_3d_figure(size=size, bgcolor=bgcolor)
+set_3d_view(
+    figure=fig_3d,
+    azimuth=135,
+    elevation=80,
+    distance=0.6,
+    focalpoint=(0.0, 0.0, 0.0),
+)
 images = list()
 for current_montage in montages:
     montage = mne.channels.make_standard_montage(current_montage)
@@ -136,8 +150,8 @@ for current_montage in montages:
         coord_frame="mri",
         trans="fsaverage",  # transform from head coords to fsaverage's MRI
         fig=fig_3d,
+        set_view=False,  # keep the view we set above
     )
-    set_3d_view(figure=fig_3d, azimuth=135, elevation=80)
     images.append(fig_3d.plotter.screenshot())
     clear_3d_figure(fig_3d)
     gc.collect()
