@@ -15,7 +15,6 @@ from ..utils import (
     _check_rng_compat,
     _pl,
     _validate_type,
-    check_random_state,
     logger,
     split_list,
     verbose,
@@ -822,7 +821,7 @@ def _permutation_cluster_test(
     stat_fun,
     adjacency,
     n_jobs,
-    seed,
+    rng,
     max_step,
     exclude,
     step_down_p,
@@ -953,12 +952,9 @@ def _permutation_cluster_test(
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
-    # convert our seed to orders
     # check to see if we can do an exact test
     # (for a two-tailed test, we can exploit symmetry to just do half)
     extra = ""
-    rng = check_random_state(seed)
-    del seed
     if len(X) == 1:  # 1-sample test
         do_perm_func = _do_1samp_permutations
         X_full = X[0]
@@ -1195,7 +1191,7 @@ def permutation_cluster_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=rng,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1310,7 +1306,7 @@ def permutation_cluster_1samp_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=rng,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1403,6 +1399,7 @@ def spatio_temporal_cluster_1samp_test(
         )
     else:
         exclude = None
+    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return permutation_cluster_1samp_test(
         X,
         threshold=threshold,
@@ -1411,7 +1408,6 @@ def spatio_temporal_cluster_1samp_test(
         n_permutations=n_permutations,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
         rng=rng,
         max_step=max_step,
         exclude=exclude,
@@ -1507,6 +1503,7 @@ def spatio_temporal_cluster_test(
         )
     else:
         exclude = None
+    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return permutation_cluster_test(
         X,
         threshold=threshold,
@@ -1515,7 +1512,6 @@ def spatio_temporal_cluster_test(
         n_permutations=n_permutations,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
         rng=rng,
         max_step=max_step,
         exclude=exclude,

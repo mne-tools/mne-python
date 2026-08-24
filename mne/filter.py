@@ -2092,9 +2092,9 @@ def detrend(x, order=1, axis=-1):
     --------
     As in :func:`scipy.signal.detrend`::
 
-        >>> randgen = np.random.RandomState(9)
+        >>> rng = np.random.default_rng(9)
         >>> npoints = int(1e3)
-        >>> noise = randgen.randn(npoints)
+        >>> noise = rng.standard_normal(npoints)
         >>> x = 3 + 2*np.linspace(0, 1, npoints) + noise
         >>> bool((detrend(x) - noise).max() < 0.01)
         True

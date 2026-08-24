@@ -323,6 +323,29 @@ sklearn_rng_estimators = {
     "MultiTaskLasso",
     "PCA",
 }
+mne_rng_functions = {
+    "ICA",
+    "add_ecg",
+    "add_eog",
+    "add_noise",
+    "bootstrap",
+    "bootstrap_confidence_interval",
+    "equalize_epoch_counts",
+    "equalize_event_counts",
+    "infomax",
+    "mixed_norm",
+    "permutation_cluster_1samp_test",
+    "permutation_cluster_test",
+    "permutation_t_test",
+    "random_parcellation",
+    "random_permutation",
+    "select_source_in_label",
+    "select_sources",
+    "simulate_evoked",
+    "simulate_sparse_stc",
+    "spatio_temporal_cluster_1samp_test",
+    "spatio_temporal_cluster_test",
+}
 
 
 def _is_np_random(node):
@@ -377,6 +400,19 @@ def test_no_global_rng():
                         f"{rel}:{node.lineno}: {node.func.id}() "
                         "(set random_state explicitly)"
                     )
+                # 4. authored calls to deprecated MNE RNG parameters
+                elif "/tests/" not in rel and isinstance(node, ast.Call):
+                    func_name = getattr(node.func, "id", None) or getattr(
+                        node.func, "attr", None
+                    )
+                    legacy = {"random_state", "seed"}.intersection(
+                        kw.arg for kw in node.keywords
+                    )
+                    if func_name in mne_rng_functions and legacy:
+                        bad.append(
+                            f"{rel}:{node.lineno}: {func_name}() uses "
+                            f"{', '.join(sorted(legacy))} (use rng)"
+                        )
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)

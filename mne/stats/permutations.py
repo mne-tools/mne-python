@@ -168,11 +168,11 @@ def bootstrap_confidence_interval(
     return np.array([ci_low, ci_up])
 
 
-def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, random_state=None):
+def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, rng=None):
     """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
         return bootstrap_confidence_interval(
-            arr, ci=ci, n_bootstraps=n_bootstraps, rng=random_state
+            arr, ci=ci, n_bootstraps=n_bootstraps, rng=rng
         )
     else:
         from .parametric import _parametric_ci
