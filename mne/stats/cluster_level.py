@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from functools import partial
+from string import ascii_uppercase
 from typing import TYPE_CHECKING, Literal
 
 import matplotlib.pyplot as plt
@@ -31,7 +33,7 @@ from ..utils import (
     verbose,
     warn,
 )
-from .parametric import f_oneway, ttest_1samp_no_p
+from .parametric import f_mway_rm, f_oneway, f_threshold_mway_rm, ttest_1samp_no_p
 
 if TYPE_CHECKING:
     from scipy import sparse  # Used in type hints for cluster_test
@@ -1082,7 +1084,23 @@ def _permutation_cluster_test(
     return t_obs, clusters, cluster_pv, H0
 
 
-def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
+def _rm_anova_stat_fun(*X, factor_levels, effects):
+    """Wrap `f_mway_rm` for use as a cluster-test ``stat_fun``.
+
+    ``X`` arrives as one 2D array (replications x flattened locations) per cell of
+    the design, ordered so that the first factor varies slowest (matching how
+    :func:`pandas.DataFrame.groupby` orders a multi-column group-by, and what
+    :func:`~mne.stats.f_mway_rm` expects).
+    """
+    data = np.stack(X, axis=1)  # subjects x conditions x locations
+    return f_mway_rm(
+        data, factor_levels=factor_levels, effects=effects, return_pvals=False
+    )[0]
+
+
+def _check_fun(
+    X, stat_fun, threshold, tail=0, kind="within", factor_levels=None, effects=None
+):
     """Check the stat_fun and threshold values."""
     from scipy.stats import f as fstat
     from scipy.stats import t as tstat
@@ -1101,6 +1119,22 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
                 threshold = -threshold
             logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
+    elif kind == "within_rm":
+        n_subjects = len(X[0])
+        if threshold is None:
+            if stat_fun is not None:
+                warn(
+                    "Automatic threshold is only valid for stat_fun=None "
+                    f"(uses f_mway_rm internally), got {stat_fun}"
+                )
+            elif tail != 1:
+                warn('Ignoring argument "tail", performing 1-tailed F-test')
+            threshold = f_threshold_mway_rm(n_subjects, factor_levels, effects=effects)
+            logger.info(f"Using a threshold of {threshold:.6f}")
+        if stat_fun is None:
+            stat_fun = partial(
+                _rm_anova_stat_fun, factor_levels=factor_levels, effects=effects
+            )
     else:
         assert kind == "between"
         if threshold is None:
@@ -1683,10 +1717,10 @@ def summarize_clusters_stc(
     return klass(data_summary, vertices, tmin, tstep, subject)
 
 
-def _validate_cluster_df(df: DataFrame, dv_name: str, iv_name: str):
+def _validate_cluster_df(df: DataFrame, dv_name: str, iv_names: list[str]):
     """Validate the input DataFrame for cluster tests."""
     # check if all necessary columns are present
-    missing = ({dv_name} | {iv_name}) - set(df.columns)  # should be empty
+    missing = ({dv_name} | set(iv_names)) - set(df.columns)  # should be empty
     sep = '", "'
     if missing:  # if not empty, there are missing columns
         raise ValueError(
@@ -1762,22 +1796,33 @@ def cluster_test(
     df : pandas.DataFrame
         Dataframe containing the data, dependent and independent variables.
     formula : str
-        Wilkinson notation formula for design matrix. The names of the dependent
-        and independent variable should match the columns in ``df``.
+        Wilkinson notation formula naming the dependent variable and either a single
+        independent variable (e.g. ``"data ~ condition"``) or a single interaction
+        term between two or more independent variables (e.g. ``"data ~ a:b"``, tested
+        with a repeated-measures ANOVA; see ``within_id``). All names must match
+        columns in ``df``. Testing several effects (e.g. two main effects, or a main
+        effect and an interaction) requires calling :func:`cluster_test` once per
+        effect.
     within_id : None | str
         Name of column in ``df`` to use in identifying within-group contrasts.
-        If ``within_id`` is not None, a paired t-test will be performed against zero
-        (using mne.stats.ttest_1samp_no_p). ``within_id`` to match a variable in ``df``,
-        e.g. "subject_index". Currently, within tests are only supported for 1 or 2
-        levels of the independent variable (specified in the formula). If the
-        independent variable has 1 level per participant, the data will be treated as
-        already subtracted (e.g., condition A - condition B).
-        If the independent variable has 2 levels, the data will be subtracted
-        for each participant (e.g., condition A - condition B).
+
+        If ``within_id`` is not ``None``, ``within_id`` must match a variable
+        in ``df``, e.g. ``"subject_index"``, and a paired t-test will be performed
+        against zero (using :func:`mne.stats.ttest_1samp_no_p`_). If the independent
+        variable has 1 level per participant, the data will be treated as
+        already subtracted (e.g., condition A - condition B). If the independent
+        variable has 2 levels, the data will be subtracted for each participant (e.g.,
+        condition A - condition B). Specifying as ``within_id`` a variable in ``df``
+        that has more than 2 levels, or one that is not in ``df``, will result in an
+        error.
+
         If ``within_id`` is ``None``, will perform a between-group test
-        (using mne.stats.f_oneway). This works for 2 levels or more.
-        Specifying as ``within_id`` a variable in df that has more than 2 levels,
-        or one that is not in df, will result in an error.
+        (using :func:`mne.stats.f_oneway`; This works for 2 levels or more).
+
+        This parameter is required if ``formula``'s right-hand side is an interaction
+        term (e.g. ``"data ~ a:b"``), in which case each combination of ``within_id``
+        and the factors must appear exactly once (a fully balanced repeated-measures
+        design).
     %(stat_fun_clust_both)s
     %(tail_clust)s
     %(threshold_clust_both)s
@@ -1819,14 +1864,25 @@ def cluster_test(
     formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
     parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
     formula = formulaic.Formula(formula, _parser=parser)
-    # extract the dependent and independent variable names
+    # extract the dependent variable name
     dv_name = str(formula.lhs)
-    iv_name = str(formula.rhs)
+    # the right-hand side must be a single term: either one factor (main effect,
+    # e.g. "a") or a single interaction between factors (e.g. "a:b")
+    rhs_terms = list(formula.rhs)
+    if len(rhs_terms) != 1:
+        raise ValueError(
+            "the right-hand side of `formula` must be a single term: either one "
+            'factor (e.g. "data ~ a") or a single interaction (e.g. "data ~ a:b"). '
+            f'Got "{formula.rhs}", which has {len(rhs_terms)} terms. To test '
+            "several effects, call `cluster_test` once per effect."
+        )
+    factor_names = [str(factor) for factor in rhs_terms[0].factors]
+    is_interaction = len(factor_names) > 1
+    iv_name = factor_names[0] if not is_interaction else ":".join(factor_names)
 
     # validate the input dataframe and return the type of the data column entries
-    is_epo, is_tfr, is_arr = _validate_cluster_df(df, dv_name, iv_name)
+    is_epo, is_tfr, is_arr = _validate_cluster_df(df, dv_name, factor_names)
 
-    # for within_subject designs, check if each subject has 2 observations
     _validate_type(within_id, (str, None), "within_id")
     if within_id is not None and within_id not in df.columns:
         raise ValueError(
@@ -1834,12 +1890,25 @@ def cluster_test(
         )
 
     # check if within_id has 1 or 2 levels to do paired t-test (within)
-    if within_id:
+    if is_interaction and within_id is None:
+        raise ValueError(
+            f'testing the interaction "{iv_name}" requires repeated-measures data; '
+            "pass `within_id` naming the column that identifies each subject/"
+            "replication."
+        )
+    # for within-subject designs, check that each subject has one observation per
+    # combination of factor(s) (2, for a simple paired test; more for an interaction)
+    n_groups = df[factor_names].drop_duplicates().shape[0]
+    if within_id and (is_interaction or n_groups == 2):
         df = df.copy(deep=False)  # Don't mutate input dataframe row order!
-        df.sort_values([iv_name, within_id], inplace=True)
+        df.sort_values([*factor_names, within_id], inplace=True)
         counts = df[within_id].value_counts()
-        if any(counts != 2):
-            raise ValueError("for paired t-test, each subject must have 2 observations")
+        if any(counts != n_groups):
+            raise ValueError(
+                f"for a within-subject test, each subject (column {within_id!r}) "
+                f"must have exactly {n_groups} observations, one per combination "
+                f"of {factor_names}."
+            )
 
     # extract the data from the dataframe
     outer_func = np.concatenate if is_epo else np.array
@@ -1855,11 +1924,20 @@ def cluster_test(
 
     func = func_arr if is_arr else func_mne
 
-    # convert to a list-like X for clustering
-    X = df.groupby(iv_name).agg({dv_name: func})[dv_name].to_list()
+    # convert to a list-like X for clustering. Grouping by multiple columns sorts
+    # lexicographically (first factor varies slowest), which is what f_mway_rm
+    # expects for interaction effects.
+    X = df.groupby(factor_names).agg({dv_name: func})[dv_name].to_list()
 
     # determine test type
-    if len(X) == 1:
+    if is_interaction:
+        kind = "within_rm"
+        factor_levels = [df[name].nunique() for name in factor_names]
+        # f_mway_rm/f_threshold_mway_rm only understand generic "A", "B", ...
+        # factor labels (in the order given in `formula`), not the actual column
+        # names, so translate the interaction accordingly.
+        rm_effects = ":".join(ascii_uppercase[: len(factor_names)])
+    elif len(X) == 1:
         kind = "within"  # single group -- e.g. already-subtracted paired data
         X = X[0]
     elif len(X) > 2:
@@ -1892,9 +1970,20 @@ def cluster_test(
             X = X[0] - X[1]  # do subtraction for paired t-test
 
     # define stat function and threshold
-    stat_fun, threshold = _check_fun(
-        X=X, stat_fun=stat_fun, threshold=threshold, tail=tail, kind=kind
-    )
+    if kind == "within_rm":
+        stat_fun, threshold = _check_fun(
+            X=X,
+            stat_fun=stat_fun,
+            threshold=threshold,
+            tail=tail,
+            kind=kind,
+            factor_levels=factor_levels,
+            effects=rm_effects,
+        )
+    else:
+        stat_fun, threshold = _check_fun(
+            X=X, stat_fun=stat_fun, threshold=threshold, tail=tail, kind=kind
+        )
 
     # check_fun doesn't work with list input`
     if kind == "within":  # will this create an issue for already subtracted data?
@@ -1961,6 +2050,8 @@ class ClusterResult:
             self.stat_name = "F-statistic"
         elif stat_fun is ttest_1samp_no_p:
             self.stat_name = "paired T-statistic"
+        elif isinstance(stat_fun, partial) and stat_fun.func is _rm_anova_stat_fun:
+            self.stat_name = "F-statistic (repeated-measures ANOVA)"
         else:
             self.stat_name = "test statistic"
 

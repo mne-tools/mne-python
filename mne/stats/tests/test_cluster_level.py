@@ -36,6 +36,7 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
+from mne.stats.parametric import f_mway_rm, f_threshold_mway_rm
 from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
 from mne.utils import GetEpochsMixin, _record_warnings, catch_logging
 
@@ -1098,3 +1099,106 @@ def test_new_cluster_api(Inst):
     assert len(result_new_api.clusters) == len(clusters)
     for clu1, clu2 in zip(result_new_api.clusters, clusters):
         assert_array_equal(clu1, clu2)
+
+
+@pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
+def test_cluster_test_rm_anova():
+    """Test the interaction-formula (repeated-measures ANOVA) branch of cluster_test."""
+    pd = pytest.importorskip("pandas")
+
+    rng = np.random.default_rng(seed=0)
+    n_subjects, n_channels, n_times = 8, 3, 6
+    info = create_info(n_channels, sfreq=100.0, ch_types="eeg")
+    factor_levels = [2, 2]
+    conditions = ["a1b1", "a1b2", "a2b1", "a2b2"]
+    data = {
+        cond: rng.normal(size=(n_subjects, n_channels, n_times)) for cond in conditions
+    }
+    # inject an interaction effect (crossover pattern) in the first 2 channels
+    data["a1b1"][:, :2] += 3
+    data["a2b2"][:, :2] += 3
+    data["a1b2"][:, :2] -= 3
+    data["a2b1"][:, :2] -= 3
+
+    # reference: old-style call with a hand-rolled f_mway_rm stat_fun, exactly as
+    # done in tutorials/stats-sensor-space/70_cluster_rmANOVA_time_freq.py
+    def stat_fun(*args):
+        return f_mway_rm(
+            np.swapaxes(np.asarray(args), 1, 0),
+            factor_levels=factor_levels,
+            effects="A:B",
+            return_pvals=False,
+        )[0]
+
+    f_thresh = f_threshold_mway_rm(
+        n_subjects, factor_levels, effects="A:B", pvalue=0.001
+    )
+    # channels last, as required by permutation_cluster_test
+    X_old = [data[cond].transpose(0, 2, 1) for cond in conditions]
+    kwargs = dict(
+        n_permutations=100,
+        tail=1,
+        seed=3,
+        buffer_size=None,
+        out_type="mask",
+        threshold=f_thresh,
+    )
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        X_old, stat_fun=stat_fun, **kwargs
+    )
+
+    # new API: one row per (subject, condition), with an EvokedArray holding that
+    # subject's data for that condition
+    rows = list()
+    for cond in conditions:
+        for subj in range(n_subjects):
+            rows.append(
+                dict(
+                    data=EvokedArray(data[cond][subj], info, tmin=0),
+                    modality=cond[1],
+                    location=cond[3],
+                    subject=subj,
+                )
+            )
+    df = pd.DataFrame(rows)
+    result = cluster_test(df, "data ~ modality:location", within_id="subject", **kwargs)
+
+    assert result.stat_name == "F-statistic (repeated-measures ANOVA)"
+    assert_array_almost_equal(result.stat_obs, F_obs)
+    assert_array_almost_equal(result.H0, H0)
+    assert_array_almost_equal(result.cluster_p_values, cluster_pvals)
+    assert len(result.clusters) == len(clusters)
+    for clu1, clu2 in zip(result.clusters, clusters):
+        assert_array_equal(clu1, clu2)
+
+
+def test_cluster_test_formula_validation():
+    """Test that cluster_test raises clear errors for unsupported formulas."""
+    pd = pytest.importorskip("pandas")
+
+    condition1_1d, condition2_1d, _, _ = _get_conditions()
+    df = pd.DataFrame(dict(data=[condition1_1d, condition2_1d], a=["x", "y"]))
+    df["b"] = "z"
+
+    # multi-term right-hand side ("a+b") is not a single effect
+    with pytest.raises(ValueError, match="single term"):
+        cluster_test(df, "data ~ a+b")
+
+    # interaction effect requires within_id
+    with pytest.raises(ValueError, match="repeated-measures"):
+        cluster_test(df, "data ~ a:b")
+
+    # unbalanced repeated-measures design (subject missing an observation)
+    rows = [
+        dict(data=condition1_1d, a="x", b="p", subject=0),
+        dict(data=condition2_1d, a="x", b="q", subject=0),
+        dict(data=condition1_1d, a="y", b="p", subject=0),
+        # subject 0 is missing the "y"/"q" combination
+        dict(data=condition1_1d, a="x", b="p", subject=1),
+        dict(data=condition2_1d, a="x", b="q", subject=1),
+        dict(data=condition1_1d, a="y", b="p", subject=1),
+        dict(data=condition2_1d, a="y", b="q", subject=1),
+    ]
+    df_unbalanced = pd.DataFrame(rows)
+    with pytest.raises(ValueError, match="must have exactly"):
+        cluster_test(df_unbalanced, "data ~ a:b", within_id="subject")
