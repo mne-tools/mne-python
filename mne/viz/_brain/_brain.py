@@ -1439,9 +1439,14 @@ class Brain:
                         return
 
         # 2) Otherwise, pick the objects in the scene
+        # PyVista can give the actor's mapper an internal copy of our polydata
+        # (e.g., when RGBA scalars are used), in which case the picked dataset
+        # is not _polydata itself, so compare against the mapper's dataset too
+        mapper_dataset = getattr(vtk_picker.GetMapper(), "dataset", None)
         for hemi, this_mesh in self.layered_meshes.items():
             assert hemi in ("lh", "rh"), f"Unexpected {hemi=}"
-            if this_mesh._polydata is mesh:
+            if this_mesh._polydata is mesh or this_mesh._polydata is mapper_dataset:
+                mesh = this_mesh._polydata
                 break
         else:
             hemi = "vol"
@@ -1483,7 +1488,6 @@ class Brain:
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
-            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [
@@ -1495,8 +1499,11 @@ class Brain:
 
             # retrieve the nearest source_id from the smooth_mat
             smooth_mat = self.act_data_smooth[hemi][1]
-            row = smooth_mat[vertex_id]
-            source_id = smooth_mat[vertex_id].argmax() if row.nnz else None
+            if smooth_mat is None:  # full-resolution data, no smoothing matrix
+                source_id = vertex_id
+            else:
+                row = smooth_mat[vertex_id]
+                source_id = row.argmax() if row.nnz else None
 
         publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=source_id))
 
