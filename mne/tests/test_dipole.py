@@ -141,9 +141,7 @@ def test_dipole_fitting(tmp_path):
     vertices = [np.sort(rng.permutation(s["vertno"])[:n_per_hemi]) for s in fwd["src"]]
     nv = sum(len(v) for v in vertices)
     stc = SourceEstimate(amp * np.eye(nv), vertices, 0, 0.001)
-    evoked = simulate_evoked(
-        fwd, stc, evoked.info, cov, nave=evoked.nave, random_state=rng
-    )
+    evoked = simulate_evoked(fwd, stc, evoked.info, cov, nave=evoked.nave, rng=rng)
     # For speed, let's use a subset of channels (strange but works)
     picks = np.sort(
         np.concatenate(

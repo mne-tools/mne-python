@@ -60,7 +60,7 @@ def test_simulate_evoked():
     times = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
 
     # Generate times series for 2 dipoles
-    stc = simulate_sparse_stc(fwd["src"], n_dipoles=2, times=times, random_state=42)
+    stc = simulate_sparse_stc(fwd["src"], n_dipoles=2, times=times, rng=42)
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
@@ -71,7 +71,7 @@ def test_simulate_evoked():
         cov,
         iir_filter=iir_filter,
         nave=nave,
-        random_state=0,
+        rng=0,
     )
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd["sol"]["data"])
@@ -110,6 +110,10 @@ def test_add_noise():
     with pytest.raises(RuntimeError, match="to be loaded"):
         add_noise(raw, cov)
     raw.crop(0, 1).load_data()
+    with pytest.warns(FutureWarning, match="random_state"):
+        add_noise(raw.copy(), cov, random_state=0)
+    with pytest.raises(TypeError, match="only one"):
+        add_noise(raw, cov, random_state=0, rng=0)
     with pytest.raises(TypeError, match="Raw, Epochs, or Evoked"):
         add_noise(0.0, cov)
     with pytest.raises(TypeError, match="Covariance"):
@@ -128,7 +132,7 @@ def test_add_noise():
     evoked = epochs.average(picks=np.arange(len(raw.ch_names)))
     for inst in (raw, epochs, evoked):
         with catch_logging() as log:
-            add_noise(inst, cov, random_state=rng, verbose=True)
+            add_noise(inst, cov, rng=rng, verbose=True)
         log = log.getvalue()
         want = "to {0}/{1} channels ({0}".format(len(cov["names"]), len(raw.ch_names))
         assert want in log
@@ -160,7 +164,7 @@ def test_rank_deficiency():
     cov = regularize(cov, evoked.info, rank=None)
     cov = pick_channels_cov(cov, evoked.ch_names)
     evoked.data[:] = 0
-    add_noise(evoked, cov, random_state=0)
+    add_noise(evoked, cov, rng=0)
     cov_new = compute_covariance(
         EpochsArray(evoked.data[np.newaxis], evoked.info), verbose="error"
     )
@@ -182,7 +186,7 @@ def test_order():
     # MEG then EEG
     assert (eeg_picks > meg_picks.max()).all()
     times = np.arange(10) / 1000.0
-    stc = simulate_sparse_stc(fwd["src"], 1, times=times, random_state=0)
+    stc = simulate_sparse_stc(fwd["src"], 1, times=times, rng=0)
     evoked_sim = simulate_evoked(fwd, stc, evoked.info, nave=np.inf)
     reorder = np.concatenate([eeg_picks, meg_picks])
     evoked.reorder_channels([evoked.ch_names[pick] for pick in reorder])

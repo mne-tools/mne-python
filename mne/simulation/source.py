@@ -11,10 +11,10 @@ from ..source_space._source_space import _ensure_src
 from ..surface import _compute_nearest
 from ..utils import (
     _check_option,
+    _check_rng_compat,
     _ensure_events,
     _ensure_int,
     _validate_type,
-    check_random_state,
     fill_doc,
     warn,
 )
@@ -29,6 +29,8 @@ def select_source_in_label(
     subject=None,
     subjects_dir=None,
     surf="sphere",
+    *,
+    rng=None,
 ):
     """Select source positions using a label.
 
@@ -61,6 +63,7 @@ def select_source_in_label(
         with cortical folding.
 
         .. versionadded:: 0.13
+    %(rng)s
 
     Returns
     -------
@@ -73,7 +76,7 @@ def select_source_in_label(
     rh_vertno = list()
     _check_option("location", location, ["random", "center"])
 
-    rng = check_random_state(random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     if label.hemi == "lh":
         vertno = lh_vertno
         hemi_idx = 0
@@ -103,6 +106,8 @@ def simulate_sparse_stc(
     subject=None,
     subjects_dir=None,
     surf="sphere",
+    *,
+    rng=None,
 ):
     """Generate sparse (n_dipoles) sources time courses from data_fun.
 
@@ -148,6 +153,7 @@ def simulate_sparse_stc(
         with cortical folding.
 
         .. versionadded:: 0.13
+    %(rng)s
 
     Returns
     -------
@@ -164,7 +170,7 @@ def simulate_sparse_stc(
     -----
     .. versionadded:: 0.10.0
     """
-    rng = check_random_state(random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     src = _ensure_src(src, verbose=False)
     subject_src = src._subject
     if subject is None:
@@ -206,7 +212,13 @@ def simulate_sparse_stc(
         rh_data = [np.empty((0, data.shape[1]))]
         for i, label in enumerate(labels):
             lh_vertno, rh_vertno = select_source_in_label(
-                src, label, rng, location, subject, subjects_dir, surf
+                src,
+                label,
+                location=location,
+                subject=subject,
+                subjects_dir=subjects_dir,
+                surf=surf,
+                rng=rng,
             )
             vertno[0] += lh_vertno
             vertno[1] += rh_vertno
