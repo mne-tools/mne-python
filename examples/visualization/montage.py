@@ -47,7 +47,7 @@ n_cols = 6
 n_rows = int(np.ceil(len(montages) / n_cols))
 # Size of each montage in the combined figure. Setting this rather than deriving it
 # from ``size`` keeps the title font size independent of the screenshot resolution.
-inches_per_montage = 4.0
+inches_per_montage = 2.5
 
 
 def plot_montage_grid(images, titles):
@@ -59,10 +59,8 @@ def plot_montage_grid(images, titles):
     grid = concatenate_images(rows, axis=0, bgcolor=bgcolor, centered=False)
     height, width = images[0].shape[:2]
     fig = plt.figure()
-    # forward=False so that interactive backends do not clamp to the screen size
-    fig.set_size_inches(
-        n_cols * inches_per_montage, n_rows * inches_per_montage, forward=False
-    )
+    # sizes the window to the figure, so the whole grid is visible interactively
+    fig.set_size_inches(n_cols * inches_per_montage, n_rows * inches_per_montage)
     ax = fig.add_axes([0, 0, 1, 1])  # fill the entire figure
     ax.set_axis_off()
     ax.imshow(grid)
@@ -75,7 +73,7 @@ def plot_montage_grid(images, titles):
             color="w",
             ha="center",
             va="top",
-            fontsize=14,
+            fontsize=11,
         )
     return fig
 
