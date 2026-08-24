@@ -595,7 +595,18 @@ class Annotations:
         return len(self.duration)
 
     def __add__(self, other):
-        """Add (concatencate) two Annotation objects."""
+        """Add (concatenate) two Annotations objects.
+
+        Parameters
+        ----------
+        other : instance of Annotations
+            The annotations to append. Must have the same ``orig_time``.
+
+        Returns
+        -------
+        annotations : instance of Annotations
+            A new instance containing the annotations of both objects.
+        """
         out = self.copy()
         out += other
         return out
@@ -624,7 +635,14 @@ class Annotations:
         )
 
     def __iter__(self):
-        """Iterate over the annotations."""
+        """Iterate over the annotations.
+
+        Yields
+        ------
+        annotation : OrderedDict
+            The keys are ``onset``, ``duration``, ``description``,
+            ``orig_time``, and (if any are set) ``ch_names`` and ``extras``.
+        """
         # Figure this out once ahead of time for consistency and speed (for
         # thousands of annotations)
         with_ch_names = self._any_ch_names()
@@ -632,7 +650,27 @@ class Annotations:
             yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying numpy structure."""
+        """Propagate indexing and slicing to the underlying numpy structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of Annotations
+            A single annotation (as a dict) if ``key`` is an integer, otherwise
+            a new :class:`~mne.Annotations` instance with the selected
+            annotations.
+        """
         if isinstance(key, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             out_keys = ("onset", "duration", "description", "orig_time")
             out_vals = (
@@ -1274,7 +1312,27 @@ class HEDAnnotations(Annotations):
         return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying structure."""
+        """Propagate indexing and slicing to the underlying structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of HEDAnnotations
+            A single annotation (as a dict, including ``hed_string``) if
+            ``key`` is an integer, otherwise a new
+            :class:`~mne.HEDAnnotations` instance with the selected annotations.
+        """
         result = super().__getitem__(
             key, with_ch_names=with_ch_names, with_extras=with_extras
         )

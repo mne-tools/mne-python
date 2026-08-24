@@ -177,15 +177,15 @@ class RawKIT(BaseRaw):
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         buffer_size : int
             The size of chunk to by which the data are scanned.
 
         Returns
         -------
-        events : array, [samples]
-           The event vector (1 x samples).
+        events : array, shape (n_samples,)
+            The event vector.
         """
         buffer_size = int(buffer_size)
         start = int(self.first_samp)

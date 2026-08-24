@@ -120,6 +120,9 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kit.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.phantom_kit.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*visual_92_categories.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.visual_92_categories.data_path(update_path=True))";
+            fi;
         fi;
     done;
     echo PATTERN="$PATTERN";

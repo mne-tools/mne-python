@@ -69,25 +69,20 @@ tfr_arithmetics_return_template = """
 Returns
 -------
 tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
-    {}
-"""
+    {}"""
 
-tfr_add_sub_template = """
-Parameters
+tfr_add_sub_template = """Parameters
 ----------
 other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
     The TFR instance to {}. Must have the same type as ``self``, and matching
     ``.times`` and ``.freqs`` attributes.
-
 {}
 """
 
-tfr_mul_truediv_template = """
-Parameters
+tfr_mul_truediv_template = """Parameters
 ----------
 num : int | float
     The number to {} by.
-
 {}
 """
 

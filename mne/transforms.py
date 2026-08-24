@@ -135,8 +135,8 @@ class Transform(dict):
     def __eq__(self, other, rtol=0.0, atol=0.0):
         """Check for equality.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         other : instance of Transform
             The other transform.
         rtol : float
@@ -159,8 +159,8 @@ class Transform(dict):
     def __ne__(self, other, rtol=0.0, atol=0.0):
         """Check for inequality.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         other : instance of Transform
             The other transform.
         rtol : float
@@ -200,7 +200,13 @@ class Transform(dict):
         write_trans(fname, self, overwrite=overwrite, verbose=verbose)
 
     def copy(self):
-        """Make a copy of the transform."""
+        """Make a copy of the transform.
+
+        Returns
+        -------
+        trans : instance of Transform
+            The copied transform.
+        """
         return deepcopy(self)
 
 
