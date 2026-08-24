@@ -1,0 +1,1 @@
+Fixed :func:`~mne.viz.plot_evoked_topomap` and :func:`~mne.viz.plot_sensors` (and the ``plot_sensors`` methods) to follow Matplotlib's blocking behavior when ``show=True`` instead of returning immediately; ``plot_sensors`` keeps its ``block`` argument (default now ``None``), by `Clemens Brunner`_.

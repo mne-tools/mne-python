@@ -5,6 +5,7 @@
 """Read MEF3 files."""
 
 import datetime as dt
+from pathlib import Path
 
 import numpy as np
 
@@ -50,9 +51,7 @@ class RawMEF(BaseRaw):
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
         # The dataset maybe have password
         password = (
-            (password or "").decode()
-            if isinstance(password, bytes)
-            else (password or "")
+            password.decode() if isinstance(password, bytes) else (password or "")
         )
         # Open the dataset
         session = pymef.mef_session.MefSession(str(fname), password)
@@ -133,7 +132,7 @@ class RawMEF(BaseRaw):
         # Indexing the start time
         meas_date = (
             (
-                dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+                dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
                 + dt.timedelta(microseconds=int(start_uutc))
             )
             if start_uutc
@@ -259,7 +258,13 @@ class RawMEF(BaseRaw):
 
 
 @verbose
-def read_raw_mef(fname, *, password="", preload=False, verbose=None) -> RawMEF:
+def read_raw_mef(
+    fname: Path | str,
+    *,
+    password: str | bytes | None = "",
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> RawMEF:
     """Read raw data from MEF3 files.
 
     Parameters

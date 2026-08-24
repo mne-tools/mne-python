@@ -85,7 +85,7 @@ source_simulator.add_data(label, source_time_series, events)
 # simulator can be given directly to the simulate_raw function.
 raw = mne.simulation.simulate_raw(info, source_simulator, forward=fwd)
 cov = mne.make_ad_hoc_cov(raw.info)
-mne.simulation.add_noise(raw, cov, iir_filter=[0.2, -0.2, 0.04])
+mne.simulation.add_noise(raw, cov, iir_filter=[0.2, -0.2, 0.04], random_state=97)
 raw.plot()
 
 # %%

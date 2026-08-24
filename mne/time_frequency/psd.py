@@ -6,9 +6,7 @@ import warnings
 from functools import partial
 
 import numpy as np
-from scipy.signal import spectrogram
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _check_option, _ensure_int, logger, verbose, warn
 from ..utils.numerics import _mask_to_onsets_offsets
@@ -174,6 +172,8 @@ def psd_array_welch(
     ----------
     .. footbibliography::
     """
+    from scipy.signal import spectrogram
+
     _check_option("average", average, (None, False, "mean", "median"))
     _check_option("output", output, ("power", "complex"))
     detrend = "constant" if remove_dc else False
@@ -313,5 +313,5 @@ def psd_array_welch(
     if bad_ch.any():
         psds[bad_ch] = np.nan
 
-    psds = _reshape_view(psds, shape)
+    psds = psds.reshape(shape, copy=False)
     return psds, freqs

@@ -4,6 +4,7 @@
 
 import json
 import pathlib
+from pathlib import Path
 
 import numpy as np
 
@@ -25,7 +26,11 @@ from .sensors import (
 
 @verbose
 def read_raw_fil(
-    binfile, precision="single", preload=False, *, verbose=None
+    binfile: Path | str,
+    precision: str = "single",
+    preload: bool | str = False,
+    *,
+    verbose: bool | str | int | None = None,
 ) -> "RawFIL":
     """Raw object from FIL-OPMEG formatted data.
 
@@ -33,7 +38,7 @@ def read_raw_fil(
     ----------
     binfile : path-like
         Path to the MEG data binary (ending in ``'_meg.bin'``).
-    precision : str, optional
+    precision : str
         How is the data represented? ``'single'`` if 32-bit or ``'double'`` if
         64-bit (default is single).
     %(preload)s
@@ -60,7 +65,7 @@ class RawFIL(BaseRaw):
     ----------
     binfile : path-like
         Path to the MEG data binary (ending in ``'_meg.bin'``).
-    precision : str, optional
+    precision : str
         How is the data represented? ``'single'`` if 32-bit or
         ``'double'`` if 64-bit (default is single).
     %(preload)s

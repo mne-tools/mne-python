@@ -7,6 +7,8 @@
 import functools
 import gc
 import os
+import re
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -14,18 +16,20 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
+from refleak.testing import Snapshot, assert_no_instances, gc_collect_once
 from sphinx.errors import ExtensionError
 
 import mne
-from mne.utils import (
-    _assert_no_instances,
-    _get_extra_data_path,
-    sizeof_fmt,
-)
+from mne.utils import Bunch, _get_extra_data_path, _is_vtk, sizeof_fmt
 from mne.viz import Brain
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 _np_print_defaults = np.get_printoptions()
+
+# Taken at each example's "before" reset and diffed at its "after" reset, so
+# any VTK object an example creates but fails to release is flagged -- not
+# just the specific classes checked by name below.
+_vtk_snapshot = None
 
 
 def reset_warnings(gallery_conf, fname):
@@ -151,10 +155,6 @@ def reset_modules(gallery_conf, fname, when):
     except ImportError:
         BackgroundPlotter = None  # noqa
     try:
-        from vtkmodules.vtkCommonDataModel import vtkPolyData  # noqa
-    except ImportError:
-        vtkPolyData = None  # noqa
-    try:
         from mne_qt_browser._pg_figure import MNEQtBrowser
     except ImportError:
         MNEQtBrowser = None
@@ -177,6 +177,21 @@ def reset_modules(gallery_conf, fname, when):
         neo.io.stimfitio.STFIO_ERR = None
     except Exception:
         pass
+    # IPython.core.completer does `import __main__` at import time, permanently
+    # capturing whatever sys.modules['__main__'] was at that moment. Since SG
+    # temporarily swaps sys.modules['__main__'] to each example's throwaway
+    # namespace while it runs, if that import happens to fire during one of
+    # those windows, it pins that example's globals (and anything reachable
+    # from them) alive for the rest of the process.
+    try:
+        import IPython.core.completer
+
+        IPython.core.completer.__main__ = sys.modules["__main__"]
+    except Exception:
+        pass
+    # A plain collect (not the deduped one): dead figures must drop out of
+    # ui_events._event_channels (a WeakKeyDictionary) before the emptiness
+    # assert below.
     gc.collect()
 
     # Agg does not call close_event so let's clean up on our own :(
@@ -188,23 +203,16 @@ def reset_modules(gallery_conf, fname, when):
     orig_when = when
     when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
     # Support stuff like
-    # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
+    # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtk,_Renderer" make html-memory  # noqa: E501
     # to just test MNEQtBrowser
     skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
     prefix = ""
+    request = Bunch()  # just give it something to say "we have done GC already"
+    request.node = Bunch()
+    global _vtk_snapshot
     if skips not in ("true", "1", "all"):
         prefix = "Clean "
         skips = skips.split(",")
-        if "brain" not in skips:
-            _assert_no_instances(Brain, when)  # calls gc.collect()
-        if Plotter is not None and "plotter" not in skips:
-            _assert_no_instances(Plotter, when)
-        if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-            _assert_no_instances(BackgroundPlotter, when)
-        if vtkPolyData is not None and "vtkpolydata" not in skips:
-            _assert_no_instances(vtkPolyData, when)
-        if "_renderer" not in skips:
-            _assert_no_instances(_Renderer, when)
         if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
             # Ensure any manual fig.close() events get properly handled
             from mne_qt_browser._pg_figure import QApplication
@@ -213,7 +221,36 @@ def reset_modules(gallery_conf, fname, when):
             if inst is not None:
                 for _ in range(2):
                     inst.processEvents()
-            _assert_no_instances(MNEQtBrowser, when)
+        # This collect must come AFTER _cleanup_agg() above: an example's
+        # subscribed ui-events callback can be the last anchor of its whole
+        # object graph (channel dict -> callback -> __globals__ -> figures),
+        # and only cleanup breaks that loop. It is the once-per-reset collect
+        # that the checks below dedupe against (see gc_collect_once).
+        gc_collect_once(request)
+        objs = gc.get_objects()  # scan the heap once, share across all checks
+        if "brain" not in skips:
+            assert_no_instances(Brain, when=when, request=request, objs=objs)
+        if Plotter is not None and "plotter" not in skips:
+            assert_no_instances(Plotter, when=when, request=request, objs=objs)
+        if BackgroundPlotter is not None and "backgroundplotter" not in skips:
+            assert_no_instances(
+                BackgroundPlotter, when=when, request=request, objs=objs
+            )
+        if "_renderer" not in skips:
+            assert_no_instances(_Renderer, when=when, request=request, objs=objs)
+        if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
+            assert_no_instances(MNEQtBrowser, when=when, request=request, objs=objs)
+        if "vtk" not in skips:
+            # Diff all VTK objects across each example: catches leaks of any
+            # VTK class (actors, mappers, arrays, ...), not just the specific
+            # classes above, while tolerating VTK state that legitimately
+            # pre-dates the example.
+            if orig_when == "after" and _vtk_snapshot is not None:
+                _vtk_snapshot.assert_no_new(when=when, request=request, objs=objs)
+            _vtk_snapshot = None
+            if orig_when == "before":
+                _vtk_snapshot = Snapshot(_is_vtk, label="VTK", objs=objs)
+        del objs
     # This will overwrite some Sphinx printing but it's useful
     # for memory timestamps
     if os.getenv("SG_STAMP_STARTS", "").lower() == "true":
@@ -247,3 +284,122 @@ report_scraper = mne.report._ReportScraper()
 mne_qt_browser_scraper = mne.viz._scraper._MNEQtBrowserScraper()
 brain_scraper = mne.viz._brain._BrainScraper()
 gui_scraper = mne.gui._GUIScraper()
+
+
+# -- link-target hygiene ------------------------------------------------------
+# Corpus-wide checks that neither docutils nor rstcheck can do (docutils only
+# warns about unreferenced targets *per assembled document*, so a shared file
+# like links.inc would flag every target on every page that includes it):
+#
+# 1. Targets in doc/links.inc exist iff referenced more than once across the
+#    documentation (single-use links should be inlined at their use site).
+# 2. Any other external link target must be referenced at least once
+#    (docutils silently tolerates dead targets).
+# 3. A local target definition must not duplicate a links.inc URL.
+# 4. The same URL must not be written out in more than one file (move it to
+#    links.inc and reference it instead).
+#
+# doc/changes/names.inc is exempt: its contributor anchors are maintained by
+# the credit tooling and may outlive their changelog references.
+
+
+_REF_PHRASE = re.compile(r"`([^`<]+?)`_(?!_)", re.S)  # `Name`_
+_REF_INDIRECT = re.compile(r"`[^`<]*?<([^`>]+?)\s*_>`_{1,2}", re.S)  # `x <Name_>`__
+_REF_BARE = re.compile(r"(?<![\w`.:/<>-])([A-Za-z][\w.+-]*)_(?![\w_])")  # Name_
+_TARGET_DEF = re.compile(r"^\.\. _(`[^`]+`|[^:\n]+): +(\S+) *$", re.M)
+_INLINE_URL = re.compile(r"`[^`<]*?<(https?://[^>\s]+)>`_{1,2}", re.S)
+_PY_COMMENT = re.compile(r"^[ \t]*#(.*)$", re.M)
+
+
+def _norm_name(name):
+    """Normalize a reference name the way docutils does (roughly)."""
+    return " ".join(name.strip("`").split()).lower()
+
+
+def _norm_url(url):
+    return url.rstrip("/")
+
+
+def _py_rst_content(text):
+    """Return the rST-bearing parts of a gallery .py file (docstring+comments)."""
+    parts = []
+    match = re.search(r'[rRbBuUfF]*("""|\'\'\')', text)
+    if match:
+        end = text.find(match.group(1), match.end())
+        if end != -1:
+            parts.append(text[match.end() : end])
+    parts.extend(m for m in _PY_COMMENT.findall(text))
+    return "\n".join(parts)
+
+
+def _iter_source_files(root):
+    for path in (root / "doc").rglob("*"):
+        if path.suffix in (".rst", ".inc") and not any(
+            part in ("_build", "generated", "sphinxext") or part.startswith("auto_")
+            for part in path.relative_to(root).parts
+        ):
+            yield path
+    for top in ("tutorials", "examples"):
+        yield from (root / top).rglob("*.py")
+
+
+def check_links(app=None):
+    """Enforce the link-target policy (see module docstring)."""
+    root = Path(__file__).parents[2] if app is None else Path(app.srcdir).parent
+    links_inc = root / "doc" / "links.inc"
+    names_inc = root / "doc" / "changes" / "names.inc"
+    linksinc_targets = {}  # normalized name -> url
+    for name, url in _TARGET_DEF.findall(links_inc.read_text("utf-8")):
+        linksinc_targets[_norm_name(name)] = _norm_url(url)
+    linksinc_urls = {url: name for name, url in linksinc_targets.items()}
+
+    ref_counts = dict.fromkeys(linksinc_targets, 0)
+    local_defs = []  # (path, name, url)
+    url_files = {}  # url -> set of paths that write it out
+    for path in _iter_source_files(root):
+        if path in (links_inc, names_inc):
+            continue
+        text = path.read_text("utf-8", errors="ignore")
+        if path.suffix == ".py":
+            text = _py_rst_content(text)
+        rel = path.relative_to(root)
+        for regex in (_REF_PHRASE, _REF_INDIRECT, _REF_BARE):
+            for name in regex.findall(text):
+                name = _norm_name(name)
+                ref_counts[name] = ref_counts.get(name, 0) + 1
+        for name, url in _TARGET_DEF.findall(text):
+            if url.startswith(("http://", "https://")):
+                local_defs.append((rel, _norm_name(name), _norm_url(url)))
+                url_files.setdefault(_norm_url(url), set()).add(rel)
+        for url in _INLINE_URL.findall(text):
+            url_files.setdefault(_norm_url(url), set()).add(rel)
+
+    def warn(msg):
+        sphinx_logger.warning(msg, type="mne", subtype="links")
+
+    # 1. links.inc targets must be referenced more than once
+    for name in linksinc_targets:
+        if ref_counts[name] < 2:
+            warn(
+                f"doc/links.inc target {name!r} is referenced {ref_counts[name]} "
+                "time(s); links.inc entries must be used more than once "
+                "(inline single-use links at their use site instead)"
+            )
+    # 2. every other external target definition must be referenced somewhere,
+    # 3. and must not duplicate a links.inc URL
+    for rel, name, url in local_defs:
+        if ref_counts.get(name, 0) == 0:
+            warn(f"{rel}: link target {name!r} is never referenced; remove it")
+        if url in linksinc_urls:
+            warn(
+                f"{rel}: link target {name!r} duplicates the URL of "
+                f"doc/links.inc target {linksinc_urls[url]!r}; reference that instead"
+            )
+    # 4. a URL written out in several files belongs in links.inc
+    for url, files in url_files.items():
+        if len(files) > 1 and url not in linksinc_urls:
+            warn(
+                f"URL {url} is written out in {len(files)} files "
+                f"({', '.join(sorted(str(f) for f in files))}); move it to "
+                "doc/links.inc and reference it instead"
+            )

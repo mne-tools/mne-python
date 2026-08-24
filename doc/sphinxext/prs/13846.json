@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "7e9310fb8a5ed5edd1495cd27eb4e2849569606b",
+  "authors": [
+    {
+      "n": "Deep ",
+      "e": "jasvirsingh828907@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Farzah11",
+      "e": "184847039+Farzah11@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13846.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    },
+    "tutorials/preprocessing/55_setting_eeg_reference.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

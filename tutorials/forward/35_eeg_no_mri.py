@@ -88,7 +88,7 @@ fwd
 # We don't have a sample infant dataset for MNE, so let's fake a 10-20 one:
 
 ch_names = "Fz Cz Pz Oz Fp1 Fp2 F3 F4 F7 F8 C3 C4 T7 T8 P3 P4 P7 P8 O1 O2".split()
-data = np.random.RandomState(0).randn(len(ch_names), 1000)
+data = np.random.default_rng(0).standard_normal((len(ch_names), 1000))
 info = mne.create_info(ch_names, 1000.0, "eeg")
 raw = mne.io.RawArray(data, info)
 

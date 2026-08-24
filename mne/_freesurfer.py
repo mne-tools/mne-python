@@ -16,8 +16,10 @@ from .surface import _read_mri_surface, read_surface
 from .transforms import (
     Transform,
     _ensure_trans,
+    _trans_from_params,
     apply_trans,
     combine_transforms,
+    fit_matched_points,
     invert_transform,
     read_ras_mni_t,
 )
@@ -841,8 +843,6 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
 
 
 def _estimate_talxfm_rigid(subject, subjects_dir):
-    from .coreg import _trans_from_params, fit_matched_points
-
     xfm = read_talxfm(subject, subjects_dir)
     # XYZ+origin + halfway
     pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])

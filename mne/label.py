@@ -10,7 +10,7 @@ from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
@@ -324,7 +324,19 @@ class Label:
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add Labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The union of the two labels (a :class:`~mne.BiHemiLabel` if the
+            hemispheres differ).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             return other + self
@@ -394,7 +406,18 @@ class Label:
         return label
 
     def __sub__(self, other):
-        """Subtract Labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label
+            The vertices of this label that are not in ``other``.
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             if self.hemi == "lh":
@@ -916,6 +939,8 @@ class Label:
 
         .. versionadded:: 0.24
         """
+        from scipy import sparse
+
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -1044,7 +1069,18 @@ class BiHemiLabel:
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        """Add labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of BiHemiLabel
+            The union of the two labels.
+        """
         if isinstance(other, Label):
             if other.hemi == "lh":
                 lh = self.lh + other
@@ -1063,7 +1099,19 @@ class BiHemiLabel:
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
-        """Subtract labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The vertices of this label that are not in ``other`` (a
+            :class:`~mne.Label` if only one hemisphere remains).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, Label):
             if other.hemi == "lh":
@@ -2124,6 +2172,87 @@ def _read_annot_cands(dir_name, raise_error=True):
     return cands
 
 
+def _read_annot(fname):
+    """Read a Freesurfer annotation from a .annot file.
+
+    Note : Copied from PySurfer
+
+    Parameters
+    ----------
+    fname : str
+        Path to annotation file
+
+    Returns
+    -------
+    annot : numpy array, shape=(n_verts)
+        Annotation id at each vertex
+    ctab : numpy array, shape=(n_entries, 5)
+        RGBA + label id colortable array
+    names : list of str
+        List of region names as stored in the annot file
+
+    """
+    if not op.isfile(fname):
+        dir_name = op.split(fname)[0]
+        cands = _read_annot_cands(dir_name)
+        if len(cands) == 0:
+            raise OSError(
+                f"No such file {fname}, no candidate parcellations found in directory"
+            )
+        else:
+            raise OSError(
+                f"No such file {fname}, candidate parcellations in "
+                "that directory:\n" + "\n".join(cands)
+            )
+    with open(fname, "rb") as fid:
+        n_verts = np.fromfile(fid, ">i4", 1)[0]
+        data = np.fromfile(fid, ">i4", n_verts * 2).reshape(n_verts, 2)
+        annot = data[data[:, 0], 1]
+        ctab_exists = np.fromfile(fid, ">i4", 1)[0]
+        if not ctab_exists:
+            raise Exception("Color table not found in annotation file")
+        n_entries = np.fromfile(fid, ">i4", 1)[0]
+        if n_entries > 0:
+            length = np.fromfile(fid, ">i4", 1)[0]
+            np.fromfile(fid, ">c", length)  # discard orig_tab
+
+            names = list()
+            ctab = np.zeros((n_entries, 5), np.int64)
+            for i in range(n_entries):
+                name_length = np.fromfile(fid, ">i4", 1)[0]
+                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
+                names.append(name)
+                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
+                ctab[i, 4] = (
+                    ctab[i, 0]
+                    + ctab[i, 1] * (2**8)
+                    + ctab[i, 2] * (2**16)
+                    + ctab[i, 3] * (2**24)
+                )
+        else:
+            ctab_version = -n_entries
+            if ctab_version != 2:
+                raise Exception("Color table version not supported")
+            n_entries = np.fromfile(fid, ">i4", 1)[0]
+            ctab = np.zeros((n_entries, 5), np.int64)
+            length = np.fromfile(fid, ">i4", 1)[0]
+            np.fromfile(fid, f"|S{length}", 1)  # Orig table path
+            entries_to_read = np.fromfile(fid, ">i4", 1)[0]
+            names = list()
+            for i in range(entries_to_read):
+                np.fromfile(fid, ">i4", 1)  # Structure
+                name_length = np.fromfile(fid, ">i4", 1)[0]
+                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
+                names.append(name)
+                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
+                ctab[i, 4] = ctab[i, 0] + ctab[i, 1] * (2**8) + ctab[i, 2] * (2**16)
+
+        # convert to more common alpha value
+        ctab[:, 3] = 255 - ctab[:, 3]
+
+    return annot, ctab, names
+
+
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
     """Get the .annot filenames and hemispheres."""
     if annot_fname is not None:
@@ -2479,6 +2608,8 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
+
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])

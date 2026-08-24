@@ -576,7 +576,15 @@ class SourceSimulator:
         return stc
 
     def __iter__(self):
-        """Iterate over 1 second STCs."""
+        """Iterate over 1 second STCs.
+
+        Yields
+        ------
+        stc : instance of SourceEstimate
+            The source estimate for the next chunk of data.
+        stim : ndarray, shape (n_samples,)
+            The stim channel for the same chunk.
+        """
         # Arbitrary chunk size, can be modified later to something else.
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.

@@ -220,7 +220,7 @@ def test_hitachi_basic(
     assert raw.info["lowpass"] == lowpass
     assert raw.info["subject_info"]["sex"] == sex
     assert np.isfinite(raw.get_data()).all()
-    assert raw.info["meas_date"] == dt.datetime(*date, tzinfo=dt.timezone.utc)
+    assert raw.info["meas_date"] == dt.datetime(*date, tzinfo=dt.UTC)
     # bad distances (zero)
     distances = source_detector_distances(raw.info)
     want = [np.nan] * (n_ch - 4)

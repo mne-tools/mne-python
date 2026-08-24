@@ -104,7 +104,8 @@ raw.load_data()
 # :footcite:`AblinEtAl2018` for more information.
 #
 # The ICA interface in MNE-Python is similar to the interface in
-# `scikit-learn`_: some general parameters are specified when creating an
+# `scikit-learn <https://scikit-learn.org/stable/>`__: some general parameters
+# are specified when creating an
 # `~mne.preprocessing.ICA` object, then the `~mne.preprocessing.ICA` object is
 # fit to the data using its `~mne.preprocessing.ICA.fit` method. The results of
 # the fitting are added to the `~mne.preprocessing.ICA` object as attributes
@@ -672,7 +673,8 @@ epochs = mne.Epochs(
 # Fit ICA model using the FastICA algorithm, detect and plot components
 # explaining ECG artifacts.
 
-ica = ICA(n_components=15, method="fastica", max_iter="auto").fit(epochs)
+ica = ICA(n_components=15, method="fastica", max_iter="auto", random_state=97)
+ica.fit(epochs)
 
 ecg_epochs = create_ecg_epochs(filt_raw, tmin=-0.5, tmax=0.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, threshold="auto")

@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "8e6468093e44411929edd169ecaea39b29e09045",
+  "authors": [
+    {
+      "n": "Nikolai Kapralov",
+      "e": "13971785+ctrltz@users.noreply.github.com",
+      "l": "ctrltz"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

@@ -5,9 +5,8 @@
 # Copyright the MNE-Python contributors.
 
 import math
-import os
 import re
-from contextlib import redirect_stdout
+from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
 from pathlib import Path
@@ -121,7 +120,7 @@ def _test_raw_reader(
         Test _init_kwargs support.
     boundary_decimal : int
         Number of decimals up to which the boundary should match.
-    **kwargs :
+    **kwargs : dict
         Arguments for the reader. Note: Do not use preload as kwarg.
         Use ``test_preloading`` instead.
 
@@ -131,7 +130,7 @@ def _test_raw_reader(
         A preloaded Raw object.
     """
     tempdir = _TempDir()
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     montage = None
     if "montage" in kwargs:
         montage = kwargs["montage"]
@@ -480,12 +479,8 @@ def _test_raw_reader(
             dirname = op.dirname(this_fname)
             these_kwargs[key] = op.basename(this_fname)
             these_kwargs["preload"] = False
-            orig_dir = os.getcwd()
-            try:
-                os.chdir(dirname)
+            with chdir(dirname):
                 raw_chdir = reader(**these_kwargs)
-            finally:
-                os.chdir(orig_dir)
             raw_chdir.load_data()
 
     # make sure that cropping works (with first_samp shift)
@@ -1068,7 +1063,8 @@ def test_resamp_noop():
 
 def test_concatenate_raw_dev_head_t():
     """Test concatenating raws with dev-head-t including nans."""
-    data = np.random.randn(3, 10)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((3, 10))
     info = create_info(3, 1000.0, ["mag", "grad", "grad"])
     raw = RawArray(data, info)
     raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))

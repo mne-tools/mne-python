@@ -48,6 +48,7 @@ from ..transforms import (
 )
 from ..utils import (
     _check_fname,
+    _explain_exception,
     _validate_type,
     check_fname,
     fill_doc,
@@ -520,8 +521,12 @@ class CoregistrationUI(HasTraits):
 
     def _set_subject_to(self, value):
         self._subject_to = value
-        self._forward_widget_command("save_subject", "set_enabled", len(value) > 0)
-        if self._check_subject_exists():
+        # scaling to the subject we scale from would delete it, so disallow it
+        in_place = value == self._subject
+        self._forward_widget_command(
+            "save_subject", "set_enabled", len(value) > 0 and not in_place
+        )
+        if in_place or self._check_subject_exists():
             style = dict(border="2px solid #ff0000")
         else:
             style = dict(border="initial")
@@ -625,6 +630,7 @@ class CoregistrationUI(HasTraits):
 
         self._set_fiducials_file(fname)
         self._reset_fiducials()
+        self._set_subject_to(self._subject_to)  # revalidate against the new subject
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -797,12 +803,17 @@ class CoregistrationUI(HasTraits):
     def _run_worker(self, queue, jobs):
         while True:
             data = queue.get()
-            func = jobs[data._name]
-            if data._params is not None:
-                func(**data._params)
-            else:
-                func()
-            queue.task_done()
+            # an uncaught exception would kill the thread and wedge the queue
+            try:
+                func = jobs[data._name]
+                if data._params is not None:
+                    func(**data._params)
+                else:
+                    func()
+            except Exception:
+                logger.error(f"Error running {data._name}{_explain_exception(start=0)}")
+            finally:
+                queue.task_done()
 
     def _configure_dialogs(self):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -1483,6 +1494,7 @@ class CoregistrationUI(HasTraits):
                     bem_names.append(match.group(1))
 
         # save the scaled MRI
+        scaled = False
         try:
             self._display_message(f"Scaling {self._subject_to}...")
             scale_mri(
@@ -1495,12 +1507,15 @@ class CoregistrationUI(HasTraits):
                 labels=True,
                 annot=True,
                 on_defects="ignore",
-                mri_fiducials=self.coreg.fiducials,
+                mri_fiducials=self.coreg.fiducials.dig,
             )
         except Exception:
-            logger.error(f"Error scaling {self._subject_to}")
+            logger.error(
+                f"Error scaling {self._subject_to}{_explain_exception(start=0)}"
+            )
             bem_names = []
         else:
+            scaled = True
             self._display_message(f"Scaling {self._subject_to}... Done!")
 
         # Precompute BEM solutions
@@ -1515,12 +1530,17 @@ class CoregistrationUI(HasTraits):
                 bemsol = make_bem_solution(bem_file)
                 write_bem_solution(bem_file[:-4] + "-sol.fif", bemsol)
             except Exception:
-                logger.error(f"Error computing {bem_name} solution")
+                logger.error(
+                    f"Error computing {bem_name} solution{_explain_exception(start=0)}"
+                )
             else:
                 self._display_message(f"Computing {bem_name} solution... Done!")
-        self._display_message(f"Saving {self._subject_to}... Done!")
+        if scaled:
+            self._display_message(f"Saving {self._subject_to}... Done!")
+            self._mri_scale_modified = False  # still unsaved if scaling failed
+        else:
+            self._display_message(f"Saving {self._subject_to}... Failed!")
         self._renderer._window_set_cursor(default_cursor)
-        self._mri_scale_modified = False
 
     def _save_mri_fiducials(self, fname):
         self._display_message(f"Saving {fname}...")

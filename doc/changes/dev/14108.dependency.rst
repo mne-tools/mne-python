@@ -1,0 +1,9 @@
+Raised minimum versions of some optional dependencies to comply with MNE-Python's
+SPEC0-like policy, and added them to the set kept up to date automatically by the
+``spec_zero`` CI job, by `Eric Larson`_:
+
+- Optional dependency ``dipy >= 1.9``
+- Optional dependency ``mne-qt-browser >= 0.6``
+- Optional dependency ``nibabel >= 5.2``
+- Optional dependency ``nilearn >= 0.10``
+- Optional dependency ``numba >= 0.60``

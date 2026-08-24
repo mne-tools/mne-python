@@ -25,7 +25,6 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
-from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
@@ -88,8 +87,9 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     raw = mne.apply_forward_raw(fwd, stc, info)
 
     # Add a little noise
-    random = np.random.RandomState(42)
-    noise = random.randn(*raw._data.shape) * 1e-14
+    # seed chosen to meet the rank/correlation bounds asserted in the tests
+    random = np.random.default_rng(0)
+    noise = random.normal(scale=1e-14, size=raw._data.shape)
     raw._data += noise
 
     # Define a single epoch (weird baseline but shouldn't matter)
@@ -132,7 +132,7 @@ def _rand_csd(rng, info):
     scales = mne.make_ad_hoc_cov(info).data
     n = scales.size
     # Some random complex correlation structure (with channel scalings)
-    data = rng.randn(n, n) + 1j * rng.randn(n, n)
+    data = rng.standard_normal((n, n)) + 1j * rng.standard_normal((n, n))
     data = data @ data.conj().T
     data *= scales
     data *= scales[:, np.newaxis]
@@ -141,7 +141,7 @@ def _rand_csd(rng, info):
 
 
 def _make_rand_csd(info, csd):
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     data = _rand_csd(rng, info)
     # now we need to have the same null space as the data csd
     s, u = np.linalg.eigh(csd.get_data(csd.frequencies[0]))
@@ -270,7 +270,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         exp=None,
         noise_cov=noise_cov,
     )
-    G = _reshape_view(G, (n_channels, n_verts, n_orient))
+    G = G.reshape((n_channels, n_verts, n_orient), copy=False)
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
     _assert_weight_norm(filters, G)
 
@@ -777,7 +777,7 @@ def test_apply_dics_tfr(return_generator):
 
 
 def _cov_as_csd(cov, info):
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     assert cov["data"].ndim == 2
     assert len(cov["data"]) == len(cov["names"])
     # we need to make this have at least some complex structure
