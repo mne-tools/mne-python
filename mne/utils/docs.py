@@ -517,17 +517,16 @@ docdict["baseline_evoked"] = f"""{_baseline_rescale_base}
 
 """
 _baseline_mode_desc = """\
- 
-    Perform baseline correction by:
+        Perform baseline correction by:
+
         - subtracting the mean of baseline values ('mean')
         - dividing by the mean of baseline values ('ratio')
         - dividing by the mean of baseline values and taking the log
           ('logratio')
-        - dividing by the mean of baseline values, taking the log and the,
-          substract the mean (:footcite:`KinleyEtAl2026`) 
-          
-          .. note:: this baseline mode has not been tested at the source-level!
-          
+        - dividing by the mean of baseline values, taking the log and then
+          subtracting the mean (:footcite:`KinleyEtAl2026`) 
+
+          .. note:: this baseline mode has not been tested at the source-level!          
         - subtracting the mean of baseline values followed by dividing by
           the mean of baseline values ('percent')
         - subtracting the mean of baseline values and dividing by the
