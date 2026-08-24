@@ -141,6 +141,7 @@ y = epochs.events[:, 2]  # target: auditory left vs visual left
 clf = make_pipeline(
     Scaler(epochs.info),
     Vectorizer(),
+    # liblinear is faster than lbfgs
     LogisticRegression(solver="liblinear", random_state=0),
 )
 

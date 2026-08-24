@@ -73,6 +73,7 @@ meg_data = meg_epochs.get_data(copy=False).reshape(len(labels), -1)
 # Decoding in sensor space using a LogisticRegression classifier
 # --------------------------------------------------------------
 
+# liblinear is faster than lbfgs
 clf = LogisticRegression(solver="liblinear", random_state=0)
 scaler = StandardScaler()
 

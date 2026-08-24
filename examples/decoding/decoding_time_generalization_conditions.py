@@ -69,6 +69,7 @@ epochs = mne.Epochs(
 # and test on all right visual vs auditory trials.
 clf = make_pipeline(
     StandardScaler(),
+    # liblinear is faster than lbfgs
     LogisticRegression(solver="liblinear", random_state=0),
 )
 time_gen = GeneralizingEstimator(clf, scoring="roc_auc", n_jobs=None, verbose=True)
