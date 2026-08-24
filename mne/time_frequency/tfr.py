@@ -1794,20 +1794,19 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         How baseline is computed is determined by the ``mode`` parameter.
         %(baseline_mode)s
-            
+
         %(verbose)s
 
         Returns
         -------
         %(inst_tfr)s
             The modified instance.
-        
-        References 
+
+        References
         ----------
         .. footbibliography::
-            
+
         """
-       
         self._baseline = _check_baseline(baseline, times=self.times, sfreq=self.sfreq)
         rescale(self.data, self.times, self.baseline, mode, copy=False, verbose=verbose)
         return self

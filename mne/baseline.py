@@ -15,7 +15,15 @@ def _log_rescale(baseline, mode="mean"):
         _check_option(
             "mode",
             mode,
-            ["logratio", "ratio", "zscore", "mean", "percent", "zlogratio", "meanlogratio"],
+            [
+                "logratio",
+                "ratio",
+                "zscore",
+                "mean",
+                "percent",
+                "zlogratio",
+                "meanlogratio",
+            ],
         )
         msg = f"Applying baseline correction (mode: {mode})"
     else:
@@ -37,7 +45,7 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
     %(baseline_rescale)s
     %(baseline_mode)s
     %(verbose)s
-    
+
     copy : bool
         Whether to return a new instance or modify in place.
     picks : list of int | None
@@ -101,14 +109,14 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         def fun(d, m):
             d /= m
             np.log10(d, out=d)
-            
+
     elif mode == "meanlogratio":
-        
+
         def fun(d, m):
             d /= m
             np.log10(d, out=d)
             d -= np.mean(d[..., imin:imax], axis=-1, keepdims=True)
-            
+
     elif mode == "percent":
 
         def fun(d, m):

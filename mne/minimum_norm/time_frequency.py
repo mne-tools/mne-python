@@ -219,8 +219,8 @@ def source_band_induced_power(
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
-        all the time interval is used. 
-   %(mn_baseline_mode)s 
+        all the time interval is used.
+    %(mn_baseline_mode)s
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
