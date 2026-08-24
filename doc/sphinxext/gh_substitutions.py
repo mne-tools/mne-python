@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from docutils.nodes import reference
-from docutils.parsers.rst.roles import set_classes
+from docutils.parsers.rst.roles import normalize_options as _normalize_options
 
 
 def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
@@ -22,11 +22,11 @@ def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # no
         slug = "issues/" + text
     text = "#" + text
     ref = "https://github.com/mne-tools/mne-python/" + slug
-    set_classes(options)
+    options = _normalize_options(options)
     node = reference(rawtext, text, refuri=ref, **options)
     return [node], []
 
 
 def setup(app):
     app.add_role("gh", gh_role)
-    return
+    return {"parallel_read_safe": True, "parallel_write_safe": True}

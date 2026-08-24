@@ -16,7 +16,6 @@ hooking our own custom plot into MNE-Python's event system.
 Since the figures on our website don't have any interaction capabilities, this example
 will only work properly when run in an interactive environment.
 """
-
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
@@ -68,6 +67,7 @@ field_map = mne.make_field_map(
     trans=data_path / "MEG" / "sample" / "sample_audvis_raw-trans.fif",
     subject="sample",
     subjects_dir=data_path / "subjects",
+    origin="auto",
 )
 fig_field = mne.viz.plot_evoked_field(
     avg_evokeds,

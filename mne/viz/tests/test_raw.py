@@ -4,14 +4,17 @@
 
 import itertools
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
+from refleak.testing import assert_no_instances
 
 import mne
 from mne import Annotations, create_info, pick_types
@@ -20,7 +23,6 @@ from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.utils import (
-    _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
     catch_logging,
@@ -36,16 +38,11 @@ raw_fname = base_dir / "test_raw.fif"
 
 
 def _get_button_xy(buttons, idx):
-    from mne.viz._mpl_figure import _OLD_BUTTONS
-
-    if _OLD_BUTTONS:
-        return buttons.circles[idx].center
-    else:
-        # Each transform is to display coords, and our offsets are in Axes
-        # coords. We want data coords, so we go Axes -> display -> data.
-        return buttons.ax.transData.inverted().transform(
-            buttons.ax.transAxes.transform(buttons.ax.collections[0].get_offsets()[idx])
-        )
+    # Each transform is to display coords, and our offsets are in Axes
+    # coords. We want data coords, so we go Axes -> display -> data.
+    return buttons.ax.transData.inverted().transform(
+        buttons.ax.transAxes.transform(buttons.ax.collections[0].get_offsets()[idx])
+    )
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -291,9 +288,15 @@ def _child_fig_helper(fig, key, attr, browse_backend):
     )
 
 
-def test_scale_bar(browser_backend):
+@pytest.mark.parametrize("butterfly", (False, True))
+def test_scale_bar(browser_backend, butterfly):
     """Test scale bar for raw."""
     ismpl = browser_backend.name == "matplotlib"
+    if butterfly and not ismpl:
+        import mne_qt_browser._pg_figure
+
+        if not getattr(mne_qt_browser._pg_figure, "_SCALEBARS_FIXED", False):
+            pytest.skip("butterfly scalebars fixed in a later mne-qt-browser")
     sfreq = 1000.0
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10.0 * t)
@@ -301,9 +304,11 @@ def test_scale_bar(browser_backend):
     data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
     info = create_info(3, sfreq, ("mag", "grad", "eeg"))
     raw = RawArray(data, info)
-    fig = raw.plot()
+    fig = raw.plot(butterfly=butterfly)
     texts = fig._get_scale_bar_texts()
     assert len(texts) == 3  # ch_type scale-bars
+    # butterfly mode draws traces at half amplitude, but the scalebars shrink to
+    # match, so the reported values are identical either way
     wants = ("800.0 fT/cm", "2000.0 fT", "40.0 µV")
     assert texts == wants
     if ismpl:
@@ -311,11 +316,64 @@ def test_scale_bar(browser_backend):
         assert len(fig.mne.ax_main.lines) == 7
     else:
         assert len(fig.mne.scalebars) == 3
+    # each trace spans exactly its scalebar (peak/trough == bar top/bottom)
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
         y = data.get_ydata()
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
+
+    # Per-channel color overrides via channel names (matplotlib only).
+    if ismpl:
+        sfreq = 100.0
+        ch_names = ["SFG, Left", "SFG, Right", "MFG, Left"]
+        info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        data = np.zeros((len(ch_names), int(sfreq)))  # 1 second of zeros
+        raw2 = RawArray(data, info)
+
+        color = {"eeg": "k", "SFG, Left": "red"}
+        browser_backend._close_all()
+        fig2 = plot_raw(raw2, color=color, show=False)
+
+        # ch_colors stores the "good" (non-bad) colors, in visible channel order
+        assert fig2.mne.ch_colors[0] == "red"
+        assert fig2.mne.ch_colors[1] == "k"
+        assert fig2.mne.ch_colors[2] == "k"
+
+        # check colours on the plot are also correct
+        for trace, ch_color in zip(fig2.mne.traces, fig2.mne.ch_colors):
+            assert np.allclose(
+                mcolors.to_rgba(trace.get_color()), mcolors.to_rgba(ch_color)
+            ), f"Expected {ch_color}, got {trace.get_color()}"
+
+        browser_backend._close_all()
+
+
+def test_zero_line(raw, mpl_backend):
+    """Test toggling the zero line for raw (matplotlib backend only)."""
+    fig = raw.plot(remove_dc=True)
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
+    fig._fake_keypress("0")
+    assert fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == len(fig.mne.picks)
+    # with DC removal on, the true zero generally differs from the trace offset
+    assert fig.mne.zero_line_offset is not None
+    assert not np.allclose(fig.mne.zero_lines[0].get_ydata(), fig.mne.trace_offsets[0])
+    for ii, (zero_line, offset) in enumerate(
+        zip(fig.mne.zero_lines, fig.mne.trace_offsets)
+    ):
+        true_zero = offset + fig.mne.zero_line_offset[ii] * fig.mne.scale_factor
+        assert_allclose(zero_line.get_ydata(), (true_zero, true_zero))
+    assert_allclose(fig.mne.zero_lines[0].get_xdata(), (0, 1))
+    fig._fake_keypress("d")  # turn DC removal off
+    assert not fig.mne.remove_dc
+    assert fig.mne.zero_line_offset is None
+    # with DC removal off, the true zero coincides with the trace offset again
+    assert_allclose(fig.mne.zero_lines[0].get_ydata(), (fig.mne.trace_offsets[0],) * 2)
+    fig._fake_keypress("0")  # toggle back off -> artists removed
+    assert not fig.mne.zero_line_visible
+    assert len(fig.mne.zero_lines) == 0
 
 
 def test_plot_raw_selection(raw, browser_backend):
@@ -355,6 +413,11 @@ def test_plot_raw_selection(raw, browser_backend):
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
     if ismpl:
+        # in butterfly mode all radio buttons show as selected
+        buttons = sel_fig.mne.radio_ax.buttons
+        facecolors = buttons.ax.collections[0].get_facecolor()
+        want = mcolors.to_rgba(buttons.activecolor)
+        assert_allclose(facecolors, [want] * len(facecolors))
         print(f"Clicking button: {repr(left_temp)}")
         assert sel_fig.mne.radio_ax.buttons.labels[0].get_text() == left_temp
         xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, 0)
@@ -521,7 +584,7 @@ def _monkeypatch_fig(fig, browser_backend):
         fig.showNormal = _norm
 
 
-def test_plot_raw_keypresses(raw, browser_backend, monkeypatch):
+def test_plot_raw_keypresses(raw, browser_backend):
     """Test keypress interactivity of plot_raw()."""
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
@@ -561,6 +624,32 @@ def test_plot_raw_keypresses(raw, browser_backend, monkeypatch):
     _monkeypatch_fig(fig, browser_backend)
     for key in 2 * keys + ("escape",):
         fig._fake_keypress(key)
+
+
+def test_plot_raw_scroll(raw, browser_backend):
+    """Test scroll wheel channel navigation in raw.plot()."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    # use n_channels < total so there is room to scroll
+    fig = raw.plot(n_channels=3)
+    assert len(fig.mne.ch_order) > fig.mne.n_channels  # sanity check
+    # the sign of "step" that means "scroll down" differs between backends
+    down, up = (-1, 1) if browser_backend.name == "matplotlib" else (1, -1)
+    # scroll down moves ch_start forward by 1
+    ch_start_before = fig.mne.ch_start
+    fig._fake_scroll(0.5, 0.5, down)
+    assert fig.mne.ch_start == ch_start_before + 1
+    # scroll up moves ch_start back by 1
+    fig._fake_scroll(0.5, 0.5, up)
+    assert fig.mne.ch_start == ch_start_before
+    # scroll up at the top is a no-op (already at 0)
+    assert fig.mne.ch_start == 0
+    fig._fake_scroll(0.5, 0.5, up)
+    assert fig.mne.ch_start == 0
+    # scroll is a no-op in butterfly mode
+    fig._fake_keypress("b")
+    fig._fake_scroll(0.5, 0.5, down)
+    assert fig.mne.ch_start == 0
 
 
 def test_plot_raw_traces(raw, events, browser_backend):
@@ -608,14 +697,42 @@ def test_plot_raw_traces(raw, events, browser_backend):
     fig._fake_click((0.5, 0.05), ax=vscroll)  # change channels to end
     labels = fig._get_ticklabels("y")
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
-    for _ in (0, 0):
-        # first click changes channels to mid; second time shouldn't change
-        # This needs to be changed for Qt, because there scrollbars are
-        # drawn differently (value of slider at lower end, not at middle)
+    for _ in range(2):  # first click jumps to mid, second is a no-op (already there)
+        # mpl centers the handle on the click; Qt's QScrollBar positions the handle at
+        # its low end, hence the different target for Qt
         yclick = 0.5 if ismpl else 0.7
         fig._fake_click((0.5, yclick), ax=vscroll)
         labels = fig._get_ticklabels("y")
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
+
+    # Qt scrollbars are native QScrollBar widgets, so dragging them is already handled
+    # by Qt itself; here we only need to test the custom drag handling added for the
+    # 'matplotlib' scrollbars.
+    if ismpl:
+        # dragging the vertical scrollbar handle
+        n_channels = fig.mne.n_channels
+        ch_start = fig.mne.ch_start
+        center = ch_start + n_channels / 2
+        fig._fake_click((0.5, center), ax=vscroll, xform="data", kind="press")
+        fig._fake_click((0.5, center + 1), ax=vscroll, xform="data", kind="motion")
+        assert fig.mne.ch_start == ch_start + 1
+        fig._fake_click((0.5, center + 1), ax=vscroll, xform="data", kind="release")
+        # further motion after release should be a no-op
+        fig._fake_click((0.5, center + 5), ax=vscroll, xform="data", kind="motion")
+        assert fig.mne.ch_start == ch_start + 1
+
+        # dragging the horizontal scrollbar handle
+        duration = fig.mne.duration
+        t_start = fig.mne.t_start
+        center = t_start + duration / 2
+        fig._fake_click((center, 0.5), ax=hscroll, xform="data", kind="press")
+        fig._fake_click((center + 1, 0.5), ax=hscroll, xform="data", kind="motion")
+        assert fig.mne.t_start == pytest.approx(t_start + 1, abs=0.05)
+        fig._fake_click((center + 1, 0.5), ax=hscroll, xform="data", kind="release")
+        dragged_t_start = fig.mne.t_start
+        # further motion after release should be a no-op
+        fig._fake_click((center + 5, 0.5), ax=hscroll, xform="data", kind="motion")
+        assert fig.mne.t_start == dragged_t_start
 
     # test clicking a channel name in butterfly mode
     bads = fig.mne.info["bads"].copy()
@@ -631,6 +748,16 @@ def test_plot_raw_traces(raw, events, browser_backend):
         raw.plot(order="foo")
     with pytest.raises(TypeError, match="title must be None or a string, got"):
         raw.plot(title=1)
+    # in-memory raw has filenames == (None,); title should fall back to class + size
+    fig = RawArray(raw.get_data(), raw.info).plot()
+    if browser_backend.name != "matplotlib":
+        title = fig.windowTitle()
+    elif check_version("matplotlib", "3.10.3"):
+        title = fig.canvas.manager.get_window_title()
+    else:  # matplotlib < 3.10.3 hard-codes "image" for non-GUI window titles
+        title = None
+    if title is not None:
+        assert re.match(r"RawArray \(~[\d.]+ (bytes|[KMGT]iB)\)", title), title
     raw.plot(show_options=True)
     browser_backend._close_all()
 
@@ -753,7 +880,7 @@ def test_plot_ref_meg(raw_ctf, browser_backend):
 
 def test_plot_misc_auto(browser_backend):
     """Test plotting of data with misc auto scaling."""
-    data = np.random.RandomState(0).randn(1, 1000)
+    data = np.random.default_rng(0).standard_normal((1, 1000))
     raw = RawArray(data, create_info(1, 1000.0, "misc"))
     raw.plot()
     raw = RawArray(data, create_info(1, 1000.0, "dipole"))
@@ -802,6 +929,79 @@ def test_plot_annotations(raw, browser_backend):
     ch_pick = fig.mne.inst.ch_names[0]
     fig._toggle_single_channel_annotation(ch_pick, 0)
     assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
+
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([42, 50], [1, 1], ["test", "test2"], raw.info["meas_date"])
+    with pytest.warns(RuntimeWarning, match="expanding outside"):
+        raw.set_annotations(annot)
+
+    fig = raw.plot()
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = raw.plot(annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
+
+    if ismpl:
+        # gh-13511: hide the middle annotation to get non-contiguous is_onscreen=[T,F,T]
+        annot = Annotations(
+            onset=[2, 2, 2], duration=[3, 3, 3], description=["A", "B", "C"]
+        )
+        raw.set_annotations(annot)
+        fig = raw.plot(start=0, duration=10)
+        fig._fake_keypress("a")
+        # hide "B" so is_onscreen = [T, F, T]
+        fig.mne.show_hide_annotation_checkboxes.set_active(1)
+        buttons = fig.mne.fig_annotation.mne.radio_ax.buttons
+        # set active to the hidden "B" so deletion falls back to zorder
+        buttons.set_active(1)
+        fig._fake_click((2.5, 1.0), xform="data", button=3)
+        # C has the highest zorder and should be deleted; the bug deleted A instead
+        assert "C" not in raw.annotations.description
+        assert "A" in raw.annotations.description
+
+
+def test_annotation_colors(raw, browser_backend):
+    """Test that annotation_colors overrides default colors."""
+    from matplotlib.colors import to_hex
+
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+
+    raw.set_annotations(
+        Annotations(
+            onset=[1, 3, 5],
+            duration=[1, 1, 1],
+            description=["BAD_test", "BAD_other", "stimulus"],
+        )
+    )
+
+    # User-provided colors override defaults (including bad* → red rule).
+    # BAD_other has no override and should remain red.
+    fig = raw.plot(
+        annotation_colors={"BAD_test": "orange", "stimulus": "#00ff00"},
+    )
+    colors = fig.mne.annotation_segment_colors
+    assert colors["BAD_test"] == to_hex("orange"), (
+        "User color for BAD_test should override red default"
+    )
+    assert colors["stimulus"] == "#00ff00"
+    assert colors["BAD_other"] == "#ff0000", (
+        "BAD_other has no user override and should remain red"
+    )
+
+    # Unknown label key triggers a warning
+    with pytest.warns(RuntimeWarning, match="do not match"):
+        fig = raw.plot(annotation_colors={"nonexistent_label": "blue"})
+
+    # Invalid color value raises ValueError
+    with pytest.raises(ValueError, match="not a valid matplotlib color"):
+        raw.plot(annotation_colors={"BAD_test": "not_a_color"}, show=False)
 
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
@@ -1090,7 +1290,8 @@ def test_plot_raw_psd(raw, raw_orig):
 
     # gh-7631
     n_times = sfreq = n_fft = 100
-    data = 1e-3 * np.random.rand(2, n_times)
+    rng = np.random.default_rng(0)
+    data = 1e-3 * rng.random((2, n_times))
     info = create_info(["CH1", "CH2"], sfreq)  # ch_types defaults to 'misc'
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
@@ -1143,7 +1344,8 @@ def test_plot_sensors(raw):
 
     # Test plotting with sphere='eeglab'
     info = create_info(ch_names=["Fpz", "Oz", "T7", "T8"], sfreq=100, ch_types="eeg")
-    data = 1e-6 * np.random.rand(4, 100)
+    rng = np.random.default_rng(0)
+    data = 1e-6 * rng.random((4, 100))
     raw_eeg = RawArray(data=data, info=info)
     raw_eeg.set_montage("biosemi64")
     raw_eeg.plot_sensors(sphere="eeglab")
@@ -1213,7 +1415,7 @@ def test_plotting_order_consistency():
 
 def test_plotting_temperature_gsr(browser_backend):
     """Test that we can plot temperature and GSR."""
-    data = np.random.RandomState(0).randn(2, 1000)
+    data = np.random.default_rng(0).standard_normal((2, 1000))
     data[0] += 37  # deg C
     # no idea what the scale should be for GSR
     info = create_info(2, 1000.0, ["temperature", "gsr"])
@@ -1232,7 +1434,7 @@ def test_plotting_memory_garbage_collection(raw, pg_backend):
     from mne_qt_browser._pg_figure import MNEQtBrowser
 
     assert len(mne_qt_browser._browser_instances) == 0
-    _assert_no_instances(MNEQtBrowser, "after closing")
+    assert_no_instances(MNEQtBrowser, "after closing")
 
 
 def test_plotting_scalebars(browser_backend, qtbot):
@@ -1240,10 +1442,17 @@ def test_plotting_scalebars(browser_backend, qtbot):
     ismpl = browser_backend.name == "matplotlib"
     raw = mne.io.read_raw_fif(raw_fname).crop(0, 1).load_data()
     fig = raw.plot(butterfly=True)
+    # in butterfly mode the traces are drawn at half amplitude, so each scalebar
+    # spans half of the y-unit that its channel type occupies
+    delta = 0.25
+    if not ismpl:
+        import mne_qt_browser._pg_figure
+
+        if not getattr(mne_qt_browser._pg_figure, "_SCALEBARS_FIXED", False):
+            delta = 0.5  # traces were drawn at full amplitude before then
     if ismpl:
         ch_types = [text.get_text() for text in fig.mne.ax_main.get_yticklabels()]
         assert ch_types == ["mag", "grad", "eeg", "eog", "stim"]
-        delta = 0.25
         offset = 0
     else:
         qtbot.wait_exposed(fig)
@@ -1254,7 +1463,6 @@ def test_plotting_scalebars(browser_backend, qtbot):
             qtbot.wait(100)  # pragma: no cover
         # the grad/mag difference here is intentional in _pg_figure.py
         assert ch_types == ["grad", "mag", "eeg", "eog", "stim"]
-        delta = 0.5  # TODO: Probably should also be 0.25?
         offset = 1
     assert ch_types.pop(-1) == "stim"
     for ci, ch_type in enumerate(ch_types, offset):
@@ -1265,3 +1473,65 @@ def test_plotting_scalebars(browser_backend, qtbot):
         else:
             yvals = this_bar.get_ydata()
         assert_allclose(yvals, [ci - delta, ci + delta], err_msg=err_msg)
+
+
+@pytest.mark.parametrize("theme", ("light", "dark"))
+def test_raw_plot_theme(theme, mpl_backend):
+    """Test dark/light theme for the matplotlib browser backend."""
+    import matplotlib.colors as mcolors
+
+    from mne.viz._mpl_figure import (
+        _DARK_BAD_COLOR,
+        _DARK_BGCOLOR,
+        _DARK_CHANNEL_OVERRIDES,
+        _DARK_FGCOLOR,
+    )
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+    fig = raw.plot(theme=theme)
+
+    def _hex(c):
+        return mcolors.to_hex(c)
+
+    if theme == "dark":
+        assert _hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+        assert _hex(fig.mne.fgcolor) == _DARK_FGCOLOR
+        assert _hex(fig.mne.ch_color_bad) == _DARK_BAD_COLOR
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _DARK_CHANNEL_OVERRIDES["eeg"]
+        assert _hex(fig.patch.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _DARK_BGCOLOR
+        assert _hex(fig.mne.ax_hscroll.get_facecolor()) == _DARK_BGCOLOR
+    else:  # light
+        assert _hex(fig.mne.bgcolor) == _hex("w")
+        assert _hex(fig.mne.ch_color_dict["eeg"]) == _hex("k")
+        assert _hex(fig.patch.get_facecolor()) == _hex("w")
+        assert _hex(fig.mne.ax_main.get_facecolor()) == _hex("w")
+    plt.close("all")
+
+
+def test_raw_plot_theme_auto(mpl_backend, monkeypatch):
+    """Test theme="auto" resolves via _resolve_mpl_theme for the mpl backend."""
+    import matplotlib.colors as mcolors
+
+    import mne.viz._mpl_figure as mpl_fig
+    from mne.viz._mpl_figure import _DARK_BGCOLOR
+
+    sfreq = 100.0
+    t = np.arange(500) / sfreq
+    data = np.sin(2 * np.pi * 1.0 * t)[np.newaxis, :]
+    info = create_info(["EEG 001"], sfreq, "eeg")
+    raw = RawArray(data, info)
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "dark")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == _DARK_BGCOLOR
+    plt.close("all")
+
+    monkeypatch.setattr(mpl_fig, "_resolve_mpl_theme", lambda theme: "light")
+    fig = raw.plot(theme="auto")
+    assert mcolors.to_hex(fig.mne.bgcolor) == mcolors.to_hex("w")
+    plt.close("all")

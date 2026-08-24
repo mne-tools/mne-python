@@ -1,0 +1,1 @@
+Use mffpy-backed parsing for EGI MFF event tracks while tolerating nanosecond timestamps that some files store in ``beginTime``, by `Pragnya Khandelwal`_.

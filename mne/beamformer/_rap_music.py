@@ -48,7 +48,8 @@ def _apply_rap_music(
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     """
-    info = pick_info(info, picks)
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation
     align = forward["source_nn"].copy()
@@ -68,9 +69,9 @@ def _apply_rap_music(
     phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
-    G.shape = (G.shape[0], -1, n_orient)
+    G = G.reshape((G.shape[0], -1, n_orient), copy=False)
     gain = forward["sol"]["data"].copy()
-    gain.shape = G.shape
+    gain = gain.reshape(G.shape, copy=False)
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
     gain_dip = np.empty((n_channels, n_dipoles))
@@ -122,7 +123,7 @@ def _apply_rap_music(
     sol = linalg.lstsq(A, M)[0]
     if n_orient == 3:
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
-        X.shape = (-1, len(times))
+        X = X.reshape((-1, len(times)), copy=False)
     else:
         X = sol
 

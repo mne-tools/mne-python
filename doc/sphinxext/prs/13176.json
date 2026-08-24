@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "88951b68c175cade9d6ac6ff64023dc51bf32fe1",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_includes/dig_formats.rst": {
+      "a": 12,
+      "d": 10
+    },
+    "doc/api/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13176.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13176.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 45,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 61,
+      "d": 11
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/curry/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/curry/curry.py": {
+      "a": 739,
+      "d": 450
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 262,
+      "d": 105
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

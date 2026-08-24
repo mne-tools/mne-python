@@ -1,1 +1,0 @@
-Ensure auto-computed plot scalings are always non-zero, by `Daniel McCloy`_.

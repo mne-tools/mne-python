@@ -18,7 +18,6 @@ from functools import partial
 
 import numpy as np
 from decorator import decorator
-from scipy.signal import argrelmax
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
@@ -59,6 +58,8 @@ from ..utils import (
 )
 from ..utils.misc import _identity_function
 from .ui_events import ChannelsSelect, ColormapRange, publish, subscribe
+
+_BLIT_KWARGS = dict(useblit=True)
 
 _channel_type_prettyprint = {
     "eeg": "EEG channel",
@@ -155,7 +156,12 @@ def plt_show(show=True, fig=None, **kwargs):
         backend = get_backend()
     if show and backend != "agg":
         logger.debug(f"Showing plot for backend {repr(backend)}")
-        (fig or plt).show(**kwargs)
+        # if backend is inline and therefore non-interactive,
+        # fig.show() fails with UserWarning. See gh-14076
+        if "inline" in str(backend).lower():
+            plt.show(**kwargs)
+        else:
+            (fig or plt).show(**kwargs)
 
 
 def _show_browser(show=True, block=True, fig=None, **kwargs):
@@ -183,9 +189,8 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         plt_show(show, block=block, **kwargs)
     else:
         from qtpy.QtCore import Qt
-        from qtpy.QtWidgets import QApplication
 
-        from .backends._utils import _qt_app_exec
+        from .backends._utils import _qt_block
 
         if fig is not None and os.getenv("_MNE_BROWSER_BACK", "").lower() == "true":
             fig.setWindowFlags(fig.windowFlags() | Qt.WindowStaysOnBottomHint)
@@ -194,7 +199,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         # If block=False, a Qt-Event-Loop has to be started
         # somewhere else in the calling code.
         if block:
-            _qt_app_exec(QApplication.instance())
+            _qt_block(fig)
 
 
 def _check_delayed_ssp(container):
@@ -495,24 +500,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     # make edges around checkbox areas and change already-applied projectors
     # to red
-    from ._mpl_figure import _OLD_BUTTONS
-
-    check_kwargs = dict()
-    if not _OLD_BUTTONS:
-        checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
-        check_kwargs["check_props"] = dict(facecolor=checkcolor)
-        check_kwargs["frame_props"] = dict(edgecolor="0.5", linewidth=1)
+    checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
     proj_checks = widgets.CheckButtons(
-        ax_temp, labels=labels, actives=actives, **check_kwargs
+        ax_temp,
+        labels=labels,
+        actives=actives,
+        check_props=dict(facecolor=checkcolor),
+        frame_props=dict(edgecolor="0.5", linewidth=1),
     )
-    if _OLD_BUTTONS:
-        for rect in proj_checks.rectangles:
-            rect.set_edgecolor("0.5")
-            rect.set_linewidth(1.0)
-        for ii, p in enumerate(projs):
-            if p["active"]:
-                for x in proj_checks.lines[ii]:
-                    x.set_color("#ff0000")
 
     # make minimal size
     # pass key presses from option dialog over
@@ -877,6 +872,8 @@ def _find_peaks(evoked, npeaks):
 
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
+    from scipy.signal import argrelmax
+
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:
@@ -934,7 +931,7 @@ def plot_sensors(
     ch_groups=None,
     to_sphere=True,
     axes=None,
-    block=False,
+    block=None,
     show=True,
     sphere=None,
     pointsize=None,
@@ -985,11 +982,17 @@ def plot_sensors(
     %(axes_montage)s
 
         .. versionadded:: 0.13.0
-    block : bool
-        Whether to halt program execution until the figure is closed. Defaults
-        to False.
+    block : bool | None
+        Whether to halt program execution until the figure is closed. By default
+        (``None``) this follows :func:`matplotlib.pyplot.show`: it blocks unless
+        Matplotlib's interactive mode is on (see :func:`matplotlib.pyplot.ion`), in
+        which case it returns immediately. Set to ``True`` to force blocking, which is
+        useful with ``kind="select"`` to collect the interactive selection synchronously
+        when interactive mode is on.
 
         .. versionadded:: 0.13.0
+        .. versionchanged:: 1.13
+           The default changed from ``False`` to ``None`` (follow Matplotlib).
     show : bool
         Show figure if True. Defaults to True.
     %(sphere_topomap_auto)s
@@ -1400,7 +1403,9 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
-            ixs_epochs = np.random.choice(range(len(inst)), n_epochs, False)
+            ixs_epochs = np.random.default_rng().choice(
+                len(inst), n_epochs, replace=False
+            )
             inst = inst.copy()[ixs_epochs].load_data()
     else:
         data = inst._data
@@ -1654,7 +1659,6 @@ class SelectFromCollection:
         from matplotlib.widgets import LassoSelector
 
         self.fig = ax.figure
-        self.canvas = ax.figure.canvas
         self.collection = collection
         self.names = names
         self.alpha_selected = alpha_selected
@@ -1691,7 +1695,10 @@ class SelectFromCollection:
 
         # Initialize the lasso selector
         self.lasso = LassoSelector(
-            ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
+            ax,
+            onselect=self.on_select,
+            props=dict(color="red", linewidth=0.5),
+            **_BLIT_KWARGS,
         )
         self.selection = list()
         self.selection_inds = np.array([], dtype="int")
@@ -1717,14 +1724,14 @@ class SelectFromCollection:
 
         # Don't respond to single clicks without extra keys being hold down.
         # Figures like plot_evoked_topo want to do something else with them.
-        if len(verts) <= 3 and self.canvas._key not in ["control", "ctrl+shift"]:
+        if len(verts) <= 3 and self.fig.canvas._key not in ["control", "ctrl+shift"]:
             return
 
         path = Path(verts)
         inds = np.nonzero([path.intersects_path(p) for p in self.paths])[0]
-        if self.canvas._key == "control":  # Appending selection.
+        if self.fig.canvas._key == "control":  # Appending selection.
             self.selection_inds = np.union1d(self.selection_inds, inds).astype("int")
-        elif self.canvas._key == "ctrl+shift":
+        elif self.fig.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, inds).astype("int")
         else:
             self.selection_inds = inds
@@ -1734,9 +1741,9 @@ class SelectFromCollection:
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
-        if self.canvas._key == "control":
+        if self.fig.canvas._key == "control":
             self.selection_inds = np.union1d(self.selection_inds, [ind])
-        elif self.canvas._key == "ctrl+shift":
+        elif self.fig.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, [ind])
         else:
             return  # don't notify()
@@ -1763,7 +1770,7 @@ class SelectFromCollection:
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.collection.set_linewidths(self.lw)
-        self.canvas.draw_idle()
+        self.fig.canvas.draw_idle()
 
     def disconnect(self):
         """Disconnect the lasso selector."""
@@ -1772,7 +1779,7 @@ class SelectFromCollection:
         self.ec[:, -1] = self.alpha_selected
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
-        self.canvas.draw_idle()
+        self.fig.canvas.draw_idle()
 
 
 def _get_color_list(*, remove=None):
@@ -1802,6 +1809,28 @@ def _get_color_list(*, remove=None):
             logger.debug(f"Removing from color cycle: {colors[idx]}")
             colors.pop(idx)
     return colors
+
+
+# sRGB -> LMS and LMS -> Oklab. Adapted from https://bottosson.github.io/posts/oklab/
+# by Björn Ottosson, released to the public domain (or MIT), BSD-compatible
+_M_SRGB_TO_LMS = np.array(
+    [
+        [0.4122214708, 0.5363325363, 0.0514459929],
+        [0.2119034982, 0.6806995451, 0.1073969566],
+        [0.0883024619, 0.2817188376, 0.6299787005],
+    ]
+)
+_V_LMS_TO_OKLAB_L = np.array([0.2104542553, 0.7936177850, -0.0040720468])
+
+
+def _is_dark(color, *, name="color"):
+    """Check whether a background color calls for light foreground colors."""
+    # Oklab lightness below 0.5, which is what mne-qt-browser uses
+    rgb = np.array(_to_rgb(color, name=name), float)
+    mask = rgb > 0.04045  # sRGB -> linear sRGB
+    rgb[mask] = ((rgb[mask] + 0.055) / 1.055) ** 2.4
+    rgb[~mask] /= 12.92
+    return bool(_V_LMS_TO_OKLAB_L @ np.cbrt(_M_SRGB_TO_LMS @ rgb) < 0.5)
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):
@@ -1921,7 +1950,7 @@ def _setup_ax_spines(
 
         def log_fix(tval):
             exp = np.log10(np.abs(tval))
-            return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
+            return np.sign(tval) * 10 ** (np.trunc(exp) - (exp < 0))
 
         xlims = np.array([xmin, xmax])
         temp_ticks = log_fix(xlims)
@@ -2041,13 +2070,13 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True, nave=1
 def _check_sss(info):
     """Check SSS history in info."""
     ch_used = [ch for ch in _DATA_CH_TYPES_SPLIT if _contains_ch_type(info, ch)]
-    has_meg = "mag" in ch_used and "grad" in ch_used
-    has_sss = (
-        has_meg
+    has_mag_and_grad = "mag" in ch_used and "grad" in ch_used
+    needs_meg_combined = (
+        has_mag_and_grad
         and len(info["proc_history"]) > 0
         and info["proc_history"][0].get("max_info") is not None
     )
-    return ch_used, has_meg, has_sss
+    return ch_used, has_mag_and_grad, needs_meg_combined
 
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
@@ -2057,22 +2086,28 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
     # Only look at good channels
     picks = _pick_data_channels(info, with_ref_meg=False, exclude="bads")
     info = pick_info(info, picks)
-    ch_used, has_meg, has_sss = _check_sss(info)
-    if has_sss:
+    ch_used, has_mag_and_grad, needs_meg_combined = _check_sss(info)
+    if needs_meg_combined:
         if "mag" in rank or "grad" in rank:
             raise ValueError(
                 'When using SSS, pass "meg" to set the rank '
                 '(separate rank values for "mag" or "grad" are '
                 "meaningless)."
             )
+        meg_combined = True
     elif "meg" in rank:
-        raise ValueError(
-            "When not using SSS, pass separate rank values "
-            'for "mag" and "grad" (do not use "meg").'
-        )
+        if needs_meg_combined:
+            start = "SSS has been applied to data"
+        else:
+            start = "Got a single MEG rank value"
+        logger.info("%s. Showing mag and grad whitening jointly.", start)
+        meg_combined = True
+    else:
+        meg_combined = False
+    del needs_meg_combined
 
-    picks_list = _picks_by_type(info, meg_combined=has_sss)
-    if has_sss:
+    picks_list = _picks_by_type(info, meg_combined=meg_combined)
+    if meg_combined:
         # reduce ch_used to combined mag grad
         ch_used = list(zip(*picks_list))[0]
     # order pick list by ch_used (required for compat with plot_evoked)
@@ -2083,7 +2118,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
 
     picks_list2 = [k for k in picks_list]
     # add meg picks if needed.
-    if has_meg:
+    if has_mag_and_grad:
         # append ("meg", picks_meg)
         picks_list2 += _picks_by_type(info, meg_combined=True)
 
@@ -2116,7 +2151,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 this_rank[ch_type] = rank[ch_type]
 
         rank_list.append(this_rank)
-    return n_ch_used, rank_list, picks_list, has_sss
+    return n_ch_used, rank_list, picks_list, meg_combined
 
 
 def _check_cov(noise_cov, info):
@@ -2856,3 +2891,34 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 f"No plottable channel types found. Allowed types are: {allowed_types}"
             )
     return ch_type
+
+
+def _normalize_annotation_colors(annotation_colors, annotations):
+    """Normalize annotation_colors and check that keys match annotation descriptions.
+
+    Parameters
+    ----------
+    annotation_colors : dict[str, color]
+        The annotation colors to normalize (``color`` can be any valid Matplotlib color
+        specification).
+    annotations : mne.Annotations
+        The Annotations object to check against.
+    """
+    from matplotlib.colors import to_hex
+
+    _validate_type(annotation_colors, dict, "annotation_colors")
+    normalized = {}
+    for k, v in annotation_colors.items():
+        try:
+            normalized[k] = to_hex(v)
+        except ValueError:
+            raise ValueError(
+                f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
+            ) from None
+    unknown = set(normalized) - set(annotations.description)
+    if unknown:
+        warn(
+            "The following annotation_colors keys do not match any annotation "
+            f"description in the data: {sorted(unknown)}"
+        )
+    return normalized

@@ -1,0 +1,3 @@
+Fixed incorrect label orientation for nodes in the 0–90° polar range (the
+12–3 o'clock quadrant) of the connectivity circle plot, by
+:newcontrib:`Pavel Popov`.

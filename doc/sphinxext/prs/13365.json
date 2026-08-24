@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "a07f970945aa36fc484bcd6ce88ce35f20a19a44",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com",
+      "l": "scott-huberty"
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

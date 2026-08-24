@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "0b0d5eaa48752ddbbbd1b41d04a835e03472983c",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": "39504233+meeseeksmachine@users.noreply.github.com",
+      "l": "meeseeksmachine"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

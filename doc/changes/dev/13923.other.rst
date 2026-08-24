@@ -1,0 +1,1 @@
+Convert non-empty ``drop_log`` entries from ``numpy.str_`` to regular Python strings, by `Clemens Brunner`_.

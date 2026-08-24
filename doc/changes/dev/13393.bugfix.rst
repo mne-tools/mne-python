@@ -1,1 +1,0 @@
-Make decoding classes sklearn-compliant, by `Gennadiy Belonosov`_.

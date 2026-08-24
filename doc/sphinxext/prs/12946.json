@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b903219c44ea2788cdb9d107515ab67c9e06bca6",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/.gitignore": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/12946.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/eyetracking/eyetracking.py": {
+      "a": 116,
+      "d": 2
+    },
+    "mne/preprocessing/eyetracking/tests/test_eyetracking.py": {
+      "a": 38,
+      "d": 0
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 21,
+      "d": 6
+    }
+  }
+}

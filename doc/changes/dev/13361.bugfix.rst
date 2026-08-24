@@ -1,8 +1,0 @@
-``model`` parameter of :class:`mne.decoding.LinearModel` 
-will not be modified, use ``model_`` attribute to access the fitted model.
-To be compatible with all MNE-Python versions you can use 
-``getattr(clf, "model_", getattr(clf, "model"))``
-The provided ``model`` is expected to be a supervised predictor, 
-i.e. classifier or regressor (or :class:`sklearn.multiclass.OneVsRestClassifier`), 
-otherwise an error will be raised.
-by `Gennadiy Belonosov`_.

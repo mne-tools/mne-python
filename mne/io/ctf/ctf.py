@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import os
+from pathlib import Path
 
 import numpy as np
 
@@ -30,7 +31,11 @@ from .trans import _make_ctf_coord_trans_set
 
 @fill_doc
 def read_raw_ctf(
-    directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
+    directory: Path | str,
+    system_clock: str = "truncate",
+    preload: bool | str = False,
+    clean_names: bool = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawCTF":
     """Raw object from CTF directory.
 
@@ -44,7 +49,7 @@ def read_raw_ctf(
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
     %(preload)s
-    clean_names : bool, optional
+    clean_names : bool
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
     %(verbose)s
@@ -86,7 +91,7 @@ class RawCTF(BaseRaw):
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
     %(preload)s
-    clean_names : bool, optional
+    clean_names : bool
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
     %(verbose)s
@@ -207,7 +212,7 @@ class RawCTF(BaseRaw):
                     pos += np.int64(samp_offset) * si["n_chan"] * 4
                 fid.seek(pos, 0)
                 this_data = np.fromfile(fid, ">i4", count=si["n_chan"] * n_read)
-                this_data.shape = (si["n_chan"], n_read)
+                this_data = this_data.reshape((si["n_chan"], n_read), copy=False)
                 this_data = this_data[:, r_lims[bi, 0] : r_lims[bi, 1]]
                 data_view = data[:, d_lims[bi, 0] : d_lims[bi, 1]]
                 _mult_cal_one(data_view, this_data, idx, cals, mult)

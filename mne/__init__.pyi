@@ -11,6 +11,7 @@ __all__ = [
     "Evoked",
     "EvokedArray",
     "Forward",
+    "HEDAnnotations",
     "Info",
     "Label",
     "MixedSourceEstimate",
@@ -31,6 +32,7 @@ __all__ = [
     "apply_forward_raw",
     "average_forward_solutions",
     "beamformer",
+    "bem",
     "channel_indices_by_type",
     "channel_type",
     "channels",
@@ -180,6 +182,7 @@ __all__ = [
     "sys_info",
     "time_frequency",
     "transform_surface_to",
+    "transforms",
     "use_coil_def",
     "use_log_level",
     "verbose",
@@ -203,6 +206,7 @@ __all__ = [
 ]
 from . import (
     beamformer,
+    bem,
     channels,
     chpi,
     commands,
@@ -228,6 +232,7 @@ from . import (
     stats,
     surface,
     time_frequency,
+    transforms,
     viz,
 )
 from ._fiff.meas_info import Info, create_info
@@ -260,6 +265,7 @@ from ._freesurfer import (
 )
 from .annotations import (
     Annotations,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     events_from_annotations,

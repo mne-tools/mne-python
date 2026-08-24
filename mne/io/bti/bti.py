@@ -6,6 +6,8 @@ import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -547,7 +549,7 @@ def _read_config(fname):
 
             cfg["chs"] += [ch]
             _correct_offset(fid)  # before and after
-            dta = dict()
+            dta: dict[str, Any] = dict()
             if ch["ch_type"] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
                 dev = {
                     "device_info": read_dev_header(fid),
@@ -1041,7 +1043,7 @@ class RawBTi(BaseRaw):
                     block = np.fromfile(fid, dtype, count)
                 sample_stop = sample_start + count // n_channels
                 shape = (sample_stop - sample_start, bti_info["total_chans"])
-                block.shape = shape
+                block = block.reshape(shape, copy=False)
                 data_view = data[:, sample_start:sample_stop]
                 one = np.empty(block.shape[::-1])
 
@@ -1055,7 +1057,7 @@ def _1020_names():
     from mne.channels import make_standard_montage
 
     return set(
-        ch_name.lower() for ch_name in make_standard_montage("standard_1005").ch_names
+        ch_name.lower() for ch_name in make_standard_montage("spherical_1005").ch_names
     )
 
 
@@ -1331,18 +1333,18 @@ def _get_bti_info(
 
 @verbose
 def read_raw_bti(
-    pdf_fname,
-    config_fname="config",
-    head_shape_fname="hs_file",
-    rotation_x=0.0,
-    translation=(0.0, 0.02, 0.11),
-    convert=True,
-    rename_channels=True,
-    sort_by_ch_name=True,
-    ecg_ch="E31",
-    eog_ch=("E63", "E64"),
-    preload=False,
-    verbose=None,
+    pdf_fname: Path | str,
+    config_fname: Path | str = "config",
+    head_shape_fname: Path | str | None = "hs_file",
+    rotation_x: float = 0.0,
+    translation: np.ndarray | tuple | list = (0.0, 0.02, 0.11),
+    convert: bool = True,
+    rename_channels: bool = True,
+    sort_by_ch_name: bool = True,
+    ecg_ch: str | None = "E31",
+    eog_ch: tuple[str, ...] | None = ("E63", "E64"),
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 

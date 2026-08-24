@@ -5,12 +5,14 @@
 import os
 import shutil
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from inspect import getfullargspec
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
@@ -18,6 +20,7 @@ from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (
     ContainsMixin,
+    Info,
     SetChannelsMixin,
     _ensure_infos_match,
     _unit2human,
@@ -56,7 +59,7 @@ from ..annotations import (
     _write_annotations,
 )
 from ..channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
-from ..defaults import _handle_default
+from ..defaults import _RAW_CLIP_DEF, _handle_default
 from ..event import concatenate_events, find_events
 from ..filter import (
     FilterMixin,
@@ -70,7 +73,6 @@ from ..filter import (
 from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
-from ..time_frequency.tfr import RawTFR
 from ..utils import (
     SizeMixin,
     TimeMixin,
@@ -101,7 +103,20 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz import _RAW_CLIP_DEF, plot_raw
+from ..utils._typing import Color, Self
+
+if TYPE_CHECKING:
+    # Heavy/optional deps kept out of the runtime import path (see
+    # mne/tests/test_import_nesting.py); referenced only via string annotations.
+    from matplotlib.figure import Figure
+    from pandas import DataFrame
+
+    from ..cov import Covariance
+    from ..time_frequency.tfr import RawTFR
+
+    # The optional ``mne_qt_browser`` window subclasses the first-party
+    # ``BrowserBase``, so alias it to annotate ``.plot()`` returns without the dep.
+    from ..viz._figure import BrowserBase as MNEQtBrowser
 
 
 @fill_doc
@@ -130,11 +145,11 @@ class BaseRaw(
         on the hard drive (slower, requires less memory). If preload is an
         ndarray, the data are taken from that array. If False, data are not
         read until save.
-    first_samps : iterable
-        Iterable of the first sample number from each raw file. For unsplit raw
+    first_samps : sequence
+        Sequence of the first sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple.
-    last_samps : iterable | None
-        Iterable of the last sample number from each raw file. For unsplit raw
+    last_samps : sequence | None
+        Sequence of the last sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple. If None, then preload
         must be an ndarray.
     filenames : tuple | None
@@ -183,22 +198,24 @@ class BaseRaw(
     # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
 
     _extra_attributes = ()
+    _filenames: list[Path | None]
+    _data: np.ndarray | None
 
     @verbose
     def __init__(
         self,
-        info,
-        preload=False,
-        first_samps=(0,),
-        last_samps=None,
-        filenames=None,
-        raw_extras=(None,),
-        orig_format="double",
-        dtype=np.float64,
-        buffer_size_sec=1.0,
-        orig_units=None,
+        info: Info,
+        preload: bool | str | np.ndarray = False,
+        first_samps: Sequence | np.ndarray = (0,),
+        last_samps: Sequence | np.ndarray | None = None,
+        filenames: tuple | list | None = None,
+        raw_extras: list | tuple | None = (None,),
+        orig_format: str = "double",
+        dtype: np.dtype | type | None = np.float64,
+        buffer_size_sec: float = 1.0,
+        orig_units: dict | None = None,
         *,
-        verbose=None,
+        verbose: bool | str | int | None = None,
     ):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
@@ -281,7 +298,12 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if "STI 014" in ch_names and self.filenames[0].suffix != ".fif":
+            first_fname = self.filenames[0]
+            if (
+                "STI 014" in ch_names
+                and first_fname is not None
+                and first_fname.suffix != ".fif"
+            ):
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
@@ -307,7 +329,9 @@ class BaseRaw(
         self._init_kwargs = _get_argvalues()
 
     @verbose
-    def apply_gradient_compensation(self, grade, verbose=None):
+    def apply_gradient_compensation(
+        self, grade: int, verbose: bool | str | int | None = None
+    ) -> Self:
         """Apply CTF gradient compensation.
 
         .. warning:: The compensation matrices are stored with single
@@ -347,6 +371,7 @@ class BaseRaw(
             # We might need to apply it to our data now
             if self.preload:
                 logger.info("Applying compensator to loaded data")
+                assert self._data is not None
                 lims = np.concatenate(
                     [np.arange(0, len(self.times), 10000), [len(self.times)]]
                 )
@@ -370,15 +395,15 @@ class BaseRaw(
 
         Parameters
         ----------
-        start : int, (optional)
+        start : int
             first sample to include (first is 0). If omitted, defaults to the
             first sample in data.
-        stop : int, (optional)
+        stop : int | None
             First sample to not include.
             If omitted, data is included to the end.
-        sel : array, optional
+        sel : array | None
             Indices of channels to select.
-        data_buffer : array or str, optional
+        data_buffer : array | str | None
             numpy array to fill with data read, must have the correct shape.
             If str, a np.memmap with the correct data type will be used
             to store the data.
@@ -562,15 +587,25 @@ class BaseRaw(
             )
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith("bad"):
-                    return descr
+                    return str(descr)
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
-    def load_data(self, verbose=None):
+    def load_data(
+        self,
+        *,
+        memmap: Path | str | None = None,
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Load raw data.
 
         Parameters
         ----------
+        memmap : path-like | None
+            If not ``None``, preload data into a memory-mapped file at this
+            path. If ``None`` (default), preload data into RAM.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -586,7 +621,9 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
-            self._preload_data(True)
+            if memmap is not None:
+                _validate_type(memmap, "path-like", "memmap")
+            self._preload_data(memmap if memmap is not None else True)
         return self
 
     def _preload_data(self, preload):
@@ -609,7 +646,7 @@ class BaseRaw(
         return self.first_samp / float(self.info["sfreq"])
 
     @property
-    def first_samp(self):
+    def first_samp(self) -> int:
         """The first data sample.
 
         See :term:`first_samp`.
@@ -617,12 +654,12 @@ class BaseRaw(
         return self._cropped_samp
 
     @property
-    def first_time(self):
+    def first_time(self) -> float:
         """The first time point (including first_samp but not meas_date)."""
         return self._first_time
 
     @property
-    def last_samp(self):
+    def last_samp(self) -> int:
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
@@ -630,7 +667,12 @@ class BaseRaw(
     def _last_time(self):
         return self.last_samp / float(self.info["sfreq"])
 
-    def time_as_index(self, times, use_rounding=False, origin=None):
+    def time_as_index(
+        self,
+        times: np.ndarray | float | int | list,
+        use_rounding: bool = False,
+        origin: datetime | float | int | None = None,
+    ) -> np.ndarray:
         """Convert time to indices.
 
         Parameters
@@ -691,22 +733,29 @@ class BaseRaw(
     def filenames(self, value):
         """The filenames used, cast to list of paths."""  # noqa: D401
         _validate_type(value, (list, tuple), "filenames")
-        if isinstance(value, tuple):
-            value = list(value)
-        for k, elt in enumerate(value):
-            if elt is not None:
-                value[k] = _check_fname(elt, overwrite="read", must_exist=False)
-                if not value[k].exists():
-                    # check existence separately from _check_fname since some
-                    # fileformats use directories instead of files and '_check_fname'
-                    # does not handle it correctly.
-                    raise FileNotFoundError(f"File {value[k]} not found.")
-        self._filenames = list(value)
+        filenames: list[Path | None] = []
+        for elt in value:
+            if elt is None:
+                filenames.append(None)
+                continue
+            fname = _check_fname(elt, overwrite="read", must_exist=False)
+            if not fname.exists():
+                # check existence separately from _check_fname since some
+                # fileformats use directories instead of files and '_check_fname'
+                # does not handle it correctly.
+                raise FileNotFoundError(f"File {fname} not found.")
+            filenames.append(fname)
+        self._filenames = filenames
 
     @verbose
     def set_annotations(
-        self, annotations, emit_warning=True, on_missing="raise", *, verbose=None
-    ):
+        self,
+        annotations: Annotations | None,
+        emit_warning: bool = True,
+        on_missing: Literal["raise", "warn", "ignore"] = "raise",
+        *,
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -765,13 +814,13 @@ class BaseRaw(
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
-        if hasattr(self, "_data") and getattr(self._data, "filename", None) is not None:
+        fname = getattr(getattr(self, "_data", None), "filename", None)
+        if fname is not None:
             # First, close the file out; happens automatically on del
-            filename = self._data.filename
             del self._data
             # Now file can be removed
             try:
-                os.remove(filename)
+                os.remove(fname)
             except OSError:
                 pass  # ignore file that no longer exists
 
@@ -869,6 +918,7 @@ class BaseRaw(
     def _getitem(self, item, return_times=True):
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
+            assert self._data is not None
             data = self._data[sel, start:stop]
         else:
             data = self._read_segment(start=start, stop=stop, sel=sel)
@@ -886,6 +936,7 @@ class BaseRaw(
     def __setitem__(self, item, value):
         """Set raw data content."""
         _check_preload(self, "Modifying data of Raw")
+        assert self._data is not None
         sel, start, stop = self._parse_get_set_params(item)
         # set the data
         self._data[sel, start:stop] = value
@@ -893,17 +944,17 @@ class BaseRaw(
     @verbose
     def get_data(
         self,
-        picks=None,
-        start=0,
-        stop=None,
-        reject_by_annotation=None,
-        return_times=False,
-        units=None,
+        picks: str | np.ndarray | slice | None = None,
+        start: int = 0,
+        stop: int | None = None,
+        reject_by_annotation: Literal["omit", "NaN"] | None = None,
+        return_times: bool = False,
+        units: str | dict | None = None,
         *,
-        tmin=None,
-        tmax=None,
-        verbose=None,
-    ):
+        tmin: int | float | None = None,
+        tmax: int | float | None = None,
+        verbose: bool | str | int | None = None,
+    ) -> np.ndarray | tuple:
         """Get data in the given range.
 
         Parameters
@@ -1061,14 +1112,14 @@ class BaseRaw(
     @verbose
     def apply_function(
         self,
-        fun,
-        picks=None,
-        dtype=None,
-        n_jobs=None,
-        channel_wise=True,
-        verbose=None,
+        fun: Callable,
+        picks: str | np.ndarray | slice | None = None,
+        dtype: np.dtype | None = None,
+        n_jobs: int | None = None,
+        channel_wise: bool = True,
+        verbose: bool | str | int | None = None,
         **kwargs,
-    ):
+    ) -> Self:
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_raw)s
@@ -1092,6 +1143,7 @@ class BaseRaw(
             The raw object with transformed data.
         """
         _check_preload(self, "raw.apply_function")
+        assert self._data is not None
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -1154,22 +1206,25 @@ class BaseRaw(
     @copy_doc(FilterMixin.filter)
     def filter(
         self,
-        l_freq,
-        h_freq,
-        picks=None,
-        filter_length="auto",
-        l_trans_bandwidth="auto",
-        h_trans_bandwidth="auto",
-        n_jobs=None,
-        method="fir",
-        iir_params=None,
-        phase="zero",
-        fir_window="hamming",
-        fir_design="firwin",
-        skip_by_annotation=("edge", "bad_acq_skip"),
-        pad="reflect_limited",
-        verbose=None,
-    ):
+        l_freq: float | None,
+        h_freq: float | None,
+        picks: str | np.ndarray | slice | None = None,
+        filter_length: str | int = "auto",
+        l_trans_bandwidth: float | str = "auto",
+        h_trans_bandwidth: float | str = "auto",
+        n_jobs: int | str | None = None,
+        method: str = "fir",
+        iir_params: dict | None = None,
+        phase: str = "zero",
+        fir_window: str = "hamming",
+        fir_design: str = "firwin",
+        skip_by_annotation: str | list[str] | tuple[str, ...] = (
+            "edge",
+            "bad_acq_skip",
+        ),
+        pad: str = "reflect_limited",
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         return super().filter(
             l_freq,
             h_freq,
@@ -1191,23 +1246,26 @@ class BaseRaw(
     @verbose
     def notch_filter(
         self,
-        freqs,
-        picks=None,
-        filter_length="auto",
-        notch_widths=None,
-        trans_bandwidth=1.0,
-        n_jobs=None,
-        method="fir",
-        iir_params=None,
-        mt_bandwidth=None,
-        p_value=0.05,
-        phase="zero",
-        fir_window="hamming",
-        fir_design="firwin",
-        pad="reflect_limited",
-        skip_by_annotation=("edge", "bad_acq_skip"),
-        verbose=None,
-    ):
+        freqs: float | np.ndarray | None,
+        picks: str | np.ndarray | slice | None = None,
+        filter_length: str | int = "auto",
+        notch_widths: float | np.ndarray | None = None,
+        trans_bandwidth: float = 1.0,
+        n_jobs: int | str | None = None,
+        method: str = "fir",
+        iir_params: dict | None = None,
+        mt_bandwidth: float | None = None,
+        p_value: float = 0.05,
+        phase: str = "zero",
+        fir_window: str = "hamming",
+        fir_design: str = "firwin",
+        pad: str = "reflect_limited",
+        skip_by_annotation: str | list[str] | tuple[str, ...] = (
+            "edge",
+            "bad_acq_skip",
+        ),
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Notch filter a subset of channels.
 
         Parameters
@@ -1274,6 +1332,7 @@ class BaseRaw(
         fs = float(self.info["sfreq"])
         picks = _picks_to_idx(self.info, picks, exclude=(), none="data_or_ica")
         _check_preload(self, "raw.notch_filter")
+        assert self._data is not None
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
             "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
@@ -1303,17 +1362,17 @@ class BaseRaw(
     @verbose
     def resample(
         self,
-        sfreq,
+        sfreq: float,
         *,
-        npad="auto",
-        window="auto",
-        stim_picks=None,
-        n_jobs=None,
-        events=None,
-        pad="auto",
-        method="fft",
-        verbose=None,
-    ):
+        npad: int | str = "auto",
+        window: str | tuple = "auto",
+        stim_picks: list | None = None,
+        n_jobs: int | str | None = None,
+        events: np.ndarray | None = None,
+        pad: str = "auto",
+        method: str = "fft",
+        verbose: bool | str | int | None = None,
+    ) -> Self | tuple:
         """Resample all channels.
 
         If appropriate, an anti-aliasing filter is applied before resampling.
@@ -1432,10 +1491,12 @@ class BaseRaw(
         ratio, n_news = ratio[0], np.array(n_news, int)
         new_offsets = np.cumsum([0] + list(n_news))
         if self.preload:
+            assert self._data is not None
             new_data = np.empty((len(self.ch_names), new_offsets[-1]), self._data.dtype)
         for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
             this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
             if self.preload:
+                assert self._data is not None
                 data_chunk = self._data[:, offsets[ri] : offsets[ri + 1]]
                 new_data[:, this_sl] = resample(data_chunk, **kwargs)
                 # In empirical testing, it was faster to resample all channels
@@ -1449,7 +1510,7 @@ class BaseRaw(
             else:  # this will not be I/O efficient, but will be mem efficient
                 for ci in range(len(self.ch_names)):
                     data_chunk = self.get_data(
-                        ci, offsets[ri], offsets[ri + 1], verbose="error"
+                        np.array([ci]), offsets[ri], offsets[ri + 1], verbose="error"
                     )[0]
                     if ci == 0 and ri == 0:
                         new_data = np.empty(
@@ -1503,7 +1564,9 @@ class BaseRaw(
             return self, events
 
     @verbose
-    def rescale(self, scalings, *, verbose=None):
+    def rescale(
+        self, scalings: int | float | dict, *, verbose: bool | str | int | None = None
+    ) -> Self:
         """Rescale channels.
 
         .. warning::
@@ -1568,7 +1631,15 @@ class BaseRaw(
         return self
 
     @verbose
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
+    def crop(
+        self,
+        tmin: float = 0.0,
+        tmax: float | None = None,
+        include_tmax: bool = True,
+        *,
+        reset_first_samp: bool = False,
+        verbose: bool | str | int | None = None,
+    ) -> Self:
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1585,12 +1656,51 @@ class BaseRaw(
         %(tmin_raw)s
         %(tmax_raw)s
         %(include_tmax)s
+        reset_first_samp : bool
+            If True, reset :term:`first_samp` to 0 after cropping, treating
+            the cropped segment as an independent recording. Note that this
+            can break things if you extracted events before cropping and try
+            to use them afterward. Default is False.
+
+            .. versionadded:: 1.12
         %(verbose)s
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+
+        Notes
+        -----
+        After cropping, :term:`first_samp` is updated to reflect the new
+        start of the data, preserving the original recording timeline.
+        This means ``raw.times`` will still start at ``0.0``, but
+        ``raw.first_samp`` will reflect the offset from the original
+        recording. If you want to treat the cropped segment as an
+        independent signal with ``first_samp=0``, you can convert it
+        to a :class:`~mne.io.RawArray`::
+
+            raw_array = mne.io.RawArray(raw.get_data(), raw.info)
+
+        Examples
+        --------
+        By default, cropping preserves the original recording timeline,
+        so :term:`first_samp` remains non-zero after cropping::
+
+            >>> raw = mne.io.read_raw_fif(fname)  # doctest: +SKIP
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            25800
+            >>> raw.crop(tmin=10, tmax=20)  # doctest: +SKIP
+            >>> print(raw.first_samp)  # doctest: +SKIP
+            27810
+
+        If you want to treat the cropped segment as an independent
+        recording, use ``reset_first_samp=True``::
+
+            >>> raw2 = raw.copy().crop(tmin=10, tmax=20,
+            ...                        reset_first_samp=True)  # doctest: +SKIP
+            >>> print(raw2.first_samp)  # doctest: +SKIP
+            0
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
         if tmax is None:
@@ -1635,6 +1745,7 @@ class BaseRaw(
         self.filenames = [self.filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
+            assert self._data is not None
             self._data = self._data[:, smin : smax + 1].copy()
 
         annotations = self.annotations
@@ -1648,11 +1759,20 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
-
+        if reset_first_samp:
+            delta = self._first_samps[0]
+            self._first_samps -= delta
+            self._last_samps -= delta
+            self._cropped_samp -= delta
         return self
 
     @verbose
-    def crop_by_annotations(self, annotations=None, *, verbose=None):
+    def crop_by_annotations(
+        self,
+        annotations: Annotations | None = None,
+        *,
+        verbose: bool | str | int | None = None,
+    ) -> list:
         """Get crops of raw data file for selected annotations.
 
         Parameters
@@ -1685,19 +1805,19 @@ class BaseRaw(
     @verbose
     def save(
         self,
-        fname,
-        picks=None,
-        tmin=0,
-        tmax=None,
-        buffer_size_sec=None,
-        drop_small_buffer=False,
-        proj=False,
-        fmt="single",
-        overwrite=False,
-        split_size="2GB",
-        split_naming="neuromag",
-        verbose=None,
-    ):
+        fname: Path | str,
+        picks: str | np.ndarray | slice | None = None,
+        tmin: float = 0,
+        tmax: float | None = None,
+        buffer_size_sec: float | None = None,
+        drop_small_buffer: bool = False,
+        proj: bool = False,
+        fmt: Literal["single", "double", "int", "short"] = "single",
+        overwrite: bool = False,
+        split_size: str | int = "2GB",
+        split_naming: Literal["neuromag", "bids"] = "neuromag",
+        verbose: bool | str | int | None = None,
+    ) -> list[Path]:
         """Save raw data to file.
 
         Parameters
@@ -1755,6 +1875,7 @@ class BaseRaw(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
+
             .. versionadded:: 1.9
 
         Notes
@@ -1799,6 +1920,7 @@ class BaseRaw(
             )
 
         if self.preload:
+            assert self._data is not None
             if np.iscomplexobj(self._data):
                 warn(
                     "Saving raw file with complex data. Loading with command-line MNE "
@@ -1842,14 +1964,14 @@ class BaseRaw(
     @verbose
     def export(
         self,
-        fname,
-        fmt="auto",
-        physical_range="auto",
-        add_ch_type=False,
+        fname: str,
+        fmt: Literal["auto", "brainvision", "edf", "eeglab"] = "auto",
+        physical_range: str | tuple = "auto",
+        add_ch_type: bool = False,
         *,
-        overwrite=False,
-        verbose=None,
-    ):
+        overwrite: bool = False,
+        verbose: bool | str | int | None = None,
+    ) -> None:
         """Export Raw to external formats.
 
         %(export_fmt_support_raw)s
@@ -1900,47 +2022,53 @@ class BaseRaw(
             raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
-    @copy_function_doc_to_method_doc(plot_raw)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_raw")
     def plot(
         self,
-        events=None,
-        duration=10.0,
-        start=0.0,
-        n_channels=20,
-        bgcolor="w",
-        color=None,
-        bad_color="lightgray",
-        event_color="cyan",
-        scalings=None,
-        remove_dc=True,
-        order=None,
-        show_options=False,
-        title=None,
-        show=True,
-        block=False,
-        highpass=None,
-        lowpass=None,
-        filtorder=4,
-        clipping=_RAW_CLIP_DEF,
-        show_first_samp=False,
-        proj=True,
-        group_by="type",
-        butterfly=False,
-        decim="auto",
-        noise_cov=None,
-        event_id=None,
-        show_scrollbars=True,
-        show_scalebars=True,
-        time_format="float",
-        precompute=None,
-        use_opengl=None,
+        events: np.ndarray | None = None,
+        duration: float = 10.0,
+        start: float = 0.0,
+        n_channels: int = 20,
+        bgcolor: Color = "w",
+        color: dict | Color | None = None,
+        bad_color: Color = "lightgray",
+        event_color: Color | dict | None = "cyan",
         *,
-        picks=None,
-        theme=None,
-        overview_mode=None,
-        splash=True,
-        verbose=None,
-    ):
+        annotation_colors: dict | None = None,
+        annotation_regex: str = ".*",
+        scalings: Literal["auto"] | dict | None = None,
+        remove_dc: bool = True,
+        order: np.ndarray | None = None,
+        show_options: bool = False,
+        title: str | None = None,
+        show: bool = True,
+        block: bool = False,
+        highpass: float | None = None,
+        lowpass: float | None = None,
+        filtorder: int = 4,
+        clipping: str | float | None = _RAW_CLIP_DEF,
+        show_first_samp: bool = False,
+        proj: bool = True,
+        group_by: str = "type",
+        butterfly: bool = False,
+        decim: int | Literal["auto"] = "auto",
+        noise_cov: "Covariance | str | None" = None,
+        event_id: dict | None = None,
+        show_scrollbars: bool = True,
+        show_scalebars: bool = True,
+        show_zero_line: bool = False,
+        time_format: Literal["float", "clock"] = "float",
+        precompute: bool | str | None = None,
+        use_opengl: bool | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        theme: str | Path | None = None,
+        overview_mode: str | None = None,
+        splash: bool = True,
+        verbose: bool | str | int | None = None,
+        figure_class: type | None = None,
+    ) -> "Figure | MNEQtBrowser":
+        from ..viz import plot_raw
+
         return plot_raw(
             self,
             events,
@@ -1951,26 +2079,29 @@ class BaseRaw(
             color,
             bad_color,
             event_color,
-            scalings,
-            remove_dc,
-            order,
-            show_options,
-            title,
-            show,
-            block,
-            highpass,
-            lowpass,
-            filtorder,
-            clipping,
-            show_first_samp,
-            proj,
-            group_by,
-            butterfly,
-            decim,
+            annotation_colors=annotation_colors,
+            annotation_regex=annotation_regex,
+            scalings=scalings,
+            remove_dc=remove_dc,
+            order=order,
+            show_options=show_options,
+            title=title,
+            show=show,
+            block=block,
+            highpass=highpass,
+            lowpass=lowpass,
+            filtorder=filtorder,
+            clipping=clipping,
+            show_first_samp=show_first_samp,
+            proj=proj,
+            group_by=group_by,
+            butterfly=butterfly,
+            decim=decim,
             noise_cov=noise_cov,
             event_id=event_id,
             show_scrollbars=show_scrollbars,
             show_scalebars=show_scalebars,
+            show_zero_line=show_zero_line,
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
@@ -1979,27 +2110,28 @@ class BaseRaw(
             overview_mode=overview_mode,
             splash=splash,
             verbose=verbose,
+            figure_class=figure_class,
         )
 
     @property
-    def ch_names(self):
+    def ch_names(self) -> list[str]:
         """Channel names."""
         return self.info["ch_names"]
 
     @property
-    def times(self):
+    def times(self) -> np.ndarray:
         """Time points."""
         out = _arange_div(self.n_times, float(self.info["sfreq"]))
         out.flags["WRITEABLE"] = False
         return out
 
     @property
-    def n_times(self):
+    def n_times(self) -> int:
         """Number of time points."""
         return self.last_samp - self.first_samp + 1
 
     @property
-    def duration(self):
+    def duration(self) -> float:
         """Duration of the data in seconds.
 
         .. versionadded:: 1.9
@@ -2024,7 +2156,12 @@ class BaseRaw(
         return self.n_times
 
     @verbose
-    def load_bad_channels(self, bad_file=None, force=False, verbose=None):
+    def load_bad_channels(
+        self,
+        bad_file: Path | str | None = None,
+        force: bool = False,
+        verbose: bool | str | int | None = None,
+    ) -> None:
         """Mark channels as bad from a text file.
 
         This function operates mostly in the style of the C function
@@ -2070,7 +2207,9 @@ class BaseRaw(
             logger.info(f"No channels updated. Bads are: {prev_bads}")
 
     @fill_doc
-    def append(self, raws, preload=None):
+    def append(
+        self, raws: "BaseRaw | list[BaseRaw]", preload: bool | str | None = None
+    ) -> None:
         """Concatenate raw instances as if they were continuous.
 
         .. note:: Boundaries of the raw files are annotated bad. If you wish to
@@ -2085,16 +2224,18 @@ class BaseRaw(
             (in order), or a single raw instance to concatenate.
         %(preload_concatenate)s
         """
-        if not isinstance(raws, list):
-            raws = [raws]
+        if isinstance(raws, BaseRaw):
+            raw_list: list[BaseRaw] = [raws]
+        else:
+            raw_list = raws
 
         # make sure the raws are compatible
-        all_raws = [self]
-        all_raws += raws
+        all_raws: list = [self]
+        all_raws += raw_list
         _check_raw_compatibility(all_raws)
 
         # deal with preloading data first (while files are separate)
-        all_preloaded = self.preload and all(r.preload for r in raws)
+        all_preloaded = self.preload and all(r.preload for r in raw_list)
         if preload is None:
             if all_preloaded:
                 preload = True
@@ -2108,7 +2249,7 @@ class BaseRaw(
         else:
             # do the concatenation ourselves since preload might be a string
             nchan = self.info["nchan"]
-            c_ns = np.cumsum([rr.n_times for rr in ([self] + raws)])
+            c_ns = np.cumsum([rr.n_times for rr in ([self] + raw_list)])
             nsamp = c_ns[-1]
 
             if not self.preload:
@@ -2116,17 +2257,18 @@ class BaseRaw(
             else:
                 this_data = self._data
 
+            assert this_data is not None
             # allocate the buffer
             _data = _allocate_data(preload, (nchan, nsamp), this_data.dtype)
             _data[:, 0 : c_ns[0]] = this_data
 
-            for ri in range(len(raws)):
-                if not raws[ri].preload:
+            for ri in range(len(raw_list)):
+                if not raw_list[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri] : c_ns[ri + 1]]
-                    raws[ri]._read_segment(data_buffer=data_buffer)
+                    raw_list[ri]._read_segment(data_buffer=data_buffer)
                 else:
-                    _data[:, c_ns[ri] : c_ns[ri + 1]] = raws[ri]._data
+                    _data[:, c_ns[ri] : c_ns[ri + 1]] = raw_list[ri]._data
             self._data = _data
             self.preload = True
 
@@ -2134,7 +2276,7 @@ class BaseRaw(
         annotations = self.annotations
         assert annotations.orig_time == self.info["meas_date"]
         edge_samps = list()
-        for ri, r in enumerate(raws):
+        for ri, r in enumerate(raw_list):
             edge_samps.append(self.last_samp - self.first_samp + 1)
             annotations = _combine_annotations(
                 annotations,
@@ -2173,7 +2315,7 @@ class BaseRaw(
         ):
             raise RuntimeError("Append error")  # should never happen
 
-    def close(self):
+    def close(self) -> None:
         """Clean up the object.
 
         Does nothing for objects that close their file descriptors.
@@ -2181,12 +2323,12 @@ class BaseRaw(
         """
         pass  # noqa
 
-    def copy(self):
-        """Return copy of Raw instance.
+    def copy(self) -> Self:
+        """Return copy of the instance.
 
         Returns
         -------
-        inst : instance of Raw
+        inst : same type as the input data
             A copy of the instance.
         """
         return deepcopy(self)
@@ -2222,7 +2364,12 @@ class BaseRaw(
         minutes, seconds = divmod(remainder, 60)
         return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
-    def add_events(self, events, stim_channel=None, replace=False):
+    def add_events(
+        self,
+        events: np.ndarray,
+        stim_channel: str | None = None,
+        replace: bool = False,
+    ) -> None:
         """Add events to stim channel.
 
         Parameters
@@ -2262,6 +2409,7 @@ class BaseRaw(
             )
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
+        assert self._data is not None
         if replace:
             self._data[pick, :] = 0.0
         self._data[pick, idx - self.first_samp] += events[:, 2]
@@ -2276,21 +2424,21 @@ class BaseRaw(
     @verbose
     def compute_psd(
         self,
-        method="welch",
-        fmin=0,
-        fmax=np.inf,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        exclude=(),
-        proj=False,
-        remove_dc=True,
-        reject_by_annotation=True,
+        method: Literal["welch", "multitaper"] = "welch",
+        fmin: float = 0,
+        fmax: float = np.inf,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | tuple[str, ...] | Literal["bads"] = (),
+        proj: bool = False,
+        remove_dc: bool = True,
+        reject_by_annotation: bool = True,
         *,
-        n_jobs=1,
-        verbose=None,
+        n_jobs: int | None = 1,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> Spectrum:
         """Perform spectral analysis on sensor data.
 
         Parameters
@@ -2346,20 +2494,20 @@ class BaseRaw(
     @verbose
     def compute_tfr(
         self,
-        method,
-        freqs,
+        method: Literal["morlet", "multitaper"] | None,
+        freqs: np.ndarray | None,
         *,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=False,
-        output="power",
-        reject_by_annotation=True,
-        decim=1,
-        n_jobs=None,
-        verbose=None,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        picks: str | np.ndarray | slice | None = None,
+        proj: bool = False,
+        output: str = "power",
+        reject_by_annotation: bool = True,
+        decim: int | slice = 1,
+        n_jobs: int | None = None,
+        verbose: bool | str | int | None = None,
         **method_kw,
-    ):
+    ) -> "RawTFR":
         """Compute a time-frequency representation of sensor data.
 
         Parameters
@@ -2389,6 +2537,8 @@ class BaseRaw(
         ----------
         .. footbibliography::
         """
+        from ..time_frequency.tfr import RawTFR
+
         _check_option("output", output, ("power", "phase", "complex"))
         method_kw["output"] = output
         return RawTFR(
@@ -2409,22 +2559,26 @@ class BaseRaw(
     @verbose
     def to_data_frame(
         self,
-        picks=None,
-        index=None,
-        scalings=None,
-        copy=True,
-        start=None,
-        stop=None,
-        long_format=False,
-        time_format=None,
+        picks: str | np.ndarray | slice | None = None,
+        index: Literal["time"] | None = None,
+        scalings: dict | None = None,
+        copy: bool = True,
+        start: int | None = None,
+        stop: int | None = None,
+        long_format: bool = False,
+        time_format: str | None = None,
         *,
-        verbose=None,
-    ):
+        verbose: bool | str | int | None = None,
+    ) -> "DataFrame":
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default, an
         additional column "time" is added, unless ``index`` is not ``None``
         (in which case time values form the DataFrame's index).
+
+        .. attention:: By default, returned data values are scaled from
+            SI units to a unit more suitable for plotting or statistical modeling.
+            See the description of the ``scalings`` parameter for details.
 
         Parameters
         ----------
@@ -2469,7 +2623,10 @@ class BaseRaw(
         # prepare extra columns / multiindex
         mindex = list()
         times = _convert_times(
-            times, time_format, self.info["meas_date"], self.first_time
+            times,
+            time_format,
+            meas_date=self.info["meas_date"],
+            first_time=self.first_time,
         )
         mindex.append(("time", times))
         # build DataFrame
@@ -2478,7 +2635,7 @@ class BaseRaw(
         )
         return df
 
-    def describe(self, data_frame=False):
+    def describe(self, data_frame: bool = False) -> "DataFrame | None":
         """Describe channels (name, type, descriptive statistics).
 
         Parameters
@@ -2713,6 +2870,11 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
+    # attributes populated externally (e.g. by the FIF reader)
+    info: Info
+    orig_format: str | None
+    _raw_extras: dict[str, Any]
+
     def __init__(self):
         self.first_samp = None
         self.last_samp = None
@@ -2723,6 +2885,8 @@ class _RawShell:
 
     @property
     def n_times(self):  # noqa: D102
+        assert self.first_samp is not None
+        assert self.last_samp is not None
         return self.last_samp - self.first_samp + 1
 
     @property
@@ -3104,8 +3268,11 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
-        if not isinstance(raw[ri], type(raw[0])):
-            raise ValueError(f"raw[{ri}] type must match")
+        if not isinstance(raw[ri], (BaseRaw, _RawShell)):
+            raise ValueError(
+                f"raw[{ri}] type must match raw[0]: expected BaseRaw, got "
+                f"{type(raw[ri]).__name__}"
+            )
         for key in ("nchan", "sfreq"):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
@@ -3118,7 +3285,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
+                    f"raw[{ri}].info[{kind}] must match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError(f"raw[{ri}]._cals must match")
@@ -3139,15 +3306,21 @@ def _check_raw_compatibility(raw):
 
 @verbose
 def concatenate_raws(
-    raws, preload=None, events_list=None, *, on_mismatch="raise", verbose=None
-):
+    raws: list,
+    preload: bool | str | None = None,
+    events_list: list | None = None,
+    *,
+    on_mismatch: Literal["raise", "warn", "ignore"] = "raise",
+    verbose: bool | str | int | None = None,
+) -> "BaseRaw | tuple":
     """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
-    .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
-              Boundaries of the raw files are annotated bad. If you wish to use
-              the data as continuous recording, you can remove the boundary
-              annotations after concatenation (see
-              :meth:`mne.Annotations.delete`).
+    .. note:: If all ``raws`` have the same type, ``raws[0]`` is modified in-place to
+              achieve the concatenation. If the types differ, a new
+              :class:`~mne.io.RawArray` is returned and all data are preloaded
+              automatically. Boundaries of the raw files are annotated bad. If you wish
+              to use the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------
@@ -3162,7 +3335,9 @@ def concatenate_raws(
     Returns
     -------
     raw : instance of Raw
-        The result of the concatenation (first Raw instance passed in).
+        The result of the concatenation. If all ``raws`` have the same type, the first
+        Raw instance passed in is returned (modified in-place). If the types differ, a
+        new :class:`~mne.io.RawArray` is returned.
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
@@ -3181,16 +3356,28 @@ def concatenate_raws(
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)
+
+    if not all(type(r) is type(raws[0]) for r in raws[1:]):
+        from .array import RawArray
+
+        raws = list(raws)  # local copy of list
+        if not raws[0].preload:
+            raws[0].load_data()
+        annotations = raws[0].annotations
+        raws[0] = RawArray(raws[0]._data, raws[0].info, first_samp=raws[0].first_samp)
+        raws[0].set_annotations(annotations)
+        preload = True
     raws[0].append(raws[1:], preload)
+    out = raws[0]
 
     if events_list is None:
-        return raws[0]
+        return out
     else:
-        return raws[0], events
+        return out, events
 
 
 @fill_doc
-def match_channel_orders(insts, copy=True):
+def match_channel_orders(insts: list, copy: bool = True) -> list:
     """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters

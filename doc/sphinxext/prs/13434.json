@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4fdde3a1cc87c66263d9b0c663d6a81abfcd89b5",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 7,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

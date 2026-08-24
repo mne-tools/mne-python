@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.io import read_raw_artemis123
 from mne.io.artemis123.utils import _generate_mne_locs_file, _load_mne_locs
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.transforms import _angle_between_quats, rot_to_quat
+from mne.utils._testing import assert_trans_allclose
 
 artemis123_dir = testing.data_path(download=False) / "ARTEMIS123"
 short_HPI_dip_fname = (
@@ -28,20 +28,10 @@ short_hpi_1kz_fname = (
 # (old or new)
 def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.0):
     __tracebackhide__ = True
-    trans_est = actual[0:3, 3]
-    quat_est = rot_to_quat(actual[0:3, 0:3])
-    trans = desired[0:3, 3]
-    quat = rot_to_quat(desired[0:3, 0:3])
-
-    angle = np.rad2deg(_angle_between_quats(quat_est, quat))
-    dist = np.linalg.norm(trans - trans_est)
-    assert dist <= dist_tol, (
-        f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
-    )
-    assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"
+    # To minimize diff, keep this trivial wrapper
+    assert_trans_allclose(actual, desired, dist_tol=dist_tol, angle_tol=angle_tol)
 
 
-@pytest.mark.timeout(60)  # ~25 s on Travis Linux OpenBLAS
 @testing.requires_testing_data
 def test_artemis_reader():
     """Test reading raw Artemis123 files."""
@@ -49,6 +39,7 @@ def test_artemis_reader():
         read_raw_artemis123,
         input_fname=short_hpi_1kz_fname,
         pos_fname=dig_fname,
+        add_head_trans=False,
         verbose="error",
     )
 

@@ -2,13 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations
-
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
@@ -25,11 +24,6 @@ from ...utils import (
 )
 from ..base import BaseRaw
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    from numpy.typing import NDArray
-
 _UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
 
@@ -39,7 +33,7 @@ class RawANT(BaseRaw):
 
     Parameters
     ----------
-    fname : file-like
+    fname : path-like
         Path to the ANT raw file to load. The file should have the extension ``.cnt``.
     eog : str | None
         Regex pattern to find EOG channel labels. If None, no EOG channels are
@@ -95,7 +89,7 @@ class RawANT(BaseRaw):
         impedance_annotation: str,
         *,
         encoding: str = "latin-1",
-        preload: bool | NDArray,
+        preload: bool | str | NDArray,
         verbose=None,
     ) -> None:
         logger.info("Reading ANT file %s", fname)
@@ -227,13 +221,13 @@ def _parse_ch_types(
     ch_names: list[str], eog: str | None, misc: str | None, ch_refs: list[str]
 ) -> list[str]:
     """Parse the channel types."""
-    eog = re.compile(eog) if eog is not None else None
-    misc = re.compile(misc) if misc is not None else None
+    eog_re = re.compile(eog) if eog is not None else None
+    misc_re = re.compile(misc) if misc is not None else None
     ch_types = []
     for ch in ch_names:
-        if eog is not None and re.fullmatch(eog, ch):
+        if eog_re is not None and re.fullmatch(eog_re, ch):
             ch_types.append("eog")
-        elif misc is not None and re.fullmatch(misc, ch):
+        elif misc_re is not None and re.fullmatch(misc_re, ch):
             ch_types.append("misc")
         else:
             ch_types.append("eeg")
@@ -305,15 +299,15 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
 
 @copy_doc(RawANT)
 def read_raw_ant(
-    fname,
-    eog=None,
-    misc=r"BIP\d+",
-    bipolars=None,
-    impedance_annotation="impedance",
+    fname: Path | str,
+    eog: str | None = None,
+    misc: str | None = r"BIP\d+",
+    bipolars: list[str] | tuple[str, ...] | None = None,
+    impedance_annotation: str = "impedance",
     *,
     encoding: str = "latin-1",
-    preload=False,
-    verbose=None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawANT:
     """
     Returns

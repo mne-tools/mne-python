@@ -6,3 +6,7 @@ ignore: |
 rules:
   line-length: disable
   document-start: disable
+  new-lines:
+    type: platform
+  indentation:
+    indent-sequences: consistent

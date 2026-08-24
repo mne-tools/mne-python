@@ -22,13 +22,89 @@ inputs will be memcopied.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import contextlib
 import functools
+import os
 
 import numpy as np
 from scipy import linalg
 from scipy._lib._util import _asarray_validated
 
 from ..fixes import _safe_svd
+
+###############################################################################
+# BLAS thread limiting
+
+# Setting any of these means the user has already expressed a preference
+_BLAS_THREAD_ENV_VARS = (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "BLIS_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+)
+# Measured optima across the machines in gh-13766 range from 1 to 8 depending on CPU and
+# BLAS, but 3 is within ~11% of the best on all of them, and unlike a larger cap it
+# leaves a core free on 4-core machines.
+_MAX_BLAS_THREADS = 3
+
+
+@functools.cache
+def _blas_thread_controller():
+    """Get a cached controller, or None if we should not touch thread counts."""
+    # Constructing one rescans the process's shared libraries (~120 us); reusing it
+    # drops enter/exit to ~3 us, hence the cache. It still reports live thread counts,
+    # so caching does not stale the checks in _limit_blas_threads.
+    try:
+        from threadpoolctl import ThreadpoolController
+    except Exception:  # not a required dependency
+        return None
+    controller = ThreadpoolController()
+    # Accelerate has no working control, so there is nothing to limit
+    if not any(
+        pool["internal_api"] in ("openblas", "mkl") for pool in controller.info()
+    ):
+        return None
+    return controller
+
+
+def _n_available_cpus():
+    """Get the number of CPUs this process may actually use."""
+    # TODO VERSION: drop both fallbacks once Python 3.13 is the minimum
+    if (process_cpu_count := getattr(os, "process_cpu_count", None)) is not None:
+        # preferred: affinity-aware everywhere, and honors -X cpu_count and
+        # PYTHON_CPU_COUNT, which gives users a documented override
+        return process_cpu_count() or 1
+    if (sched_getaffinity := getattr(os, "sched_getaffinity", None)) is not None:
+        return len(sched_getaffinity(0))  # Linux only
+    return os.cpu_count() or 1
+
+
+@contextlib.contextmanager
+def _limit_blas_threads():
+    """Cap BLAS threads around decomposition-heavy code (gh-13766).
+
+    Works as a context manager or as a decorator. Yields immediately, leaving thread
+    counts untouched, whenever the user has expressed their own preference or the BLAS
+    in use cannot be controlled.
+    """
+    controller = _blas_thread_controller()
+    if controller is None or any(os.getenv(var) for var in _BLAS_THREAD_ENV_VARS):
+        yield
+        return
+    n_cpus = _n_available_cpus()
+    # a pool already below the machine size means something else is managing threads
+    if any(pool["num_threads"] < n_cpus for pool in controller.info()):
+        yield
+        return
+    # limit every API rather than just user_api="blas": OpenBLAS built against
+    # OpenMP silently ignores the BLAS-level call before OpenBLAS 0.3.34
+    with controller.limit(limits=min(_MAX_BLAS_THREADS, n_cpus)):
+        yield
+
+
+###############################################################################
+# Fast linalg helpers
 
 # For efficiency, names should be str or tuple of str, dtype a builtin
 # NumPy dtype
@@ -49,18 +125,61 @@ def _get_lapack_funcs(dtype, names):
 ###############################################################################
 # linalg.svd and linalg.pinv2
 
+# TODO VERSION these can be removed once we use SciPy 1.18+ with batched processing
+# (otherwise call overhead for `lwork` is too high). Can't use NumPy because
+# it doesn't provide an interface to GESVD (only uses GESDD, which can be buggy).
+
+
+# Vendored from scipy: _compute_lwork and _check_work_float
+
+
+def _compute_lwork(routine, *args, **kwargs):  # pragma: no cover
+    dtype = getattr(routine, "dtype", None)
+    int_dtype = getattr(routine, "int_dtype", None)
+    ret = routine(*args, **kwargs)
+    if ret[-1] != 0:
+        raise ValueError(f"Internal work array size computation failed: {ret[-1]}")
+    if len(ret) == 2:
+        return _check_work_float(ret[0].real, dtype, int_dtype)
+    else:
+        return tuple(_check_work_float(x.real, dtype, int_dtype) for x in ret[:-1])
+
+
+_int32_max = np.iinfo(np.int32).max
+_int64_max = np.iinfo(np.int64).max
+
+
+def _check_work_float(value, dtype, int_dtype):  # pragma: no cover
+    if dtype == np.float32 or dtype == np.complex64:
+        # Single-precision routine -- take next fp value to work
+        # around possible truncation in LAPACK code
+        value = np.nextafter(value, np.inf, dtype=np.float32)
+
+    value = int(value)
+    if int_dtype.itemsize == 4:
+        if value < 0 or value > _int32_max:
+            raise ValueError(
+                "Too large work array required -- computation "
+                "cannot be performed with standard 32-bit"
+                " LAPACK."
+            )
+    elif int_dtype.itemsize == 8:
+        if value < 0 or value > _int64_max:
+            raise ValueError(
+                "Too large work array required -- computation"
+                " cannot be performed with standard 64-bit"
+                " LAPACK."
+            )
+    return value
+
 
 def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
-    try:
-        ds = linalg._decomp_svd
-    except AttributeError:  # < 1.8.0
-        ds = linalg.decomp_svd
     gesdd_lwork, gesvd_lwork = _get_lapack_funcs(dtype, ("gesdd_lwork", "gesvd_lwork"))
-    sdd_lwork = ds._compute_lwork(
+    sdd_lwork = _compute_lwork(
         gesdd_lwork, *shape, compute_uv=True, full_matrices=False
     )
-    svd_lwork = ds._compute_lwork(
+    svd_lwork = _compute_lwork(
         gesvd_lwork, *shape, compute_uv=True, full_matrices=False
     )
     return sdd_lwork, svd_lwork

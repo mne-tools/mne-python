@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "3a46357c0fa1c2723e43e7b107f129f155c6ae0e",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/_regress.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

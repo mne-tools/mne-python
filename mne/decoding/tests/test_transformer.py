@@ -205,7 +205,8 @@ def test_psdestimator():
 
 def test_vectorizer():
     """Test Vectorizer."""
-    data = np.random.rand(150, 18, 6)
+    rng = np.random.default_rng(0)
+    data = rng.random((150, 18, 6))
     vect = Vectorizer()
     result = vect.fit_transform(data)
     assert_equal(result.ndim, 2)
@@ -217,7 +218,7 @@ def test_vectorizer():
     assert_array_equal(vect.inverse_transform(result[1:]), data[1:])
 
     # check with different shape
-    assert_equal(vect.fit_transform(np.random.rand(150, 18, 6, 3)).shape, (150, 324))
+    assert_equal(vect.fit_transform(rng.random((150, 18, 6, 3))).shape, (150, 324))
     assert_equal(vect.fit_transform(data[1:]).shape, (149, 108))
 
     # check if raised errors are working correctly
@@ -282,7 +283,8 @@ def test_unsupervised_spatial_filter():
 
 def test_temporal_filter():
     """Test methods of TemporalFilter."""
-    X = np.random.rand(5, 5, 1200)
+    rng = np.random.default_rng(0)
+    X = rng.random((5, 5, 1200))
 
     # Test init test
     values = (
@@ -307,7 +309,7 @@ def test_temporal_filter():
         filt.transform("foo")
 
     # Test with 2 dimensional data array
-    X = np.random.rand(101, 500)
+    X = rng.random((101, 500))
     filt = TemporalFilter(
         l_freq=25.0, h_freq=50.0, sfreq=1000.0, filter_length=150, fir_design="firwin2"
     )
@@ -339,7 +341,7 @@ def test_bad_triage():
 )
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     ignores = []
     if estimator.__class__.__name__ == "FilterEstimator":
         ignores += [

@@ -6,22 +6,20 @@
 
 import atexit
 import contextlib
+import importlib.metadata
+import importlib.util
 import json
 import multiprocessing
 import os
 import os.path as op
 import platform
 import shutil
+import site
 import subprocess
 import sys
 import tempfile
 from functools import lru_cache, partial
-from importlib import import_module
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
-
-from packaging.version import parse
 
 from ._logging import logger, warn
 from .check import (
@@ -96,67 +94,62 @@ _known_config_types = {
         "tuple, width and height of the raw browser window (in inches)"
     ),
     "MNE_BROWSER_BACKEND": (
-        "str, the backend to use for the MNE Browse Raw window (qt or matplotlib)"
+        'str, the backend to use for the raw browser ("qt" or "matplotlib")'
     ),
     "MNE_BROWSER_OVERVIEW_MODE": (
-        "str, the overview mode to use in the MNE Browse Raw window )"
-        "(see mne.viz.plot_raw for valid options)"
+        "str, the overview mode to use in the raw browser (see mne.viz.plot_raw() for "
+        "valid options)"
     ),
     "MNE_BROWSER_PRECOMPUTE": (
-        "bool, whether to precompute raw data in the MNE Browse Raw window"
+        "bool, whether to precompute raw data in the raw browser"
     ),
-    "MNE_BROWSER_THEME": "str, the color theme (light or dark) to use for the browser",
+    "MNE_BROWSER_THEME": (
+        "str, the color theme (light or dark) to use for the raw browser"
+    ),
     "MNE_BROWSER_USE_OPENGL": (
-        "bool, whether to use OpenGL for rendering in the MNE Browse Raw window"
+        "bool, whether to use OpenGL for rendering in the raw browser"
     ),
     "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
     "MNE_COREG_ADVANCED_RENDERING": (
-        "bool, whether to use advanced OpenGL rendering in mne coreg"
+        "bool, whether to use advanced OpenGL rendering in coreg"
     ),
     "MNE_COREG_COPY_ANNOT": (
         "bool, whether to copy the annotation files during warping"
     ),
-    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in mne coreg",
-    "MNE_COREG_GUESS_MRI_SUBJECT": (
-        "bool, whether to guess the MRI subject in mne coreg"
-    ),
-    "MNE_COREG_HEAD_HIGH_RES": (
-        "bool, whether to use high-res head surface in mne coreg"
-    ),
-    "MNE_COREG_HEAD_OPACITY": ("bool, the head surface opacity to use in mne coreg"),
+    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in coreg",
+    "MNE_COREG_GUESS_MRI_SUBJECT": "bool, whether to guess the MRI subject in coreg",
+    "MNE_COREG_HEAD_HIGH_RES": "bool, whether to use high-res head surface in coreg",
+    "MNE_COREG_HEAD_OPACITY": "bool, the head surface opacity to use in coreg",
     "MNE_COREG_HEAD_INSIDE": (
-        "bool, whether to add an opaque inner scalp head surface to help "
-        "occlude points behind the head in mne coreg"
+        "bool, whether to add an opaque inner scalp head surface to help occlude points"
+        " behind the head in coreg"
     ),
-    "MNE_COREG_INTERACTION": (
-        "str, interaction style in mne coreg (trackball or terrain)"
-    ),
+    "MNE_COREG_INTERACTION": ("str, interaction style in coreg (trackball or terrain)"),
     "MNE_COREG_MARK_INSIDE": (
-        "bool, whether to mark points inside the head surface in mne coreg"
+        "bool, whether to mark points inside the head surface in coreg"
     ),
     "MNE_COREG_PREPARE_BEM": (
-        "bool, whether to prepare the BEM solution after warping in mne coreg"
+        "bool, whether to prepare the BEM solution after warping in coreg"
     ),
     "MNE_COREG_ORIENT_TO_SURFACE": (
-        "bool, whether to orient the digitization markers to the head surface "
-        "in mne coreg"
+        "bool, whether to orient the digitization markers to the head surface in coreg"
     ),
     "MNE_COREG_SCALE_LABELS": (
-        "bool, whether to scale the MRI labels during warping in mne coreg"
+        "bool, whether to scale the MRI labels during warping in coreg"
     ),
     "MNE_COREG_SCALE_BY_DISTANCE": (
-        "bool, whether to scale the digitization markers by their distance from "
-        "the scalp in mne coreg"
+        "bool, whether to scale the digitization markers by their distance from the "
+        "scalp in coreg"
     ),
     "MNE_COREG_SCENE_SCALE": (
-        "float, the scale factor of the 3D scene in mne coreg (default 0.16)"
+        "float, the scale factor of the 3D scene in coreg (default 0.16)"
     ),
-    "MNE_COREG_WINDOW_HEIGHT": "int, window height for mne coreg",
-    "MNE_COREG_WINDOW_WIDTH": "int, window width for mne coreg",
-    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for mne coreg",
+    "MNE_COREG_WINDOW_HEIGHT": "int, window height for coreg",
+    "MNE_COREG_WINDOW_WIDTH": "int, window width for coreg",
+    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for coreg",
     "MNE_CUDA_DEVICE": "int, CUDA device to use for GPU processing",
     "MNE_DATA": "str, default data directory",
-    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for brainstorm data",
+    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for Brainstorm data",
     "MNE_DATASETS_EEGBCI_PATH": "str, path for EEGBCI data",
     "MNE_DATASETS_EPILEPSY_ECOG_PATH": "str, path for epilepsy_ecog data",
     "MNE_DATASETS_HF_SEF_PATH": "str, path for HF_SEF data",
@@ -183,29 +176,28 @@ _known_config_types = {
     "MNE_DATASETS_ERP_CORE_PATH": "str, path for erp_core data",
     "MNE_FORCE_SERIAL": "bool, force serial rather than parallel execution",
     "MNE_LOGGING_LEVEL": (
-        "str or int, controls the level of verbosity of any function "
-        "decorated with @verbose. See "
-        "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"
+        "str or int, controls the level of verbosity of any function decorated with "
+        "@verbose"
     ),
     "MNE_MEMMAP_MIN_SIZE": (
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
     ),
     "MNE_REPR_HTML": (
-        "bool, represent some of our objects with rich HTML in a notebook environment"
+        "bool, represent some objects with rich HTML in a notebook environment"
     ),
     "MNE_SKIP_NETWORK_TESTS": (
-        "bool, used in a test decorator (@requires_good_network) to skip "
-        "tests that include large downloads"
+        "bool, used in a test decorator (@requires_good_network) to skip  tests that "
+        "include large downloads"
     ),
     "MNE_SKIP_TESTING_DATASET_TESTS": (
-        "bool, used in test decorators (@requires_spm_data, "
-        "@requires_bstraw_data) to skip tests that require specific datasets"
+        "bool, used in test decorators (@requires_spm_data, @requires_bstraw_data) to "
+        "skip tests that require specific datasets"
     ),
-    "MNE_STIM_CHANNEL": "string, the default channel name for mne.find_events",
+    "MNE_STIM_CHANNEL": "str, the default channel name for mne.find_events()",
     "MNE_TQDM": (
-        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence '
-        "of progress bars"
+        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence of '
+        "progress bars"
     ),
     "MNE_USE_CUDA": "bool, use GPU for filtering/resampling",
     "MNE_USE_NUMBA": (
@@ -225,6 +217,24 @@ _known_config_wildcards = (
 )
 
 
+_use_filelock = True
+
+
+@contextlib.contextmanager
+def _no_filelock():
+    """Skip the config file lock, to avoid importing filelock.
+
+    Used only for the single config read during ``import mne``: filelock pulls in
+    asyncio and sqlite3, which costs ~20 ms on every interpreter start.
+    """
+    global _use_filelock
+    _use_filelock = False
+    try:
+        yield
+    finally:
+        _use_filelock = True
+
+
 @contextlib.contextmanager
 def _open_lock(path, *args, **kwargs):
     """
@@ -240,14 +250,17 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
-        Additional arguments and keyword arguments to be passed to the
-        `open` function.
+    *args : list
+        Additional arguments to be passed to the `open` function.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the `open` function.
 
     """
-    filelock = _soft_import(
-        "filelock", purpose="parallel config set and get", strict=False
-    )
+    filelock = None
+    if _use_filelock:
+        filelock = _soft_import(
+            "filelock", purpose="parallel config set and get", strict=False
+        )
 
     lock_context = contextlib.nullcontext()  # default to no lock
 
@@ -637,6 +650,13 @@ def _get_root_dir():
     return root_dir
 
 
+_blas_rename = dict(
+    openblas="OpenBLAS",
+    mkl="MKL",
+    accelerate="Accelerate",
+)
+
+
 def _get_numpy_libs():
     bad_lib = "unknown linalg bindings"
     try:
@@ -644,18 +664,37 @@ def _get_numpy_libs():
     except Exception as exc:
         return bad_lib + f" (threadpoolctl module not found: {exc})"
     pools = threadpool_info()
-    rename = dict(
-        openblas="OpenBLAS",
-        mkl="MKL",
-    )
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
+            layer = pool.get("threading_layer")
+            layer = f" via {layer}" if layer else ""
+            name = pool["internal_api"]
+            name = _blas_rename.get(name, name)
             return (
-                f"{rename[pool['internal_api']]} "
+                f"{name} "
                 f"{pool['version']} with "
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
+                f"{layer}"
             )
-    return bad_lib
+    return _get_numpy_build_blas() or bad_lib
+
+
+def _get_numpy_build_blas():
+    """Name the BLAS from the build config, for backends threadpoolctl can't see."""
+    # Accelerate has no threadpoolctl controller, so macOS wheels otherwise report only
+    # "unknown linalg bindings"
+    import numpy as np
+
+    try:
+        blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        name = blas["name"].lower()
+    except Exception:
+        return None
+    version = blas.get("version", "")
+    name = _blas_rename.get(name, name)
+    if version and version != "unknown":  # Accelerate reports a literal "unknown"
+        name = f"{name} {version}"
+    return f"{name}, threads not introspectable"
 
 
 _gpu_cmd = """\
@@ -681,11 +720,9 @@ def _get_gpu_info():
 def _get_total_memory():
     """Return the total memory of the system in bytes."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            [
-                "powershell.exe",
-                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
-            ]
+            [ps, "-c", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"]
         ).decode()
         # Can get for example a "running scripts is disabled on this system"
         # error where "o" will be a long string rather than an int
@@ -705,11 +742,22 @@ def _get_total_memory():
     return total_memory
 
 
+def _get_linux_windowing_system():
+    """Return the windowing system on Linux ("Wayland", "X11", or None)."""
+    session_type = os.getenv("XDG_SESSION_TYPE", "").lower()
+    if session_type == "wayland" or os.getenv("WAYLAND_DISPLAY"):
+        return "Wayland"
+    if session_type == "x11" or os.getenv("DISPLAY"):
+        return "X11"
+    return None
+
+
 def _get_cpu_brand():
     """Return the CPU brand string."""
     if platform.system() == "Windows":
+        ps = shutil.which("pwsh") or shutil.which("powershell")
         o = subprocess.check_output(
-            ["powershell.exe", "(Get-CimInstance Win32_Processor).Name"]
+            [ps, "-c", "(Get-CimInstance Win32_Processor).Name"]
         ).decode()
         cpu_brand = o.strip().splitlines()[-1]
     elif platform.system() == "Linux":
@@ -758,6 +806,8 @@ def sys_info(
 
         .. versionadded:: 1.6
     """
+    import matplotlib
+
     _validate_type(dependencies, str)
     _check_option("dependencies", dependencies, ("user", "developer"))
     _validate_type(check_version, (bool, "numeric"), "check_version")
@@ -765,11 +815,18 @@ def sys_info(
     _check_option("unicode", unicode, ("auto", True, False))
     if unicode == "auto":
         if platform.system() in ("Darwin", "Linux"):
-            unicode = True
+            try:
+                unicode = sys.stdout.encoding.lower().startswith("utf")
+            except Exception:  # in case someone overrides sys.stdout in an unsafe way
+                unicode = False
         else:  # Windows
             unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
+    if platform.system() == "Linux":
+        windowing_system = _get_linux_windowing_system()
+        if windowing_system is not None:
+            platform_str += f" ({windowing_system})"
 
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")
@@ -777,18 +834,25 @@ def sys_info(
     out("Executable".ljust(ljust) + sys.executable + "\n")
     try:
         cpu_brand = _get_cpu_brand()
-    except Exception:
-        cpu_brand = "?"
+    except Exception as exc:
+        cpu_brand = f"? (could not determine: {exc})"
     out("CPU".ljust(ljust) + f"{cpu_brand} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
         total_memory = _get_total_memory()
-    except UnknownPlatformError:
-        total_memory = "?"
+    except Exception as exc:
+        total_memory = f"? (could not determine: {exc})"
     else:
         total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
+    site_packages_path = (site.getsitepackages() or [None])[0]
+    if show_paths and site_packages_path is not None:
+        out("Site-packages".ljust(ljust) + f"{site_packages_path}\n")
+        site_packages_path = Path(site_packages_path)
+        out("".ljust(ljust))
+        out("└►" if unicode else "^-")
+        out(" Any paths not listed below are in site-packages")
     out("\n")
     ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
@@ -801,12 +865,14 @@ def sys_info(
         "matplotlib",
         "",
         "# Numerical (optional)",
-        "sklearn",
+        "scikit-learn",
+        "threadpoolctl",
         "numba",
         "nibabel",
         "nilearn",
         "dipy",
         "openmeeg",
+        "python-picard",
         "cupy",
         "pandas",
         "h5io",
@@ -821,9 +887,10 @@ def sys_info(
         "pyqtgraph",
         "mne-qt-browser",
         "ipywidgets",
-        # "trame",  # no version, see https://github.com/Kitware/trame/issues/183
+        "trame",
         "trame_client",
         "trame_server",
+        "trame_pyvista",
         "trame_vtk",
         "trame_vuetify",
         "",
@@ -834,11 +901,14 @@ def sys_info(
         "mne-connectivity",
         "mne-icalabel",
         "mne-bids-pipeline",
+        "autoreject",
         "neo",
         "eeglabio",
         "edfio",
+        "curryreader",
         "mffpy",
         "pybv",
+        "pymef",
         "antio",
         "defusedxml",
         "",
@@ -847,6 +917,20 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
+            "pytest-cov",
+            "pytest-qt",
+            "pytest-rerunfailures",
+            "pytest-timeout",
+            "pytest-xdist",
+            "refleak",
+            "codespell",
+            "ipython",
+            "pillow",
+            "pre-commit",
+            "ruff",
+            "vulture",
+            "",
+            "hedtools",
             "statsmodels",
             "numpydoc",
             "jupyter_client",
@@ -856,6 +940,7 @@ def sys_info(
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "twine",
             "",
             "# Documentation",
             "sphinx",
@@ -871,11 +956,24 @@ def sys_info(
             "tqdm",
             "",
         )
-    try:
-        unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
-    except Exception:  # in case someone overrides sys.stdout in an unsafe way
-        unicode = False
-    mne_version_good = True
+    if check_version:
+        timeout = 2.0 if check_version is True else float(check_version)
+        mne_version_good, mne_extra = _check_mne_version(timeout)
+        if mne_version_good is None:
+            mne_version_good = True
+        del timeout
+    else:
+        mne_version_good = True
+        mne_extra = ""
+    del check_version
+    import_names = {
+        "codespell": "codespell_lib",
+        "hedtools": "hed",
+        "ipython": "IPython",
+        "pillow": "PIL",
+        "pytest-qt": "pytestqt",
+        "scikit-learn": "sklearn",
+    }
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -893,44 +991,32 @@ def sys_info(
             continue
         pre = "├"
         last = use_mod_names[mi + 1] == "" and not unavailable
+        import_name = import_names.get(mod_name, mod_name).replace("-", "_")
         if last:
             pre = "└"
         try:
-            mod = import_module(mod_name.replace("-", "_"))
+            ver = importlib.metadata.version(mod_name)
+            mod_loc = Path(importlib.util.find_spec(import_name).origin)
         except Exception:
             unavailable.append(mod_name)
         else:
+            if mod_loc.stem == "__init__":
+                mod_loc = mod_loc.parent
+            if site_packages_path and mod_loc.is_relative_to(site_packages_path):
+                mod_loc = None
             mark = "☑" if unicode else "+"
-            mne_extra = ""
-            if mod_name == "mne" and check_version:
-                timeout = 2.0 if check_version is True else float(check_version)
-                mne_version_good, mne_extra = _check_mne_version(timeout)
-                if mne_version_good is None:
-                    mne_version_good = True
-                elif not mne_version_good:
-                    mark = "☒" if unicode else "X"
+            if mod_name == "mne" and not mne_version_good:
+                mark = "☒" if unicode else "X"
             out(f"{pre}{mark} " if unicode else f" {mark} ")
             out(f"{mod_name}".ljust(ljust))
-            if mod_name == "vtk":
-                vtk_version = mod.vtkVersion()
-                # 9.0 dev has VersionFull but 9.0 doesn't
-                for attr in ("GetVTKVersionFull", "GetVTKVersion"):
-                    if hasattr(vtk_version, attr):
-                        version = getattr(vtk_version, attr)()
-                        if version != "":
-                            out(version)
-                            break
-                else:
-                    out("unknown")
-            else:
-                out(mod.__version__.lstrip("v"))
+            out(ver)
             if mod_name == "numpy":
                 out(f" ({libs})")
             elif mod_name == "qtpy":
                 version, api = _check_qt_version(return_api=True)
                 out(f" ({api}={version})")
             elif mod_name == "matplotlib":
-                out(f" (backend={mod.get_backend()})")
+                out(f" (backend={matplotlib.get_backend()})")
             elif mod_name == "pyvista":
                 version, renderer = _get_gpu_info()
                 if version is None:
@@ -938,16 +1024,17 @@ def sys_info(
                 else:
                     out(f" (OpenGL {version} via {renderer})")
             elif mod_name == "mne":
-                out(f" ({mne_extra})")
+                if mne_extra:
+                    out(f" ({mne_extra})")
             # Now comes stuff after the version
-            if show_paths:
+            if show_paths and mod_loc is not None:
                 if last:
                     pre = "   "
                 elif unicode:
                     pre = "│  "
                 else:
                     pre = " | "
-                out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
+                out(f"\n{pre}{' ' * ljust}{mod_loc}")
             out("\n")
 
     if not mne_version_good:
@@ -959,6 +1046,9 @@ def sys_info(
 
 
 def _get_latest_version(timeout):
+    from urllib.error import URLError
+    from urllib.request import urlopen
+
     # Bandit complains about urlopen, but we know the URL here
     url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
     try:
@@ -980,8 +1070,10 @@ def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
+    from packaging.version import parse
+
     rel_ver = parse(rel_ver)
-    this_ver = parse(import_module("mne").__version__)
+    this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:
         return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:

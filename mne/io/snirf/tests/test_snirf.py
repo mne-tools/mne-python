@@ -8,13 +8,19 @@ from contextlib import nullcontext
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
+from numpy.testing import (
+    assert_allclose,
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 
 from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
+    _channel_frequencies,
     _reorder_nirx,
     beer_lambert_law,
     optical_density,
@@ -22,7 +28,7 @@ from mne.preprocessing.nirs import (
     source_detector_distances,
 )
 from mne.transforms import _get_trans, apply_trans
-from mne.utils import catch_logging
+from mne.utils import _chmod_rw_R, catch_logging
 
 testing_path = data_path(download=False)
 # SfNIRS files
@@ -58,7 +64,11 @@ snirf_nirsport2_20219 = (
 )
 
 # Kernel
-kernel_hb = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11" / "hb.snirf"
+kernel_flow2_path = testing_path / "SNIRF" / "Kernel" / "Flow2" / "Portal_2024_10_23"
+kernel_td_gated = kernel_flow2_path / "c345d04_2.snirf"  # Type 201 (TD Gated, 201)
+kernel_td_moments = kernel_flow2_path / "c345d04_3.snirf"  # Type 202 (TD Moments, 301)
+kernel_hb = kernel_flow2_path / "c345d04_5.snirf"  # Type 203 (Hb, 99999)
+
 
 h5py = pytest.importorskip("h5py")  # module-level
 
@@ -67,6 +77,11 @@ ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 
 # GowerLabs
 lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
+
+# Shimadzu Labnirs 3-wavelength converted to snirf using custom tool
+labnirs_multi_wavelength = (
+    testing_path / "SNIRF" / "Labnirs" / "labnirs_3wl_raw_recording.snirf"
+)
 
 
 def _get_loc(raw, ch_name):
@@ -86,8 +101,11 @@ def _get_loc(raw, ch_name):
             nirx_nirsport2_103,
             nirx_nirsport2_103_2,
             nirx_nirsport2_103_2,
-            kernel_hb,
+            pytest.param(kernel_td_gated, id=f"kernel: {kernel_td_gated.stem}"),
+            pytest.param(kernel_td_moments, id=f"kernel: {kernel_td_moments.stem}"),
+            pytest.param(kernel_hb, id=f"kernel: {kernel_hb.stem}"),
             lumo110,
+            labnirs_multi_wavelength,
         ]
     ),
 )
@@ -95,12 +113,29 @@ def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
     raw = read_raw_snirf(fname, preload=True)
     # SNIRF data can contain several types, so only apply appropriate functions
+    kinds = [
+        "fnirs_cw_amplitude",
+        "fnirs_od",
+        "fnirs_td_gated_amplitude",
+        "fnirs_td_moments_intensity",
+        "hbo",
+        # TODO: add fd_*
+    ]
+    ch_types = raw.get_channel_types(unique=True)
+    got_kinds = [kind for kind in kinds if kind in raw]
+    assert len(got_kinds) == 1, f"Need one data type, {got_kinds=} and {ch_types=}"
     if "fnirs_cw_amplitude" in raw:
         raw = optical_density(raw)
-    if "fnirs_od" in raw:
+    elif "fnirs_od" in raw:
         raw = beer_lambert_law(raw, ppf=6)
-    assert "hbo" in raw
-    assert "hbr" in raw
+    elif "fnirs_td_gated_amplitude" in raw:
+        pass
+    elif "fnirs_td_moments_intensity" in raw:
+        assert "fnirs_td_moments_mean" in raw
+        assert "fnirs_td_moments_variance" in raw
+    else:
+        assert "hbo" in raw
+        assert "hbr" in raw
 
 
 @requires_testing_data
@@ -240,8 +275,9 @@ def test_snirf_against_nirx():
 @requires_testing_data
 def test_snirf_nonstandard(tmp_path):
     """Test custom tags."""
-    shutil.copy(sfnirs_homer_103_wShort, str(tmp_path) + "/mod.snirf")
     fname = str(tmp_path) + "/mod.snirf"
+    shutil.copy(sfnirs_homer_103_wShort, fname)
+    _chmod_rw_R(tmp_path)
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
         f.create_dataset("nirs/metaDataTags/middleName", data=[b"X"])
@@ -270,6 +306,34 @@ def test_snirf_nonstandard(tmp_path):
 
     with h5py.File(fname, "r+") as f:
         f.create_dataset("nirs/metaDataTags/MNE_coordFrame", data=[1])
+
+
+@requires_testing_data
+def test_snirf_empty_landmark_labels(tmp_path):
+    """Test reading SNIRF files with empty landmarkLabels (gh-13627)."""
+    fname = tmp_path / "empty_labels.snirf"
+    shutil.copy(sfnirs_homer_103_wShort, fname)
+    _chmod_rw_R(tmp_path)
+
+    # Modify file to have landmarkPos3D but empty/scalar landmarkLabels
+    with h5py.File(fname, "r+") as f:
+        # Remove existing landmark data if present
+        if "landmarkPos3D" in f["nirs/probe"]:
+            del f["nirs/probe/landmarkPos3D"]
+        if "landmarkLabels" in f["nirs/probe"]:
+            del f["nirs/probe/landmarkLabels"]
+
+        # Add non-empty landmarkPos3D
+        f.create_dataset(
+            "nirs/probe/landmarkPos3D",
+            data=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        )
+        # Add empty scalar landmarkLabels (this triggers the bug in gh-13627)
+        f.create_dataset("nirs/probe/landmarkLabels", data=b"")
+
+    # This should not raise "TypeError: iteration over a 0-d array"
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["dig"] is not None
 
 
 @requires_testing_data
@@ -414,32 +478,73 @@ def test_snirf_fieldtrip_od():
 
 
 @requires_testing_data
-def test_snirf_kernel_hb():
-    """Test reading Kernel SNIRF files with haemoglobin data."""
-    raw = read_raw_snirf(kernel_hb, preload=True)
+@pytest.mark.parametrize(
+    "kind, shape, fname",
+    [
+        pytest.param("hb", (4, 38), kernel_hb, id="hb"),
+        pytest.param("td moments", (12, 38), kernel_td_moments, id="td moments"),
+        pytest.param("td gated", (100, 38), kernel_td_gated, id="td gated"),
+    ],
+)
+def test_snirf_kernel_basic(kind, shape, fname):
+    """Test reading Kernel SNIRF files with haemoglobin or TD data."""
+    raw = read_raw_snirf(fname, preload=True)
+    if kind == "hb":
+        # Test data import
+        assert raw._data.shape == shape
+        hbo_data = raw.get_data("hbo")
+        hbr_data = raw.get_data("hbr")
+        assert hbo_data.shape == hbr_data.shape == (shape[0] // 2, shape[1])
+        hbo_norm = np.nanmedian(np.linalg.norm(hbo_data, axis=-1))
+        hbr_norm = np.nanmedian(np.linalg.norm(hbr_data, axis=-1))
+        assert 1e-5 < hbr_norm < hbo_norm < 1e-4
+    elif kind == "td moments":
+        assert raw._data.shape == shape
+        n_ch = 0
+        lims = dict(intensity=(1e4, 1e7), mean=(1e-9, 1e-8), variance=(1e-19, 1e-16))
+        for key, val in lims.items():
+            data = raw.get_data(f"fnirs_td_moments_{key}")
+            assert data.shape[1] == len(raw.times)
+            norm = np.nanmedian(np.linalg.norm(data, axis=-1))
+            min_, max_ = val
+            assert min_ < norm < max_, key
+            n_ch += data.shape[0]
+        assert raw._data.shape[0] == len(raw.ch_names) == n_ch
+        mean_ch = raw.copy().pick("fnirs_td_moments_mean").info["chs"][0]
+        assert mean_ch["unit"] == FIFF.FIFF_UNIT_SEC
+        var_ch = raw.copy().pick("fnirs_td_moments_variance").info["chs"][0]
+        assert var_ch["unit"] == FIFF.FIFF_UNIT_SEC2
+    else:
+        assert kind == "td gated"
+        assert raw._data.shape == shape
+        data = raw.get_data("fnirs_td_gated_amplitude")
+        assert data.shape == shape
+        assert np.max(np.abs(data)) > 1e4
+        # Channel names should include wavelength and bin info
+        assert all("bin" in ch for ch in raw.ch_names)
+        # Check channel metadata
+        ch = raw.info["chs"][0]
+        assert ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE
+        assert ch["loc"][9] > 0  # wavelength
+        assert ch["loc"][10] > 0  # time_delay * time_delay_width
 
-    # Test data import
-    assert raw._data.shape == (180 * 2, 14)
-    assert raw.copy().pick("hbo")._data.shape == (180, 14)
-    assert raw.copy().pick("hbr")._data.shape == (180, 14)
-
-    assert_allclose(raw.info["sfreq"], 8.256495)
+    assert_allclose(raw.info["sfreq"], 3.759351, atol=1e-5)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
-    assert np.sum(bad_nans) == 20
+    assert np.sum(bad_nans) == 0
 
-    assert len(raw.annotations.description) == 2
-    assert raw.annotations.onset[0] == 0.036939
-    assert raw.annotations.onset[1] == 0.874633
-    assert raw.annotations.description[0] == "StartTrial"
-    assert raw.annotations.description[1] == "StartIti"
+    assert len(raw.annotations.description) == 8
+    assert raw.annotations.onset[0] == 4.988107
+    assert raw.annotations.onset[1] == 5.988107
+    assert raw.annotations.description[0] == "StartBlock"
+    assert raw.annotations.description[1] == "StartTrial"
 
 
 @requires_testing_data
 @pytest.mark.parametrize(
     "sfreq,context",
     (
-        [8.2, nullcontext()],  # sfreq estimated from file is 8.256495
+        [3.75, nullcontext()],  # sfreq estimated from file is 3.759351
         [22, pytest.warns(RuntimeWarning, match="User-supplied sampling frequency")],
     ),
 )
@@ -547,6 +652,7 @@ def test_sample_rate_jitter(tmp_path):
     # Create a clean copy and ensure it loads without error
     new_file = tmp_path / "snirf_nirsport2_2019.snirf"
     copy2(snirf_nirsport2_20219, new_file)
+    _chmod_rw_R(tmp_path)
     read_raw_snirf(new_file)
 
     # Edit the file and add jitter within tolerance (0.99%)
@@ -574,3 +680,49 @@ def test_sample_rate_jitter(tmp_path):
         f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
     with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
         read_raw_snirf(new_file, verbose=True)
+
+
+def test_get_dataunit_scaling():
+    """Test CMIXF-12 and legacy Hb unit scaling."""
+    from mne.io.snirf._snirf import _get_dataunit_scaling
+
+    # Legacy shorthand: [prefix]M
+    assert _get_dataunit_scaling("M") == 1.0
+    assert _get_dataunit_scaling("mM") == 1e-3
+    assert _get_dataunit_scaling("uM") == 1e-6
+    assert _get_dataunit_scaling("nM") == 1e-9
+    # CMIXF-12: [prefix]mol / L
+    assert _get_dataunit_scaling("mol/L") == 1.0
+    assert _get_dataunit_scaling("mmol/L") == 1e-3
+    assert _get_dataunit_scaling("umol/L") == 1e-6
+    assert _get_dataunit_scaling("nmol/L") == 1e-9
+    assert _get_dataunit_scaling("pmol/L") == 1e-12
+    # CMIXF-12: [prefix]mol / dm^3  (dm^3 = L)
+    assert _get_dataunit_scaling("mol/dm^3") == 1.0
+    assert _get_dataunit_scaling("mmol/dm^3") == 1e-3
+    assert _get_dataunit_scaling("umol/dm^3") == 1e-6
+    # CMIXF-12: [prefix]mol / m^3  (1 m^3 = 1000 L)
+    assert _get_dataunit_scaling("mol/m^3") == 1e-3
+    assert _get_dataunit_scaling("mmol/m^3") == 1e-6
+    # Non-standard lowercase liter
+    assert _get_dataunit_scaling("mol/l") == 1.0
+    assert _get_dataunit_scaling("mmol/l") == 1e-3
+    # Empty string default
+    assert _get_dataunit_scaling("") == 1.0
+    # Unsupported unit
+    with pytest.raises(RuntimeError, match="not supported"):
+        _get_dataunit_scaling("bad_unit")
+
+
+@requires_testing_data
+def test_snirf_multiple_wavelengths():
+    """Test importing synthetic SNIRF files with >=3 wavelengths."""
+    raw = read_raw_snirf(labnirs_multi_wavelength, preload=True)
+    assert raw._data.shape == (45, 250)
+    assert raw.info["sfreq"] == pytest.approx(19.6, abs=0.01)
+    assert raw.info["ch_names"][:3] == ["S2_D2 780", "S2_D2 805", "S2_D2 830"]
+    assert len(raw.ch_names) == 45
+    freqs = np.unique(_channel_frequencies(raw.info))
+    assert_array_equal(freqs, [780, 805, 830])
+    distances = source_detector_distances(raw.info)
+    assert len(distances) == len(raw.ch_names)

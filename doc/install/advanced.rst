@@ -51,8 +51,7 @@ interactivity within the scene is limited in non-blocking plot calls.
   :class: note
 
   If you are using MNE-Python on Windows through IPython or Jupyter, you might
-  also have to use the IPython magic command ``%gui qt`` (see `here
-  <https://github.com/ipython/ipython/issues/10384>`_). For example:
+  also have to use the IPython magic command ``%gui qt`` (see `here <ipython blocking issue_>`__). For example:
 
   .. code-block:: ipython
 
@@ -104,14 +103,14 @@ instructions for installing from a ``git clone`` in the :ref:`contributing`.
 Choosing the Qt framework
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``conda-forge`` version of MNE-Python ships with PyQt5. If you would like to
+The ``conda-forge`` version of MNE-Python ships with PySide6. If you would like to
 use a different binding, you can instead install MNE-Python via ``pip``:
 
 .. code-block:: console
 
-    $ pip install "mne[full]"          # uses PyQt6
-    $ pip install "mne[full-pyqt6]"    # same as above
-    $ pip install "mne[full-pyside6]"  # use PySide6
+    $ pip install "mne[full]"          # uses PySide6
+    $ pip install "mne[full-pyside6]"  # same as above
+    $ pip install "mne[full-pyqt6]"    # uses PyQt6
     $ pip install "mne[full-no-qt]"    # don't install any Qt binding
 
 .. _CUDA:
@@ -150,9 +149,9 @@ It should make the icon appear correctly in the dock:
 GPU acceleration with CUDA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-MNE-Python can utilize `NVIDIA CUDA GPU processing`_ to speed up some
+MNE-Python can utilize `NVIDIA CUDA GPU processing <https://developer.nvidia.com/cuda-zone>`__ to speed up some
 operations (e.g. FIR filtering) by roughly an order of magnitude. To use CUDA,
-first  ensure that you are running the `NVIDIA proprietary drivers`_ on your
+first  ensure that you are running the `NVIDIA proprietary drivers <https://www.geforce.com/drivers>`__ on your
 operating system, and then do:
 
 .. code-block:: console
@@ -224,7 +223,7 @@ in certain operating systems, for example CentOS. This may lead to incomplete
 rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.
 It boils down to building a newer version (e.g., 18.3.6)
 locally following a variant of `these instructions <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
-If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/sp9qg/download>`_ we made.
+If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/download/sp9qg>`_ we made.
 After downloading the files, untar them and add them to the appropriate library paths
 using the following commands:
 
@@ -298,6 +297,5 @@ permanent for your logins, you can set it for example in ``~/.profile``.
 
 .. LINKS
 
-.. _`pyvista`: https://docs.pyvista.org/
-.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
-.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
+
+.. include:: ../links.inc

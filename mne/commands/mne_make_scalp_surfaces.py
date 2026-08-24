@@ -73,6 +73,13 @@ def run():
         help="Disable medium and sparse decimations (dense only)",
         action="store_true",
     )
+    parser.add_option(
+        "-r",
+        "--reuse-seghead",
+        dest="reuse_seghead",
+        action="store_true",
+        help="Whether to reuse existing head segmentation files.",
+    )
     _add_verbose_flag(parser)
     options, args = parser.parse_args()
 
@@ -89,6 +96,7 @@ def run():
         no_decimate=options.no_decimate,
         threshold=options.threshold,
         mri=options.mri,
+        reuse_seghead=options.reuse_seghead,
         verbose=options.verbose,
     )
 

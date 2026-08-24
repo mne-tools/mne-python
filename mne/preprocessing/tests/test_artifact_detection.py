@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations, events_from_annotations
+from mne import Annotations, create_info, events_from_annotations
 from mne.chpi import read_head_pos
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import (
     annotate_break,
     annotate_movement,
@@ -17,7 +17,7 @@ from mne.preprocessing import (
     compute_average_dev_head_t,
 )
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.transforms import _angle_dist_between_rigid, quat_to_rot, rot_to_quat
+from mne.transforms import angle_distance_between_rigid, quat_to_rot, rot_to_quat
 
 data_path = testing.data_path(download=False)
 sss_path = data_path / "SSS"
@@ -119,22 +119,22 @@ def test_movement_annotation_head_correction(meas_date):
         "trans"
     ]
     unit_kw = dict(distance_units="mm", angle_units="deg")
-    deg_annot_combo, mm_annot_combo = _angle_dist_between_rigid(
+    deg_annot_combo, mm_annot_combo = angle_distance_between_rigid(
         dev_head_t,
         dev_head_t_combo,
         **unit_kw,
     )
-    deg_unannot_combo, mm_unannot_combo = _angle_dist_between_rigid(
+    deg_unannot_combo, mm_unannot_combo = angle_distance_between_rigid(
         dev_head_t_unannot,
         dev_head_t_combo,
         **unit_kw,
     )
-    deg_annot_unannot, mm_annot_unannot = _angle_dist_between_rigid(
+    deg_annot_unannot, mm_annot_unannot = angle_distance_between_rigid(
         dev_head_t,
         dev_head_t_unannot,
         **unit_kw,
     )
-    deg_combo_naive, mm_combo_naive = _angle_dist_between_rigid(
+    deg_combo_naive, mm_combo_naive = angle_distance_between_rigid(
         dev_head_t_combo,
         dev_head_t_naive,
         **unit_kw,
@@ -188,6 +188,22 @@ def test_muscle_annotation_without_meeg_data(meas_date):
     raw.pick("stim")
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annotate_muscle_zscore(raw, threshold=10)
+
+
+def test_muscle_annotation_cuda():
+    """Test muscle annotation with CUDA filtering and Hilbert transform."""
+    rng = np.random.default_rng(0)
+    raw = RawArray(rng.standard_normal((3, 1000)), create_info(3, 200.0, "eeg"))
+    annotations, scores = annotate_muscle_zscore(
+        raw,
+        threshold=100,
+        ch_type="eeg",
+        filter_freq=(20, 40),
+        n_jobs="cuda",
+    )
+    assert len(annotations) == 0
+    assert scores.shape == (raw.n_times,)
+    assert np.isfinite(scores).all()
 
 
 @pytest.mark.parametrize("meas_date", (None, "orig"))

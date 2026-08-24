@@ -11,13 +11,12 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
-from scipy.optimize import fmin_cobyla
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
 from ._fiff.proj import _needs_eeg_average_ref_proj, make_projector
 from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lut
-from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
+from .bem import ConductorModel, _bem_find_surface, _bem_surf_name, _fit_sphere
 from .cov import _ensure_cov, compute_whitener
 from .evoked import _aspect_rev, _read_evoked, _write_evokeds
 from .fixes import _safe_svd
@@ -52,8 +51,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz import plot_dipole_amplitudes, plot_dipole_locations
-from .viz.evoked import _plot_evoked
 
 
 @fill_doc
@@ -269,8 +266,8 @@ class Dipole(TimeMixin):
         """
         return deepcopy(self)
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_dipole_locations")
     @verbose
-    @copy_function_doc_to_method_doc(plot_dipole_locations)
     def plot_locations(
         self,
         trans,
@@ -294,6 +291,8 @@ class Dipole(TimeMixin):
         width=None,
         verbose=None,
     ):
+        from .viz import plot_dipole_locations
+
         return plot_dipole_locations(
             self,
             trans,
@@ -351,7 +350,7 @@ class Dipole(TimeMixin):
         Returns
         -------
         pos_mri : array, shape (n_pos, 3)
-            The Freesurfer surface RAS coordinates (in mm) of pos.
+            The FreeSurfer surface RAS coordinates (in mm) of pos.
         """
         mri_head_t, trans = _get_trans(trans)
         return head_to_mri(
@@ -425,6 +424,8 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
+        from .viz import plot_dipole_amplitudes
+
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
@@ -623,6 +624,8 @@ class DipoleFixed(ExtendedTimeMixin):
         fig : instance of matplotlib.figure.Figure
             The figure containing the time courses.
         """
+        from .viz.evoked import _plot_evoked
+
         return _plot_evoked(
             self,
             picks=None,
@@ -960,11 +963,10 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
         )
     else:
         logger.info(
-            "Making a spherical guess space with radius {:7.1f} mm...".format(
-                1000 * surf["R"]
-            )
+            f"Making a spherical guess space with radius {1000 * surf.radius:7.1f} "
+            "mm..."
         )
-    logger.info("Filtering (grid = %6.f mm)..." % (1000 * grid))
+    logger.info(f"Filtering (grid = {1000 * grid:6.0f} mm)...")
     src = _make_volume_source_space(
         surf, grid, exclude, 1000 * mindist, do_neighbors=False, n_jobs=n_jobs
     )[0]
@@ -1066,6 +1068,8 @@ def _fit_dipoles(
     rhoend,
 ):
     """Fit a single dipole to the given whitened, projected data."""
+    from scipy.optimize import fmin_cobyla
+
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(
@@ -1317,7 +1321,7 @@ def _fit_dipole(
         constraint = partial(
             _sphere_constraint,
             r0=fwd_data["inner_skull"]["r0"],
-            R_adj=fwd_data["inner_skull"]["R"] - min_dist_to_inner_skull,
+            R_adj=fwd_data["inner_skull"].radius - min_dist_to_inner_skull,
         )
 
     # Find a good starting point (find_best_guess in C)
@@ -1355,10 +1359,14 @@ def _fit_dipole(
     )
 
     # Tested minimizers:
-    #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
+    #    Simplex, BFGS, CG, COBYLA, COBYQA, L-BFGS-B, Powell, SLSQP, TNC
     # Several were similar, but COBYLA won for having a handy constraint
     # function we can use to ensure we stay inside the inner skull /
-    # smallest sphere
+    # smallest sphere. COBYQA needs ~10x more constraint evaluations, and the
+    # inner-skull constraint is a surface search rather than a cheap formula
+    # rhobeg (initial trust-region radius) is a few times the 2 cm guess grid so the fit
+    # can leave a poorly chosen grid cell. rhoend (final radius, the ``tol`` argument)
+    # sets the position resolution; loosening it to 1e-4 already shifts fits by ~2 mm
     rd_final = fmin_cobyla(
         fun, x0, (constraint,), consargs=(), rhobeg=5e-2, rhoend=rhoend, disp=False
     )
@@ -1388,12 +1396,12 @@ def _fit_dipole(
         sensors=sensors, rd=rd_final, Q=Q, ori=ori, whitener=whitener, fwd_data=fwd_data
     )
 
-    msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
+    msg = f"---- Fitted : {1000.0 * t:7.1f} ms"
     if surf is not None:
         dist_to_inner_skull = _compute_nearest(
             surf["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
-        msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
+        msg += f", distance to inner skull : {dist_to_inner_skull * 1000.0:2.4f} mm"
 
     logger.info(msg)
     return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj
@@ -1570,6 +1578,11 @@ def fit_dipole(
     safe_false = _verbose_safe_false()
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem["is_sphere"]:
+        if trans == "identity":  # = trans was passed as None
+            raise ValueError(
+                "`trans` is ``None``, but bem model is not spherical. "
+                "You must pass a valid `trans` in this case."
+            )
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
         inner_skull = inner_skull.copy()
@@ -1600,13 +1613,14 @@ def fit_dipole(
                 raise RuntimeError(
                     "No MEG channels found, but MEG-only sphere model used"
                 )
-            R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
-            kind = "max_rad"
+            R = np.min(np.linalg.norm(R, axis=1))
+            kind = "min_rad"
         logger.info(
             f"Sphere model      : origin at ({1000 * r0[0]: 7.2f} {1000 * r0[1]: 7.2f} "
             f"{1000 * r0[2]: 7.2f}) mm, {kind} = {R:6.1f} mm"
         )
-        inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
+        # NB sphere model defined in head frame
+        inner_skull = ConductorModel(layers=[dict(rad=R)], r0=r0, is_sphere=True)
         del R, r0
 
     # Deal with DipoleFixed cases here
@@ -1652,7 +1666,8 @@ def fit_dipole(
     logger.info("")
 
     _print_coord_trans(mri_head_t)
-    _print_coord_trans(info["dev_head_t"])
+    if info["dev_head_t"]:
+        _print_coord_trans(info["dev_head_t"])
     logger.info(f"{len(info['bads'])} bad channels total")
 
     # Forward model setup (setup_forward_model from setup.c)
@@ -1710,7 +1725,9 @@ def fit_dipole(
             check = _surface_constraint(pos, inner_skull, min_dist_to_inner_skull)
         else:
             check = _sphere_constraint(
-                pos, inner_skull["r0"], R_adj=inner_skull["R"] - min_dist_to_inner_skull
+                pos,
+                inner_skull["r0"],
+                R_adj=inner_skull.radius - min_dist_to_inner_skull,
             )
         if check <= 0:
             raise ValueError(
@@ -1720,7 +1737,7 @@ def fit_dipole(
 
     # C code computes guesses w/sphere model for speed, don't bother here
     fwd_data = _prep_field_computation(
-        guess_src["rr"], sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=safe_false
+        sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=safe_false
     )
     fwd_data["inner_skull"] = inner_skull
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(

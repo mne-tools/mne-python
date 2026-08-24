@@ -136,7 +136,7 @@ def _get_path(path, key, name):
     if not path.is_dir():
         logger.info(f"Creating {path}")
         try:
-            path.mkdir()
+            path.mkdir(exist_ok=True)  # exist_ok for parallel calls
         except OSError:
             raise OSError(
                 "User does not have write permissions "
@@ -427,7 +427,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = subjects_dir / "fsaverage" / "label"
-    urls = dict(lh="https://osf.io/p92yb/download", rh="https://osf.io/4kxny/download")
+    urls = dict(lh="https://osf.io/download/p92yb", rh="https://osf.io/download/4kxny")
     hashes = dict(
         lh="9e4d8d6b90242b7e4b0145353436ef77", rh="dd6464db8e7762d969fc1d8087cd211b"
     )

@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import shutil
 from os import remove
 
 import pytest
@@ -14,6 +13,7 @@ from mne import pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fil
 from mne.io.fil.sensors import _get_pos_units
+from mne.utils import copytree_rw
 
 fil_path = testing.data_path(download=False) / "FIL"
 
@@ -161,7 +161,7 @@ def test_fil_complete():
 def test_fil_no_positions(tmp_path):
     """Test FIL reader in cases where a position file is missing."""
     test_path = tmp_path / "FIL"
-    shutil.copytree(fil_path, test_path)
+    copytree_rw(fil_path, test_path)
 
     posname = test_path / "sub-noise_ses-001_task-noise220622_run-001_positions.tsv"
     binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
@@ -179,7 +179,7 @@ def test_fil_no_positions(tmp_path):
 def test_fil_bad_channel_spec(tmp_path):
     """Test FIL reader when a bad channel is specified in channels.tsv."""
     test_path = tmp_path / "FIL"
-    shutil.copytree(fil_path, test_path)
+    copytree_rw(fil_path, test_path)
 
     channame = test_path / "sub-noise_ses-001_task-noise220622_run-001_channels.tsv"
     binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"

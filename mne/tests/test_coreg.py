@@ -24,8 +24,8 @@ from mne.coreg import (
     _is_mri_subject,
     coregister_fiducials,
     create_default_subject,
-    fit_matched_points,
     get_mni_fiducials,
+    scale_bem,
     scale_labels,
     scale_mri,
     scale_source_space,
@@ -37,6 +37,7 @@ from mne.transforms import (
     Transform,
     _angle_between_quats,
     apply_trans,
+    fit_matched_points,
     invert_transform,
     read_trans,
     rot_to_quat,
@@ -108,6 +109,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     os.remove(fid_path)
     create_default_subject(update=True, subjects_dir=tmp_path, fs_home=fake_home)
     assert fid_path.exists(), "Updating fsaverage"
+    mri_fiducials = read_fiducials(fid_path)[0]
 
     # copy MRI file from sample data (shouldn't matter that it's incorrect,
     # so here choose a small one)
@@ -139,6 +141,20 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # scale fsaverage
     write_source_spaces(bem_path / (bem_fname % "ico-0"), src, overwrite=True)
+    # scaling in place would delete the subject we are scaling from
+    kwargs = dict(subject_from="fsaverage", scale=scale, subjects_dir=tmp_path)
+    for func, args in (
+        (scale_bem, ("fsaverage", "inner_skull-bem")),
+        (scale_labels, ("fsaverage",)),
+        (scale_source_space, ("fsaverage", "ico-0")),
+    ):
+        with pytest.raises(ValueError, match="must be different from subject_from"):
+            func(*args, **kwargs)
+    with pytest.raises(ValueError, match="must be different from subject_from"):
+        scale_mri("fsaverage", "fsaverage", scale, True, subjects_dir=tmp_path)
+    with pytest.raises(TypeError, match="subject_to must be an instance of str"):
+        scale_mri("fsaverage", tmp_path / "flachkopf", scale, subjects_dir=tmp_path)
+    assert _is_mri_subject("fsaverage", tmp_path)
     scale_mri(
         "fsaverage",
         "flachkopf",
@@ -146,6 +162,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
         True,
         subjects_dir=tmp_path,
         verbose="debug",
+        mri_fiducials=mri_fiducials,
     )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
     spath = tmp_path / "flachkopf" / "bem"
@@ -292,7 +309,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
         # Check head_to_mni (the `trans` here does not really matter)
         trans = rotation(0.001, 0.002, 0.003) @ translation(0.01, 0.02, 0.03)
         trans = Transform("head", "mri", trans)
-        pos_head_from = np.random.RandomState(0).randn(4, 3)
+        pos_head_from = np.random.default_rng(0).standard_normal((4, 3))
         pos_mni_from = mne.head_to_mni(
             pos_head_from, subject_from, trans, subjects_dir_tmp_few
         )
@@ -341,7 +358,9 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points."""
-    tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
+    # still reachable from its historical home
+    assert mne.coreg.fit_matched_points is fit_matched_points
+    tgt_pts = np.random.default_rng(42).uniform(size=(6, 3))
 
     # rotation only
     trans = rotation(2, 6, 3)

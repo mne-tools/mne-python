@@ -22,9 +22,9 @@ from sklearn.svm import SVC
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
-from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef
+from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef, read_csp, read_spoc
 from mne.decoding.csp import _ajd_pham
-from mne.utils import catch_logging
+from mne.utils import catch_logging, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -42,12 +42,12 @@ def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
     modulated according to a target variable, before being mixed with a
     random mixing matrix.
     """
-    rs = np.random.RandomState(random_state)
+    rs = np.random.default_rng(random_state)
 
     # generate a orthogonal mixin matrix
-    mixing_mat = np.linalg.svd(rs.randn(n_channels, n_channels))[0]
+    mixing_mat = np.linalg.svd(rs.standard_normal((n_channels, n_channels)))[0]
 
-    S = rs.randn(n_trials, n_channels, 50)
+    S = rs.standard_normal((n_trials, n_channels, 50))
     S[:, 0] *= np.atleast_2d(np.sqrt(target)).T
     S[:, 1:] *= 0.01  # less noise
 
@@ -320,8 +320,12 @@ def test_regularized_csp(ch_type, rank, reg):
     epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
     if rank == "full" and reg is None:
-        with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
-            csp.fit(epochs_data, epochs.events[:, -1])
+        # TODO: Figure out why SciPy 1.18 is different:
+        # R_restr differs enough (but only by ~1e-13!) that it doesn't hit the
+        # "leading minor" error here...
+        if not check_version("scipy", "1.18.0.dev0"):
+            with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
+                csp.fit(epochs_data, epochs.events[:, -1])
         return
     with catch_logging(verbose=True) as log:
         X = csp.fit_transform(epochs_data, epochs.events[:, -1])
@@ -395,9 +399,10 @@ def test_ajd():
     # results as the Matlab implementation by Pham Dinh-Tuan.
     # Generate a set of cavariances matrices for test purpose
     n_times, n_channels = 10, 3
+    # RandomState (not default_rng): V_matlab below was computed from this exact stream
     seed = np.random.RandomState(0)
-    diags = 2.0 + 0.1 * seed.randn(n_times, n_channels)
-    A = 2 * seed.rand(n_channels, n_channels) - 1
+    diags = seed.normal(loc=2.0, scale=0.1, size=(n_times, n_channels))
+    A = 2 * seed.random((n_channels, n_channels)) - 1
     A /= np.atleast_2d(np.sqrt(np.sum(A**2, 1))).T
     covmats = np.empty((n_times, n_channels, n_channels))
     for i in range(n_times):
@@ -414,8 +419,9 @@ def test_ajd():
 
 def test_spoc():
     """Test SPoC."""
-    X = np.random.randn(10, 10, 20)
-    y = np.random.randn(10)
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((10, 10, 20))
+    y = rng.standard_normal(10)
 
     spoc = SPoC(n_components=4)
     spoc.fit(X, y)
@@ -431,12 +437,12 @@ def test_spoc():
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
-    # Check that doesn't take CSP-spcific input
+    # Check that doesn't take CSP-specific input
     pytest.raises(TypeError, SPoC, cov_est="epoch")
 
     # Check mixing matrix on simulated data
-    rs = np.random.RandomState(42)
-    y = rs.rand(100) * 50 + 1
+    rs = np.random.default_rng(42)
+    y = rs.random(100) * 50 + 1
     X, A = simulate_data(y)
 
     # fit spoc
@@ -495,5 +501,69 @@ def test_csp_component_ordering():
 @parametrize_with_checks([CSP(), SPoC()])
 def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     check(estimator)
+
+
+@pytest.mark.parametrize("Estimator", [CSP, SPoC])
+def test_io_roundtrip(tmp_path, Estimator):
+    """Test that CSP/SPoC can be saved to disk and loaded back correctly."""
+    h5io = pytest.importorskip("h5io")
+    rng = np.random.default_rng(42)
+
+    # Generate class-specific data
+    if Estimator is CSP:
+        X = rng.standard_normal((40, 10, 50))
+        y = np.array([0] * 20 + [1] * 20)
+        read_func = read_csp
+        extra_attrs = ["component_order", "norm_trace"]
+    else:  # SPoC
+        X = rng.standard_normal((10, 10, 20))
+        y = rng.standard_normal(10)
+        read_func = read_spoc
+        extra_attrs = []
+
+    est = Estimator(n_components=4)
+    est.fit(X, y)
+
+    state = est.__getstate__()
+    assert "cov_callable" not in state
+    assert "mod_ged_callable" not in state
+    assert "R_func" not in state
+
+    fname = tmp_path / f"test_{Estimator.__name__.lower()}.h5"
+    est.save(fname)
+
+    est_loaded = read_func(fname)
+
+    assert hasattr(est_loaded, "cov_callable")
+    assert hasattr(est_loaded, "mod_ged_callable")
+    assert callable(est_loaded.cov_callable)
+    assert callable(est_loaded.mod_ged_callable)
+
+    # Check fitted array attributes are restored
+    assert_array_almost_equal(est.filters_, est_loaded.filters_)
+    assert_array_almost_equal(est.patterns_, est_loaded.patterns_)
+
+    # Check scalar/param attributes (common + class-specific)
+    common_attrs = ["n_components", "transform_into", "log", "reg"]
+    for attr in common_attrs + extra_attrs:
+        assert getattr(est, attr) == getattr(est_loaded, attr), f"{attr} mismatch"
+
+    # Check transform output matches
+    X_orig = est.transform(X)
+    X_loaded = est_loaded.transform(X)
+    assert_array_almost_equal(X_orig, X_loaded)
+
+    with pytest.raises(FileExistsError):
+        est.save(fname)
+    est.save(fname, overwrite=True)
+
+    # Check that loading an HDF5 file with missing keys raises an error
+    bad_fname = tmp_path / f"bad_{Estimator.__name__.lower()}.h5"
+    h5io.write_hdf5(bad_fname, dict(foo="bar"), title="mnepython", slash="replace")
+    with pytest.raises(ValueError, match="missing required keys"):
+        read_func(bad_fname)
+
+    with pytest.raises(OSError, match="not found|does not exist"):
+        read_func(tmp_path / "nonexistent.h5")

@@ -6,7 +6,6 @@ import math
 
 import numpy as np
 from scipy.special import expit
-from scipy.stats import kurtosis
 
 from ..utils import check_random_state, logger, random_permutation, verbose
 
@@ -116,6 +115,8 @@ def infomax(
            analysis using an extended infomax algorithm for mixed subgaussian
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
+    from scipy.stats import kurtosis
+
     rng = check_random_state(random_state)
 
     # define some default parameters
@@ -247,7 +248,7 @@ def infomax(
                     oldsigns = signs
 
                     if signcount >= signcount_threshold:
-                        ext_blocks = np.fix(ext_blocks * signcount_step)
+                        ext_blocks = np.trunc(ext_blocks * signcount_step)
                         signcount = 0
 
         # here we continue after the for loop over the ICA training blocks

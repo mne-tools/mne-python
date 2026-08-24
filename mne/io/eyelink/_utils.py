@@ -6,6 +6,7 @@
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import numpy as np
 
@@ -14,7 +15,8 @@ from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import _check_pandas_installed, logger, warn
 
-EYELINK_COLS = {
+# heterogeneous nested structure (tuples of column names or sub-dicts by eye)
+EYELINK_COLS: dict[str, Any] = {
     "timestamp": ("time",),
     "pos": {
         "left": ("xpos_left", "ypos_left", "pupil_left"),
@@ -103,7 +105,7 @@ def _parse_recording_blocks(fname):
     samples lines start with a posix-like string,
     and contain eyetracking sample info. Event Lines
     start with an upper case string and contain info
-    about occular events (i.e. blink/saccade), or experiment
+    about ocular events (i.e. blink/saccade), or experiment
     messages sent by the stimulus presentation software.
     """
     with fname.open() as file:
@@ -129,7 +131,7 @@ def _parse_recording_blocks(fname):
             if line.startswith("START"):  # start of recording block
                 is_recording_block = True
                 # Initialize container for new block data
-                current_block = {
+                current_block: dict[str, Any] = {
                     "samples": [],
                     "events": {
                         "START": [],
@@ -182,14 +184,14 @@ def _validate_data(data_blocks: list):
         pupil_units.append(block["info"]["pupil_unit"])
     if "GAZE" in units:
         logger.info(
-            "Pixel coordinate data detected."
+            "Pixel coordinate data detected. "
             "Pass `scalings=dict(eyegaze=1e3)` when using plot"
             " method to make traces more legible."
         )
     if "HREF" in units:
         logger.info("Head-referenced eye-angle (HREF) data detected.")
     elif "PUPIL" in units:
-        warn("Raw eyegaze coordinates detected. Analyze with caution.")
+        warn("Raw pupil position data detected. Analyze with caution.")
     if "AREA" in pupil_units:
         logger.info("Pupil-size area detected.")
     elif "DIAMETER" in pupil_units:
@@ -369,7 +371,7 @@ def _create_dataframes_for_block(block, apply_offsets):
         df_dict["samples"] = pd.DataFrame(block["samples"])
         df_dict["samples"] = _drop_status_col(df_dict["samples"])  # drop STATUS col
 
-    # dataframe for each type of occular event in this block
+    # dataframe for each type of ocular event in this block
     for event, label in zip(
         ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
     ):
@@ -400,7 +402,24 @@ def _create_dataframes_for_block(block, apply_offsets):
             msgs.append([ts, offset, msg])
         df_dict["messages"] = pd.DataFrame(msgs)
 
-        # TODO: Make dataframes for other eyelink events (Buttons)
+    # make dataframes for other button events
+    if block["events"]["BUTTON"]:
+        button_events = block["events"]["BUTTON"]
+        parsed = []
+        for entry in button_events:
+            parsed.append(
+                {
+                    "time": float(entry[0]),  # onset
+                    "button_id": int(entry[1]),
+                    "button_pressed": int(entry[2]),  # 1 = press, 0 = release
+                }
+            )
+        df_dict["buttons"] = pd.DataFrame(parsed)
+        n_button = len(df_dict.get("buttons", []))
+        logger.info(f"Found {n_button} button event(s) in this file.")
+    else:
+        logger.info("No button events found in this file.")
+
     return df_dict
 
 
@@ -499,7 +518,6 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
 
     for df_type in all_df_types:
         block_dfs = []
-
         for block in processed_blocks:
             if df_type in block["dfs"]:
                 # We will update the dfs in-place to conserve memory
@@ -543,11 +561,27 @@ def _drop_status_col(samples_df):
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
     for col in samples_df.columns[3:]:
-        if samples_df[col][0][0].isnumeric():
-            # if the value is numeric, it's not a status column
-            continue
-        if len(samples_df[col][0]) in [3, 5, 13, 17]:
+        # use first valid index and value to ignore leading empty values
+        # see https://github.com/mne-tools/mne-python/issues/13567
+        first_valid_index = samples_df[col].first_valid_index()
+        if first_valid_index is None:
+            # The entire column is NaN, so we can drop it
             status_cols.append(col)
+            continue
+        first_value = samples_df.loc[first_valid_index, col]
+        try:
+            float(first_value)
+            continue  # if the value is numeric, it's not a status column
+        except (ValueError, TypeError):
+            # cannot convert to float, so it might be a status column
+            # further check the length of the string value
+            if len(first_value) in [3, 5, 13, 17]:
+                status_cols.append(col)
+            else:
+                warn(
+                    f"Unexpected non-numeric value {repr(first_value)} in "
+                    "status column. Please contact mne-python developers"
+                )
     return samples_df.drop(columns=status_cols)
 
 
@@ -670,7 +704,7 @@ def _adjust_times(
     sfreq : int | float:
         sampling frequency of the data
 
-    time_col : str (default 'time'):
+    time_col : str
         name of column with the timestamps (e.g. 9511881, 9511882, ...)
 
     Returns
@@ -681,7 +715,7 @@ def _adjust_times(
     -----
     After _parse_recording_blocks, Files with multiple recording blocks will
     have missing timestamps for the duration of the period between the blocks.
-    This would cause the occular annotations (i.e. blinks) to not line up with
+    This would cause the ocular annotations (i.e. blinks) to not line up with
     the signal.
     """
     pd = _check_pandas_installed()
@@ -707,8 +741,8 @@ def _find_overlaps(df, max_time=0.05):
     Parameters
     ----------
     df : pandas.DataFrame
-        Pandas DataFrame with occular events (fixations, saccades, blinks)
-    max_time : float (default 0.05)
+        Pandas DataFrame with ocular events (fixations, saccades, blinks)
+    max_time : float
         Time in seconds. Defaults to .05 (50 ms)
 
     Returns
@@ -775,7 +809,7 @@ def _href_to_radian(opposite, f=15_000):
     ----------
     opposite : int
         The x or y coordinate in an HREF gaze sample.
-    f : int (default 15_000)
+    f : int
         distance of plane from the eye. Defaults to 15,000 units, which was taken
         from the Eyelink 1000 plus user manual.
 
@@ -849,7 +883,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             "pupil_right",
         ),
     }
-    valid_descs = ["blinks", "saccades", "fixations", "messages"]
+    valid_descs = ["blinks", "saccades", "fixations", "buttons", "messages"]
     msg = (
         "create_annotations must be True or a list containing one or"
         f" more of {valid_descs}."
@@ -875,6 +909,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             descriptions = key[:-1]  # i.e "blink", "fixation", "saccade"
             if key == "blinks":
                 descriptions = "BAD_" + descriptions
+
             ch_names = df["eye"].map(eye_ch_map).tolist()
             this_annot = Annotations(
                 onset=onsets,
@@ -893,8 +928,24 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             this_annot = Annotations(
                 onset=onsets, duration=durations, description=descriptions
             )
+        elif (key == "buttons") and (key in descs):
+            required_cols = {"time", "button_id", "button_pressed"}
+            if not required_cols.issubset(df.columns):
+                raise ValueError(f"Missing column: {required_cols - set(df.columns)}")
+            # Give user a hint
+            n_presses = df["button_pressed"].sum()
+            logger.info("Found %d button press events.", n_presses)
+
+            df = df.sort_values("time")
+            onsets = df["time"]
+            durations = np.zeros_like(onsets)
+            descriptions = df.apply(_get_button_description, axis=1)
+
+            this_annot = Annotations(
+                onset=onsets, duration=durations, description=descriptions
+            )
         else:
-            continue  # TODO make df and annotations for Buttons
+            continue
         if not annots:
             annots = this_annot
         elif annots:
@@ -902,7 +953,14 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
     if not annots:
         warn(f"Annotations for {descs} were requested but none could be made.")
         return
+
     return annots
+
+
+def _get_button_description(row):
+    button_id = int(row["button_id"])
+    action = "press" if row["button_pressed"] == 1 else "release"
+    return f"button_{button_id}_{action}"
 
 
 def _make_gap_annots(raw_extras, key="recording_blocks"):
@@ -990,19 +1048,28 @@ def _parse_calibration(
             avg_error = float(line.split("avg.")[0].split()[-1])  # e.g. 0.3
             max_error = float(line.split("max")[0].split()[-1])  # e.g. 0.9
 
-            n_points = int(regex.search(model).group())  # e.g. 13
+            match = regex.search(model)
+            assert match is not None
+            n_points = int(match.group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
+
             # The next n_point lines contain the validation data
             points = []
-            for validation_index in range(n_points):
-                subline = lines[line_number + validation_index + 1]
-                if "!CAL VALIDATION" in subline:
+            line_idx = line_number + 1
+            read_points = 0
+            while read_points < n_points and line_idx < len(lines):
+                subline = lines[line_idx].strip()
+                line_idx += 1
+
+                if not subline or "!CAL VALIDATION" in subline:
                     continue  # for bino mode, skip the second eye's validation summary
+
                 subline_eye = subline.split("at")[0].split()[-1].lower()  # e.g. 'left'
                 if subline_eye != this_eye:
                     continue  # skip the validation lines for the other eye
                 point_info = _parse_validation_line(subline)
                 points.append(point_info)
+                read_points += 1
             # Convert the list of validation data into a numpy array
             positions = np.array([point[:2] for point in points])
             offsets = np.array([point[2] for point in points])

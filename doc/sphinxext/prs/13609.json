@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1300eae4e88d3f38a71cd2a95b4dff41ca75d4bb",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/spec_zero.yml": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

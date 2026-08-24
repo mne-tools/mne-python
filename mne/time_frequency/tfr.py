@@ -11,10 +11,7 @@ import inspect
 from copy import deepcopy
 from functools import partial
 
-import matplotlib.pyplot as plt
 import numpy as np
-from scipy.fft import fft, ifft
-from scipy.signal import argrelmax
 
 from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _picks_to_idx, pick_info
@@ -59,25 +56,7 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..utils.spectrum import _get_instance_type_string
-from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
-from ..viz.topomap import (
-    _add_colorbar,
-    _get_pos_outlines,
-    _set_contour_locator,
-    plot_tfr_topomap,
-    plot_topomap,
-)
-from ..viz.utils import (
-    _make_combine_callable,
-    _prepare_joint_axes,
-    _set_title_multiple_electrodes,
-    _setup_cmap,
-    _setup_vmin_vmax,
-    add_background_image,
-    figure_nobar,
-    plt_show,
-)
+from ..utils.spectrum import _convert_old_birthday_format, _get_instance_type_string
 from .multitaper import dpss_windows, tfr_array_multitaper
 from .spectrum import EpochsSpectrum
 
@@ -95,7 +74,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     n_cycles : float | array-like, shape (n_freqs,)
         Number of cycles. Can be a fixed number (float) or one per frequency
         (array-like).
-    sigma : float, default None
+    sigma : float | None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
         is adapted with the frequency like for all wavelet transform.
@@ -103,7 +82,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         If sigma is fixed the temporal resolution is fixed
         like for the short time Fourier transform and the number
         of oscillations increases with the frequency.
-    zero_mean : bool, default False
+    zero_mean : bool
         Make sure the wavelet has a mean of zero.
 
     Returns
@@ -248,14 +227,14 @@ def _make_dpss(
         The sampling frequency.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,), default 7.
+    n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
-    time_bandwidth : float, default 4.0
+    time_bandwidth : float
         Time x Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
         Default is 4.0, giving 3 good tapers.
-    zero_mean : bool | None, , default False
+    zero_mean : bool | None
         Make sure the wavelet has a mean of zero.
     return_weights : bool
         Whether to return the concentration weights.
@@ -353,7 +332,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
         FFT length.
     mode : {'full', 'valid', 'same'}
         See numpy.convolve.
-    decim : int | slice, default 1
+    decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -361,7 +340,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
 
         .. note:: Decimation may create aliasing artifacts.
 
-    use_fft : bool, default True
+    use_fft : bool
         Use the FFT for convolutions or not.
 
     Returns
@@ -369,6 +348,8 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
+    from scipy.fft import fft, ifft
+
     _check_option("mode", mode, ["same", "valid", "full"])
     decim = _ensure_slice(decim)
     X = np.asarray(X)
@@ -448,26 +429,26 @@ def _compute_tfr(
         The epochs.default ``'complex'``
     freqs : array-like of floats, shape (n_freqs)
         The frequencies.
-    sfreq : float | int, default 1.0
+    sfreq : float | int
         Sampling frequency of the data.
-    method : 'multitaper' | 'morlet', default 'morlet'
+    method : 'multitaper' | 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
         'multitaper' uses complex exponentials windowed with multiple DPSS
         tapers.
-    n_cycles : float | array of float, default 7.0
+    n_cycles : float | array of float
         Number of cycles in the wavelet. Fixed number
         or one per frequency.
-    zero_mean : bool | None, default None
+    zero_mean : bool | None
         None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
-    time_bandwidth : float, default None
+    time_bandwidth : float | None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
-    use_fft : bool, default True
+    use_fft : bool
         Use the FFT for convolutions or not.
-    decim : int | slice, default 1
+    decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -486,7 +467,7 @@ def _compute_tfr(
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
-    return_weights : bool, default False
+    return_weights : bool
         Whether to return the taper weights. Only applies if method='multitaper' and
         output='complex' or 'phase'.
     %(n_jobs)s
@@ -878,17 +859,17 @@ def tfr_morlet(
         The epochs or evoked object.
     %(freqs_tfr_array)s
     %(n_cycles_tfr)s
-    use_fft : bool, default False
+    use_fft : bool
         The fft based convolution or not.
-    return_itc : bool, default True
+    return_itc : bool
         Return inter-trial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
     %(decim_tfr)s
     %(n_jobs)s
-    picks : array-like of int | None, default None
+    picks : array-like of int | None
         The indices of the channels to decompose. If None, all available
         good data channels are decomposed.
-    zero_mean : bool, default True
+    zero_mean : bool
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
@@ -978,7 +959,7 @@ def tfr_array_morlet(
     use_fft : bool
         Use the FFT for convolutions or not. default True.
     %(decim_tfr)s
-    output : str, default ``'complex'``
+    output : str
 
         * ``'complex'`` : single trial complex.
         * ``'power'`` : single trial power.
@@ -1070,9 +1051,9 @@ def tfr_multitaper(
     %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     %(time_bandwidth_tfr)s
-    use_fft : bool, default True
+    use_fft : bool
         The fft based convolution or not.
-    return_itc : bool, default True
+    return_itc : bool
         Return inter-trial coherence (ITC) as well as averaged (or
         single-trial) power.
     %(decim_tfr)s
@@ -1433,7 +1414,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._dims = defaults["dims"]
         self._raw_times = np.asarray(defaults["times"], dtype=np.float64)
         self._baseline = defaults["baseline"]
-        self.info = Info(**defaults["info"])
+        self.info = Info(**_convert_old_birthday_format(defaults["info"]))
         self._data_type = defaults["data_type"]
         self._decim = defaults["decim"]
         self.preload = True
@@ -1597,6 +1578,16 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         verbose=None,
     ):
         """Respond to rectangle selector in TFR image plots with a topomap plot."""
+        from ..viz.topomap import (
+            _add_colorbar,
+            plot_tfr_topomap,
+            plot_topomap,
+        )
+        from ..viz.utils import (
+            figure_nobar,
+            plt_show,
+        )
+
         if abs(eclick.x - erelease.x) < 0.1 or abs(eclick.y - erelease.y) < 0.1:
             return
         t_range = (min(eclick.xdata, erelease.xdata), max(eclick.xdata, erelease.xdata))
@@ -1939,7 +1930,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one; has (useful) option title="auto"
+        title=None,  # keep: has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -2001,6 +1992,15 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         # so we keep a reference to that state here, and (because the topomap plotting
         # function wants an AverageTFR) update it with `comment` and `nave` values in
         # case we started out with a singleton EpochsTFR or RawTFR
+        from ..viz.topo import _imshow_tfr
+        from ..viz.utils import (
+            _make_combine_callable,
+            _set_title_multiple_electrodes,
+            _setup_cmap,
+            _setup_vmin_vmax,
+            plt_show,
+        )
+
         initial_state = self.__getstate__()
         initial_state.setdefault("comment", "")
         initial_state.setdefault("nave", 1)
@@ -2082,6 +2082,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         vmin, vmax = _setup_vmin_vmax(data, *vlim, norm=norm)
         cmap = _setup_cmap(cmap, norm=norm)
         # prepare figure(s)
+        import matplotlib.pyplot as plt
+
         if axes is None:
             figs = [plt.figure(layout="constrained") for _ in range(data.shape[0])]
             axes = [fig.add_subplot() for fig in figs]
@@ -2240,6 +2242,17 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         """
         from matplotlib import ticker
         from matplotlib.patches import ConnectionPatch
+
+        from ..viz.topomap import (
+            _set_contour_locator,
+            plot_topomap,
+        )
+        from ..viz.utils import (
+            _prepare_joint_axes,
+            _setup_cmap,
+            _setup_vmin_vmax,
+            plt_show,
+        )
 
         # handle recursion
         picks = _picks_to_idx(
@@ -2481,7 +2494,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         vmax=None,
         layout=None,
         cmap="RdBu_r",
-        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
+        title=None,  # keep: topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -2525,6 +2538,13 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             The figure containing the topography.
         """
         # convenience vars
+        from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
+        from ..viz.utils import (
+            _setup_vmin_vmax,
+            add_background_image,
+            plt_show,
+        )
+
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -2598,7 +2618,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         plt_show(show)
         return fig
 
-    @copy_function_doc_to_method_doc(plot_tfr_topomap)
+    @copy_function_doc_to_method_doc("func:mne.viz.topomap.plot_tfr_topomap")
     def plot_topomap(
         self,
         tmin=None,
@@ -2613,6 +2633,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -2630,6 +2651,10 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         axes=None,
         show=True,
     ):
+        from ..viz.topomap import (
+            plot_tfr_topomap,
+        )
+
         return plot_tfr_topomap(
             self,
             tmin=tmin,
@@ -2643,6 +2668,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -2753,7 +2779,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         # prepare extra columns / multiindex
         mindex = list()
         default_index = list()
-        times = _convert_times(times, time_format, self.info["meas_date"])
+        times = _convert_times(times, time_format, meas_date=self.info["meas_date"])
         times = np.tile(times, n_epochs * n_freqs * n_tapers)
         freqs = np.tile(np.repeat(freqs, n_times), n_epochs * n_tapers)
         mindex.append(("time", times))
@@ -3313,7 +3339,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         state["freqs"] = freqs
         state["times"] = times
         if dim == "epochs":
-            state["inst_type_str"] = "Evoked"
             state["nave"] = n_epochs
             state["comment"] = f"{method} of {n_epochs} EpochsTFR{_pl(n_epochs)}"
             out = AverageTFR(inst=state)
@@ -3388,6 +3413,11 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         ----------
         copy : bool
             Whether to yield copies of the data and measurement info, or views/pointers.
+
+        Yields
+        ------
+        epoch : instance of AverageTFR
+            The time-frequency data for a single epoch, wrapped in an AverageTFR object.
         """
         self.__iter__()
         state = self.__getstate__()
@@ -3407,8 +3437,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             state["nave"] = 1
             yield AverageTFR(inst=state, method=None, freqs=None, comment=str(event_id))
 
+    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot")
     @verbose
-    @copy_doc(BaseTFR.plot)
     def plot(
         self,
         picks=None,
@@ -3428,7 +3458,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one; has (useful) option title="auto"
+        title=None,  # keep: has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -3465,8 +3495,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
+    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot_topo")
     @verbose
-    @copy_doc(BaseTFR.plot_topo)
     def plot_topo(
         self,
         picks=None,
@@ -3480,7 +3510,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         vmax=None,
         layout=None,
         cmap=None,
-        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
+        title=None,  # keep: topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -3518,8 +3548,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
+    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot_joint")
     @verbose
-    @copy_doc(BaseTFR.plot_joint)
     def plot_joint(
         self,
         *,
@@ -3570,7 +3600,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
-    @copy_doc(BaseTFR.plot_topomap)
+    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot_topomap")
     def plot_topomap(
         self,
         tmin=None,
@@ -3585,6 +3615,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -3615,6 +3646,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -4142,7 +4174,7 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
             if key != condition:
                 continue
         tfr = dict(tfr)
-        tfr["info"] = Info(tfr["info"])
+        tfr["info"] = Info(_convert_old_birthday_format(tfr["info"]))
         tfr["info"]._check_consistency()
         if "metadata" in tfr:
             tfr["metadata"] = _prepare_read_metadata(tfr["metadata"])
@@ -4173,6 +4205,8 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
 def _get_timefreqs(tfr, timefreqs):
     """Find and/or setup timefreqs for `tfr.plot_joint`."""
     # Input check
+    from scipy.signal import argrelmax
+
     timefreq_error_msg = (
         "Supplied `timefreqs` are somehow malformed. Please supply None, "
         "a list of tuple pairs, or a dict of such tuple pairs, not {}"
@@ -4230,6 +4264,10 @@ def _check_tfr_complex(tfr, reason="source space estimation"):
 
 
 def _merge_if_grads(data, info, ch_type, sphere, combine=None):
+    from ..viz.topomap import (
+        _get_pos_outlines,
+    )
+
     if ch_type == "grad":
         grad_picks = _pair_grad_sensors(info, topomap_coords=False)
         pos = _find_topomap_coords(info, picks=grad_picks[::2], sphere=sphere)

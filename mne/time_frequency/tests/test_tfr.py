@@ -51,8 +51,7 @@ from mne.time_frequency.tfr import (
     tfr_multitaper,
     write_tfrs,
 )
-from mne.utils import catch_logging, grand_average
-from mne.utils._testing import _get_suptitle
+from mne.utils import _import_h5io_funcs, catch_logging, grand_average
 from mne.viz.utils import (
     _channel_type_prettyprint,
     _fake_click,
@@ -464,8 +463,8 @@ def test_tfr_multitaper():
     n_times = int(sfreq)  # Second long epochs
     n_epochs = 3
     seed = 42
-    rng = np.random.RandomState(seed)
-    noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
+    rng = np.random.default_rng(seed)
+    noise = rng.normal(scale=0.1, size=(n_epochs, len(ch_names), n_times))
     t = np.arange(n_times, dtype=np.float64) / sfreq
     signal = np.sin(np.pi * 2.0 * 50.0 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # Hard windowing
@@ -614,11 +613,13 @@ def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
     assert_array_equal(freqs, tfr.freqs)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
 def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
     pytest.importorskip("h5io")
     pd = pytest.importorskip("pandas")
+    h5py = pytest.importorskip("h5py")
 
     tfr = _get_inst(inst, request, average_tfr=average_tfr)
     fname = tmp_path / "temp_tfr.hdf5"
@@ -667,12 +668,33 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
         minute=0,
         second=sec_microsec_tuple[0],
         microsecond=sec_microsec_tuple[1],
-        tzinfo=datetime.timezone.utc,
+        tzinfo=datetime.UTC,
     )
     assert tfr_loaded.info["meas_date"] == want
     with tfr.info._unlock():
         tfr.info["meas_date"] = want
     assert tfr_loaded == tfr
+    # test AverageTFR from EpochsTFR.average() can be read (gh-13521)
+    tfravg = tfr.average()
+    tfravg.save(fname, overwrite=True)
+    tfravg_loaded = read_tfrs(fname)
+    assert tfravg == tfravg_loaded
+    # test loading with old-style birthday format
+    fname_multi = tmp_path / "temp_multi_tfr.hdf5"
+    write_tfrs(fname_multi, tfr)  # also check for multiple files from write_tfrs
+    fname_subject_info = tmp_path / "subject-info.hdf5"
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname_subject_info, dict(birthday=(2000, 1, 1)), title="subject_info")
+    for this_fname in (fname, fname_multi):
+        with h5py.File(this_fname, "r+") as f:
+            if f.get("mnepython/key_info/key_subject_info"):
+                path = "mnepython/key_info/key_subject_info"
+            else:  # multi-files on linux have different path to attrs
+                path = "mnepython/idx_0/idx_1/key_info/key_subject_info"
+            del f[path]
+            f[path] = h5py.ExternalLink(fname_subject_info, "subject_info")
+        tfr_loaded = read_tfrs(this_fname)
+        assert isinstance(tfr_loaded.info["subject_info"]["birthday"], datetime.date)
     # test with taper dimension and weights
     n_tapers = 3  # anything >= 1 should do
     weights = np.ones((n_tapers, tfr.shape[2]))  # tapers x freqs
@@ -869,12 +891,13 @@ def test_plot_multitaper_complex_phase(output):
     """Test TFR plotting of data with a taper dimension."""
     # Create example data with a taper dimension
     n_chans, n_tapers, n_freqs, n_times = (3, 4, 2, 3)
-    data = np.random.rand(n_chans, n_tapers, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_chans, n_tapers, n_freqs, n_times))
     if output == "complex":
-        data = data + np.random.rand(*data.shape) * 1j  # add imaginary data
+        data = data + rng.random(data.shape) * 1j  # add imaginary data
     times = np.arange(n_times)
     freqs = np.arange(n_freqs)
-    weights = np.random.rand(n_tapers, n_freqs)
+    weights = rng.random((n_tapers, n_freqs))
     info = mne.create_info(n_chans, 1000.0, "eeg")
     tfr = AverageTFRArray(
         info=info, data=data, times=times, freqs=freqs, weights=weights
@@ -929,7 +952,7 @@ def test_tfr_plot_joint(
     popup_fig = plt.figure(fignums[-1])
     assert re.match(
         r"-?\d{1,2}\.\d{3} - -?\d{1,2}\.\d{3} s,\n\d{1,2}\.\d{2} - \d{1,2}\.\d{2} Hz",
-        _get_suptitle(popup_fig),
+        popup_fig.get_suptitle(),
     )
 
 
@@ -1216,6 +1239,10 @@ def test_averaging_epochsTFR():
     ):
         tapered.average()
 
+    # Test repr from original instance info is preserved
+    avgpower = power.average()
+    assert repr(avgpower).startswith("<Average Power from Epochs")
+
 
 def test_averaging_freqsandtimes_epochsTFR():
     """Test that EpochsTFR averaging freqs methods work."""
@@ -1323,7 +1350,8 @@ def test_to_data_frame():
     n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_epos, n_picks, n_tapers, n_freqs, n_times))
     times = np.arange(n_times)
     srate = 1000.0
     freqs = np.arange(n_freqs)
@@ -1436,7 +1464,8 @@ def test_to_data_frame_index(index):
     n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_epos, n_picks, n_tapers, n_freqs, n_times))
     times = np.arange(n_times)
     freqs = np.arange(n_freqs)
     weights = np.ones((n_tapers, n_freqs))
@@ -1475,7 +1504,8 @@ def test_to_data_frame_time_format(time_format):
     ch_types = ["eeg"] * n_picks
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.random((n_epos, n_picks, n_freqs, n_times))
     times = np.arange(6, dtype=float)
     freqs = np.arange(5)
     events = np.zeros((n_epos, 3), dtype=int)
@@ -1647,10 +1677,11 @@ def test_tfrarray_tapered_spectra(obj_type):
     data_shape = (n_chans, n_tapers, n_freqs, n_times)
     if obj_type == "epochs":
         data_shape = (n_epochs,) + data_shape
-    data = np.random.rand(*data_shape)
+    rng = np.random.default_rng(0)
+    data = rng.random(data_shape)
     times = np.arange(n_times)
     freqs = np.arange(n_freqs)
-    weights = np.random.rand(n_tapers, n_freqs)
+    weights = rng.random((n_tapers, n_freqs))
     info = mne.create_info(n_chans, 1000.0, "eeg")
     # Prepare for TFRArray object instantiation
     defaults = dict(info=info, data=data, times=times, freqs=freqs)
@@ -1762,7 +1793,7 @@ def test_tfr_plot_combine(epochs_tfr, picks, combine):
             want = rf"{'RMS' if combine == 'rms' else 'Mean'} of \d{{1,3}} {ch_type}s"
         else:
             want = epochs_tfr.ch_names[picks[ix]]
-        assert re.search(want, _get_suptitle(_fig))
+        assert re.search(want, _fig.get_suptitle())
 
 
 def test_tfr_plot_extras(epochs_tfr):
@@ -1771,7 +1802,7 @@ def test_tfr_plot_extras(epochs_tfr):
     picks = [1]
     mask = np.ones(epochs_tfr.data.shape[2:], bool)
     fig = epochs_tfr.plot(picks=picks, mask=mask, title="Foo")
-    assert _get_suptitle(fig[0]) == "Foo"
+    assert fig[0].get_suptitle() == "Foo"
     mask = np.ones(epochs_tfr.data.shape[1:], bool)
     with pytest.raises(ValueError, match="mask must have the same shape as the data"):
         epochs_tfr.plot(picks=picks, mask=mask)

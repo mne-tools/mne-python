@@ -5,6 +5,7 @@
 import datetime
 from contextlib import nullcontext
 from functools import partial
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -174,7 +175,7 @@ def test_bdf_data():
         test_scaling=test_scaling,
     )
     assert len(raw_py.ch_names) == 71
-    assert "RawEDF" in repr(raw_py)
+    assert "RawBDF" in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude="bads")
     data_py, _ = raw_py[picks]
 
@@ -223,7 +224,8 @@ def test_edf_others(fname, stim_channel):
 @pytest.mark.parametrize("stim_channel", (None, False, "auto"))
 def test_edf_different_sfreqs(stim_channel):
     """Test EDF with various sampling rates."""
-    rng = np.random.RandomState(0)
+    # seed chosen so the generated data triggers the expected resampling warning
+    rng = np.random.default_rng(1)
     # load with and without preloading, should produce the same results
     raw1 = read_raw_edf(
         input_fname=edf_reduced,
@@ -958,10 +960,16 @@ def test_degenerate():
         read_raw_edf,
         read_raw_bdf,
         read_raw_gdf,
-        partial(_read_header, exclude=(), infer_types=False),
     ):
         with pytest.raises(NotImplementedError, match="Only.*txt.*"):
             func(edf_txt_stim_channel_path)
+
+    with pytest.raises(
+        NotImplementedError, match="Only GDF, EDF, and BDF files are supported."
+    ):
+        partial(_read_header, exclude=(), infer_types=False, file_type=4)(
+            edf_txt_stim_channel_path
+        )
 
 
 def test_exclude():
@@ -1208,3 +1216,49 @@ def test_anonymization():
     assert bday == datetime.date(1967, 10, 9)
     raw.anonymize()
     assert raw.info["subject_info"]["birthday"] != bday
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Invalid measurement date encountered in the header."
+)
+@testing.requires_testing_data
+def test_bdf_read_from_bad_file_like():
+    """Test that RawEDF is NOT able to read from file-like objects for non BDF files."""
+    with pytest.raises(Exception, match="Bad BDF file provided."):
+        with open(edf_txt_stim_channel_path, "rb") as blob:
+            read_raw_bdf(BytesIO(blob.read()), preload=True)
+
+
+@testing.requires_testing_data
+def test_bdf_read_from_file_like():
+    """Test that RawEDF is able to read from file-like objects for BDF files."""
+    with open(bdf_path, "rb") as blob:
+        raw = read_raw_bdf(BytesIO(blob.read()), preload=True)
+        assert len(raw.ch_names) == 73
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Invalid measurement date encountered in the header."
+)
+@testing.requires_testing_data
+def test_edf_read_from_bad_file_like():
+    """Test that RawEDF is NOT able to read from file-like objects for non EDF files."""
+    with pytest.raises(Exception, match="Bad EDF file provided."):
+        with open(edf_txt_stim_channel_path, "rb") as blob:
+            read_raw_edf(BytesIO(blob.read()), preload=True)
+
+
+@testing.requires_testing_data
+def test_edf_read_from_file_like():
+    """Test that RawEDF is able to read from file-like objects for EDF files."""
+    with open(edf_path, "rb") as blob:
+        raw = read_raw_edf(BytesIO(blob.read()), preload=True)
+        channels = [
+            *[f"{prefix}{num}" for prefix in "ABCDEFGH" for num in range(1, 17)],
+            *[f"I{num}" for num in range(1, 9)],
+            "Ergo-Left",
+            "Ergo-Right",
+            "Status",
+        ]
+
+        assert raw.ch_names == channels

@@ -5,6 +5,7 @@
 import os.path as op
 from os import PathLike
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -14,7 +15,7 @@ from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import _PICK_TYPES_KEYS
-from ..._fiff.utils import _find_channels, _read_segments_file
+from ..._fiff.utils import _find_channels, _mult_cal_one, _read_segments_file
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
@@ -39,9 +40,10 @@ CAL = 1e-6
 def _check_eeglab_fname(fname, dataname):
     """Check whether the filename is valid.
 
-    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) or
-    whether the ``EEG.data`` filename exists. If ``EEG.data`` file is absent
-    the set file name with .set changed to .fdt is checked.
+    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid)
+    or ``.set`` (new EEGLAB format) or whether the ``EEG.data`` filename exists.
+    If ``EEG.data`` file is absent the set file name with
+    .set changed to .fdt is checked.
     """
     fmt = str(op.splitext(dataname)[-1])
     if fmt == ".dat":
@@ -49,6 +51,8 @@ def _check_eeglab_fname(fname, dataname):
             "Old data format .dat detected. Please update your EEGLAB "
             "version and resave the data in .fdt format"
         )
+
+    _check_option("EEGLAB file extension", fmt, (".set", ".fdt"))
 
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
@@ -68,10 +72,10 @@ def _check_eeglab_fname(fname, dataname):
     return data_fname
 
 
-def _check_load_mat(fname, uint16_codec):
+def _check_load_mat(fname, uint16_codec, *, preload=False):
     """Check if the mat struct contains 'EEG'."""
     fname = _check_fname(fname, "read", True)
-    eeg = _readmat(fname, uint16_codec=uint16_codec)
+    eeg = _readmat(fname, uint16_codec=uint16_codec, preload=preload)
     if "ALLEEG" in eeg:
         raise NotImplementedError(
             "Loading an ALLEEG array is not supported. Please contact"
@@ -81,9 +85,9 @@ def _check_load_mat(fname, uint16_codec):
         eeg = eeg["EEG"]
     eeg = eeg.get("EEG", eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
-    eeg.trials = int(eeg.trials)
-    eeg.nbchan = int(eeg.nbchan)
-    eeg.pnts = int(eeg.pnts)
+    eeg.trials = int(eeg.get("trials", 1))
+    eeg.nbchan = int(eeg.get("nbchan", 1))
+    eeg.pnts = int(eeg.get("pnts", 1))
     return eeg
 
 
@@ -96,10 +100,8 @@ def _to_loc(ll):
 
 
 def _eeg_has_montage_information(eeg):
-    try:
-        from scipy.io.matlab import mat_struct
-    except ImportError:  # SciPy < 1.8
-        from scipy.io.matlab.mio5_params import mat_struct
+    from scipy.io.matlab import mat_struct
+
     if not len(eeg.chanlocs):
         has_pos = False
     else:
@@ -166,9 +168,9 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
         nodatchans = eeg.chaninfo["nodatchans"]
         types = nodatchans.get("type", [])
         descriptions = nodatchans.get("description", [])
-        xs = nodatchans.get("X", [])
-        ys = nodatchans.get("Y", [])
-        zs = nodatchans.get("Z", [])
+        xs = np.atleast_1d(nodatchans.get("X", []))
+        ys = np.atleast_1d(nodatchans.get("Y", []))
+        zs = np.atleast_1d(nodatchans.get("Z", []))
 
         for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
             if type_ != "FID":
@@ -184,7 +186,7 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
         pos_array = np.array(pos, float)
-        pos_array.shape = (-1, 3)
+        pos_array = pos_array.reshape((-1, 3), copy=False)
 
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).any(axis=1)
@@ -283,12 +285,12 @@ def _handle_montage_units(montage_units, mean_radius):
 
 @fill_doc
 def read_raw_eeglab(
-    input_fname,
-    eog=(),
-    preload=False,
-    uint16_codec=None,
-    montage_units="auto",
-    verbose=None,
+    input_fname: Path | str,
+    eog: list | tuple | Literal["auto"] = (),
+    preload: bool | str = False,
+    uint16_codec: str | None = None,
+    montage_units: str = "auto",
+    verbose: bool | str | int | None = None,
 ) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
@@ -302,8 +304,6 @@ def read_raw_eeglab(
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that ``preload=False`` will be effective only if the data is
-        stored in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
 
@@ -337,14 +337,14 @@ def read_raw_eeglab(
 
 @fill_doc
 def read_epochs_eeglab(
-    input_fname,
-    events=None,
-    event_id=None,
-    eog=(),
+    input_fname: Path | str,
+    events: Path | str | np.ndarray | None = None,
+    event_id: int | list[int] | dict | None = None,
+    eog: list | tuple | Literal["auto"] = (),
     *,
-    uint16_codec=None,
-    montage_units="auto",
-    verbose=None,
+    uint16_codec: str | None = None,
+    montage_units: str = "auto",
+    verbose: bool | str | int | None = None,
 ) -> "EpochsEEGLAB":
     r"""Reader function for EEGLAB epochs files.
 
@@ -383,7 +383,7 @@ def read_epochs_eeglab(
 
     Returns
     -------
-    EpochsEEGLAB : instance of BaseEpochs
+    EpochsEEGLAB : instance of EpochsEEGLAB
         The epochs.
 
     See Also
@@ -420,8 +420,6 @@ class RawEEGLAB(BaseRaw):
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that preload=False will be effective only if the data is stored
-        in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
     %(verbose)s
@@ -447,7 +445,7 @@ class RawEEGLAB(BaseRaw):
         verbose=None,
     ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
-        eeg = _check_load_mat(input_fname, uint16_codec)
+        eeg = _check_load_mat(input_fname, uint16_codec, preload=preload)
         if eeg.trials != 1:
             raise TypeError(
                 f"The number of trials is {eeg.trials:d}. It must be 1 for raw"
@@ -462,6 +460,8 @@ class RawEEGLAB(BaseRaw):
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info(f"Reading {data_fname}")
+            # Check if data is embedded in the same .set file
+            is_embedded = op.realpath(data_fname) == op.realpath(input_fname)
 
             super().__init__(
                 info,
@@ -470,16 +470,15 @@ class RawEEGLAB(BaseRaw):
                 last_samps=last_samps,
                 orig_format="double",
                 verbose=verbose,
+                raw_extras=[
+                    {
+                        "is_embedded": is_embedded,
+                        "input_fname": input_fname,
+                        "uint16_codec": uint16_codec,
+                    }
+                ],
             )
         else:
-            if preload is False or isinstance(preload, str):
-                warn(
-                    "Data will be preloaded. preload=False or a string "
-                    "preload is not supported when the data is stored in "
-                    "the .set file"
-                )
-            # can't be done in standard way with preload=True because of
-            # different reading path (.set file)
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
                 n_chan, n_times = [1, eeg.data.shape[0]]
             else:
@@ -508,6 +507,45 @@ class RawEEGLAB(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
+        # Check if data is embedded in .set file
+        raw_extra = self._raw_extras[fi]
+        if raw_extra.get("is_embedded", False):
+            # Check if we have already loaded and cached the embedded data
+            if "cached_data" not in raw_extra:
+                # Load from MATLAB struct on-demand (only once)
+                input_fname = raw_extra["input_fname"]
+                uint16_codec = raw_extra["uint16_codec"]
+                eeg_full = _readmat(
+                    input_fname, uint16_codec=uint16_codec, preload=True
+                )
+                if "EEG" in eeg_full:
+                    eeg_full = eeg_full["EEG"]
+                eeg_full = eeg_full.get("EEG", eeg_full)
+                full_data = eeg_full.get("data")
+
+                if full_data is None:
+                    raise ValueError(
+                        f"Could not find 'data' field in embedded EEGLAB file: "
+                        f"{input_fname}. The file may be corrupted or not a valid "
+                        "EEGLAB file."
+                    )
+
+                # Handle 1D data
+                if full_data.ndim == 1:
+                    full_data = full_data[np.newaxis, :]
+
+                # Cache for future segment reads
+                raw_extra["cached_data"] = full_data
+
+            # Extract the requested segment from cached data (don't scale here)
+            full_data = raw_extra["cached_data"]
+            block = full_data[:, start:stop].astype(np.float32)
+            # Apply calibration and projection via _mult_cal_one
+            data_view = data[:, :]
+            _mult_cal_one(data_view, block, idx, cals, mult)
+            return
+
+        # Fall back to reading from file (separate .fdt file)
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="<f4")
 
 
@@ -534,7 +572,7 @@ class EpochsEEGLAB(BaseEpochs):
         EEGLAB (.set) file with each descriptions copied from ``eventtype``.
     tmin : float
         Start time before event.
-    baseline : None or tuple of length 2 (default (None, 0))
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -602,7 +640,8 @@ class EpochsEEGLAB(BaseEpochs):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
-        eeg = _check_load_mat(input_fname, uint16_codec)
+        # the epoches data are always preloaded
+        eeg = _check_load_mat(input_fname, uint16_codec, preload=True)
 
         if not (
             (events is None and event_id is None)
@@ -622,53 +661,73 @@ class EpochsEEGLAB(BaseEpochs):
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
             warn_multiple_events = False
-            epochs = _bunchify(eeg.epoch)
-            events = _bunchify(eeg.event)
-            for ep in epochs:
-                if isinstance(ep.eventtype, int | float):
-                    ep.eventtype = str(ep.eventtype)
-                if not isinstance(ep.eventtype, str):
-                    event_type = "/".join([str(et) for et in ep.eventtype])
-                    event_name.append(event_type)
-                    # store latency of only first event
-                    event_latencies.append(events[ev_idx].latency)
-                    ev_idx += len(ep.eventtype)
-                    warn_multiple_events = True
-                else:
-                    event_type = ep.eventtype
-                    event_name.append(ep.eventtype)
-                    event_latencies.append(events[ev_idx].latency)
-                    ev_idx += 1
-
-                if event_type not in unique_ev:
-                    unique_ev.append(event_type)
-
-                # invent event dict but use id > 0 so you know its a trigger
-                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
-
-            # warn about multiple events in epoch if necessary
-            if warn_multiple_events:
+            epochs = _bunchify(eeg.get("epoch", []))
+            eeg_events = _bunchify(eeg.get("event", []))
+            if len(epochs) == 0 or len(eeg_events) == 0:
                 warn(
-                    "At least one epoch has multiple events. Only the latency"
-                    " of the first event will be retained."
+                    "The EEGLAB file contains no event information. All epochs "
+                    "will be assigned to a single 'unknown' event."
                 )
+                event_id = {"unknown": 1}
+                events = np.column_stack(
+                    (
+                        np.arange(eeg.trials),
+                        np.zeros(eeg.trials, dtype=int),
+                        np.ones(eeg.trials, dtype=int),
+                    )
+                )
+            else:
+                for ep in epochs:
+                    if isinstance(ep.eventtype, int | float):
+                        ep.eventtype = str(ep.eventtype)
+                    if not isinstance(ep.eventtype, str):
+                        event_type = "/".join([str(et) for et in ep.eventtype])
+                        event_name.append(event_type)
+                        # store latency of only first event
+                        # -1 to account for Matlab 1-based indexing of samples
+                        event_latencies.append(eeg_events[ev_idx].latency - 1)
+                        ev_idx += len(ep.eventtype)
+                        warn_multiple_events = True
+                    else:
+                        event_type = ep.eventtype
+                        event_name.append(ep.eventtype)
+                        event_latencies.append(eeg_events[ev_idx].latency - 1)
+                        ev_idx += 1
 
-            # now fill up the event array
-            events = np.zeros((eeg.trials, 3), dtype=int)
-            for idx in range(0, eeg.trials):
-                if idx == 0:
-                    prev_stim = 0
-                elif idx > 0 and event_latencies[idx] - event_latencies[idx - 1] == 1:
-                    prev_stim = event_id[event_name[idx - 1]]
-                events[idx, 0] = event_latencies[idx]
-                events[idx, 1] = prev_stim
-                events[idx, 2] = event_id[event_name[idx]]
+                    if event_type not in unique_ev:
+                        unique_ev.append(event_type)
+
+                    # invent event dict but use id > 0 so you know its a trigger
+                    event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
+
+                # warn about multiple events in epoch if necessary
+                if warn_multiple_events:
+                    warn(
+                        "At least one epoch has multiple events. Only the latency"
+                        " of the first event will be retained."
+                    )
+
+                # now fill up the event array
+                events = np.zeros((eeg.trials, 3), dtype=int)
+                assert event_id is not None
+                for idx in range(0, eeg.trials):
+                    if idx == 0:
+                        prev_stim = 0
+                    elif (
+                        idx > 0 and event_latencies[idx] - event_latencies[idx - 1] == 1
+                    ):
+                        prev_stim = event_id[event_name[idx - 1]]
+                    events[idx, 0] = event_latencies[idx]
+                    events[idx, 1] = prev_stim
+                    events[idx, 2] = event_id[event_name[idx]]
         elif isinstance(events, str | Path | PathLike):
             events = read_events(events)
 
         logger.info(f"Extracting parameters from {input_fname}...")
         info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
+        assert event_id is not None
+        assert events is not None
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(f"No matching events found for {key} (event id {val})")

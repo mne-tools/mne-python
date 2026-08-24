@@ -10,7 +10,7 @@ from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
@@ -40,6 +40,7 @@ from .utils import (
     _check_fname,
     _check_option,
     _check_subject,
+    _import_nibabel,
     _validate_type,
     check_random_state,
     fill_doc,
@@ -915,6 +916,8 @@ class Label:
 
         .. versionadded:: 0.24
         """
+        from scipy import sparse
+
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -949,7 +952,7 @@ class Label:
 
         Notes
         -----
-        ..versionadded:: 0.24
+        .. versionadded:: 0.24
         """
         _, _, surf = self._load_surface(
             subject, subjects_dir, surface, return_dict=True
@@ -1383,7 +1386,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
 
     # find the label's normal
     if freesurfer:
-        # find the Freesurfer vertex closest to the center
+        # find the FreeSurfer vertex closest to the center
         distance = np.sqrt(np.sum(centered_points**2, axis=1))
         i_closest = np.argmin(distance)
         closest_vertex = label.vertices[i_closest]
@@ -2251,6 +2254,7 @@ def read_labels_from_annot(
     parc="aparc",
     hemi="both",
     surf_name="white",
+    *,
     annot_fname=None,
     regexp=None,
     subjects_dir=None,
@@ -2295,6 +2299,8 @@ def read_labels_from_annot(
     write_labels_to_annot
     morph_labels
     """
+    nib = _import_nibabel("Reading labels from parcellations")
+
     logger.info("Reading labels from parcellation...")
 
     subjects_dir = get_subjects_dir(subjects_dir)
@@ -2318,7 +2324,9 @@ def read_labels_from_annot(
     orig_names = set()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
-        annot, ctab, label_names = _read_annot(fname)
+        _check_fname(fname, overwrite="read", must_exist=True, name="annotation file")
+        annot, ctab, label_names = nib.freesurfer.io.read_annot(fname, orig_ids=True)
+        ctab[:, 3] = 255 - ctab[:, 3]
         label_rgbas = ctab[:, :4] / 255.0
         label_ids = ctab[:, -1]
 
@@ -2362,7 +2370,7 @@ def read_labels_from_annot(
         labels = sorted(labels, key=lambda label: label.name)
 
     if len(labels) == 0:
-        msg = "No labels found."
+        msg = f"No labels found in {annot_fname[0]}."
         if regexp is not None:
             orig_names = "\n".join(sorted(orig_names))
             msg += (
@@ -2433,9 +2441,9 @@ def morph_labels(
 
     Notes
     -----
-    This does not use the same algorithm as Freesurfer, so the results
+    This does not use the same algorithm as FreeSurfer, so the results
     morphing (e.g., from ``'fsaverage'`` to your subject) might not match
-    what Freesurfer produces during ``recon-all``.
+    what FreeSurfer produces during ``recon-all``.
 
     .. versionadded:: 0.18
     """
@@ -2554,6 +2562,8 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
+
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])
@@ -2581,7 +2591,7 @@ _DEFAULT_TABLE_NAME = "MNE-Python Colortable"
 
 
 def _write_annot(fname, annot, ctab, names, table_name=_DEFAULT_TABLE_NAME):
-    """Write a Freesurfer annotation to a .annot file."""
+    """Write a FreeSurfer annotation to a .annot file."""
     assert len(names) == len(ctab)
     with open(fname, "wb") as fid:
         n_verts = len(annot)

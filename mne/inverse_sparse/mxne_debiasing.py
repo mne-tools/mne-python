@@ -36,7 +36,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     """
     AS_size = C.shape[0]
     rng = check_random_state(random_state)
-    B = rng.randn(AS_size, AS_size)
+    B = rng.standard_normal((AS_size, AS_size))
     B /= np.linalg.norm(B, "fro")
     ATA = np.dot(A.T, A)
     CCT = np.dot(C, C.T)

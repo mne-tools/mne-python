@@ -16,7 +16,6 @@ from pathlib import Path
 from time import time
 
 import numpy as np
-from scipy import sparse
 
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
@@ -62,7 +61,7 @@ from ..source_space._source_space import (
     find_source_space_hemi,
 )
 from ..surface import _normal_orth
-from ..transforms import invert_transform, transform_surface_to, write_trans
+from ..transforms import invert_transform, write_trans
 from ..utils import (
     _check_compensation_grade,
     _check_fname,
@@ -293,6 +292,8 @@ def _block_diag(A, n):
     bd : scipy.sparse.csc_array
         The block diagonal matrix
     """
+    from scipy import sparse
+
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError("sparse reversal not implemented yet")
     ma, na = A.shape
@@ -440,14 +441,13 @@ def _read_forward_meas_info(tree, fid):
     # Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
-        raise ValueError("MEG/head coordinate transformation not found")
-    cand = tag.data
-    if cand["from"] == coord_device and cand["to"] == coord_head:
-        info["dev_head_t"] = cand
-    elif cand["from"] == coord_ctf_head and cand["to"] == coord_head:
-        info["ctf_head_t"] = cand
+        info["dev_head_t"] = None  # EEG-only
     else:
-        raise ValueError("MEG/head coordinate transformation not found")
+        cand = tag.data
+        if cand["from"] == coord_device and cand["to"] == coord_head:
+            info["dev_head_t"] = cand
+        elif cand["from"] == coord_ctf_head and cand["to"] == coord_head:
+            info["ctf_head_t"] = cand
 
     bads = _read_bad_channels(fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
@@ -524,10 +524,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
     fname : path-like
         The file name, which should end with ``-fwd.fif``, ``-fwd.fif.gz``,
         ``_fwd.fif``, ``_fwd.fif.gz``, ``-fwd.h5``, or ``_fwd.h5``.
-    include : list, optional
+    include : list
         List of names of channels to include. If empty all channels
         are included.
-    exclude : list, optional
+    exclude : list
         List of names of channels to exclude. If empty include all channels.
     %(ordered)s
     %(verbose)s
@@ -680,16 +680,8 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
 
     # Transform each source space to the HEAD or MRI coordinate frame,
     # depending on the coordinate frame of the forward solution
-    # NOTE: the function transform_surface_to will also work on discrete and
-    # volume sources
-    nuse = 0
-    for s in src:
-        try:
-            s = transform_surface_to(s, fwd["coord_frame"], mri_head_t)
-        except Exception as inst:
-            raise ValueError(f"Could not transform source space ({inst})")
-
-        nuse += s["nuse"]
+    src._transform_to(fwd["coord_frame"], mri_head_t)
+    nuse = sum(s["nuse"] for s in src)
 
     # Make sure the number of sources match after transformation
     if nuse != fwd["nsource"]:
@@ -732,10 +724,10 @@ def convert_forward_solution(
     ----------
     fwd : Forward
         The forward solution to modify.
-    surf_ori : bool, optional (default False)
+    surf_ori : bool
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
-    force_fixed : bool, optional (default False)
+    force_fixed : bool
         If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
@@ -747,6 +739,8 @@ def convert_forward_solution(
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
+
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -952,16 +946,9 @@ def _write_forward_solution(fid, fwd):
     write_forward_meas_info(fid, fwd["info"])
 
     # invert our original source space transform
-    src = list()
-    for s in fwd["src"]:
-        s = deepcopy(s)
-        try:
-            # returns source space to original coordinate frame
-            # usually MRI
-            s = transform_surface_to(s, fwd["mri_head_t"]["from"], fwd["mri_head_t"])
-        except Exception as inst:
-            raise ValueError(f"Could not transform source space ({inst})")
-        src.append(s)
+    src = fwd["src"].copy()
+    # returns source space to original coordinate frame, usually MRI
+    src._transform_to(fwd["mri_head_t"]["from"], fwd["mri_head_t"])
 
     #
     # Write the source spaces (again)
@@ -1121,9 +1108,8 @@ def write_forward_meas_info(fid, info):
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
     # get transformation from CTF and DEVICE to HEAD coordinate frame
     meg_head_t = info.get("dev_head_t", info.get("ctf_head_t"))
-    if meg_head_t is None:
-        raise ValueError("Head<-->sensor transform not found")
-    write_coord_trans(fid, meg_head_t)
+    if meg_head_t is not None:
+        write_coord_trans(fid, meg_head_t)
 
     ch_names_mapping = dict()
     if "chs" in info:
@@ -1445,13 +1431,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G.shape = (G.shape[0], -1, 3)
+        G = G.reshape((G.shape[0], -1, 3), copy=False)
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G.shape = (G.shape[0], -1)
+        G = G.reshape((G.shape[0], -1), copy=False)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
@@ -1631,9 +1617,9 @@ def apply_forward(
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     %(info_not_none)s
-    start : int, optional
+    start : int | None
         Index of first time sample (index not time is seconds).
-    stop : int, optional
+    stop : int | None
         Index of first time sample not to include (index not time is seconds).
     %(use_cps)s
 
@@ -1710,9 +1696,9 @@ def apply_forward_raw(
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     %(info_not_none)s
-    start : int, optional
+    start : int | None
         Index of first time sample (index not time is seconds).
-    stop : int, optional
+    stop : int | None
         Index of first time sample not to include (index not time is seconds).
     %(on_missing_fwd)s
         Default is "raise".

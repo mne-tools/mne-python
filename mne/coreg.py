@@ -12,14 +12,12 @@ import re
 import shutil
 import stat
 import sys
-from functools import reduce
+from copy import deepcopy
 from glob import glob, iglob
 
 import numpy as np
-from scipy.optimize import leastsq
-from scipy.spatial.distance import cdist
 
-from ._fiff._digitization import _get_data_as_dict_from_dig
+from ._fiff._digitization import _fiducial_coords, _get_data_as_dict_from_dig
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, read_fiducials, read_info, write_fiducials
 
@@ -46,15 +44,16 @@ from .surface import (
     read_surface,
     write_surface,
 )
-from .transforms import (
+from .transforms import (  # noqa: F401  (re-exported for backward compatibility)
     Transform,
     _angle_between_quats,
-    _fit_matched_points,
     _quat_to_euler,
     _read_fs_xfm,
+    _trans_from_params,
     _write_fs_xfm,
     apply_trans,
     combine_transforms,
+    fit_matched_points,
     invert_transform,
     rot_to_quat,
     rotation,
@@ -63,19 +62,19 @@ from .transforms import (
     translation,
 )
 from .utils import (
+    _check_freesurfer_home,
     _check_option,
     _check_subject,
     _import_nibabel,
     _validate_type,
+    _verbose_safe_false,
     fill_doc,
-    get_config,
     get_subjects_dir,
     logger,
     pformat,
     verbose,
     warn,
 )
-from .viz._3d import _fiducial_coords
 
 # some path templates
 trans_fname = os.path.join("{raw_dir}", "{subject}-trans.fif")
@@ -205,15 +204,9 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     files from FreeSurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
-        fs_home = get_config("FREESURFER_HOME", fs_home)
-        if fs_home is None:
-            raise ValueError(
-                "FREESURFER_HOME environment variable not found. Please "
-                "specify the fs_home parameter in your call to "
-                "create_default_subject()."
-            )
+        fs_home = _check_freesurfer_home()
 
     # make sure FreeSurfer files exist
     fs_src = os.path.join(fs_home, "subjects", "fsaverage")
@@ -230,7 +223,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
             )
 
     # make sure destination does not already exist
-    dest = os.path.join(subjects_dir, "fsaverage")
+    dest = subjects_dir / "fsaverage"
     if dest == fs_src:
         raise OSError(
             "Your subjects_dir points to the FreeSurfer subjects_dir "
@@ -238,7 +231,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
             "FreeSurfer installation directory; please specify a different "
             "subjects_dir."
         )
-    elif (not update) and os.path.exists(dest):
+    elif (not update) and dest.exists():
         raise OSError(
             'Can not create fsaverage because "fsaverage" already exists in '
             f"subjects_dir {repr(subjects_dir)}. Delete or rename the existing "
@@ -247,7 +240,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
 
     # copy fsaverage from FreeSurfer
     logger.info("Copying fsaverage subject from FreeSurfer directory...")
-    if (not update) or not os.path.exists(dest):
+    if (not update) or not dest.exists():
         shutil.copytree(fs_src, dest)
         _make_writable_recursive(dest)
 
@@ -255,9 +248,8 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     source_fname = os.path.join(
         os.path.dirname(__file__), "data", "fsaverage", "fsaverage-%s.fif"
     )
-    dest_bem = os.path.join(dest, "bem")
-    if not os.path.exists(dest_bem):
-        os.mkdir(dest_bem)
+    dest_bem = dest / "bem"
+    dest_bem.mkdir(exist_ok=True)
     logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, "fsaverage-%s.fif")
     _make_writable_recursive(dest_bem)
@@ -285,6 +277,8 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
+    from scipy.spatial.distance import cdist
+
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -332,215 +326,6 @@ def _decimate_points(pts, res=10):
     # """
 
     return out
-
-
-def _trans_from_params(param_info, params):
-    """Convert transformation parameters into a transformation matrix."""
-    do_rotate, do_translate, do_scale = param_info
-    i = 0
-    trans = []
-
-    if do_rotate:
-        x, y, z = params[:3]
-        trans.append(rotation(x, y, z))
-        i += 3
-
-    if do_translate:
-        x, y, z = params[i : i + 3]
-        trans.insert(0, translation(x, y, z))
-        i += 3
-
-    if do_scale == 1:
-        s = params[i]
-        trans.append(scaling(s, s, s))
-    elif do_scale == 3:
-        x, y, z = params[i : i + 3]
-        trans.append(scaling(x, y, z))
-
-    trans = reduce(np.dot, trans)
-    return trans
-
-
-_ALLOW_ANALITICAL = True
-
-
-# XXX this function should be moved out of coreg as used elsewhere
-def fit_matched_points(
-    src_pts,
-    tgt_pts,
-    rotate=True,
-    translate=True,
-    scale=False,
-    tol=None,
-    x0=None,
-    out="trans",
-    weights=None,
-):
-    """Find a transform between matched sets of points.
-
-    This minimizes the squared distance between two matching sets of points.
-
-    Uses :func:`scipy.optimize.leastsq` to find a transformation involving
-    a combination of rotation, translation, and scaling (in that order).
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Points to which the transform should be applied.
-    tgt_pts : array, shape = (n, 3)
-        Points to which src_pts should be fitted. Each point in tgt_pts should
-        correspond to the point in src_pts with the same index.
-    rotate : bool
-        Allow rotation of the ``src_pts``.
-    translate : bool
-        Allow translation of the ``src_pts``.
-    scale : bool
-        Number of scaling parameters. With False, points are not scaled. With
-        True, points are scaled by the same factor along all axes.
-    tol : scalar | None
-        The error tolerance. If the distance between any of the matched points
-        exceeds this value in the solution, a RuntimeError is raised. With
-        None, no error check is performed.
-    x0 : None | tuple
-        Initial values for the fit parameters.
-    out : 'params' | 'trans'
-        In what format to return the estimate: 'params' returns a tuple with
-        the fit parameters; 'trans' returns a transformation matrix of shape
-        (4, 4).
-
-    Returns
-    -------
-    trans : array, shape (4, 4)
-        Transformation that, if applied to src_pts, minimizes the squared
-        distance to tgt_pts. Only returned if out=='trans'.
-    params : array, shape (n_params, )
-        A single tuple containing the rotation, translation, and scaling
-        parameters in that order (as applicable).
-    """
-    src_pts = np.atleast_2d(src_pts)
-    tgt_pts = np.atleast_2d(tgt_pts)
-    if src_pts.shape != tgt_pts.shape:
-        raise ValueError(
-            "src_pts and tgt_pts must have same shape "
-            f"(got {src_pts.shape}, {tgt_pts.shape})"
-        )
-    if weights is not None:
-        weights = np.asarray(weights, src_pts.dtype)
-        if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
-            raise ValueError(
-                f"weights (shape={weights.shape}) must be None or have shape "
-                f"({src_pts.shape[0]},)"
-            )
-        weights = weights[:, np.newaxis]
-
-    param_info = (bool(rotate), bool(translate), int(scale))
-    del rotate, translate, scale
-
-    # very common use case, rigid transformation (maybe with one scale factor,
-    # with or without weighted errors)
-    if param_info in ((True, True, 0), (True, True, 1)) and _ALLOW_ANALITICAL:
-        src_pts = np.asarray(src_pts, float)
-        tgt_pts = np.asarray(tgt_pts, float)
-        if weights is not None:
-            weights = np.asarray(weights, float)
-        x, s = _fit_matched_points(src_pts, tgt_pts, weights, bool(param_info[2]))
-        x[:3] = _quat_to_euler(x[:3])
-        x = np.concatenate((x, [s])) if param_info[2] else x
-    else:
-        x = _generic_fit(src_pts, tgt_pts, param_info, weights, x0)
-
-    # re-create the final transformation matrix
-    if (tol is not None) or (out == "trans"):
-        trans = _trans_from_params(param_info, x)
-
-    # assess the error of the solution
-    if tol is not None:
-        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-        est_pts = np.dot(src_pts, trans.T)[:, :3]
-        err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
-        if np.any(err > tol):
-            raise RuntimeError(f"Error exceeds tolerance. Error = {err!r}")
-
-    if out == "params":
-        return x
-    elif out == "trans":
-        return trans
-    else:
-        raise ValueError(
-            f"Invalid out parameter: {out!r}. Needs to be 'params' or 'trans'."
-        )
-
-
-def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
-    if param_info[1]:  # translate
-        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-
-    if param_info == (True, False, 0):
-
-        def error(x):
-            rx, ry, rz = x
-            trans = rotation3d(rx, ry, rz)
-            est = np.dot(src_pts, trans.T)
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0)
-    elif param_info == (True, True, 0):
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz = x
-            trans = np.dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = np.dot(src_pts, trans.T)[:, :3]
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0, 0, 0, 0)
-    elif param_info == (True, True, 1):
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz, s = x
-            trans = reduce(
-                np.dot,
-                (translation(tx, ty, tz), rotation(rx, ry, rz), scaling(s, s, s)),
-            )
-            est = np.dot(src_pts, trans.T)[:, :3]
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0, 0, 0, 0, 1)
-    elif param_info == (True, True, 3):
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz, sx, sy, sz = x
-            trans = reduce(
-                np.dot,
-                (translation(tx, ty, tz), rotation(rx, ry, rz), scaling(sx, sy, sz)),
-            )
-            est = np.dot(src_pts, trans.T)[:, :3]
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0, 0, 0, 0, 1, 1, 1)
-    else:
-        raise NotImplementedError(
-            "The specified parameter combination is not implemented: "
-            "rotate={!r}, translate={!r}, scale={!r}".format(*param_info)
-        )
-
-    x, _, _, _, _ = leastsq(error, x0, full_output=True)
-    return x
 
 
 def _find_label_paths(subject="fsaverage", pattern=None, subjects_dir=None):
@@ -600,7 +385,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = {}
 
     # directories to create
@@ -752,7 +537,7 @@ def _is_mri_subject(subject, subjects_dir=None):
     is_mri_subject : bool
         Whether ``subject`` is an mri subject.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     return bool(
         _find_head_bem(subject, subjects_dir)
         or _find_head_bem(subject, subjects_dir, high_res=True)
@@ -774,7 +559,7 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
     has_bem_file : bool
         Whether ``subject`` has a bem file.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     pattern = bem_fname.format(subjects_dir=subjects_dir, subject=subject, name="*-bem")
     fnames = glob(pattern)
     return bool(len(fnames))
@@ -858,6 +643,18 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
         config.write(fid)
 
 
+def _check_scale_subjects(subject_from, subject_to):
+    """Check that scaling will not overwrite the subject being scaled from."""
+    _validate_type(subject_from, str, "subject_from")
+    _validate_type(subject_to, str, "subject_to")
+    # Scaling in place would delete subject_from before its files could be read
+    if subject_to == subject_from:
+        raise ValueError(
+            f"subject_to must be different from subject_from, got {subject_to!r} for "
+            "both. Scaling a subject in place is not supported."
+        )
+
+
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
     """Assemble parameters for scaling.
 
@@ -885,6 +682,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         n_params = cfg["n_params"]
         assert n_params in (1, 3)
         scale = cfg["scale"]
+    _check_scale_subjects(subject_from, subject_to)
     scale = np.atleast_1d(scale)
     if scale.ndim != 1 or scale.shape[0] not in (1, 3):
         raise ValueError(
@@ -951,13 +749,16 @@ def scale_bem(
     write_bem_surfaces(dst, surfs)
 
 
+@verbose
 def scale_labels(
     subject_to,
     pattern=None,
     overwrite=False,
     subject_from=None,
+    *,
     scale=None,
     subjects_dir=None,
+    verbose=None,
 ):
     r"""Scale labels to match a brain that was previously created by scaling.
 
@@ -981,6 +782,7 @@ def scale_labels(
         file.
     subjects_dir : None | path-like
         Override the ``SUBJECTS_DIR`` environment variable.
+    %(verbose)s
     """
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir
@@ -1030,6 +832,7 @@ def scale_mri(
     annot=False,
     *,
     on_defects="raise",
+    mri_fiducials=None,
     verbose=None,
 ):
     """Create a scaled copy of an MRI subject.
@@ -1056,6 +859,13 @@ def scale_mri(
     %(on_defects)s
 
         .. versionadded:: 1.0
+    mri_fiducials : None | list of dict
+        If provided, these fiducials will be used as the originals to scale instead
+        of reading from ``{subject_from}/bem/{subject_from}-fiducials.fif``.
+        This is useful typically when using ``mne coreg`` or similar and you have
+        modified the MRI fiducials interactively, but have not saved them to disk.
+
+        .. versionadded:: 1.12
     %(verbose)s
 
     See Also
@@ -1070,7 +880,8 @@ def scale_mri(
     :func:`scale_labels`, and :func:`scale_source_space` based on expected
     filename patterns in the subject directory.
     """
-    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    _check_scale_subjects(subject_from, subject_to)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.atleast_1d(scale)
     if scale.shape == (3,):
@@ -1078,6 +889,28 @@ def scale_mri(
             scale = scale[0]  # speed up scaling conditionals using a singleton
     elif scale.shape != (1,):
         raise ValueError(f"scale must have shape (3,) or (1,), got {scale.shape}")
+    _validate_type(mri_fiducials, (list, tuple, None), "mri_fiducials")
+    if mri_fiducials is not None:
+        _check_option("len(mri_fiducials)", len(mri_fiducials), (3,))
+        want_fids = [
+            FIFF.FIFFV_POINT_LPA,
+            FIFF.FIFFV_POINT_NASION,
+            FIFF.FIFFV_POINT_RPA,
+        ]
+        for fi, fid in enumerate(mri_fiducials):
+            fid_name = f"mri_fiducials[{fi}]"
+            _validate_type(fid, dict, fid_name)
+            for key in ("r", "coord_frame", "ident"):
+                if key not in fid:
+                    raise ValueError(f"{fid_name} is missing the '{key}' key")
+            if fid["coord_frame"] != FIFF.FIFFV_COORD_MRI:
+                raise ValueError(
+                    f"{fid_name}['coord_frame'] must be 'mri', got {fid['coord_frame']}"
+                )
+            _check_option(
+                f"{fid_name}['kind']", fid["kind"], (FIFF.FIFFV_POINT_CARDINAL,)
+            )
+            _check_option(f"{fid_name}['ident']", fid["ident"], (want_fids[fi],))
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to, subjects_dir=subjects_dir)
@@ -1088,16 +921,16 @@ def scale_mri(
             )
         shutil.rmtree(dest)
 
-    logger.debug("create empty directory structure")
+    logger.debug("Creating empty directory structure ...")
     for dirname in paths["dirs"]:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)
 
-    logger.debug("save MRI scaling parameters")
+    logger.info("Saving MRI scaling parameters ...")
     fname = os.path.join(dest, "MRI scaling parameters.cfg")
     _write_mri_config(fname, subject_from, subject_to, scale)
 
-    logger.debug("surf files [in mm]")
+    logger.info("Scaling surface files ...")
     for fname in paths["surf"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
@@ -1105,7 +938,8 @@ def scale_mri(
         pts, tri = read_surface(src)
         write_surface(dest, pts * scale, tri)
 
-    logger.debug("BEM files [in m]")
+    logger.info("Scaling BEM files ...")
+    vb_f = _verbose_safe_false()
     for bem_name in paths["bem"]:
         scale_bem(
             subject_to,
@@ -1114,26 +948,41 @@ def scale_mri(
             scale,
             subjects_dir,
             on_defects=on_defects,
-            verbose=False,
+            verbose=vb_f,
         )
 
-    logger.debug("fiducials [in m]")
+    logger.info("Scaling fiducials ...")
     for fname in paths["fid"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
-        pts, cframe = read_fiducials(src, verbose=False)
+        pts, cframe = read_fiducials(src, verbose=vb_f)
         for pt in pts:
             pt["r"] = pt["r"] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_fiducials(dest, pts, cframe, overwrite=True, verbose=False)
+        write_fiducials(dest, pts, cframe, overwrite=True, verbose=vb_f)
 
-    logger.debug("MRIs [nibabel]")
+    # It is redundant to put this after the paths["fid"] loop, but it's simple, faster
+    # enough, and cleaner to just write it here (rather than adding conditionals to find
+    # the correct file above etc.)
+    if mri_fiducials is not None:
+        dest = os.path.join(
+            bem_dirname.format(subjects_dir=subjects_dir, subject=subject_to),
+            f"{subject_to}-fiducials.fif",
+        )
+        use_mri_fiducials = deepcopy(mri_fiducials)
+        for fid in use_mri_fiducials:
+            fid["r"] = fid["r"] * scale
+        write_fiducials(
+            dest, use_mri_fiducials, FIFF.FIFFV_COORD_MRI, overwrite=True, verbose=vb_f
+        )
+
+    logger.info("Scaling MRIs [nibabel] ...")
     os.mkdir(mri_dirname.format(subjects_dir=subjects_dir, subject=subject_to))
     for fname in paths["mri"]:
         mri_name = os.path.basename(fname)
         _scale_mri(subject_to, mri_name, subject_from, scale, subjects_dir)
 
-    logger.debug("Transforms")
+    logger.info("Scaling transforms ...")
     for mri_name in paths["mri"]:
         if mri_name.endswith("T1.mgz"):
             os.mkdir(
@@ -1148,36 +997,44 @@ def scale_mri(
                 )
             break
 
-    logger.debug("duplicate files")
+    logger.info(
+        "Copying %s file(s) that do not need scaling ...",
+        len(paths["duplicate"]),
+    )
     for fname in paths["duplicate"]:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         shutil.copyfile(src, dest)
 
-    logger.debug("source spaces")
-    for fname in paths["src"]:
-        src_name = os.path.basename(fname)
-        scale_source_space(
-            subject_to, src_name, subject_from, scale, subjects_dir, verbose=False
-        )
-
-    logger.debug("labels [in m]")
-    os.mkdir(os.path.join(subjects_dir, subject_to, "label"))
+    label_dir = subjects_dir / subject_to / "label"
+    if annot or labels:
+        label_dir.mkdir()
+    if annot:
+        logger.info("Copying annotations ...")
+        src_dir = subjects_dir / subject_from / "label"
+        dst_dir = subjects_dir / subject_to / "label"
+        for src_file in src_dir.glob("*.annot"):
+            shutil.copy(src_dir / src_file, dst_dir)
     if labels:
+        logger.info("Scaling labels ...")
         scale_labels(
             subject_to,
             subject_from=subject_from,
             scale=scale,
             subjects_dir=subjects_dir,
+            verbose=vb_f,
         )
 
-    logger.debug("copy *.annot files")
-    # they don't contain scale-dependent information
-    if annot:
-        src_pattern = os.path.join(subjects_dir, subject_from, "label", "*.annot")
-        dst_dir = os.path.join(subjects_dir, subject_to, "label")
-        for src_file in iglob(src_pattern):
-            shutil.copy(src_file, dst_dir)
+    logger.info(
+        "Scaling %s source space(s) (this can take a while) ...",
+        len(paths["src"]),
+    )
+    for fname in paths["src"]:
+        src_name = os.path.basename(fname)
+        scale_source_space(
+            subject_to, src_name, subject_from, scale, subjects_dir, verbose=vb_f
+        )
+    logger.info("[done]")
 
 
 @verbose
@@ -1450,7 +1307,7 @@ class Coregistration:
         _validate_type(info, (Info, None), "info")
         self._info = info
         self._subject = _check_subject(subject, subject)
-        self._subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+        self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self._scale_mode = None
         self._on_defects = on_defects
 
@@ -1552,6 +1409,7 @@ class Coregistration:
             self._bem_low_res = _read_surface(low_res_path, on_defects=self._on_defects)
 
     def _setup_fiducials(self, fids):
+
         _validate_type(fids, (str, dict, list))
         # find fiducials file
         fid_accurate = None

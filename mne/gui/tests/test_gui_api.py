@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
+
 import pytest
 
 from mne.utils import _check_qt_version
@@ -10,10 +12,12 @@ from mne.utils import _check_qt_version
 pytest.importorskip("nibabel")
 
 
-def test_gui_api(renderer_notebook, nbexec, *, backend="qt"):
+def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     """Test GUI API."""
     import contextlib
+    import os
     import warnings
+    from unittest import mock
 
     import mne
 
@@ -29,8 +33,14 @@ def test_gui_api(renderer_notebook, nbexec, *, backend="qt"):
         mne.viz.set_3d_backend("notebook")
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
 
-    # theme
-    with warnings.catch_warnings(record=True) as w:
+    # theme -- drop the MNE_3D_OPTION_THEME that the options_3d fixture pins to
+    # "light" (it takes precedence via get_config), so the bad path is actually
+    # used and warns.
+    with (
+        mock.patch.dict(os.environ),
+        warnings.catch_warnings(record=True) as w,
+    ):
+        os.environ.pop("MNE_3D_OPTION_THEME", None)
         warnings.simplefilter("always")
         renderer._window_set_theme("/does/not/exist")
     if backend == "qt":
@@ -386,6 +396,8 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     # TODO: After merging https://github.com/mne-tools/mne-python/pull/11567
     # The Qt CI run started failing about 50% of the time, so let's skip this
     # for now.
-    if api == "PySide6":
+    if (
+        os.getenv("AZURE_CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+    ) and api == "PySide6":
         pytest.skip("PySide6 causes segfaults on CIs sometimes")
-    test_gui_api(None, None, backend="qt")
+    test_gui_api_notebook(None, None, backend="qt")

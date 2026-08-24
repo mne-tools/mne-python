@@ -21,8 +21,10 @@ download_is_error
 exitstatus
 startdir
 pg_backend
+mpl_backend
 recwarn
 pytestmark
+_is_vtk
 nbexec
 disabled_event_channels
 ch_subset_adjacency
@@ -48,8 +50,18 @@ _.two_d_array
 _.three_d_array
 _.requires_fit
 _.regressor_tags
+_.__signature__
+
+# report
+_.grab_frame
+_.finish
+_.setup
 
 deep
+
+# Module-level __getattr__ (PEP 562), used by mne/surface.py and
+# mne/transforms.py to re-export their numba helpers lazily
+__getattr__
 
 # Backward compat or rarely used
 RawFIF
@@ -82,6 +94,7 @@ _download_all_example_data  # CIs
 _cleanup_agg
 _notebook_vtk_works
 _.drop_inds_
+_.required
 
 # mne/io/ant/tests/test_ant.py
 andy_101
@@ -163,3 +176,8 @@ _qt_get_stylesheet
 
 # used in tutorial, not sure why shows up
 plot_cluster_time_sensor
+_show_help_fig
+
+# Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
+eventFilter
+_sigint_impl

@@ -2,21 +2,28 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import platform
-from colorsys import rgb_to_hls
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
 
 import numpy as np
 import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import _check_qt_version
 from mne.viz.backends._utils import (
     _check_color,
+    _display_is_valid,
     _get_colormap_from_array,
+    _init_mne_qtapp,
     _pixmap_to_ndarray,
+    _qt_block,
     _qt_is_dark,
 )
+from mne.viz.utils import _is_dark
 
 
 def test_get_colormap_from_array():
@@ -50,6 +57,17 @@ def test_check_color():
         _check_color(None)
 
 
+def _assert_correct_darkness(widget, want_dark):
+    __tracebackhide__ = True  # noqa
+    # The override propagates to children, so both palette and pixels should match.
+    bgcolor = widget.palette().color(widget.backgroundRole()).getRgbF()[:3]
+    dark = _is_dark(bgcolor)
+    assert dark == want_dark, f"{widget} palette dark={dark} want_dark={want_dark}"
+    colors = _pixmap_to_ndarray(widget.grab())[:, :, :3]
+    dark = colors.mean() < 0.5
+    assert dark == want_dark, f"{widget} pixmap dark={dark} want_dark={want_dark}"
+
+
 @pytest.mark.pgtest
 @pytest.mark.parametrize("theme", ("auto", "light", "dark"))
 def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
@@ -57,30 +75,73 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     darkdetect = pytest.importorskip("darkdetect")
     monkeypatch.setenv("_MNE_FAKE_HOME_DIR", str(tmp_path))
     monkeypatch.delenv("MNE_BROWSER_THEME", raising=False)
-    # make it seem like the system is always in light mode
-    monkeypatch.setattr(darkdetect, "theme", lambda: "light")
+    # A qdarkstyle stylesheet is only applied when the requested theme differs from
+    # the system, so fake the system as the opposite of the request
+    if theme == "auto":
+        want_dark = (darkdetect.theme() or "light").lower() == "dark"
+    else:
+        want_dark = theme == "dark"
+        fake_system = "light" if want_dark else "dark"
+        monkeypatch.setattr(darkdetect, "theme", lambda: fake_system)
     raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000.0, "eeg"))
-    _, api = _check_qt_version(return_api=True)
     fig = raw.plot(theme=theme)
     is_dark = _qt_is_dark(fig)
-    # on Darwin these checks get complicated, so don't bother for now
-    if platform.system() == "Darwin":
-        pytest.skip("Problems on macOS")
-    if theme == "dark":
-        assert is_dark, theme
-    elif theme == "light":
-        assert not is_dark, theme
-
-    def assert_correct_darkness(widget, want_dark):
-        __tracebackhide__ = True  # noqa
-        # This should work, but it just picks up the parent in the errant case!
-        bgcolor = widget.palette().color(widget.backgroundRole()).getRgbF()[:3]
-        dark = rgb_to_hls(*bgcolor)[1] < 0.5
-        assert dark == want_dark, f"{widget} dark={dark} want_dark={want_dark}"
-        # ... so we use a more direct test
-        colors = _pixmap_to_ndarray(widget.grab())[:, :, :3]
-        dark = colors.mean() < 0.5
-        assert dark == want_dark, f"{widget} dark={dark} want_dark={want_dark}"
+    assert is_dark == want_dark, theme
 
     for widget in (fig.mne.toolbar, fig.statusBar()):
-        assert_correct_darkness(widget, is_dark)
+        _assert_correct_darkness(widget, is_dark)
+
+
+def test_qt_block(qtbot):
+    """Test that _qt_block waits for its own window and nothing else."""
+    pytest.importorskip("qtpy")  # pytest-qt can be installed without a Qt binding
+    from qtpy.QtCore import QTimer
+    from qtpy.QtWidgets import QWidget
+
+    win, other = QWidget(), QWidget()
+    for widget in (win, other):
+        qtbot.addWidget(widget)
+        widget.show()
+    QTimer.singleShot(300, win.close)
+    t0 = time.time()
+    _qt_block(win)
+    elapsed = time.time() - t0
+    assert 0.1 < elapsed < 10, elapsed
+    assert not win.isVisible()
+    assert other.isVisible()  # blocking is per-window, not until the last one closes
+    _qt_block(win)  # a closed window returns immediately rather than hanging
+    other.close()
+
+
+# Adapted from Matplotlib's test_backends_interactive.py::test_sigint: the scenario runs
+# in a subprocess because an in-process SIGINT fights pytest's own handling, and because
+# a loop that fails to wake up hangs until the subprocess timeout, not the whole suite.
+def _sigint_impl():
+    from qtpy.QtWidgets import QWidget
+
+    app = _init_mne_qtapp()  # keep a reference, PyQt6 garbage collects it otherwise
+    win = QWidget()
+    win.show()
+    # A Qt event loop keeps the interpreter from running, so this only arrives if
+    # _qt_block wakes Qt up on delivery
+    threading.Timer(1.0, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+    try:
+        _qt_block(win)
+    except KeyboardInterrupt:
+        print(f"SUCCESS still_open={win.isVisible()}", flush=True)
+    app.closeAllWindows()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Cannot send SIGINT on Windows")
+def test_qt_block_sigint():
+    """Test that a blocked window can be interrupted."""
+    pytest.importorskip("qtpy")
+    if not _display_is_valid():
+        pytest.skip("Requires a valid display")
+    # pytest imports this file as a top-level module, so name the installed path
+    code = "from mne.viz.backends.tests.test_utils import _sigint_impl; _sigint_impl()"
+    # A hang here means the signal never reached Python, which is the bug this guards
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, timeout=60
+    )
+    assert "SUCCESS still_open=True" in proc.stdout, (proc.stdout, proc.stderr)

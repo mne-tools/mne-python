@@ -14,10 +14,11 @@ from ..utils import (
     _validate_type,
     fill_doc,
     logger,
+    verbose,
 )
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
 
 
 @fill_doc
@@ -40,42 +41,41 @@ class SSD(_GEDTransformer):
         Filtering for the frequencies of interest.
     filt_params_noise : dict
         Filtering for the frequencies of non-interest.
-    reg : float | str | None (default)
+    reg : float | str | None
         Which covariance estimator to use.
         If not None (same as 'empirical'), allow regularization for covariance
         estimation. If float, shrinkage is used (0 <= shrinkage <= 1). For str
         options, reg will be passed to method :func:`mne.compute_covariance`.
-    n_components : int | None (default None)
+    n_components : int | None
         The number of components to extract from the signal.
         If None, the number of components equal to the rank of the data are
         returned (see ``rank``).
-    picks : array of int | None (default None)
+    picks : array of int | None
         The indices of good channels.
-    sort_by_spectral_ratio : bool (default True)
+    sort_by_spectral_ratio : bool
         If set to True, the components are sorted according to the spectral
         ratio.
         See Eq. (24) in :footcite:`NikulinEtAl2011`.
-    return_filtered : bool (default False)
+    return_filtered : bool
         If return_filtered is True, data is bandpassed and projected onto the
         SSD components.
-    n_fft : int (default None)
+    n_fft : int | None
        If sort_by_spectral_ratio is set to True, then the SSD sources will be
        sorted according to their spectral ratio which is calculated based on
        :func:`mne.time_frequency.psd_array_welch`. The n_fft parameter sets the
        length of FFT used. The default (None) will use 1 second of data.
        See :func:`mne.time_frequency.psd_array_welch` for more information.
-    cov_method_params : dict | None (default None)
+    cov_method_params : dict | None
         As in :class:`mne.decoding.SPoC`
         The default is None.
-    restr_type : "restricting" | "whitening" | "ssd" | None
+    restr_type : "restricting" | "whitening" | None
         Restricting transformation for covariance matrices before performing
         generalized eigendecomposition.
         If "restricting" only restriction to the principal subspace of signal_cov
         will be performed.
         If "whitening", covariance matrices will be additionally rescaled according
         to the whitening for the signal_cov.
-        If "ssd", simplified version of "whitening" is performed.
-        If None, no restriction will be applied. Defaults to "ssd".
+        If None, no restriction will be applied. Defaults to "whitening".
 
         .. versionadded:: 1.11
     rank : None | dict | ‘info’ | ‘full’
@@ -128,7 +128,7 @@ class SSD(_GEDTransformer):
         self.restr_type = restr_type
         self.rank = rank
 
-        cov_callable = partial(
+        self.cov_callable = partial(
             _ssd_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
@@ -140,12 +140,44 @@ class SSD(_GEDTransformer):
             rank=rank,
             sort_by_spectral_ratio=sort_by_spectral_ratio,
         )
+        self.mod_ged_callable = _ssd_mod
         super().__init__(
             n_components=n_components,
-            cov_callable=cov_callable,
-            mod_ged_callable=_ssd_mod,
+            cov_callable=self.cov_callable,
+            mod_ged_callable=self.mod_ged_callable,
             restr_type=restr_type,
         )
+
+    _required_state_keys = (
+        "cov_method_params",
+        "filt_params_noise",
+        "filt_params_signal",
+        "info",
+        "n_components",
+        "n_fft",
+        "picks",
+        "rank",
+        "reg",
+        "restr_type",
+        "return_filtered",
+        "sort_by_spectral_ratio",
+    )
+
+    def _restore_callables(self):
+        """Restore SSD-specific callables after loading state."""
+        self.cov_callable = partial(
+            _ssd_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            picks=self.picks,
+            n_fft=self.n_fft,
+            filt_params_signal=self.filt_params_signal,
+            filt_params_noise=self.filt_params_noise,
+            rank=self.rank,
+            sort_by_spectral_ratio=self.sort_by_spectral_ratio,
+        )
+        self.mod_ged_callable = _ssd_mod
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -351,3 +383,30 @@ class SSD(_GEDTransformer):
         pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+@verbose
+def read_ssd(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.SSD` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to an SSD file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    ssd : instance of :class:`~mne.decoding.SSD`
+        The loaded SSD object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.SSD.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, SSD, verbose=verbose)

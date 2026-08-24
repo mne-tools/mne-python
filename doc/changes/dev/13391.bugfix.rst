@@ -1,1 +1,0 @@
-Fix :func:`~mne.viz.plot_evoked_joint` docstring to correctly document ``exclude`` parameter default as ``'bads'`` instead of ``None``, by :newcontrib:`Tharupahan Jayawardana`.

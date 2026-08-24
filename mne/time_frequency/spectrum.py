@@ -46,16 +46,10 @@ from ..utils.check import (
     check_fname,
 )
 from ..utils.misc import _pl
-from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
-from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
-from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
-from ..viz.utils import (
-    _format_units_psd,
-    _get_plot_ch_type,
-    _make_combine_callable,
-    _plot_psd,
-    _prepare_sensor_names,
-    plt_show,
+from ..utils.spectrum import (
+    _convert_old_birthday_format,
+    _get_instance_type_string,
+    _split_psd_kwargs,
 )
 from .multitaper import _psd_from_mt, psd_array_multitaper
 from .psd import _check_nfft, psd_array_welch
@@ -157,7 +151,7 @@ class SpectrumMixin:
         fig_facecolor="k",
         axis_facecolor="k",
         axes=None,
-        block=False,
+        block=None,
         show=True,
         n_jobs=None,
         verbose=None,
@@ -177,7 +171,9 @@ class SpectrumMixin:
         %(fig_facecolor)s
         %(axis_facecolor)s
         %(axes_spectrum_plot_topo)s
-        %(block)s
+        block : bool
+            This parameter is deprecated and will be removed in MNE 1.15; blocking now
+            follows Matplotlib's behavior (see ``show``).
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -209,6 +205,7 @@ class SpectrumMixin:
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=0,
         outlines="head",
         sphere=None,
@@ -245,6 +242,9 @@ class SpectrumMixin:
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -391,7 +391,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = state["freqs"]
         self._dims = state["dims"]
         self._sfreq = state["sfreq"]
-        self.info = Info(**state["info"])
+        self.info = Info(**_convert_old_birthday_format(state["info"]))
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
         self._weights = state.get("weights")  # objs saved before #12747 won't have
@@ -502,6 +502,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @property
     def nave(self):
         return self._nave
+
+    @nave.setter
+    def nave(self, nave):
+        self._nave = nave
 
     @property
     def weights(self):
@@ -642,6 +646,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
         from ..viz._mpl_figure import _line_figure, _split_picks_by_type
+        from ..viz.utils import (
+            _plot_psd,
+            plt_show,
+        )
 
         # arg checking
         ci = _check_ci(ci)
@@ -714,7 +722,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig_facecolor="k",
         axis_facecolor="k",
         axes=None,
-        block=False,
+        block=None,
         show=True,
     ):
         """Plot power spectral density, separately for each channel.
@@ -727,7 +735,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(fig_facecolor)s
         %(axis_facecolor)s
         %(axes_spectrum_plot_topo)s
-        %(block)s
+        block : bool | None
+            This parameter is deprecated and will be removed in MNE 1.15; blocking now
+            follows Matplotlib's behavior (see ``show``).
         %(show)s
 
         Returns
@@ -735,6 +745,11 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
+        from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
+        from ..viz.utils import (
+            plt_show,
+        )
+
         if layout is None:
             layout = find_layout(self.info)
 
@@ -765,7 +780,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             y_label=y_label,
             axes=axes,
         )
-        plt_show(show, block=block)
+        if block is None:
+            plt_show(show)
+        else:
+            warn(
+                "The 'block' parameter is deprecated and will be removed in MNE 1.15; "
+                "blocking now follows Matplotlib's behavior. Pass show=False and call "
+                "matplotlib.pyplot.show() to control it.",
+                FutureWarning,
+            )
+            plt_show(show, block=block)
         return fig
 
     @fill_doc
@@ -781,6 +805,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -811,6 +836,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -833,6 +861,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
+        from ..viz.topomap import (
+            _make_head_outlines,
+            _prepare_topomap_plot,
+            plot_psds_topomap,
+        )
+        from ..viz.utils import (
+            _get_plot_ch_type,
+            _prepare_sensor_names,
+        )
+
         ch_type = _get_plot_ch_type(self, ch_type)
         if units is None:
             units = _handle_default("units", None)
@@ -873,6 +911,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             names=names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -1050,6 +1089,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Mapping from channel type to a string representation of the units
             for that channel type.
         """
+        from ..viz.utils import (
+            _format_units_psd,
+        )
+
         units = _handle_default("si_units", None)
         return {
             ch_type: _format_units_psd(units[ch_type], power=True, latex=latex)
@@ -1510,6 +1553,10 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
+        from ..viz.utils import (
+            _make_combine_callable,
+        )
+
         _validate_type(method, ("str", "callable"), "method")
         method = _make_combine_callable(
             method, axis=0, valid=("mean", "median"), keepdims=False
@@ -1748,7 +1795,7 @@ def read_spectrum(fname):
         n_jobs=None,
         verbose=None,
     )
-    Klass = EpochsSpectrum if hdf5_dict["inst_type_str"] == "Epochs" else Spectrum
+    Klass = EpochsSpectrum if "epoch" in hdf5_dict["dims"] else Spectrum
     return Klass(hdf5_dict, **defaults)
 
 

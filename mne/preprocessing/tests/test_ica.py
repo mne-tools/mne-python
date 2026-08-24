@@ -25,6 +25,7 @@ from mne import (
     EpochsArray,
     EvokedArray,
     Info,
+    concatenate_raws,
     create_info,
     make_ad_hoc_cov,
     pick_channels_regexp,
@@ -164,9 +165,9 @@ def test_ica_simple(method):
     _skip_check_picard(method)
     n_components = 3
     n_samples = 1000
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     S = rng.laplace(size=(n_components, n_samples))
-    A = rng.randn(n_components, n_components)
+    A = rng.standard_normal((n_components, n_components))
     data = np.dot(A, S)
     info = create_info(data.shape[-2], 1000.0, "eeg")
     cov = make_ad_hoc_cov(info)
@@ -187,7 +188,9 @@ def test_warnings():
     """Test that ICA warns on certain input data conditions."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     events = read_events(event_name)
-    epochs = Epochs(raw, events=events, baseline=None, preload=True)
+    epochs = Epochs(
+        raw, events=events, baseline=None, preload=True, on_outside="ignore"
+    )
     ica = ICA(n_components=2, max_iter=1, method="infomax", random_state=0)
 
     # not high-passed
@@ -219,7 +222,7 @@ def test_warnings():
 @pytest.mark.filterwarnings("ignore:FastICA did not converge.*:UserWarning")
 def test_ica_noop(n_components, n_pca_components, tmp_path):
     """Test that our ICA is stable even with a bad max_pca_components."""
-    data = np.random.RandomState(0).randn(10, 1000)
+    data = np.random.default_rng(0).standard_normal((10, 1000))
     info = create_info(10, 1000.0, "eeg")
     raw = RawArray(data, info)
     raw.set_eeg_reference()
@@ -1024,6 +1027,15 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     ica = ICA(n_components=0.99, max_iter="auto")
     ica.fit(raw_, picks=picks, reject_by_annotation=True)
 
+    # test apply when fit was run including marked bad channels
+    epochs_ = Epochs(
+        raw=raw_, events=make_fixed_length_events(raw_), baseline=None, preload=True
+    )
+    evoked_ = epochs_.average()
+    ica.apply(raw_)
+    ica.apply(epochs_)
+    ica.apply(evoked_)
+
 
 def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     """Test ICA.get_explained_variance_ratio()."""
@@ -1278,10 +1290,10 @@ def test_bad_channels(method, allow_ref_meg):
     _skip_check_picard(method)
     chs = list(get_channel_type_constants())
     info = create_info(len(chs), 500, chs)
-    rng = np.random.RandomState(0)
-    data = rng.rand(len(chs), 50)
+    rng = np.random.default_rng(0)
+    data = rng.random((len(chs), 50))
     raw = RawArray(data, info)
-    data = rng.rand(100, len(chs), 50)
+    data = rng.random((100, len(chs), 50))
     epochs = EpochsArray(data, info)
 
     # fake high-pass filtering
@@ -1338,6 +1350,7 @@ def test_eog_channel(method):
         baseline=None,
         preload=True,
         proj=False,
+        on_outside="ignore",
     )
     n_components = 0.9
     ica = ICA(n_components=n_components, method=method)
@@ -1371,7 +1384,15 @@ def test_n_components_none(method, tmp_path):
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)[::5]
     epochs = Epochs(
-        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        baseline=(None, 0),
+        preload=True,
+        on_outside="ignore",
     )
 
     n_components = None
@@ -1626,7 +1647,7 @@ def test_read_ica_eeglab_mismatch(tmp_path):
     fname = tmp_path / base
     data = loadmat(fname_orig)
     w = data["EEG"]["icaweights"][0][0]
-    w[:] = np.random.RandomState(0).randn(*w.shape)
+    w[:] = np.random.default_rng(0).standard_normal(w.shape)
     savemat(fname, data, appendmat=False)
     assert fname.is_file()
     with pytest.warns(RuntimeWarning, match="Mismatch.*removal.*icawinv.*"):
@@ -1699,7 +1720,7 @@ def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
 def test_ica_ch_types(ch_type):
     """Test ica with different channel types."""
     # gh-8739
-    data = np.random.RandomState(0).randn(10, 1000)
+    data = np.random.default_rng(0).standard_normal((10, 1000))
     info = create_info(10, 1000.0, ch_type)
     raw = RawArray(data, info)
     events = make_fixed_length_events(raw, 99999, start=0, stop=0.3, duration=0.1)
@@ -1718,3 +1739,48 @@ def test_ica_ch_types(ch_type):
     for inst in [raw, epochs, evoked]:
         ica.apply(inst)
         ica.get_sources(inst)
+
+
+@testing.requires_testing_data
+def test_ica_get_sources_concatenated():
+    """Test ICA get_sources method with concatenated raws."""
+    # load data
+    raw = read_raw_fif(raw_fname).crop(0, 3).load_data()  # raw has 3 seconds of data
+    # create concatenated raw instances
+    raw_concat = concatenate_raws(
+        [raw.copy(), raw.copy()]
+    )  # raw_concat has 6 seconds of data
+    # do ICA
+    ica = ICA(n_components=2, max_iter=2)
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
+        ica.fit(raw_concat)
+    # get sources
+    raw_sources = ica.get_sources(raw_concat)  # but this only has 3 seconds of data
+    assert raw_concat.n_times == raw_sources.n_times  # this will fail
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The data has not been high-pass filtered.:RuntimeWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:invalid value encountered in subtract:RuntimeWarning"
+)
+def test_ica_rejects_nonfinite():
+    """ICA.fit should fail early on NaN/Inf in the input data."""
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], sfreq=100.0, ch_types="eeg")
+    rng = np.random.default_rng(1)
+    data = rng.standard_normal(size=(4, 1000))
+
+    # Case 1: NaN
+    raw = RawArray(data.copy(), info)
+    raw._data[0, 25] = np.nan
+    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
+        ica.fit(raw)
+
+    # Case 2: Inf
+    raw = RawArray(data.copy(), info)
+    raw._data[1, 50] = np.inf
+    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
+        ica.fit(raw)

@@ -214,7 +214,7 @@ def source_band_induced_power(
         Do convolutions in time or frequency domain with FFT.
     decim : int
         Temporal decimation factor.
-    baseline : None (default) or tuple, shape (2,)
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
@@ -640,7 +640,7 @@ def source_induced_power(
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    baseline : None (default) or tuple of length 2
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".

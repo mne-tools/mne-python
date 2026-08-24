@@ -53,8 +53,8 @@ page :ref:`governance-people`.
 Maintainer Team
 ---------------
 
-The Maintainer Team is responsible for implementing changes to the software and
-supporting the user community. Duties:
+The Maintainer Team (:ref:`members <maintainer-team-people>`) is responsible for
+implementing changes to the software and supporting the user community. Duties:
 
 - Infrastructure/large-scale software decisions, in partnership with the Steering
   Council
@@ -73,8 +73,8 @@ automatically.
 Steering Council
 ----------------
 
-The Steering Council is responsible for guiding and shepherding the project on a
-day-to-day basis. Duties:
+The Steering Council (:ref:`members <steering-council-people>`) is responsible for
+guiding and shepherding the project on a day-to-day basis. Duties:
 
 - Obtaining funding (either by writing grants specifically for MNE development, or
   convincing others to include funds for MNE development in their research grants)
@@ -102,8 +102,8 @@ afforded to maintainers (passwords, merge rights, etc).
 Chair of the Steering Council
 -----------------------------
 
-The Chair of the Steering Council is responsible for liaising between the Steering
-Council and the community. Duties:
+The Chair (:ref:`member <steering-council-people>`) of the Steering Council is
+responsible for liaising between the Steering Council and the community. Duties:
 
 - Convening the Steering Council meetings
 - Calling for votes when consensus fails
@@ -113,8 +113,8 @@ Council and the community. Duties:
 External Advisory Board
 -----------------------
 
-The External Advisory Board is responsible for high-level roadmap and funding
-guidance. Duties:
+The External Advisory Board (:ref:`members <advisory-board-people>`) is responsible for
+high-level roadmap and funding guidance. Duties:
 
 - Attendance at Advisory Board meetings (approx. every 1-2 years)
 - Periodically communicating with Steering Council to impart guidance
@@ -367,7 +367,7 @@ Substantial portions of this document were adapted from the
 <https://github.com/scipy/scipy/blob/main/doc/source/dev/governance.rst>`_,
 which in turn was adapted from
 `Jupyter/IPython project's governance document
-<https://github.com/jupyter/governance/blob/main/archive/governance.md>`_ and
+<https://github.com/jupyter/governance/blob/9603851c420c2b214fb0d714f3c57d97d6fa2cad/archive/governance.md>`_ and
 `NumPy's governance document
 <https://github.com/numpy/numpy/blob/master/doc/source/dev/governance/governance.rst>`_.
 

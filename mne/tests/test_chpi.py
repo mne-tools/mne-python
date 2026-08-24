@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 from scipy.interpolate import interp1d
+from scipy.signal import welch
 from scipy.spatial.distance import cdist
 
 from mne import pick_info, pick_types
@@ -15,6 +16,7 @@ from mne._fiff.constants import FIFF
 from mne.chpi import (
     _chpi_locs_to_times_dig,
     _compute_good_distances,
+    _fit_chpi_quat,
     _get_hpi_initial_fit,
     _setup_ext_proj,
     compute_chpi_amplitudes,
@@ -28,6 +30,7 @@ from mne.chpi import (
     get_chpi_info,
     head_pos_to_trans_rot_t,
     read_head_pos,
+    refit_hpi,
     write_head_pos,
 )
 from mne.datasets import testing
@@ -41,7 +44,12 @@ from mne.io import (
     read_raw_kit,
 )
 from mne.simulation import add_chpi
-from mne.transforms import _angle_between_quats, rot_to_quat
+from mne.transforms import (
+    _angle_between_quats,
+    angle_distance_between_rigid,
+    quat_to_rot,
+    rot_to_quat,
+)
 from mne.utils import (
     _record_warnings,
     assert_meg_snr,
@@ -49,6 +57,7 @@ from mne.utils import (
     object_diff,
     verbose,
 )
+from mne.utils._testing import assert_trans_allclose
 from mne.viz import plot_head_positions
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
@@ -66,6 +75,8 @@ chpi5_fif_fname = data_path / "SSS" / "chpi5_raw.fif"
 chpi5_pos_fname = data_path / "SSS" / "chpi5_raw_mc.pos"
 ctf_chpi_fname = data_path / "CTF" / "testdata_ctf_mc.ds"
 ctf_chpi_pos_fname = data_path / "CTF" / "testdata_ctf_mc.pos"
+chpi_problem_fname = data_path / "SSS" / "chpi_problematic-info.fif"
+chpi_bad_gof_fname = data_path / "SSS" / "chpi_bad_gof-info.fif"
 
 art_fname = (
     data_path
@@ -96,7 +107,7 @@ def test_chpi_adjust():
     msg = [
         "HPIFIT: 5 coils digitized in order 5 1 4 3 2",
         "HPIFIT: 3 coils accepted: 1 2 4",
-        "Hpi coil moments (3, 5):",
+        "HPI coil moments (3, 5):",
         "2.08542e-15 -1.52486e-15 -1.53484e-15",
         "2.14516e-15 2.09608e-15 7.30303e-16",
         "-3.2318e-16 -4.25666e-16 2.69997e-15",
@@ -135,7 +146,7 @@ def test_read_write_head_pos(tmp_path):
     """Test reading and writing head position quaternion parameters."""
     temp_name = tmp_path / "temp.pos"
     # This isn't a 100% valid quat matrix but it should be okay for tests
-    head_pos_rand = np.random.RandomState(0).randn(20, 10)
+    head_pos_rand = np.random.default_rng(0).standard_normal((20, 10))
     # This one is valid
     head_pos_read = read_head_pos(pos_fname)
     for head_pos_orig in (head_pos_rand, head_pos_read):
@@ -283,6 +294,7 @@ def _calculate_chpi_positions(
     dist_limit=0.005,
     gof_limit=0.98,
     ext_order=1,
+    weighted=False,
     verbose=None,
 ):
     chpi_amplitudes = compute_chpi_amplitudes(
@@ -300,7 +312,12 @@ def _calculate_chpi_positions(
         verbose=verbose,
     )
     head_pos = compute_head_pos(
-        raw.info, chpi_locs, dist_limit=dist_limit, gof_limit=gof_limit, verbose=verbose
+        raw.info,
+        chpi_locs,
+        dist_limit=dist_limit,
+        gof_limit=gof_limit,
+        weighted=weighted,
+        verbose=verbose,
     )
     return head_pos
 
@@ -434,6 +451,7 @@ def test_warn_maxwell_filtered():
     assert len(amps["times"]) > 0  # but for this file, it does work!
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_initial_fit_redo():
     """Test that initial fits can be redone based on moments."""
@@ -463,8 +481,10 @@ def test_initial_fit_redo():
     angles = np.rad2deg(np.arccos(np.abs(np.sum(coil_ori * py_ori, axis=1))))
     assert_array_less(angles, 20)
 
-    # check resulting dev_head_t
-    head_pos = compute_head_pos(raw.info, chpi_locs)
+    # check resulting dev_head_t (also the one place we exercise the deprecated
+    # default value of ``weighted``, see gh-11330)
+    with pytest.warns(FutureWarning, match="weighted will change"):
+        head_pos = compute_head_pos(raw.info, chpi_locs)
     assert head_pos.shape == (1, 10)
     nm_pos = raw.info["dev_head_t"]["trans"]
     dist = 1000 * np.linalg.norm(nm_pos[:3, 3] - head_pos[0, 4:7])
@@ -475,6 +495,40 @@ def test_initial_fit_redo():
     assert 0.1 < angle < 2
     gof = head_pos[0, 7]
     assert_allclose(gof, 0.9999, atol=1e-4)
+
+
+def test_fit_chpi_quat_weighted():
+    """Test weighted cHPI quaternion fitting (gh-11330)."""
+    rng = np.random.default_rng(0)
+    head_rrs = rng.normal(scale=0.05, size=(5, 3))
+    quat = np.array([0.05, -0.03, 0.02, 0.01, -0.02, 0.03])
+    rot = quat_to_rot(quat[:3])
+    # device coil positions such that ``rot @ dev + trans == head``
+    dev_rrs = (head_rrs - quat[3:]) @ rot
+
+    # uniform weights reproduce the unweighted fit exactly
+    quat_none, gof_none = _fit_chpi_quat(dev_rrs, head_rrs)
+    quat_ones, gof_ones = _fit_chpi_quat(dev_rrs, head_rrs, weights=np.ones(5))
+    assert_allclose(quat_none, quat_ones, atol=1e-12)
+    assert_allclose(gof_none, gof_ones, atol=1e-12)
+    assert_allclose(quat_none, quat, atol=1e-6)
+    assert_allclose(gof_none, 1.0, atol=1e-10)
+
+    # corrupt one coil: zero-weighting it recovers the exact transform, whereas
+    # including it unweighted spoils the fit
+    dev_bad = dev_rrs.copy()
+    dev_bad[4] += 0.02
+    quat_zero = _fit_chpi_quat(dev_bad, head_rrs, weights=np.array([1.0, 1, 1, 1, 0]))
+    assert_allclose(quat_zero[0], quat, atol=1e-6)
+    assert np.linalg.norm(_fit_chpi_quat(dev_bad, head_rrs)[0][3:] - quat[3:]) > 1e-3
+
+    # smoothly down-weighting the bad coil improves the fit
+    errs = list()
+    for coil_weight in (1.0, 0.5, 0.1, 0.0):
+        weights = np.array([1.0, 1.0, 1.0, 1.0, coil_weight])
+        quat_fit = _fit_chpi_quat(dev_bad, head_rrs, weights=weights)[0]
+        errs.append(np.linalg.norm(quat_fit[3:] - quat[3:]))
+    assert errs[0] > errs[1] > errs[2] > errs[3]
 
 
 @testing.requires_testing_data
@@ -488,12 +542,18 @@ def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     # maxfilter estimates a wrong head position for interval 16: 41.-42. s
     raw = _decimate_chpi(raw.crop(0.0, 10.0).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
-    py_quats = _calculate_chpi_positions(
-        raw, t_step_min=1.0, t_step_max=1.0, t_window=1.0, verbose="debug"
-    )
+    chpi_amplitudes = compute_chpi_amplitudes(raw, t_step_min=1.0, t_window=1.0)
+    chpi_locs = compute_chpi_locs(raw.info, chpi_amplitudes, t_step_max=1.0)
+    py_quats = compute_head_pos(raw.info, chpi_locs, weighted=False, verbose="debug")
     _assert_quats(
         py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2, vel_atol=3e-3
     )  # 3 mm/s
+    # the weighted variant (gh-11330) fits all good coils at once rather than
+    # collapsing to a 3-coil subset, and should still agree with MaxFilter as well
+    py_quats_w = compute_head_pos(raw.info, chpi_locs, weighted=True)
+    _assert_quats(py_quats_w, mf_quats, dist_tol=0.002, angle_tol=1.2, vel_atol=3e-3)
+    # weighting actually changes the fit (uses all coils, not the best-3 subset)
+    assert not np.array_equal(py_quats, py_quats_w)
 
 
 @pytest.mark.slowtest
@@ -616,7 +676,7 @@ def _check_dists(info, cHPI_digs, n_bad=0, bad_low=0.02, bad_high=0.04):
         assert_array_less(bads, bad_high)
 
 
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @testing.requires_testing_data
 def test_calculate_chpi_coil_locs_artemis():
     """Test computing just cHPI locations."""
@@ -663,14 +723,13 @@ def test_calculate_chpi_coil_locs_artemis():
     coil_amplitudes["slopes"].fill(np.nan)
     chpi_locs = compute_chpi_locs(raw.info, coil_amplitudes)
     assert chpi_locs["rrs"].shape == (0, 3, 3)
-    pos = compute_head_pos(raw.info, chpi_locs)
+    pos = compute_head_pos(raw.info, chpi_locs, weighted=False)
     assert pos.shape == (0, 10)
 
 
 def assert_suppressed(new, old, suppressed, retained):
     """Assert that some frequencies are suppressed and others aren't."""
     __tracebackhide__ = True
-    from scipy.signal import welch
 
     picks = pick_types(new.info, meg="grad")
     sfreq = new.info["sfreq"]
@@ -696,19 +755,48 @@ def test_chpi_subtraction_filter_chpi():
     raw.info["bads"] = ["MEG0111"]
     raw.del_proj()
     raw_orig = raw.copy().crop(0, 16)
-    with catch_logging() as log:
-        filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
-    log = log.getvalue()
-    assert "No average EEG" not in log
-    assert "5 cHPI" in log
-    # MaxFilter doesn't do quite as well as our algorithm with the last bit
-    raw.crop(0, 16)
     # remove cHPI status chans
     raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
     raw_c.pick(["meg", "eeg", "eog", "ecg", "stim", "misc"])
-    assert_meg_snr(raw, raw_c, 143, 624)
+    # interp=None reproduces the pre-1.13 zero-order-hold subtraction, which
+    # closely matches MaxFilter (which also does not remove line freqs here)
+    raw_zoh = raw.copy()
+    with catch_logging() as log:
+        filter_chpi(
+            raw_zoh, include_line=False, t_window=0.2, interp=None, verbose=True
+        )
+    log = log.getvalue()
+    assert "No average EEG" not in log
+    assert "5 cHPI" in log
+    raw_zoh.crop(0, 16)
+    # MaxFilter doesn't do quite as well as our algorithm with the last bit
+    assert_meg_snr(raw_zoh, raw_c, 143, 624)
     # cHPI suppressed but not line freqs (or others)
+    assert_suppressed(raw_zoh, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    # the default interp="hann" smoothly interpolates the amplitude envelope,
+    # avoiding zero-order-hold step discontinuities and removing cHPI at least
+    # as well (thereby improving on, and diverging from, MaxFilter)
+    filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
+    raw.crop(0, 16)
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    # hann also suppresses the broadband "step" artifacts that the zero-order
+    # hold (interp=None) injects: with the default (auto) window, the leakage in
+    # a band between the removed line harmonics (360 and 420 Hz), where only that
+    # artifact appears, drops by ~10 dB.
+    raw_hann = raw_orig.copy()
+    filter_chpi(raw_hann, verbose="error")
+    raw_zoh_auto = raw_orig.copy()
+    filter_chpi(raw_zoh_auto, interp=None, verbose="error")
+    picks = pick_types(raw_orig.info, meg=True)
+    orig = raw_orig.get_data(picks)
+    kwargs = dict(fs=raw_orig.info["sfreq"], window="hann", nperseg=1024)
+    f, p_hann = welch(orig - raw_hann.get_data(picks), **kwargs)
+    _, p_zoh = welch(orig - raw_zoh_auto.get_data(picks), **kwargs)
+    fb = (f >= 370) & (f <= 410)  # between the removed 360 and 420 Hz harmonics
+    leak_db = 10 * np.log10(
+        np.median(p_hann[:, fb], axis=0).mean() / np.median(p_zoh[:, fb], axis=0).mean()
+    )
+    assert -15 < leak_db < -8, leak_db  # observed ≈ -11.5 dB
     raw = raw_orig.copy()
     with catch_logging() as log:
         filter_chpi(raw, include_line=True, t_window=0.2, verbose=True)
@@ -768,7 +856,7 @@ def test_calculate_head_pos_ctf(tmp_path):
     """Test extracting of cHPI positions from CTF data."""
     raw = read_raw_ctf(ctf_chpi_fname)
     chpi_locs = extract_chpi_locs_ctf(raw)
-    quats = compute_head_pos(raw.info, chpi_locs)
+    quats = compute_head_pos(raw.info, chpi_locs, weighted=False)
     mc_quats = read_head_pos(ctf_chpi_pos_fname)
     mc_quats[:, 9] /= 10000  # had old factor in there twice somehow...
     _assert_quats(
@@ -792,11 +880,11 @@ def test_calculate_head_pos_ctf(tmp_path):
     with pytest.warns(RuntimeWarning, match="is poor"):
         head_rrs_2 = _get_hpi_initial_fit(raw_read.info, verbose="debug")
     assert_allclose(head_rrs, head_rrs_2, atol=1e-5)
-    quats_2 = compute_head_pos(raw_read.info, chpi_locs)
+    quats_2 = compute_head_pos(raw_read.info, chpi_locs, weighted=False)
     _assert_quats(quats, quats_2, dist_tol=1e-5, angle_tol=0.1)
     chpi_locs_2 = extract_chpi_locs_ctf(raw_read)
     assert_allclose(chpi_locs["rrs"], chpi_locs_2["rrs"], atol=1e-5)
-    quats_3 = compute_head_pos(raw_read.info, chpi_locs_2)
+    quats_3 = compute_head_pos(raw_read.info, chpi_locs_2, weighted=False)
     _assert_quats(quats, quats_3, dist_tol=1e-5, angle_tol=0.1)
 
 
@@ -809,7 +897,7 @@ def test_calculate_head_pos_kit():
     assert chpi_locs["rrs"].shape == (2, 5, 3)
     assert_array_less(chpi_locs["gofs"], 1.0)
     assert_array_less(0.98, chpi_locs["gofs"])
-    quats = compute_head_pos(raw.info, chpi_locs)
+    quats = compute_head_pos(raw.info, chpi_locs, weighted=False)
     assert quats.shape == (2, 10)
     # plotting works
     plot_head_positions(quats, info=raw.info)
@@ -823,7 +911,7 @@ def test_calculate_head_pos_kit():
     with pytest.raises(RuntimeError, match="not find appropriate"):
         extract_chpi_locs_kit(raw_berlin, "STI 014")
     with pytest.raises(RuntimeError, match="no initial cHPI"):
-        compute_head_pos(raw_berlin.info, chpi_locs)
+        compute_head_pos(raw_berlin.info, chpi_locs, weighted=False)
 
 
 @testing.requires_testing_data
@@ -858,4 +946,165 @@ def test_get_active_chpi_neuromag():
     assert_allclose(
         get_active_chpi(raw_no_chpi, on_missing="ignore"),
         np.zeros_like(raw_no_chpi.times),
+    )
+
+
+def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
+    """Assert that slopes in two coil info dicts are all close."""
+    __tracebackhide__ = True
+    assert len(actual_meas["hpi_coils"]) == len(desired_meas["hpi_coils"])
+    for ci, (c1, c2) in enumerate(
+        zip(actual_meas["hpi_coils"], desired_meas["hpi_coils"])
+    ):
+        corr = np.abs(np.corrcoef(c1["slopes"].ravel(), c2["slopes"].ravel())[0, 1])
+        assert lim[0] <= corr <= lim[1], f"meas['hpi_coils'][{ci}] corr: {corr}"
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_refit_hpi_locs_basic():
+    """Test that HPI locations can be refit."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
+    # These should be similar (and both should work)
+    locs = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1)
+    locs_2 = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1, ext_order=0)
+    corr = np.corrcoef(locs["slopes"].ravel(), locs_2["slopes"].ravel())[0, 1]
+    assert 0.999 < corr < 1.0
+    info = raw.info
+    del raw
+
+    # Refit on these data won't change much
+    info_new = info.copy()
+    assert len(info["hpi_results"][-1]["used"]) == 3
+    refit_hpi(info_new, amplitudes=False, locs=False, use=3)
+    assert len(info_new["hpi_results"]) == len(info["hpi_results"]) == 1
+    assert len(info_new["hpi_meas"]) == len(info["hpi_meas"]) == 1
+    assert_trans_allclose(
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=0.1e-3,
+        angle_tol=0.1,
+    )
+    # Refit with more coils than hpifit (our default is use=None)
+    refit_hpi(info_new, amplitudes=False, locs=False)
+    assert len(info_new["hpi_results"][-1]["used"]) == 5
+    assert_trans_allclose(
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=3e-3,
+        angle_tol=2,
+    )
+    # Refit locations
+    refit_hpi(info_new, amplitudes=False)  # default: locs=True
+    assert_trans_allclose(
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=2e-3,
+        angle_tol=2,
+    )
+    assert_array_equal(
+        info_new["hpi_results"][-1]["order"], info["hpi_results"][-1]["order"]
+    )
+    assert_slopes_correlated(
+        info_new["hpi_meas"][-1],
+        info["hpi_meas"][-1],
+        lim=(0.999999, 1.0),
+    )
+    with pytest.raises(ValueError, match="must also be True"):
+        refit_hpi(info_new, locs=False)
+    # Refit locations and amplitudes (with ext_order=0 just to make sure it works)
+    refit_hpi(info_new, ext_order=0)
+    assert_trans_allclose(
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=2e-3,
+        angle_tol=2,
+    )
+    assert_array_equal(
+        info_new["hpi_results"][-1]["order"], info["hpi_results"][-1]["order"]
+    )
+    assert_slopes_correlated(
+        info_new["hpi_meas"][-1], info["hpi_meas"][-1], lim=(0.99, 0.999999)
+    )
+
+
+@testing.requires_testing_data
+def test_refit_hpi_locs_problematic():
+    """Test that we can fix problematic HPI fits."""
+    info_bad = read_info(chpi_problem_fname)
+    ang, dist = angle_distance_between_rigid(
+        info_bad["dev_head_t"]["trans"], angle_units="deg", distance_units="mm"
+    )
+    assert_allclose(ang, 177, atol=1)  # upside-down!
+    assert_allclose(dist, 61, atol=1)
+    orig_order = [4, 2, 1, 3, 5]
+    good_order = [1, 2, 4, 3, 5]
+    assert_array_equal(info_bad["hpi_results"][-1]["order"], orig_order)
+    orig_use = info_bad["hpi_results"][-1]["used"]
+    assert_array_equal(orig_use, [2, 3, 5])
+    with pytest.warns(RuntimeWarning, match="colinear"):
+        info_new = refit_hpi(
+            info_bad.copy(),
+            amplitudes=False,
+            locs=False,
+            order=False,
+            use=orig_use - 1,
+            dist_limit=np.inf,
+            colinearity_limit=0.03,
+        )
+    assert_array_equal(info_new["hpi_results"][-1]["order"], orig_order)
+    assert_array_equal(info_new["hpi_results"][-1]["used"], orig_use)
+    assert_trans_allclose(
+        info_new["dev_head_t"],
+        info_bad["dev_head_t"],
+        dist_tol=1e-3,
+        angle_tol=1,
+    )
+    # Even just allowing our permutation checker to run helps
+    with pytest.raises(RuntimeError, match="need at least 3"):
+        refit_hpi(info_bad.copy(), amplitudes=False, locs=False, order=False)
+    info_new = refit_hpi(
+        info_bad.copy(),
+        amplitudes=False,
+        locs=False,
+        dist_limit=0.02,
+        colinearity_limit=0.03,
+    )
+    assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
+    ang, dist = angle_distance_between_rigid(
+        info_new["dev_head_t"]["trans"],
+        angle_units="deg",
+        distance_units="mm",
+    )
+    assert 10 < ang < 15  # much more upright!
+    assert 75 < dist < 80
+    with pytest.warns(RuntimeWarning, match="Discrepancy"):
+        # We can run this with amplitudes=True, but it's much faster not to
+        # (and the result is very similar)
+        info_new = refit_hpi(
+            info_bad.copy(), amplitudes=False, dist_limit=0.01, colinearity_limit=0.03
+        )
+    assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
+    ang, dist = angle_distance_between_rigid(
+        info_new["dev_head_t"]["trans"],
+        angle_units="deg",
+        distance_units="mm",
+    )
+    assert 3 < ang < 6
+    assert 82 < dist < 87
+
+
+@testing.requires_testing_data
+def test_refit_hpi_locs_bad_gof():
+    """Test that we can handle bad GOF HPI fits."""
+    # gh-13524
+    info = read_info(chpi_bad_gof_fname)
+    assert_array_equal(info["hpi_results"][-1]["used"], [2, 3, 4])
+    info_new = refit_hpi(info.copy(), amplitudes=False, locs=False)
+    assert_array_equal(info_new["hpi_results"][-1]["used"], [1, 2, 3, 4])
+    assert_trans_allclose(
+        info["dev_head_t"],
+        info_new["dev_head_t"],
+        dist_tol=1e-3,
+        angle_tol=1,
     )

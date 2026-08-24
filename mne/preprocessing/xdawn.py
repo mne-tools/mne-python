@@ -121,9 +121,9 @@ def _fit_xdawn(
         The epochs data.
     y : array, shape (n_epochs)
         The epochs class.
-    n_components : int (default 2)
+    n_components : int
         The number of components to decompose the signals signals.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).
@@ -224,16 +224,16 @@ class Xdawn(XdawnTransformer):
 
     Parameters
     ----------
-    n_components : int, (default 2)
+    n_components : int
         The number of components to decompose the signals.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    correct_overlap : 'auto' or bool (default 'auto')
+    correct_overlap : 'auto' | bool
         Compute the independent evoked responses per condition, while
         correcting for event overlaps if any. If 'auto', then
         overlapp_correction = True if the events do overlap.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).
@@ -285,7 +285,7 @@ class Xdawn(XdawnTransformer):
         ----------
         epochs : instance of Epochs
             An instance of Epoch on which Xdawn filters will be fitted.
-        y : ndarray | None (default None)
+        y : ndarray | None
             If None, used epochs.events[:, 2].
 
         Returns
@@ -399,14 +399,14 @@ class Xdawn(XdawnTransformer):
         ----------
         inst : instance of Raw | Epochs | Evoked
             The data to be processed.
-        event_id : dict | list of str | None (default None)
+        event_id : dict | list of str | None
             The kind of event to apply. if None, a dict of inst will be return
             one for each type of event xdawn has been fitted.
-        include : array_like of int | None (default None)
+        include : array_like of int | None
             The indices referring to columns in the ummixing matrix. The
             components to be kept. If None, the first n_components (as defined
             in the Xdawn constructor) will be kept.
-        exclude : array_like of int | None (default None)
+        exclude : array_like of int | None
             The indices referring to columns in the ummixing matrix. The
             components to be zeroed out. If None, all the components except the
             first n_components will be exclude.

@@ -5,9 +5,10 @@
 import calendar
 import datetime
 import os.path as op
+from pathlib import Path
+from typing import Any
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 from ..._fiff._digitization import DigPoint, _make_dig_points
 from ..._fiff.constants import FIFF
@@ -21,7 +22,11 @@ from .utils import _load_mne_locs, _read_pos
 
 @verbose
 def read_raw_artemis123(
-    input_fname, preload=False, verbose=None, pos_fname=None, add_head_trans=True
+    input_fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+    pos_fname: Path | str | None = None,
+    add_head_trans: bool = True,
 ) -> "RawArtemis123":
     """Read Artemis123 data as raw object.
 
@@ -35,7 +40,7 @@ def read_raw_artemis123(
     %(verbose)s
     pos_fname : path-like | None
         If not None, load digitized head points from this file.
-    add_head_trans : bool (default True)
+    add_head_trans : bool
         If True attempt to perform initial head localization. Compute initial
         device to head coordinate transform using HPI coils. If no
         HPI coils are in info['dig'] hpi coils are assumed to be in canonical
@@ -43,7 +48,7 @@ def read_raw_artemis123(
 
     Returns
     -------
-    raw : instance of Raw
+    raw : instance of RawArtemis123
         A Raw object containing the data.
 
     See Also
@@ -77,7 +82,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         "FLL_ResetLock",
     ]
 
-    header_info = dict()
+    header_info: dict[str, Any] = dict()
     header_info["filter_hist"] = []
     header_info["comments"] = ""
     header_info["channels"] = []
@@ -336,6 +341,8 @@ class RawArtemis123(BaseRaw):
         pos_fname=None,
         add_head_trans=True,
     ):
+        from scipy.spatial.distance import cdist
+
         from ...chpi import (
             _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,
@@ -434,13 +441,13 @@ class RawArtemis123(BaseRaw):
                         )
 
                     # compute initial head to dev transform and hpi ordering
-                    head_to_dev_t, order, trans_g = _fit_coil_order_dev_head_trans(
+                    dev_head_t, order, trans_g = _fit_coil_order_dev_head_trans(
                         hpi_dev, hpi_head
                     )
 
                     # set the device to head transform
                     self.info["dev_head_t"] = Transform(
-                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, head_to_dev_t
+                        FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, dev_head_t
                     )
 
                     # add hpi_meg_dev to dig...

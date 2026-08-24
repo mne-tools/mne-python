@@ -6,7 +6,7 @@ async function getContribs(url) {
 
 function addCards(data, container) {
     data.forEach((entry) => {
-      if (!entry.login.endsWith("[bot]")) {
+      if (!entry.login.endsWith("[bot]") && entry.login != "mne-bot") {
         let card = document.createElement("div");
         let anchor = document.createElement("a");
         let image = document.createElement("img");

@@ -5,8 +5,7 @@
 Visualizing Evoked data
 =======================
 
-This tutorial shows the different visualization methods for
-:class:`~mne.Evoked` objects.
+This tutorial shows different visualization methods for :class:`~mne.Evoked` objects.
 
 As usual we'll start by importing the modules we need:
 """
@@ -270,7 +269,10 @@ mne.viz.plot_evoked_topo(evokeds_list)
 #
 #     In interactive sessions, both approaches to topographical plotting allow
 #     you to click one of the sensor subplots to open a larger version of the
-#     evoked plot at that sensor.
+#     evoked plot at that sensor. In this view, you can select a time by clicking
+#     somewhere in the timecourse. The selected time is marked with a vertical line on
+#     all channels, also in the original figure and any other single-channel figures
+#     that are open.
 #
 #
 # 3D Field Maps
@@ -293,7 +295,11 @@ trans_file = root / "sample_audvis_raw-trans.fif"
 # <mne.Evoked.plot_field>`:
 
 maps = mne.make_field_map(
-    evks["aud/left"], trans=str(trans_file), subject="sample", subjects_dir=subjects_dir
+    evks["aud/left"],
+    trans=str(trans_file),
+    subject="sample",
+    subjects_dir=subjects_dir,
+    origin="auto",
 )
 evks["aud/left"].plot_field(maps, time=0.1)
 
@@ -310,6 +316,7 @@ for ch_type in ("mag", "grad", "eeg"):
         subject="sample",
         subjects_dir=subjects_dir,
         meg_surf="head",
+        origin="auto",
     )
     fig = evk.plot_field(_map, time=0.1)
     mne.viz.set_3d_title(fig, ch_type, size=20)

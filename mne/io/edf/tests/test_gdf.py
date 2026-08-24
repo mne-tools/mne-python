@@ -3,11 +3,13 @@
 # Copyright the MNE-Python contributors.
 
 import shutil
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
+from io import BytesIO
 
 import numpy as np
+import pytest
 import scipy.io as sio
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import events_from_annotations, find_events, pick_types
 from mne.datasets import testing
@@ -68,7 +70,7 @@ def test_gdf_data():
     data_biosig = raw_biosig[picks]
 
     # Assert data are almost equal
-    assert_array_almost_equal(data, data_biosig, 8)
+    assert_allclose(data, data_biosig, rtol=1e-8)
 
     # Test for events
     assert len(raw.annotations.duration == 963)
@@ -83,8 +85,8 @@ def test_gdf2_birthday(tmp_path):
     new_fname = tmp_path / "temp.gdf"
     shutil.copyfile(gdf2_path.with_name(gdf2_path.name + ".gdf"), new_fname)
     # go back 44.5 years so the subject should show up as 44
-    offset_edf = datetime.now(tz=timezone.utc) - datetime(  # to their ref
-        1, 1, 1, tzinfo=timezone.utc
+    offset_edf = datetime.now(tz=UTC) - datetime(  # to their ref
+        1, 1, 1, tzinfo=UTC
     )
     offset_44_yr = offset_edf - timedelta(days=int(365 * 44.5))  # 44.5 yr ago
     offset_44_yr_days = offset_44_yr.total_seconds() / (24 * 60 * 60)  # days
@@ -99,7 +101,7 @@ def test_gdf2_birthday(tmp_path):
     raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
     assert "subject_info" not in raw._raw_extras[0]
     assert raw.info["subject_info"] is not None
-    birthdate = datetime(1, 1, 1, tzinfo=timezone.utc) + offset_44_yr
+    birthdate = datetime(1, 1, 1, tzinfo=UTC) + offset_44_yr
     assert raw.info["subject_info"]["birthday"] == date(
         birthdate.year,
         birthdate.month,
@@ -127,7 +129,7 @@ def test_gdf2_data():
     data_biosig = data_biosig[picks]
 
     # Assert data are almost equal
-    assert_array_almost_equal(data, data_biosig, 8)
+    assert_allclose(data, data_biosig, rtol=1e-8)
 
     # Find events
     events = find_events(raw, verbose=1)
@@ -181,3 +183,29 @@ def test_gdf_include():
         gdf1_path.with_name(gdf1_path.name + ".gdf"), include=("FP1", "O1")
     )
     assert sorted(raw.ch_names) == ["FP1", "O1"]
+
+
+@testing.requires_testing_data
+def test_gdf_read_from_file_like():
+    """Test that RawGDF is able to read from file-like objects for GDF files."""
+    channels = "FP1 FP2 F5 AFz F6 T7 Cz T8 P7 P3 Pz P4 P8 O1 Oz O2".split()
+    fname = gdf1_path.with_name(gdf1_path.name + ".gdf")
+    with open(fname, "rb") as blob:
+        raw = read_raw_gdf(blob, preload=True)
+    assert raw.ch_names == channels
+    data = raw.get_data()
+    data_2 = read_raw_gdf(fname, preload=True).get_data()
+    assert_allclose(data, data_2)
+
+    with pytest.raises(Exception, match="Bad GDF file provided."):
+        read_raw_gdf(BytesIO(), preload=True)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:Highpass cutoff frequency")
+def test_gh_13414():
+    """Test handling bytes objects when reading GDF events."""
+    fpath = data_path / "GDF" / "test_gdf_1.99.gdf"
+    raw = read_raw_gdf(fpath)
+    # Should be 1 event in this GDF file.
+    assert len(raw.annotations) == 1

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "6f42037ba84c3f97214fb2d191e5d790be16c9c4",
+  "authors": [
+    {
+      "n": "Santi Martínez",
+      "e": "santiaguzz@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13156.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_edf/open.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 439,
+      "d": 124
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 55,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 21,
+      "d": 3
+    }
+  }
+}

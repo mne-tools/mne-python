@@ -4,7 +4,8 @@
 
 import sys
 from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta
 from itertools import repeat
 from pathlib import Path
 
@@ -22,6 +23,7 @@ import mne
 from mne import (
     Annotations,
     Epochs,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     create_info,
@@ -85,6 +87,7 @@ def test_basics():
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat("test", 10)
+    extras = [dict(foo=i) for i in range(10)]
     dt = raw.info["meas_date"]
     assert isinstance(dt, datetime)
     stamp = _dt_to_stamp(dt)
@@ -95,7 +98,7 @@ def test_basics():
             assert annot.orig_time is None
         else:
             assert isinstance(annot.orig_time, datetime)
-            assert annot.orig_time.tzinfo is timezone.utc
+            assert annot.orig_time.tzinfo is UTC
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
@@ -109,7 +112,7 @@ def test_basics():
     offset = offset[0] + offset[1] * 1e-6
     offset = orig_time - offset
     assert_allclose(offset, raw._first_time)
-    annot = Annotations(onset, duration, description, orig_time)
+    annot = Annotations(onset, duration, description, orig_time, extras=extras)
     assert annot.orig_time is not None
     assert " segments" in repr(annot)
     raw2.set_annotations(annot)
@@ -121,6 +124,7 @@ def test_basics():
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat("test", 10))
+    assert raw.annotations.extras == extras
 
 
 def test_annot_sanitizing(tmp_path):
@@ -138,7 +142,8 @@ def test_annot_sanitizing(tmp_path):
 
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
-    data = np.random.randn(2, 1000) * 10e-12
+    rng = np.random.default_rng(0)
+    data = rng.normal(scale=10e-12, size=(2, 1000))
     sfreq = 100.0
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types=["grad"] * 2, sfreq=sfreq)
     meas_date = _handle_meas_date(np.pi)
@@ -338,7 +343,7 @@ def test_events_from_annotation_orig_time_none():
     """Tests events_from_annotation with orig_time None and first_sampe > 0."""
     # Create fake data
     sfreq, duration_s = 100, 10
-    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    data = np.random.default_rng(42).standard_normal((1, sfreq * duration_s))
     info = mne.create_info(ch_names=["EEG1"], ch_types=["eeg"], sfreq=sfreq)
     raw = mne.io.RawArray(data, info)
 
@@ -365,7 +370,7 @@ def test_events_from_annotation_orig_time_none():
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
-    raw._data[:] = np.random.RandomState(0).randn(*raw._data.shape)
+    raw._data[:] = np.random.default_rng(0).standard_normal(raw._data.shape)
     onset = np.array([0.47058824, 2.49773765, 6.67873287, 9.15837097])
     duration = np.array([0.89592767, 1.13574672, 1.09954739, 0.48868752])
     annotations = mne.Annotations(onset, duration, "BAD")
@@ -989,7 +994,7 @@ def _assert_annotations_equal(a, b, tol=0, comp_extras_as_str=False):
             assert exa == exb, f"extras[{i}][{col}]"
 
 
-_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, UTC)
 
 
 @pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
@@ -1051,6 +1056,8 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
 @pytest.mark.parametrize("with_extras", [True, False])
 def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extras):
     """Test CSV, TXT, and FIF input/output (which support ch_names)."""
+    if with_extras:
+        pytest.importorskip("pandas")
     annot = read_annotations(dummy_annotation_file)
     assert annot.orig_time == _ORIG_TIME
     kwargs = dict(orig_time=_ORIG_TIME)
@@ -1079,6 +1086,18 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
+
+
+def test_read_annotations_txt_single_channel_specific(tmp_path):
+    """Read a .txt with a SINGLE channel-specific annotation (gh-13961)."""
+    # np.loadtxt(..., unpack=True) squeezes a 1-row file to 0-D scalars;
+    # ch_names (unlike onset/duration/description) was not wrapped in
+    # np.atleast_1d, so it was iterated as bytes-ints -> AttributeError.
+    annot = Annotations([1.0], [0.5], ["BAD_x"], ch_names=[["EEG001"]])
+    fname = tmp_path / "annotations.txt"
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    assert list(annot_read.ch_names) == [("EEG001",)]
 
 
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
@@ -1136,6 +1155,35 @@ def test_broken_csv(tmp_path):
         f.write(content)
     with pytest.warns(RuntimeWarning, match="save your CSV as a TXT"):
         read_annotations(fname)
+
+
+def test_nanosecond_in_times(tmp_path):
+    """Test onsets with ns read correctly for csv and caught as init argument."""
+    pd = pytest.importorskip("pandas")
+
+    # Test bad format onset sanitised when loading from csv
+    onset = (
+        pd.Timestamp(_ORIG_TIME)
+        .astimezone(None)
+        .isoformat(sep=" ", timespec="nanoseconds")
+    )
+    content = f"onset,duration,description\n{onset},1.0,AA"
+    fname = tmp_path / "annotations_broken.csv"
+    with open(fname, "w") as f:
+        f.write(content)
+    annot = read_annotations(fname)
+    assert annot.orig_time == _ORIG_TIME
+
+    # Test bad format `orig_time` str -> `None` raises warning in `Annotation` init
+    with pytest.warns(
+        RuntimeWarning, match="The format of the `orig_time` string is not recognised."
+    ):
+        bad_orig_time = (
+            pd.Timestamp(_ORIG_TIME)
+            .astimezone(None)
+            .isoformat(sep=" ", timespec="nanoseconds")
+        )
+        Annotations([0], [1], ["test"], bad_orig_time)
 
 
 # Test for IO with .txt files
@@ -1203,7 +1251,7 @@ def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
     if out is not None:
         assert out >= 0  # otherwise it'll break on Windows
-        out = datetime.fromtimestamp(out, timezone.utc)
+        out = datetime.fromtimestamp(out, UTC)
     assert _handle_meas_date(meas_date) == out
 
 
@@ -1221,7 +1269,7 @@ def test_read_annotation_txt_header(tmp_path):
     with open(fname, "w") as f:
         f.write(content)
     orig_time, _, n_rows_header = _read_annotations_txt_parse_header(fname)
-    want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+    want = datetime.fromtimestamp(1038942071.7201, UTC)
     assert orig_time == want
     assert n_rows_header == 5
 
@@ -1249,7 +1297,7 @@ def test_read_annotation_txt_empty(tmp_path):
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
-    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, str)  # str, not np.str_
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
 
@@ -1349,7 +1397,8 @@ def test_date_none(tmp_path):
     # Regression test for gh-5908
     n_chans = 139
     n_samps = 20
-    data = np.random.random_sample((n_chans, n_samps))
+    rng = np.random.default_rng(0)
+    data = rng.random((n_chans, n_samps))
     ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
@@ -1564,7 +1613,8 @@ def test_repr():
 @pytest.mark.parametrize("time_format", (None, "ms", "datetime", "timedelta"))
 def test_annotation_to_data_frame(time_format):
     """Test annotation class to data frame conversion."""
-    pytest.importorskip("pandas")
+    pd = pytest.importorskip("pandas")
+
     onset = np.arange(1, 10)
     durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
     description = ["yy"] * onset.shape[0]
@@ -1583,6 +1633,12 @@ def test_annotation_to_data_frame(time_format):
         got = got.seconds
     assert want == got
     assert df.groupby("description").count().onset["yy"] == 9
+
+    # Check nanoseconds omitted from onset times
+    if time_format == "datetime":
+        a.onset += 1e-7  # >6 decimals to trigger nanosecond component
+        df = a.to_data_frame(time_format=time_format)
+        assert pd.Timestamp(df.onset[0]).nanosecond == 0
 
 
 def test_annotation_ch_names():
@@ -1679,6 +1735,49 @@ def test_annotation_rename():
     assert_array_equal(a.description, ["B", "A", "C"])
 
 
+def _assert_no_truncation(annot):
+    """Check that in-place description assignment keeps the whole string."""
+    assert annot.description.dtype == np.dtypes.StringDType()
+    long_description = "a_very_much_longer_description"
+    annot.description[-1] = long_description
+    assert annot.description[-1] == long_description
+
+
+@pytest.mark.parametrize("fmt", ("fif", "csv", "txt"))
+def test_description_assignment_not_truncated(tmp_path, fmt):
+    """Test that assigning into description does not truncate strings."""
+    if fmt != "fif":
+        pytest.importorskip("pandas")
+    annot = Annotations([1.0, 2.0], [1.0, 1.0], ["short", "b"], extras=[dict(a=1)] * 2)
+    _assert_no_truncation(annot.copy())
+    # the copy must be independent (and not crash: numpy/numpy#28609)
+    annot_copy = deepcopy(annot)
+    annot_copy.description[0] = "changed"
+    assert annot.description[0] == "short"
+    annot.append(3.0, 1.0, "c", extras=[dict(a=1)])
+    annot.rename({"b": "b_renamed"})
+    other = annot.copy()
+    other.onset += 10.0
+    cropped, deleted = annot.copy(), annot.copy()
+    cropped.crop(0.0, 100.0)
+    deleted.delete(0)
+    for modified in (annot.copy(), annot + other, cropped, deleted):
+        _assert_no_truncation(modified)
+    # round-trip through disk (Annotations.save and raw.save)
+    annot_fname = tmp_path / f"test-annot.{fmt}"
+    annot.save(annot_fname)
+    round_tripped = [read_annotations(annot_fname)]
+    if fmt == "fif":
+        raw = RawArray(np.zeros((1, 2000)), create_info(1, 100.0, "eeg"))
+        raw.set_annotations(annot)
+        raw_fname = tmp_path / "test_raw.fif"
+        raw.save(raw_fname)
+        round_tripped.append(read_raw_fif(raw_fname).annotations)
+    for got in round_tripped:
+        assert_array_equal(got.description, annot.description)
+        _assert_no_truncation(got)
+
+
 def test_annotation_duration_setting():
     """Test annotation duration setting works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
@@ -1711,6 +1810,41 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa": 2.2})
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
+
+
+def test_setter_validation():
+    """Test that onset/duration/description/ch_names setters validate length."""
+    annots = Annotations(onset=[1, 3, 2, 4], duration=0, description="foo")
+
+    # onset mismatch should raise
+    with pytest.raises(ValueError, match="Length of onset"):
+        annots.onset = annots.onset[:2]
+
+    # duration mismatch should raise
+    with pytest.raises(ValueError, match="Length of duration"):
+        annots.duration = annots.duration[:2]
+
+    # description mismatch should raise
+    with pytest.raises(ValueError, match="Length of description"):
+        annots.description = annots.description[:2]
+
+    # scalar duration should broadcast without error
+    annots.duration = 1.0
+    assert len(annots.duration) == 4
+    assert all(annots.duration == 1.0)
+
+    # scalar description should broadcast without error
+    annots.description = "bad"
+    assert len(annots.description) == 4
+    assert all(annots.description == "bad")
+
+    # ch_names mismatch should raise
+    with pytest.raises(ValueError, match="Length of ch_names"):
+        annots.ch_names = [(), ()]
+
+    # valid ch_names assignment (correct length) should succeed
+    annots.ch_names = [("MEG 0111",), (), (), ()]
+    assert annots.ch_names[0] == ("MEG 0111",)
 
 
 @pytest.mark.parametrize("meas_date", (None, 1))
@@ -1757,9 +1891,9 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
     meas_date_1 = meas_date_2 = None
     assert meas_date in (None, "first", "second", "both")
     if meas_date in ("first", "both"):
-        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     if meas_date in ("second", "both"):
-        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     del meas_date
 
     def _create_raw(eeg, sfreq, onset, description, meas_date, first_samp, setting):
@@ -1868,7 +2002,7 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     sfreq = 1000.0
     info = mne.create_info(1, sfreq, "eeg")
     raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(1, 3000), info, first_samp=first_samp
+        np.random.default_rng(0).standard_normal((1, 3000)), info, first_samp=first_samp
     )
     raw.set_meas_date(meas_date)
     onset = np.array([0, 1, 2], float)
@@ -1930,6 +2064,290 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert_allclose(raw.annotations.onset, [onset] * 2)
 
 
+def test_hed_annotations():
+    """Test hed_strings validation."""
+    pytest.importorskip("hed")
+    # test initting with bad value
+    validation_fail_msg = "A HED string failed to validate"
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=["foo"],
+        )
+    # test initting with good values
+    good_values = dict(
+        square="Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))",  # extra spaces intentional
+        tone="Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)",
+        press="Agent-action, (Experiment-participant, (Press, Mouse-button))",
+        word="Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
+        "Visual-presentation",
+    )
+    # single string should broadcast to all annotations
+    ann_single = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.1],
+        description=["x", "y"],
+        hed_string=good_values["tone"],
+    )
+    assert list(ann_single.hed_string) == [good_values["tone"], good_values["tone"]]
+    # extras cannot override reserved field names
+    with pytest.raises(ValueError, match="reserved"):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=[good_values["tone"]],
+            extras=[{"hed_string": "bad"}],
+        )
+    ann = HEDAnnotations(
+        onset=[3, 2, 1],
+        duration=[0.1, 0.0, 0.3],
+        description=["d", "c", "a"],
+        hed_string=[good_values["square"], good_values["tone"], good_values["press"]],
+    )
+    # make sure sorting by onset worked correctly
+    assert ann.hed_string[0] == good_values["press"]
+    assert ann.hed_string._objs[0].get_original_hed_string() == good_values["press"]
+    # test appending
+    foo = ann.copy()
+    ons_dur_desc = dict(onset=1.5, duration=0.2, description="b")
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        foo.append(**ons_dur_desc, hed_string="foo")
+    foo.append(**ons_dur_desc, hed_string=good_values["word"])
+    # make sure sorting by onset also works for .append()
+    assert list(foo.hed_string) == [
+        x.get_original_hed_string() for x in foo.hed_string._objs
+    ]
+    # make sure we didn't mess up the type of the HEDStrings
+    assert isinstance(foo.hed_string, mne.annotations._HEDStrings)
+    # test modifying with bad value
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        ann.hed_string[0] = "foo"
+    # test modifying, __eq__, and delete()
+    foo = ann.copy()
+    assert ann == foo
+    foo.hed_string[0] = good_values["word"]
+    assert ann != foo
+    ann.hed_string[0] = good_values["word"]
+    assert ann == foo
+    foo.delete(0)
+    assert ann != foo
+    assert foo.hed_string[0] == ann.hed_string[1]
+    # test .count()
+    want_counts = {
+        good_values["word"]: 1,
+        good_values["tone"]: 1,
+        good_values["square"]: 1,
+    }
+    assert ann.count() == want_counts
+    # test __getitem__
+    first = ann[0]
+    assert first["hed_string"] == good_values["word"]
+    # setting bad value on extracted OrderedDict won't try to validate:
+    first["hed_string"] = "foo"
+    # ...and won't affect the original object
+    assert ann.hed_string[0] == good_values["word"]
+    # test __repr__
+    _repr = repr(ann)
+    assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
+    # test vectorized append with extras and list-like delete
+    ann_extra = ann.copy()
+    ann_extra.append(
+        onset=[10, 11],
+        duration=[0.1, 0.1],
+        description=["e", "f"],
+        hed_string=[good_values["tone"], good_values["press"]],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    assert ann_extra.extras[-2]["run"] == 1
+    assert ann_extra.extras[-1]["run"] == 2
+    ann_extra.delete([0, 3])
+    assert len(ann_extra) == 3
+    assert len(ann_extra.hed_string) == 3
+    # test concatenation
+    lhs = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[good_values["tone"]],
+        extras=[{"side": "lhs"}],
+    )
+    rhs = HEDAnnotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        hed_string=[good_values["press"]],
+        extras=[{"side": "rhs"}],
+    )
+    lhs += rhs
+    assert len(lhs) == 2
+    assert list(lhs.hed_string) == [good_values["tone"], good_values["press"]]
+    assert lhs.extras[1]["side"] == "rhs"
+    # test crop()
+    ann_crop = HEDAnnotations(
+        onset=[1, 3, 5, 7],
+        duration=[0.5, 0.5, 0.5, 0.5],
+        description=["a", "b", "c", "d"],
+        hed_string=[
+            good_values["press"],
+            good_values["tone"],
+            good_values["square"],
+            good_values["word"],
+        ],
+    )
+    # crop keeping middle two annotations
+    cropped = ann_crop.copy()
+    cropped.crop(tmin=2, tmax=6)
+    assert len(cropped) == 2
+    assert_array_equal(cropped.description, ["b", "c"])
+    assert list(cropped.hed_string) == [good_values["tone"], good_values["square"]]
+    assert isinstance(cropped.hed_string, mne.annotations._HEDStrings)
+    # crop that clips annotation at boundary
+    cropped2 = ann_crop.copy()
+    cropped2.crop(tmin=0.5, tmax=1.25)
+    assert len(cropped2) == 1
+    assert_allclose(cropped2.onset, [1.0])
+    assert_allclose(cropped2.duration, [0.25])
+    assert list(cropped2.hed_string) == [good_values["press"]]
+    # crop on empty HEDAnnotations
+    empty_ann = HEDAnnotations(
+        onset=[1],
+        duration=[0.5],
+        description=["a"],
+        hed_string=[good_values["press"]],
+    )
+    empty_ann.crop(tmin=5, tmax=10)
+    assert len(empty_ann) == 0
+    assert list(empty_ann.hed_string) == []
+
+
+def test_hed_annotations_mixed_concatenation():
+    """Test concatenation of HEDAnnotations with regular Annotations."""
+    pytest.importorskip("hed")
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, "
+        "(Tone, Frequency/550 Hz)"
+    )
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+
+    hed = HEDAnnotations(
+        onset=[0, 1],
+        duration=[0.1, 0.2],
+        description=["tone", "press"],
+        hed_string=[tone, press],
+        extras=[{"run": 1}, {"run": 2}],
+    )
+    reg = Annotations(
+        onset=[2, 3],
+        duration=[0.3, 0.4],
+        description=["plain1", "plain2"],
+        extras=[{"run": 3}, {}],
+    )
+
+    # --- Annotations += HEDAnnotations ---
+    combined = reg.copy()
+    combined += hed
+    assert isinstance(combined, Annotations)
+    assert not isinstance(combined, HEDAnnotations)
+    assert len(combined) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined.extras[0]["HED"] == tone
+    assert combined.extras[1]["HED"] == press
+    assert "HED" not in combined.extras[2]
+    assert "HED" not in combined.extras[3]
+    # pre-existing extras preserved
+    assert combined.extras[0]["run"] == 1
+    assert combined.extras[1]["run"] == 2
+    assert combined.extras[2]["run"] == 3
+
+    # --- HEDAnnotations += Annotations ---
+    combined2 = hed.copy()
+    combined2 += reg
+    # result is plain Annotations (rebinding semantics)
+    assert isinstance(combined2, Annotations)
+    assert not isinstance(combined2, HEDAnnotations)
+    assert len(combined2) == 4
+    # sorted by onset: hed(0,1) then reg(2,3)
+    assert combined2.extras[0]["HED"] == tone
+    assert combined2.extras[1]["HED"] == press
+    assert "HED" not in combined2.extras[2]
+    assert "HED" not in combined2.extras[3]
+    # pre-existing extras preserved
+    assert combined2.extras[0]["run"] == 1
+    assert combined2.extras[2]["run"] == 3
+
+    # --- non-mutating + operators ---
+    hed_orig = hed.copy()
+    reg_orig = reg.copy()
+
+    out1 = reg + hed
+    assert isinstance(out1, Annotations)
+    assert not isinstance(out1, HEDAnnotations)
+    assert len(out1) == 4
+    assert out1.extras[0]["HED"] == tone
+    assert out1.extras[1]["HED"] == press
+
+    out2 = hed + reg
+    assert isinstance(out2, Annotations)
+    assert not isinstance(out2, HEDAnnotations)
+    assert len(out2) == 4
+    assert out2.extras[0]["HED"] == tone
+    assert out2.extras[1]["HED"] == press
+
+    # originals are not mutated
+    assert hed == hed_orig
+    assert reg == reg_orig
+
+    # --- ch_names are preserved ---
+    hed_ch = HEDAnnotations(
+        onset=[0],
+        duration=[0.1],
+        description=["x"],
+        hed_string=[tone],
+        ch_names=[["EEG 001"]],
+    )
+    reg_ch = Annotations(
+        onset=[1],
+        duration=[0.1],
+        description=["y"],
+        ch_names=[["EEG 002"]],
+    )
+    out3 = reg_ch + hed_ch
+    # sorted by onset: hed_ch(0) then reg_ch(1)
+    assert out3[0]["ch_names"] == ("EEG 001",)
+    assert out3[1]["ch_names"] == ("EEG 002",)
+
+
+def test_hed_annotations_to_data_frame():
+    """Test HEDAnnotations.to_data_frame()."""
+    pytest.importorskip("hed")
+    pytest.importorskip("pandas")
+    press = "Agent-action, (Experiment-participant, (Press, Mouse-button))"
+    tone = (
+        "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)"
+    )
+    square = (
+        "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))"
+    )
+    ann = HEDAnnotations(
+        onset=[1, 3, 5],
+        duration=[0.5, 0.5, 0.5],
+        description=["a", "b", "c"],
+        hed_string=[press, tone, square],
+    )
+    df = ann.to_data_frame()
+    assert "hed_string" in df.columns
+    assert list(df["hed_string"]) == [press, tone, square]
+    assert list(df["description"]) == ["a", "b", "c"]
+    assert_allclose(df["duration"], [0.5, 0.5, 0.5])
+
+
 @pytest.mark.parametrize(
     "key, value, expected_error, match",
     (
@@ -1937,6 +2355,7 @@ def test_append_splits_boundary(tmp_path, split_size):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),
@@ -1962,6 +2381,7 @@ def test_extras_dict_raises(key, value, expected_error, match):
         ("duration", 1, ValueError, "reserved"),
         ("description", 1, ValueError, "reserved"),
         ("ch_names", 1, ValueError, "reserved"),
+        ("hed_string", 1, ValueError, "reserved"),
         ("valid_key", [], TypeError, "value must be an instance of"),
         (1, 1, TypeError, "key must be an instance of"),
     ),
