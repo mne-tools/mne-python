@@ -1517,8 +1517,10 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
     # again and then fix the camera before clicking
     if src == "surface":
         hemi = "lh"
+        # size: the time-viewer traces canvas and dock eat into the window,
+        # and a roomy 3D viewport keeps the click targets many pixels big
         brain = Brain(
-            "fsaverage", hemi=hemi, surf="inflated", size=300, subjects_dir=subjects_dir
+            "fsaverage", hemi=hemi, surf="inflated", size=600, subjects_dir=subjects_dir
         )
         n_verts = len(brain.geo[hemi].coords)
         brain.add_data(
