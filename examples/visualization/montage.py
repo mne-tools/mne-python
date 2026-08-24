@@ -31,7 +31,9 @@ for current_montage in get_builtin_montages():
     montage = mne.channels.make_standard_montage(current_montage)
     info = mne.create_info(ch_names=montage.ch_names, sfreq=100.0, ch_types="eeg")
     info.set_montage(montage)
-    sphere = mne.make_sphere_model(r0="auto", head_radius="auto", info=info)
+    sphere = mne.make_sphere_model(
+        r0="auto", head_radius="auto", info=info, verbose="error"  # few points
+    )
     fig = mne.viz.plot_alignment(
         # Plot options
         show_axes=True,
