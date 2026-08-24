@@ -1723,7 +1723,8 @@ def test_tfr_copy(average_tfr):
 
 
 @pytest.mark.parametrize(
-    "mode", ("mean", "ratio", "logratio", "percent", "zscore", "zlogratio")
+    "mode",
+    ("mean", "ratio", "logratio", "meanlogratio", "percent", "zscore", "zlogratio")
 )
 def test_tfr_apply_baseline(average_tfr, mode):
     """Test TFR baselining."""
