@@ -17,7 +17,7 @@ from ..evoked import Evoked
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
-from ..time_frequency import BaseTFR
+from ..time_frequency import BaseTFR, EpochsTFR
 from ..utils import (
     GetEpochsMixin,
     ProgressBar,
@@ -1715,7 +1715,7 @@ def _validate_cluster_df(df: DataFrame, dv_name: str, iv_name: str):
         all_shapes = set(
             df[dv_name].map(lambda x: x.shape[1:])
         )  # first dim may vary (participants or epochs)
-    elif isinstance(inst, (BaseEpochs | BaseTFR)):
+    elif isinstance(inst, (BaseEpochs | EpochsTFR)):
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape[1:]))
     else:
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
