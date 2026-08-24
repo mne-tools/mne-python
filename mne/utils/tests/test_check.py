@@ -61,8 +61,11 @@ def test_check_rng():
     bit_generator = np.random.default_rng(0).bit_generator
     assert isinstance(_check_rng(bit_generator.seed_seq), np.random.Generator)
     assert isinstance(_check_rng(bit_generator), np.random.Generator)
-    with pytest.raises(TypeError):
-        _check_rng(np.random.RandomState(0))
+    # legacy RandomState instances are passed through for scikit-learn interop
+    random_state = np.random.RandomState(0)
+    assert _check_rng(random_state) is random_state
+    with pytest.raises(TypeError, match="SeedSequence"):
+        _check_rng("foo")
 
 
 def test_check_rng_compat():

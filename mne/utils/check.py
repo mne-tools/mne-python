@@ -232,9 +232,14 @@ def check_random_state(seed):
 
 
 def _check_rng(rng):
-    """Return a NumPy Generator for new random-number paths."""
+    """Return a NumPy Generator, or a legacy RandomState unchanged.
+
+    Legacy RandomState instances are accepted for interoperability with
+    third-party code such as scikit-learn that does not accept Generator
+    instances.
+    """
     if isinstance(rng, np.random.mtrand.RandomState):
-        raise TypeError("rng must not be a RandomState")
+        return rng
     return np.random.default_rng(rng)
 
 
@@ -279,10 +284,6 @@ def _legacy_rng(legacy_name):
                     args = list(args)
                     args[legacy_position] = check_random_state(None)
                     args = tuple(args)
-            elif rng_supplied:
-                rng = args[rng_position] if rng_in_args else kwargs["rng"]
-                if isinstance(rng, np.random.mtrand.RandomState):
-                    raise TypeError("rng must not be a RandomState")
             return function(*args, **kwargs)
 
         return _legacy_rng_wrapper

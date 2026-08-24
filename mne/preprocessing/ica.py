@@ -982,12 +982,9 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
-            infomax_rng = (
-                rng if isinstance(rng, np.random.RandomState) else _check_rng(rng)
-            )
             unmixing_matrix, n_iter = _infomax(
                 data[:, sel],
-                rng=infomax_rng,
+                rng=_check_rng(rng),
                 return_n_iter=True,
                 **self.fit_params,
             )

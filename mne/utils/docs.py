@@ -4045,13 +4045,16 @@ return_pca_vars : bool
 """
 
 docdict["rng"] = """
-rng : None | seed accepted by numpy.random.default_rng
-    The random number generator. If ``None`` (default), a new generator seeded
-    from entropy is used. Pass a seed accepted by :func:`numpy.random.default_rng`
-    for reproducible results, or a :class:`numpy.random.Generator` to control the
-    random-number stream. An integer seed uses ``default_rng`` and therefore
-    produces a different stream than the same integer passed to a legacy
-    ``random_state`` or ``seed`` parameter.
+rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+    The random number generator (RNG). If ``None`` (default), a new
+    :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+    a :class:`numpy.random.Generator` for reproducible results, or a legacy
+    :class:`~numpy.random.RandomState` to control the random-number stream or
+    for interoperability with third-party code such as scikit-learn that does
+    not accept generators. An integer seed uses
+    :func:`numpy.random.default_rng` and therefore produces a different stream
+    than the same integer passed to a legacy ``random_state`` or ``seed``
+    parameter.
 
     .. versionadded:: 1.13
 """
