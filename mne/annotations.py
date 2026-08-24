@@ -13,7 +13,6 @@ from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
-from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
@@ -21,7 +20,8 @@ from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import (
-    _safe_name_list,
+    _safe_read_name_list,
+    _safe_write_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -198,11 +198,15 @@ def _check_duration(duration, n):
 
 def _check_description(description, n):
     """Convert and validate description to a 1D str array of length n."""
-    description = _ensure_1d(description, dtype=str, name="description")
+    description = _ensure_1d(
+        description, dtype=np.dtypes.StringDType, name="description"
+    )
     if description.shape == (1,):
         description = np.repeat(description, n)
     _check_length(description, n, name="description")
-    _safe_name_list(description, "write", "description")
+    # ↓ just ensures no "{COLON}" present in any descriptions;
+    # ↓ `.tolist()` is done for typing purposes
+    _safe_write_name_list(description.tolist(), "description")
     return description
 
 
@@ -497,7 +501,9 @@ class Annotations:
         -------
         description : array of shape (n_annotations,)
             A string description for each annotation (e.g., event
-            label or condition name).
+            label or condition name). The array uses NumPy's variable-width
+            :obj:`~numpy.dtypes.StringDType`, so assigning a longer string into an
+            existing entry does not truncate it.
 
         See Also
         --------
@@ -589,7 +595,18 @@ class Annotations:
         return len(self.duration)
 
     def __add__(self, other):
-        """Add (concatencate) two Annotation objects."""
+        """Add (concatenate) two Annotations objects.
+
+        Parameters
+        ----------
+        other : instance of Annotations
+            The annotations to append. Must have the same ``orig_time``.
+
+        Returns
+        -------
+        annotations : instance of Annotations
+            A new instance containing the annotations of both objects.
+        """
         out = self.copy()
         out += other
         return out
@@ -618,7 +635,14 @@ class Annotations:
         )
 
     def __iter__(self):
-        """Iterate over the annotations."""
+        """Iterate over the annotations.
+
+        Yields
+        ------
+        annotation : OrderedDict
+            The keys are ``onset``, ``duration``, ``description``,
+            ``orig_time``, and (if any are set) ``ch_names`` and ``extras``.
+        """
         # Figure this out once ahead of time for consistency and speed (for
         # thousands of annotations)
         with_ch_names = self._any_ch_names()
@@ -626,7 +650,27 @@ class Annotations:
             yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying numpy structure."""
+        """Propagate indexing and slicing to the underlying numpy structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of Annotations
+            A single annotation (as a dict) if ``key`` is an integer, otherwise
+            a new :class:`~mne.Annotations` instance with the selected
+            annotations.
+        """
         if isinstance(key, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             out_keys = ("onset", "duration", "description", "orig_time")
             out_vals = (
@@ -711,6 +755,19 @@ class Annotations:
             A copy of the object.
         """
         return deepcopy(self)
+
+    def __getstate__(self):
+        """Get the state for pickling and copying."""
+        state = self.__dict__.copy()
+        # Store the descriptions as a list: copy.deepcopy of a StringDType array
+        # TODO VERSION: segfaults on NumPy < 2.2.5 (numpy/numpy#28609)
+        state["_description"] = self._description.tolist()
+        return state
+
+    def __setstate__(self, state):
+        """Set the state from pickling and copying."""
+        self.__dict__.update(state)
+        self._description = np.array(self._description, dtype=np.dtypes.StringDType)
 
     def delete(self, idx):
         """Remove an annotation. Operates inplace.
@@ -972,7 +1029,7 @@ class Annotations:
         self._onset = np.array(onsets, float)
         self._duration = np.array(durations, float)
         assert (self._duration >= 0).all()
-        self._description = np.array(descriptions, dtype=str)
+        self._description = np.array(descriptions, dtype=np.dtypes.StringDType)
         self._ch_names = _ndarray_ch_names(ch_names)
         self._extras = extras
 
@@ -1063,7 +1120,10 @@ class Annotations:
             valid_key_source="data",
             key_description="Annotation description(s)",
         )
-        self.description = np.array([str(mapping.get(d, d)) for d in self.description])
+        self.description = np.array(
+            [str(mapping.get(d, d)) for d in self.description],
+            dtype=np.dtypes.StringDType,
+        )
         return self
 
 
@@ -1252,7 +1312,27 @@ class HEDAnnotations(Annotations):
         return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying structure."""
+        """Propagate indexing and slicing to the underlying structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of HEDAnnotations
+            A single annotation (as a dict, including ``hed_string``) if
+            ``key`` is an integer, otherwise a new
+            :class:`~mne.HEDAnnotations` instance with the selected annotations.
+        """
         result = super().__getitem__(
             key, with_ch_names=with_ch_names, with_extras=with_extras
         )
@@ -1279,7 +1359,7 @@ class HEDAnnotations(Annotations):
             _orig_time=self._orig_time,
             onset=self.onset,
             duration=self.duration,
-            description=self.description,
+            description=self.description.tolist(),  # see Annotations.__getstate__
             ch_names=self.ch_names,
             _extras=self.extras,
             hed_string=list(self.hed_string),
@@ -1875,7 +1955,7 @@ def _write_annotations_csv(fname, annot):
     annot = annot.to_data_frame()
     if "ch_names" in annot:
         annot["ch_names"] = [
-            _safe_name_list(ch, "write", name=f'annot["ch_names"][{ci}')
+            _safe_write_name_list(ch, name=f'annot["ch_names"][{ci}')
             for ci, ch in enumerate(annot["ch_names"])
         ]
     extras_columns = set(annot.columns) - {
@@ -1906,7 +1986,7 @@ def _write_annotations_txt(fname, annot):
         content += ", ch_names"
         data.append(
             [
-                _safe_name_list(ch, "write", f"annot.ch_names[{ci}]")
+                _safe_write_name_list(ch, name=f"annot.ch_names[{ci}]")
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
@@ -1922,7 +2002,7 @@ def _write_annotations_txt(fname, annot):
                 )
             data.append([val if val is not None else "" for val in values])
     content += "\n"
-    data = np.array(data, dtype=str).T
+    data = np.array(data, dtype=np.dtypes.StringDType).T
     assert data.ndim == 2
     assert data.shape[0] == len(annot.onset)
     assert data.shape[1] == n_cols
@@ -2089,10 +2169,7 @@ def _read_annotations_csv(fname):
     description = df["description"].values
     ch_names = None
     if "ch_names" in df.columns:
-        ch_names = [
-            _safe_name_list(val, "read", "annotation channel name")
-            for val in df["ch_names"].values
-        ]
+        ch_names = [_safe_read_name_list(val) for val in df["ch_names"].values]
     extra_columns = list(
         df.columns.difference(["onset", "duration", "description", "ch_names"])
     )
@@ -2123,6 +2200,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
+    from scipy.io import loadmat
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
@@ -2241,7 +2319,7 @@ def _read_annotations_txt(fname):
     desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     if ch_names is not None:
         ch_names = [
-            _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
+            _safe_read_name_list(ch.decode().strip())
             for ci, ch in enumerate(np.atleast_1d(ch_names))
         ]
 
@@ -2277,7 +2355,7 @@ def _read_annotations_fif(fid, tree):
                 duration = tag.data
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
-                description = _safe_name_list(tag.data, "read", "description")
+                description = _safe_read_name_list(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:

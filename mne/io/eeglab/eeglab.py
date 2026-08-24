@@ -21,7 +21,6 @@ from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
 from ...epochs import BaseEpochs
 from ...event import read_events
-from ...fixes import _reshape_view
 from ...utils import (
     Bunch,
     _check_fname,
@@ -187,7 +186,7 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
         pos_array = np.array(pos, float)
-        pos_array = _reshape_view(pos_array, (-1, 3))
+        pos_array = pos_array.reshape((-1, 3), copy=False)
 
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).any(axis=1)
@@ -573,7 +572,7 @@ class EpochsEEGLAB(BaseEpochs):
         EEGLAB (.set) file with each descriptions copied from ``eventtype``.
     tmin : float
         Start time before event.
-    baseline : None or tuple of length 2 (default (None, 0))
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -662,49 +661,65 @@ class EpochsEEGLAB(BaseEpochs):
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
             warn_multiple_events = False
-            epochs = _bunchify(eeg.epoch)
-            events = _bunchify(eeg.event)
-            for ep in epochs:
-                if isinstance(ep.eventtype, int | float):
-                    ep.eventtype = str(ep.eventtype)
-                if not isinstance(ep.eventtype, str):
-                    event_type = "/".join([str(et) for et in ep.eventtype])
-                    event_name.append(event_type)
-                    # store latency of only first event
-                    # -1 to account for Matlab 1-based indexing of samples
-                    event_latencies.append(events[ev_idx].latency - 1)
-                    ev_idx += len(ep.eventtype)
-                    warn_multiple_events = True
-                else:
-                    event_type = ep.eventtype
-                    event_name.append(ep.eventtype)
-                    event_latencies.append(events[ev_idx].latency - 1)
-                    ev_idx += 1
-
-                if event_type not in unique_ev:
-                    unique_ev.append(event_type)
-
-                # invent event dict but use id > 0 so you know its a trigger
-                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
-
-            # warn about multiple events in epoch if necessary
-            if warn_multiple_events:
+            epochs = _bunchify(eeg.get("epoch", []))
+            eeg_events = _bunchify(eeg.get("event", []))
+            if len(epochs) == 0 or len(eeg_events) == 0:
                 warn(
-                    "At least one epoch has multiple events. Only the latency"
-                    " of the first event will be retained."
+                    "The EEGLAB file contains no event information. All epochs "
+                    "will be assigned to a single 'unknown' event."
                 )
+                event_id = {"unknown": 1}
+                events = np.column_stack(
+                    (
+                        np.arange(eeg.trials),
+                        np.zeros(eeg.trials, dtype=int),
+                        np.ones(eeg.trials, dtype=int),
+                    )
+                )
+            else:
+                for ep in epochs:
+                    if isinstance(ep.eventtype, int | float):
+                        ep.eventtype = str(ep.eventtype)
+                    if not isinstance(ep.eventtype, str):
+                        event_type = "/".join([str(et) for et in ep.eventtype])
+                        event_name.append(event_type)
+                        # store latency of only first event
+                        # -1 to account for Matlab 1-based indexing of samples
+                        event_latencies.append(eeg_events[ev_idx].latency - 1)
+                        ev_idx += len(ep.eventtype)
+                        warn_multiple_events = True
+                    else:
+                        event_type = ep.eventtype
+                        event_name.append(ep.eventtype)
+                        event_latencies.append(eeg_events[ev_idx].latency - 1)
+                        ev_idx += 1
 
-            # now fill up the event array
-            events = np.zeros((eeg.trials, 3), dtype=int)
-            assert event_id is not None
-            for idx in range(0, eeg.trials):
-                if idx == 0:
-                    prev_stim = 0
-                elif idx > 0 and event_latencies[idx] - event_latencies[idx - 1] == 1:
-                    prev_stim = event_id[event_name[idx - 1]]
-                events[idx, 0] = event_latencies[idx]
-                events[idx, 1] = prev_stim
-                events[idx, 2] = event_id[event_name[idx]]
+                    if event_type not in unique_ev:
+                        unique_ev.append(event_type)
+
+                    # invent event dict but use id > 0 so you know its a trigger
+                    event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
+
+                # warn about multiple events in epoch if necessary
+                if warn_multiple_events:
+                    warn(
+                        "At least one epoch has multiple events. Only the latency"
+                        " of the first event will be retained."
+                    )
+
+                # now fill up the event array
+                events = np.zeros((eeg.trials, 3), dtype=int)
+                assert event_id is not None
+                for idx in range(0, eeg.trials):
+                    if idx == 0:
+                        prev_stim = 0
+                    elif (
+                        idx > 0 and event_latencies[idx] - event_latencies[idx - 1] == 1
+                    ):
+                        prev_stim = event_id[event_name[idx - 1]]
+                    events[idx, 0] = event_latencies[idx]
+                    events[idx, 1] = prev_stim
+                    events[idx, 2] = event_id[event_name[idx]]
         elif isinstance(events, str | Path | PathLike):
             events = read_events(events)
 

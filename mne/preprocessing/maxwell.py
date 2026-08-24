@@ -26,7 +26,7 @@ from .._ola import _COLA, _Interp2, _Storer
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-from ..fixes import _reshape_view, _safe_svd, bincount, sph_harm_y
+from ..fixes import _safe_svd, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
 from ..surface import _normalize_vectors
@@ -311,6 +311,11 @@ def maxwell_filter(
     Notes
     -----
     .. versionadded:: 0.11
+
+    When ``head_pos`` is provided, the returned object contains cHPI result
+    channels that have no counterpart in the source file. It therefore cannot
+    be concatenated using ``raw_sss.append(..., preload=False)``. Use
+    ``preload=True`` or a memory-mapped filename instead.
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
@@ -741,6 +746,7 @@ def _run_maxwell_filter(
     st_fixed,
     st_overlap,
     mc,
+    raw_offset=0,  # time offset of ``raw`` relative to ``mc``
 ):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -770,8 +776,8 @@ def _run_maxwell_filter(
     if not 0.0 < st_duration <= max_samps + 1.0:
         raise ValueError(
             f"st_duration ({st_duration / sfreq:0.1f}s) must be between 0 and the "
-            "longest contiguous duration of the data "
-            "({max_samps / sfreq:0.1f}s)."
+            f"longest contiguous duration of the data "
+            f"({max_samps / sfreq:0.1f}s)."
         )
 
     # This must be initialized inside _run_maxwell_filter because
@@ -781,6 +787,10 @@ def _run_maxwell_filter(
 
     # Process each valid block of data separately
     for onset, end in zip(onsets, ends):
+        # head positions are indexed relative to the recording, but onset and end are
+        # relative to raw, which can itself be a chunk of the recording
+        segment_offset = raw_offset + onset
+        mc.set_offset(segment_offset)
         n = end - onset
         assert n > 0
         tsss_valid = n >= st_duration
@@ -808,6 +818,7 @@ def _run_maxwell_filter(
             sfreq,
             window,
             name="tSSS-COLA",
+            offset=segment_offset,
         )
 
         # Generate time points to break up data into equal-length windows
@@ -865,6 +876,10 @@ class _MoveComp:
     """Perform movement compensation."""
 
     def __init__(self, pos, head_frame, raw, interp, reconstruct):
+        #   pos[0]: (n_pos, 4, 4): the dev_head_t transformation matrices
+        #   pos[1]: (n_pos,): sample indices into the recording, starting at 0
+        #   pos[2]: (n_pos, 9): rotation quaternion (:3), translation (3:6),
+        #       goodness of fit, error and velocity (6:9)
         self.pos = pos
         self.sfreq = raw.info["sfreq"]
         self.interp = interp
@@ -891,23 +906,40 @@ class _MoveComp:
         return op_sss, op_in, op_resid
 
     def initialize(self, get_decomp, dev_head_t, S_recon):
-        """Secondary initialization."""
+        """Secondary initialization.
+
+        Call :meth:`set_offset` before feeding data.
+        """
+        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
+        self.n_good = pS_decomp.shape[1]
+        self.S_recon = S_recon
+        self.get_decomp = get_decomp
+        # For the average passes
+        self.last_avg_quat = np.nan * np.ones(6)
+        self.smooth = None  # set_offset positions us in the recording
+
+    def set_offset(self, offset):
+        """Position at the given sample of the recording to process a segment there.
+
+        ``pos`` is indexed relative to the start of the recording, so a segment that
+        does not begin there has to be told where it does, both to read the right head
+        positions and to resume interpolation with the right phase.
+        """
+        self.offset = offset
         self.smooth = _Interp2(
             self.pos[1],
             self.get_decomp_by_offset,
             interp=self.interp,
             name="MC",
+            offset=offset,
         )
-        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
-        self.n_good = pS_decomp.shape[1]
-        self.S_recon = S_recon
-        self.offset = 0
-        self.get_decomp = get_decomp
-        # For the average passes
-        self.last_avg_quat = np.nan * np.ones(6)
 
     def get_avg_op(self, *, start, stop):
-        """Apply an average transformation over the next interval."""
+        """Apply an average transformation over the next interval.
+
+        ``start`` and ``stop`` are relative to the start of the recording, like
+        ``offset``.
+        """
         n_positions, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
             self.last_avg_quat = avg_quat
@@ -931,6 +963,7 @@ class _MoveComp:
         return self.op_in_avg, self.op_resid_avg, n_positions
 
     def feed(self, data, good_mask, st_only):
+        assert self.smooth is not None  # set_offset must be called first
         n_samp = data.shape[1]
         pos_data, n_pos = _trans_lims(
             self.pos, self.offset, self.offset + data.shape[-1]
@@ -967,7 +1000,8 @@ class _MoveComp:
 
 def _trans_lims(pos, start, stop):
     """Get all trans and limits we need."""
-    pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
+    start_idx, stop_idx = np.searchsorted(pos[1], [start, stop])
+    pos_idx = np.arange(start_idx, stop_idx)
     used = np.zeros(stop - start, bool)
     quats = np.empty((9, stop - start))
     n_positions = len(pos_idx)
@@ -979,7 +1013,9 @@ def _trans_lims(pos, start, stop):
             rel_stop = rel_stop - start
             if rel_start == rel_stop:
                 continue  # our first pos occurs on first time sample
-            this_quat = pos[2][max(pos_idx[0] - 1 if len(pos_idx) else 0, 0)]
+            # the last position at or before start is the one in effect there, also
+            # when the window contains no position at all (pos_idx is empty)
+            this_quat = pos[2][max(start_idx - 1, 0)]
             n_positions += 1
         else:
             rel_start = pos[1][pos_idx[ti]] - start
@@ -1227,6 +1263,20 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
         raw.info["chs"].extend(chpi_chs)
         raw.info._update_redundant()
         raw.info._check_consistency()
+        # The remaining per-channel attributes must grow along with info, otherwise
+        # any later channel operation (e.g., raw_sss.drop_channels) indexes them out
+        # of bounds
+        raw._cals = np.concatenate([raw._cals, raw.info._cals[off:]])
+        # The added channels have no counterpart in the source file, but the data are
+        # preloaded, so _read_picks (and _raw_extras) will never be used to read from
+        # disk again -- use indices that are likely to break loudly if they ever are
+        extra_idx = [2147483647] * len(chpi_chs)  # 2 ** 31 - 1
+        raw._read_picks = [np.concatenate([r, extra_idx]) for r in raw._read_picks]
+        assert raw._comp is None  # preloading the data above unsets it
+        if raw._projector is not None:  # identity for the added channels
+            projector = np.eye(raw.info["nchan"])
+            projector[:off, :off] = raw._projector
+            raw._projector = projector
         assert raw._data.shape == (raw.info["nchan"], len(raw.times))
         # Return the pos picks
         pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs), len(raw.ch_names))
@@ -1908,6 +1958,8 @@ def _integrate_points(
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
     grads = (grads * cosmags).sum(axis=1)
+    from .._numba import bincount
+
     return bincount(bins, grads, n_coils)
 
 
@@ -2899,7 +2951,7 @@ def find_bad_channels_maxwell(
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
-        data = _reshape_view(data, (data.shape[0], -1, flat_step))
+        data = data.reshape((data.shape[0], -1, flat_step), copy=False)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
         # We may want to return this later if `return_scores=True`.
@@ -2941,7 +2993,7 @@ def find_bad_channels_maxwell(
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
             with use_log_level(_verbose_safe_false()):
-                _run_maxwell_filter(chunk_raw, copy=False, **params)
+                _run_maxwell_filter(chunk_raw, copy=False, raw_offset=start, **params)
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(

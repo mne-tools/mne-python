@@ -31,7 +31,6 @@ from mne import (
 )
 from mne.channels import make_dig_montage
 from mne.datasets import testing
-from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
@@ -1559,16 +1558,18 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     brain.close()
 
 
-def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc):
+@pytest.mark.parametrize("src", ("surface", "volume"))
+def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc, src):
     """Test colormap selection."""
     brain = _create_testing_brain(
         hemi="lh",
         surf="white",
-        src="surface",
+        src=src,
         show_traces=0.5,
         initial_time=0,
         n_time=5,
         diverging=True,
+        volume_options=dict(resolution=None),  # for speed, don't upsample
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
     )
     # mne_analyze should be chosen
@@ -1576,6 +1577,26 @@ def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc):
     assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
     assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
     assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
+    if src == "volume":
+        # A divergent MIP is one volume with the colors baked into the data, not
+        # a MIP plus a MinIP: VTK does no depth intermixing between volume
+        # actors, so a pair of them composites in the order they were added and
+        # the negative half would hide the positive half from every angle.
+        vol = brain._data["vol"]
+        assert vol["grid_volume_neg"] is None
+        grid = vol["grid"]
+        values = np.asarray(grid.point_data["values"])
+        rgba = np.asarray(grid.point_data["rgba"])
+        # component 3 is the magnitude that the projection maximizes over, so
+        # the larger |value| wins regardless of which one is nearer the camera
+        fmax = brain._cmap_range[1]
+        want = np.clip(np.abs(values) / fmax * 255, 0, 255)
+        assert_allclose(rgba[:, 3], want, atol=1)
+        # components 0-2 are literal color: warm for positive, cool for negative
+        assert values.min() < 0 < values.max()
+        pos, neg = rgba[np.argmax(values)], rgba[np.argmin(values)]
+        assert pos[0] > pos[2]  # yellow end
+        assert neg[2] > neg[0]  # cyan end
     brain.close()
 
 
@@ -1883,7 +1904,7 @@ def _create_testing_brain(
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = rng.random(
         stc_data.size // 20
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     if diverging:
         stc_data -= 0.5
     stc = klass(stc_data, vertices, 1, 1)

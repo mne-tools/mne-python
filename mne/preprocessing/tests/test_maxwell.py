@@ -51,9 +51,11 @@ from mne.preprocessing.maxwell import (
     _sh_negate,
     _sh_real_to_complex,
     _sss_basis_basic,
+    _trans_lims,
     _trans_sss_basis,
 )
 from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
+from mne.transforms import rot_to_quat
 from mne.utils import (
     _record_warnings,
     assert_meg_snr,
@@ -208,6 +210,21 @@ def read_crop(fname, lims=(0, None)):
     return raw.copy().crop(*lims)
 
 
+def _linear_head_pos(raw, n_pos):
+    """Get head positions one second apart, translating steadily along z.
+
+    The steady motion makes reading the positions from the wrong time window
+    give a different result.
+    """
+    trans = raw.info["dev_head_t"]["trans"]
+    head_pos = np.zeros((n_pos, 10))
+    head_pos[:, 0] = raw._first_time + np.arange(float(n_pos))
+    head_pos[:, 1:4] = rot_to_quat(trans[:3, :3])
+    head_pos[:, 4:7] = trans[:3, 3]
+    head_pos[:, 6] += np.arange(n_pos) * 5e-3  # 5 mm/s
+    return head_pos
+
+
 # For backward compat and to be most like MaxFilter, we make "maxwell_filter"
 # the one that behaves like MaxFilter. _maxwell_filter is left to
 # be the advanced/better one.
@@ -239,6 +256,16 @@ def test_movement_compensation_basic(tmp_path):
     assert_meg_snr(
         raw_sss, read_crop(sss_movecomp_fname, lims), 4.6, 12.4, chpi_med_tol=58
     )
+    # appending the head position channels must leave the instance consistent, i.e.,
+    # picking and dropping channels must still work (and agree with info)
+    want = raw_sss.ch_names[:2] + ["CHPI002"]
+    raw_sss_pick = raw_sss.copy().pick(want)
+    assert raw_sss_pick.ch_names == want
+    assert len(raw_sss_pick._cals) == len(raw_sss_pick._read_picks[0]) == len(want)
+    assert_allclose(raw_sss_pick.get_data(), raw_sss.get_data(want))
+    raw_sss_drop = raw_sss.copy().drop_channels(["CHPI000"])
+    assert raw_sss_drop.ch_names == [c for c in raw_sss.ch_names if c != "CHPI000"]
+    assert_allclose(raw_sss_drop.get_data(), raw_sss.get_data(raw_sss_drop.ch_names))
     # IO
     temp_fname = tmp_path / "test_raw_sss.fif"
     raw_sss.save(temp_fname)
@@ -1794,6 +1821,56 @@ def test_mf_skips():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.parametrize("st_duration", (None, 2.0))
+def test_mf_skips_head_pos(st_duration):
+    """Test that segments after a skip use their own head positions."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes")
+    raw.pick("meg", exclude=()).crop(0, 16).load_data()
+    head_pos = _linear_head_pos(raw, 17)
+    # A 2 s skip, leaving segments of 3 s and 11 s. The latter must stay above the 10 s
+    # chunk size that st_duration=None falls back to.
+    raw.set_annotations(
+        mne.Annotations(
+            onset=[raw._first_time + 3.0],
+            duration=[2.0],
+            description=["bad_acq_skip"],
+            orig_time=raw.info["meas_date"],
+        )
+    )
+    kwargs = dict(
+        origin=(0.0, 0.0, 0.04),
+        regularize=None,
+        bad_condition="ignore",
+        st_duration=st_duration,
+    )
+    # use the default mc_interp="hann" rather than the "zero" of this module's
+    # maxwell_filter, so that each sample blends two head positions and picking the
+    # wrong one on either side of the interval shows up
+    raw_sss = _maxwell_filter_ola(raw, head_pos=head_pos, **kwargs)
+    # Processing the second segment on its own must give the same result as processing
+    # it as part of the whole recording.
+    raw_crop = raw.copy().crop(5.0).set_annotations(None)
+    raw_crop_sss = _maxwell_filter_ola(raw_crop, head_pos=head_pos[5:], **kwargs)
+    for picks in ("meg", "chpi"):  # chpi holds the head positions written back out
+        assert_allclose(
+            raw_sss.get_data(picks, tmin=5.0), raw_crop_sss.get_data(picks), atol=1e-20
+        )
+
+
+def test_trans_lims_sparse_pos():
+    """Test windows containing no head position update."""
+    # head positions sampled more coarsely than buffer_size_sec leave whole windows
+    # without an update, and those must hold the last position, not the first one
+    pos = [None, np.array([0, 100, 200]), np.zeros((3, 9))]
+    pos[2][:, 5] = [0.0, 0.1, 0.2]  # z translation
+    for start, want in ((0, 0.0), (50, 0.0), (100, 0.1), (150, 0.1), (250, 0.2)):
+        quats, n_positions, _ = _trans_lims(pos, start, start + 50)
+        assert_allclose(np.unique(quats[5]), [want], err_msg=f"start={start}")
+        assert n_positions == 1
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     (
         "fname",
@@ -2054,6 +2131,36 @@ def test_find_bads_maxwell_flat():
     assert " in 2 intervals " in log, log
     assert flat == want_flat
     assert noisy == want_noisy
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_find_bads_maxwell_head_pos():
+    """Test that each interval uses its own head positions."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes")
+    raw.pick("meg", exclude=()).crop(0, 10)  # two 5 s intervals
+    raw.load_data()
+    head_pos = _linear_head_pos(raw, 11)
+    kwargs = dict(
+        origin=(0.0, 0.0, 0.04),
+        regularize=None,
+        bad_condition="ignore",
+        min_count=1,
+        return_scores=True,
+        h_freq=None,  # keep the two calls below operating on identical data
+    )
+    flats, scores = find_bad_channels_maxwell(raw, head_pos=head_pos, **kwargs)[1:]
+    assert scores["bins"].shape == (2, 2)
+    # flats found in interval 1 would be excluded from interval 2 but not from the
+    # cropped run below, making the two good_masks (and hence the scores) differ
+    assert flats == []
+    # Processing the second interval on its own must give the same scores as
+    # processing it as part of the whole recording.
+    raw_crop = raw.copy().crop(5.0)
+    pos_crop = head_pos[5:]
+    scores_crop = find_bad_channels_maxwell(raw_crop, head_pos=pos_crop, **kwargs)[2]
+    assert scores_crop["bins"].shape == (1, 2)
+    assert_allclose(scores_crop["scores_noisy"][:, 0], scores["scores_noisy"][:, 1])
 
 
 @pytest.mark.parametrize(

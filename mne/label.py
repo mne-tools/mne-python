@@ -10,7 +10,7 @@ from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
@@ -324,7 +324,19 @@ class Label:
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add Labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The union of the two labels (a :class:`~mne.BiHemiLabel` if the
+            hemispheres differ).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             return other + self
@@ -394,7 +406,18 @@ class Label:
         return label
 
     def __sub__(self, other):
-        """Subtract Labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label
+            The vertices of this label that are not in ``other``.
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             if self.hemi == "lh":
@@ -916,6 +939,8 @@ class Label:
 
         .. versionadded:: 0.24
         """
+        from scipy import sparse
+
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -1044,7 +1069,18 @@ class BiHemiLabel:
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        """Add labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of BiHemiLabel
+            The union of the two labels.
+        """
         if isinstance(other, Label):
             if other.hemi == "lh":
                 lh = self.lh + other
@@ -1063,7 +1099,19 @@ class BiHemiLabel:
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
-        """Subtract labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The vertices of this label that are not in ``other`` (a
+            :class:`~mne.Label` if only one hemisphere remains).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, Label):
             if other.hemi == "lh":
@@ -2560,6 +2608,8 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
+
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])

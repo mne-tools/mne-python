@@ -105,3 +105,5 @@ Authors
 * Stefan Appelhoff
 * Thomas Moreau
 * Yiping Zuo+
+
+.. include:: names.inc

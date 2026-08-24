@@ -10,7 +10,6 @@ import numpy as np
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
 from ..utils import _check_option, fill_doc, verbose
-from ..viz.utils import plt_show
 from .base import LinearModel, _GEDTransformer, get_coef
 
 
@@ -638,6 +637,8 @@ class SpatialFilter:
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
+        from ..viz.utils import plt_show
+
         if self.evals is None:
             raise AttributeError("Can't plot scree if eigenvalues are not provided.")
 

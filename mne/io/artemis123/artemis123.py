@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 from ..._fiff._digitization import DigPoint, _make_dig_points
 from ..._fiff.constants import FIFF
@@ -41,7 +40,7 @@ def read_raw_artemis123(
     %(verbose)s
     pos_fname : path-like | None
         If not None, load digitized head points from this file.
-    add_head_trans : bool (default True)
+    add_head_trans : bool
         If True attempt to perform initial head localization. Compute initial
         device to head coordinate transform using HPI coils. If no
         HPI coils are in info['dig'] hpi coils are assumed to be in canonical
@@ -342,6 +341,8 @@ class RawArtemis123(BaseRaw):
         pos_fname=None,
         add_head_trans=True,
     ):
+        from scipy.spatial.distance import cdist
+
         from ...chpi import (
             _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,

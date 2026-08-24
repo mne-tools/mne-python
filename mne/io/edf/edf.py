@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
@@ -611,6 +610,8 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
+    from scipy.interpolate import interp1d
+
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]

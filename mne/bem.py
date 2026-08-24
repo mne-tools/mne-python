@@ -16,7 +16,6 @@ from functools import cache, partial
 from pathlib import Path
 
 import numpy as np
-from scipy.optimize import fmin_cobyla
 
 from ._fiff._digitization import _dig_kind_dict, _dig_kind_ints, _dig_kind_rev
 from ._fiff.constants import FIFF, FWD
@@ -37,9 +36,7 @@ from .fixes import _safe_svd
 from .surface import (
     _complete_sphere_surf,
     _compute_nearest,
-    _fast_cross_nd_sum,
     _get_ico_surface,
-    _get_solids,
     complete_surface_info,
     decimate_surface,
     read_surface,
@@ -69,7 +66,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz.misc import plot_bem
 
 # ############################################################################
 # Compute BEM solution
@@ -106,7 +102,13 @@ class ConductorModel(dict):
         return f"<ConductorModel | {extra}>"
 
     def copy(self):
-        """Return copy of ConductorModel instance."""
+        """Return copy of ConductorModel instance.
+
+        Returns
+        -------
+        bem : instance of ConductorModel
+            The copied conductor model.
+        """
         return deepcopy(self)
 
     @property
@@ -130,6 +132,8 @@ def _calc_beta(rk, rk_norm, rk1, rk1_norm):
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """Compute the linear potential matrix element computations."""
+    from ._surface_numba import _fast_cross_nd_sum
+
     omega = np.zeros((len(fros), 3))
 
     # we replicate a little bit of the _get_solids code here for speed
@@ -523,6 +527,8 @@ def _order_surfaces(surfs):
 
 def _assert_complete_surface(surf, incomplete="raise"):
     """Check the sum of solid angles as seen from inside."""
+    from ._surface_numba import _get_solids
+
     # from surface_checks.c
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
@@ -544,6 +550,8 @@ def _assert_complete_surface(surf, incomplete="raise"):
 
 def _assert_inside(fro, to):
     """Check one set of points is inside a surface."""
+    from ._surface_numba import _get_solids
+
     # this is "is_inside" in surface_checks.c
     fro_name = _bem_surf_name[fro["id"]]
     to_name = _bem_surf_name[to["id"]]
@@ -807,6 +815,8 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
 @cache
 def _fit_berg_scherg_cached(rel_rads, sigmas, nterms, nfit):
     """Fit Berg-Scherg params (pure function of relative radii and sigmas)."""
+    from scipy.optimize import fmin_cobyla
+
     assert nfit >= 2
     # Only rel_rad and sigma are read to compute the coefficients and weighting.
     m = dict(layers=[dict(rel_rad=r, sigma=s) for r, s in zip(rel_rads, sigmas)])
@@ -1192,13 +1202,16 @@ def make_watershed_bem(
     %(overwrite)s
     volume : str
         The name of the MRI volume (without file extension) that
-        will be used as input to mri_watershed_. The volume is expected to
+        will be used as input to
+        `mri_watershed <https://surfer.nmr.mgh.harvard.edu/fswiki/mri_watershed>`__.
+        The volume is expected to
         be full-head (non-skull-stripped), as the watershed algorithm relies on tissue
         intensity gradients to estimate the inner skull, outer skull, and
         outer skin surfaces. Defaults to ``"T1"``, corresponding to
         ``$SUBJECTS_DIR/$SUBJECT/mri/T1.mgz`` in a typical FreeSurfer subject directory.
-        This volume is typically produced by the recon-all_ pipeline after the intensity
-        normalization step.
+        This volume is typically produced by the
+        `recon-all <https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all>`__
+        pipeline after the intensity normalization step.
     atlas : bool
         Specify the ``--atlas option`` for ``mri_watershed``.
     gcaatlas : bool
@@ -1242,6 +1255,8 @@ def make_watershed_bem(
 
     .. versionadded:: 0.10
     """
+    from .viz.misc import plot_bem
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -1398,6 +1413,8 @@ def make_watershed_bem(
 
     # Show computed BEM surfaces
     if show:
+        from .viz.misc import plot_bem
+
         plot_bem(
             subject=subject,
             subjects_dir=subjects_dir,
@@ -1441,7 +1458,7 @@ def read_bem_surfaces(
     ----------
     fname : path-like
         The name of the file containing the surfaces.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
         If int, only read and return the surface with the given ``s_id``.
@@ -2146,6 +2163,8 @@ def make_flash_bem(
     outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
     images acquired with spin angles of 5 and 30 degrees.
     """
+    from .viz.misc import plot_bem
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and FreeSurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -2292,6 +2311,8 @@ def make_flash_bem(
     )
     # Show computed BEM surfaces
     if show:
+        from .viz.misc import plot_bem
+
         plot_bem(
             subject=subject,
             subjects_dir=subjects_dir,

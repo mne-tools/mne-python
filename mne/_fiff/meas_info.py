@@ -85,7 +85,7 @@ from .tag import (
 from .tree import dir_tree_find
 from .write import (
     DATE_NONE,
-    _safe_name_list,
+    _safe_read_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -901,7 +901,6 @@ class ContainsMixin:
             True
             >>> 'seeg' in inst  # doctest: +SKIP
             False
-
         """
         # this method is not supported by Info object. An Info object inherits from a
         # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
@@ -1001,7 +1000,15 @@ class ValidatedDict(dict):
         super().__setitem__(key, val)
 
     def update(self, other=None, **kwargs):
-        """Update method using __setitem__()."""
+        """Update the instance, validating each key like ``__setitem__``.
+
+        Parameters
+        ----------
+        other : dict | iterable of pair | None
+            The entries to set, as a mapping or as ``(key, value)`` pairs.
+        **kwargs : dict
+            Additional entries to set, as keyword arguments.
+        """
         iterable = other.items() if isinstance(other, Mapping) else other
         if other is not None:
             for key, val in iterable:
@@ -2382,7 +2389,7 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = _safe_name_list(tag.data, "read", "bads")
+                bads = _safe_read_name_list(tag.data)
         bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
 

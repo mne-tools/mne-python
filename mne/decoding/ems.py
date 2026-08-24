@@ -60,7 +60,7 @@ class EMS(MNETransformerMixin, BaseEstimator):
     def fit(self, X, y):
         """Fit the spatial filters.
 
-        .. note : EMS is fitted on data normalized by channel type before the
+        .. note:: EMS is fitted on data normalized by channel type before the
                   fitting of the spatial filters.
 
         Parameters
@@ -116,29 +116,30 @@ def compute_ems(
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
-    .. note : The present function applies a leave-one-out cross-validation,
+    .. note:: The present function applies a leave-one-out cross-validation,
               following Schurger et al's paper. However, we recommend using
               a stratified k-fold cross-validation. Indeed, leave-one-out tends
               to overfit and cannot be used to estimate the variance of the
               prediction within a given fold.
 
-    .. note : Because of the leave-one-out, this function needs an equal
+    .. note:: Because of the leave-one-out, this function needs an equal
               number of epochs in each of the two conditions.
 
     Parameters
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list of str | None, default None
+    conditions : list of str | None
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
     %(picks_good_data)s
     %(n_jobs)s
-    cv : cross-validation object | str | None, default LeaveOneOut
-        The cross-validation scheme.
+    cv : cross-validation object | str | None
+        The cross-validation scheme. If None,
+        :class:`sklearn.model_selection.LeaveOneOut` is used.
     %(verbose)s
 
     Returns
