@@ -537,10 +537,9 @@ _baseline_mode_desc = """\
           ('zlogratio')
 """
 
-docdict["baseline_mode"] = """
+docdict["baseline_mode"] = f"""
     mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio' 
     {_baseline_mode_desc}
-    
 """
 docdict["mn_baseline_mode"] = f"""
     baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio' 
