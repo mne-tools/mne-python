@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
+import hashlib
 import shutil
 from collections import defaultdict
 from collections.abc import Callable, Sequence
@@ -97,6 +97,7 @@ from ..utils import (
     copy_doc,
     copy_function_doc_to_method_doc,
     fill_doc,
+    get_config,
     logger,
     repr_html,
     sizeof_fmt,
@@ -621,14 +622,36 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
+            if memmap == "memmap":
+                memmap = self._auto_memmap_path()
             if memmap is not None:
                 _validate_type(memmap, "path-like", "memmap")
             self._preload_data(memmap if memmap is not None else True)
         return self
 
+    def _auto_memmap_path(self) -> Path:
+        """Return the managed memmap-cache path for a single-file Raw."""
+        if len(self.filenames) != 1 or self.filenames[0] is None:
+            raise ValueError(
+                "preload='memmap' requires a Raw backed by exactly one file"
+            )
+        src = Path(self.filenames[0])
+        st = src.stat()
+        key = hashlib.sha256(f"{src}|{st.st_mtime_ns}|{st.st_size}".encode())
+        cache_dir = Path(
+            get_config("MNE_MEMMAP_DIR", Path.home() / ".cache" / "mne" / "memmap")
+        )
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir / f"{src.stem}-{key.hexdigest()[:24]}.f64"
+
     def _preload_data(self, preload):
         """Actually preload the data."""
         data_buffer = preload
+        if preload == "memmap":
+            # sentinel: managed persistent cache keyed by source
+            # path/mtime/size, so staleness is handled by the key itself
+            preload = data_buffer = self._auto_memmap_path()
+            logger.info(f"Using memory-map cache at {preload}")
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
         elif isinstance(preload, str | Path):
@@ -646,9 +669,14 @@ class BaseRaw(
             )
             if path.exists() and path.stat().st_size == n_bytes:
                 self._data = np.memmap(
-                    str(path), mode="r+", dtype=self._dtype,
-                    shape=(self.info["nchan"], n_bytes // (
-                        self.info["nchan"] * np.dtype(self._dtype).itemsize)),
+                    str(path),
+                    mode="r+",
+                    dtype=self._dtype,
+                    shape=(
+                        self.info["nchan"],
+                        n_bytes
+                        // (self.info["nchan"] * np.dtype(self._dtype).itemsize),
+                    ),
                 )
                 self.preload = True
                 logger.info(f"Reusing memory-mapped cache at {path}")
@@ -936,16 +964,14 @@ class BaseRaw(
             out = np.empty((len(starts), n_out, width), dtype=self._dtype)
         elif out.shape != (len(starts), n_out, width):
             raise ValueError(
-                f"out has shape {out.shape}, need "
-                f"{(len(starts), n_out, width)}"
+                f"out has shape {out.shape}, need {(len(starts), n_out, width)}"
             )
         elif out.dtype not in (np.float64, np.float32):
-            raise ValueError(
-                f"out dtype must be float64 or float32, got {out.dtype}"
-            )
+            raise ValueError(f"out dtype must be float64 or float32, got {out.dtype}")
         for j, s0 in enumerate(starts):
             self._read_segment(
-                start=int(s0), stop=int(s0) + width,
+                start=int(s0),
+                stop=int(s0) + width,
                 sel=sel if sel is not None else None,
                 data_buffer=out[j],
             )

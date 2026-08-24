@@ -3686,7 +3686,12 @@ preload : bool | str
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
     file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory)."""
+    on the hard drive (slower, requires less memory). The special string
+    ``"memmap"`` selects an automatically managed memory-mapped cache:
+    the first read decodes into the cache, and subsequent reads mmap it
+    directly instead of decoding again.
+
+    .. versionadded:: 1.13"""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None

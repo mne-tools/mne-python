@@ -1312,3 +1312,22 @@ def test_memmap_cache_reuse(tmp_path):
     cache.write_bytes(b"x" * 16)
     r3 = read_raw_edf(fname, **kwargs).load_data(memmap=str(cache))
     assert_allclose(r3.get_data(), r1.get_data(), rtol=0, atol=0)
+
+
+def test_preload_memmap_sentinel(tmp_path, monkeypatch):
+    """preload="memmap" manages a persistent cache automatically."""
+    monkeypatch.setenv("MNE_MEMMAP_DIR", str(tmp_path))
+    rng = np.random.default_rng(5)
+    info = mne.create_info(["EEG A"], sfreq=128.0, ch_types="eeg")
+    raw = mne.io.RawArray(rng.standard_normal((1, 1024)) * 30e-6, info)
+    fname = tmp_path / "sentinel.edf"
+    raw.export(fname, verbose="error")
+    kw = dict(preload="memmap", verbose="error")
+    r1 = read_raw_edf(fname, **kw)
+    caches = list(tmp_path.rglob("*.f64"))
+    assert len(caches) == 1
+    d1 = r1.get_data()
+    del r1
+    r2 = read_raw_edf(fname, **kw)
+    assert isinstance(r2._data, np.memmap)
+    assert_allclose(r2.get_data(), d1, rtol=0, atol=0)
