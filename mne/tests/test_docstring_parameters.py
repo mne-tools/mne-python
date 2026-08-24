@@ -316,6 +316,13 @@ legacy_rng_methods = {
     "seed": "a local default_rng",
     "tomaxint": "integers",
 }
+sklearn_rng_estimators = {
+    "FastICA",
+    "FactorAnalysis",
+    "LogisticRegression",
+    "MultiTaskLasso",
+    "PCA",
+}
 
 
 def _is_np_random(node):
@@ -358,6 +365,18 @@ def test_no_global_rng():
                 ):
                     want = legacy_rng_methods[node.func.attr]
                     bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
+                # 3. MNE-owned sklearn estimators with implicit randomness
+                elif (
+                    "/tests/" not in rel
+                    and isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id in sklearn_rng_estimators
+                    and not any(kw.arg == "random_state" for kw in node.keywords)
+                ):
+                    bad.append(
+                        f"{rel}:{node.lineno}: {node.func.id}() "
+                        "(set random_state explicitly)"
+                    )
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)

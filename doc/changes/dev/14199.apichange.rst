@@ -1,0 +1,1 @@
+Add keyword-only ``rng`` parameters backed by :class:`numpy.random.Generator` to statistical, epoch-sampling, simulation, label, ICA, and sparse-inverse APIs, with deprecated ``seed`` and ``random_state`` compatibility paths, by `Bruno Aristimunha`_ (:gh:`9233`).

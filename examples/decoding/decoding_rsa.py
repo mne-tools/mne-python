@@ -125,7 +125,7 @@ epochs["not-face"].average().plot()
 # to focus the classifier on the time interval with best SNR.
 clf = make_pipeline(
     StandardScaler(),
-    OneVsRestClassifier(LogisticRegression(C=1)),
+    OneVsRestClassifier(LogisticRegression(C=1, random_state=0)),
 )
 X = epochs.get_data(tmin=0.05, tmax=0.3).mean(axis=2)
 y = epochs.events[:, 2]

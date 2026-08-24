@@ -80,7 +80,9 @@ clf = make_pipeline(
     XdawnTransformer(n_components=n_filter),
     Vectorizer(),
     MinMaxScaler(),
-    OneVsRestClassifier(LogisticRegression(solver="liblinear", **kwargs)),
+    OneVsRestClassifier(
+        LogisticRegression(solver="liblinear", random_state=0, **kwargs)
+    ),
 )
 
 # Get the data and labels
