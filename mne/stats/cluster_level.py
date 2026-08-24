@@ -31,7 +31,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz import plot_compare_evokeds
 from .parametric import f_oneway, ttest_1samp_no_p
 
 if TYPE_CHECKING:
@@ -1957,6 +1956,8 @@ class ClusterResult:
         ci : float|bool|callable()|None
             Confidence band around each ERP time series.
         """
+        from ..viz import plot_compare_evokeds
+
         # extract condition labels from the dictionary
         cond_keys = list(condition_labels.keys())
         # extract the evokeds from the dictionary
