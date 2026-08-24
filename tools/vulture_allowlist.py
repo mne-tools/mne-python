@@ -179,3 +179,6 @@ _show_help_fig
 # Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
 eventFilter
 _sigint_impl
+
+# Read by numpydoc's ClassDoc (also set in doc/conf.py)
+_.extra_public_methods

@@ -324,7 +324,19 @@ class Label:
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add Labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The union of the two labels (a :class:`~mne.BiHemiLabel` if the
+            hemispheres differ).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             return other + self
@@ -394,7 +406,18 @@ class Label:
         return label
 
     def __sub__(self, other):
-        """Subtract Labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label
+            The vertices of this label that are not in ``other``.
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             if self.hemi == "lh":
@@ -1046,7 +1069,18 @@ class BiHemiLabel:
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        """Add labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of BiHemiLabel
+            The union of the two labels.
+        """
         if isinstance(other, Label):
             if other.hemi == "lh":
                 lh = self.lh + other
@@ -1065,7 +1099,19 @@ class BiHemiLabel:
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
-        """Subtract labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The vertices of this label that are not in ``other`` (a
+            :class:`~mne.Label` if only one hemisphere remains).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, Label):
             if other.hemi == "lh":
