@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -11,10 +12,10 @@ from cycler import cycler
 from matplotlib import rc_context
 from numpy.testing import assert_allclose
 
-from mne import read_evokeds
+from mne import create_info, read_evokeds
 from mne.epochs import Epochs
 from mne.event import read_events
-from mne.io import read_raw_fif
+from mne.io import RawArray, read_raw_fif
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.viz.ui_events import ColormapRange, link, subscribe
 from mne.viz.utils import (
@@ -39,6 +40,13 @@ raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 ev_fname = base_dir / "test_raw-eve.fif"
 ave_fname = base_dir / "test-ave.fif"
+
+
+def _limit_epoch_sample(a, a_min, a_max, *args, n_epochs, clip, **kwargs):
+    """Limit automatic epoch sampling without allocating over 100 MB of data."""
+    if a_min == 1 and a_max == n_epochs:
+        return 2
+    return clip(a, a_min, a_max, *args, **kwargs)
 
 
 def test_setup_vmin_vmax_warns():
@@ -193,6 +201,40 @@ def test_auto_scale():
         _compute_scalings(scalings_def, rand_data)
     epochs = epochs[0].load_data()
     epochs.pick(picks="eeg")
+
+
+def test_auto_scale_epoch_sampling_reproducible(monkeypatch):
+    """Test automatic scaling selects unloaded epochs reproducibly."""
+    info = create_info(["eeg"], 10.0, "eeg")
+    data = np.zeros((1, 100))
+    events = []
+    for idx, start in enumerate(range(0, 100, 10)):
+        data[0, start : start + 4] = (idx + 1) * np.array([1.0, 2.0, 3.0, 4.0])
+        events.append([start, 0, 1])
+    raw = RawArray(data, info)
+    epochs = Epochs(
+        raw, np.array(events), tmin=0, tmax=0.3, baseline=None, preload=False
+    )
+    epochs.drop_bad()
+
+    clip = np.clip
+
+    # The production threshold requires over 100 MB of epoch data. Limit the
+    # sample size here so this test exercises the same unloaded-epoch path.
+    monkeypatch.setattr(
+        "mne.viz.utils.np.clip",
+        partial(_limit_epoch_sample, n_epochs=len(epochs), clip=clip),
+    )
+    scalings = []
+    global_rng = np.random.mtrand._rand
+    original_rng_state = global_rng.get_state()
+    try:
+        for seed in (0, 1):
+            global_rng.set_state(np.random.RandomState(seed).get_state())
+            scalings.append(_compute_scalings({"eeg": "auto"}, epochs)["eeg"])
+        assert_allclose(scalings, [12.5, 12.5])
+    finally:
+        global_rng.set_state(original_rng_state)
 
 
 def test_validate_if_list_of_axes():

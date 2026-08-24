@@ -4035,10 +4035,11 @@ return_pca_vars : bool
 """
 
 docdict["rng"] = """
-rng : None | int | numpy.random.Generator
+rng : None | seed accepted by numpy.random.default_rng
     The random number generator. If ``None`` (default), a new generator seeded
-    from entropy is used. Pass an integer for reproducible results or a
-    :class:`numpy.random.Generator` to control the random-number stream.
+    from entropy is used. Pass a seed accepted by :func:`numpy.random.default_rng`
+    for reproducible results, or a :class:`numpy.random.Generator` to control the
+    random-number stream.
 """
 
 docdict["roll"] = """

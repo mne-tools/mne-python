@@ -673,6 +673,40 @@ def test_auto_low_rank():
         )
 
 
+@pytest.mark.parametrize(
+    ("mode", "method_params"),
+    (
+        ("pca", dict(svd_solver="randomized")),
+        ("factor_analysis", dict(svd_method="randomized")),
+    ),
+)
+def test_auto_low_rank_ignores_global_rng(mode, method_params):
+    """Test low-rank covariance models use an explicit sklearn RNG state."""
+    pytest.importorskip("sklearn")
+    rng = np.random.default_rng(42)
+    mixing = rng.standard_normal((10, 10))
+    data = rng.standard_normal((400, 5))
+    data = data @ _safe_svd(mixing.copy())[0][:, :5].T
+    data += rng.normal(scale=0.1 * rng.random(10) + 0.05, size=data.shape)
+    data *= 1e8
+    global_rng = np.random.mtrand._rand
+    original_rng_state = global_rng.get_state()
+    try:
+        global_rng.set_state(np.random.RandomState(42).get_state())
+        global_rng_state = global_rng.get_state()
+        est, _ = _auto_low_rank_model(
+            data,
+            mode=mode,
+            n_jobs=1,
+            method_params=dict(iter_n_components=[4], **method_params),
+            cv=2,
+        )
+        assert_array_equal(global_rng.get_state()[1], global_rng_state[1])
+        assert est.random_state == 0
+    finally:
+        global_rng.set_state(original_rng_state)
+
+
 @pytest.mark.slowtest
 @pytest.mark.parametrize("rank", ("full", None, "info"))
 def test_compute_covariance_auto_reg(rank):
