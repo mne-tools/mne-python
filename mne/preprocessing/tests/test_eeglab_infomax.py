@@ -158,7 +158,7 @@ def test_mne_python_vs_eeglab():
             unmixing = infomax(
                 Y.T,
                 extended=use_extended,
-                rng=random_state,
+                random_state=random_state,
                 max_iter=max_iter_eeglab,
                 l_rate=l_rate_eeglab,
                 block=block_eeglab,

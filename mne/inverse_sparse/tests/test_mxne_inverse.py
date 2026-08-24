@@ -584,7 +584,7 @@ def test_mxne_inverse_sure_meg():
         forward["src"],
         n_dipoles=n_dipoles,
         times=times,
-        rng=1,
+        random_state=1,
         labels=labels,
         data_fun=data_fun,
     )
@@ -600,11 +600,17 @@ def test_mxne_inverse_sure_meg():
         nave=nave,
         use_cps=False,
         iir_filter=None,
-        rng=0,
+        random_state=0,
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
     stc_ = mixed_norm(
-        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, rng=1
+        evoked,
+        forward,
+        noise_cov,
+        loose=0.9,
+        n_mxne_iter=5,
+        depth=0.9,
+        random_state=1,
     )
     assert len(stc_.vertices) == len(stc.vertices) == 2
     for si in range(len(stc_.vertices)):

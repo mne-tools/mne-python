@@ -4,6 +4,7 @@
 
 import os
 import shutil
+import warnings
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -83,7 +84,12 @@ _baseline_corrected = pytest.warns(RuntimeWarning, match="were baseline-correcte
 def ICA(*args, **kwargs):
     """Fix the random state in tests."""
     if "random_state" not in kwargs and "rng" not in kwargs:
-        kwargs["rng"] = 0
+        kwargs["random_state"] = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=FutureWarning, message=".*random_state.*"
+            )
+            return _ICA(*args, **kwargs)
     return _ICA(*args, **kwargs)
 
 
@@ -715,7 +721,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     with catch_logging(True) as log:
         corrmap([ica, ica2], (0, 0), threshold=0.5, plot=False, show=False)
     log = log.getvalue()
-    assert "Median correlation with constructed map:" in log
+    assert "Median correlation with constructed map: 1.0" in log
     assert ica.labels_["blinks"] == ica2.labels_["blinks"]
     assert 0 in ica.labels_["blinks"]
     # test retrieval of component maps as arrays
@@ -762,7 +768,8 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     )
 
     ica_different_channels = ICA(n_components=2, max_iter=1)
-    ica_different_channels.fit(raw, picks=[2, 3, 4, 5])
+    with pytest.warns(Warning, match="converge"):
+        ica_different_channels.fit(raw, picks=[2, 3, 4, 5])
     with pytest.raises(ValueError, match="Not all ICA instances have the"):
         corrmap([ica_different_channels, ica], (0, 0))
 
@@ -1080,16 +1087,16 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     assert "eeg" in explained_var_comp_0_eeg_mag
     assert "grad" not in explained_var_comp_0_eeg_mag
 
-    assert round(explained_var_comp_0["grad"], 4) == 0.0539
+    assert round(explained_var_comp_0["grad"], 4) == 0.1784
     assert round(explained_var_comp_0["mag"], 4) == 0.0259
-    assert round(explained_var_comp_0["eeg"], 4) == 0.0009
+    assert round(explained_var_comp_0["eeg"], 4) == 0.0229
 
     assert np.isclose(explained_var_comp_0["eeg"], explained_var_comp_0_eeg["eeg"])
     assert np.isclose(explained_var_comp_0["mag"], explained_var_comp_0_eeg_mag["mag"])
     assert np.isclose(explained_var_comp_0["eeg"], explained_var_comp_0_eeg_mag["eeg"])
 
-    assert round(explained_var_comp_1["eeg"], 4) == 0.0405
-    assert round(explained_var_comps_01["eeg"], 4) == 0.0417
+    assert round(explained_var_comp_1["eeg"], 4) == 0.0231
+    assert round(explained_var_comps_01["eeg"], 4) == 0.0459
     assert (
         explained_var_comps_all["grad"]
         == explained_var_comps_all["mag"]
