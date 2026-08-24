@@ -3840,6 +3840,7 @@ class RawTFR(BaseTFR):
         state["dims"] += ("freq", "time")
         super().__setstate__(state)
 
+    @fill_doc
     def __getitem__(self, item):
         """Get RawTFR data.
 

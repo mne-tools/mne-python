@@ -273,7 +273,18 @@ class Covariance(dict):
         return s
 
     def __add__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom."""
+        """Add Covariance taking into account number of degrees of freedom.
+
+        Parameters
+        ----------
+        cov : instance of Covariance
+            The covariance to add.
+
+        Returns
+        -------
+        cov : instance of Covariance
+            A new covariance, weighted by the degrees of freedom of each input.
+        """
         _check_covs_algebra(self, cov)
         this_cov = cov.copy()
         this_cov["data"] = (

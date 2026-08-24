@@ -27,7 +27,6 @@ from ..._freesurfer import (
     vertex_to_mni,
 )
 from ...defaults import DEFAULTS, _handle_default
-from ...fixes import _reshape_view
 from ...surface import (
     _decimate_surface_ico_oct,
     _marching_cubes,
@@ -2527,7 +2526,7 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx = _reshape_view(keep_idx, self.geo[hemi].faces.shape)
+                    keep_idx = keep_idx.reshape(self.geo[hemi].faces.shape, copy=False)
                     keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
@@ -3245,7 +3244,7 @@ class Brain:
             isinstance(annot, (tuple, list)) and isinstance(annot[0], tuple)
         ):
             # Deprecated old style of passing a (labels, cmap) pair per hemisphere.
-            # Shortcut to old code that can be removed in version 1.14.
+            # Shortcut to old code that can be removed in MNE version 1.14.
             warn(
                 "Passing the annotation as a `(label, cmap)` tuple is deprecated and "
                 "will be removed in MNE-Python version 1.14.",
@@ -4707,7 +4706,9 @@ class Brain:
             if isinstance(borders, int):
                 for _ in range(borders):
                     keep_idx = np.isin(self.geo[hemi].orig_faces.ravel(), keep_idx)
-                    keep_idx = _reshape_view(keep_idx, self.geo[hemi].orig_faces.shape)
+                    keep_idx = keep_idx.reshape(
+                        self.geo[hemi].orig_faces.shape, copy=False
+                    )
                     keep_idx = self.geo[hemi].orig_faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:

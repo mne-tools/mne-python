@@ -77,7 +77,7 @@ The minimum required dependencies to run MNE-Python are:
 - `Jinja2 <https://jinja.palletsprojects.com/>`__ ≥ 3.1
 - `lazy-loader <https://pypi.org/project/lazy-loader/>`__ ≥ 0.3
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.9
-- `NumPy <https://numpy.org>`__ ≥ 2.0
+- `NumPy <https://numpy.org>`__ ≥ 2.1
 - `packaging <https://packaging.pypa.io/>`__
 - `Pooch <https://www.fatiando.org/pooch>`__ ≥ 1.5
 - `SciPy <https://scipy.org/>`__ ≥ 1.14
