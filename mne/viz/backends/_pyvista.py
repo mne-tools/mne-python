@@ -1383,6 +1383,11 @@ def _check_3d_figure(figure):
     _validate_type(figure, PyVistaFigure, "figure")
 
 
+def _clear_3d_figure(figure):
+    figure.plotter.clear()  # remove all actors, lights are restored on the next plot
+    _process_events(figure.plotter)
+
+
 def _close_3d_figure(figure):
     # copy the plotter locally because figure.plotter is modified
     plotter = figure.plotter
