@@ -373,10 +373,9 @@ class CoregistrationUI(HasTraits):
         }  # left
         self._renderer.set_camera(distance="auto", **views[self._lock_fids])
         self._redraw()
-        # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
-            self._renderer.plotter.add_callback(self._redraw, self._refresh_rate_ms)
-        self._renderer.plotter.show_axes()
+            self._renderer._add_redraw_callback(self._redraw, self._refresh_rate_ms)
+        self._renderer._show_axes()
         # initialization does not count as modification by the user
         self._trans_modified = False
         self._mri_fids_modified = False
@@ -905,11 +904,7 @@ class CoregistrationUI(HasTraits):
     def _on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
-            # XXX: internal plotter/renderer should not be exposed
-            picker = self._renderer._picker
-            picked_renderer = self._renderer.figure.plotter.renderer
-            # trigger the pick
-            picker.Pick(x, y, 0, picked_renderer)
+            self._renderer._trigger_pick(x, y)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -1195,14 +1190,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
-        # XXX: internal plotter/renderer should not be exposed
-        # Work around PyVista sequential update bug with iterable until > 0.42.3 is req
-        # https://github.com/pyvista/pyvista/pull/5046
         actors = self._actors.get(actor_name) or []  # convert None to list
-        if not isinstance(actors, list):
-            actors = [actors]
-        for this_actor in actors:
-            self._renderer.plotter.remove_actor(this_actor, render=False)
+        self._renderer._remove_actors(actors, render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
