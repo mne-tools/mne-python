@@ -57,47 +57,6 @@ def _compare_version(version_a, operator, version_b):
 
 
 ###############################################################################
-# NumPy 2.5 removes .shape assignment, but .reshape(copy=False) requires 2.1+
-
-# TODO VERSION remove on NumPy 2.1+
-
-
-def _reshape_view(arr, shape):
-    """Reshape an array as a view, raising if a copy would be required.
-
-    This function provides compatibility across NumPy versions for reshaping
-    arrays as views. On NumPy >= 2.1, it uses ``reshape(copy=False)`` which
-    explicitly fails if a view cannot be created. On older versions, it uses
-    direct shape assignment which has the same behavior but is being removed
-    as of NumPy 2.5+.
-
-    Parameters
-    ----------
-    arr : ndarray
-        The array to reshape.
-    shape : tuple of int
-        The new shape.
-
-    Returns
-    -------
-    ndarray
-        A reshaped view of the array.
-
-    Raises
-    ------
-    AttributeError
-        If a view cannot be created on NumPy < 2.1.
-    ValueError
-        If a view cannot be created on NumPy >= 2.1.
-    """
-    if _compare_version(np.__version__, ">=", "2.1"):
-        return arr.reshape(shape, copy=False)
-    else:
-        arr.shape = shape
-        return arr
-
-
-###############################################################################
 # Misc
 
 

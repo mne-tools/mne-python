@@ -192,7 +192,7 @@ full-no-qt = [
   "python-picard >= 0.4",
   "pyvista >= 0.44",  # released 2024-07-07, will become 0.45 on 2027-04-19
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
-  "qdarkstyle != 3.2.2",
+  "qdarkstyle >= 3.2.2",  # released 2023-11-27, no newer version available
   "qtpy",
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "sip",
