@@ -50,6 +50,16 @@ def _get_colormap_from_array(
     return cmap
 
 
+def _vtk_faces(tris):
+    """Return triangles as the (n, 4) face array VTK and vtk.js both accept.
+
+    Each row is ``(3, i, j, k)``: the leading 3 is the vertex count the VTK cell
+    format expects ahead of every triangle.
+    """
+    tris = np.asarray(tris)
+    return np.c_[np.full(len(tris), 3), tris]
+
+
 def _check_color(color):
     from matplotlib.colors import colorConverter
 

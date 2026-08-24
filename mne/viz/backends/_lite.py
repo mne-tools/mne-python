@@ -32,6 +32,7 @@ lazily when a scene is first built.
 # Copyright the MNE-Python contributors.
 
 from ._abstract import _AbstractRenderer
+from ._utils import _vtk_faces
 
 
 def _lite_view_vector(azimuth):
@@ -188,11 +189,6 @@ class _LiteRenderer(_AbstractRenderer):
             _c = _c / 255.0
         return tuple(float(min(max(_v, 0.0), 1.0)) for _v in _c)
 
-    def _faces(self, tris):
-        _np = self._np
-        _t = _np.asarray(tris, dtype=_np.int32).reshape(-1, 3)
-        return _np.hstack([_np.full((len(_t), 1), 3, dtype=_np.int32), _t]).ravel()
-
     def _subdivide(self, rr, tris):
         """One level of midpoint subdivision, sharing the new edge vertices."""
         _np = self._np
@@ -308,7 +304,7 @@ class _LiteRenderer(_AbstractRenderer):
         """
         _np = self._np
         _pd = self._pv.PolyData(
-            points=_np.asarray(points, dtype=_np.float32), faces=self._faces(tris)
+            points=_np.asarray(points, dtype=_np.float32), faces=_vtk_faces(tris)
         )
         _actor = self.plotter.add_mesh(
             _pd,
