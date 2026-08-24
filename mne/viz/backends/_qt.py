@@ -1873,7 +1873,7 @@ class _Renderer(
             # GUI. Therefore, we close after all these events have been processed
             # here.
             self._process_events()
-        _qt_raise_window(self.plotter.app_window)
+            _qt_raise_window(self.plotter.app_window)
 
 
 def _qt_activate_layouts(window, widget):
