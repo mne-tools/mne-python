@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 import mne
 from mne import create_info, pick_channels_cov, read_vectorview_selection
@@ -38,6 +38,7 @@ from mne.utils import (
     check_random_state,
     check_version,
 )
+from mne.utils.check import _check_rng
 
 data_path = testing.data_path(download=False)
 base_dir = data_path / "MEG" / "sample"
@@ -46,6 +47,21 @@ fname_event = base_dir / "sample_audvis_trunc_raw-eve.fif"
 fname_fwd = base_dir / "sample_audvis_trunc-meg-vol-7-fwd.fif"
 fname_mgz = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
 reject = dict(grad=4000e-13, mag=4e-12)
+
+
+def test_check_rng():
+    """Test conversion to NumPy's modern random number generator."""
+    assert isinstance(_check_rng(None), np.random.Generator)
+
+    rng = _check_rng(0)
+    assert isinstance(rng, np.random.Generator)
+    assert_array_equal(rng.integers(10, size=3), _check_rng(0).integers(10, size=3))
+
+    assert _check_rng(rng) is rng
+    assert isinstance(_check_rng(np.random.SeedSequence(0)), np.random.Generator)
+    assert isinstance(_check_rng(np.random.PCG64(0)), np.random.Generator)
+    with pytest.raises(TypeError):
+        _check_rng(np.random.RandomState(0))
 
 
 @testing.requires_testing_data

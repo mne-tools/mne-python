@@ -230,6 +230,13 @@ def check_random_state(seed):
     )
 
 
+def _check_rng(rng):
+    """Return a NumPy Generator for new random-number paths."""
+    if isinstance(rng, np.random.mtrand.RandomState):
+        raise TypeError("rng must not be a RandomState")
+    return np.random.default_rng(rng)
+
+
 def _check_event_id(event_id, events):
     """Check event_id and convert to default format."""
     # check out event_id dict
