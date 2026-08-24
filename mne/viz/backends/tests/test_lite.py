@@ -4,6 +4,7 @@
 
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -205,6 +206,44 @@ def test_activate_is_idempotent(lite_scene):
     _activate()
     _deactivate()
     assert renderer._get_renderer is before
+
+
+def test_backend_covers_everything_renderer_calls():
+    """``_LiteBackend`` must implement every helper ``renderer.py`` reaches for.
+
+    These are module-level functions that read ``renderer.backend`` directly
+    rather than going through ``_get_renderer``, so a new one added upstream
+    breaks the browser silently. ``clear_3d_figure`` did exactly that.
+    """
+    import ast
+
+    from mne.viz.backends import renderer
+
+    src = Path(renderer.__file__).read_text()
+    needed = {
+        n.attr
+        for n in ast.walk(ast.parse(src))
+        if isinstance(n, ast.Attribute)
+        and isinstance(n.value, ast.Name)
+        and n.value.id == "backend"
+    }
+    # _Renderer is the factory and _testing_context is test-only scaffolding
+    needed -= {"_Renderer", "_testing_context"}
+    missing = sorted(m for m in needed if not hasattr(_LiteBackend, m))
+    assert not missing, f"_LiteBackend is missing {missing}"
+
+
+def test_clear_keeps_the_scene(lite_scene):
+    """Clearing drops the geometry but leaves the scene open to draw into."""
+    r = _LiteRenderer(size=(200, 200))
+    r.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
+    assert len(r.plotter.actors) == 1
+
+    _LiteBackend()._clear_3d_figure(r.plotter)
+    assert len(r.plotter.actors) == 0
+    # still usable, unlike after _close_3d_figure
+    r.sphere(np.array([[1.0, 0, 0]]), "blue", 1.0)
+    assert len(r.plotter.actors) == 1
 
 
 def test_backend_scene_helpers(lite_scene):

@@ -122,8 +122,8 @@ class _LiteRenderer(_AbstractRenderer):
     # a kernel with the page but still has VTK, a filesystem and OS threads,
     # and none of those are here. The one place that would care,
     # mne/gui/_coreg.py, never reaches its `_kind != "notebook"` branch in the
-    # browser, because _configure_dock asks the renderer for ten _dock_add_*
-    # methods this one does not have and fails first.
+    # browser, because _configure_dock asks the renderer for a dock and toolbar
+    # API this one does not implement and fails first.
     _kind = "jupyterlite_notebook"
 
     def __init__(self, *args, **kwargs):
@@ -635,6 +635,12 @@ class _LiteBackend:
     def _set_3d_title(
         self, figure, title, size=40, color="white", position="upper_left"
     ):
+        return None
+
+    def _clear_3d_figure(self, figure):
+        # close=False is already the "give the geometry back but keep the
+        # scene" path, which is what clearing means
+        _lite_release_plotter(figure, close=False)
         return None
 
     def _close_3d_figure(self, figure):
