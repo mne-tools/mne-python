@@ -188,13 +188,18 @@ os.environ["MNE_DATASETS_SAMPLE_PATH"] = mne_data_path
 # Block pooch from attempting large OSF downloads in the browser.
 # The required files are either pre-injected or unavailable.
 import pooch
+from urllib.parse import urlparse
 
 orig_pooch_fetch = pooch.Pooch.fetch
 
 
 def pyodide_pooch_fetch(self, fname, processor=None, downloader=None):
     url = self.get_url(fname)
-    if "osf.io" in url or "files.osf.io" in url:
+    # Compare the host rather than searching the whole URL: "osf.io" can turn
+    # up legitimately elsewhere in one (a query string, a path), and a
+    # substring test would refuse those downloads too.
+    host = urlparse(url).hostname or ""
+    if host == "osf.io" or host.endswith(".osf.io"):
         raise RuntimeError(
             f"Cannot download {fname!r} from OSF in JupyterLite: "
             "browser CORS policy and memory limits prevent large "
