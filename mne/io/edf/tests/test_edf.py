@@ -8,6 +8,7 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 
+import mne
 import numpy as np
 import pytest
 from numpy.testing import (
@@ -1262,3 +1263,29 @@ def test_edf_read_from_file_like():
         ]
 
         assert raw.ch_names == channels
+
+
+
+def requires_edfio(func):
+    import pytest
+
+    return pytest.mark.skipif(
+        __import__("importlib.util", fromlist=["util"]).find_spec("edfio") is None,
+        reason="Requires edfio",
+    )(func)
+
+
+@requires_edfio
+def test_engine_edfio(tmp_path):
+    """Compare the optional edfio engine against the native one."""
+    pytest.importorskip("edfio")
+    rng = np.random.default_rng(11)
+    info = mne.create_info(["EEG A", "EEG B"], sfreq=128.0, ch_types="eeg")
+    raw = mne.io.RawArray(rng.standard_normal((2, 512)) * 30e-6, info)
+    fname = tmp_path / "engine_test.edf"
+    raw.export(fname, verbose="error")
+    base = read_raw_edf(fname, preload=True, verbose="error").get_data()
+    alt = read_raw_edf(fname, preload=True, engine="edfio",
+                       verbose="error").get_data()
+    assert base.shape == alt.shape
+    assert_allclose(base, alt, rtol=0, atol=1e-15)

@@ -459,3 +459,18 @@ Adopted: searchsorted bounds (#8), stim-in-fast-path (#9), codex's FIF mmap prot
 Queued: EDF mixed-sfreq partial fast path (decode uniform EEG blocks, interp stim
 separately — needs careful interp semantics), float32 output read path,
 open_meta header-parse cost, batched-API upstream proposal, edfio engine backend.
+
+## 13. Session 6: `engine="edfio"` backend landed
+
+`read_raw_edf(..., engine="edfio")` parses via the optional edfio package into a
+preloaded Raw. Minimal scope by design: uniform sfreq only, all channels EEG,
+no meas_date, volts output using the native unit mapping. Decode is two fused
+passes over one stacked int16 buffer; outputs match the native engine within
+1 ulp (max |diff| 2.7e-20 on our fixtures; a first fusion attempt folded the
+unit multiplier twice — caught immediately against edfio's own `.data`).
+
+Full-load BIG file: native 453 ms vs edfio engine 368 ms (~1.2× incl. MNE
+wrapper + output copy; raw parser delta is larger). Windows on the preloaded
+result sit at the ~78 µs numpy floor like every other preloaded path.
+
+New test `test_engine_edfio` compares engines on an exported fixture.
