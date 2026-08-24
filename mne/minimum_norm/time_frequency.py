@@ -219,22 +219,8 @@ def source_band_induced_power(
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
-        all the time interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-        Perform baseline correction by
-
-        - subtracting the mean of baseline values ('mean')
-        - dividing by the mean of baseline values ('ratio')
-        - dividing by the mean of baseline values and taking the log
-          ('logratio')
-        - subtracting the mean of baseline values followed by dividing by
-          the mean of baseline values ('percent')
-        - subtracting the mean of baseline values and dividing by the
-          standard deviation of baseline values ('zscore')
-        - dividing by the mean of baseline values, taking the log, and
-          dividing by the standard deviation of log baseline values
-          ('zlogratio')
-
+        all the time interval is used. 
+   %(mn_baseline_mode)s 
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
@@ -648,21 +634,7 @@ def source_induced_power(
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-        Perform baseline correction by
-
-        - subtracting the mean of baseline values ('mean')
-        - dividing by the mean of baseline values ('ratio')
-        - dividing by the mean of baseline values and taking the log
-          ('logratio')
-        - subtracting the mean of baseline values followed by dividing by
-          the mean of baseline values ('percent')
-        - subtracting the mean of baseline values and dividing by the
-          standard deviation of baseline values ('zscore')
-        - dividing by the mean of baseline values, taking the log, and
-          dividing by the standard deviation of log baseline values
-          ('zlogratio')
-
+    %(mn_baseline_mode)s
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times

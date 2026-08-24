@@ -1792,28 +1792,22 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         ----------
         %(baseline_rescale)s
 
-            How baseline is computed is determined by the ``mode`` parameter.
-        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-            Perform baseline correction by
-
-            - subtracting the mean of baseline values ('mean')
-            - dividing by the mean of baseline values ('ratio')
-            - dividing by the mean of baseline values and taking the log
-              ('logratio')
-            - subtracting the mean of baseline values followed by dividing by
-              the mean of baseline values ('percent')
-            - subtracting the mean of baseline values and dividing by the
-              standard deviation of baseline values ('zscore')
-            - dividing by the mean of baseline values, taking the log, and
-              dividing by the standard deviation of log baseline values
-              ('zlogratio')
+        How baseline is computed is determined by the ``mode`` parameter.
+        %(baseline_mode)s
+            
         %(verbose)s
 
         Returns
         -------
         %(inst_tfr)s
             The modified instance.
+        
+        References 
+        ----------
+        .. footbibliography::
+            
         """
+       
         self._baseline = _check_baseline(baseline, times=self.times, sfreq=self.sfreq)
         rescale(self.data, self.times, self.baseline, mode, copy=False, verbose=verbose)
         return self
@@ -1950,7 +1944,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(baseline_rescale)s
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(mode_tfr_plot)s
+        %(baseline_mode)s
         %(dB_tfr_plot)s
         %(combine_tfr_plot)s
 
@@ -2216,7 +2210,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(baseline_rescale)s
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(mode_tfr_plot)s
+        %(baseline_mode)s
         %(dB_tfr_plot)s
         %(yscale_tfr_plot)s
         %(vlim_tfr_plot_joint)s
@@ -2514,7 +2508,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(baseline_rescale)s
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(mode_tfr_plot)s
+        %(baseline_mode)s
         %(tmin_tmax_psd)s
         %(fmin_fmax_tfr)s
         %(vmin_vmax_tfr_plot_topo)s
