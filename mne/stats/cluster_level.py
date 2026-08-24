@@ -12,6 +12,7 @@ from ..source_space import SourceSpaces
 from ..utils import (
     ProgressBar,
     _check_option,
+    _check_rng_compat,
     _pl,
     _validate_type,
     check_random_state,
@@ -1120,6 +1121,8 @@ def permutation_cluster_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
 ):
     """Cluster-level statistical permutation test.
 
@@ -1151,7 +1154,9 @@ def permutation_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_n)s
     %(n_jobs)s
-    %(seed)s
+    %(rng)s
+    seed : None | int | instance of ~numpy.random.RandomState
+        Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
     %(exclude_clust)s
     %(step_down_p_clust)s
@@ -1181,6 +1186,7 @@ def permutation_cluster_test(
     .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, "between")
+    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return _permutation_cluster_test(
         X=X,
         threshold=threshold,
@@ -1189,7 +1195,7 @@ def permutation_cluster_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        seed=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1218,6 +1224,8 @@ def permutation_cluster_1samp_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
 ):
     """Non-parametric cluster-level paired t-test.
 
@@ -1238,7 +1246,9 @@ def permutation_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_1)s
     %(n_jobs)s
-    %(seed)s
+    %(rng)s
+    seed : None | int | instance of ~numpy.random.RandomState
+        Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
     %(exclude_clust)s
     %(step_down_p_clust)s
@@ -1291,6 +1301,7 @@ def permutation_cluster_1samp_test(
     .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
+    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return _permutation_cluster_test(
         X=[X],
         threshold=threshold,
@@ -1299,7 +1310,7 @@ def permutation_cluster_1samp_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        seed=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1328,6 +1339,8 @@ def spatio_temporal_cluster_1samp_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
 ):
     """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
@@ -1351,7 +1364,9 @@ def spatio_temporal_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_st1)s
     %(n_jobs)s
-    %(seed)s
+    %(rng)s
+    seed : None | int | instance of ~numpy.random.RandomState
+        Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
@@ -1397,6 +1412,7 @@ def spatio_temporal_cluster_1samp_test(
         adjacency=adjacency,
         n_jobs=n_jobs,
         seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1425,6 +1441,8 @@ def spatio_temporal_cluster_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
 ):
     """Non-parametric cluster-level test for spatio-temporal data.
 
@@ -1450,7 +1468,9 @@ def spatio_temporal_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_stn)s
     %(n_jobs)s
-    %(seed)s
+    %(rng)s
+    seed : None | int | instance of ~numpy.random.RandomState
+        Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
@@ -1496,6 +1516,7 @@ def spatio_temporal_cluster_test(
         adjacency=adjacency,
         n_jobs=n_jobs,
         seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
