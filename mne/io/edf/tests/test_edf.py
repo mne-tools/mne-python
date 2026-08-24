@@ -1289,3 +1289,26 @@ def test_engine_edfio(tmp_path):
                        verbose="error").get_data()
     assert base.shape == alt.shape
     assert_allclose(base, alt, rtol=0, atol=1e-15)
+
+
+def test_memmap_cache_reuse(tmp_path):
+    """load_data(memmap=...) reuses a valid cache without re-decoding."""
+    pytest.importorskip("edfio")
+    rng = np.random.default_rng(3)
+    info = mne.create_info(["EEG A"], sfreq=64.0, ch_types="eeg")
+    raw = mne.io.RawArray(rng.standard_normal((1, 2048)) * 30e-6, info)
+    fname = tmp_path / "mm_cache.edf"
+    raw.export(fname, verbose="error")
+    cache = tmp_path / "cache.f64"
+    kwargs = dict(preload=False, verbose="error")
+    r1 = read_raw_edf(fname, **kwargs).load_data(memmap=str(cache))
+    assert cache.exists()
+    for _ in range(3):  # replay open→use cycles
+        r2 = read_raw_edf(fname, **kwargs).load_data(memmap=str(cache))
+        assert r2.preload
+        d = r2.get_data()
+        assert_allclose(d, r1.get_data(), rtol=0, atol=0)
+    # stale-size guard: wrong-sized cache is rebuilt, not mmap-reused
+    cache.write_bytes(b"x" * 16)
+    r3 = read_raw_edf(fname, **kwargs).load_data(memmap=str(cache))
+    assert_allclose(r3.get_data(), r1.get_data(), rtol=0, atol=0)

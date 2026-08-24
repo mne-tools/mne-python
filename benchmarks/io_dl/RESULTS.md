@@ -524,3 +524,33 @@ Cumulative vs where this effort started: **~6.5–7.5× per-window**, full loads
 genuinely I/O + format decode + one fused pass; further order-of-magnitude
 gains require changing what is stored (window-shaped HDF5/NWB-style layouts,
 §11.2) rather than how MNE reads classic formats.
+
+## 16. Session 9: persistent memmap caches = the lazy/fast flag
+
+`load_data(memmap=path)` existed but (a) always re-decoded even when the cache
+file was valid and (b) `BaseRaw.__del__` deleted the file on GC. Both fixed:
+
+- `_preload_data`: when a memmap cache exists with the exact expected size, it
+  is mmap'd read-write **and decoding is skipped entirely**.
+- `__del__` no longer removes memmap files — callers own cache lifetime
+  (behavior change; documented in changelog fragment).
+
+Fresh-process numbers (128 ch × 1800 s @ 512 Hz, 944 MB float64):
+
+| operation | before | now |
+|---|---|---|
+| open + first access | ~450 ms decode | **11–21 ms** |
+| public get_data windows | 200–406 µs | **~84 µs** |
+
+This is the recommended DL pattern until format-native lazy backends land:
+
+```python
+raw = mne.io.read_raw_edf("huge.edf", preload=False)
+raw.load_data(memmap="cache.f64")   # first run decodes; every later run mmaps
+```
+
+On Python 3.15's opt-in lazy imports (PEP 810): import-time costs we measured
+(e.g., the 105 ms mne_bids cascade on first save) should shrink automatically;
+no hand-rolled laziness added here. A compiled C++/Rust kernel was evaluated
+and rejected for now: our numba path already runs at memory bandwidth, so a
+second native toolchain would add packaging burden without measurable gain.

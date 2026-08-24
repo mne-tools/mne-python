@@ -631,6 +631,28 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
+        elif isinstance(preload, str | Path):
+            # A memory-map cache file: when one already exists with the exact
+            # expected size, mmap it and skip decoding entirely. This makes
+            # reopening huge recordings nearly instantaneous (first run pays
+            # the decode, subsequent runs reuse the OS page cache). Note the
+            # cache is validated by size only; delete it if the source file
+            # changed.
+            path = Path(preload)
+            n_bytes = (
+                self.info["nchan"]
+                * (self._last_samps[-1] - self._first_samps[0] + 1)
+                * np.dtype(self._dtype).itemsize
+            )
+            if path.exists() and path.stat().st_size == n_bytes:
+                self._data = np.memmap(
+                    str(path), mode="r+", dtype=self._dtype,
+                    shape=(self.info["nchan"], n_bytes // (
+                        self.info["nchan"] * np.dtype(self._dtype).itemsize)),
+                )
+                self.preload = True
+                logger.info(f"Reusing memory-mapped cache at {path}")
+                return
         t = self.times
         logger.info(
             f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
@@ -813,16 +835,12 @@ class BaseRaw(
         return self
 
     def __del__(self):  # noqa: D105
-        # remove file for memmap
+        # Memmap-backed data (load_data(memmap=...)) is owned by the caller:
+        # the file persists after the Raw object is deleted so that subsequent
+        # sessions can mmap it directly instead of re-decoding.
         fname = getattr(getattr(self, "_data", None), "filename", None)
         if fname is not None:
-            # First, close the file out; happens automatically on del
             del self._data
-            # Now file can be removed
-            try:
-                os.remove(fname)
-            except OSError:
-                pass  # ignore file that no longer exists
 
     def __enter__(self):
         """Entering with block."""

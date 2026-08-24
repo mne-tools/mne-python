@@ -4,3 +4,8 @@ re-resolves channel picks on every call; EDF/BDF readers gained vectorized and
 optional-numba fast paths (bit-identical output, including stim channels); the FIF
 reader now reads tag payloads through a memory map; batched internal window reads
 avoid per-window allocations.
+
+Memory-mapped caches passed to ``Raw.load_data(memmap=...)`` are now reused
+when valid instead of being re-decoded, and are no longer deleted when the
+:class:`~mne.io.Raw` object is garbage-collected — reopening large recordings
+becomes near-instantaneous and cache lifetime is managed by the caller.
