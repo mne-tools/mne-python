@@ -972,6 +972,25 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
     assert_array_equal(got_mask, want_mask)
 
 
+def test_cluster_test_one_sample():
+    """Test cluster_test with a single-group (1-sample) design."""
+    pd = pytest.importorskip("pandas")
+    condition1_1d, _, _, _ = _get_conditions()
+    df = pd.DataFrame(dict(data=[condition1_1d], group=["only"]))
+    kwargs = dict(n_permutations=100, tail=0, seed=1, buffer_size=None)
+    T_obs, clusters, cluster_pvals, H0 = permutation_cluster_1samp_test(
+        condition1_1d, **kwargs
+    )
+    result = cluster_test(df, "data ~ group", **kwargs)
+    assert result.stat_name == "paired T-statistic"
+    assert_array_equal(result.H0, H0)
+    assert_array_equal(result.stat_obs, T_obs)
+    assert_array_equal(result.cluster_p_values, cluster_pvals)
+    assert len(result.clusters) == len(clusters)
+    for clu1, clu2 in zip(result.clusters, clusters):
+        assert_array_equal(clu1, clu2)
+
+
 def test_compare_old_and_new_cluster_api():
     """Test for same results from old and new APIs."""
     pd = pytest.importorskip("pandas")
