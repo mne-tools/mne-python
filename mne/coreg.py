@@ -1651,6 +1651,84 @@ class Coregistration:
         )
         self.fiducials = dig_montage
 
+    def set_subjects_dir(self, subjects_dir):
+        """Set the FreeSurfer subjects directory.
+
+        Parameters
+        ----------
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR``
+            environment variable.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        return self
+
+    def set_subject(self, subject, fiducials="auto"):
+        """Set the subject to use for the coregistration.
+
+        Parameters
+        ----------
+        subject : str
+            The FreeSurfer subject name.
+        fiducials : list | dict | str
+            The fiducials to use for the new subject, see the ``fiducials``
+            parameter of :class:`~mne.coreg.Coregistration`. Defaults to
+            ``'auto'``.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        self._subject = _check_subject(subject, subject)
+        self._setup_bem()
+        self._setup_fiducials(fiducials)
+        return self
+
+    def set_info(self, info):
+        """Set the measurement info used to digitize the head shape.
+
+        Parameters
+        ----------
+        info : instance of Info | None
+            The measurement info.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        _validate_type(info, (Info, None), "info")
+        self._info = info
+        self._setup_digs()
+        return self
+
+    def set_fid_point(self, name, point):
+        """Set the coordinates of one MRI fiducial point.
+
+        Parameters
+        ----------
+        name : str
+            The fiducial to set, one of ``"lpa"``, ``"nasion"``, ``"rpa"``.
+        point : array, shape (3,)
+            The point coordinates, in MRI coordinates (m).
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        idx = _map_fid_name_to_idx(name)
+        self._fid_points[idx] = point
+        self._reset_fiducials()
+        return self
+
     def _update_params(self, rot=None, tra=None, sca=None, force_update=False):
         if force_update and tra is None:
             tra = self._translation
