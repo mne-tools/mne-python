@@ -57,7 +57,7 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           version: ">=0.9"
           activate-environment: true
