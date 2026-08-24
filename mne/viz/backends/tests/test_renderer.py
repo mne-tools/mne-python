@@ -9,8 +9,9 @@ import sys
 import numpy as np
 import pytest
 from matplotlib.font_manager import findfont
+from numpy.testing import assert_allclose
 
-from mne.transforms import rot_to_quat
+from mne.transforms import quat_to_rot, rot_to_quat
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
@@ -158,6 +159,17 @@ def test_3d_backend(renderer):
         rend.quiver3d(mode="foo", **kwargs)
 
     # use instanced_mesh
+    # VTK must interpret our wxyz quaternions with the same convention as
+    # quat_to_rot, otherwise instanced sensors render with wrong rotations
+    from vtkmodules.vtkCommonCore import vtkMath
+
+    from mne.viz.backends._pyvista import _quat_to_vtk_wxyz
+
+    quat = np.array([0.1, -0.2, 0.3])
+    mat = [[0.0] * 3 for _ in range(3)]
+    vtkMath.QuaternionToMatrix3x3(_quat_to_vtk_wxyz(quat[np.newaxis])[0], mat)
+    assert_allclose(mat, quat_to_rot(quat), atol=1e-12)
+
     inst_positions = np.array([[0.0, 0.0, 0.0], [tet_size, 0.0, 0.0]])
     inst_quats = np.array([rot_to_quat(np.eye(3)), rot_to_quat(np.eye(3))])
     inst_colors = np.array([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]])
