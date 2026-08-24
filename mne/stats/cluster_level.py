@@ -1765,9 +1765,20 @@ def cluster_test(
         Wilkinson notation formula for design matrix. The names of the dependent
         and independent variable should match the columns in ``df``.
     within_id : None | str
-        Name of column in ``df`` to use in identifying within-group contrasts. If
-        ``None``, will perform a between-group test. Ignored if the number of groups
-        (unique values in the independent variable column of ``df``) is greater than 2.
+        Name of column in ``df`` to use in identifying within-group contrasts.
+        If ``within_id`` is not None, a paired t-test will be performed against zero
+        (using mne.stats.ttest_1samp_no_p). ``within_id`` to match a variable in ``df``,
+        e.g. "subject_index". Currently, within tests are only supported for 1 or 2
+        levels of the independent variable (specified in the formula). If the
+        independent variable has 1 level per participant, the data will be treated as
+        already subtracted (e.g., condition A - condition B).
+        If the independent variable has 2 levels, the data will be subtracted
+        for each participant (e.g., condition A - condition B).
+        If ``within_id`` is ``None``, will perform a between-group test
+        (using mne.stats.f_oneway). This works for 2 levels or more.
+        Specifying as ``within_id`` a variable in df that has more than 2 levels,
+        or one that is not in df, will result in an error.
+
     %(stat_fun_clust_both)s
     %(tail_clust)s
     %(threshold_clust_both)s
@@ -1818,6 +1829,12 @@ def cluster_test(
 
     # for within_subject designs, check if each subject has 2 observations
     _validate_type(within_id, (str, None), "within_id")
+    if within_id is not None and within_id not in df.columns:
+        raise ValueError(
+            f"within_id must be one of {list(df.columns)}, got {within_id!r}"
+        )
+
+    # check if within_id has 1 or 2 levels to do paired t-test (within)
     if within_id:
         df = df.copy(deep=False)  # Don't mutate input dataframe row order!
         df.sort_values([iv_name, within_id], inplace=True)
@@ -1858,6 +1875,22 @@ def cluster_test(
         X = X[0] - X[1]
     else:  # 2 elements in X but no within_id provided → unpaired test
         kind = "between"
+        logger.info("Running between-groups F-test.")
+
+    # Now, for the within case check if there are unequal observations in each group
+    # and whether the data is already subtracted (1 level) or not (2 levels)
+    if kind == "within":
+        if len(set(x.shape for x in X)) > 1:
+            raise ValueError(
+                "for within-group tests, all participants must have the same number of "
+                "observations, check your data frame"
+            )
+        if len(X) == 1:
+            # turn it into an array
+            X = X[0]  # already subtracted, just use the data as is
+
+        elif len(X) == 2:
+            X = X[0] - X[1]  # do subtraction for paired t-test
 
     # define stat function and threshold
     stat_fun, threshold = _check_fun(
