@@ -100,6 +100,9 @@ repos:
         language: python
         entry: ./tools/hooks/check_static_docs.py
         args: [--fix]
+        # the hook edits files beyond those passed (docs.py, other users of an
+        # edited entry), so parallel batched invocations would race
+        require_serial: true
         additional_dependencies: [numpy, scipy, matplotlib, decorator, lazy_loader, packaging, jinja2, pooch, tqdm]
         files: '^mne/.*\.py$'
         exclude: '^mne/.*/tests/'
