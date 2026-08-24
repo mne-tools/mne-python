@@ -73,7 +73,10 @@ def annotate_muscle_zscore(
     filter_freq : array-like, shape (2,)
         The lower and upper frequencies of the band-pass filter.
         Default is ``(110, 140)``.
-    %(n_jobs)s
+    %(n_jobs_cuda)s
+
+        .. versionchanged:: 1.13
+           Added support for CUDA.
     %(verbose)s
 
     Returns
