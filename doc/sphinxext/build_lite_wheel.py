@@ -1,4 +1,4 @@
-"""Build the development MNE wheel for the JupyterLite browser kernel.
+"""Build the MNE wheel for the JupyterLite browser kernel.
 
 Run this once before building the docs, either in CI or locally::
 
@@ -6,8 +6,10 @@ Run this once before building the docs, either in CI or locally::
 
 The wheel is written to ``doc/pypi``, where the jupyterlite-pyodide-kernel
 PipliteAddon discovers, copies and indexes it (adding it to ``pipliteUrls`` in
-``jupyter-lite.json``), so the browser kernel installs the current development
-MNE rather than the older release from PyPI. See
+``jupyter-lite.json``), so the browser kernel installs the MNE the surrounding
+pages are built from rather than the last release on PyPI. That is the
+development version on ``main`` and that release's code on a ``maint/*``
+branch, since the docs build from whichever branch it is running on. See
 https://jupyterlite.readthedocs.io/en/latest/howto/pyodide/wheels.html
 
 Both functions are importable, so a docs build can reuse a wheel that is already
@@ -39,7 +41,7 @@ def find_wheels():
 
     Returns
     -------
-    wheels : list of pathlib.Path
+    wheels : list of Path
         Paths of the MNE wheels found, empty if there are none.
     """
     return sorted(PYPI_WHEELS_DIR.glob("mne-*.whl"))
@@ -64,11 +66,11 @@ def _latest_pypi_version():
 
 
 def build_wheel():
-    """Build the development MNE wheel into ``doc/pypi``.
+    """Build the MNE wheel for the browser kernel into ``doc/pypi``.
 
     Returns
     -------
-    wheels : list of pathlib.Path
+    wheels : list of Path
         Paths of the MNE wheels that were built.
     """
     # The version below is pinned, so each build writes the same filename and

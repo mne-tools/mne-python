@@ -5,17 +5,3 @@
 # so uv does not drop those dependencies (the override takes precedence over the
 # command line, including its extras).
 -e .[full-pyside6]
-
-# Floor for the browser kernel, so it stays on the Pyodide 314 line. Up to
-# jupyterlite-sphinx 0.22.1 the jupyterlite-core cap was < 0.8, which held the
-# kernel at Pyodide 0.29.3 and its matplotlib 3.8.4, one minor below the 3.9
-# MNE declares. 0.23.0 raised that cap to < 0.9, so the resolution now reaches
-# Pyodide 314 unaided and these two lines change nothing today. They stay as a
-# guard: anything that pulls jupyterlite-sphinx back below 0.23 would otherwise
-# drop the browser to the old Pyodide and quietly stop meeting MNE's matplotlib
-# bound. Pyodide 314 ships matplotlib 3.10.8, scipy 1.18.0 and numpy 2.4.3, all
-# of which satisfy MNE, so the wheel build needs no version patching at all.
-# The core line is the one that does the work; the kernel line pins the intent
-# in case something else ever constrains the kernel directly.
-jupyterlite-core>=0.8.1
-jupyterlite-pyodide-kernel>=0.8

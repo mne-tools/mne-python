@@ -1,1 +1,1 @@
-Add a build script and CI step that produce the development MNE wheel the JupyterLite browser kernel installs, by `Natneal B`_.
+Add a build script and CI step that produce the MNE wheel the JupyterLite browser kernel installs, by `Natneal B`_.

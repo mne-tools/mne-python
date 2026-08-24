@@ -249,9 +249,9 @@ jobs:
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
-      # Build the development MNE wheel that the JupyterLite browser kernel
-      # will install, once, before Sphinx runs. Building it here rather than
-      # from conf.py keeps it out of the per-invocation docs build.
+      # Build the MNE wheel that the JupyterLite browser kernel will install,
+      # once, before Sphinx runs. Building it here rather than from conf.py
+      # keeps it out of the per-invocation docs build.
       - run:
           name: Build MNE wheel for JupyterLite
           command: python doc/sphinxext/build_lite_wheel.py
