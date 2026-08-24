@@ -306,13 +306,19 @@ def test_ica_rng_transition():
         with pytest.warns(FutureWarning, match="random_state"):
             ica = _ICA(
                 n_components=2,
-                method="infomax",
-                max_iter=1,
+                method="fastica",
+                max_iter=1000,
                 random_state=random_state,
             )
-        ica.fit(raw)
+        with _record_warnings():  # ICA does not necessarily converge
+            ica.fit(raw)
         unmixings.append(ica.unmixing_matrix_)
+    ica = _ICA(n_components=2, method="fastica", max_iter=1000, rng=0)
+    with _record_warnings():  # ICA does not necessarily converge
+        ica.fit(raw)
+    unmixings.append(ica.unmixing_matrix_)
     assert_array_equal(unmixings[0], unmixings[1])
+    assert_array_equal(unmixings[0], unmixings[2])
 
 
 def test_ica_infomax_fit_params_verbose():

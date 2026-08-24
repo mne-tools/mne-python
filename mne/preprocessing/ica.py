@@ -902,7 +902,10 @@ class ICA(ContainsMixin):
 
         rng = getattr(self, "rng", None)
         if self.random_state is None:
-            rng = _check_rng(rng)
+            # Keep integer seeds intact for third-party ``random_state``
+            # parameters, but use an independent Generator for the default.
+            if rng is None:
+                rng = _check_rng(None)
         else:
             rng = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
@@ -979,9 +982,12 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
+            infomax_rng = (
+                rng if isinstance(rng, np.random.RandomState) else _check_rng(rng)
+            )
             unmixing_matrix, n_iter = _infomax(
                 data[:, sel],
-                rng=rng,
+                rng=infomax_rng,
                 return_n_iter=True,
                 **self.fit_params,
             )
