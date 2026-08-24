@@ -1741,7 +1741,9 @@ def cluster_test(
     tail: Literal[-1, 0, 1] = 0,
     threshold=None,
     n_permutations: str | int = 1024,
-    adjacency: sparse.spmatrix | None | False = None,  # should be None (default)
+    adjacency: sparse.spmatrix
+    | None
+    | Literal[False] = None,  # should be None (default)
     max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
     exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
     step_down_p: float = 0.0,
