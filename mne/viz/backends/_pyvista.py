@@ -340,7 +340,11 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.plotter.enable_rubber_band_2d_style()
         else:
             for renderer in self._all_renderers:
-                renderer.disable_parallel_projection()
+                # Only disable it if it is actually on: PyVista recomputes the camera
+                # position from parallel_scale here, which moves the camera even when
+                # parallel projection was never enabled in the first place
+                if renderer.parallel_projection:
+                    renderer.disable_parallel_projection()
             kwargs = dict()
             if interaction == "terrain":
                 kwargs["mouse_wheel_zooms"] = True
