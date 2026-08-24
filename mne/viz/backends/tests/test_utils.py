@@ -70,7 +70,6 @@ def _assert_correct_darkness(widget, want_dark):
     assert dark == want_dark, f"{widget} pixmap dark={dark} want_dark={want_dark}"
 
 
-@pytest.mark.pgtest
 def test_vtk_faces():
     """Test building the VTK cell array both 3D renderers draw from."""
     tris = np.array([[0, 1, 2], [0, 2, 3]])
@@ -85,6 +84,7 @@ def test_vtk_faces():
     assert_array_equal(_vtk_faces([[0, 1, 2]]), [[3, 0, 1, 2]])
 
 
+@pytest.mark.pgtest
 @pytest.mark.parametrize("theme", ("auto", "light", "dark"))
 def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     """Test that theme colors propagate properly."""

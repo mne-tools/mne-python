@@ -22,39 +22,37 @@ figures the documentation renders. Not supported: the interactive
 time slider, and scalar colormaps, which pyvista-js 0.15 does not implement
 (scalars fall back to a solid color).
 
-Importing this module has no side effects and does not require pyvista-js;
-:func:`_activate` is what installs the renderer, and pyvista-js is imported
-lazily when a scene is first built.
+Importing this module needs pyvista-js, the same way importing ``_pyvista``
+needs VTK, but has no other effect: :func:`_activate` is what puts this
+renderer in front of MNE's own.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import numpy as np
+import pyvista_js as pv
+
+from ...transforms import _find_vector_rotation, _sph_to_cart, quat_to_rot
 from ._abstract import _AbstractRenderer
 from ._utils import _vtk_faces
 
 
-def _lite_view_vector(azimuth):
-    """Map an MNE azimuth in degrees onto the nearest pyvista-js view vector."""
-    _a = float(azimuth) % 360.0
-    if 45 <= _a < 135:
-        return (0.0, -1.0, 0.0)
-    elif 135 <= _a < 225:
-        return (1.0, 0.0, 0.0)
-    elif 225 <= _a < 315:
-        return (0.0, 1.0, 0.0)
-    return (-1.0, 0.0, 0.0)
-
-
-def _lite_set_view(plotter, azimuth):
-    """Point a plotter at the nearest axis-aligned view; no-op without azimuth."""
-    if azimuth is None:
+def _lite_set_view(plotter, azimuth=None, elevation=None):
+    """Point a plotter along the requested azimuth and elevation."""
+    if azimuth is None and elevation is None:
         return None
-    try:
-        plotter.view_vector(_lite_view_vector(azimuth), viewup=(0.0, 0.0, 1.0))
-    except Exception:
-        pass
+    phi = np.deg2rad(90.0 if azimuth is None else azimuth)
+    theta = np.deg2rad(90.0 if elevation is None else elevation)
+    position = _sph_to_cart(np.array([[1.0, phi, theta]]))[0]
+    # view up flips near the poles, matching the 5/175 threshold _set_3d_view
+    # uses, because there the view plane normal runs parallel to the camera
+    if 5.0 <= abs(np.rad2deg(theta)) <= 175.0:
+        viewup = (0.0, 0.0, 1.0)
+    else:
+        viewup = (0.0, 1.0, 0.0)
+    plotter.view_vector(-position, viewup=viewup)
     return None
 
 
@@ -120,19 +118,15 @@ def _lite_trim_live_plotters():
 class _LiteRenderer(_AbstractRenderer):
     """Minimal MNE 3D renderer backed by pyvista-js."""
 
-    # Callers branch on this to pick behaviour rather than to identify a
-    # backend, and "notebook" is the branch that is right here: it matches the
-    # MNE_3D_BACKEND that _activate registers, and it keeps code such as
-    # mne/gui/_coreg.py from taking its `_kind != "notebook"` path, which
-    # starts a Qt event loop that does not exist in a browser.
-    _kind = "notebook"
+    # Its own kind rather than "notebook": the desktop notebook backend shares
+    # a kernel with the page but still has VTK, a filesystem and OS threads,
+    # and none of those are here. The one place that would care,
+    # mne/gui/_coreg.py, never reaches its `_kind != "notebook"` branch in the
+    # browser, because _configure_dock asks the renderer for ten _dock_add_*
+    # methods this one does not have and fails first.
+    _kind = "jupyterlite_notebook"
 
     def __init__(self, *args, **kwargs):
-        import numpy as _np
-        import pyvista_js as _pv
-
-        self._np = _np
-        self._pv = _pv
         # plot_alignment(fig=...) and plot_dipole_locations(fig=...) composite
         # into a scene the notebook already made, so draw into that plotter
         # rather than opening a second one and splitting the picture in two.
@@ -142,7 +136,7 @@ class _LiteRenderer(_AbstractRenderer):
         if _fig is not None and hasattr(_fig, "add_mesh"):
             self.plotter = _fig
             return
-        self.plotter = _pv.Plotter()
+        self.plotter = pv.Plotter()
         import weakref as _weakref
 
         _lite_live_plotters.append(_weakref.ref(self.plotter))
@@ -164,7 +158,7 @@ class _LiteRenderer(_AbstractRenderer):
         ):
             try:
                 self.plotter.add_light(
-                    _pv.Light(
+                    pv.Light(
                         position=(300.0 * _lp[0], 300.0 * _lp[1], 300.0 * _lp[2]),
                         focal_point=(0.0, 0.0, 0.0),
                         intensity=0.4,
@@ -182,7 +176,7 @@ class _LiteRenderer(_AbstractRenderer):
 
         if isinstance(color, str):
             return _to_rgb(color)
-        _c = self._np.asarray(color, dtype=float).ravel()[:3]
+        _c = np.asarray(color, dtype=float).ravel()[:3]
         if _c.size < 3:
             return (0.5, 0.5, 0.5)
         if _c.max() > 1.0:  # 0-255 form
@@ -191,23 +185,20 @@ class _LiteRenderer(_AbstractRenderer):
 
     def _subdivide(self, rr, tris):
         """One level of midpoint subdivision, sharing the new edge vertices."""
-        _np = self._np
-        _rr = [tuple(_v) for _v in _np.asarray(rr, dtype=float)]
+        _rr = [tuple(_v) for _v in np.asarray(rr, dtype=float)]
         _mid = {}
         _out = []
-        for _a, _b, _c in _np.asarray(tris, dtype=int):
+        for _a, _b, _c in np.asarray(tris, dtype=int):
             _m = []
             for _p, _q in ((_a, _b), (_b, _c), (_c, _a)):
                 _k = (min(int(_p), int(_q)), max(int(_p), int(_q)))
                 if _k not in _mid:
                     _mid[_k] = len(_rr)
-                    _rr.append(
-                        tuple((_np.asarray(_rr[_p]) + _np.asarray(_rr[_q])) / 2.0)
-                    )
+                    _rr.append(tuple((np.asarray(_rr[_p]) + np.asarray(_rr[_q])) / 2.0))
                 _m.append(_mid[_k])
             _ab, _bc, _ca = _m
             _out += [[_a, _ab, _ca], [_ab, _b, _bc], [_ca, _bc, _c], [_ab, _bc, _ca]]
-        return _np.asarray(_rr, dtype=float), _np.asarray(_out, dtype=int)
+        return np.asarray(_rr, dtype=float), np.asarray(_out, dtype=int)
 
     def _glyph_template(
         self, kind, radius=None, height=None, center=None, resolution=None, **kwargs
@@ -222,10 +213,9 @@ class _LiteRenderer(_AbstractRenderer):
         Sizes follow the templates ``_pyvista.py`` hands the glyph filter, so
         the browser draws the markers at the size the rendered docs do.
         """
-        _np = self._np
         if kind in ("sphere", "oct"):
             _r = 0.5 if radius is None else float(radius)
-            rr = _np.array(
+            rr = np.array(
                 [
                     [1.0, 0, 0],
                     [-1.0, 0, 0],
@@ -236,7 +226,7 @@ class _LiteRenderer(_AbstractRenderer):
                 ],
                 float,
             )
-            tris = _np.array(
+            tris = np.array(
                 [
                     [0, 2, 4],
                     [2, 1, 4],
@@ -256,7 +246,7 @@ class _LiteRenderer(_AbstractRenderer):
             if kind == "sphere":
                 for _ in range(2):
                     rr, tris = self._subdivide(rr, tris)
-                    rr /= _np.linalg.norm(rr, axis=1)[:, None]
+                    rr /= np.linalg.norm(rr, axis=1)[:, None]
             return rr * _r, tris
         if kind == "cone":
             # apex along +x so the glyph filter's orientation applies, matching
@@ -264,35 +254,33 @@ class _LiteRenderer(_AbstractRenderer):
             _r = 0.15 if radius is None else float(radius)
             _h = 1.0 if height is None else float(height)
             _n = 8 if not resolution else max(3, int(resolution) // 2)
-            _ang = _np.linspace(0.0, 2 * _np.pi, _n, endpoint=False)
-            _ring = _np.column_stack(
-                [_np.zeros(_n), _r * _np.cos(_ang), _r * _np.sin(_ang)]
+            _ang = np.linspace(0.0, 2 * np.pi, _n, endpoint=False)
+            _ring = np.column_stack(
+                [np.zeros(_n), _r * np.cos(_ang), _r * np.sin(_ang)]
             )
-            rr = _np.vstack([_ring, [[_h, 0, 0]], [[0.0, 0, 0]]])
+            rr = np.vstack([_ring, [[_h, 0, 0]], [[0.0, 0, 0]]])
             tris = []
             for _i in range(_n):
                 _j = (_i + 1) % _n
                 tris += [[_i, _j, _n], [_n + 1, _j, _i]]  # side, base
-            return rr, _np.asarray(tris, int)
+            return rr, np.asarray(tris, int)
         # cylinder along +x, matching _cylinder_geom's convention
         _r = 0.1 if radius is None else float(radius)
         _h = 1.0 if height is None else float(height)
         _n = 8 if not resolution else max(3, int(resolution) // 2)
-        _c = _np.zeros(3) if center is None else _np.asarray(center, float)
-        _ang = _np.linspace(0.0, 2 * _np.pi, _n, endpoint=False)
-        _ring = _np.column_stack(
-            [_np.zeros(_n), _r * _np.cos(_ang), _r * _np.sin(_ang)]
-        )
-        _back = _ring + _np.array([-_h / 2.0, 0, 0])
-        _front = _ring + _np.array([_h / 2.0, 0, 0])
-        rr = _np.vstack([_back, _front, [[-_h / 2.0, 0, 0]], [[_h / 2.0, 0, 0]]]) + _c
+        _c = np.zeros(3) if center is None else np.asarray(center, float)
+        _ang = np.linspace(0.0, 2 * np.pi, _n, endpoint=False)
+        _ring = np.column_stack([np.zeros(_n), _r * np.cos(_ang), _r * np.sin(_ang)])
+        _back = _ring + np.array([-_h / 2.0, 0, 0])
+        _front = _ring + np.array([_h / 2.0, 0, 0])
+        rr = np.vstack([_back, _front, [[-_h / 2.0, 0, 0]], [[_h / 2.0, 0, 0]]]) + _c
         tris = []
         for _i in range(_n):
             _j = (_i + 1) % _n
             tris += [[_i, _j, _n + _j], [_i, _n + _j, _n + _i]]  # wall
             tris += [[2 * _n, _j, _i]]  # back cap
             tris += [[2 * _n + 1, _n + _i, _n + _j]]  # front cap
-        return rr, _np.asarray(tris, int)
+        return rr, np.asarray(tris, int)
 
     def _add(self, points, tris, color, opacity=1.0):
         """Draw a mesh and return MNE's (actor, mesh) pair.
@@ -302,9 +290,8 @@ class _LiteRenderer(_AbstractRenderer):
         drawing method here funnels through this, so translating it once covers
         all of them.
         """
-        _np = self._np
-        _pd = self._pv.PolyData(
-            points=_np.asarray(points, dtype=_np.float32), faces=_vtk_faces(tris)
+        _pd = pv.PolyData(
+            points=np.asarray(points, dtype=np.float32), faces=_vtk_faces(tris)
         )
         _actor = self.plotter.add_mesh(
             _pd,
@@ -316,11 +303,8 @@ class _LiteRenderer(_AbstractRenderer):
 
     def _rots_from_dirs(self, dirs):
         """Rotations carrying +x onto each direction, as the glyphs assume."""
-        _np = self._np
-        from mne.transforms import _find_vector_rotation as _fvr
-
-        _x = _np.array([1.0, 0.0, 0.0])
-        return _np.asarray([_fvr(_x, _d) for _d in dirs], dtype=float)
+        _x = np.array([1.0, 0.0, 0.0])
+        return np.asarray([_find_vector_rotation(_x, _d) for _d in dirs], dtype=float)
 
     def _tile(self, rr, tris, positions, scales=None, rots=None, axis_scales=None):
         """Stamp one template mesh at many positions as a single mesh.
@@ -330,32 +314,30 @@ class _LiteRenderer(_AbstractRenderer):
         instead means an oct-6 source space becomes 8196 meshes and 8196
         actors, which is enough to run the browser tab out of memory.
         """
-        _np = self._np
-        _rr = _np.asarray(rr, dtype=float)
-        _tris = _np.asarray(tris, dtype=int)
-        _pos = _np.atleast_2d(_np.asarray(positions, dtype=float))[:, :3]
+        _rr = np.asarray(rr, dtype=float)
+        _tris = np.asarray(tris, dtype=int)
+        _pos = np.atleast_2d(np.asarray(positions, dtype=float))[:, :3]
         _n = len(_pos)
-        _pts = _np.repeat(_rr[None, :, :], _n, axis=0)
+        _pts = np.repeat(_rr[None, :, :], _n, axis=0)
         if axis_scales is not None:
             # tubes span a given length without fattening, so scale the
             # template's axis alone
-            _ax = _np.atleast_1d(_np.asarray(axis_scales, dtype=float))
-            _pts[:, :, 0] *= _ax[_np.arange(_n) % len(_ax)][:, None]
+            _ax = np.atleast_1d(np.asarray(axis_scales, dtype=float))
+            _pts[:, :, 0] *= _ax[np.arange(_n) % len(_ax)][:, None]
         if scales is not None:
-            _sa = _np.atleast_1d(_np.asarray(scales, dtype=float))
-            _pts *= _sa[_np.arange(_n) % len(_sa)][:, None, None]
+            _sa = np.atleast_1d(np.asarray(scales, dtype=float))
+            _pts *= _sa[np.arange(_n) % len(_sa)][:, None, None]
         if rots is not None:
-            _ra = _np.asarray(rots, dtype=float)
-            _pts = _np.einsum("nij,nkj->nki", _ra[_np.arange(_n) % len(_ra)], _pts)
+            _ra = np.asarray(rots, dtype=float)
+            _pts = np.einsum("nij,nkj->nki", _ra[np.arange(_n) % len(_ra)], _pts)
         _pts += _pos[:, None, :]
-        _off = (_np.arange(_n) * len(_rr))[:, None, None]
+        _off = (np.arange(_n) * len(_rr))[:, None, None]
         return (_pts.reshape(-1, 3), (_tris[None, :, :] + _off).reshape(-1, 3))
 
     # -- drawing ------------------------------------------------------------
     def mesh(self, x, y, z, triangles, color=None, opacity=1.0, *args, **kwargs):
-        _np = self._np
-        _pts = _np.column_stack(
-            [_np.asarray(x).ravel(), _np.asarray(y).ravel(), _np.asarray(z).ravel()]
+        _pts = np.column_stack(
+            [np.asarray(x).ravel(), np.asarray(y).ravel(), np.asarray(z).ravel()]
         )
         return self._add(_pts, triangles, color, opacity)
 
@@ -373,8 +355,7 @@ class _LiteRenderer(_AbstractRenderer):
         radius=None,
         **kwargs,
     ):
-        _np = self._np
-        _c = _np.atleast_2d(_np.asarray(center, dtype=float))
+        _c = np.atleast_2d(np.asarray(center, dtype=float))
         if not len(_c):
             return None, None
         _r = float(radius if radius is not None else scale)
@@ -383,14 +364,13 @@ class _LiteRenderer(_AbstractRenderer):
         return self._add(_pts, _faces, color, opacity)
 
     def tube(self, origin, destination, radius=0.001, color=None, *args, **kwargs):
-        _np = self._np
-        _o = _np.atleast_2d(_np.asarray(origin, dtype=float))[:, :3]
-        _d = _np.atleast_2d(_np.asarray(destination, dtype=float))[:, :3]
+        _o = np.atleast_2d(np.asarray(origin, dtype=float))[:, :3]
+        _d = np.atleast_2d(np.asarray(destination, dtype=float))[:, :3]
         _n = min(len(_o), len(_d))
         if not _n:
             return None, None
         _vec = _d[:_n] - _o[:_n]
-        _len = _np.linalg.norm(_vec, axis=1)
+        _len = np.linalg.norm(_vec, axis=1)
         _keep = _len > 0
         if not _keep.any():
             return None, None
@@ -435,17 +415,16 @@ class _LiteRenderer(_AbstractRenderer):
         per point instead is what made ``20_source_alignment`` -- an oct-6
         source space, so 8196 glyphs, twice -- exhaust the browser tab.
         """
-        _np = self._np
-        _x, _y, _z = (_np.atleast_1d(_np.asarray(_q, dtype=float)) for _q in (x, y, z))
-        _ctr = _np.column_stack([_x, _y, _z])
+        _x, _y, _z = (np.atleast_1d(np.asarray(_q, dtype=float)) for _q in (x, y, z))
+        _ctr = np.column_stack([_x, _y, _z])
         _n = len(_ctr)
         if not _n:
             return None, None
-        _s = float(_np.asarray(scale).ravel()[0]) if _np.size(scale) else 1.0
-        _i = _np.arange(_n)
-        _u, _v, _w = (_np.atleast_1d(_np.asarray(_q, dtype=float)) for _q in (u, v, w))
-        _dirs = _np.column_stack([_u[_i % len(_u)], _v[_i % len(_v)], _w[_i % len(_w)]])
-        _norm = _np.linalg.norm(_dirs, axis=1)
+        _s = float(np.asarray(scale).ravel()[0]) if np.size(scale) else 1.0
+        _i = np.arange(_n)
+        _u, _v, _w = (np.atleast_1d(np.asarray(_q, dtype=float)) for _q in (u, v, w))
+        _dirs = np.column_stack([_u[_i % len(_u)], _v[_i % len(_v)], _w[_i % len(_w)]])
+        _norm = np.linalg.norm(_dirs, axis=1)
         _flat = _norm == 0
         _dirs[_flat] = (1.0, 0.0, 0.0)
         _norm[_flat] = 1.0
@@ -476,7 +455,7 @@ class _LiteRenderer(_AbstractRenderer):
         if solid_transform is not None:
             # _pyvista.py transforms the template before glyphing, and this is
             # where the fiducial markers get their size and 45 deg roll
-            _st = _np.asarray(solid_transform, dtype=float)
+            _st = np.asarray(solid_transform, dtype=float)
             _rr = _rr @ _st[:3, :3].T + _st[:3, 3]
         _rots = None if mode in ("sphere", "oct") else self._rots_from_dirs(_dirs)
         _pts, _faces = self._tile(_rr, _tris, _ctr, scales=_s, rots=_rots)
@@ -502,23 +481,20 @@ class _LiteRenderer(_AbstractRenderer):
         color they asked for and each group becomes one mesh -- a handful of
         actors for a sensor array instead of one per sensor.
         """
-        _np = self._np
-        _pos = _np.atleast_2d(_np.asarray(positions, dtype=float))[:, :3]
+        _pos = np.atleast_2d(np.asarray(positions, dtype=float))[:, :3]
         _n = len(_pos)
         if not _n:
             return None, None
         _rot = None
         if quats is not None:
-            from mne.transforms import quat_to_rot as _q2r
-
-            _rot = _np.asarray(
-                _q2r(_np.atleast_2d(_np.asarray(quats, dtype=float))), dtype=float
+            _rot = np.asarray(
+                quat_to_rot(np.atleast_2d(np.asarray(quats, dtype=float))), dtype=float
             )
-        _idx = _np.arange(_n)
-        if colors is not None and _np.ndim(colors) > 1:
-            _ca = _np.asarray(colors)
-            _uniq, _inv = _np.unique(_ca[_idx % len(_ca)], axis=0, return_inverse=True)
-            _inv = _np.asarray(_inv).ravel()
+        _idx = np.arange(_n)
+        if colors is not None and np.ndim(colors) > 1:
+            _ca = np.asarray(colors)
+            _uniq, _inv = np.unique(_ca[_idx % len(_ca)], axis=0, return_inverse=True)
+            _inv = np.asarray(_inv).ravel()
             _groups = [(_uniq[_k], _idx[_inv == _k]) for _k in range(len(_uniq))]
         else:
             _groups = [(colors, _idx)]
@@ -526,7 +502,7 @@ class _LiteRenderer(_AbstractRenderer):
         for _col, _sel in _groups:
             _sc = None
             if scales is not None:
-                _sa = _np.atleast_1d(_np.asarray(scales, dtype=float))
+                _sa = np.atleast_1d(np.asarray(scales, dtype=float))
                 _sc = _sa[_sel % len(_sa)]
             _rt = None if _rot is None else _rot[_sel % len(_rot)]
             _pts, _faces = self._tile(rr, tris, _pos[_sel], scales=_sc, rots=_rt)
@@ -560,10 +536,17 @@ class _LiteRenderer(_AbstractRenderer):
         return None
 
     def project(self, xyz, ch_names):
-        return self._np.asarray(xyz, dtype=float)[:, :2]
+        raise NotImplementedError(
+            "Projecting 3D positions onto the scene is not supported in the "
+            "browser: it has to return a _Projection built from the render "
+            "window, and pyvista-js does not expose one."
+        )
 
     def screenshot(self, mode="rgb", filename=None, **kwargs):
-        return self._np.zeros((2, 2, 3), dtype="uint8")
+        raise NotImplementedError(
+            "Taking a screenshot is not supported in the browser: vtk.js draws "
+            "to a live canvas and pyvista-js cannot read it back as an array."
+        )
 
     def close(self):
         return None
@@ -585,7 +568,10 @@ class _LiteRenderer(_AbstractRenderer):
         return None
 
     def get_camera(self, *args, **kwargs):
-        return (0.0, 0.0, 1.0, (0.0, 0.0, 0.0), 0.0)
+        # Same order as _get_3d_view: roll, distance, azimuth, elevation and
+        # then the focalpoint. Brain unpacks positions 3 and 4 as the angles,
+        # so the focalpoint has to be the last element rather than the fourth.
+        return (0.0, 1.0, 0.0, 0.0, np.zeros(3))
 
     def set_camera(
         self,
@@ -597,9 +583,7 @@ class _LiteRenderer(_AbstractRenderer):
         *args,
         **kwargs,
     ):
-        # pyvista-js has no azimuth/elevation camera; approximate the common
-        # views and otherwise leave the default.
-        return _lite_set_view(self.plotter, azimuth)
+        return _lite_set_view(self.plotter, azimuth, elevation)
 
     @property
     def figure(self):
@@ -646,7 +630,7 @@ class _LiteBackend:
         distance=None,
         roll=None,
     ):
-        return _lite_set_view(figure, azimuth)
+        return _lite_set_view(figure, azimuth, elevation)
 
     def _set_3d_title(
         self, figure, title, size=40, color="white", position="upper_left"

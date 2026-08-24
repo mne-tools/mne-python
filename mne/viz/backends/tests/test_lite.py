@@ -8,13 +8,15 @@ import sys
 import numpy as np
 import pytest
 
-from mne.viz.backends._abstract import _AbstractRenderer
-from mne.viz.backends._lite import (
+pytest.importorskip("pyvista_js")  # _lite imports it at module level
+
+from mne.viz.backends._abstract import _AbstractRenderer  # noqa: E402
+from mne.viz.backends._lite import (  # noqa: E402
     _LITE_MAX_LIVE_SCENES,
     _activate,
     _deactivate,
     _lite_live_plotters,
-    _lite_view_vector,
+    _lite_set_view,
     _LiteBackend,
     _LiteRenderer,
 )
@@ -45,30 +47,25 @@ def test_implements_abstract_renderer():
     assert not _LiteRenderer.__abstractmethods__
 
 
-def test_kind_matches_the_registered_backend():
-    """``_kind`` must stay in step with the backend :func:`_activate` names.
+def test_kind_is_its_own():
+    """``_kind`` must stay distinct from the desktop notebook backend.
 
-    Callers branch on ``_kind`` to choose behaviour: ``mne/gui/_coreg.py``
-    calls ``_qt_app_exec`` whenever it is not ``"notebook"``, and there is no
-    Qt event loop in a browser to exec.
+    Callers branch on ``_kind`` to pick behaviour, and this environment has no
+    VTK, no filesystem and no OS threads, so it must not be mistaken for the
+    notebook backend that does.
     """
-    from mne.viz.backends import renderer
-
-    _activate()
-    try:
-        assert _LiteRenderer._kind == renderer.MNE_3D_BACKEND == "notebook"
-    finally:
-        _deactivate()
+    assert _LiteRenderer._kind == "jupyterlite_notebook"
+    # the two desktop backends, which this must not be confused with
+    assert _LiteRenderer._kind not in ("notebook", "qt")
 
 
 def test_import_is_side_effect_free():
     """Importing the module must not pull in VTK or touch the drawing factory.
 
-    The browser kernel has no VTK at all and installs pyvista-js from piplite
-    only after MNE is imported, so importing this module has to stay cheap and
-    leave ``mne.viz.backends.renderer`` alone until :func:`_activate` is
-    called. Run in a subprocess because by this point in a full test session
-    another backend has usually already imported VTK.
+    The browser kernel has no VTK at all, and ``mne.viz.backends.renderer``
+    has to keep its own factory until :func:`_activate` is called. Run in a
+    subprocess because by this point in a full test session another backend
+    has usually already imported VTK.
     """
     code = (
         "import sys\n"
@@ -76,7 +73,6 @@ def test_import_is_side_effect_free():
         "from mne.viz.backends import renderer\n"
         "assert 'vtk' not in sys.modules, 'importing _lite pulled in vtk'\n"
         "assert 'vtkmodules' not in sys.modules, 'importing _lite pulled in vtk'\n"
-        "assert 'pyvista_js' not in sys.modules, 'pyvista-js imported early'\n"
         "assert renderer._get_renderer.__module__.endswith('renderer')\n"
         "print('ok')\n"
     )
@@ -88,19 +84,20 @@ def test_import_is_side_effect_free():
 
 
 @pytest.mark.parametrize(
-    "azimuth, expected",
-    [
-        (0, (-1.0, 0.0, 0.0)),
-        (90, (0.0, -1.0, 0.0)),
-        (180, (1.0, 0.0, 0.0)),
-        (270, (0.0, 1.0, 0.0)),
-        (360, (-1.0, 0.0, 0.0)),  # wraps
-        (-90, (0.0, 1.0, 0.0)),  # wraps
-    ],
+    "azimuth, elevation",
+    [(0, None), (90, None), (180, None), (270, None), (45, 30), (None, 2), (None, 90)],
 )
-def test_view_vector(azimuth, expected):
-    """Azimuths map onto the nearest axis-aligned view, wrapping past 360."""
-    assert _lite_view_vector(azimuth) == expected
+def test_set_view(azimuth, elevation, lite_scene):
+    """Every azimuth/elevation pair must reach the camera, poles included."""
+    r = _LiteRenderer(size=(200, 200))
+    # 2 and 90 degrees sit either side of the 5/175 view-up flip
+    assert _lite_set_view(r.plotter, azimuth, elevation) is None
+
+
+def test_set_view_without_angles_is_a_no_op(lite_scene):
+    """No azimuth and no elevation means leave the camera alone."""
+    r = _LiteRenderer(size=(200, 200))
+    assert _lite_set_view(r.plotter, None, None) is None
 
 
 def test_draws_every_primitive(lite_scene):
@@ -153,6 +150,33 @@ def test_live_scenes_are_capped(lite_scene):
     # the survivors are the most recent ones
     live = [ref() for ref in _lite_live_plotters]
     assert live == [r.plotter for r in kept[-_LITE_MAX_LIVE_SCENES:]]
+
+
+def test_get_camera_matches_the_expected_order(lite_scene):
+    """``get_camera`` must unpack the way ``_get_3d_view`` does.
+
+    ``Brain`` reads it as ``_, _, azimuth, elevation, _``, so the focalpoint
+    has to be last; putting it fourth hands ``Brain`` a tuple for an angle.
+    """
+    roll, distance, azimuth, elevation, focalpoint = _LiteRenderer(
+        size=(200, 200)
+    ).get_camera()
+    for angle in (roll, distance, azimuth, elevation):
+        assert isinstance(angle, float)
+    assert np.asarray(focalpoint).shape == (3,)
+
+
+@pytest.mark.parametrize("method, args", [("project", ({}, [])), ("screenshot", ())])
+def test_unsupported_methods_say_so(method, args, lite_scene):
+    """Things pyvista-js cannot do must raise, not hand back a plausible stub.
+
+    ``project`` used to return an array where callers expect a ``_Projection``
+    and would fail a line later on ``.visible()``; ``screenshot`` used to
+    return a 2x2 black image.
+    """
+    r = _LiteRenderer(size=(200, 200))
+    with pytest.raises(NotImplementedError, match="browser"):
+        getattr(r, method)(*args)
 
 
 def test_activate_and_deactivate_round_trip(lite_scene):
