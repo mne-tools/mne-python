@@ -540,11 +540,11 @@ _baseline_mode_desc = """\
 docdict["baseline_mode"] = f"""
     mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio' 
     {_baseline_mode_desc}
-"""
+"""  # noqa: E501
 docdict["mn_baseline_mode"] = f"""
     baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio' 
     {_baseline_mode_desc}
-"""
+"""  # noqa: E501
 
 docdict["baseline_report"] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**
