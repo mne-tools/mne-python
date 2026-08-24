@@ -214,7 +214,7 @@ jobs:
             - data-cache-testing
       - restore_cache:
           keys:
-            - data-cache-visual
+            - data-cache-visual-1
       - restore_cache:
           keys:
             - data-cache-ucl-opm-auditory
@@ -404,7 +404,7 @@ jobs:
           paths:
             - ~/mne_data/MNE-testing-data  # (2.5 G)
       - save_cache:
-          key: data-cache-visual
+          key: data-cache-visual-1
           paths:
             - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
       - save_cache:
