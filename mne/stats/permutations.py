@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_if_nan, _check_rng_compat, logger, verbose
+from ..utils import _check_if_nan, _check_rng_compat, fill_doc, logger, verbose
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -59,10 +59,10 @@ def permutation_t_test(
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
     %(n_jobs)s
-    %(rng)s
     seed : None | int | instance of ~numpy.random.RandomState
         Deprecated. Use ``rng`` instead.
     %(verbose)s
+    %(rng)s
 
     Returns
     -------
@@ -114,6 +114,7 @@ def permutation_t_test(
     return T_obs, p_values, H0
 
 
+@fill_doc
 def bootstrap_confidence_interval(
     arr,
     ci=0.95,
@@ -135,9 +136,9 @@ def bootstrap_confidence_interval(
         Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along ``axis=0``.
-    %(rng)s
     random_state : int | float | array_like | None
         Deprecated. Use ``rng`` instead.
+    %(rng)s
 
     Returns
     -------

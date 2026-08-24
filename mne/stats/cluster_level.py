@@ -1154,7 +1154,6 @@ def permutation_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_n)s
     %(n_jobs)s
-    %(rng)s
     seed : None | int | instance of ~numpy.random.RandomState
         Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
@@ -1165,6 +1164,7 @@ def permutation_cluster_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
 
     Returns
     -------
@@ -1246,7 +1246,6 @@ def permutation_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_1)s
     %(n_jobs)s
-    %(rng)s
     seed : None | int | instance of ~numpy.random.RandomState
         Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
@@ -1257,6 +1256,7 @@ def permutation_cluster_1samp_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
 
     Returns
     -------
@@ -1364,7 +1364,6 @@ def spatio_temporal_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_st1)s
     %(n_jobs)s
-    %(rng)s
     seed : None | int | instance of ~numpy.random.RandomState
         Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
@@ -1376,6 +1375,7 @@ def spatio_temporal_cluster_1samp_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
 
     Returns
     -------
@@ -1468,7 +1468,6 @@ def spatio_temporal_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_stn)s
     %(n_jobs)s
-    %(rng)s
     seed : None | int | instance of ~numpy.random.RandomState
         Deprecated. Use ``rng`` instead.
     %(max_step_clust)s
@@ -1480,6 +1479,7 @@ def spatio_temporal_cluster_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
 
     Returns
     -------

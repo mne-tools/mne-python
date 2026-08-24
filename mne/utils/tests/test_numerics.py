@@ -216,12 +216,25 @@ def test_random_permutation():
     """Test random permutation function."""
     n_samples = 10
     random_state = 42
-    python_randperm = random_permutation(n_samples, random_state)
+    with pytest.warns(FutureWarning, match="random_state"):
+        python_randperm = random_permutation(n_samples, random_state)
 
     # matlab output when we execute rng(42), randperm(10)
     matlab_randperm = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
 
     assert_array_equal(python_randperm, matlab_randperm - 1)
+
+    assert_array_equal(
+        random_permutation(n_samples, rng=42),
+        random_permutation(n_samples, rng=42),
+    )
+    rng = np.random.default_rng(42)
+    assert not np.array_equal(
+        random_permutation(n_samples, rng=rng),
+        random_permutation(n_samples, rng=rng),
+    )
+    with pytest.raises(TypeError, match="only one"):
+        random_permutation(n_samples, random_state=42, rng=42)
 
 
 def test_cov_scaling():

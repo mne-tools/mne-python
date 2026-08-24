@@ -26,9 +26,9 @@ from ..fixes import (
 )
 from ._logging import logger, verbose, warn
 from .check import (
+    _check_rng_compat,
     _ensure_int,
     _validate_type,
-    check_random_state,
 )
 from .docs import fill_doc
 from .misc import _empty_hash, _pl
@@ -266,7 +266,7 @@ def compute_corr(x, y):
 
 
 @fill_doc
-def random_permutation(n_samples, random_state=None):
+def random_permutation(n_samples, random_state=None, *, rng=None):
     """Emulate the randperm matlab function.
 
     It returns a vector containing a random permutation of the
@@ -289,13 +289,14 @@ def random_permutation(n_samples, random_state=None):
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
     %(random_state)s
+    %(rng)s
 
     Returns
     -------
     randperm : ndarray, int
         Randomly permuted sequence between 0 and n-1.
     """
-    rng = check_random_state(random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     # This can't just be rng.permutation(n_samples) because it's not identical
     # to what MATLAB produces
     idx = rng.uniform(size=n_samples)

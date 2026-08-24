@@ -86,6 +86,7 @@ from .utils import (
     _check_pandas_index_arguments,
     _check_pandas_installed,
     _check_preload,
+    _check_rng_compat,
     _check_time_format,
     _convert_times,
     _ensure_events,
@@ -98,7 +99,6 @@ from .utils import (
     _scale_dataframe_data,
     _validate_type,
     check_fname,
-    check_random_state,
     copy_function_doc_to_method_doc,
     legacy,
     logger,
@@ -2495,6 +2495,7 @@ class BaseEpochs(
         method: Literal["truncate", "mintime", "random"] = "mintime",
         *,
         random_state: int | RandomState | None = None,
+        rng=None,
     ) -> tuple:
         """Equalize the number of trials in each condition.
 
@@ -2537,6 +2538,7 @@ class BaseEpochs(
             epochs.
         %(equalize_events_method)s
         %(random_state)s Used only if ``method='random'``.
+        %(rng)s Used only if ``method='random'``.
 
         Returns
         -------
@@ -2640,7 +2642,8 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(sample_nums, method, random_state)
+        rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
+        indices = _get_drop_indices(sample_nums, method, rng)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -4017,6 +4020,7 @@ def equalize_epoch_counts(
     method: Literal["truncate", "mintime", "random"] = "mintime",
     *,
     random_state: int | RandomState | None = None,
+    rng=None,
 ) -> None:
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
@@ -4026,6 +4030,7 @@ def equalize_epoch_counts(
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
     %(random_state)s Used only if ``method='random'``.
+    %(rng)s Used only if ``method='random'``.
 
     Notes
     -----
@@ -4052,12 +4057,13 @@ def equalize_epoch_counts(
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(sample_nums, method, random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
+    indices = _get_drop_indices(sample_nums, method, rng)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method, random_state):
+def _get_drop_indices(sample_nums, method, rng):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
@@ -4070,7 +4076,6 @@ def _get_drop_indices(sample_nums, method, random_state):
             mask = np.ones(event.size, dtype=bool)
             mask[small_epoch_indices.size :] = False
         elif method == "random":
-            rng = check_random_state(random_state)
             mask = np.zeros(event.size, dtype=bool)
             idx = rng.choice(
                 np.arange(event.size), size=small_epoch_indices.size, replace=False
@@ -4654,7 +4659,7 @@ class EpochsFIF(BaseEpochs):
 
 
 @fill_doc
-def bootstrap(epochs, random_state=None):
+def bootstrap(epochs, random_state=None, *, rng=None):
     """Compute epochs selected by bootstrapping.
 
     Parameters
@@ -4662,6 +4667,7 @@ def bootstrap(epochs, random_state=None):
     epochs : Epochs instance
         epochs data to be bootstrapped
     %(random_state)s
+    %(rng)s
 
     Returns
     -------
@@ -4675,7 +4681,7 @@ def bootstrap(epochs, random_state=None):
             "in the constructor."
         )
 
-    rng = check_random_state(random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng_uniform(rng)(0, n_events, n_events)

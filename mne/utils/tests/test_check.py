@@ -58,8 +58,9 @@ def test_check_rng():
     assert_array_equal(rng.integers(10, size=3), _check_rng(0).integers(10, size=3))
 
     assert _check_rng(rng) is rng
-    assert isinstance(_check_rng(np.random.SeedSequence(0)), np.random.Generator)
-    assert isinstance(_check_rng(np.random.PCG64(0)), np.random.Generator)
+    bit_generator = np.random.default_rng(0).bit_generator
+    assert isinstance(_check_rng(bit_generator.seed_seq), np.random.Generator)
+    assert isinstance(_check_rng(bit_generator), np.random.Generator)
     with pytest.raises(TypeError):
         _check_rng(np.random.RandomState(0))
 
