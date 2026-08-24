@@ -37,7 +37,7 @@ dependencies:
   - nomkl
   - noqt5
   - numba >=0.60
-  - numpy <3,>=2.0
+  - numpy <3,>=2.1
   - openmeeg >=2.5.7
   - packaging
   - pandas !=3.0.4,>=2.2
