@@ -11,7 +11,6 @@ from ..source_space._source_space import _ensure_src
 from ..surface import _compute_nearest
 from ..utils import (
     _check_option,
-    _check_rng_compat,
     _ensure_events,
     _ensure_int,
     _legacy_rng,
@@ -74,7 +73,6 @@ def select_source_in_label(
     rh_vertno : list
         Selected source coefficients on the right hemisphere.
     """
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     return _select_source_in_label(
         src,
         label,
@@ -185,7 +183,6 @@ def simulate_sparse_stc(
     -----
     .. versionadded:: 0.10.0
     """
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     src = _ensure_src(src, verbose=False)
     subject_src = src._subject
     if subject is None:

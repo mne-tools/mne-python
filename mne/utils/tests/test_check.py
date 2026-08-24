@@ -38,7 +38,7 @@ from mne.utils import (
     check_random_state,
     check_version,
 )
-from mne.utils.check import _check_rng, _check_rng_compat
+from mne.utils.check import _check_rng, _legacy_rng
 
 data_path = testing.data_path(download=False)
 base_dir = data_path / "MEG" / "sample"
@@ -68,13 +68,32 @@ def test_check_rng():
         _check_rng("foo")
 
 
-def test_check_rng_compat():
-    """Test compatibility with legacy random-number parameters."""
-    rng = _check_rng_compat(None, legacy=0, legacy_name="seed")
-    assert isinstance(rng, np.random.RandomState)
-    assert isinstance(_check_rng_compat(None, legacy_name="seed"), np.random.Generator)
-    with pytest.raises(TypeError, match="rng"):
-        _check_rng_compat(0, legacy=1, legacy_name="random_state")
+def test_legacy_rng_decorator():
+    """Test that the transition decorator normalizes and warns."""
+
+    @_legacy_rng("random_state")
+    def _func(random_state=None, *, rng=None):
+        return rng
+
+    # no argument: a fresh generator is created
+    assert isinstance(_func(), np.random.Generator)
+    assert isinstance(_func(rng=0), np.random.Generator)
+    assert_array_equal(
+        _func(rng=0).integers(10, size=3), _func(rng=0).integers(10, size=3)
+    )
+    # legacy RandomState passthrough
+    random_state = np.random.RandomState(0)
+    assert _func(rng=random_state) is random_state
+    # legacy int/None keep their RandomState semantics, with a deprecation warning
+    with pytest.warns(FutureWarning, match="random_state is deprecated"):
+        assert isinstance(_func(random_state=0), np.random.RandomState)
+    with pytest.warns(FutureWarning, match="random_state is deprecated"):
+        assert isinstance(_func(random_state=None), np.random.mtrand.RandomState)
+    # supplying both is an error; positional legacy arguments are supported
+    with pytest.raises(TypeError, match="Specify only one"):
+        _func(0, rng=0)
+    with pytest.raises(TypeError, match="Specify only one"):
+        _func(random_state=0, rng=0)
 
 
 @testing.requires_testing_data

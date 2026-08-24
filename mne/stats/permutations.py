@@ -11,7 +11,6 @@ import numpy as np
 from ..parallel import parallel_func
 from ..utils import (
     _check_if_nan,
-    _check_rng_compat,
     _legacy_rng,
     fill_doc,
     logger,
@@ -100,7 +99,6 @@ def permutation_t_test(
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
     std0 = np.sqrt(X2 - mu0**2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
-    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
     logger.info(f"Permuting {len(orders)} times{extra}...")
@@ -167,7 +165,6 @@ def bootstrap_confidence_interval(
         raise ValueError("stat_fun must be 'mean', 'median' or callable.")
     n_trials = arr.shape[0]
     indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, (1 - ((1 - ci) / 2)) * 100)

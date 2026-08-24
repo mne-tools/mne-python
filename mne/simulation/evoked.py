@@ -15,7 +15,6 @@ from ..forward import apply_forward
 from ..io import BaseRaw
 from ..utils import (
     _check_preload,
-    _check_rng_compat,
     _legacy_rng,
     _validate_type,
     check_random_state,
@@ -96,7 +95,6 @@ def simulate_evoked(
         return evoked
 
     if nave < np.inf:
-        rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, rng)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int64(nave)
@@ -146,7 +144,6 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rn
     """
     # We always allow subselection here
     legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     return _add_noise(inst, cov, iir_filter, rng, legacy_seed=legacy_seed)
 
 

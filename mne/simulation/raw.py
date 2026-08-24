@@ -44,7 +44,6 @@ from ..surface import _CheckInside
 from ..transforms import Transform, _get_trans, transform_surface_to
 from ..utils import (
     _check_preload,
-    _check_rng_compat,
     _legacy_rng,
     _pl,
     _validate_type,
@@ -449,7 +448,6 @@ def add_eog(
     ----------
     .. footbibliography::
     """
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     return _add_exg(raw, "blink", head_pos, interp, n_jobs, rng)
 
 
@@ -512,7 +510,6 @@ def add_ecg(
 
     .. versionadded:: 0.18
     """
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     return _add_exg(raw, "ecg", head_pos, interp, n_jobs, rng)
 
 

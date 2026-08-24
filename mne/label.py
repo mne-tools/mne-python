@@ -39,7 +39,6 @@ from .surface import (
 from .utils import (
     _check_fname,
     _check_option,
-    _check_rng_compat,
     _check_subject,
     _import_nibabel,
     _legacy_rng,
@@ -2046,7 +2045,6 @@ def random_parcellation(
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, rng)
 
     # add a unique color to each label
@@ -3022,9 +3020,6 @@ def select_sources(
                 subject, restrict_vertices=True, subjects_dir=subjects_dir, surf=surf
             )
         else:
-            rng = _check_rng_compat(
-                rng, legacy=random_state, legacy_name="random_state"
-            )
             seed = rng.choice(label.vertices)
     else:
         seed = label.vertices[location]

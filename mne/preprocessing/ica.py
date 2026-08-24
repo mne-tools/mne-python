@@ -67,7 +67,6 @@ from ..utils import (
     _check_rng,
     _ensure_int,
     _get_inst_data,
-    _legacy_rng,
     _limit_blas_threads,
     _on_missing,
     _pl,
@@ -436,7 +435,6 @@ class ICA(ContainsMixin):
     .. footbibliography::
     """  # noqa: E501
 
-    @_legacy_rng("random_state")
     @verbose
     def __init__(
         self,
@@ -478,7 +476,17 @@ class ICA(ContainsMixin):
         self._max_pca_components = None
         self.n_pca_components = None
         self.ch_names = None
+        if rng is not None and random_state is not None:
+            raise TypeError("Specify only one of rng or random_state")
+        if random_state is not None:
+            warn(
+                "random_state is deprecated and will be removed in a future "
+                "release; use rng instead.",
+                FutureWarning,
+            )
         self.random_state = random_state
+        # stored un-normalized so that integer seeds stay intact for the
+        # third-party ``random_state`` parameters used during fitting
         self.rng = rng
 
         if fit_params is None:

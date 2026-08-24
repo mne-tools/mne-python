@@ -12,7 +12,6 @@ from ..source_space import SourceSpaces
 from ..utils import (
     ProgressBar,
     _check_option,
-    _check_rng_compat,
     _legacy_rng,
     _pl,
     _validate_type,
@@ -1225,7 +1224,6 @@ def permutation_cluster_test(
     ----------
     .. footbibliography::
     """
-    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return _permutation_cluster_test_normalized(
         X,
         threshold,
@@ -1340,7 +1338,6 @@ def permutation_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return _permutation_cluster_test_normalized(
         X,
         threshold,
@@ -1443,7 +1440,6 @@ def spatio_temporal_cluster_1samp_test(
         )
     else:
         exclude = None
-    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return _permutation_cluster_test_normalized(
         X,
         threshold,
@@ -1548,7 +1544,6 @@ def spatio_temporal_cluster_test(
         )
     else:
         exclude = None
-    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     return _permutation_cluster_test_normalized(
         X,
         threshold,

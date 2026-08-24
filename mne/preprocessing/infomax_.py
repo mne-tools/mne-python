@@ -7,7 +7,7 @@ import math
 import numpy as np
 from scipy.special import expit
 
-from ..utils import _check_rng_compat, _legacy_rng, logger, verbose
+from ..utils import _legacy_rng, logger, verbose
 from ..utils.numerics import _random_permutation
 
 
@@ -361,7 +361,6 @@ def infomax(
     rng=None,
 ):
     """Run (extended) Infomax ICA decomposition on raw data."""
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     return _infomax(
         data,
         weights=weights,

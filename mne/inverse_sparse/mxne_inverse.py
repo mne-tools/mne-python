@@ -18,7 +18,6 @@ from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..utils import (
     _check_depth,
     _check_option,
-    _check_rng_compat,
     _legacy_rng,
     _validate_type,
     logger,
@@ -537,7 +536,6 @@ def mixed_norm(
 
     # Alpha selected automatically by SURE minimization
     if alpha == "sure":
-        rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
         alpha_grid = sure_alpha_grid
         if isinstance(sure_alpha_grid, str) and sure_alpha_grid == "auto":
             alpha_grid = np.geomspace(100, 10, num=15)

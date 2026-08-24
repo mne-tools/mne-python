@@ -318,6 +318,8 @@ def test_ica_rng_transition():
         ica.fit(raw)
     unmixings.append(ica.unmixing_matrix_)
     assert_array_equal(unmixings[0], unmixings[1])
+    # at the ICA/sklearn boundary an integer ``rng`` seed is forwarded verbatim,
+    # so it matches the same integer passed to the deprecated parameter
     assert_array_equal(unmixings[0], unmixings[2])
 
 

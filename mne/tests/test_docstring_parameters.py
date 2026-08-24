@@ -378,10 +378,9 @@ legacy_rng_allowlist = {
     ("mne/tests/test_cov.py", "test_auto_low_rank_ignores_global_rng"),
     ("mne/tests/test_dipole.py", "test_dipole_fitting"),
     ("mne/utils/check.py", "_check_rng"),
-    ("mne/utils/check.py", "_legacy_rng_wrapper"),
     ("mne/utils/check.py", "check_random_state"),
     ("mne/utils/tests/test_check.py", "test_check_rng"),
-    ("mne/utils/tests/test_check.py", "test_check_rng_compat"),
+    ("mne/utils/tests/test_check.py", "test_legacy_rng_decorator"),
     (
         "mne/viz/tests/test_circle.py",
         "test_plot_connectivity_circle_jitter_reproducible",

@@ -86,7 +86,6 @@ from .utils import (
     _check_pandas_index_arguments,
     _check_pandas_installed,
     _check_preload,
-    _check_rng_compat,
     _check_time_format,
     _convert_times,
     _ensure_events,
@@ -2650,7 +2649,6 @@ class BaseEpochs(
         legacy_seed = (
             random_state if isinstance(random_state, int | np.integer) else None
         )
-        rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
         indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
@@ -4069,7 +4067,6 @@ def equalize_epoch_counts(
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
     legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
@@ -4700,7 +4697,6 @@ def bootstrap(epochs, random_state=None, *, rng=None):
             "in the constructor."
         )
 
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng_uniform(rng)(0, n_events, n_events)

@@ -26,7 +26,6 @@ from ..fixes import (
 )
 from ._logging import logger, verbose, warn
 from .check import (
-    _check_rng_compat,
     _ensure_int,
     _legacy_rng,
     _validate_type,
@@ -298,7 +297,6 @@ def random_permutation(n_samples, random_state=None, *, rng=None):
     randperm : ndarray, int
         Randomly permuted sequence between 0 and n-1.
     """
-    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     return _random_permutation(n_samples, rng)
 
 
