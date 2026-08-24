@@ -1327,9 +1327,9 @@ def permutation_cluster_1samp_test(
     %(threshold_clust_t_notes)s
 
     If ``n_permutations`` exceeds the maximum number of possible permutations
-    given the number of observations, then ``n_permutations`` and ``seed``
-    will be ignored since an exact test (full permutation test) will be
-    performed (this is the case when
+    given the number of observations, then ``n_permutations``, ``seed``, and
+    ``rng`` will be ignored since an exact test (full permutation test) will
+    be performed (this is the case when
     ``n_permutations >= 2 ** (n_observations - (tail == 0))``).
 
     If no initial clusters are found because all points in the true

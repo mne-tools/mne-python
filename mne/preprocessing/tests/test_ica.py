@@ -315,6 +315,26 @@ def test_ica_rng_transition():
     assert_array_equal(unmixings[0], unmixings[1])
 
 
+def test_ica_infomax_fit_params_verbose():
+    """Test Infomax fit_params can suppress its private logging scope."""
+    info = create_info(["Fz", "Cz", "Pz"], 100.0, "eeg")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
+    ica = _ICA(
+        n_components=2,
+        method="infomax",
+        fit_params={"verbose": False},
+        max_iter=1,
+        rng=0,
+    )
+    with catch_logging(True) as log:
+        ica.fit(raw, verbose=True)
+    log = log.getvalue()
+    assert "Fitting ICA to data" in log
+    assert "Computing Infomax ICA" not in log
+
+
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
 def test_ica_n_iter_(method, tmp_path):
     """Test that ICA.n_iter_ is set after fitting."""

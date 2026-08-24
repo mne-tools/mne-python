@@ -7,11 +7,11 @@ import math
 import numpy as np
 from scipy.special import expit
 
-from ..utils import _check_rng_compat, _legacy_rng, fill_doc, logger, verbose
+from ..utils import _check_rng_compat, _legacy_rng, logger, verbose
 from ..utils.numerics import _random_permutation
 
 
-@fill_doc
+@verbose
 def _infomax(
     data,
     weights=None,

@@ -84,8 +84,8 @@ def permutation_t_test(
     Notes
     -----
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
-    ``n_permutations`` and ``seed`` will be ignored since an exact test
-    (full permutation test) will be performed.
+    ``n_permutations``, ``seed``, and ``rng`` will be ignored since an exact
+    test (full permutation test) will be performed.
 
     References
     ----------
