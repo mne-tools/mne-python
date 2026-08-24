@@ -952,6 +952,7 @@ def _permutation_cluster_test(
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
+    # Convert the RNG state to permutation orders.
     # check to see if we can do an exact test
     # (for a two-tailed test, we can exploit symmetry to just do half)
     extra = ""
