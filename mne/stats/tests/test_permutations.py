@@ -24,24 +24,24 @@ def test_permutation_t_test():
     X = rng.standard_normal((n_samples, n_tests))
     X[:, :2] += 1
 
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=0, seed=0)
+    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=0, rng=0)
     assert (p_values > 0).all()
     assert len(H0) == 999
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
 
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=1, seed=0)
+    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=1, rng=0)
     assert (p_values > 0).all()
     assert len(H0) == 999
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
 
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=-1, seed=0)
+    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=-1, rng=0)
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [False, False, False, False, False])
 
     X *= -1
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=-1, seed=0)
+    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=-1, rng=0)
     assert (p_values > 0).all()
     assert len(H0) == 999
     is_significant = p_values < 0.05
@@ -90,7 +90,7 @@ def test_ci():
         _ci(arr, method="parametric"), _ci(arr, method="bootstrap"), rtol=0.005
     )
     assert_allclose(
-        bootstrap_confidence_interval(arr, stat_fun="median", random_state=0),
-        bootstrap_confidence_interval(arr, stat_fun="mean", random_state=0),
+        bootstrap_confidence_interval(arr, stat_fun="median", rng=0),
+        bootstrap_confidence_interval(arr, stat_fun="mean", rng=0),
         rtol=0.1,
     )

@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_if_nan, check_random_state, logger, verbose
+from ..utils import _check_if_nan, _check_rng_compat, logger, verbose
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -23,7 +23,14 @@ def _max_stat(X, X2, perms, dof_scaling):
 
 @verbose
 def permutation_t_test(
-    X, n_permutations=10000, tail=0, n_jobs=None, seed=None, verbose=None
+    X,
+    n_permutations=10000,
+    tail=0,
+    n_jobs=None,
+    seed=None,
+    verbose=None,
+    *,
+    rng=None,
 ):
     """One sample/paired sample permutation test based on a t-statistic.
 
@@ -52,7 +59,9 @@ def permutation_t_test(
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
     %(n_jobs)s
-    %(seed)s
+    %(rng)s
+    seed : None | int | instance of ~numpy.random.RandomState
+        Deprecated. Use ``rng`` instead.
     %(verbose)s
 
     Returns
@@ -84,7 +93,7 @@ def permutation_t_test(
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
     std0 = np.sqrt(X2 - mu0**2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
-    rng = check_random_state(seed)
+    rng = _check_rng_compat(rng, legacy=seed, legacy_name="seed")
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
     logger.info(f"Permuting {len(orders)} times{extra}...")
@@ -106,7 +115,13 @@ def permutation_t_test(
 
 
 def bootstrap_confidence_interval(
-    arr, ci=0.95, n_bootstraps=2000, stat_fun="mean", random_state=None
+    arr,
+    ci=0.95,
+    n_bootstraps=2000,
+    stat_fun="mean",
+    random_state=None,
+    *,
+    rng=None,
 ):
     """Get confidence intervals from non-parametric bootstrap.
 
@@ -120,8 +135,9 @@ def bootstrap_confidence_interval(
         Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along ``axis=0``.
+    %(rng)s
     random_state : int | float | array_like | None
-        The seed at which to initialize the bootstrap.
+        Deprecated. Use ``rng`` instead.
 
     Returns
     -------
@@ -143,7 +159,7 @@ def bootstrap_confidence_interval(
         raise ValueError("stat_fun must be 'mean', 'median' or callable.")
     n_trials = arr.shape[0]
     indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
-    rng = check_random_state(random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
     boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, (1 - ((1 - ci) / 2)) * 100)
@@ -155,7 +171,7 @@ def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, random_state=None):
     """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
         return bootstrap_confidence_interval(
-            arr, ci=ci, n_bootstraps=n_bootstraps, random_state=random_state
+            arr, ci=ci, n_bootstraps=n_bootstraps, rng=random_state
         )
     else:
         from .parametric import _parametric_ci

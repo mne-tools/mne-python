@@ -3757,6 +3757,13 @@ projs : bool | None
 # %%
 # R
 
+docdict["rng"] = """
+rng : None | int | numpy.random.Generator
+    The random number generator. If ``None`` (default), a new generator seeded
+    from entropy is used. Pass an integer for reproducible results or a
+    :class:`numpy.random.Generator` to control the random-number stream.
+"""
+
 docdict["random_state"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),

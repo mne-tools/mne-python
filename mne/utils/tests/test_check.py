@@ -38,7 +38,7 @@ from mne.utils import (
     check_random_state,
     check_version,
 )
-from mne.utils.check import _check_rng
+from mne.utils.check import _check_rng, _check_rng_compat
 
 data_path = testing.data_path(download=False)
 base_dir = data_path / "MEG" / "sample"
@@ -62,6 +62,16 @@ def test_check_rng():
     assert isinstance(_check_rng(np.random.PCG64(0)), np.random.Generator)
     with pytest.raises(TypeError):
         _check_rng(np.random.RandomState(0))
+
+
+def test_check_rng_compat():
+    """Test compatibility with legacy random-number parameters."""
+    with pytest.warns(FutureWarning, match="seed"):
+        rng = _check_rng_compat(None, legacy=0, legacy_name="seed")
+    assert isinstance(rng, np.random.RandomState)
+    assert isinstance(_check_rng_compat(None, legacy_name="seed"), np.random.Generator)
+    with pytest.raises(TypeError, match="rng"):
+        _check_rng_compat(0, legacy=1, legacy_name="random_state")
 
 
 @testing.requires_testing_data

@@ -237,6 +237,20 @@ def _check_rng(rng):
     return np.random.default_rng(rng)
 
 
+def _check_rng_compat(rng, *, legacy=None, legacy_name):
+    """Check an RNG while temporarily supporting a legacy parameter."""
+    if legacy is not None:
+        if rng is not None:
+            raise TypeError(f"Specify only one of rng or {legacy_name}")
+        warn(
+            f"{legacy_name} is deprecated and will be removed in a future release; "
+            "use rng instead.",
+            FutureWarning,
+        )
+        return check_random_state(legacy)
+    return _check_rng(rng)
+
+
 def _check_event_id(event_id, events):
     """Check event_id and convert to default format."""
     # check out event_id dict
