@@ -370,7 +370,7 @@ def test_mxne_vol_sphere():
         cov,
         nave=1e9,
         use_cps=True,
-        random_state=0,
+        rng=np.random.default_rng(0),
     )
 
     dip_mxne = mixed_norm(
@@ -547,7 +547,7 @@ def test_mxne_inverse_sure_synthetic(
         debias=True,
         solver="auto",
         dgap_freq=10,
-        random_state=0,
+        rng=np.random.default_rng(0),
         verbose=False,
     )
     assert np.count_nonzero(active_set, axis=-1) == n_orient * nnz
@@ -584,7 +584,7 @@ def test_mxne_inverse_sure_meg():
         forward["src"],
         n_dipoles=n_dipoles,
         times=times,
-        random_state=1,
+        rng=1,
         labels=labels,
         data_fun=data_fun,
     )
@@ -600,11 +600,11 @@ def test_mxne_inverse_sure_meg():
         nave=nave,
         use_cps=False,
         iir_filter=None,
-        random_state=0,
+        rng=0,
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
     stc_ = mixed_norm(
-        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, random_state=1
+        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, rng=1
     )
     assert len(stc_.vertices) == len(stc.vertices) == 2
     for si in range(len(stc_.vertices)):
@@ -633,7 +633,7 @@ def test_mxne_inverse_empty():
             n_mxne_iter=3,
             alpha=99,
             return_residual=True,
-            random_state=0,
+            rng=0,
         )
         assert stc.data.size == 0
         assert stc.vertices[0].size == 0
