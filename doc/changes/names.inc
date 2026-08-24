@@ -474,6 +474,7 @@
 .. _Victor Férat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
 .. _Vincent Gao: https://github.com/gaoflow
+.. _Virginie van Wassenhove: https://brainthemind.com/virginie-van-wassenhove
 .. _Wei Xu: https://github.com/psyxw
 .. _Will Turner: https://bootstrapbill.github.io
 .. _Wouter Kroot: https://github.com/WouterKroot
