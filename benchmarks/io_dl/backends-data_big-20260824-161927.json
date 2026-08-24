@@ -1,0 +1,92 @@
+{
+  "floor_memmap": {
+    "full_ms": 155.608959,
+    "win_ms": 42.666833,
+    "mbps": 3032.339545437098,
+    "us_per_win": 142.22277666666668
+  },
+  "mne_edf": {
+    "full_ms": 497.573125,
+    "win_ms": 608.397875,
+    "mbps": 948.3213145806458,
+    "us_per_win": 2027.9929166666666
+  },
+  "mne_edf_preloaded": {
+    "full_ms": null,
+    "win_ms": 683.8465,
+    "mbps": null,
+    "us_per_win": 2279.4883333333332
+  },
+  "mne_bdf": {
+    "full_ms": 1003.320542,
+    "win_ms": 852.924292,
+    "mbps": 470.2975572087908,
+    "us_per_win": 2843.0809733333335
+  },
+  "mne_bv": {
+    "full_ms": 814.662583,
+    "win_ms": 389.382458,
+    "mbps": 579.2081407033272,
+    "us_per_win": 1297.9415266666665
+  },
+  "mne_fif": {
+    "full_ms": 551.795,
+    "win_ms": 508.93025,
+    "mbps": 855.1349686024702,
+    "us_per_win": 1696.4341666666667
+  },
+  "mne_fif_preloaded": {
+    "full_ms": null,
+    "win_ms": 704.338583,
+    "mbps": null,
+    "us_per_win": 2347.7952766666667
+  },
+  "edfio_edf_eager": {
+    "full_ms": 244.071083,
+    "win_ms": null,
+    "mbps": 966.7782889298688,
+    "us_per_win": null
+  },
+  "edfio_edf_lazy_wins": {
+    "full_ms": null,
+    "win_ms": 347.37475,
+    "mbps": null,
+    "us_per_win": 1157.9158333333332
+  },
+  "npz": {
+    "full_ms": 228.083208,
+    "win_ms": null,
+    "mbps": 2068.802890566148,
+    "us_per_win": null
+  },
+  "h5_full": {
+    "full_ms": 158.631,
+    "win_ms": 28.184583,
+    "mbps": 2974.571174612781,
+    "us_per_win": 93.94861
+  },
+  "h5_t10s": {
+    "full_ms": 263.300583,
+    "win_ms": 279.080709,
+    "mbps": 1792.093259436497,
+    "us_per_win": 930.2690300000002
+  },
+  "h5_win": {
+    "full_ms": 217.69475,
+    "win_ms": 53.925958,
+    "mbps": 2167.5267777472814,
+    "us_per_win": 179.75319333333334
+  },
+  "zarr_t10s": {
+    "full_ms": 5098.628375,
+    "win_ms": 9509.274958,
+    "mbps": 92.54630172962938,
+    "us_per_win": 31697.583193333336
+  },
+  "zarr_win": {
+    "full_ms": 632.534083,
+    "win_ms": 503.473208,
+    "mbps": 745.9822524693898,
+    "us_per_win": 1678.2440266666665
+  }
+}

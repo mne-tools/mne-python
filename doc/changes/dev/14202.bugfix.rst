@@ -1,0 +1,6 @@
+Sped up raw data access for workloads making many small reads (e.g., deep-learning
+training loops): ``Raw.get_data`` no longer materializes the full time axis or
+re-resolves channel picks on every call; EDF/BDF readers gained vectorized and
+optional-numba fast paths (bit-identical output, including stim channels); the FIF
+reader now reads tag payloads through a memory map; batched internal window reads
+avoid per-window allocations.

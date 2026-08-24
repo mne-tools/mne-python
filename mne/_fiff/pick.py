@@ -1334,6 +1334,18 @@ def _picks_to_idx(
         )
         raise TypeError(msg)
     del extra_repr
+    # Fast path: an integer ndarray with all values already in range needs no
+    # copy or further checks. This matters for callers resolving picks on
+    # every access (e.g., Raw.get_data in deep-learning training loops).
+    if (
+        picks.dtype.kind == "i"
+        and picks.size
+        and picks.min() >= 0
+        and picks.max() < n_chan
+    ):
+        if return_kind:
+            return picks, picked_ch_type_or_generic
+        return picks
     picks = picks.astype(int)
 
     #

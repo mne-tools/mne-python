@@ -877,6 +877,62 @@ class BaseRaw(
 
         return sel, start, stop
 
+    def _get_windows(self, starts, width, *, out=None, sel=None):
+        """Read many equal-width windows with setup shared across them.
+
+        This amortizes channel-pick resolution and output allocation over all
+        windows, which matters for workloads issuing many small reads, such as
+        deep-learning training loops.
+
+        Parameters
+        ----------
+        starts : array of int
+            First sample of each window.
+        width : int
+            Number of samples per window.
+        out : ndarray | None
+            Optional ``(len(starts), n_channels, width)`` float64 array to
+            fill; allocated when None.
+        sel : ndarray | slice | None
+            Channel selection resolved once for all windows.
+
+        Returns
+        -------
+        ndarray : ``(len(starts), n_channels, width)`` window stack.
+        """
+        starts = np.atleast_1d(np.asarray(starts, dtype=np.int64)).ravel()
+        width = int(width)
+        if width <= 0:
+            raise ValueError(f"width must be positive, got {width}")
+        n_times = self.n_times
+        if len(starts) == 0:
+            starts = np.zeros(1, dtype=np.int64)
+        bad = (starts < 0) | (starts + width > n_times)
+        if bad.any():
+            raise ValueError(
+                f"window out of bounds at index {int(np.flatnonzero(bad)[0])}"
+            )
+        # sel=None lets _read_segment treat this as all channels
+        n_out = self.info["nchan"] if sel is None else len(sel)
+        if out is None:
+            out = np.empty((len(starts), n_out, width), dtype=self._dtype)
+        elif out.shape != (len(starts), n_out, width):
+            raise ValueError(
+                f"out has shape {out.shape}, need "
+                f"{(len(starts), n_out, width)}"
+            )
+        elif out.dtype != self._dtype:
+            raise ValueError(
+                f"out dtype must be {self._dtype}, got {out.dtype}"
+            )
+        for j, s0 in enumerate(starts):
+            self._read_segment(
+                start=int(s0), stop=int(s0) + width,
+                sel=sel if sel is not None else None,
+                data_buffer=out[j],
+            )
+        return out
+
     def __getitem__(self, item):
         """Get raw data and times.
 
@@ -1001,7 +1057,14 @@ class BaseRaw(
             stop, types=("int-like", None), item_name="stop", type_name="int, None"
         )
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        if picks is None:
+            # fast path: equivalent to _picks_to_idx(info, None, "all",
+            # exclude=()) but avoids channel-name resolution on every call,
+            # which matters for workloads making many small reads (e.g.,
+            # deep-learning training loops)
+            picks = np.arange(self.info["nchan"])
+        else:
+            picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
         # Get channel factors for conversion into specified unit
         # (vector of ones if no conversion needed)

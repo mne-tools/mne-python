@@ -1,0 +1,104 @@
+{
+  "floor_memmap": {
+    "full_ms": 123.97925,
+    "win_ms": 34.394292,
+    "mbps": 3805.953012298429,
+    "us_per_win": 114.64764000000001
+  },
+  "mne_edf": {
+    "full_ms": 464.572083,
+    "win_ms": 463.496,
+    "mbps": 1015.6856541033267,
+    "us_per_win": 1544.9866666666667
+  },
+  "mne_edf_preloaded": {
+    "full_ms": null,
+    "win_ms": 561.771959,
+    "mbps": null,
+    "us_per_win": 1872.5731966666667
+  },
+  "mne_bdf": {
+    "full_ms": 844.267375,
+    "win_ms": 643.647791,
+    "mbps": 558.8978254667248,
+    "us_per_win": 2145.4926366666664
+  },
+  "mne_bv": {
+    "full_ms": 528.579208,
+    "win_ms": 298.229583,
+    "mbps": 892.6934560770691,
+    "us_per_win": 994.0986099999999
+  },
+  "mne_fif": {
+    "full_ms": 474.158625,
+    "win_ms": 327.07125,
+    "mbps": 995.150515294328,
+    "us_per_win": 1090.2375
+  },
+  "mne_fif_preloaded": {
+    "full_ms": null,
+    "win_ms": 584.748375,
+    "mbps": null,
+    "us_per_win": 1949.16125
+  },
+  "mne_set": {
+    "full_ms": 510.646625,
+    "win_ms": 295.776875,
+    "mbps": 924.0425313689285,
+    "us_per_win": 985.9229166666667
+  },
+  "nwb": {
+    "full_ms": 135.857542,
+    "win_ms": 29.9985,
+    "mbps": 3473.191057733107,
+    "us_per_win": 99.995
+  },
+  "edfio_edf_eager": {
+    "full_ms": 171.696875,
+    "win_ms": null,
+    "mbps": null,
+    "us_per_win": null
+  },
+  "edfio_edf_lazy_wins": {
+    "full_ms": null,
+    "win_ms": 314.790875,
+    "mbps": null,
+    "us_per_win": 1049.3029166666668
+  },
+  "npz": {
+    "full_ms": 152.86025,
+    "win_ms": null,
+    "mbps": 3086.8665987396985,
+    "us_per_win": null
+  },
+  "h5_full": {
+    "full_ms": 104.1435,
+    "win_ms": 15.96875,
+    "mbps": 4530.855982370479,
+    "us_per_win": 53.229166666666664
+  },
+  "h5_t10s": {
+    "full_ms": 177.1665,
+    "win_ms": 160.295667,
+    "mbps": 2663.3658169010505,
+    "us_per_win": 534.31889
+  },
+  "h5_win": {
+    "full_ms": 148.633666,
+    "win_ms": 27.039625,
+    "mbps": 3174.6455072971153,
+    "us_per_win": 90.13208333333333
+  },
+  "zarr_t10s": {
+    "full_ms": 4115.615792,
+    "win_ms": 8396.288958,
+    "mbps": 114.65093532715262,
+    "us_per_win": 27987.629859999997
+  },
+  "zarr_win": {
+    "full_ms": 540.063791,
+    "win_ms": 373.51525,
+    "mbps": 873.710120662394,
+    "us_per_win": 1245.0508333333332
+  }
+}

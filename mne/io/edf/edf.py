@@ -590,12 +590,36 @@ class RawGDF(BaseRaw):
         )
 
 
+_decode_int24 = None
+
+
+def _get_int24_decoder():
+    """Return the numba int24 decoder if available, else False."""
+    global _decode_int24
+    if _decode_int24 is None:
+        dec = False
+        try:
+            from mne._numba import has_numba
+
+            # only use the jitted decoder when numba is actually enabled,
+            # otherwise the decorated function would run as slow pure Python
+            if has_numba:
+                from mne.io.edf._bdf_numba import decode_int24 as dec
+        except Exception:
+            dec = False
+        _decode_int24 = dec
+    return _decode_int24
+
+
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     assert dtype is not None
     # BDF
     if subtype == "bdf":
         ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
+        dec = _get_int24_decoder()
+        if dec is not False:
+            return dec(ch_data.reshape(-1, 3))
         ch_data = ch_data.reshape(-1, 3).astype(INT32)
         ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
         # 24th bit determines the sign
@@ -610,8 +634,6 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
-    from scipy.interpolate import interp1d
-
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]
@@ -639,6 +661,97 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
     # Let's do ~10 MB chunks:
     n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+
+    # Fast path: uniform sampling rate among all requested channels, no
+    # annotations (TAL) channel and no stim-channel special casing. This is
+    # the common case for large DL corpora; it replaces the per-channel
+    # Python loop with a handful of vectorized operations.
+    # The vectorized path removes per-channel Python overhead, which dominates
+    # small reads (deep-learning window access); for very large outputs the
+    # legacy loop's cache-friendly working set is slightly faster, so gate on
+    # decoded size.
+    _fast_path_output_limit = int(32e6)
+    if (
+        subtype in ("edf", "bdf")
+        and len(tal_idx) == 0
+        and all(n_samps[ci] == buf_len for ci in read_sel)
+        and (stop - start) * len(idx_arr) * 8 <= _fast_path_output_limit
+    ):
+        with _gdf_edf_get_fid(filenames, buffering=0) as fid:
+            start_offset = (
+                data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
+            )
+            k = len(idx_arr)
+            cal_v = cal[idx_arr][:, np.newaxis, np.newaxis]
+            off_v = offsets[idx_arr][:, np.newaxis, np.newaxis]
+            gain_v = gains[idx_arr][:, np.newaxis, np.newaxis]
+            # With no projector/compensation and unit cals (always true for
+            # EDF/BDF), decoded samples can go straight into the output.
+            write_direct = mult is None and bool(np.all(cals == 1))
+            ones = None if write_direct else np.empty(
+                (len(orig_sel), data.shape[-1]), dtype=data.dtype
+            )
+            dec = _get_window_decoder()
+            if dec is not False:
+                one_flat = np.empty(
+                    (k, min(len(r_lims), n_per) * buf_len), dtype=np.float64
+                )
+                cal_1d = cal_v.ravel()
+                off_1d = off_v.ravel()
+                gain_1d = gain_v.ravel()
+            # Uniform stim channels can stay on the fast path: legacy applies
+            # a truncating bitmask (float -> int cast, mask 2**17-1) AFTER
+            # calibration, which we replicate per row below.
+            stim_rows = [
+                ii
+                for ii, orig in enumerate(idx_arr)
+                if int(orig) in stim_channel_idxs
+            ]
+            pos = 0
+            for ai in range(0, len(r_lims), n_per):
+                block_offset = ai * ch_offsets[-1] * dtype_byte
+                n_read = min(len(r_lims) - ai, n_per)
+                fid.seek(start_offset + block_offset, 0)
+                many_chunk = _read_ch(
+                    fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
+                )
+                arr3 = many_chunk.reshape(n_read, len(n_samps), buf_len)
+                r_sidx = r_lims[ai][0]
+                r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+                # gather this call's channels as a strided view
+                # (k, n_read, buf_len), each row one requested channel;
+                # when all channels are requested this is a zero-copy
+                # transpose
+                if k == len(n_samps):
+                    view = arr3.transpose(1, 0, 2)
+                else:
+                    view = arr3[:, read_sel, :].transpose(1, 0, 2)
+                # digital -> physical, preserving the legacy op order
+                width = r_eidx - r_sidx
+                if dec is not False:
+                    # fused kernel writes ((d * cal) + off) * gain with the
+                    # same per-element op order and rounding as below
+                    dec(view, cal_1d, off_1d, gain_1d, one_flat)
+                    block = one_flat[:, r_sidx:r_eidx]
+                else:
+                    one = np.empty((k, n_read, buf_len), dtype=np.float64)
+                    np.multiply(view, cal_v, out=one)
+                    one += off_v
+                    one *= gain_v
+                    block = one.reshape(k, -1)[:, r_sidx:r_eidx]
+                if stim_rows:
+                    for ii in stim_rows:
+                        row_i = block[ii].astype(int)
+                        np.bitwise_and(row_i, 2**17 - 1, out=row_i)
+                        block[ii] = row_i
+                if write_direct:
+                    data[:, pos : pos + width] = block
+                else:
+                    ones[idx_arr, pos : pos + width] = block
+                pos += width
+            if not write_direct:
+                _mult_cal_one(data[:, :], ones, idx, cals, mult)
+        return tal_data
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -683,6 +796,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 if n_samps[ci] != buf_len:
                     if orig_idx in stim_channel_idxs:
                         # Stim channel will be interpolated
+                        from scipy.interpolate import interp1d
+
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
                         ch_data = np.append(ch_data, np.zeros((len(ch_data), 1)), -1)
@@ -2361,3 +2476,22 @@ def _get_annotations_gdf(edf_info, sfreq):
         desc = events[2]
 
     return onset, duration, desc
+
+
+_decode_window = None
+
+
+def _get_window_decoder():
+    """Return the numba fused window decoder if available, else False."""
+    global _decode_window
+    if _decode_window is None:
+        dec = False
+        try:
+            from mne._numba import has_numba
+
+            if has_numba:
+                from mne.io.edf._edf_numba import decode_window as dec
+        except Exception:
+            dec = False
+        _decode_window = dec
+    return _decode_window

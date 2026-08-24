@@ -104,3 +104,6 @@ venv/
 .ruff_cache/
 .ipynb_checkpoints/
 /.claude/
+# IO benchmark synthetic data (regenerate via benchmarks/io_dl/generate_data.py)
+benchmarks/io_dl/data/
+benchmarks/io_dl/data_big/
