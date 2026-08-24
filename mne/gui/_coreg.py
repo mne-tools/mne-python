@@ -607,8 +607,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
-        # XXX: add coreg.set_subjects_dir
-        self.coreg._subjects_dir = self._subjects_dir
+        self.coreg.set_subjects_dir(self._subjects_dir)
         subjects = _get_subjects(self._subjects_dir)
 
         if self._subject not in subjects:  # Just pick the first available one
@@ -618,10 +617,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_subject")
     def _subject_changed(self, change=None):
-        # XXX: add coreg.set_subject()
-        self.coreg._subject = self._subject
-        self.coreg._setup_bem()
-        self.coreg._setup_fiducials(self._fiducials)
+        self.coreg.set_subject(self._subject, fiducials=self._fiducials)
         self._reset()
 
         default_fid_fname = fid_fname.format(
@@ -730,9 +726,7 @@ class CoregistrationUI(HasTraits):
                 self._info._unlocked = False
         else:
             self._info = read_raw(self._info_file).info
-        # XXX: add coreg.set_info()
-        self.coreg._info = self._info
-        self.coreg._setup_digs()
+        self.coreg.set_info(self._info)
         self._reset()
 
     @observe("_orient_glyphs")
@@ -929,11 +923,7 @@ class CoregistrationUI(HasTraits):
         if not any(mesh is target() for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
-        fiducials = [s.lower() for s in self._defaults["fiducials"]]
-        idx = fiducials.index(self._current_fiducial.lower())
-        # XXX: add coreg.set_fids
-        self.coreg._fid_points[idx] = pos
-        self.coreg._reset_fiducials()
+        self.coreg.set_fid_point(self._current_fiducial.lower(), pos)
         self._update_fiducials()
         self._update_plot("mri_fids")
 
