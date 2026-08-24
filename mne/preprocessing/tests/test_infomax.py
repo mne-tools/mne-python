@@ -51,7 +51,7 @@ def test_infomax_blowup():
     center_and_norm(m)
 
     X = _get_pca(0).fit_transform(m.T)
-    k_ = infomax(X, extended=True, l_rate=0.1, random_state=0)
+    k_ = infomax(X, extended=True, l_rate=0.1, rng=0)
     s_ = np.dot(k_, X.T)
 
     center_and_norm(s_)
@@ -93,7 +93,7 @@ def test_infomax_simple():
         algos = [True, False]
         for algo in algos:
             X = _get_pca(0).fit_transform(m.T)
-            k_ = infomax(X, extended=algo, random_state=0)
+            k_ = infomax(X, extended=algo, rng=0)
             s_ = np.dot(k_, X.T)
 
             center_and_norm(s_)
@@ -120,8 +120,8 @@ def test_infomax_weights_ini():
     X = rng.random((3, 100))
     weights = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64)
 
-    w1 = infomax(X, max_iter=0, weights=weights, extended=True, random_state=0)
-    w2 = infomax(X, max_iter=0, weights=weights, extended=False, random_state=0)
+    w1 = infomax(X, max_iter=0, weights=weights, extended=True, rng=0)
+    w2 = infomax(X, max_iter=0, weights=weights, extended=False, rng=0)
 
     assert_almost_equal(w1, weights)
     assert_almost_equal(w2, weights)
@@ -153,7 +153,7 @@ def test_non_square_infomax():
         m = m.T
         m = _get_pca(0).fit_transform(m)
         # we need extended since input signals are sub-gaussian
-        unmixing_ = infomax(m, random_state=0, extended=True)
+        unmixing_ = infomax(m, rng=0, extended=True)
         s_ = np.dot(unmixing_, m.T)
         # Check that the mixing model described in the docstring holds:
         mixing_ = pinv(unmixing_.T)
@@ -181,9 +181,7 @@ def test_infomax_n_iter(return_n_iter):
     rng = np.random.default_rng(0)
     X = rng.random((3, 100))
     max_iter = 1
-    r = infomax(
-        X, max_iter=max_iter, extended=True, return_n_iter=return_n_iter, random_state=0
-    )
+    r = infomax(X, max_iter=max_iter, extended=True, return_n_iter=return_n_iter, rng=0)
 
     if return_n_iter:
         assert isinstance(r, tuple)

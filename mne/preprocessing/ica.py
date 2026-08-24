@@ -64,6 +64,8 @@ from ..utils import (
     _check_on_missing,
     _check_option,
     _check_preload,
+    _check_rng,
+    _check_rng_compat,
     _ensure_int,
     _get_inst_data,
     _limit_blas_threads,
@@ -190,6 +192,13 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
 _KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
 
 
+def _rng_to_seed(rng):
+    """Adapt a Generator for third-party random_state parameters."""
+    if isinstance(rng, np.random.Generator):
+        return int(rng.integers(np.iinfo(np.int32).max))
+    return rng
+
+
 @fill_doc
 class ICA(ContainsMixin):
     """Data decomposition using Independent Component Analysis (ICA).
@@ -240,6 +249,7 @@ class ICA(ContainsMixin):
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
     %(random_state)s
+    %(rng)s
     method : 'fastica' | 'infomax' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
@@ -433,6 +443,7 @@ class ICA(ContainsMixin):
         *,
         noise_cov=None,
         random_state=None,
+        rng=None,
         method="fastica",
         fit_params=None,
         max_iter="auto",
@@ -466,7 +477,10 @@ class ICA(ContainsMixin):
         self._max_pca_components = None
         self.n_pca_components = None
         self.ch_names = None
+        if rng is not None or random_state is not None:
+            _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
         self.random_state = random_state
+        self.rng = rng
 
         if fit_params is None:
             fit_params = {}
@@ -887,7 +901,11 @@ class ICA(ContainsMixin):
         if not np.isfinite(data).all():
             raise ValueError("Input data contains non-finite values (NaN/Inf). ")
 
-        random_state = check_random_state(self.random_state)
+        rng = getattr(self, "rng", None)
+        if self.random_state is None:
+            rng = _check_rng(rng)
+        else:
+            rng = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
         self._compute_pre_whitener(data)
         data = self._pre_whiten(data)
@@ -955,14 +973,16 @@ class ICA(ContainsMixin):
         if self.method == "fastica":
             from sklearn.decomposition import FastICA
 
-            ica = FastICA(whiten=False, random_state=random_state, **self.fit_params)
+            ica = FastICA(
+                whiten=False, random_state=_rng_to_seed(rng), **self.fit_params
+            )
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
             unmixing_matrix, n_iter = infomax(
                 data[:, sel],
-                random_state=random_state,
+                rng=rng,
                 return_n_iter=True,
                 **self.fit_params,
             )
@@ -976,7 +996,7 @@ class ICA(ContainsMixin):
                 data[:, sel].T,
                 whiten=False,
                 return_n_iter=True,
-                random_state=random_state,
+                random_state=_rng_to_seed(rng),
                 **self.fit_params,
             )
             self.unmixing_matrix_ = W

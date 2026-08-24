@@ -89,7 +89,7 @@ def test_plot_ica_components():
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8, random_state=0)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8, rng=0)
     ica_picks = _get_picks(raw)
     with pytest.warns(RuntimeWarning, match="(projection)|(unstable mixing matrix)"):
         ica.fit(raw, picks=ica_picks)
@@ -189,7 +189,7 @@ def test_plot_ica_properties_basic():
         raw, events[:3], event_id, tmin, tmax, baseline=(None, 0), preload=True
     )
 
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1, random_state=0)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1, rng=0)
     with _record_warnings(), pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw)
 
@@ -264,14 +264,14 @@ def test_plot_ica_properties_basic():
     raw = _get_raw(preload=True).pick(pick_names)
     raw.crop(0, 5)
     raw.info.normalize_proj()
-    ica = ICA(random_state=0, max_iter=1)
+    ica = ICA(rng=0, max_iter=1)
     with pytest.warns(UserWarning, match="did not converge"):
         ica.fit(raw)
     ica.plot_properties(raw)
     plt.close("all")
 
     # Test handling of zeros
-    ica = ICA(random_state=0, max_iter=1)
+    ica = ICA(rng=0, max_iter=1)
     epochs.pick(pick_names)
     with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
         ica.fit(epochs)
@@ -363,7 +363,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica_picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )
-    ica = ICA(n_components=2, random_state=0)
+    ica = ICA(n_components=2, rng=0)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     if sys.platform == "darwin":  # unknown transformation bug
@@ -544,7 +544,7 @@ def test_plot_ica_overlay():
     with raw.info._unlock():
         raw.info["highpass"] = 1.0  # fake high-pass filtering
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, rng=0)
     # overlay plotting requires a fitted ICA
     with pytest.raises(RuntimeError, match="need to fit"):
         ica.plot_overlay(inst=raw)
@@ -590,7 +590,7 @@ def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, rng=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], figsize=(6.4, 2.7))
@@ -628,7 +628,7 @@ def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, rng=0)
     with pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw, picks=picks)
     ica.exclude = [0]
@@ -681,7 +681,7 @@ def test_plot_instance_components(browser_backend):
 def test_plot_components_opm():
     """Test for gh-12934."""
     evoked = read_evokeds(opm_fname, kind="average")[0]
-    ica = ICA(max_iter=1, random_state=0, n_components=10)
+    ica = ICA(max_iter=1, rng=0, n_components=10)
     ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
     fig = ica.plot_components()
     # Biaxial OPM overlaps render grouped radial+tangential maps.
@@ -694,7 +694,7 @@ def test_plot_components_opm():
 )
 def test_plot_components_opm_triaxial(triaxial_raw):
     """Test OPM component topomaps with colocated triaxial channels."""
-    ica = ICA(max_iter=1, random_state=0, n_components=3)
+    ica = ICA(max_iter=1, rng=0, n_components=3)
     ica.fit(triaxial_raw, picks="mag", verbose="error")
     fig = ica.plot_components()
     assert len(fig.axes) == 6

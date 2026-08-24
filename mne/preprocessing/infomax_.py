@@ -7,7 +7,7 @@ import math
 import numpy as np
 from scipy.special import expit
 
-from ..utils import check_random_state, logger, random_permutation, verbose
+from ..utils import _check_rng_compat, logger, random_permutation, verbose
 
 
 @verbose
@@ -31,6 +31,8 @@ def infomax(
     use_bias=True,
     verbose=None,
     return_n_iter=False,
+    *,
+    rng=None,
 ):
     """Run (extended) Infomax ICA decomposition on raw data.
 
@@ -98,6 +100,7 @@ def infomax(
     return_n_iter : bool
         Whether to return the number of iterations performed. Defaults to
         False.
+    %(rng)s
 
     Returns
     -------
@@ -117,7 +120,7 @@ def infomax(
     """
     from scipy.stats import kurtosis
 
-    rng = check_random_state(random_state)
+    rng = _check_rng_compat(rng, legacy=random_state, legacy_name="random_state")
 
     # define some default parameters
     max_weight = 1e8
@@ -182,7 +185,7 @@ def infomax(
     olddelta, oldchange = 1.0, 0.0
     while step < max_iter:
         # shuffle data at each step
-        permute = random_permutation(n_samples, rng)
+        permute = random_permutation(n_samples, rng=rng)
 
         # ICA training block
         # loop across block samples
