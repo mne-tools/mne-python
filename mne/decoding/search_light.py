@@ -28,8 +28,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     Fit, predict and score a series of models to each subset of the dataset
     along the last dimension. Each entry in the last dimension is referred
-    to as a task. Input data's last dimension can be changed using "axis" parameter
-    depending on the information source of interest.
+    to as a task. The task axis can be selected with ``axis``.
 
     Parameters
     ----------
@@ -56,7 +55,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         position=0,
         allow_2d=False,
         verbose=None,
-        axis=-1, ## ASM
+        axis=-1,
     ):
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -64,7 +63,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         self.position = position
         self.allow_2d = allow_2d
         self.verbose = verbose
-        self.axis = axis ## ASM
+        self.axis = axis
 
     @property
     def _estimator_type(self):
@@ -92,7 +91,6 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         return repr_str + ">"
 
     def fit(self, X, y, **fit_params):
-        print(">>> MNEsprint2026 beta test <<<")
         """Fit a series of independent estimators to the dataset.
 
         Parameters
@@ -305,7 +303,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 raise ValueError(f"X must have at least {err} dimensions.")
             X = X[..., np.newaxis]
 
-        # --- Transpose in case user wants to iterate in other dimension and not last one (default) ---
+        # Move a requested task axis to the final dimension.
         if self.axis != -1 and self.axis != (X.ndim - 1):
             X = np.moveaxis(X, self.axis, -1)
         # --------------------------------
@@ -493,7 +491,8 @@ class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
     Fit a search-light along the last dimension and use them to apply a
-    systematic cross-tasks generalization. Last dimension is moved based on axis of interest.
+    systematic cross-tasks generalization. The task axis is selected by
+    ``axis``.
 
     Parameters
     ----------

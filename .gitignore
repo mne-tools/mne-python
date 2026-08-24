@@ -49,6 +49,7 @@ coverage
 htmlcov
 .cache/
 .pytest_cache/
+.worktrees/
 __pycache__/
 prof/
 mne/viz/_brain/tests/.ipynb_checkpoints
