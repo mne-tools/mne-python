@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Check (or fix) statically filled docstrings against ``mne.utils.docs.docdict``.
 
 Functions/methods decorated with ``@fill_doc_static(*keys)`` or
