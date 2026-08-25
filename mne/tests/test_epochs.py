@@ -5307,7 +5307,7 @@ def test_empty_error(method, epochs_empty):
         getattr(epochs_empty.copy(), method[0])(**method[1])
 
 
-def test_mark_bad_epochs_by_channel():
+def test_mask_epochs_per_channel():
     """Test channel-specific epoch rejection."""
     # load raw and events data without loading data to disk
     raw, ev, _ = _get_data(preload=False)
@@ -5328,7 +5328,7 @@ def test_mark_bad_epochs_by_channel():
     ep.load_data()
 
     # test if reject_mask == None returns epochs
-    assert ep == ep.mark_bad_epochs_by_channel(None)
+    assert ep == ep.mask_epochs_per_channel(None)
 
     # set epochs to bad in reject mask
     reject_mask = np.zeros((n_epochs, n_channels), dtype=bool)  # all epochs are good
@@ -5341,7 +5341,7 @@ def test_mark_bad_epochs_by_channel():
     # reject_mask[:, 1] = True # all epochs from channel two are bad
 
     # drop bad epochs
-    ep.mark_bad_epochs_by_channel(reject_mask)
+    ep.mask_epochs_per_channel(reject_mask)
 
     # verify bad epochs are NaN after dropping them
     data = ep.get_data()
@@ -5359,11 +5359,9 @@ def test_mark_bad_epochs_by_channel():
     # channel length must match
     assert len(ep.nave_per_channel) == len(ep.ch_names)
 
-    # make sure averaging works (allowing for NaNs)
-    ev = ep.average()
-
-    # check if nave of evoked data is minimum of nave_per_channel of epoched data
-    assert ev.nave == ep.nave_per_channel.min()
+    # make sure averaging breaks
+    with pytest.raises(ValueError, match="Cannot average epochs containing NaNs"):
+        ep.average()
 
     # test mask that contains floats instead of bool
     float_mask = reject_mask.astype(float)
