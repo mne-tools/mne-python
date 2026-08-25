@@ -100,9 +100,7 @@ classifier = make_pipeline(
     StandardScaler(), LogisticRegression(solver="liblinear", random_state=0)
 )
 cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
-time_decoder = SlidingEstimator(
-    classifier, scoring="roc_auc", n_jobs=1, verbose=False
-)
+time_decoder = SlidingEstimator(classifier, scoring="roc_auc", n_jobs=1, verbose=False)
 time_scores = cross_val_multiscore(time_decoder, X, y, cv=cv, n_jobs=1).mean(axis=0)
 
 fig, ax = plt.subplots(layout="constrained")
