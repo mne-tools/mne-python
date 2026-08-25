@@ -1778,7 +1778,6 @@ def cluster_test(
         (using mne.stats.f_oneway). This works for 2 levels or more.
         Specifying as ``within_id`` a variable in df that has more than 2 levels,
         or one that is not in df, will result in an error.
-
     %(stat_fun_clust_both)s
     %(tail_clust)s
     %(threshold_clust_both)s
@@ -1924,8 +1923,7 @@ def cluster_test(
 
 
 class ClusterResult:
-    """
-    Object containing the results of the cluster permutation test.
+    """Object containing the results of the cluster permutation test.
 
     Parameters
     ----------
@@ -1937,6 +1935,11 @@ class ClusterResult:
         P-values for each cluster.
     H0 : np.ndarray
         Max cluster level stats observed under permutation.
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.ttest_1samp_no_p` for paired tests and
+        :func:`mne.stats.f_oneway` for unpaired tests or tests of more than 2 groups.
     """
 
     def __init__(
@@ -1987,7 +1990,7 @@ class ClusterResult:
             Styles to use when plotting the ERP lines.
         cmap_evokeds : None|str|tuple
             Colormap from which to draw color values when plotting the ERP lines.
-        cmap_topo: matplotlib colormap
+        cmap_topo : matplotlib.colors.Colormap
             Colormap to use for the topomap.
         ci : float|bool|callable()|None
             Confidence band around each ERP time series.
