@@ -298,11 +298,48 @@ ax.set(
     xlabel="Test sensor",
     ylabel="Training sensor",
 )
-sensor_tick_labels = np.array(("PO7", "O1", "Oz", "PO8", "O2"))
-sensor_ticks = np.array([epochs.ch_names.index(name) for name in sensor_tick_labels])
-ax.set_xticks(sensor_ticks, sensor_tick_labels, rotation=45, ha="right")
-ax.set_yticks(sensor_ticks, sensor_tick_labels)
+sensor_ticks = np.arange(len(epochs.ch_names))
+ax.set_xticks(sensor_ticks, epochs.ch_names, rotation=90)
+ax.set_yticks(sensor_ticks, epochs.ch_names)
+ax.tick_params(axis="both", labelsize=7)
 fig.colorbar(image, ax=ax, label="Cross-validated AUC")
+
+# %%
+# Show an individual cross-sensor effect
+# --------------------------------------
+# The largest off-diagonal score is useful for connecting one matrix cell to
+# the data. The model is trained on the time course at the left panel's sensor
+# and evaluated at the right panel's sensor. The two panels show the face and
+# scrambled-face averages that produce those trial-wise feature vectors.
+#
+# This is an exploratory view, not a statistical selection procedure. The AUC
+# was evaluated on held-out trials; inference about the population would
+# require repeating the analysis across participants.
+
+off_diagonal_scores = mean_scores.copy()
+np.fill_diagonal(off_diagonal_scores, np.nan)
+train_sensor, test_sensor = np.unravel_index(
+    np.nanargmax(off_diagonal_scores), off_diagonal_scores.shape
+)
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5), sharey=True, layout="constrained")
+for ax, sensor, role in zip(
+    axes, (train_sensor, test_sensor), ("Training", "Test"), strict=True
+):
+    for selection, label in ((y, "Face"), (~y, "Scrambled face")):
+        ax.plot(
+            feature_epochs.times,
+            X[selection, sensor].mean(axis=0),
+            label=label,
+        )
+    ax.axvline(0, color="k", linestyle=":", linewidth=1)
+    ax.set(title=f"{role}: {epochs.ch_names[sensor]}", xlabel="Time (s)")
+axes[0].set_ylabel("Voltage (V)")
+axes[1].legend(loc="best")
+fig.suptitle(
+    "Strongest cross-sensor cell: "
+    f"{epochs.ch_names[train_sensor]} to {epochs.ch_names[test_sensor]} "
+    f"(held-out AUC = {mean_scores[train_sensor, test_sensor]:.2f})"
+)
 
 # %%
 # Summarize the strongest cross-sensor effects
