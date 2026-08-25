@@ -541,19 +541,40 @@ class ProjMixin:
         )
         return fig
 
-    def _reconstruct_proj(self, mode="accurate", origin="auto"):
+    def _reconstruct_proj(self, *, projs=None, mode="accurate", origin="auto"):
         from ..forward import _map_meg_or_eeg_channels
 
-        if len(self.info["projs"]) == 0:
-            return self
-        self.apply_proj()
+        if projs is None:
+            if len(self.info["projs"]) == 0:
+                return self
+            self.apply_proj()
+            mapping_info = self.info
+            selected_projs = None
+        else:
+            self.apply_proj(projs=projs)
+            selected_projs = [projs] if isinstance(projs, Projection) else projs
+            if len(selected_projs) == 0:
+                return self
+            mapping_info = deepcopy(self.info)
+            with mapping_info._unlock():
+                mapping_info["projs"] = [
+                    proj for proj in mapping_info["projs"] if proj["active"]
+                ]
         for kind in ("meg", "eeg"):
             kwargs = dict(meg=False)
             kwargs[kind] = True
             picks = pick_types(self.info, **kwargs)
             if len(picks) == 0:
                 continue
-            info_from = pick_info(self.info, picks)
+            info_from = pick_info(mapping_info, picks)
+            if selected_projs is not None:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    _, nproj, _ = make_projector(
+                        selected_projs, info_from["ch_names"], info_from["bads"]
+                    )
+                if nproj == 0:
+                    continue
             info_to = info_from.copy()
             with info_to._unlock():
                 info_to["projs"] = []
