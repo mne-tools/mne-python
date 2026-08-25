@@ -84,6 +84,8 @@ epochs = mne.Epochs(
     reject=dict(grad=4000e-13, eog=150e-6),
 )
 
+evoked = epochs.average()
+
 # Factor to down-sample the temporal dimension of the TFR. Decimation occurs
 # after frequency decomposition and can be used to reduce memory usage (and
 # possibly computational time of downstream operations such as nonparametric
@@ -108,6 +110,7 @@ tfr_epochs = epochs.compute_tfr(
 tfr_epochs.apply_baseline(mode="logratio", baseline=(-0.100, 0))
 
 # Crop in time to keep only what is between 0 and 400 ms
+evoked.crop(-0.1, 0.4)
 tfr_epochs.crop(-0.1, 0.4)
 
 # %%
@@ -187,14 +190,23 @@ cluster_result = cluster_test(
 # %%
 # View time-frequency plots
 # -------------------------
-# We now visualize the cluster with the lowest p-value using
-# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`.
-# This differs a bit from the manual plotting done in
-# :ref:`tut-cluster-one-samp-tfr`: instead of hand-picking the single
-# channel/frequency/time bin with the largest statistic, it shows a topomap
-# of the statistic averaged over the cluster's full time-frequency extent,
-# next to a spectrogram (maximized over the cluster's channels) highlighting
-# the cluster's time-frequency extent.
+# We now visualize the most significant cluster using
+# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`. By
+# default (``cluster_idx=0``) this shows the cluster with the largest *mass*
+# (the sum of the observed statistic within the cluster -- the same quantity
+# used internally to compute the cluster p-values), not necessarily the one
+# with the lowest p-value. Other significant clusters can be inspected by
+# passing a different ``cluster_idx``, ranked the same way.
+#
+# Like :ref:`tut-cluster-one-samp-tfr`, the plot shows the spectrogram for the
+# single channel with the most extreme statistic within the chosen cluster
+# (here, automatically picked from among the cluster's channels rather than
+# hand-picked), with that cluster's time-frequency extent highlighted -- next
+# to a topomap of the statistic averaged over the cluster's full
+# time-frequency extent, showing which other channels were also part of it.
+# If another significant cluster also has a member point on the displayed
+# channel, it is highlighted there too, so no significant effect on that
+# channel is hidden.
 #
 # .. warning:: Talking about "significant clusters" can be convenient, but
 #              you must be aware of all associated caveats! For example, it
@@ -204,4 +216,13 @@ cluster_result = cluster_test(
 #
 # .. include:: ../../links.inc
 print(f"The lowest cluster p-value is: {cluster_result.cluster_p_values.min()}")
-cluster_result.plot_cluster_time_frequency(tfr_epochs)
+cluster_result.plot_cluster_time_frequency(tfr_epochs, cluster_idx=0)
+print(f"The second lowest cluster p-value is: {cluster_result.cluster_p_values[1]}")
+cluster_result.plot_cluster_time_frequency(tfr_epochs, cluster_idx=1)
+
+# %%
+# As in :ref:`tut-cluster-one-samp-tfr`, it is also informative to look at the
+# evoked (i.e., phase-locked) response over the same channels and time window,
+# for context: the induced power increase detected above need not be
+# accompanied by an evoked response, and vice versa.
+evoked.plot()

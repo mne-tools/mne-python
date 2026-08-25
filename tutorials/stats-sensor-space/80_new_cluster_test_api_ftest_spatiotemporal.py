@@ -201,6 +201,9 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
         axes=ax_topo,
         cmap="Reds",
         vlim=(np.min, np.max),
+        # the data are an F-statistic, not a physical measurement, so disable
+        # plot_topomap()'s unit-conversion scaling (e.g. 1e15 for mag)
+        scalings=1.0,
         show=False,
         colorbar=False,
         mask_params=dict(markersize=10),
@@ -307,16 +310,19 @@ cluster_result_tfr = cluster_test(
 
 # %%
 # Finally, we can plot our results using
-# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`,
-# which shows the cluster with the lowest p-value: a topomap of the
-# statistic averaged over the cluster's time-frequency extent, next to a
-# spectrogram (maximized over the cluster's channels if there's more than
-# one) highlighting the cluster's time-frequency extent. As in the original
+# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`. By
+# default (``cluster_idx=0``) it shows the largest significant cluster (an
+# F-statistic is non-negative, so ranking by cluster mass here simply means
+# ranking by size): a topomap of the statistic averaged over that cluster's
+# time-frequency extent, next to a spectrogram for the single channel (among
+# the cluster's channels) with the most extreme statistic, highlighting that
+# cluster's time-frequency extent (and that of any other significant cluster
+# that also has a member point on the same channel). As in the original
 # tutorial, keep in mind that each sensor has its own significant
 # time-frequencies, but, in order to display a single spectrogram, all the
-# time-frequencies that are significant for any sensor in the cluster are
-# shown. This is a difficulty inherent to visualizing high-dimensional data
-# and should be taken into consideration when interpreting results.
+# time-frequencies that are significant on the displayed sensor are shown.
+# This is a difficulty inherent to visualizing high-dimensional data and
+# should be taken into consideration when interpreting results.
 print(f"The lowest cluster p-value is: {cluster_result_tfr.cluster_p_values.min()}")
 cluster_result_tfr.plot_cluster_time_frequency(this_tfr)
 
