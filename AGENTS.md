@@ -151,3 +151,15 @@ changelog entry instead of a plain name link.
   # (BSD-compatible).
   ```
   If the license of a snippet cannot be determined, do not adapt it.
+
+- Benchmarking performance changes: only interleaved A/B runs against a
+  pristine snapshot built from the exact upstream base are trustworthy;
+  whole-suite back-to-back runs drift ±20–100 %. Verify which installed mne a
+  benchmark actually imports (`print(mne.__file__)`) before trusting numbers,
+  and keep fixture data out of commits.
+- Changelog fragments (`doc/changes/dev/<PR#>.<type>.rst`): pick `<type>` by
+  intent — performance improvements are `newfeature`, not `bugfix`. Keep the
+  entry to one short sentence ending with the contributor name link, e.g.
+  "Speed up X by optimizing Y, by `Jane Doe`_", and make sure the name anchors
+  in `doc/changes/names.inc` (add it if missing). Read an existing fragment
+  or two before writing yours.
