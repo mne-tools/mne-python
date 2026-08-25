@@ -45,7 +45,6 @@ connectivity.
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pooch
 from mne_connectivity.viz import plot_connectivity_circle
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
@@ -57,27 +56,11 @@ from mne.channels import make_standard_montage
 from mne.decoding import GeneralizingEstimator, SlidingEstimator, cross_val_multiscore
 from mne.io import read_raw_eeglab
 
-data_dir = mne.datasets.default_path() / "ERP-CORE-N170" / "sub-001" / "eeg"
-data_dir.mkdir(parents=True, exist_ok=True)
-urls = {
-    "sub-001_task-N170_eeg.fdt": (
-        "https://data.nemar.org/nm000132/v1.1.1/sub-001/eeg/sub-001_task-N170_eeg.fdt",
-        "sha256:08406f3c6b4a869dc8f67c9acc233a91993bae1b04b7dee5bc0521677ed8949b",
-    ),
-    "sub-001_task-N170_eeg.set": (
-        "https://data.nemar.org/nm000132/v1.1.1/sub-001/eeg/sub-001_task-N170_eeg.set",
-        "sha256:9c53dbdc3b469934a5eb6e9f01e59090dd47aeb495b8f21ceca03670991e5b11",
-    ),
-    "sub-001_task-N170_events.tsv": (
-        "https://raw.githubusercontent.com/nemarDatasets/nm000132/v1.1.1/"
-        "sub-001/eeg/sub-001_task-N170_events.tsv",
-        "sha256:07c87e728d097b0deb05b17d77bbdbd22ef58105111b0b56e659a767b9421e34",
-    ),
-}
-for fname, (url, known_hash) in urls.items():
-    pooch.retrieve(url=url, known_hash=known_hash, path=data_dir, fname=fname)
-
-raw = read_raw_eeglab(data_dir / "sub-001_task-N170_eeg.set", preload=True)
+fetch_file = mne.datasets.erp_core.fetch_file
+fetch_file("sub-001/eeg/sub-001_task-N170_eeg.fdt")
+raw_fname = fetch_file("sub-001/eeg/sub-001_task-N170_eeg.set")
+events_fname = fetch_file("sub-001/eeg/sub-001_task-N170_events.tsv")
+raw = read_raw_eeglab(raw_fname, preload=True)
 
 # %%
 # Prepare the epochs
@@ -95,7 +78,7 @@ raw.filter(0.1, 30.0, fir_design="firwin")
 raw.set_eeg_reference(projection=True).apply_proj()
 
 events_tsv = np.genfromtxt(
-    data_dir / "sub-001_task-N170_events.tsv",
+    events_fname,
     delimiter="\t",
     names=True,
     dtype=None,
