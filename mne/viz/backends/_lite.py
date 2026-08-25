@@ -1,12 +1,11 @@
 """
 A pyvista-js drawing backend for MNE's 3D renderer.
 
-MNE's 3D functions (``plot_alignment``, ``plot_bem``,
-``plot_sparse_source_estimates``, ``SourceSpaces.plot``, ...) all build their
-figure the same way: they do their own geometry and coordinate-frame work in
-numpy, then hand the result to a renderer obtained from
-:func:`mne.viz.backends.renderer._get_renderer`. Only that last step needs VTK,
-and VTK cannot load in WebAssembly.
+MNE's 3D functions (``plot_alignment``, ``plot_sparse_source_estimates``,
+``SourceSpaces.plot``, ...) all build their figure the same way: they do their
+own geometry and coordinate-frame work in numpy, then hand the result to a
+renderer obtained from :func:`mne.viz.backends.renderer._get_renderer`. Only
+that last step needs VTK, and VTK cannot load in WebAssembly.
 
 Rather than reimplement those functions one by one, this module supplies a
 renderer that draws with `pyvista-js <https://github.com/tkoyama010/pyvista-js>`__
@@ -22,7 +21,9 @@ figures the documentation renders. Not supported: the interactive
 time slider, and scalar colormaps: ``Plotter.add_mesh`` takes ``scalars`` and
 ``cmap`` and writes them into the scene, but the vtk.js template it renders
 through builds no lookup table and never reads them, so a mesh carrying
-scalars draws in a solid color.
+scalars draws in a solid color. Figure size is fixed too: pyvista-js writes a
+600x400 canvas and offers no way to change it, so the ``size`` MNE asks for has
+no effect.
 
 Importing this module needs pyvista-js, the same way importing ``_pyvista``
 needs VTK.
@@ -63,6 +64,26 @@ _TITLE_POSITIONS = {
 # what MNE means by ``color=None``: "whatever the renderer draws by default",
 # which for PyVista is resolved inside add_mesh and has to be picked here
 _DEFAULT_COLOR = (0.5, 0.5, 0.5)
+
+
+def _lite_n_side(resolution):
+    """Return the side count to build a cone or cylinder with.
+
+    Callers give the side count VTK would use; take half of it, because
+    ``_tile`` stamps the template at every sensor and the side count multiplies
+    straight into the WASM heap, and eight sides is smooth enough at the size
+    these draw. Three is the fewest that still closes a ring, and eight is the
+    default for callers that name no resolution at all.
+    """
+    return 8 if resolution is None else max(3, int(resolution) // 2)
+
+
+def _lite_ring(n_side, radius):
+    """Return one ``n_side`` circle of radius ``radius``, in the x=0 plane."""
+    angles = np.linspace(0.0, 2 * np.pi, n_side, endpoint=False)
+    return np.column_stack(
+        [np.zeros(n_side), radius * np.cos(angles), radius * np.sin(angles)]
+    )
 
 
 def _rgb(color):
@@ -135,15 +156,17 @@ def _lite_get_view(plotter):
 _lite_live_plotters = []
 
 
-def _lite_release_plotter(plotter, close=True):
+def _lite_release_plotter(plotter):
     """Hand back a plotter's meshes, JS arrays and GPU buffers.
 
     ``clear()`` empties the actor list, which is where the geometry is held,
-    so that is what frees the memory. ``close=False`` additionally says not to
-    tear the render window down -- what trimming an older scene wants, since
-    the notebook has already drawn it. pyvista-js 0.15 implements neither
-    ``deep_clean`` nor ``close``, so today the two paths do the same thing;
-    the flag keeps the intent right if that changes.
+    so that is what frees the memory, and it is the only teardown pyvista-js
+    0.15 offers: there is no ``close()`` to tear the render window down as
+    well, which is why closing a figure and clearing one do the same thing
+    here.
+
+    Collecting is left to the caller, so draining a whole registry sweeps once
+    rather than once per scene.
     """
     if plotter is None:
         return None
@@ -151,14 +174,7 @@ def _lite_release_plotter(plotter, close=True):
         live = _lite_live_plotters[idx]()
         if live is None or live is plotter:
             del _lite_live_plotters[idx]
-    # pyvista-js is someone else's surface, so use whichever teardown of these
-    # it actually implements
-    names = ("clear", "deep_clean", "close") if close else ("clear", "deep_clean")
-    for name in names:
-        teardown = getattr(plotter, name, None)
-        if teardown is not None:
-            teardown()
-    gc.collect()
+    plotter.clear()
     return None
 
 
@@ -173,13 +189,17 @@ _LITE_MAX_LIVE_SCENES = 2
 
 def _lite_trim_live_plotters():
     """Release everything but the most recent scenes."""
+    trimmed = False
     while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
         oldest = _lite_live_plotters[0]()
         if oldest is None:
             _lite_live_plotters.pop(0)
         else:
             # also drops it from the registry, so this terminates
-            _lite_release_plotter(oldest, close=False)
+            _lite_release_plotter(oldest)
+            trimmed = True
+    if trimmed:
+        gc.collect()
     return None
 
 
@@ -195,6 +215,10 @@ class _LiteRenderer(_AbstractRenderer):
     _kind = "jupyterlite_notebook"
 
     def __init__(self, fig=None, size=(600, 600), bgcolor="black", **kwargs):
+        # `size` is named to match _PyVistaRenderer but cannot be honoured:
+        # pv.Plotter takes only a lighting mode, and generate_standalone_html
+        # emits a fixed 600x400 canvas with no knob for it.
+        #
         # plot_alignment(fig=...) and plot_dipole_locations(fig=...) composite
         # into a scene the notebook already made, so draw into that plotter
         # rather than opening a second one and splitting the picture in two.
@@ -207,7 +231,11 @@ class _LiteRenderer(_AbstractRenderer):
         # _LITE_MAX_LIVE_SCENES is the number that actually stays live
         _lite_trim_live_plotters()
         self.plotter.background_color = _rgb(bgcolor)
-        # even lighting, so a surface is not black when rotated
+        # A scene light in vtk.js lights only what faces it, so a single one
+        # leaves half of a head dark as soon as it is turned. Six along the axes
+        # cover every side; each is well under full intensity because a surface
+        # facing two of them at once would otherwise blow out. The distance only
+        # has to sit outside the scene, which is metres-scale here.
         for direction in (
             (1, 0, 0),
             (-1, 0, 0),
@@ -272,12 +300,8 @@ class _LiteRenderer(_AbstractRenderer):
             # pyvista.Cone(center=(0.5, 0, 0)): base at x=0, apex at x=height
             rad = 0.15 if radius is None else float(radius)
             hgt = 1.0 if height is None else float(height)
-            n_side = 8 if not resolution else max(3, int(resolution) // 2)
-            angles = np.linspace(0.0, 2 * np.pi, n_side, endpoint=False)
-            ring = np.column_stack(
-                [np.zeros(n_side), rad * np.cos(angles), rad * np.sin(angles)]
-            )
-            rr = np.vstack([ring, [[hgt, 0, 0]], [[0.0, 0, 0]]])
+            n_side = _lite_n_side(resolution)
+            rr = np.vstack([_lite_ring(n_side, rad), [[hgt, 0, 0]], [[0.0, 0, 0]]])
             tris = []
             for this in range(n_side):
                 nxt = (this + 1) % n_side
@@ -286,10 +310,7 @@ class _LiteRenderer(_AbstractRenderer):
         # cylinder along +x, matching _cylinder_geom's convention
         rad = 0.1 if radius is None else float(radius)
         hgt = 1.0 if height is None else float(height)
-        # half the sides VTK would use: _tile stamps this template at every
-        # sensor, so the side count multiplies straight into the WASM heap and
-        # a 16-sided EEG cylinder is smooth enough at the size it draws
-        n_side = 8 if not resolution else max(3, int(resolution) // 2)
+        n_side = _lite_n_side(resolution)
         # _cylinder_geom builds the cylinder along y and turns it 90 degrees
         # about z to point it along x, which carries the center round with it:
         # (cx, cy, cz) lands at (-cy, cx, cz). _3d.py gives the EEG electrode
@@ -300,10 +321,7 @@ class _LiteRenderer(_AbstractRenderer):
         else:
             center = np.asarray(center, dtype=float)
             offset = np.array([-center[1], center[0], center[2]])
-        angles = np.linspace(0.0, 2 * np.pi, n_side, endpoint=False)
-        ring = np.column_stack(
-            [np.zeros(n_side), rad * np.cos(angles), rad * np.sin(angles)]
-        )
+        ring = _lite_ring(n_side, rad)
         back = ring + np.array([-hgt / 2.0, 0, 0])
         front = ring + np.array([hgt / 2.0, 0, 0])
         rr = (
@@ -325,6 +343,8 @@ class _LiteRenderer(_AbstractRenderer):
         drawing method here funnels through this, so translating it once covers
         all of them.
         """
+        # float32 halves what the merged glyph meshes cost in the WASM heap,
+        # and vtk.js uses single precision on the GPU regardless
         mesh = pv.PolyData(
             points=np.asarray(points, dtype=np.float32), faces=_vtk_faces(tris)
         )
@@ -425,6 +445,11 @@ class _LiteRenderer(_AbstractRenderer):
         radius=None,
         **kwargs,
     ):
+        # `resolution` has no equivalent here: _pyvista.py asks pyvista.Sphere
+        # for that many theta and phi bands, while this template comes from a
+        # subdivided octahedron, whose vertex count goes 6, 18, 66, 258. Level 3
+        # is the one that lands near the default 8x8 sphere, and nothing in
+        # mne/viz asks for another, so it is fixed rather than approximated.
         center = np.atleast_2d(np.asarray(center, dtype=float))
         if not len(center):
             return None, None
@@ -510,7 +535,8 @@ class _LiteRenderer(_AbstractRenderer):
         n_pos = len(centers)
         if not n_pos:
             return None, None
-        factor = float(np.asarray(scale).ravel()[0]) if np.size(scale) else 1.0
+        # MNE always passes a scalar here; VTK's SetScaleFactor takes one too
+        factor = float(scale)
         idx = np.arange(n_pos)
         u, v, w = (np.atleast_1d(np.asarray(q, dtype=float)) for q in (u, v, w))
         dirs = np.column_stack([u[idx % len(u)], v[idx % len(v)], w[idx % len(w)]])
@@ -562,7 +588,11 @@ class _LiteRenderer(_AbstractRenderer):
             template_kw = dict(
                 radius=glyph_radius, height=glyph_height, resolution=glyph_resolution
             )
-        else:  # arrow / 2darrow, both of which vtk draws with a shaft and a tip
+        else:
+            # "arrow" is vtkArrowSource, a shaft with a cone tip. "2darrow" is
+            # really vtkGlyphSource2D with FilledOff, a flat outline; vtk.js has
+            # no 2D glyph source, so it borrows the 3D arrow. Only Brain asks
+            # for it, and Brain does not run here.
             kind, template_kw = "arrow", dict()
         rr, tris = self._glyph_template(kind, **template_kw)
         if solid_transform is not None:
@@ -570,6 +600,10 @@ class _LiteRenderer(_AbstractRenderer):
             # where the fiducial markers get their size and 45 deg roll
             solid_transform = np.asarray(solid_transform, dtype=float)
             rr = rr @ solid_transform[:3, :3].T + solid_transform[:3, 3]
+        # a sphere looks the same however it is turned, so skip the rotation
+        # rather than build N matrices for it. "oct" joins it because the only
+        # caller (the MRI fiducials) points every glyph along +x, which is the
+        # identity; a future caller pointing them elsewhere would need this back
         rots = None if mode in ("sphere", "oct") else self._rots_from_dirs(dirs)
         points, faces = self._tile(rr, tris, centers, scales=sizes, rots=rots)
         return self._add(points, faces, color, opacity)
@@ -824,6 +858,9 @@ _testing_context = nullcontext
 def _set_3d_view(
     figure, azimuth=None, elevation=None, focalpoint=None, distance=None, roll=None
 ):
+    # distance, focalpoint and roll go unused here for the same reason they do
+    # in _LiteRenderer.set_camera: vtk.js frames the scene with resetCamera()
+    # on this path. See _lite_get_view.
     return _lite_set_view(figure, azimuth, elevation)
 
 
@@ -835,14 +872,16 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
 
 
 def _clear_3d_figure(figure):
-    # close=False is already the "give the geometry back but keep the scene"
-    # path, which is what clearing means
-    _lite_release_plotter(figure, close=False)
+    _lite_release_plotter(figure)
+    gc.collect()
     return None
 
 
 def _close_3d_figure(figure):
+    # the same as clearing: vtk.js draws into a canvas in an output cell, so
+    # there is no window left to close once the geometry is gone
     _lite_release_plotter(figure)
+    gc.collect()
     return None
 
 
@@ -856,4 +895,5 @@ def _close_all():
             _lite_live_plotters.pop()
         else:
             _lite_release_plotter(plotter)
+    gc.collect()  # once for the whole registry, not once per scene
     return None

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
 from mne.viz.backends._abstract import _AbstractRenderer
 
@@ -141,26 +142,77 @@ def test_get_camera_matches_the_expected_order(renderer_lite):
 
 
 def test_draws_every_primitive(renderer_lite):
-    """Each drawing primitive must add exactly one actor to the scene."""
+    """Every primitive must add one actor holding the geometry it was asked for.
+
+    Counting actors alone would pass on empty or misplaced meshes, so each
+    check below pins where the mesh actually landed.
+    """
     r = renderer_lite._get_renderer(size=(200, 200), bgcolor="white")
     assert len(r.plotter.actors) == 0
 
-    r.mesh(_RR[:, 0], _RR[:, 1], _RR[:, 2], _TRIS, color="red", opacity=0.5)
-    r.surface(dict(rr=_RR, tris=_TRIS), color="#0000ff")
-    r.sphere(np.array([[0.0, 0, 0]]), "green", 0.1)
-    r.tube([[0.0, 0, 0]], [[1.0, 1, 1]], radius=0.01, color="black")
-    r.quiver3d(
+    # a flat unit square, drawn as given
+    _, mesh = r.mesh(_RR[:, 0], _RR[:, 1], _RR[:, 2], _TRIS, color="red", opacity=0.5)
+    assert_allclose(np.asarray(mesh.points), _RR, atol=1e-6)
+
+    # the same square, reached through the surface dict
+    _, mesh = r.surface(dict(rr=_RR, tris=_TRIS), color="#0000ff")
+    assert_allclose(np.asarray(mesh.points), _RR, atol=1e-6)
+
+    # scale 0.1 means radius 0.05, centered where it was asked for
+    _, mesh = r.sphere(np.array([[1.0, 0, 0]]), "green", 0.1)
+    points = np.asarray(mesh.points)
+    assert_allclose(points.mean(axis=0), [1, 0, 0], atol=1e-6)
+    assert np.linalg.norm(points - [1, 0, 0], axis=1).max() == pytest.approx(0.05)
+
+    # a tube spans origin to destination, no further
+    _, mesh = r.tube([[0.0, 0, 0]], [[0.0, 0, 1.0]], radius=0.01, color="black")
+    points = np.asarray(mesh.points)
+    assert points[:, 2].min() == pytest.approx(0.0)
+    assert points[:, 2].max() == pytest.approx(1.0)
+    assert np.linalg.norm(points[:, :2], axis=1).max() == pytest.approx(0.01)
+
+    # an arrow of length `scale` pointing the way it was given
+    _, mesh = r.quiver3d(
+        np.r_[0.0],
         np.r_[0.0],
         np.r_[0.0],
         np.r_[0.0],
         np.r_[1.0],
         np.r_[0.0],
-        np.r_[0.0],
         color=(1.0, 0.5, 0.0),
         scale=0.1,
         mode="arrow",
     )
+    points = np.asarray(mesh.points)
+    assert points[:, 1].max() == pytest.approx(0.1)  # along +y, at `scale`
+    # and no wider than its own tip, which is 0.1 of the scaled length
+    assert np.linalg.norm(points[:, [0, 2]], axis=1).max() <= 0.01 + 1e-9
+
     assert len(r.plotter.actors) == 5
+
+
+def test_tube_stretches_each_segment_on_its_own(renderer_lite):
+    """``tube`` scales along the template axis alone, per segment.
+
+    That is the one place ``_tile`` scales anisotropically, and getting it
+    wrong would fatten the tubes as they lengthen.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    _, mesh = r.tube(
+        [[0.0, 0, 0], [0.0, 0, 0]],  # one 1 m segment and one 2 m segment
+        [[1.0, 0, 0], [0.0, 2.0, 0]],
+        radius=0.01,
+        color="black",
+    )
+    points = np.asarray(mesh.points)
+    assert points[:, 0].max() == pytest.approx(1.0)
+    assert points[:, 1].max() == pytest.approx(2.0)
+
+    # neither got thicker for being longer: the two segments are stamped in
+    # order, so split them and measure each one away from its own axis
+    first, second = points.reshape(2, -1, 3)
+    assert np.linalg.norm(first[:, 1:], axis=1).max() == pytest.approx(0.01)
+    assert np.linalg.norm(second[:, [0, 2]], axis=1).max() == pytest.approx(0.01)
 
 
 def test_glyphs_scale_by_their_scalars(renderer_lite):
@@ -381,6 +433,8 @@ def test_renders_in_a_notebook_kernel(nbexec):
     takes, and checks the scene serialises to the vtk.js HTML the browser
     consumes. The body below is executed by that kernel rather than here.
     """
+    import json
+
     import numpy as np
 
     from mne.viz.backends import renderer
@@ -395,5 +449,14 @@ def test_renders_in_a_notebook_kernel(nbexec):
     r.mesh(rr[:, 0], rr[:, 1], rr[:, 2], tris, color="red")
     assert len(r.plotter.actors) == 1
 
+    # the html must carry this mesh, not merely be a vtk.js page: an empty
+    # scene still ships the script tag, so look for the points themselves
     html = r.plotter.generate_standalone_html()
     assert "<script" in html and "vtk" in html.lower()
+    scene = r.plotter._renderer._build_scene_data()
+    assert len(scene["actors"]) == 1
+    drawn = np.asarray(scene["actors"][0]["source"]["points"], float).reshape(-1, 3)
+    assert drawn.shape == rr.shape
+    np.testing.assert_allclose(drawn, rr, atol=1e-6)
+    packed = json.dumps(scene["actors"][0]["source"]["points"]).replace(" ", "")
+    assert packed in html.replace(" ", "")  # whatever spacing json chose
