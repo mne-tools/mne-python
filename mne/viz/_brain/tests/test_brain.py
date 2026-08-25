@@ -1543,6 +1543,49 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     new_peak_line = next(iter(brain._picked_points.values()))[0]["line"]
     assert new_peak_line.get_color() == peak_color
 
+    # the auto-picked "Peak" trace must follow the active overlay
+    peak1 = brain._peak_vertices["lh"]
+    n_verts = len(brain.geo["lh"].coords)
+    peak2 = n_verts - 1 if peak1 != n_verts - 1 else n_verts - 2
+    manual_vertex = next(v for v in (0, 1, 2) if v not in (peak1, peak2))
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=manual_vertex))
+    assert ("lh", manual_vertex) in brain._picked_points
+    time = brain._all_data["data"]["time"]
+    array2 = np.zeros((n_verts, len(time)))
+    array2[peak2] = 1.0
+    brain.add_data(
+        array2,
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=np.arange(n_verts),
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data2",
+        remove_existing=False,  # keep "data" around so we can switch back
+    )
+    assert brain._active_data_key == "data2"
+    assert brain._peak_vertices["lh"] == peak2
+    assert ("lh", peak2) in brain._picked_points
+    assert ("lh", peak1) not in brain._picked_points
+    assert ("lh", manual_vertex) in brain._picked_points  # manual pick untouched
+
+    # switching back to the original overlay restores its peak
+    brain.widgets["data_key"].set_value("data")
+    assert brain._peak_vertices["lh"] == peak1
+    assert ("lh", peak1) in brain._picked_points
+    assert ("lh", peak2) not in brain._picked_points
+    assert ("lh", manual_vertex) in brain._picked_points  # still untouched
+    row_lines2 = [rows.itemAt(i).widget()._line for i in range(rows.count())]
+    peak_row2 = next(
+        rows.itemAt(i).widget()
+        for i, ln in enumerate(row_lines2)
+        if brain._trace_meta.get(ln, (None,))[0] == "lh"
+        and brain._trace_meta[ln][1] == peak1
+    )
+    assert row_text(peak_row2) == f"Peak (LH) {peak1}"
+
 
 def _send_mouse_move(widget, point, buttons=None):
     """Deliver a synthetic Qt mouse move (QTest.mouseMove warps the real cursor)."""
