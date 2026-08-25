@@ -581,6 +581,7 @@ class Brain:
         self._picked_patches = {key: list() for key in all_keys}
         self._picked_points = dict()
         self._peak_vertices = {}
+        self._auto_peak_points = set()
         self._trace_meta = {}
         self._mouse_no_mvt = -1
         self._show_hover_info = False
@@ -920,6 +921,13 @@ class Brain:
         def select_data_key(value):
             self._active_data_key = value
             self._refresh_colormap_widgets()
+            self._update_act_data_smooth()
+            if self.show_traces:
+                self._update_peak_vertices()
+            if self.mpl_canvas is not None:
+                self.mpl_canvas.axes.relim()
+                self.mpl_canvas.axes.autoscale_view()
+                self.mpl_canvas.update_plot()
 
         self.widgets["data_key"] = self._renderer._dock_add_combo_box(
             name="Overlay",
@@ -1205,6 +1213,17 @@ class Brain:
         self.plot_time_line(update=False)
 
         # then the picked points
+        self._update_peak_vertices()
+
+    def _update_peak_vertices(self):
+        """(Re)compute the peak vertex per hemi for the active overlay."""
+        if self.traces_mode != "vertex":
+            # in label mode a VertexSelect would toggle the label containing
+            # the peak (and label extraction may not even be possible, e.g.,
+            # data added without an src)
+            return
+        old_peak_vertices = self._peak_vertices
+        self._peak_vertices = {}
         for idx, hemi in enumerate(["lh", "rh", "vol"]):
             act_data = self.act_data_smooth.get(hemi, [None])[0]
             if act_data is None:
@@ -1228,16 +1247,46 @@ class Brain:
             )
             vertex_id = vertices[ind[0]]
             self._peak_vertices[hemi] = vertex_id
+
+            old_vertex_id = old_peak_vertices.get(hemi)
+            if old_vertex_id == vertex_id:
+                # same peak vertex but possibly different data: refresh the
+                # auto-picked trace in place (manually picked traces keep
+                # showing the overlay they were picked from)
+                spheres = self._picked_points.get((hemi, vertex_id))
+                if (hemi, vertex_id) in self._auto_peak_points and spheres is not None:
+                    spheres[0]["line"].set_ydata(
+                        self._vertex_trace_data(hemi, vertex_id)
+                    )
+                continue
+            was_auto_picked = (hemi, old_vertex_id) in self._auto_peak_points
+            if old_vertex_id is not None and was_auto_picked:
+                self._remove_vertex_glyph(hemi=hemi, vertex_id=old_vertex_id)
+            # a vertex the user already picked stays a manual pick (and must
+            # not be auto-removed on the next overlay switch)
+            if (hemi, vertex_id) not in self._picked_points:
+                self._auto_peak_points.add((hemi, vertex_id))
             publish(
                 self,
                 VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=ind[0]),
             )
+        if self.mpl_canvas is not None:
+            self.mpl_canvas.sync_traces()
 
-    def _configure_picking(self):
+    def _vertex_trace_data(self, hemi, vertex_id):
+        """Get the active overlay's time course at a mesh vertex."""
+        act_data, smooth = self.act_data_smooth[hemi]
+        if smooth is not None:
+            act_data = (smooth[[vertex_id]] @ act_data)[0]
+        else:  # full-resolution data
+            act_data = act_data[vertex_id].copy()
+        return act_data
+
+    def _update_act_data_smooth(self):
         # get data for each hemi
         from scipy.sparse import csr_array
 
-        for idx, hemi in enumerate(["vol", "lh", "rh"]):
+        for hemi in ["vol", "lh", "rh"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
                 act_data = hemi_data["array"]
@@ -1251,6 +1300,9 @@ class Brain:
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
                     )
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
+
+    def _configure_picking(self):
+        self._update_act_data_smooth()
 
         self._renderer._update_picking_callback(
             self._on_mouse_move,
@@ -1656,6 +1708,7 @@ class Brain:
         rindex = lst.index(self._picked_renderer)
         row, col = self._renderer._index_to_loc(rindex)
 
+        is_peak = self._peak_vertices.get(hemi) == vertex_id
         spheres = list()
         for _ in self._iter_views(hemi):
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
@@ -1667,8 +1720,14 @@ class Brain:
             actor, mesh = self._renderer._sphere(
                 center=np.array(center),
                 color=color,
-                radius=4.0,
+                radius=4.5 if is_peak else 3.0,
+                resolution=24 if is_peak else 8,
             )
+            if is_peak:
+                prop = actor.GetProperty()
+                prop.SetSpecular(0.6)
+                prop.SetSpecularPower(40)
+                prop.SetSpecularColor(1, 1, 1)
             spheres.append(dict(mesh=mesh, actor=actor))
 
         # add metadata for picking
@@ -1686,6 +1745,7 @@ class Brain:
         # to all linked brains, so by the time a given brain's own loop (e.g.
         # in clear_glyphs) reaches this (hemi, vertex_id) it may already be
         # gone; just no-op in that case.
+        self._auto_peak_points.discard((hemi, vertex_id))
         spheres = self._picked_points.pop((hemi, vertex_id), None)
         if spheres is None:
             return
@@ -1808,11 +1868,7 @@ class Brain:
             mni_str = None
             mni_suffix = ""
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni_suffix}"
-        act_data, smooth = self.act_data_smooth[hemi]
-        if smooth is not None:
-            act_data = (smooth[[vertex_id]] @ act_data)[0]
-        else:
-            act_data = act_data[vertex_id].copy()
+        act_data = self._vertex_trace_data(hemi, vertex_id)
         line = self.mpl_canvas.plot(
             time,
             act_data,
@@ -2253,14 +2309,6 @@ class Brain:
         self.set_time_interpolation(self.time_interpolation)
         self._update_colormap_range()
 
-        if "data_key" in self.widgets:
-            keys = list(self._all_data.keys())
-            self.widgets["data_key"].set_items(keys)
-            self.widgets["data_key"].set_value(key)
-            if len(keys) > 1:
-                self.widgets["data_key"].show()
-            self._refresh_colormap_widgets()
-
         # 1) add the surfaces first
         actor = None
         for _ in self._iter_views(hemi):
@@ -2276,6 +2324,16 @@ class Brain:
         # set_data_smoothing calls "_update_current_time_idx" for us, which will set
         # _current_time
         self.set_data_smoothing(self._all_data[key]["smoothing_steps"])
+
+        # setting the data_key widget fires select_data_key, which needs this
+        # overlay's smooth_mat (and, for volumes, its grid) to already exist
+        if "data_key" in self.widgets:
+            keys = list(self._all_data.keys())
+            self.widgets["data_key"].set_items(keys)
+            self.widgets["data_key"].set_value(key)
+            if len(keys) > 1:
+                self.widgets["data_key"].show()
+            self._refresh_colormap_widgets()
 
         # 3) add the other actors
         if colorbar is True:
