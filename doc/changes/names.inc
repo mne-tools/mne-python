@@ -253,6 +253,7 @@
 .. _Lorenzo Alfine: https://github.com/lorrandal
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Louis Thibault: https://github.com/lthibault
+.. _Luca Kaemmer: https://github.com/Lucakaemmer
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 .. _Lukas Gemein: https://github.com/gemeinl
 .. _Lukas Hecker: https://github.com/LukeTheHecker
