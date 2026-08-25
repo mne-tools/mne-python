@@ -322,3 +322,18 @@ def test_fetch_uncompressed_file(tmp_path):
     )
     fetch_dataset(dataset_dict, path=None, force_update=True)
     assert (tmp_path / "foo" / "LICENSE.foo").is_file()
+
+
+def test_lite_data():
+    """Test the lite_data curated dataset is registered correctly."""
+    from mne.datasets import lite_data
+    from mne.datasets.config import MNE_DATASETS
+
+    assert "lite_data" in MNE_DATASETS
+    cfg = MNE_DATASETS["lite_data"]
+    assert cfg["archive_name"] == "MNE-lite-data.tar.gz"
+    assert cfg["hash"].startswith("md5:")
+    assert cfg["url"].startswith("https://osf.io/")
+    assert cfg["config_key"] == "MNE_DATASETS_LITE_DATA_PATH"
+    assert callable(lite_data.data_path)
+    assert callable(lite_data.get_version)
