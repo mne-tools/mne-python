@@ -337,17 +337,20 @@ def _sklearn_callables(tree):
             and node.module
             and node.module.startswith("sklearn")
         ):
-            module = importlib.import_module(node.module)
-            callables.update(
-                (alias.asname or alias.name, getattr(module, alias.name))
-                for alias in node.names
-            )
+            module = _soft_import(node.module, "checking RNG parameters", strict=False)
+            if module:
+                for alias in node.names:
+                    callable_ = getattr(module, alias.name, None)
+                    if callable_ is not None:
+                        callables[alias.asname or alias.name] = callable_
         elif isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name.startswith("sklearn"):
-                    callables[alias.asname or alias.name] = importlib.import_module(
-                        alias.name
+                    module = _soft_import(
+                        alias.name, "checking RNG parameters", strict=False
                     )
+                    if module:
+                        callables[alias.asname or alias.name] = module
     return callables
 
 
@@ -368,7 +371,6 @@ def _rng_parameters(callable_, node):
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
-    sklearn = _soft_import("sklearn", "checking RNG parameters", strict=False)
     bad = []
     for sub in ("mne", "examples", "tutorials"):
         base = root / sub
@@ -377,7 +379,7 @@ def test_no_global_rng():
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
             tree = ast.parse(path.read_text("utf-8"))
-            callables = _sklearn_callables(tree) if sklearn else {}
+            callables = _sklearn_callables(tree)
             for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Attribute)
