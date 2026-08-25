@@ -261,6 +261,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._toggle_antialias()
         self._enable_depth_peeling()
         self._picker = vtkCellPicker()
+        # separate picker for hover: Pick() on _picker would fire its
+        # EndPickEvent observer and act like a click
+        self._hover_picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -964,6 +967,14 @@ class _PyVistaRenderer(_AbstractRenderer):
         actor, _ = mesh_data
         self.plotter.remove_actor(actor)
 
+    def _remove_actors(self, actors, *, render=True):
+        # Work around PyVista sequential update bug with iterable until > 0.42.3 is
+        # req: https://github.com/pyvista/pyvista/pull/5046
+        if not isinstance(actors, list):
+            actors = [actors]
+        for actor in actors:
+            self.plotter.remove_actor(actor, render=render)
+
     @contextmanager
     def _disabled_interaction(self):
         if not self.plotter.renderer.GetInteractive():
@@ -995,6 +1006,17 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
         self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self._picker.SetVolumeOpacityIsovalue(0.0)
+
+    def _trigger_pick(self, x, y):
+        """Trigger a pick at the given 2D event position."""
+        self._picker.Pick(x, y, 0, self.figure.plotter.renderer)
+
+    def _add_redraw_callback(self, func, interval):
+        """Schedule a periodic callback on the plotter."""
+        self.plotter.add_callback(func, interval)
+
+    def _show_axes(self):
+        self.plotter.show_axes()
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
