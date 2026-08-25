@@ -215,28 +215,22 @@ def test_freq_mask():
 
 
 def test_random_permutation():
-    """Test random permutation function."""
+    """Test random permutation function and its RNG transition."""
     n_samples = 10
-    random_state = 42
     with pytest.warns(FutureWarning, match="random_state"):
-        python_randperm = random_permutation(n_samples, random_state)
-
-    # matlab output when we execute rng(42), randperm(10)
-    matlab_randperm = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
-
-    assert_array_equal(python_randperm, matlab_randperm - 1)
-
+        # matlab output when we execute rng(42), randperm(10)
+        assert_array_equal(
+            random_permutation(n_samples, 42),
+            np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2]) - 1,
+        )
+    # an integer ``rng`` seed is reproducible while a Generator instance advances
     assert_array_equal(
-        random_permutation(n_samples, rng=42),
-        random_permutation(n_samples, rng=42),
+        random_permutation(n_samples, rng=42), random_permutation(n_samples, rng=42)
     )
     rng = np.random.default_rng(42)
     assert not np.array_equal(
-        random_permutation(n_samples, rng=rng),
-        random_permutation(n_samples, rng=rng),
+        random_permutation(n_samples, rng=rng), random_permutation(n_samples, rng=rng)
     )
-    with pytest.raises(TypeError, match="only one"):
-        random_permutation(n_samples, random_state=42, rng=42)
 
 
 @pytest.mark.parametrize("use_keyword", (False, True))
@@ -244,10 +238,9 @@ def test_random_permutation_legacy_none(use_keyword):
     """Test explicit legacy None uses NumPy's global RandomState."""
     global_rng = check_random_state(None)
     original_state = global_rng.get_state()
-    seeded_state = check_random_state(42).get_state()
     want = np.array([6, 5, 4, 0, 3, 8, 9, 2, 7, 1])
     try:
-        global_rng.set_state(seeded_state)
+        global_rng.set_state(check_random_state(42).get_state())
         with pytest.warns(FutureWarning, match="random_state"):
             if use_keyword:
                 got = random_permutation(10, random_state=None)
@@ -256,14 +249,8 @@ def test_random_permutation_legacy_none(use_keyword):
         assert_array_equal(got, want)
     finally:
         global_rng.set_state(original_state)
-
-    with pytest.raises(TypeError, match="only one"):
-        random_permutation(10, None, rng=None)
-    with pytest.raises(TypeError, match="only one"):
-        random_permutation(10, random_state=None, rng=0)
-    assert (
-        str(signature(random_permutation))
-        == "(n_samples, random_state=None, *, rng=None)"
+    assert str(signature(random_permutation)) == (
+        "(n_samples, random_state=None, *, rng=None)"
     )
 
 

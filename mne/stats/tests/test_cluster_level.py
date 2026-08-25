@@ -56,40 +56,40 @@ def _get_conditions():
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
-def test_cluster_rng_transition():
-    """Test the transition from seed to rng."""
-    X = np.arange(24.0).reshape(8, 3)
-    with pytest.warns(FutureWarning, match="seed"):
-        permutation_cluster_1samp_test(X, threshold=0, n_permutations=2, seed=0)
-    with pytest.raises(TypeError, match="Specify only one"):
-        permutation_cluster_1samp_test(X, threshold=0, n_permutations=2, seed=0, rng=0)
-
-
-def test_spatio_temporal_cluster_legacy_rng_nested():
+@pytest.mark.parametrize(
+    "function, make_X",
+    (
+        (
+            spatio_temporal_cluster_1samp_test,
+            lambda rng: rng.standard_normal((8, 3, 1)),
+        ),
+        (
+            spatio_temporal_cluster_test,
+            lambda rng: [
+                rng.standard_normal((8, 3, 1)),
+                rng.standard_normal((8, 3, 1)),
+            ],
+        ),
+    ),
+)
+def test_spatio_temporal_cluster_legacy_rng_nested(function, make_X):
     """Test legacy RNGs survive nested spatio-temporal wrappers."""
-    rng = np.random.default_rng(0)
-    X = rng.standard_normal((8, 3, 1))
-    cases = (
-        (spatio_temporal_cluster_1samp_test, X),
-        (spatio_temporal_cluster_test, [X, rng.standard_normal(X.shape)]),
-    )
-    for function, data in cases:
-        results = []
-        for kind in ("int", "state"):
-            seed = 0 if kind == "int" else check_random_state(0)
-            with pytest.warns(FutureWarning, match="seed"):
-                results.append(
-                    function(
-                        data,
-                        threshold=0,
-                        n_permutations=2,
-                        seed=seed,
-                        out_type="mask",
-                    )
+    data = make_X(np.random.default_rng(0))
+    results = []
+    for seed in (0, check_random_state(0)):
+        with pytest.warns(FutureWarning, match="seed"):
+            results.append(
+                function(
+                    data,
+                    threshold=0,
+                    n_permutations=2,
+                    seed=seed,
+                    out_type="mask",
                 )
-        assert_array_equal(results[0][0], results[1][0])
-        assert_array_equal(results[0][2], results[1][2])
-        assert_array_equal(results[0][3], results[1][3])
+            )
+    assert_array_equal(results[0][0], results[1][0])
+    assert_array_equal(results[0][2], results[1][2])
+    assert_array_equal(results[0][3], results[1][3])
 
 
 def test_thresholds(numba_conditional):

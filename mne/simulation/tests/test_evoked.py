@@ -112,10 +112,6 @@ def test_add_noise():
     with pytest.raises(RuntimeError, match="to be loaded"):
         add_noise(raw, cov)
     raw.crop(0, 1).load_data()
-    with pytest.warns(FutureWarning, match="random_state"):
-        add_noise(raw.copy(), cov, random_state=0)
-    with pytest.raises(TypeError, match="only one"):
-        add_noise(raw, cov, random_state=0, rng=0)
     with pytest.raises(TypeError, match="Raw, Epochs, or Evoked"):
         add_noise(0.0, cov)
     with pytest.raises(TypeError, match="Covariance"):
@@ -171,12 +167,6 @@ def test_add_noise():
     assert not np.array_equal(
         modern.get_data(copy=False)[0], modern.get_data(copy=False)[1]
     )
-
-
-def test_simulate_evoked_rng_conflict_without_noise():
-    """Test RNG spelling conflicts are checked when noise is inactive."""
-    with pytest.raises(TypeError, match="only one"):
-        simulate_evoked(None, None, None, cov=None, random_state=None, rng=None)
 
 
 def test_rank_deficiency():

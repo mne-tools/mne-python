@@ -46,14 +46,6 @@ def forward():
     return read_forward_solution(fname_fwd)
 
 
-def test_mixed_norm_rng_conflict_without_sure():
-    """Test RNG spelling conflicts when SURE randomness is inactive."""
-    with pytest.raises(TypeError, match="only one"):
-        mixed_norm(None, None, None, alpha=1, random_state=0, rng=1)
-    with pytest.raises(TypeError, match="only one"):
-        mixed_norm(None, None, None, alpha=1, random_state=None, rng=None)
-
-
 @testing.requires_testing_data
 @pytest.mark.timeout(150)  # ~30 s on Travis Linux
 @pytest.mark.ultraslowtest

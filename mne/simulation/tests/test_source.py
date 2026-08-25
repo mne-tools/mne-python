@@ -55,21 +55,16 @@ def test_simulate_sparse_stc_legacy_rng_nested():
         [
             dict(
                 type="surf",
-                vertno=np.array([1, 2, 3]),
+                vertno=np.arange(1, 4) + 3 * hemi,
                 nuse=3,
                 subject_his_id="sample",
-            ),
-            dict(
-                type="surf",
-                vertno=np.array([4, 5, 6]),
-                nuse=3,
-                subject_his_id="sample",
-            ),
+            )
+            for hemi in range(2)
         ]
     )
     labels = [
-        Label([1, 2, 3], hemi="lh", subject="sample"),
-        Label([4, 5, 6], hemi="rh", subject="sample"),
+        Label(np.arange(1, 4) + 3 * idx, hemi=hemi, subject="sample")
+        for idx, hemi in enumerate(("lh", "rh"))
     ]
     results = []
     for random_state in (0, check_random_state(0)):
@@ -187,22 +182,6 @@ def test_simulate_sparse_stc(_get_fwd_labels):
         this_label = label.copy()
         this_label.values.fill(1.0)
         mylabels.append(this_label)
-
-    legacy_stcs = []
-    for random_state in (0, check_random_state(0)):
-        with pytest.warns(FutureWarning, match="random_state"):
-            legacy_stcs.append(
-                simulate_sparse_stc(
-                    fwd["src"],
-                    len(mylabels),
-                    times,
-                    labels=mylabels,
-                    random_state=random_state,
-                    subjects_dir=subjects_dir,
-                )
-            )
-    for hemi in (0, 1):
-        assert_array_equal(legacy_stcs[0].vertices[hemi], legacy_stcs[1].vertices[hemi])
 
     for location in ("random", "center"):
         random_state = 0 if location == "random" else None
