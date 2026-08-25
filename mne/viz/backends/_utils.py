@@ -123,6 +123,13 @@ def _splash_class():
 
 @contextmanager
 def _qt_disable_paint(widget):
+    if hasattr(widget, "paintGL"):
+        # QOpenGLWidget-based interactor (PyVistaQt >= 0.13): paintEvent drives
+        # the GL compositing of the whole window there, and suppressing it
+        # while the window is first shown leaves the entire window blank on
+        # macOS until a resize forces a fresh frame
+        yield
+        return
     paintEvent = widget.paintEvent
     widget.paintEvent = lambda *args, **kwargs: None
     try:

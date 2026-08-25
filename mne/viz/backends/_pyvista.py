@@ -262,6 +262,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._toggle_antialias()
         self._enable_depth_peeling()
         self._picker = vtkCellPicker()
+        # separate picker for hover: Pick() on _picker would fire its
+        # EndPickEvent observer and act like a click
+        self._hover_picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
