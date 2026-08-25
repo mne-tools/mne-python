@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 import mne
 from mne import create_info, pick_channels_cov, read_vectorview_selection
@@ -38,6 +38,7 @@ from mne.utils import (
     check_random_state,
     check_version,
 )
+from mne.utils.check import _check_rng, _legacy_rng
 
 data_path = testing.data_path(download=False)
 base_dir = data_path / "MEG" / "sample"
@@ -46,6 +47,46 @@ fname_event = base_dir / "sample_audvis_trunc_raw-eve.fif"
 fname_fwd = base_dir / "sample_audvis_trunc-meg-vol-7-fwd.fif"
 fname_mgz = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
 reject = dict(grad=4000e-13, mag=4e-12)
+
+
+def test_check_rng():
+    """Test conversion to NumPy's modern random number generator."""
+    assert isinstance(_check_rng(None), np.random.Generator)
+
+    rng = _check_rng(0)
+    assert isinstance(rng, np.random.Generator)
+    assert_array_equal(rng.integers(10, size=3), _check_rng(0).integers(10, size=3))
+
+    assert _check_rng(rng) is rng
+    # legacy RandomState instances are passed through for scikit-learn interop
+    random_state = np.random.RandomState(0)
+    assert _check_rng(random_state) is random_state
+    with pytest.raises(TypeError, match="SeedSequence"):
+        _check_rng("foo")
+
+
+@pytest.mark.parametrize("legacy_name", ("random_state", "seed"))
+def test_legacy_rng_decorator(legacy_name):
+    """Test that the transition decorator normalizes and logs."""
+
+    @_legacy_rng(legacy_name)
+    def _func(*, rng=None, random_state=None, seed=None):
+        return rng
+
+    # no argument: a fresh generator is created
+    assert isinstance(_func(), np.random.Generator)
+    assert isinstance(_func(rng=0), np.random.Generator)
+    # legacy RandomState passthrough
+    random_state = np.random.RandomState(0)
+    assert _func(rng=random_state) is random_state
+    # legacy int/None keep their RandomState semantics and log migration guidance
+    with catch_logging(verbose="info") as log:
+        assert isinstance(_func(**{legacy_name: 0}), np.random.RandomState)
+    assert f"Use rng= instead of {legacy_name}=" in log.getvalue()
+    assert isinstance(_func(**{legacy_name: None}), np.random.mtrand.RandomState)
+    # supplying both is an error
+    with pytest.raises(TypeError, match="Specify only one"):
+        _func(**{legacy_name: 0}, rng=0)
 
 
 @testing.requires_testing_data
