@@ -1,4 +1,5 @@
 __all__ = [
+    "ClusterResult",
     "_ci",
     "_parametric_ci",
     "_st_mask_from_s_inds",
@@ -25,6 +26,7 @@ __all__ = [
 from . import erp
 from ._adjacency import combine_adjacency
 from .cluster_level import (
+    ClusterResult,
     _st_mask_from_s_inds,
     cluster_test,
     permutation_cluster_1samp_test,
