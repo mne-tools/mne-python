@@ -702,11 +702,14 @@ class _MNEMainWindow(MainWindow):
     signal_theme_change = Signal()
 
     def __init__(self, parent=None, title=None, size=None):
+        # before the base __init__: Qt can dispatch event() while the C++
+        # constructor is still running (PaletteChange is delivered during
+        # construction), and these must already exist by then
+        self._mne_theme = None
+        self._mne_theme_updating = False
         MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self._mne_theme = None
-        self._mne_theme_updating = False
         from . import renderer
 
         if renderer.MNE_3D_BACKEND_TESTING:
