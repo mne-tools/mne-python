@@ -575,8 +575,13 @@ class TimeMixin:
             type_name="int, float, None",
         )
 
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
+        # handle tmin/tmax as start and stop indices into data array.
+        # Prefer an integer n_times (available on Raw); falling back to
+        # times.size there would materialize the full time vector on every
+        # call, which dominates the cost of many small get_data() reads.
+        n_times = getattr(self, "n_times", None)
+        if n_times is None:
+            n_times = self.times.size
         start = 0 if tmin is None else self.time_as_index(tmin)[0]
         stop = n_times if tmax is None else self.time_as_index(tmax)[0]
 
