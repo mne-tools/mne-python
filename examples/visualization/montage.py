@@ -47,7 +47,7 @@ n_cols = 6
 n_rows = int(np.ceil(len(montages) / n_cols))
 # Size of each montage in the combined figure. Setting this rather than deriving it
 # from ``size`` keeps the title font size independent of the screenshot resolution.
-inches_per_montage = 4.0
+inches_per_montage = 2.5
 
 
 def plot_montage_grid(images, titles):
@@ -59,10 +59,8 @@ def plot_montage_grid(images, titles):
     grid = concatenate_images(rows, axis=0, bgcolor=bgcolor, centered=False)
     height, width = images[0].shape[:2]
     fig = plt.figure()
-    # forward=False so that interactive backends do not clamp to the screen size
-    fig.set_size_inches(
-        n_cols * inches_per_montage, n_rows * inches_per_montage, forward=False
-    )
+    # sizes the window to the figure, so the whole grid is visible interactively
+    fig.set_size_inches(n_cols * inches_per_montage, n_rows * inches_per_montage)
     ax = fig.add_axes([0, 0, 1, 1])  # fill the entire figure
     ax.set_axis_off()
     ax.imshow(grid)
@@ -75,7 +73,7 @@ def plot_montage_grid(images, titles):
             color="w",
             ha="center",
             va="top",
-            fontsize=14,
+            fontsize=11,
         )
     return fig
 
@@ -86,6 +84,13 @@ def plot_montage_grid(images, titles):
 # The figure must be created and closed within a single code block, because
 # Sphinx-Gallery screenshots (and closes) every open 3D figure at the end of a block.
 fig_3d = create_3d_figure(size=size, bgcolor=bgcolor)
+set_3d_view(
+    figure=fig_3d,
+    azimuth=135,
+    elevation=80,
+    distance=0.6,
+    focalpoint=(0.0, 0.0, 0.0),
+)
 images = list()
 for current_montage in montages:
     montage = mne.channels.make_standard_montage(current_montage)
@@ -103,8 +108,8 @@ for current_montage in montages:
         bem=sphere,
         info=info,
         fig=fig_3d,
+        set_view=False,  # keep the view we set above
     )
-    set_3d_view(figure=fig_3d, azimuth=135, elevation=80)
     images.append(fig_3d.plotter.screenshot())
     clear_3d_figure(fig_3d)  # reuse the same figure for the next montage
     gc.collect()
@@ -118,6 +123,13 @@ plot_montage_grid(images, montages)
 subjects_dir = op.dirname(fetch_fsaverage())
 
 fig_3d = create_3d_figure(size=size, bgcolor=bgcolor)
+set_3d_view(
+    figure=fig_3d,
+    azimuth=135,
+    elevation=80,
+    distance=0.6,
+    focalpoint=(0.0, 0.0, 0.0),
+)
 images = list()
 for current_montage in montages:
     montage = mne.channels.make_standard_montage(current_montage)
@@ -136,8 +148,8 @@ for current_montage in montages:
         coord_frame="mri",
         trans="fsaverage",  # transform from head coords to fsaverage's MRI
         fig=fig_3d,
+        set_view=False,  # keep the view we set above
     )
-    set_3d_view(figure=fig_3d, azimuth=135, elevation=80)
     images.append(fig_3d.plotter.screenshot())
     clear_3d_figure(fig_3d)
     gc.collect()
