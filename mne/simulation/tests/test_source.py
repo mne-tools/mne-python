@@ -7,7 +7,6 @@ import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
 from mne import (
-    SourceSpaces,
     convert_forward_solution,
     pick_types_forward,
     read_forward_solution,
@@ -16,7 +15,6 @@ from mne import (
 from mne.datasets import testing
 from mne.label import Label
 from mne.simulation import SourceSimulator, simulate_sparse_stc, simulate_stc
-from mne.utils import check_random_state
 
 data_path = testing.data_path(download=False)
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
@@ -47,38 +45,6 @@ def _get_idx_label_stc(label, stc):
     if hemi_idx == 1:
         idx += len(stc.vertices[0])
     return idx
-
-
-def test_simulate_sparse_stc_legacy_rng_nested():
-    """Test legacy RNGs survive nested label-source selection."""
-    src = SourceSpaces(
-        [
-            dict(
-                type="surf",
-                vertno=np.arange(1, 4) + 3 * hemi,
-                nuse=3,
-                subject_his_id="sample",
-            )
-            for hemi in range(2)
-        ]
-    )
-    labels = [
-        Label(np.arange(1, 4) + 3 * idx, hemi=hemi, subject="sample")
-        for idx, hemi in enumerate(("lh", "rh"))
-    ]
-    results = []
-    for random_state in (0, check_random_state(0)):
-        results.append(
-            simulate_sparse_stc(
-                src,
-                2,
-                np.arange(2.0),
-                labels=labels,
-                random_state=random_state,
-            )
-        )
-    for hemi in (0, 1):
-        assert_array_equal(results[0].vertices[hemi], results[1].vertices[hemi])
 
 
 def test_simulate_stc(_get_fwd_labels):

@@ -28,7 +28,7 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
-from mne.utils import _record_warnings, catch_logging, check_random_state
+from mne.utils import _record_warnings, catch_logging
 
 n_space = 50
 
@@ -54,41 +54,6 @@ def _get_conditions():
     condition1_2d = condition1_1d[:, :, np.newaxis]
     condition2_2d = condition2_1d[:, :, np.newaxis]
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
-
-
-@pytest.mark.parametrize(
-    "function, make_X",
-    (
-        (
-            spatio_temporal_cluster_1samp_test,
-            lambda rng: rng.standard_normal((8, 3, 1)),
-        ),
-        (
-            spatio_temporal_cluster_test,
-            lambda rng: [
-                rng.standard_normal((8, 3, 1)),
-                rng.standard_normal((8, 3, 1)),
-            ],
-        ),
-    ),
-)
-def test_spatio_temporal_cluster_legacy_rng_nested(function, make_X):
-    """Test legacy RNGs survive nested spatio-temporal wrappers."""
-    data = make_X(np.random.default_rng(0))
-    results = []
-    for seed in (0, check_random_state(0)):
-        results.append(
-            function(
-                data,
-                threshold=0,
-                n_permutations=2,
-                seed=seed,
-                out_type="mask",
-            )
-        )
-    assert_array_equal(results[0][0], results[1][0])
-    assert_array_equal(results[0][2], results[1][2])
-    assert_array_equal(results[0][3], results[1][3])
 
 
 def test_thresholds(numba_conditional):

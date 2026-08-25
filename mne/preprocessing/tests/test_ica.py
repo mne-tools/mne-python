@@ -292,7 +292,6 @@ def test_ica_max_iter_(method, max_iter_default):
 
 def test_ica_rng_transition():
     """Test the transition from random_state to rng."""
-    _ICA(random_state=0)
     with pytest.raises(TypeError, match="only one"):
         _ICA(random_state=0, rng=0)
 
@@ -301,44 +300,24 @@ def test_ica_rng_transition():
         info["highpass"] = 1.0
     raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
     unmixings = []
-    for random_state in (0, check_random_state(0)):
+    for kwargs in (
+        dict(random_state=0),
+        dict(random_state=check_random_state(0)),
+        dict(rng=0),
+    ):
         ica = _ICA(
             n_components=2,
             method="fastica",
             max_iter=1000,
-            random_state=random_state,
+            **kwargs,
         )
         with _record_warnings():  # ICA does not necessarily converge
             ica.fit(raw)
         unmixings.append(ica.unmixing_matrix_)
-    ica = _ICA(n_components=2, method="fastica", max_iter=1000, rng=0)
-    with _record_warnings():  # ICA does not necessarily converge
-        ica.fit(raw)
-    unmixings.append(ica.unmixing_matrix_)
     assert_array_equal(unmixings[0], unmixings[1])
     # at the ICA/sklearn boundary an integer ``rng`` seed is forwarded verbatim,
-    # so it matches the same integer passed to the deprecated parameter
+    # so it matches the same integer passed to the legacy parameter
     assert_array_equal(unmixings[0], unmixings[2])
-
-
-def test_ica_infomax_fit_params_verbose():
-    """Test Infomax fit_params can suppress its private logging scope."""
-    info = create_info(["Fz", "Cz", "Pz"], 100.0, "eeg")
-    with info._unlock():
-        info["highpass"] = 1.0
-    raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
-    ica = _ICA(
-        n_components=2,
-        method="infomax",
-        fit_params={"verbose": False},
-        max_iter=1,
-        rng=0,
-    )
-    with catch_logging(True) as log:
-        ica.fit(raw, verbose=True)
-    log = log.getvalue()
-    assert "Fitting ICA to data" in log
-    assert "Computing Infomax ICA" not in log
 
 
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])

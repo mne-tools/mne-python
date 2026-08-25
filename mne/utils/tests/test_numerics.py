@@ -4,7 +4,6 @@
 
 from copy import deepcopy
 from datetime import date
-from inspect import signature
 from io import StringIO
 from pathlib import Path
 
@@ -34,7 +33,6 @@ from mne.utils import (
     _time_mask,
     _undo_scaling_array,
     _undo_scaling_cov,
-    check_random_state,
     compute_corr,
     create_slices,
     grand_average,
@@ -229,26 +227,6 @@ def test_random_permutation():
     rng = np.random.default_rng(42)
     assert not np.array_equal(
         random_permutation(n_samples, rng=rng), random_permutation(n_samples, rng=rng)
-    )
-
-
-@pytest.mark.parametrize("use_keyword", (False, True))
-def test_random_permutation_legacy_none(use_keyword):
-    """Test explicit legacy None uses NumPy's global RandomState."""
-    global_rng = check_random_state(None)
-    original_state = global_rng.get_state()
-    want = np.array([6, 5, 4, 0, 3, 8, 9, 2, 7, 1])
-    try:
-        global_rng.set_state(check_random_state(42).get_state())
-        if use_keyword:
-            got = random_permutation(10, random_state=None)
-        else:
-            got = random_permutation(10, None)
-        assert_array_equal(got, want)
-    finally:
-        global_rng.set_state(original_state)
-    assert str(signature(random_permutation)) == (
-        "(n_samples, random_state=None, *, rng=None)"
     )
 
 

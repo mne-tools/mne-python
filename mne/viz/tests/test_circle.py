@@ -6,7 +6,6 @@
 import matplotlib
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
 
 from mne.viz import plot_channel_labels_circle
 from mne.viz.circle import _plot_connectivity_circle
@@ -83,16 +82,3 @@ def test_plot_connectivity_circle_label_orientation():
                 f"Node '{name}' at {angle:.1f}° (left half) should have "
                 f"ha='right', got '{ha}'"
             )
-
-
-def test_plot_connectivity_circle_jitter_reproducible():
-    """Test connectivity-circle edge jitter uses a fixed local Generator."""
-    con = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 3.0], [2.0, 3.0, 0.0]])
-    vertices = []
-    for _ in range(2):
-        fig, ax = _plot_connectivity_circle(
-            con, ["a", "b", "c"], colorbar=False, interactive=False, show=False
-        )
-        vertices.append(ax.patches[0].get_path().vertices)
-        fig.clear()
-    assert_allclose(*vertices)

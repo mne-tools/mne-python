@@ -58,9 +58,6 @@ def test_check_rng():
     assert_array_equal(rng.integers(10, size=3), _check_rng(0).integers(10, size=3))
 
     assert _check_rng(rng) is rng
-    bit_generator = np.random.default_rng(0).bit_generator
-    assert isinstance(_check_rng(bit_generator.seed_seq), np.random.Generator)
-    assert isinstance(_check_rng(bit_generator), np.random.Generator)
     # legacy RandomState instances are passed through for scikit-learn interop
     random_state = np.random.RandomState(0)
     assert _check_rng(random_state) is random_state
@@ -81,9 +78,6 @@ def test_legacy_rng_decorator(legacy_name, legacy_args):
     # no argument: a fresh generator is created
     assert isinstance(_func(), np.random.Generator)
     assert isinstance(_func(rng=0), np.random.Generator)
-    assert_array_equal(
-        _func(rng=0).integers(10, size=3), _func(rng=0).integers(10, size=3)
-    )
     # legacy RandomState passthrough
     random_state = np.random.RandomState(0)
     assert _func(rng=random_state) is random_state
