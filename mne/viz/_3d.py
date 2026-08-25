@@ -1413,7 +1413,7 @@ def _plot_glyphs(
     defaults = DEFAULTS["coreg"]
     n = len(loc)
     if n == 0:
-        return None
+        return None, None
     colors = np.array(np.broadcast_to(to_rgba_array(colors), (n, 4)), float)
     colors[:, 3] *= opacity
     scales = np.broadcast_to(np.asarray(scales, float).reshape(-1), (n,))
