@@ -27,7 +27,7 @@ from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import Info, _get_valid_units, _writing_info_hdf5
 from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne._fiff.proj import Projection
-from mne._fiff.utils import _mult_cal_one
+from mne._fiff.utils import _memmap_for, _mult_cal_one
 from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
 from mne.transforms import Transform
@@ -836,6 +836,20 @@ class _RawArange(BaseRaw):
 
 def _read_raw_arange(preload=False, verbose=None):
     return _RawArange(preload, verbose)
+
+
+def test_raw_close_memmap_cache(tmp_path):
+    """Test that closing Raw releases cached memory maps."""
+    fname = tmp_path / "test.bin"
+    fname.write_bytes(b"test")
+    with _read_raw_arange() as raw:
+        cache = raw._raw_extras[0]
+        mapping = _memmap_for(cache, fname)
+        assert not mapping._mmap.closed
+
+    assert mapping._mmap.closed
+    assert cache["_memmap_cache"].mapping is None
+    assert cache["_memmap_cache"].pid is None
 
 
 def test_load_data_memmap(tmp_path):

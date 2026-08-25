@@ -220,8 +220,6 @@ def _read_segments_file(
     if n_channels is None:
         n_channels = raw._raw_extras[fi]["orig_nchan"]
 
-    import os as _os
-
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
     # not bytes.
@@ -235,32 +233,18 @@ def _read_segments_file(
     # Reuse a memory map across calls (keyed by PID so forked processes --
     # e.g., PyTorch DataLoader workers -- create their own mapping instead of
     # sharing one). This removes the per-call open/seek/syscall overhead.
-    ex = raw._raw_extras[fi] if fi < len(raw._raw_extras) else {}
-    mm = ex.get("_mm") if isinstance(ex, dict) else None
-    if mm is not None and ex.get("_mm_pid") != _os.getpid():
+    extras = raw._raw_extras[fi] if fi < len(raw._raw_extras) else {}
+    mm = _memmap_for(extras, raw.filenames[fi]) if isinstance(extras, dict) else None
+    if mm is not None and mm.size < data_offset + data_left * n_bytes:
         mm = None
-    if mm is not None and (
-        mm.dtype != np.dtype(dtype)
-        or mm.size * n_bytes < data_offset + data_left * n_bytes
-    ):
-        mm = None
-    if mm is None and isinstance(ex, dict):
-        try:
-            mm = np.memmap(raw.filenames[fi], dtype=dtype, mode="r")
-            ex["_mm"] = mm
-            ex["_mm_pid"] = _os.getpid()
-        except Exception:
-            mm = None
 
     if mm is not None:
-        base_idx = data_offset // n_bytes
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
             count = min(block_size, data_left - sample_start * n_channels)
-            block = mm[
-                base_idx + sample_start * n_channels : base_idx
-                + sample_start * n_channels
-                + count
-            ]
+            byte_start = data_offset + sample_start * n_channels * n_bytes
+            block = np.frombuffer(
+                mm[byte_start : byte_start + count * n_bytes], dtype=dtype, count=count
+            )
             if block.size != count:
                 raise RuntimeError(
                     f"Incorrect number of samples ({block.size} != {count}), "
@@ -383,23 +367,52 @@ def _make_split_fnames(fname, n_splits, split_naming):
     return res
 
 
-def _memmap_for(extras, fname):
-    """Return a PID-keyed read-only uint8 memmap of *fname* from *extras*.
+class _MemmapCache:
+    """Hold a memory map without copying or pickling its contents."""
 
-    The mapping is created lazily on first call and cached in *extras* (a
-    per-instance dict) together with the PID that created it, so forked worker
-    processes build their own mapping instead of sharing inherited state.
-    Returns None if the file cannot be mapped. There is deliberately no
-    staleness check: callers index the mapping through tables read at open
-    time (bounds, entries), which are invalid if the file changes anyway,
-    so a per-call stat would only add overhead.
+    def __init__(self):
+        self.mapping = None
+        self.pid = None
+
+    def __deepcopy__(self, memodict):
+        """Create an empty cache when its owner is copied."""
+        return type(self)()
+
+    def __reduce__(self):
+        """Create an empty cache when its owner is pickled."""
+        return type(self), ()
+
+    def close(self):
+        """Close the mapping and reset the cache."""
+        mapping = self.mapping
+        self.mapping = self.pid = None
+        if mapping is not None:
+            mapping._mmap.close()
+
+
+def _memmap_for(extras, fname):
+    """Return a process-local read-only uint8 memmap of *fname* from *extras*.
+
+    The mapping is created lazily on first call and held by a cache that is
+    reset when *extras* is copied or pickled. The creating PID is recorded so
+    forked worker processes build their own mapping instead of sharing
+    inherited state. Returns None if the file cannot be mapped. There is
+    deliberately no staleness check: callers index the mapping through tables
+    read at open time (bounds, entries), which are invalid if the file changes
+    anyway, so a per-call stat would only add overhead.
     """
-    mm = extras.get("_mm")
-    if mm is not None and extras.get("_mm_pid") == os.getpid():
-        return mm
+    cache = extras.get("_memmap_cache")
+    if cache is None:
+        cache = extras["_memmap_cache"] = _MemmapCache()
+    mm = cache.mapping
+    pid = os.getpid()
+    if mm is not None:
+        if cache.pid == pid:
+            return mm
+        cache.close()
     try:
         mm = np.memmap(str(fname), dtype=np.uint8, mode="r")
     except Exception:
         return None
-    extras["_mm"], extras["_mm_pid"] = mm, os.getpid()
+    cache.mapping, cache.pid = mm, pid
     return mm

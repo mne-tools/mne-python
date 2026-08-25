@@ -38,8 +38,7 @@ from ..base import (
 )
 
 
-@fill_doc
-def _fif_mm_plan(bounds, ents, entry_span, nchan, file_mapping, start, stop):
+def _fif_mm_plan(bounds, ents, entry_span, nchan, start, stop):
     """Plan byte-offset reads covering [start, stop) from a FIF memory map.
 
     Returns a list of ``(dtype, byte_offset, n_bytes, n_samples)`` read tuples,
@@ -73,6 +72,7 @@ def _fif_mm_plan(bounds, ents, entry_span, nchan, file_mapping, start, stop):
     return read_plan
 
 
+@fill_doc
 class Raw(BaseRaw):
     """Raw data in FIF format.
 
@@ -458,34 +458,30 @@ class Raw(BaseRaw):
 
         # Fast path: serve [start, stop) from one persistent memory map of
         # the file; see _fif_mm_plan() for eligibility and fallbacks.
-        fname = self._raw_extras[fi]["filename"]
-        file_mapping = (
-            _memmap_for(self._raw_extras[fi], fname)
-            if isinstance(fname, Path) and fname.suffixes[-1] != ".gz"
-            else None
-        )
-        read_plan = (
-            _fif_mm_plan(bounds, ents, entry_span, nchan, file_mapping, start, stop)
-            if file_mapping is not None
-            else None
-        )
-        if read_plan is not None:
-            col_start = 0
-            for dtype, byte_offset, n_bytes, n_samples in read_plan:
-                values = np.frombuffer(
-                    file_mapping[byte_offset : byte_offset + n_bytes],
-                    dtype=dtype,
-                    count=n_samples * nchan,
-                ).reshape(n_samples, nchan)
-                _mult_cal_one(
-                    data[:, col_start : col_start + n_samples],
-                    values.T,
-                    idx,
-                    cals,
-                    mult,
-                )
-                col_start += n_samples
-            return
+        read_plan = _fif_mm_plan(bounds, ents, entry_span, nchan, start, stop)
+        if (
+            read_plan is not None
+            and isinstance(fname, Path)
+            and fname.suffixes[-1] != ".gz"
+        ):
+            file_mapping = _memmap_for(self._raw_extras[fi], fname)
+            if file_mapping is not None:
+                col_start = 0
+                for dtype, byte_offset, n_bytes, n_samples in read_plan:
+                    values = np.frombuffer(
+                        file_mapping[byte_offset : byte_offset + n_bytes],
+                        dtype=dtype,
+                        count=n_samples * nchan,
+                    ).reshape(n_samples, nchan)
+                    _mult_cal_one(
+                        data[:, col_start : col_start + n_samples],
+                        values.T,
+                        idx,
+                        cals,
+                        mult,
+                    )
+                    col_start += n_samples
+                return
 
         with _fiff_get_fid(fname) as fid:
             offset = 0
