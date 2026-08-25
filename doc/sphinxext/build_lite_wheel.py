@@ -25,7 +25,6 @@ present rather than building one on every invocation::
 # Copyright the MNE-Python contributors.
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -73,17 +72,18 @@ def build_wheel():
     wheels : list of Path
         Paths of the MNE wheels that were built.
     """
-    # The version below is pinned, so each build writes the same filename and
-    # wheels do not pile up. Clearing first is about determinism instead: this
-    # directory is the piplite index, so it should hold the wheel this build
-    # produced and nothing else, including anything left by a manual pip wheel.
+    # This directory is the piplite index, so it should hold the wheel this
+    # build produced and nothing else, including anything left behind by an
+    # earlier build or a manual pip wheel. The version is left to hatch-vcs:
+    # piplite serves this index exclusively rather than merging it with PyPI
+    # (_query_package returns as soon as the package is found here), so a
+    # development version has nothing to lose a resolution against.
     shutil.rmtree(PYPI_WHEELS_DIR, ignore_errors=True)
     PYPI_WHEELS_DIR.mkdir(parents=True, exist_ok=True)
 
     # The wheel is built from pyproject.toml as it stands: Pyodide 314 ships
     # matplotlib 3.10.8, scipy 1.18.0 and numpy 2.4.3, all of which satisfy the
     # minimums MNE declares, so none of them needs relaxing for the browser.
-    os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "9999.0.1"
     # NB: build isolation is left ON (the default). MNE uses the hatchling build
     # backend, so pip must create an isolated build env to install
     # hatchling/hatch-vcs; --no-build-isolation fails with "Cannot import
@@ -118,5 +118,9 @@ def build_wheel():
 
 
 if __name__ == "__main__":
-    built = ", ".join(str(wheel) for wheel in build_wheel())
-    print(f"[JupyterLite] Built MNE wheel(s) for the browser kernel: {built}")
+    # Reuse a wheel that is already there, so repeat `make html` runs do not
+    # rebuild it. Remove doc/pypi (or `make clean`) to force a fresh one.
+    existing = find_wheels()
+    wheels = ", ".join(str(wheel) for wheel in (existing or build_wheel()))
+    verb = "Reusing" if existing else "Built"
+    print(f"[JupyterLite] {verb} MNE wheel(s) for the browser kernel: {wheels}")
