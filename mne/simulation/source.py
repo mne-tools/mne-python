@@ -41,7 +41,7 @@ def select_source_in_label(
         The source space.
     label : Label
         The label.
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass` (restricting to vertices
@@ -144,7 +144,7 @@ def simulate_sparse_stc(
         the same length containing the time courses.
     labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     location : str
         The label location to choose. Can be ``'random'`` (default) or
         ``'center'`` to use :func:`mne.Label.center_of_mass`. Note that for

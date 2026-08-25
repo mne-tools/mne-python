@@ -61,7 +61,7 @@ def simulate_evoked(
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(use_cps)s
 
         .. versionadded:: 0.15
@@ -124,7 +124,7 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rn
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(verbose)s
     %(rng)s
 

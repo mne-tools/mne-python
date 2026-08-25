@@ -408,7 +408,7 @@ def add_eog(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
-    %(random_state_deprecated)s
+    %(random_state_rng)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
     %(verbose)s
@@ -472,7 +472,7 @@ def add_ecg(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
-    %(random_state_deprecated)s
+    %(random_state_rng)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
     %(verbose)s

@@ -2024,7 +2024,7 @@ def random_parcellation(
         parcels per hemisphere.
     %(subjects_dir)s
     %(surface)s
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(rng)s
 
     Returns
@@ -2979,7 +2979,7 @@ def select_sources(
     %(subjects_dir)s
     name : None | str
         Assign name to the new label.
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
     %(rng)s

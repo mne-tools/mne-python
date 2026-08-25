@@ -77,16 +77,15 @@ def test_spatio_temporal_cluster_legacy_rng_nested(function, make_X):
     data = make_X(np.random.default_rng(0))
     results = []
     for seed in (0, check_random_state(0)):
-        with pytest.warns(FutureWarning, match="seed"):
-            results.append(
-                function(
-                    data,
-                    threshold=0,
-                    n_permutations=2,
-                    seed=seed,
-                    out_type="mask",
-                )
+        results.append(
+            function(
+                data,
+                threshold=0,
+                n_permutations=2,
+                seed=seed,
+                out_type="mask",
             )
+        )
     assert_array_equal(results[0][0], results[1][0])
     assert_array_equal(results[0][2], results[1][2])
     assert_array_equal(results[0][3], results[1][3])

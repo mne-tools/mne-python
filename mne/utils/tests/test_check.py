@@ -68,11 +68,14 @@ def test_check_rng():
         _check_rng("foo")
 
 
-def test_legacy_rng_decorator():
-    """Test that the transition decorator normalizes and warns."""
+@pytest.mark.parametrize(
+    "legacy_name, legacy_args", (("random_state", (0,)), ("seed", (None, 0)))
+)
+def test_legacy_rng_decorator(legacy_name, legacy_args):
+    """Test that the transition decorator normalizes and logs."""
 
-    @_legacy_rng("random_state")
-    def _func(random_state=None, *, rng=None):
+    @_legacy_rng(legacy_name)
+    def _func(random_state=None, seed=None, *, rng=None):
         return rng
 
     # no argument: a fresh generator is created
@@ -84,16 +87,17 @@ def test_legacy_rng_decorator():
     # legacy RandomState passthrough
     random_state = np.random.RandomState(0)
     assert _func(rng=random_state) is random_state
-    # legacy int/None keep their RandomState semantics, with a deprecation warning
-    with pytest.warns(FutureWarning, match="random_state is deprecated"):
-        assert isinstance(_func(random_state=0), np.random.RandomState)
-    with pytest.warns(FutureWarning, match="random_state is deprecated"):
-        assert isinstance(_func(random_state=None), np.random.mtrand.RandomState)
+    # legacy int/None keep their RandomState semantics and log migration guidance
+    with catch_logging() as log:
+        assert isinstance(_func(**{legacy_name: 0}), np.random.RandomState)
+    assert f"{legacy_name}= is legacy; prefer rng=" in log.getvalue()
+    assert isinstance(_func(**{legacy_name: None}), np.random.mtrand.RandomState)
     # supplying both is an error; positional legacy arguments are supported
+    assert isinstance(_func(*legacy_args), np.random.RandomState)
     with pytest.raises(TypeError, match="Specify only one"):
-        _func(0, rng=0)
+        _func(*legacy_args, rng=0)
     with pytest.raises(TypeError, match="Specify only one"):
-        _func(random_state=0, rng=0)
+        _func(**{legacy_name: 0}, rng=0)
 
 
 @testing.requires_testing_data

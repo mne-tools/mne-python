@@ -292,8 +292,7 @@ def test_ica_max_iter_(method, max_iter_default):
 
 def test_ica_rng_transition():
     """Test the transition from random_state to rng."""
-    with pytest.warns(FutureWarning, match="random_state"):
-        _ICA(random_state=0)
+    _ICA(random_state=0)
     with pytest.raises(TypeError, match="only one"):
         _ICA(random_state=0, rng=0)
 
@@ -303,13 +302,12 @@ def test_ica_rng_transition():
     raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
     unmixings = []
     for random_state in (0, check_random_state(0)):
-        with pytest.warns(FutureWarning, match="random_state"):
-            ica = _ICA(
-                n_components=2,
-                method="fastica",
-                max_iter=1000,
-                random_state=random_state,
-            )
+        ica = _ICA(
+            n_components=2,
+            method="fastica",
+            max_iter=1000,
+            random_state=random_state,
+        )
         with _record_warnings():  # ICA does not necessarily converge
             ica.fit(raw)
         unmixings.append(ica.unmixing_matrix_)

@@ -247,7 +247,7 @@ class ICA(ContainsMixin):
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(rng)s
     method : 'fastica' | 'infomax' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
@@ -479,11 +479,7 @@ class ICA(ContainsMixin):
         if rng is not None and random_state is not None:
             raise TypeError("Specify only one of rng or random_state")
         if random_state is not None:
-            warn(
-                "random_state is deprecated and will be removed in a future "
-                "release; use rng instead.",
-                FutureWarning,
-            )
+            logger.info("random_state= is legacy; prefer rng= in new code")
         self.random_state = random_state
         # stored un-normalized so that integer seeds stay intact for the
         # third-party ``random_state`` parameters used during fitting

@@ -2539,7 +2539,7 @@ class BaseEpochs(
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
         %(equalize_events_method)s
-        %(random_state_deprecated)s
+        %(random_state_rng)s
             Used only if ``method='random'``.
         %(rng)s
             Used only if ``method='random'``.
@@ -4036,7 +4036,7 @@ def equalize_epoch_counts(
     epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
-    %(random_state_deprecated)s
+    %(random_state_rng)s
         Used only if ``method='random'``.
     %(rng)s
         Used only if ``method='random'``.
@@ -4682,7 +4682,7 @@ def bootstrap(epochs, random_state=None, *, rng=None):
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(rng)s
 
     Returns

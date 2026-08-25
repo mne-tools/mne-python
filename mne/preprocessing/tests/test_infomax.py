@@ -195,16 +195,15 @@ def test_infomax_legacy_rng_nested():
     X = np.random.default_rng(0).standard_normal((20, 2))
     results = []
     for random_state in (0, check_random_state(0)):
-        with pytest.warns(FutureWarning, match="random_state"):
-            results.append(
-                infomax(
-                    X,
-                    block=5,
-                    extended=False,
-                    max_iter=1,
-                    random_state=random_state,
-                )
+        results.append(
+            infomax(
+                X,
+                block=5,
+                extended=False,
+                max_iter=1,
+                random_state=random_state,
             )
+        )
     assert_array_equal(results[0], results[1])
 
 

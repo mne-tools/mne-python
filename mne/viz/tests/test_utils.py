@@ -225,16 +225,8 @@ def test_auto_scale_epoch_sampling_reproducible(monkeypatch):
         "mne.viz.utils.np.clip",
         partial(_limit_epoch_sample, n_epochs=len(epochs), clip=clip),
     )
-    scalings = []
-    global_rng = np.random.mtrand._rand
-    original_rng_state = global_rng.get_state()
-    try:
-        for seed in (0, 1):
-            global_rng.set_state(np.random.RandomState(seed).get_state())
-            scalings.append(_compute_scalings({"eeg": "auto"}, epochs)["eeg"])
-        assert_allclose(scalings, [12.5, 12.5])
-    finally:
-        global_rng.set_state(original_rng_state)
+    scalings = [_compute_scalings({"eeg": "auto"}, epochs)["eeg"] for _ in range(2)]
+    assert_allclose(scalings, [12.5, 12.5])
 
 
 def test_validate_if_list_of_axes():

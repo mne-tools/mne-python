@@ -323,51 +323,6 @@ sklearn_rng_estimators = {
     "MultiTaskLasso",
     "PCA",
 }
-mne_rng_functions = {
-    "ICA",
-    "add_ecg",
-    "add_eog",
-    "add_noise",
-    "bootstrap",
-    "bootstrap_confidence_interval",
-    "equalize_epoch_counts",
-    "equalize_event_counts",
-    "infomax",
-    "mixed_norm",
-    "permutation_cluster_1samp_test",
-    "permutation_cluster_test",
-    "permutation_t_test",
-    "random_parcellation",
-    "random_permutation",
-    "select_source_in_label",
-    "select_sources",
-    "simulate_evoked",
-    "simulate_sparse_stc",
-    "spatio_temporal_cluster_1samp_test",
-    "spatio_temporal_cluster_test",
-}
-# Zero-based position of the legacy RNG argument when it can be positional.
-mne_rng_legacy_positions = {
-    "add_ecg": 4,
-    "add_eog": 4,
-    "add_noise": 3,
-    "bootstrap": 1,
-    "bootstrap_confidence_interval": 4,
-    "infomax": 12,
-    "mixed_norm": 21,
-    "permutation_cluster_1samp_test": 7,
-    "permutation_cluster_test": 7,
-    "permutation_t_test": 4,
-    "random_parcellation": 5,
-    "random_permutation": 1,
-    "select_source_in_label": 2,
-    "select_sources": 7,
-    "simulate_evoked": 6,
-    "simulate_sparse_stc": 5,
-    "spatio_temporal_cluster_1samp_test": 7,
-    "spatio_temporal_cluster_test": 7,
-}
-
 # These are compatibility implementations or reference fixtures whose expected
 # values were generated from the legacy bit stream. Keep this allowlist at the
 # function level so a new legacy RNG use elsewhere in the same file still fails.
@@ -396,31 +351,6 @@ def _enclosing_function(node, parents):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             return node.name
     return None
-
-
-def _expected_legacy_mne_call(node, parents):
-    """Return whether a deprecated call explicitly checks its transition."""
-    while node in parents:
-        node = parents[node]
-        if not isinstance(node, ast.With):
-            continue
-        for item in node.items:
-            context = item.context_expr
-            if not isinstance(context, ast.Call):
-                continue
-            name = getattr(context.func, "id", None) or getattr(
-                context.func, "attr", None
-            )
-            if name not in ("raises", "warns") or not context.args:
-                continue
-            category = context.args[0]
-            category = getattr(category, "id", None) or getattr(category, "attr", None)
-            if (name, category) in (
-                ("raises", "TypeError"),
-                ("warns", "FutureWarning"),
-            ):
-                return True
-    return False
 
 
 def _is_np_random(node, numpy_aliases, numpy_random_aliases):
@@ -515,27 +445,6 @@ def _rng_violations(source, rel):
             bad.append(
                 f"{rel}:{node.lineno}: {called_name}() (set random_state explicitly)"
             )
-        # 5. authored calls to deprecated MNE RNG parameters
-        elif isinstance(node, ast.Call):
-            legacy = {"random_state", "seed"}.intersection(
-                kw.arg for kw in node.keywords
-            )
-            legacy_position = mne_rng_legacy_positions.get(called_name)
-            legacy_positional = (
-                legacy_position is not None and len(node.args) > legacy_position
-            )
-            if (
-                called_name in mne_rng_functions
-                and (legacy or legacy_positional)
-                and not _expected_legacy_mne_call(node, parents)
-            ):
-                spelling = ", ".join(sorted(legacy))
-                if legacy_positional:
-                    spelling = f"{spelling}, " if spelling else ""
-                    spelling += "a positional legacy RNG"
-                bad.append(
-                    f"{rel}:{node.lineno}: {called_name}() uses {spelling} (use rng)"
-                )
     return bad
 
 

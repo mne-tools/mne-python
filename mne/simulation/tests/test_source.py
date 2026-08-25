@@ -68,16 +68,15 @@ def test_simulate_sparse_stc_legacy_rng_nested():
     ]
     results = []
     for random_state in (0, check_random_state(0)):
-        with pytest.warns(FutureWarning, match="random_state"):
-            results.append(
-                simulate_sparse_stc(
-                    src,
-                    2,
-                    np.arange(2.0),
-                    labels=labels,
-                    random_state=random_state,
-                )
+        results.append(
+            simulate_sparse_stc(
+                src,
+                2,
+                np.arange(2.0),
+                labels=labels,
+                random_state=random_state,
             )
+        )
     for hemi in (0, 1):
         assert_array_equal(results[0].vertices[hemi], results[1].vertices[hemi])
 

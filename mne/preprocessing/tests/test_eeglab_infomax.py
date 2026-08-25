@@ -33,8 +33,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
 
     # select a small number of channels for the test
     number_of_channels_to_use = 5
-    with pytest.warns(FutureWarning, match="random_state"):
-        idx_perm = random_permutation(picks.shape[0], random_state=random_state)
+    idx_perm = random_permutation(picks.shape[0], random_state=random_state)
     picks = picks[idx_perm[:number_of_channels_to_use]]
 
     raw.filter(
@@ -156,20 +155,19 @@ def test_mne_python_vs_eeglab():
 
             # Call mne_python infomax version using the following syntax
             # to obtain the same result than eeglab version
-            with pytest.warns(FutureWarning, match="random_state"):
-                unmixing = infomax(
-                    Y.T,
-                    extended=use_extended,
-                    random_state=random_state,
-                    max_iter=max_iter_eeglab,
-                    l_rate=l_rate_eeglab,
-                    block=block_eeglab,
-                    w_change=w_change_eeglab,
-                    blowup=blowup_eeglab,
-                    blowup_fac=blowup_fac_eeglab,
-                    n_small_angle=None,
-                    anneal_step=anneal_step_eeglab,
-                )
+            unmixing = infomax(
+                Y.T,
+                extended=use_extended,
+                random_state=random_state,
+                max_iter=max_iter_eeglab,
+                l_rate=l_rate_eeglab,
+                block=block_eeglab,
+                w_change=w_change_eeglab,
+                blowup=blowup_eeglab,
+                blowup_fac=blowup_fac_eeglab,
+                n_small_angle=None,
+                anneal_step=anneal_step_eeglab,
+            )
 
             # Order the components in the same way that eeglab does
             sources = np.dot(unmixing, Y)

@@ -2729,8 +2729,7 @@ def test_bootstrap():
         assert len(epochs2.events) == len(epochs.events)
         assert epochs._data.shape == epochs2._data.shape
 
-    with pytest.warns(FutureWarning, match="random_state"):
-        bootstrap(epochs, random_state=0)
+    bootstrap(epochs, random_state=0)
 
 
 def test_epochs_copy():
@@ -3022,75 +3021,42 @@ def test_equalize_epoch_counts_random():
     assert len(epochs_1) == len(epochs_2)
 
 
-def _make_equalization_epochs(lengths):
-    """Create small EpochsArray instances for RNG stream tests."""
-    info = create_info(["EEG 001"], 100.0, "eeg")
-    epochs = []
-    for index, length in enumerate(lengths):
-        events = np.column_stack(
-            (np.arange(length), np.zeros(length, int), np.full(length, index + 1))
-        )
-        epochs.append(
-            EpochsArray(
-                np.zeros((length, 1, 1)),
-                info,
-                events=events,
-                event_id={str(index): index + 1},
-                verbose=False,
-            )
-        )
-    return epochs
-
-
-def _equalized_drop_inds(epochs):
-    """Get the indices of the dropped epochs for each condition."""
-    return [
-        np.flatnonzero([entry == ("EQUALIZED_COUNT",) for entry in epoch.drop_log])
-        for epoch in epochs
-    ]
-
-
-def test_equalize_epoch_counts_rng_streams():
+@pytest.mark.parametrize(
+    "api, legacy, want",
+    (
+        ("counts", True, ([], [3, 4], [0, 3, 4])),
+        ("counts", False, ([], [1, 2], [0, 1, 2])),
+        ("events", True, [6, 7, 8, 11, 12]),
+        ("events", False, [4, 5, 8, 9, 10]),
+    ),
+)
+def test_equalize_epoch_counts_rng_streams(api, legacy, want):
     """Test legacy integers re-seed while new RNG streams advance."""
-    epochs = _make_equalization_epochs((3, 5, 6))
-    with pytest.warns(FutureWarning, match="random_state"):
-        equalize_epoch_counts(epochs, method="random", random_state=0)
-    for got, want in zip(
-        _equalized_drop_inds(epochs), ([], [3, 4], [0, 3, 4]), strict=True
-    ):
-        assert_array_equal(got, want)
-
-    epochs = _make_equalization_epochs((3, 5, 6))
-    equalize_epoch_counts(epochs, method="random", rng=0)
-    for got, want in zip(
-        _equalized_drop_inds(epochs), ([], [1, 2], [0, 1, 2]), strict=True
-    ):
-        assert_array_equal(got, want)
-
-    events = np.column_stack(
-        (
-            np.arange(14),
-            np.zeros(14, int),
-            np.repeat((1, 2, 3), (3, 5, 6)),
-        )
-    )
-    for kwargs, want in (
-        (dict(random_state=0), [6, 7, 8, 11, 12]),
-        (dict(rng=0), [4, 5, 8, 9, 10]),
-    ):
-        epochs = EpochsArray(
-            np.zeros((14, 1, 1)),
-            create_info(["EEG 001"], 100.0, "eeg"),
-            events=events,
-            event_id={"a": 1, "b": 2, "c": 3},
+    info = create_info(["EEG 001"], 100.0, "eeg")
+    epochs = [
+        EpochsArray(
+            np.zeros((length, 1, 1)),
+            info,
+            events=np.column_stack(
+                (np.arange(length), np.zeros(length, int), np.full(length, code))
+            ),
+            event_id={str(code): code},
             verbose=False,
         )
-        if "random_state" in kwargs:
-            with pytest.warns(FutureWarning, match="random_state"):
-                _, dropped = epochs.equalize_event_counts(method="random", **kwargs)
-        else:
-            _, dropped = epochs.equalize_event_counts(method="random", **kwargs)
-        assert_array_equal(dropped, want)
+        for code, length in enumerate((3, 5, 6), 1)
+    ]
+    kwargs = {"random_state" if legacy else "rng": 0}
+    if api == "counts":
+        equalize_epoch_counts(epochs, method="random", **kwargs)
+        got = [
+            np.flatnonzero([entry == ("EQUALIZED_COUNT",) for entry in epoch.drop_log])
+            for epoch in epochs
+        ]
+    else:
+        epochs = concatenate_epochs(epochs)
+        _, got = epochs.equalize_event_counts(method="random", **kwargs)
+    for this_got, expected in zip(got, want, strict=True):
+        assert_array_equal(this_got, expected)
 
 
 def test_access_by_name(tmp_path):

@@ -217,12 +217,11 @@ def test_freq_mask():
 def test_random_permutation():
     """Test random permutation function and its RNG transition."""
     n_samples = 10
-    with pytest.warns(FutureWarning, match="random_state"):
-        # matlab output when we execute rng(42), randperm(10)
-        assert_array_equal(
-            random_permutation(n_samples, 42),
-            np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2]) - 1,
-        )
+    # matlab output when we execute rng(42), randperm(10)
+    assert_array_equal(
+        random_permutation(n_samples, 42),
+        np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2]) - 1,
+    )
     # an integer ``rng`` seed is reproducible while a Generator instance advances
     assert_array_equal(
         random_permutation(n_samples, rng=42), random_permutation(n_samples, rng=42)
@@ -241,11 +240,10 @@ def test_random_permutation_legacy_none(use_keyword):
     want = np.array([6, 5, 4, 0, 3, 8, 9, 2, 7, 1])
     try:
         global_rng.set_state(check_random_state(42).get_state())
-        with pytest.warns(FutureWarning, match="random_state"):
-            if use_keyword:
-                got = random_permutation(10, random_state=None)
-            else:
-                got = random_permutation(10, None)
+        if use_keyword:
+            got = random_permutation(10, random_state=None)
+        else:
+            got = random_permutation(10, None)
         assert_array_equal(got, want)
     finally:
         global_rng.set_state(original_state)

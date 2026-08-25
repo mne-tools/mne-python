@@ -435,7 +435,7 @@ def mixed_norm(
         grid is directly specified. Ignored if alpha is not "sure".
 
         .. versionadded:: 0.24
-    %(random_state_deprecated)s
+    %(random_state_rng)s
         Used for the random delta and epsilon in the SURE computation.
 
         .. versionadded:: 0.24

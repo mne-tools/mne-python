@@ -66,7 +66,7 @@ def permutation_t_test(
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
     %(n_jobs)s
-    %(seed_deprecated)s
+    %(seed_rng)s
     %(verbose)s
     %(rng)s
 
@@ -142,7 +142,7 @@ def bootstrap_confidence_interval(
         Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along ``axis=0``.
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(rng)s
 
     Returns

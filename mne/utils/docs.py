@@ -3765,16 +3765,14 @@ random_state : None | int | instance of ~numpy.random.RandomState
     ``RandomState`` to control the random-number stream.
 """
 
-docdict["random_state_deprecated"] = """
+docdict["random_state_rng"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
-    The legacy random-number control. If explicitly passed as ``None``, NumPy's
-    global :class:`~numpy.random.RandomState` singleton is used. An int creates
-    a legacy ``RandomState`` seeded with that value. Passing the same int to
-    ``rng`` uses :func:`numpy.random.default_rng` and produces a different
-    stream. If both parameters are omitted, a fresh ``Generator`` is used.
-
-    .. deprecated:: 1.13
-       Use ``rng`` instead.
+    The legacy random-number control, supported for compatibility. New code
+    should prefer ``rng``. If explicitly passed as ``None``, NumPy's global
+    :class:`~numpy.random.RandomState` singleton is used. An int creates a
+    ``RandomState`` seeded with that value. Passing the same int to ``rng``
+    uses :func:`numpy.random.default_rng` and produces a different stream. If
+    both parameters are omitted, a fresh ``Generator`` is used.
 """
 
 _rank_base = """
@@ -4157,9 +4155,7 @@ seed : None | int | instance of ~numpy.random.RandomState
     ``RandomState`` to control the random-number stream.
 """
 
-docdict["seed_deprecated"] = docdict["random_state_deprecated"].replace(
-    "random_state", "seed"
-)
+docdict["seed_rng"] = docdict["random_state_rng"].replace("random_state", "seed")
 
 docdict["seeg"] = """
 seeg : bool

@@ -289,7 +289,7 @@ def random_permutation(n_samples, random_state=None, *, rng=None):
     n_samples : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     %(rng)s
 
     Returns

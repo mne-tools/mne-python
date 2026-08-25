@@ -72,10 +72,9 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
     # The bounds below were calibrated against this legacy noise stream.
-    with pytest.warns(FutureWarning, match="random_state"):
-        sim_evoked = mne.simulation.simulate_evoked(
-            forward, stc, evoked.info, noise_cov, nave=nave, random_state=106
-        )
+    sim_evoked = mne.simulation.simulate_evoked(
+        forward, stc, evoked.info, noise_cov, nave=nave, random_state=106
+    )
 
     return sim_evoked, stc
 

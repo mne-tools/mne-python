@@ -580,41 +580,38 @@ def test_mxne_inverse_sure_meg():
     forward = mne.read_forward_solution(fname_fwd)
     forward = mne.pick_channels_forward(forward, info["ch_names"])
     times = np.arange(100, dtype=np.float64) / info["sfreq"] - 0.1
-    with pytest.warns(FutureWarning, match="random_state"):
-        stc = simulate_sparse_stc(
-            forward["src"],
-            n_dipoles=n_dipoles,
-            times=times,
-            random_state=1,
-            labels=labels,
-            data_fun=data_fun,
-        )
+    stc = simulate_sparse_stc(
+        forward["src"],
+        n_dipoles=n_dipoles,
+        times=times,
+        random_state=1,
+        labels=labels,
+        data_fun=data_fun,
+    )
     assert len(stc.vertices) == 2
     assert_array_equal(stc.vertices[0], [89259])
     assert_array_equal(stc.vertices[1], [70279])
     nave = 30
-    with pytest.warns(FutureWarning, match="random_state"):
-        evoked = simulate_evoked(
-            forward,
-            stc,
-            info,
-            noise_cov,
-            nave=nave,
-            use_cps=False,
-            iir_filter=None,
-            random_state=0,
-        )
+    evoked = simulate_evoked(
+        forward,
+        stc,
+        info,
+        noise_cov,
+        nave=nave,
+        use_cps=False,
+        iir_filter=None,
+        random_state=0,
+    )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
-    with pytest.warns(FutureWarning, match="random_state"):
-        stc_ = mixed_norm(
-            evoked,
-            forward,
-            noise_cov,
-            loose=0.9,
-            n_mxne_iter=5,
-            depth=0.9,
-            random_state=1,
-        )
+    stc_ = mixed_norm(
+        evoked,
+        forward,
+        noise_cov,
+        loose=0.9,
+        n_mxne_iter=5,
+        depth=0.9,
+        random_state=1,
+    )
     assert len(stc_.vertices) == len(stc.vertices) == 2
     for si in range(len(stc_.vertices)):
         assert_array_equal(stc_.vertices[si], stc.vertices[si], err_msg=f"{si=}")

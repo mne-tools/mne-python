@@ -82,7 +82,7 @@ def infomax(
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    %(random_state_deprecated)s
+    %(random_state_rng)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.

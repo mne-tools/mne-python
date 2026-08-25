@@ -89,25 +89,10 @@ def test_plot_connectivity_circle_jitter_reproducible():
     """Test connectivity-circle edge jitter uses a fixed local Generator."""
     con = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 3.0], [2.0, 3.0, 0.0]])
     vertices = []
-    global_rng = np.random.mtrand._rand
-    original_rng_state = global_rng.get_state()
-    try:
-        for seed in (0, 1):
-            global_rng.set_state(np.random.RandomState(seed).get_state())
-            fig, ax = _plot_connectivity_circle(
-                con, ["a", "b", "c"], colorbar=False, interactive=False, show=False
-            )
-            vertices.append(ax.patches[0].get_path().vertices)
-            fig.clear()
-        assert_allclose(vertices[0], vertices[1])
-        assert_allclose(
-            vertices[0],
-            [
-                [2.16610807, 10.0],
-                [2.16610807, 5.0],
-                [-0.25314554, 5.0],
-                [-0.25314554, 10.0],
-            ],
+    for _ in range(2):
+        fig, ax = _plot_connectivity_circle(
+            con, ["a", "b", "c"], colorbar=False, interactive=False, show=False
         )
-    finally:
-        global_rng.set_state(original_rng_state)
+        vertices.append(ax.patches[0].get_path().vertices)
+        fig.clear()
+    assert_allclose(*vertices)

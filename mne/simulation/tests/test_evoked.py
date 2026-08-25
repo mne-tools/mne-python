@@ -148,8 +148,7 @@ def test_add_noise():
     info = create_info(["EEG 001"], 100.0, "eeg")
     small_cov = Covariance(np.ones(1), info["ch_names"], [], [], 1)
     legacy = EpochsArray(np.zeros((2, 1, 5)), info, verbose=False)
-    with pytest.warns(FutureWarning, match="random_state"):
-        add_noise(legacy, small_cov, random_state=0)
+    add_noise(legacy, small_cov, random_state=0)
     want = np.array(
         [
             1.764052345967664,
