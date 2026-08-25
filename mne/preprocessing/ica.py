@@ -479,7 +479,7 @@ class ICA(ContainsMixin):
         if rng is not None and random_state is not None:
             raise TypeError("Specify only one of rng or random_state")
         if random_state is not None:
-            logger.info("random_state= is legacy; prefer rng= in new code")
+            logger.info("Use rng= instead of random_state= in new code")
         self.random_state = random_state
         # stored un-normalized so that integer seeds stay intact for the
         # third-party ``random_state`` parameters used during fitting

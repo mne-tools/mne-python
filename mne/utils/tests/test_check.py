@@ -90,7 +90,7 @@ def test_legacy_rng_decorator(legacy_name, legacy_args):
     # legacy int/None keep their RandomState semantics and log migration guidance
     with catch_logging() as log:
         assert isinstance(_func(**{legacy_name: 0}), np.random.RandomState)
-    assert f"{legacy_name}= is legacy; prefer rng=" in log.getvalue()
+    assert f"Use rng= instead of {legacy_name}=" in log.getvalue()
     assert isinstance(_func(**{legacy_name: None}), np.random.mtrand.RandomState)
     # supplying both is an error; positional legacy arguments are supported
     assert isinstance(_func(*legacy_args), np.random.RandomState)

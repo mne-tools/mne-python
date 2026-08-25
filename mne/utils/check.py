@@ -276,7 +276,7 @@ def _legacy_rng(legacy_name):
                 return function(*args, **kwargs)
             if "rng" in kwargs:
                 raise TypeError(f"Specify only one of rng or {legacy_name}")
-            logger.info(f"{legacy_name}= is legacy; prefer rng= in new code")
+            logger.info(f"Use rng= instead of {legacy_name}= in new code")
             kwargs["rng"] = check_random_state(value)
             return function(*args, **kwargs)
 
