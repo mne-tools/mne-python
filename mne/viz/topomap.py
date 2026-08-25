@@ -2106,6 +2106,10 @@ def plot_tfr_topomap(
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     import matplotlib.pyplot as plt
 

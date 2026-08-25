@@ -44,8 +44,6 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         Time instants is seconds.
     %(baseline_rescale)s
     %(baseline_mode)s
-    %(verbose)s
-
     copy : bool
         Whether to return a new instance or modify in place.
     picks : list of int | None
@@ -56,6 +54,10 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
     -------
     data_scaled: array
         Array of same shape as data after rescaling.
+
+    References
+    ----------
+    .. footbibliography::
     """
     if copy:
         data = data.copy()
