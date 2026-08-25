@@ -718,21 +718,23 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def mark_bad_epochs_by_channel(self, reject_mask=None):
-        """Mark bad epochs for individual channels.
+    def mask_epochs_per_channel(self, reject_mask=None):
+        """Mark epochs for individual channels with NaNs.
 
-        This is only useful for channel-wise analyses.
+        Warning: This is only useful for channel-wise analyses.
 
         Parameters
         ----------
         reject_mask : np.ndarray, shape (n_epochs, n_channels) | None
-            Boolean mask where True indicates a bad epoch for that channel.
-            If None, no epochs are marked as bad.
+            Boolean mask where True indicates an epoch marked with
+            NaN for a specific channel.
+            If None, no epochs are marked.
 
         Returns
         -------
         epochs : instance of Epochs
-            The epochs with bad epochs marked with NaNs. Operates in-place.
+            The epochs with bad epochs marked with NaNs per channel.
+            Operates in-place.
         """
         if reject_mask is None:
             return self
@@ -1281,6 +1283,13 @@ class BaseEpochs(
             n_events = len(self.events)
             fun = _check_combine(mode, valid=("mean", "median", "std"))
             data = fun(self._data)
+            if np.isnan(data).any():
+                raise ValueError(
+                    "Cannot average epochs containing NaNs (introduced by "
+                    "mask_epochs_per_channel): any channel with a rejected epoch "
+                    "would average to NaN. Extract the data with get_data() and use "
+                    "np.nanmean over the epoch axis if you need per-channel averages."
+                )
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
                 raise RuntimeError(
@@ -1376,15 +1385,7 @@ class BaseEpochs(
         info = deepcopy(info)
         # don't apply baseline correction; we'll set evoked.baseline manually
 
-        # does the epoch object have a attribute nave_per_channel?
-        nave_per_channel = getattr(self, "nave_per_channel", None)
-
-        if nave_per_channel is None:
-            # Default behavior
-            nave = n_events
-        else:
-            # reset nave to minimum of epochs of all channel
-            nave = int(nave_per_channel.min())
+        nave = n_events
 
         evoked = EvokedArray(
             data,
