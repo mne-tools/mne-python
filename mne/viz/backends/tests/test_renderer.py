@@ -201,6 +201,46 @@ def test_3d_backend(renderer):
     rend.show()
 
 
+def test_renderer_internal_helpers(renderer):
+    """Test internal helper methods used by mne.gui.coregistration."""
+    rend = renderer.create_3d_figure((300, 300), scene=False)
+
+    # _remove_actors accepts a single actor or a list of actors
+    actor1, _ = rend.mesh(
+        x=np.array([0, 1, 0]),
+        y=np.array([0, 0, 1]),
+        z=np.array([0, 0, 0]),
+        triangles=np.array([[0, 1, 2]]),
+        color="white",
+    )
+    actor2, _ = rend.mesh(
+        x=np.array([0, 1, 0]),
+        y=np.array([0, 0, 1]),
+        z=np.array([1, 1, 1]),
+        triangles=np.array([[0, 1, 2]]),
+        color="red",
+    )
+    actors = rend.plotter.renderer.actors.values()
+    assert actor1 in actors and actor2 in actors
+    rend._remove_actors(actor1, render=False)
+    rend._remove_actors([actor2], render=False)
+    actors = rend.plotter.renderer.actors.values()
+    assert actor1 not in actors and actor2 not in actors
+
+    # _show_axes creates the axes orientation widget
+    assert rend.plotter.renderer.axes_widget is None
+    rend._show_axes()
+    assert rend.plotter.renderer.axes_widget is not None
+
+    # _add_redraw_callback schedules a periodic callback
+    rend._add_redraw_callback(lambda: None, 50)
+    assert rend.plotter._callback_timer.isActive()
+    assert rend.plotter._callback_timer.interval() == 50
+
+    # _trigger_pick should not raise
+    rend._trigger_pick(1, 1)
+
+
 def test_get_3d_backend(renderer):
     """Test get_3d_backend function call for side-effects."""
     # Test twice to ensure the first call had no side-effect
