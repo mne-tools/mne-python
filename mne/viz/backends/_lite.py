@@ -594,7 +594,9 @@ class _LiteRenderer(_AbstractRenderer):
         cylinders) point the way MNE intended rather than all along +x.
         pyvista-js has no per-vertex color, so instances are grouped by the
         color they asked for and each group becomes one mesh -- a handful of
-        actors for a sensor array instead of one per sensor.
+        actors for a sensor array instead of one per sensor. That means one
+        distinct color returns ``(actor, mesh)`` like ``_PyVistaRenderer``
+        does, and several return the lists of both.
         """
         positions = np.atleast_2d(np.asarray(positions, dtype=float))[:, :3]
         n_pos = len(positions)
@@ -615,7 +617,7 @@ class _LiteRenderer(_AbstractRenderer):
             groups = [(uniq[k], idx[inverse == k]) for k in range(len(uniq))]
         else:
             groups = [(colors, idx)]
-        out = (None, None)
+        actors, meshes = list(), list()
         for color, sel in groups:
             group_scales = None
             if scales is not None:
@@ -625,8 +627,15 @@ class _LiteRenderer(_AbstractRenderer):
             points, faces = self._tile(
                 rr, tris, positions[sel], scales=group_scales, rots=group_rots
             )
-            out = self._add(points, faces, color, opacity)
-        return out
+            actor, mesh = self._add(points, faces, color, opacity)
+            actors.append(actor)
+            meshes.append(mesh)
+        # one group is the common case and matches _PyVistaRenderer, which
+        # colors per instance inside a single actor; hand back the pair then,
+        # and the whole set when the colors had to be split across meshes
+        if len(actors) == 1:
+            return actors[0], meshes[0]
+        return actors, meshes
 
     def text2d(
         self,

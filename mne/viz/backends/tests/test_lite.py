@@ -236,17 +236,33 @@ def test_cylinder_center_is_turned_with_the_axis(renderer_lite):
 
 
 def test_instances_are_merged_per_color(renderer_lite):
-    """``instanced_mesh`` draws one actor per distinct color, not one per instance."""
+    """``instanced_mesh`` draws one actor per distinct color, not one per instance.
+
+    One color hands back ``(actor, mesh)``, the way ``_PyVistaRenderer`` always
+    does; several hand back both lists, since vtk.js cannot color per instance
+    inside a single actor.
+    """
+    quats = np.tile([1.0, 0, 0, 0], (3, 1))
+    positions = np.zeros((3, 3))
+
+    # one color: a single actor, and the pair _PyVistaRenderer also hands back
+    r = renderer_lite._get_renderer(size=(200, 200))
+    colors = np.tile([1.0, 0, 0], (3, 1))
+    actor, mesh = r.instanced_mesh(_RR, _TRIS, positions, quats, colors=colors)
+    assert len(r.plotter.actors) == 1
+    assert not isinstance(actor, list) and not isinstance(mesh, list)
+
+    # two colors: one actor each, and both lists come back
     r = renderer_lite._get_renderer(size=(200, 200))
     colors = np.array([[1.0, 0, 0], [0, 1.0, 0], [1.0, 0, 0]])
-    r.instanced_mesh(
-        _RR,
-        _TRIS,
-        np.zeros((3, 3)),
-        quats=np.tile([1.0, 0, 0, 0], (3, 1)),
-        colors=colors,
-    )
+    actors, meshes = r.instanced_mesh(_RR, _TRIS, positions, quats, colors=colors)
     assert len(r.plotter.actors) == 2
+    assert len(actors) == len(meshes) == 2
+
+    # sphere routes through instanced_mesh with a single color, so it has to
+    # keep handing back the pair its own callers unpack
+    actor, mesh = r.sphere(np.zeros((1, 3)), "red", 0.01)
+    assert not isinstance(actor, list) and not isinstance(mesh, list)
 
 
 def test_draws_into_an_existing_figure(renderer_lite):
