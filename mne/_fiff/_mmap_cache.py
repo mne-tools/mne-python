@@ -8,7 +8,7 @@ and validated against file size/mtime so stale mappings are never reused.
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
-# Copyright the MNE-Python contributors
+# Copyright the MNE-Python contributors.
 
 import os
 

@@ -6,7 +6,7 @@ Optional acceleration: falls back to the vectorized-numpy path in
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
-# Copyright the MNE-Python contributors
+# Copyright the MNE-Python contributors.
 
 from ..._numba import jit
 
