@@ -5375,6 +5375,8 @@ def test_drop_bad_epochs_by_channel():
     bad_mask = np.zeros((n_epochs, n_channels - 1), dtype=bool)
     with pytest.raises(ValueError, match="reject_mask must have shape"):
         ep.drop_bad_epochs_by_channel(bad_mask)
+
+
 def test_epochs_warn_out_of_bounds_events():
     """Warn when event sample numbers fall outside the recorded data (gh-12989)."""
     sfreq = 100.0

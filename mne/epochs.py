@@ -768,6 +768,7 @@ class BaseEpochs(
         # Update data
         self._data = data
         return self
+
     def _check_events_outside_data(self, on_outside, raw):
         """Warn when events fall outside the range of the recorded data (gh-12989)."""
         if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
