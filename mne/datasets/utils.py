@@ -359,7 +359,6 @@ def _download_all_example_data(verbose=True):
     # Now for the exceptions:
     from . import (
         eegbci,
-        erp_core,
         fetch_fsaverage,
         fetch_hcp_mmp_parcellation,
         fetch_infant_template,
@@ -367,14 +366,15 @@ def _download_all_example_data(verbose=True):
         limo,
         sleep_physionet,
     )
+    from .erp_core import fetch_file as fetch_erp_core_file
 
     eegbci.load_data(subjects=1, runs=[6, 10, 14], update_path=True)
     eegbci.load_data(subjects=range(1, 5), runs=[3], update_path=True)
     logger.info("[done eegbci]")
 
-    erp_core.fetch_file("sub-001/eeg/sub-001_task-N170_eeg.fdt")
-    erp_core.fetch_file("sub-001/eeg/sub-001_task-N170_eeg.set")
-    erp_core.fetch_file("sub-001/eeg/sub-001_task-N170_events.tsv")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_eeg.fdt")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_eeg.set")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_events.tsv")
     logger.info("[done erp_core N170]")
 
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
