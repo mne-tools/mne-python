@@ -975,6 +975,7 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
 def test_cluster_test_one_sample():
     """Test cluster_test with a single-group (1-sample) design."""
     pd = pytest.importorskip("pandas")
+    pytest.importorskip("formulaic")  # required for cluster_test API
     condition1_1d, _, _, _ = _get_conditions()
     df = pd.DataFrame(dict(data=[condition1_1d], group=["only"]))
     kwargs = dict(n_permutations=100, tail=0, seed=1, buffer_size=None)
@@ -994,6 +995,8 @@ def test_cluster_test_one_sample():
 def test_compare_old_and_new_cluster_api():
     """Test for same results from old and new APIs."""
     pd = pytest.importorskip("pandas")
+    pytest.importorskip("formulaic")
+
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
     df_1d = pd.DataFrame(
         dict(
@@ -1020,6 +1023,7 @@ def test_compare_old_and_new_cluster_api():
 def test_new_cluster_api(Inst):
     """Test handling different MNE objects in the cluster API."""
     pd = pytest.importorskip("pandas")
+    pytest.importorskip("formulaic")
 
     rng = np.random.default_rng(seed=8675309)
     is_epo = GetEpochsMixin in Inst.__mro__
