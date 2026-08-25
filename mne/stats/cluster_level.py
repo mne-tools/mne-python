@@ -12,9 +12,9 @@ from ..source_space import SourceSpaces
 from ..utils import (
     ProgressBar,
     _check_option,
+    _legacy_rng,
     _pl,
     _validate_type,
-    check_random_state,
     logger,
     split_list,
     verbose,
@@ -832,7 +832,7 @@ def _permutation_cluster_test(
     stat_fun,
     adjacency,
     n_jobs,
-    seed,
+    rng,
     max_step,
     exclude,
     step_down_p,
@@ -963,12 +963,10 @@ def _permutation_cluster_test(
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
-    # convert our seed to orders
+    # Convert the RNG state to permutation orders.
     # check to see if we can do an exact test
     # (for a two-tailed test, we can exploit symmetry to just do half)
     extra = ""
-    rng = check_random_state(seed)
-    del seed
     if len(X) == 1:  # 1-sample test
         do_perm_func = _do_1samp_permutations
         X_full = X[0]
@@ -1113,6 +1111,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     return stat_fun, threshold
 
 
+@_legacy_rng("seed")
 @verbose
 def permutation_cluster_test(
     X,
@@ -1122,7 +1121,6 @@ def permutation_cluster_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     exclude=None,
     step_down_p=0,
@@ -1131,6 +1129,9 @@ def permutation_cluster_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Cluster-level statistical permutation test.
 
@@ -1162,7 +1163,6 @@ def permutation_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_n)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     %(exclude_clust)s
     %(step_down_p_clust)s
@@ -1171,6 +1171,8 @@ def permutation_cluster_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1200,7 +1202,7 @@ def permutation_cluster_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1211,6 +1213,7 @@ def permutation_cluster_test(
     )
 
 
+@_legacy_rng("seed")
 @verbose
 def permutation_cluster_1samp_test(
     X,
@@ -1220,7 +1223,6 @@ def permutation_cluster_1samp_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     exclude=None,
     step_down_p=0,
@@ -1229,6 +1231,9 @@ def permutation_cluster_1samp_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Non-parametric cluster-level paired t-test.
 
@@ -1249,7 +1254,6 @@ def permutation_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_1)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     %(exclude_clust)s
     %(step_down_p_clust)s
@@ -1258,6 +1262,8 @@ def permutation_cluster_1samp_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1288,9 +1294,9 @@ def permutation_cluster_1samp_test(
     %(threshold_clust_t_notes)s
 
     If ``n_permutations`` exceeds the maximum number of possible permutations
-    given the number of observations, then ``n_permutations`` and ``seed``
-    will be ignored since an exact test (full permutation test) will be
-    performed (this is the case when
+    given the number of observations, then ``n_permutations``, ``seed``, and
+    ``rng`` will be ignored since an exact test (full permutation test) will
+    be performed (this is the case when
     ``n_permutations >= 2 ** (n_observations - (tail == 0))``).
 
     If no initial clusters are found because all points in the true
@@ -1310,7 +1316,7 @@ def permutation_cluster_1samp_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1321,6 +1327,7 @@ def permutation_cluster_1samp_test(
     )
 
 
+@_legacy_rng("seed")
 @verbose
 def spatio_temporal_cluster_1samp_test(
     X,
@@ -1330,7 +1337,6 @@ def spatio_temporal_cluster_1samp_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     spatial_exclude=None,
     step_down_p=0,
@@ -1339,6 +1345,9 @@ def spatio_temporal_cluster_1samp_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
@@ -1362,7 +1371,6 @@ def spatio_temporal_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_st1)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
@@ -1372,6 +1380,8 @@ def spatio_temporal_cluster_1samp_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1407,7 +1417,7 @@ def spatio_temporal_cluster_1samp_test(
         n_permutations=n_permutations,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1418,6 +1428,7 @@ def spatio_temporal_cluster_1samp_test(
     )
 
 
+@_legacy_rng("seed")
 @verbose
 def spatio_temporal_cluster_test(
     X,
@@ -1427,7 +1438,6 @@ def spatio_temporal_cluster_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     spatial_exclude=None,
     step_down_p=0,
@@ -1436,6 +1446,9 @@ def spatio_temporal_cluster_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Non-parametric cluster-level test for spatio-temporal data.
 
@@ -1461,7 +1474,6 @@ def spatio_temporal_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_stn)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
@@ -1471,6 +1483,8 @@ def spatio_temporal_cluster_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1506,7 +1520,7 @@ def spatio_temporal_cluster_test(
         n_permutations=n_permutations,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,

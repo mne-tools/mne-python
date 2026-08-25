@@ -16,7 +16,7 @@ from pkgutil import walk_packages
 import pytest
 
 import mne
-from mne.utils import _pl, _record_warnings
+from mne.utils import _pl, _record_warnings, _soft_import
 from mne.utils._typing import Color, FileLike
 from mne.utils.docs import _doc_special_members
 
@@ -328,6 +328,46 @@ def _is_np_random(node):
     )
 
 
+def _sklearn_callables(tree):
+    """Resolve sklearn imports for signature inspection."""
+    callables = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module
+            and node.module.startswith("sklearn")
+        ):
+            module = _soft_import(node.module, "checking RNG parameters", strict=False)
+            if module:
+                for alias in node.names:
+                    callable_ = getattr(module, alias.name, None)
+                    if callable_ is not None:
+                        callables[alias.asname or alias.name] = callable_
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.startswith("sklearn"):
+                    module = _soft_import(
+                        alias.name, "checking RNG parameters", strict=False
+                    )
+                    if module:
+                        callables[alias.asname or alias.name] = module
+    return callables
+
+
+def _rng_parameters(callable_, node):
+    """Get RNG parameters from a callable, if inspectable."""
+    try:
+        parameters = inspect.signature(callable_).parameters
+    except (TypeError, ValueError):
+        return set()
+    shuffle = next((kw.value for kw in node.keywords if kw.arg == "shuffle"), None)
+    if "shuffle" in parameters and (
+        shuffle is None or isinstance(shuffle, ast.Constant) and not shuffle.value
+    ):
+        return set()
+    return {"random_state", "rng", "seed"} & parameters.keys()
+
+
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
@@ -338,26 +378,35 @@ def test_no_global_rng():
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
-            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
-                # 1. the global RNG: ``np.random.<attr>`` / ``numpy.random.<attr>``
+            tree = ast.parse(path.read_text("utf-8"))
+            callables = _sklearn_callables(tree)
+            for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Attribute)
                     and node.attr not in global_rng_ok
                     and _is_np_random(node.value)
                 ):
-                    bad.append(
-                        f"{rel}:{node.lineno}: np.random.{node.attr} "
-                        "(use a local np.random.default_rng)"
-                    )
-                # 2. legacy RandomState-only methods, e.g. ``rng.randn(...)``
+                    bad.append(f"{rel}:{node.lineno}: global np.random.{node.attr}")
                 elif (
                     isinstance(node, ast.Call)
                     and isinstance(node.func, ast.Attribute)
                     and node.func.attr in legacy_rng_methods
                     and not _is_np_random(node.func.value)
                 ):
-                    want = legacy_rng_methods[node.func.attr]
-                    bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
+                    bad.append(f"{rel}:{node.lineno}: legacy .{node.func.attr}()")
+                elif isinstance(node, ast.Call):
+                    name = getattr(node.func, "id", None) or getattr(
+                        node.func, "attr", None
+                    )
+                    callable_ = callables.get(name)
+                    if isinstance(node.func, ast.Attribute):
+                        module = callables.get(getattr(node.func.value, "id", None))
+                        if module is not None:
+                            callable_ = getattr(module, node.func.attr, None)
+                    parameters = _rng_parameters(callable_, node)
+                    supplied = parameters & {kw.arg for kw in node.keywords}
+                    if parameters and len(supplied) != 1:
+                        bad.append(f"{rel}:{node.lineno}: {name}() needs one RNG")
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)

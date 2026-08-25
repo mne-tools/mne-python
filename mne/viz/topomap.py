@@ -2065,20 +2065,7 @@ def plot_tfr_topomap(
         "b (s)". If a is None the beginning of the data is used and if b is
         None then b is set to the end of the interval. If baseline is equal to
         (None, None) the whole time interval is used.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
-        Perform baseline correction by
-
-          - subtracting the mean baseline power ('mean')
-          - dividing by the mean baseline power ('ratio')
-          - dividing by the mean baseline power and taking the log ('logratio')
-          - subtracting the mean baseline power followed by dividing by the
-            mean baseline power ('percent')
-          - subtracting the mean baseline power and dividing by the standard
-            deviation of the baseline power ('zscore')
-          - dividing by the mean baseline power, taking the log, and dividing
-            by the standard deviation of the baseline power ('zlogratio')
-
-        If None no baseline correction is applied.
+    %(baseline_mode)s
     %(sensors_topomap)s
     %(show_names_topomap)s
     %(mask_evoked_topomap)s
@@ -2119,6 +2106,10 @@ def plot_tfr_topomap(
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     import matplotlib.pyplot as plt
 

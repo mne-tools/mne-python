@@ -52,9 +52,9 @@ def test_search_light_basic():
     sl = SlidingEstimator("foo")
     with pytest.raises(ValueError, match="must be"):
         sl.fit(X, y)
-    sl = SlidingEstimator(Ridge())
+    sl = SlidingEstimator(Ridge(random_state=0))
     assert not is_classifier(sl)
-    sl = SlidingEstimator(LogisticRegression(solver="liblinear"))
+    sl = SlidingEstimator(LogisticRegression(solver="liblinear", random_state=0))
     assert is_classifier(sl.base_estimator)
     assert is_classifier(sl)
     # fit
@@ -183,7 +183,9 @@ def test_search_light_basic():
     # Bagging classifiers
     X = rng.random((10, 3, 4))
     for n_jobs in (1, 2):
-        pipe = SlidingEstimator(BaggingClassifier(None, 2), n_jobs=n_jobs)
+        pipe = SlidingEstimator(
+            BaggingClassifier(None, 2, random_state=0), n_jobs=n_jobs
+        )
         pipe.fit(X, y)
         pipe.score(X, y)
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
@@ -324,9 +326,15 @@ def test_gl_score_branches(scoring, est_name, method):
         )
     elif scoring == "accuracy_kwargs":
         # start from the default scorer but add a kwarg to prevent batching
-        acc_func = check_scoring(LogisticRegression(), "accuracy")._score_func
+        acc_func = check_scoring(
+            LogisticRegression(random_state=0), "accuracy"
+        )._score_func
         scoring = make_scorer(acc_func, normalize=False)
-    est = Ridge() if est_name == "ridge" else LogisticRegression(solver=solver)
+    est = (
+        Ridge(random_state=0)
+        if est_name == "ridge"
+        else LogisticRegression(solver=solver, random_state=0)
+    )
     gl = GeneralizingEstimator(est, scoring=scoring).fit(X, y)
 
     # Measure batching: count pred/call scores. Wraps `fn` calls so they append
@@ -374,7 +382,7 @@ def test_gl_score_branches(scoring, est_name, method):
 def test_verbose_arg(capsys, n_jobs, verbose):
     """Test controlling output with the ``verbose`` argument."""
     X, y = make_data()
-    clf = SVC()
+    clf = SVC(random_state=0)
 
     # shows progress bar and prints other messages to the console
     with use_log_level(True):
@@ -424,8 +432,8 @@ def test_cross_val_predict():
 @pytest.mark.slowtest
 @parametrize_with_checks(
     [
-        SlidingEstimator(LogisticRegression(), allow_2d=True),
-        GeneralizingEstimator(LogisticRegression(), allow_2d=True),
+        SlidingEstimator(LogisticRegression(random_state=0), allow_2d=True),
+        GeneralizingEstimator(LogisticRegression(random_state=0), allow_2d=True),
     ]
 )
 def test_sklearn_compliance(estimator, check):

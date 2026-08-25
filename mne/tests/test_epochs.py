@@ -2723,11 +2723,13 @@ def test_bootstrap():
         reject=reject,
         flat=flat,
     )
-    random_states = [0, np.random.default_rng(0)]
-    for random_state in random_states:
-        epochs2 = bootstrap(epochs, random_state=random_state)
+    rngs = [0, np.random.default_rng(0)]
+    for rng in rngs:
+        epochs2 = bootstrap(epochs, rng=rng)
         assert len(epochs2.events) == len(epochs.events)
         assert epochs._data.shape == epochs2._data.shape
+
+    bootstrap(epochs, random_state=0)
 
 
 def test_epochs_copy():

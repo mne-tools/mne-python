@@ -54,7 +54,7 @@ from mne.preprocessing.ica import (
     read_ica_eeglab,
 )
 from mne.rank import _compute_rank_int
-from mne.utils import _record_warnings, catch_logging, check_version
+from mne.utils import _record_warnings, catch_logging, check_random_state, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -82,8 +82,8 @@ _baseline_corrected = pytest.warns(RuntimeWarning, match="were baseline-correcte
 
 def ICA(*args, **kwargs):
     """Fix the random state in tests."""
-    if "random_state" not in kwargs:
-        kwargs["random_state"] = 0
+    if "random_state" not in kwargs and "rng" not in kwargs:
+        kwargs["rng"] = 0
     return _ICA(*args, **kwargs)
 
 
@@ -117,9 +117,7 @@ def test_ica_full_data_recovery(method):
     for method in methods:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
-            ica = ICA(
-                n_components=n_components, random_state=0, method=method, max_iter=1
-            )
+            ica = ICA(n_components=n_components, rng=0, method=method, max_iter=1)
             kwargs = dict(exclude=[], n_pca_components=n_pca_components)
             picks = list(range(n_channels))
             with pytest.warns(UserWarning, match=None):  # sometimes warns
@@ -134,7 +132,7 @@ def test_ica_full_data_recovery(method):
                 diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
                 assert np.max(diff) > 1e-14
 
-            ica = ICA(n_components=n_components, method=method, random_state=0)
+            ica = ICA(n_components=n_components, method=method, rng=0)
             with _record_warnings():  # sometimes warns
                 ica.fit(epochs, picks=picks)
             _assert_ica_attributes(ica, epochs.get_data(picks))
@@ -171,7 +169,7 @@ def test_ica_simple(method):
     data = np.dot(A, S)
     info = create_info(data.shape[-2], 1000.0, "eeg")
     cov = make_ad_hoc_cov(info)
-    ica = ICA(n_components=n_components, method=method, random_state=0, noise_cov=cov)
+    ica = ICA(n_components=n_components, method=method, rng=0, noise_cov=cov)
     with (
         pytest.warns(RuntimeWarning, match="high-pass filtered"),
         pytest.warns(RuntimeWarning, match="No average EEG.*"),
@@ -191,7 +189,7 @@ def test_warnings():
     epochs = Epochs(
         raw, events=events, baseline=None, preload=True, on_outside="ignore"
     )
-    ica = ICA(n_components=2, max_iter=1, method="infomax", random_state=0)
+    ica = ICA(n_components=2, max_iter=1, method="infomax", rng=0)
 
     # not high-passed
     with epochs.info._unlock():
@@ -292,6 +290,36 @@ def test_ica_max_iter_(method, max_iter_default):
         ICA(max_iter=1.0)
 
 
+def test_ica_rng_transition():
+    """Test the transition from random_state to rng."""
+    with pytest.raises(TypeError, match="only one"):
+        _ICA(random_state=0, rng=0)
+
+    info = create_info(["Fz", "Cz", "Pz"], 100.0, "eeg")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
+    unmixings = []
+    for kwargs in (
+        dict(random_state=0),
+        dict(random_state=check_random_state(0)),
+        dict(rng=0),
+    ):
+        ica = _ICA(
+            n_components=2,
+            method="fastica",
+            max_iter=1000,
+            **kwargs,
+        )
+        with _record_warnings():  # ICA does not necessarily converge
+            ica.fit(raw)
+        unmixings.append(ica.unmixing_matrix_)
+    assert_array_equal(unmixings[0], unmixings[1])
+    # at the ICA/sklearn boundary an integer ``rng`` seed is forwarded verbatim,
+    # so it matches the same integer passed to the legacy parameter
+    assert_array_equal(unmixings[0], unmixings[2])
+
+
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
 def test_ica_n_iter_(method, tmp_path):
     """Test that ICA.n_iter_ is set after fitting."""
@@ -300,9 +328,7 @@ def test_ica_n_iter_(method, tmp_path):
     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
     n_components = 3
     max_iter = 1
-    ica = ICA(
-        n_components=n_components, max_iter=max_iter, method=method, random_state=0
-    )
+    ica = ICA(n_components=n_components, max_iter=max_iter, method=method, rng=0)
 
     if method == "infomax":
         ica.fit(raw)
@@ -1399,7 +1425,7 @@ def test_n_components_none(method, tmp_path):
     random_state = 12345
 
     output_fname = tmp_path / "test_ica-ica.fif"
-    ica = ICA(method=method, n_components=n_components, random_state=random_state)
+    ica = ICA(method=method, n_components=n_components, rng=random_state)
     with _record_warnings():
         ica.fit(epochs)
     _assert_ica_attributes(ica)
@@ -1774,13 +1800,13 @@ def test_ica_rejects_nonfinite():
     # Case 1: NaN
     raw = RawArray(data.copy(), info)
     raw._data[0, 25] = np.nan
-    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    ica = ICA(n_components=2, rng=0, method="fastica", max_iter="auto")
     with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)
 
     # Case 2: Inf
     raw = RawArray(data.copy(), info)
     raw._data[1, 50] = np.inf
-    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    ica = ICA(n_components=2, rng=0, method="fastica", max_iter="auto")
     with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)

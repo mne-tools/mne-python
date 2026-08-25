@@ -1,0 +1,1 @@
+Added 4 new ERP measures: peak latency, peak amplitude, fractional peak latency, and fractional area latency. By `Jacob Woessner`_ and :newcontrib:`Beliz Sertcan Gökmen`.
