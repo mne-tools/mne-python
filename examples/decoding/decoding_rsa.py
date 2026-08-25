@@ -125,13 +125,13 @@ epochs["not-face"].average().plot()
 # to focus the classifier on the time interval with best SNR.
 clf = make_pipeline(
     StandardScaler(),
-    OneVsRestClassifier(LogisticRegression(C=1, random_state=0)),
+    OneVsRestClassifier(LogisticRegression(C=1, random_state=79)),
 )
 X = epochs.get_data(tmin=0.05, tmax=0.3).mean(axis=2)
 y = epochs.events[:, 2]
 
 classes = set(y)
-cv = StratifiedKFold(n_splits=5, random_state=0, shuffle=True)
+cv = StratifiedKFold(n_splits=5, random_state=83, shuffle=True)
 
 # Compute confusion matrix for each cross-validation fold
 y_pred = np.zeros((len(y), len(classes)))
@@ -173,7 +173,7 @@ fig, ax = plt.subplots(1, layout="constrained")
 chance = 0.5
 # TODO VERSION: this is MDS(2, n_init=4, init='random', metric='precomputed'),
 # but that spelling requires scikit-learn >= 1.8
-summary, _ = smacof(chance - confusion, n_components=2, n_init=4, random_state=0)
+summary, _ = smacof(chance - confusion, n_components=2, n_init=4, random_state=89)
 cmap = plt.colormaps["rainbow"]
 colors = ["r", "b"]
 names = list(conds["condition"].values)

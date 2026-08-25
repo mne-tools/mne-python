@@ -142,7 +142,7 @@ clf = make_pipeline(
     Scaler(epochs.info),
     Vectorizer(),
     # liblinear is faster than lbfgs
-    LogisticRegression(solver="liblinear", random_state=0),
+    LogisticRegression(solver="liblinear", random_state=31),
 )
 
 scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=None)
@@ -227,7 +227,7 @@ print(f"Spatio-temporal: {100 * score:0.1f}%")
 
 csp = CSP(n_components=3, norm_trace=False)
 clf_csp = make_pipeline(
-    csp, LinearModel(LogisticRegression(solver="liblinear", random_state=0))
+    csp, LinearModel(LogisticRegression(solver="liblinear", random_state=37))
 )
 scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=None)
 print(f"CSP: {100 * scores.mean():0.1f}%")
@@ -328,7 +328,7 @@ spf.plot_filters(components=[0, 1, 2], scalings=1e-9)
 # We will train the classifier on all left visual vs auditory trials on MEG
 
 clf = make_pipeline(
-    StandardScaler(), LogisticRegression(solver="liblinear", random_state=0)
+    StandardScaler(), LogisticRegression(solver="liblinear", random_state=41)
 )
 
 time_decod = SlidingEstimator(clf, n_jobs=None, scoring="roc_auc", verbose=True)
@@ -353,7 +353,7 @@ ax.set_title("Sensor space decoding")
 # use a LinearModel
 clf = make_pipeline(
     StandardScaler(),
-    LinearModel(LogisticRegression(solver="liblinear", random_state=0)),
+    LinearModel(LogisticRegression(solver="liblinear", random_state=43)),
 )
 time_decod = SlidingEstimator(clf, n_jobs=None, scoring="roc_auc", verbose=True)
 time_decod.fit(X, y)

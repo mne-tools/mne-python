@@ -70,7 +70,7 @@ epochs = mne.Epochs(
 clf = make_pipeline(
     StandardScaler(),
     # liblinear is faster than lbfgs
-    LogisticRegression(solver="liblinear", random_state=0),
+    LogisticRegression(solver="liblinear", random_state=131),
 )
 time_gen = GeneralizingEstimator(clf, scoring="roc_auc", n_jobs=None, verbose=True)
 

@@ -74,7 +74,7 @@ meg_data = meg_epochs.get_data(copy=False).reshape(len(labels), -1)
 # --------------------------------------------------------------
 
 # liblinear is faster than lbfgs
-clf = LogisticRegression(solver="liblinear", random_state=0)
+clf = LogisticRegression(solver="liblinear", random_state=137)
 scaler = StandardScaler()
 
 # create a linear model with LogisticRegression
@@ -128,7 +128,7 @@ clf = make_pipeline(
     Vectorizer(),  # 1) vectorize across time and channels
     StandardScaler(),  # 2) normalize features across trials
     LinearModel(  # 3) fits a logistic regression
-        LogisticRegression(solver="liblinear", random_state=0)
+        LogisticRegression(solver="liblinear", random_state=139)
     ),
 )
 clf.fit(X, y)

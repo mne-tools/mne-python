@@ -32,7 +32,7 @@ from mne.simulation.metrics import (
     spatial_deviation_error,
 )
 
-random_state = 42  # set random state to make this example deterministic
+random_state = 229  # set random state to make this example deterministic
 
 # Import sample data
 data_path = sample.data_path()

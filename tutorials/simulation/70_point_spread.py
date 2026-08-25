@@ -26,7 +26,7 @@ from mne.simulation import simulate_evoked, simulate_stc
 # %%
 # First, we set some parameters.
 
-seed = 42
+seed = 199
 
 # parameters for inverse method
 method = "sLORETA"
