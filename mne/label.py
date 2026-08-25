@@ -8,10 +8,12 @@ import os.path as op
 import re
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
+from pathlib import Path
 
 import numpy as np
 from scipy import linalg
 
+from ._freesurfer import get_volume_labels_from_aseg
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
 from .parallel import parallel_func
@@ -19,6 +21,7 @@ from .source_estimate import (
     SourceEstimate,
     VolSourceEstimate,
     _center_of_mass,
+    _volume_labels,
     extract_label_time_course,
     spatial_src_adjacency,
 )
@@ -3034,3 +3037,113 @@ def select_sources(
         )
 
     return new_label
+
+
+def label_adjacency(labels, src):
+    """Compute adjacency between labels.
+
+    Two labels are considered adjacent if one of their vertices are adjacent in the
+    source space.
+
+    Parameters
+    ----------
+    labels : list of mne.Label
+        The labels between which to compute adjacency.
+    src : mne.SourceSpaces
+        The source space on which the labels are defined.
+
+    Returns
+    -------
+    label_adjacency : scipy.sparse.coo_matrix
+        A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
+        otherwise.
+    """
+    from scipy.sparse import coo_matrix
+
+    src_adjacency = spatial_src_adjacency(src).tocsr()
+    label_src_ind = list()
+    for label in labels:
+        src_hemi = src[0] if label.hemi == "lh" else src[1]
+        label_verts = label.get_vertices_used(src_hemi["vertno"])
+        src_ind = np.searchsorted(src_hemi["vertno"], label_verts)
+        if label.hemi == "rh":
+            src_ind += src[0]["nuse"]
+        label_src_ind.append(src_ind)
+
+    adjacent_label_inds = list()  # list of pairs of label indices
+    for ind1, label1 in enumerate(labels):
+        for ind2, label2 in enumerate(labels):
+            # If the labels are on different hemispheres, they are not adjacent.
+            if label1.hemi != label2.hemi:
+                continue
+
+            # Get adjacent vertices if any.
+            adj_verts = src_adjacency[label_src_ind[ind1], :][:, label_src_ind[ind2]]
+            if adj_verts.count_nonzero() > 0:
+                adjacent_label_inds.append((ind1, ind2))
+    return coo_matrix(
+        (np.ones(len(adjacent_label_inds)), tuple(zip(*adjacent_label_inds))),
+        shape=(len(labels), len(labels)),
+    )
+
+
+def volume_label_adjacency(src, subject, subjects_dir, aseg="auto", labels=None):
+    """Compute adjacency between volume labels.
+
+    Two labels are considered adjacent if one of their voxels are adjacent in the
+    (volumetric) source space.
+
+    Parameters
+    ----------
+    src : mne.SourceSpaces
+        The volumetric source space on which the labels are defined.
+    %(subject)s
+    %(subjects_dir)s
+    %(aseg)s
+    %(labels_aseg)s
+
+    Returns
+    -------
+    label_adjacency : scipy.sparse.coo_matrix
+        A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
+        otherwise.
+    labels : list of str
+        The names of the labels which contain at least one source point.
+    """
+    from scipy import sparse
+
+    subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+
+    if labels is None:
+        labels = get_volume_labels_from_aseg(aseg)
+
+    vol_labels = _volume_labels(src, (aseg, labels), mri_resolution=False)
+    src_adjacency = spatial_src_adjacency(src).tocsr()
+
+    label_verts = list()
+    for label in vol_labels:
+        label_verts.append(np.searchsorted(src[0]["vertno"], label.vertices))
+
+    adjacent_label_inds = list()  # list of pairs of label indices
+    for ind1, verts1 in enumerate(label_verts):
+        for ind2, verts2 in enumerate(label_verts):
+            # Get adjacent vertices if any.
+            adj_verts = src_adjacency[verts1, :][:, verts2]
+            if adj_verts.count_nonzero() > 0:
+                adjacent_label_inds.append((ind1, ind2))
+
+    adj = sparse.coo_matrix(
+        (np.ones(len(adjacent_label_inds)), tuple(zip(*adjacent_label_inds))),
+        shape=(len(labels), len(labels)),
+    )
+    return adj, labels

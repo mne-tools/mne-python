@@ -2769,11 +2769,7 @@ class Brain:
         Parameters
         ----------
         %(aseg)s
-        labels : list
-            Labeled regions of interest to plot. See
-            :func:`mne.get_montage_volume_labels`
-            for one way to determine regions of interest. Regions can also be
-            chosen from the :term:`FreeSurfer LUT`.
+        %(labels_aseg)s
         colors : list | matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
             (default :term:`FreeSurfer LUT` colors).
