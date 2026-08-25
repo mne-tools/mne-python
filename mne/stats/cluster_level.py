@@ -2021,7 +2021,17 @@ def cluster_test(
         seed=seed,
     )
 
-    return ClusterResult(stat_obs, clusters, cluster_p_values, H0, stat_fun)
+    return ClusterResult(
+        stat_obs, clusters, cluster_p_values, H0, stat_fun, t_power=t_power
+    )
+
+
+def _cluster_mass(stat_obs, cluster, t_power):
+    """Compute a cluster's mass, matching _find_clusters_1dir's own formula."""
+    vals = stat_obs[cluster]
+    if t_power == 1:
+        return vals.sum()
+    return (np.sign(vals) * np.abs(vals) ** t_power).sum()
 
 
 class ClusterResult:
@@ -2042,6 +2052,19 @@ class ClusterResult:
         input and return a 1D array. If ``None`` (the default), uses
         :func:`mne.stats.ttest_1samp_no_p` for paired tests and
         :func:`mne.stats.f_oneway` for unpaired tests or tests of more than 2 groups.
+    t_power : float
+        Power to which the observed statistic was raised (sign retained) before
+        summing within a cluster to obtain its mass (see ``cluster_masses``).
+        Should match whatever ``t_power`` was passed to :func:`cluster_test`.
+
+    Attributes
+    ----------
+    cluster_masses : np.ndarray
+        The mass of each cluster, i.e. the sum (optionally ``t_power``-weighted)
+        of ``stat_obs`` within that cluster. This is the same per-cluster
+        statistic that is compared against the permutation distribution (``H0``)
+        to obtain ``cluster_p_values``, so it is a natural way to rank clusters by
+        how extreme they are, independent of the resulting p-value.
     """
 
     def __init__(
@@ -2051,12 +2074,18 @@ class ClusterResult:
         cluster_p_values: np.typing.NDArray,
         H0: np.typing.NDArray,
         stat_fun: callable,
+        *,
+        t_power: float = 1.0,
     ):
         self.stat_obs = stat_obs
         self.clusters = clusters
         self.cluster_p_values = cluster_p_values
         self.H0 = H0
         self.stat_fun = stat_fun
+        self.t_power = t_power
+        self.cluster_masses = np.array(
+            [_cluster_mass(stat_obs, c, t_power) for c in clusters]
+        )
 
         # unpaired t-test equivalent to f_oneway w/ 2 groups
         if stat_fun is f_oneway:
@@ -2184,4 +2213,229 @@ class ClusterResult:
             (ymin, ymax), sig_times[0], sig_times[-1], color="grey", alpha=0.3
         )
 
+        plt.show()
+
+    def plot_cluster_time_frequency(
+        self,
+        inst,
+        *,
+        cluster_idx: int = 0,
+        p_accept: float = 0.05,
+        cmap_topo: None | str | tuple = None,
+        cmap_spectrogram: None | str = None,
+    ):
+        """
+        Plot one significant cluster's time-frequency extent and topomap.
+
+        For 3D (time x frequency x channel) clusters, i.e. results of a test run on
+        time-frequency data (see :class:`~mne.time_frequency.EpochsTFR` /
+        :class:`~mne.time_frequency.AverageTFR`). It is difficult to visualize such
+        clusters directly, so a topomap of the statistic averaged over one chosen
+        cluster's time-frequency extent is shown next to a spectrogram for the
+        single channel (among that cluster's channels) with the most extreme value
+        in the cluster -- as in the classic (non-``cluster_test``) time-frequency
+        cluster tutorials.
+
+        Only clusters with ``cluster_p_values < p_accept`` are considered
+        "significant" and eligible for selection. Among those, ``cluster_idx``
+        selects which one to show, ranked by ``cluster_masses`` (the sum of the
+        observed statistic within each cluster -- the same quantity used
+        internally to compute ``cluster_p_values``) from most to least extreme;
+        ``cluster_idx=0`` (the default) is therefore the most extreme significant
+        cluster, not necessarily the one with the lowest p-value. The chosen
+        cluster determines the topomap's extent and which channel's spectrogram is
+        shown. The spectrogram panel, however, highlights *every* significant
+        cluster that has at least one member point on that channel, not just the
+        chosen one, so that an equally significant effect that happens to share the
+        chosen channel (of the same or opposite sign) is not hidden.
+
+        Parameters
+        ----------
+        inst : EpochsTFR | AverageTFR
+            A representative time-frequency object, used only for its ``info``
+            (channel layout) and ``times``/``freqs`` axes.
+        cluster_idx : int
+            Index into the significant clusters (``cluster_p_values < p_accept``),
+            ordered by decreasing ``|cluster_masses|``. ``0`` (default) selects the
+            most extreme significant cluster.
+        p_accept : float
+            Clusters with ``cluster_p_values >= p_accept`` are not eligible for
+            selection via ``cluster_idx`` and are not shown in the spectrogram
+            overlay.
+        cmap_topo : matplotlib.colors.Colormap
+            Colormap to use for the topomap.
+        cmap_spectrogram : matplotlib.colors.Colormap | None
+            Colormap used to highlight significant clusters in the spectrogram
+            panel. If ``None`` (default), ``"RdBu_r"`` is used for a signed
+            statistic (e.g. a paired t-statistic) and ``"autumn"`` for a
+            non-negative one (e.g. an F-statistic).
+        """
+        if self.clusters and not isinstance(self.clusters[0], tuple):
+            raise ValueError(
+                "plot_cluster_time_frequency() requires clusters in 'indices' "
+                'format; re-run cluster_test() with out_type="indices" (the '
+                'default) instead of "mask".'
+            )
+        if self.clusters and len(self.clusters[0]) != 3:
+            raise ValueError(
+                "plot_cluster_time_frequency() requires 3D (time x frequency x "
+                f"channel) clusters, got {len(self.clusters[0])}D clusters. For 2D "
+                "(time x channel) clusters, use plot_cluster_time_sensor() instead."
+            )
+        # F-statistics (one-way or repeated-measures ANOVA) are non-negative;
+        # other statistics (e.g. a paired t-statistic) are signed, so a single
+        # "biggest value" reduction/color scale would misrepresent them.
+        is_nonneg = self.stat_fun is f_oneway or (
+            isinstance(self.stat_fun, partial)
+            and self.stat_fun.func is _rm_anova_stat_fun
+        )
+        if cmap_spectrogram is None:
+            cmap_spectrogram = "autumn" if is_nonneg else "RdBu_r"
+
+        sig_inds = np.where(self.cluster_p_values < p_accept)[0]
+        if sig_inds.size == 0:
+            if len(self.cluster_p_values) == 0:
+                raise ValueError(
+                    "cluster_test() found no clusters, so there is nothing to plot."
+                )
+            raise ValueError(
+                f"No clusters have cluster_p_values < p_accept={p_accept} (the "
+                f"smallest cluster p-value found was "
+                f"{self.cluster_p_values.min():.3g}); try a larger p_accept."
+            )
+        order = sig_inds[
+            np.argsort(-np.abs(self.cluster_masses[sig_inds]), kind="stable")
+        ]
+        if not 0 <= cluster_idx < len(order):
+            raise ValueError(
+                f"cluster_idx={cluster_idx} is out of range: only {len(order)} "
+                f"cluster{_pl(order)} have cluster_p_values < p_accept={p_accept}, "
+                f"so cluster_idx must be between 0 and {len(order) - 1}."
+            )
+        chosen = order[cluster_idx]
+
+        self._plot_cluster_time_frequency_figure(
+            chosen, order, cluster_idx, inst, cmap_topo, cmap_spectrogram, is_nonneg
+        )
+
+    def _plot_cluster_time_frequency_figure(
+        self, chosen, order, cluster_idx, inst, cmap_topo, cmap_spectrogram, is_nonneg
+    ):
+        """Plot one cluster's topomap + spectrogram; see plot_cluster_time_frequency."""
+        chosen_mask = np.zeros(self.stat_obs.shape, dtype=bool)
+        chosen_mask[self.clusters[chosen]] = True
+
+        time_inds, freq_inds, space_inds = (
+            np.unique(inds) for inds in np.nonzero(chosen_mask)
+        )
+        ch_inds = space_inds
+
+        # topography of the statistic, averaged over the chosen cluster's
+        # time-frequency extent. For the cluster's own channels, average only its
+        # true member points (chosen_mask) -- using the bounding box instead could
+        # mix in an unrelated, possibly oppositely-signed effect from another
+        # cluster that happens to overlap the same time/frequency range on a
+        # different channel. Other channels (for spatial context only) fall back
+        # to the bounding-box average, since they have no cluster-member points of
+        # their own.
+        stat_map = self.stat_obs[time_inds].mean(axis=0)[freq_inds].mean(axis=0)
+        own_vals = np.where(
+            chosen_mask[..., ch_inds], self.stat_obs[..., ch_inds], np.nan
+        )
+        stat_map[ch_inds] = np.nanmean(own_vals, axis=(0, 1))
+        sig_times = inst.times[time_inds]
+
+        fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
+
+        mask = np.zeros((stat_map.shape[0], 1), dtype=bool)
+        mask[ch_inds, :] = True
+
+        stat_evoked = EvokedArray(stat_map[:, np.newaxis], inst.info, tmin=0)
+        stat_evoked.plot_topomap(
+            times=0,
+            mask=mask,
+            axes=ax_topo,
+            cmap=cmap_topo,
+            vlim=(np.min, np.max),
+            show=False,
+            colorbar=False,
+            mask_params=dict(markersize=10),
+            # the data are a statistic, not a physical measurement, so disable
+            # plot_topomap()'s unit-conversion scaling (e.g. 1e13 for grad)
+            scalings=1.0,
+        )
+        image = ax_topo.images[0]
+
+        divider = make_axes_locatable(ax_topo)
+        ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(image, cax=ax_colorbar)
+        ax_topo.set_xlabel(
+            "Averaged {} ({:0.3f} - {:0.3f} s)".format(
+                self.stat_name, *sig_times[[0, -1]]
+            )
+        )
+        ax_topo.set_title(
+            f"Cluster {cluster_idx + 1}/{len(order)} significant (by |mass|)\n"
+            f"p={self.cluster_p_values[chosen]:.3g}, "
+            f"mass={self.cluster_masses[chosen]:.3g}"
+        )
+
+        # spectrogram: pick a single representative channel -- the one (among the
+        # chosen cluster's channels) with the most extreme value within the
+        # cluster -- rather than reducing over channels bin by bin. The latter
+        # would pick a potentially different channel at every single
+        # time-frequency bin, which mixes independent sensors' noise and produces
+        # a jittery, incoherent image instead of one coherent sensor's smooth
+        # time-frequency evolution.
+        ax_spec = divider.append_axes("right", size="300%", pad=1.2)
+        # only consider the chosen cluster's true member points here (not its
+        # bounding box), matching how the classic tutorials pick their most
+        # extreme point
+        masked_stat = np.where(chosen_mask, self.stat_obs, np.nan)
+        best_ch = np.unravel_index(
+            np.nanargmax(np.abs(masked_stat)), masked_stat.shape
+        )[-1]
+        title = f"Spectrogram ({inst.ch_names[best_ch]})"
+
+        stat_plot = self.stat_obs[..., best_ch].T  # (frequency, time) for display
+
+        # highlight every significant cluster that has a member point on best_ch
+        # (not just the chosen one), so an equally significant effect sharing this
+        # channel isn't hidden. Restricting each cluster to its own points on
+        # best_ch (rather than unioning whole cluster masks) is equivalent for
+        # what's actually drawn here (a single-channel slice) and cheaper.
+        display_mask = np.zeros(self.stat_obs.shape[:-1], dtype=bool)
+        n_shown = 0
+        for idx in order:
+            t_idx, f_idx, c_idx = self.clusters[idx]
+            on_ch = c_idx == best_ch
+            if on_ch.any():
+                display_mask[t_idx[on_ch], f_idx[on_ch]] = True
+                n_shown += 1
+        sig_mask = display_mask.T
+        stat_plot_sig = np.where(sig_mask, stat_plot, np.nan)
+
+        if is_nonneg:
+            vmin, vmax = None, None
+        else:
+            vmax = np.abs(self.stat_obs).max()
+            vmin = -vmax
+
+        for values, cmap in zip((stat_plot, stat_plot_sig), ("gray", cmap_spectrogram)):
+            image_spec = ax_spec.imshow(
+                values,
+                cmap=cmap,
+                aspect="auto",
+                origin="lower",
+                vmin=vmin,
+                vmax=vmax,
+                extent=[inst.times[0], inst.times[-1], inst.freqs[0], inst.freqs[-1]],
+            )
+        ax_spec.set_xlabel("Time (s)")
+        ax_spec.set_ylabel("Frequency (Hz)")
+        ax_spec.set_title(f"{title} -- {n_shown} cluster{_pl(n_shown)} shown")
+
+        ax_colorbar2 = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(image_spec, cax=ax_colorbar2)
+        ax_colorbar2.set_ylabel(self.stat_name)
         plt.show()
