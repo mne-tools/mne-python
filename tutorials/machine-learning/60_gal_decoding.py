@@ -1,9 +1,9 @@
 """
 .. _tut-gal-decoding:
 
-=====================================================
-Generalizing sensor-space decoding across locations
-=====================================================
+====================================================
+Generalizing motor-imagery decoding across locations
+====================================================
 
 The :ref:`temporal generalization example <tut-mvpa>` evaluates a decoder
 estimated at one time point at every other time point. Its matrix shows whether
@@ -19,10 +19,11 @@ time as the task axis and sensors as features. GAL reverses those roles: sensor
 locations are tasks and time samples are features. Both analyses use
 :class:`mne.decoding.GeneralizingEstimator`.
 
-This tutorial applies GAL to face and non-face trials from MNE's
-``visual_92_categories`` dataset. It applies the sensor-generalization
-construction described in the `Time-GAL paper <https://doi.org/10.1002/hbm.70152>`_.
-The paper describes this location-to-location classifier as a backward model.
+This tutorial uses the hand and foot motor-imagery runs from the EEGBCI dataset,
+as in the :ref:`ERDS example <ex-tfr-erds>`. It applies the
+sensor-generalization construction described in the `Time-GAL paper
+<https://doi.org/10.1002/hbm.70152>`_. The paper describes this
+location-to-location classifier as a backward model.
 
 An off-diagonal score measures transfer of decodable information. It does not
 estimate anatomical or directed connectivity.
@@ -33,88 +34,95 @@ estimate anatomical or directed connectivity.
 # Copyright the MNE-Python contributors.
 
 # %%
-# Download two runs of the visual-object data
-# --------------------------------------------
+# Download motor-imagery EEG data
+# --------------------------------
 
 import matplotlib.pyplot as plt
 import numpy as np
 from mne_connectivity.viz import plot_connectivity_circle
-from pandas import read_csv
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 import mne
-from mne.datasets import visual_92_categories
-from mne.decoding import GeneralizingEstimator
-from mne.io import concatenate_raws, read_raw_fif
+from mne.channels import make_standard_montage
+from mne.datasets import eegbci
+from mne.decoding import GeneralizingEstimator, SlidingEstimator, cross_val_multiscore
+from mne.io import concatenate_raws, read_raw_edf
 
 # %%
-# Load the visual-object dataset
-# ------------------------------
+# The ERDS example uses runs 6, 10, and 14 from participant 1. These runs
+# contain imagined hand and foot movements. We keep the same three motor
+# channels, C3, Cz, and C4, so the tutorial executes quickly in CI.
 
-data_path = visual_92_categories.data_path()
-conditions = read_csv(data_path / "visual_stimuli.csv")[:24]
-event_id = {}
-for condition in conditions.values:
-    tags = list(condition[:2])
-    tags += [
-        ("not-" if value == 0 else "") + conditions.columns[index]
-        for index, value in enumerate(condition[2:], 2)
-    ]
-    event_id["/".join(map(str, tags))] = condition[0] + 1
-event_id["0/human bodypart/human/not-face/animal/natural"] = 1
-
-raw = concatenate_raws(
-    [
-        read_raw_fif(
-            data_path / f"sample_subject_{run}_tsss_mc.fif",
-            verbose="error",
-            on_split_missing="ignore",
-        )
-        for run in range(2)
-    ]
-)
-events = mne.find_events(raw, min_duration=0.002)
-events = events[events[:, 2] <= len(conditions)]
+raw_fnames = eegbci.load_data(subjects=1, runs=(6, 10, 14))
+raw = concatenate_raws([read_raw_edf(fname, preload=True) for fname in raw_fnames])
+eegbci.standardize(raw)
+raw.set_montage(make_standard_montage("spherical_1005"))
+raw.annotations.rename(dict(T1="hands", T2="feet"))
+raw.set_eeg_reference(projection=True)
+raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
 
 # %%
-# Prepare face and non-face epochs
-# --------------------------------
-# We use 32 posterior magnetometers to keep the example quick. Each trial
-# contributes its 50 to 300 ms waveform. Baseline correction precedes the
-# crop.
+# Prepare hand and foot motor-imagery epochs
+# -------------------------------------------
+# C3, Cz, and C4 are the features for time-resolved decoding. For GAL, the 1
+# to 3 s motor-imagery waveform becomes the feature vector at each location.
 
-mag_picks = mne.pick_types(raw.info, meg="mag")
-mag_locations = np.array([raw.info["chs"][pick]["loc"][:3] for pick in mag_picks])
-picks = mag_picks[np.argsort(mag_locations[:, 1])[:32]]
+event_id = dict(hands=2, feet=3)
 epochs = mne.Epochs(
     raw,
-    events,
     event_id=event_id,
-    baseline=(None, 0),
-    picks=picks,
-    tmin=-0.1,
-    tmax=0.5,
+    tmin=-1,
+    tmax=4,
+    baseline=None,
+    proj=True,
+    picks=("C3", "Cz", "C4"),
     preload=True,
     verbose=False,
 )
-X = epochs.copy().crop(0.05, 0.30).get_data()
-face_triggers = conditions.loc[conditions["face"] == 1, "trigger"].to_numpy() + 1
-y = np.isin(epochs.events[:, 2], face_triggers)
+X = epochs.copy().crop(1, 3).get_data()
+y = epochs.events[:, 2] == event_id["hands"]
 print(
     "Sensor-generalization input: "
     f"{X.shape[0]} trials, {X.shape[1]} sensors, {X.shape[2]} times"
 )
 
 # %%
-# Inspect the sensor and time dimensions
-# --------------------------------------
-# The averages are a diagnostic view of the feature window. The estimator fits
+# Classical time-resolved decoding uses sensors as features
+# ---------------------------------------------------------
+# This is the temporal slice from the :ref:`temporal generalization example
+# <tut-mvpa>`: a model is fitted at every time point using all EEG channels as
+# features. GAL below swaps these two roles.
+
+classifier = make_pipeline(
+    StandardScaler(), LogisticRegression(solver="liblinear", random_state=0)
+)
+cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
+time_decoder = SlidingEstimator(
+    classifier, scoring="roc_auc", n_jobs=1, verbose=False
+)
+time_scores = cross_val_multiscore(time_decoder, X, y, cv=cv, n_jobs=1).mean(axis=0)
+
+fig, ax = plt.subplots(layout="constrained")
+ax.plot(np.linspace(1, 3, len(time_scores)), time_scores)
+ax.axhline(0.5, color="k", linestyle=":", linewidth=1)
+ax.set(
+    title="Time-resolved decoding: hands versus feet",
+    xlabel="Time (s)",
+    ylabel="Cross-validated AUC",
+)
+
+# %%
+# Inspect the condition waveforms
+# -------------------------------
+# The averages are a diagnostic view of the 1 to 3 s feature window. GAL fits
 # separate models at every sensor.
 
 fig, ax = plt.subplots(layout="constrained")
-time_mask = (epochs.times >= 0.05) & (epochs.times <= 0.30)
-for selection, label in ((y, "Face"), (~y, "Non-face")):
+time_mask = (epochs.times >= 1) & (epochs.times <= 3)
+for selection, label in ((y, "Hands"), (~y, "Feet")):
     ax.plot(
         epochs.times[time_mask],
         epochs.get_data()[selection, 0][:, time_mask].mean(axis=0),
@@ -122,19 +130,19 @@ for selection, label in ((y, "Face"), (~y, "Non-face")):
     )
 ax.axvline(0, color="k", linestyle=":", linewidth=1)
 ax.set(
-    title=f"Condition averages at {epochs.ch_names[0]}",
+    title=f"Motor-imagery averages at {epochs.ch_names[0]}",
     xlabel="Time (s)",
-    ylabel="Magnetic field (T)",
+    ylabel="Voltage (V)",
 )
 ax.legend()
 
 # %%
 # The condition contrast is spatially structured
 # ----------------------------------------------
-# These maps show the face-minus-non-face field at three times in the decoding
+# These maps show the hand-minus-foot voltage at three times in the decoding
 # window. They describe evoked responses, not decoder weights or sources.
 
-face_minus_non_face = mne.combine_evoked(
+hands_minus_feet = mne.combine_evoked(
     [epochs[y].average(), epochs[~y].average()], weights=[1, -1]
 )
 fig, axes = plt.subplots(
@@ -144,9 +152,9 @@ fig, axes = plt.subplots(
     layout="constrained",
     gridspec_kw={"width_ratios": [1, 1, 1, 0.06]},
 )
-fig = face_minus_non_face.plot_topomap(
-    times=[0.13, 0.17, 0.24],
-    ch_type="mag",
+fig = hands_minus_feet.plot_topomap(
+    times=[1.2, 1.8, 2.5],
+    ch_type="eeg",
     time_unit="s",
     axes=axes,
     show=False,
@@ -156,7 +164,7 @@ fig = face_minus_non_face.plot_topomap(
 # The temporal pattern is described independently of decoding
 # ------------------------------------------------------------
 # The Time-GAL paper pairs this backward model with a correlation matrix.
-# Here, Pearson correlation between the binary face label and each sensor's
+# Here, Pearson correlation between the binary hand-imagery label and each sensor's
 # trial signal describes when the condition effect occurs.
 
 X_centered = X - X.mean(axis=0)
@@ -171,13 +179,13 @@ image = ax.imshow(
     label_signal_correlation,
     aspect="auto",
     cmap="RdBu_r",
-    extent=(0.05, 0.30, -0.5, len(epochs.ch_names) - 0.5),
+    extent=(1, 3, -0.5, len(epochs.ch_names) - 0.5),
     origin="lower",
     vmin=-corr_limit,
     vmax=corr_limit,
 )
 ax.set(
-    title="Label--signal correlation (descriptive forward pattern)",
+    title="Label--signal correlation (descriptive temporal pattern)",
     xlabel="Time (s)",
     ylabel="Posterior magnetometer",
 )
@@ -191,11 +199,11 @@ fig.colorbar(image, ax=ax, label="Pearson r")
 # ordered as ``trials x sensors x time``: each model is trained on one sensor's
 # time samples and scored on every sensor's time samples.
 #
-# We use linear discriminant analysis, as in the paper.
+# The same logistic-regression pipeline is used for both slices.
 
 sensor_gen = GeneralizingEstimator(
-    LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto"),
-    scoring="accuracy",
+    classifier,
+    scoring="roc_auc",
     n_jobs=1,
     axis=1,
     verbose=False,
@@ -204,10 +212,8 @@ sensor_gen = GeneralizingEstimator(
 # %%
 # Score held-out trials
 # ---------------------
-# The five stratified folds hold out trials from this participant. A group
-# analysis should hold out participants.
+# The three stratified folds hold out trials from this participant.
 
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 scores = []
 for train, test in cv.split(X, y):
     scores.append(sensor_gen.fit(X[train], y[train]).score(X[test], y[test]))
@@ -215,7 +221,7 @@ scores = np.array(scores)
 mean_scores = scores.mean(axis=0)
 off_diagonal = ~np.eye(len(epochs.ch_names), dtype=bool)
 print(
-    "Mean accuracy: "
+    "Mean AUC: "
     f"{np.diag(mean_scores).mean():.3f} within sensor; "
     f"{mean_scores[off_diagonal].mean():.3f} across sensors"
 )
@@ -239,20 +245,20 @@ image = ax.imshow(
     interpolation="nearest",
 )
 ax.set(
-    title="Sensor generalization: face versus non-face decoding",
+    title="Sensor generalization: hands versus feet",
     xlabel="Test sensor",
     ylabel="Training sensor",
 )
-sensor_ticks = np.arange(0, len(epochs.ch_names), 4)
+sensor_ticks = np.arange(len(epochs.ch_names))
 sensor_tick_labels = np.array(epochs.ch_names)[sensor_ticks]
 ax.set_xticks(sensor_ticks, sensor_tick_labels, rotation=45, ha="right")
 ax.set_yticks(sensor_ticks, sensor_tick_labels)
-fig.colorbar(image, ax=ax, label="Cross-validated accuracy")
+fig.colorbar(image, ax=ax, label="Cross-validated AUC")
 
 # %%
 # Summarize the strongest cross-sensor effects
 # ---------------------------------------------
-# ``mne-connectivity`` draws the 20 largest, symmetrised off-diagonal effects.
+# ``mne-connectivity`` draws the three largest, symmetrised off-diagonal effects.
 # This is a display of sensor-generalization scores, not a physical-connectivity
 # graph.
 
@@ -262,7 +268,7 @@ np.fill_diagonal(cross_sensor_effects, 0)
 fig, _ = plot_connectivity_circle(
     cross_sensor_effects,
     node_names=epochs.ch_names,
-    n_lines=20,
+    n_lines=3,
     colormap="RdBu_r",
     title="Largest cross-decoding effects",
     show=False,
