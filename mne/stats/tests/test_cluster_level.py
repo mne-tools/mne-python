@@ -1387,6 +1387,7 @@ def test_cluster_test_plot_cluster_time_frequency_selection():
 def test_cluster_test_plot_cluster_time_frequency_wrong_dim():
     """Test plot_cluster_time_frequency rejects 2D (time x channel) clusters."""
     pd = pytest.importorskip("pandas")
+    pytest.importorskip("formulaic")
 
     condition1_1d, condition2_1d, _, _ = _get_conditions()
     df = pd.DataFrame(dict(data=[condition1_1d, condition2_1d], condition=["a", "b"]))
