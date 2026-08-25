@@ -24,6 +24,7 @@ from qtpy.QtCore import (
     QLibraryInfo,
     QLocale,
     QObject,
+    QPoint,
     QSize,
     Qt,
     QTimer,
@@ -1811,7 +1812,16 @@ class _QtWindow(_AbstractWindow):
             # such a window entirely (fully blank until the user resizes
             # it). Measure the true frame overhead from the live window
             # rather than guessing at decoration sizes.
-            screen = self._window.screen()
+            # NB: not self._window.screen(): PySide's wrapper for
+            # QWidget.screen() can end up owning -- and later deleting -- the
+            # application's QScreen, which crashes (segfault) on the next
+            # window creation. Instead find the screen from the window's
+            # position (as in mne-qt-browser's _screen)
+            screen = QGuiApplication.screenAt(
+                self._window.mapToGlobal(QPoint(self._window.width() // 2, 0))
+            )
+            if screen is None:
+                screen = QGuiApplication.primaryScreen()
             if screen is None:
                 max_w = max_h = 10**6
             else:
