@@ -2321,11 +2321,12 @@ class BaseRaw(
             raise RuntimeError("Append error")  # should never happen
 
     def close(self) -> None:
-        """Clean up any resources used by the object."""
-        for extras in self._raw_extras:
-            cache = extras.get("_memmap_cache")
-            if cache is not None:
-                cache.close()
+        """Clean up the object.
+
+        Does nothing for objects that close their file descriptors.
+        Things like Raw will override this method.
+        """
+        pass  # noqa
 
     def copy(self) -> Self:
         """Return copy of the instance.

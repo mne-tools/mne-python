@@ -1,1 +1,0 @@
-Speed up FIF reading by reading tag payloads through a memory map instead of open/seek/read per call, by `Bruno Aristimunha`_
