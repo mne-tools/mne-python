@@ -2113,6 +2113,12 @@ class ClusterResult:
         Timepoints that are part of the cluster are
         highlighted in green on the evoked signals.
 
+        For a signed statistic (e.g. a paired t-statistic) on gradiometer
+        (``"grad"``) data, note that the topomap combines each gradiometer pair
+        into one value using RMS magnitude (MNE's standard way of visualizing
+        planar gradiometer pairs), so it does not represent the sign of the
+        effect there -- the time series panel is the sign-accurate one.
+
         Parameters
         ----------
         condition_labels : dict
@@ -2171,10 +2177,24 @@ class ClusterResult:
         )
         image = ax_topo.images[0]
 
+        from ..viz.utils import _get_plot_ch_type
+
+        is_nonneg = self.stat_fun is f_oneway or (
+            isinstance(self.stat_fun, partial)
+            and self.stat_fun.func is _rm_anova_stat_fun
+        )
+        ch_type = _get_plot_ch_type(t_evoked, None)
+        grad_note = (
+            "\n(gradiometer pairs shown as RMS magnitude; sign not represented "
+            "here -- see the time series panel)"
+            if not is_nonneg and ch_type == "grad"
+            else ""
+        )
+
         # remove the title that would otherwise say "0.000 s"
         ax_topo.set_title(
-            "Spatial cluster extent:\n averaged from {:0.3f} to {:0.3f} s".format(
-                *sig_times[[0, -1]]
+            "Spatial cluster extent:\n averaged from {:0.3f} to {:0.3f} s{}".format(
+                *sig_times[[0, -1]], grad_note
             )
         )
 
@@ -2248,6 +2268,12 @@ class ClusterResult:
         cluster that has at least one member point on that channel, not just the
         chosen one, so that an equally significant effect that happens to share the
         chosen channel (of the same or opposite sign) is not hidden.
+
+        For a signed statistic (e.g. a paired t-statistic) on gradiometer
+        (``"grad"``) data, note that the topomap combines each gradiometer pair
+        into one value using RMS magnitude (MNE's standard way of visualizing
+        planar gradiometer pairs), so it does not represent the sign of the
+        effect there -- the spectrogram panel is the sign-accurate one.
 
         Parameters
         ----------
@@ -2369,9 +2395,19 @@ class ClusterResult:
         divider = make_axes_locatable(ax_topo)
         ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(image, cax=ax_colorbar)
+
+        from ..viz.utils import _get_plot_ch_type
+
+        ch_type = _get_plot_ch_type(stat_evoked, None)
+        grad_note = (
+            "\n(gradiometer pairs shown as RMS magnitude; sign not represented "
+            "here -- see spectrogram)"
+            if not is_nonneg and ch_type == "grad"
+            else ""
+        )
         ax_topo.set_xlabel(
-            "Averaged {} ({:0.3f} - {:0.3f} s)".format(
-                self.stat_name, *sig_times[[0, -1]]
+            "Averaged {} ({:0.3f} - {:0.3f} s){}".format(
+                self.stat_name, *sig_times[[0, -1]], grad_note
             )
         )
         ax_topo.set_title(
