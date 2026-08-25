@@ -487,7 +487,6 @@ def _assert_drop_log_types(drop_log):
     )
 
 
-@pytest.mark.skip()
 def test_reject():
     """Test epochs rejection."""
     raw, events, _ = _get_data()
@@ -502,7 +501,6 @@ def test_reject():
     assert len(events) == 7
     selection = np.arange(3)
     drop_log = ((),) * 3 + (("MEG 2443",),) * 4
-
     _assert_drop_log_types(drop_log)
     pytest.raises(TypeError, pick_types, raw)
     picks_meg = pick_types(raw.info, meg=True, eeg=False)
@@ -513,7 +511,7 @@ def test_reject():
         events,
         event_id,
         tmin,
-        tmax,  # modernize pytest
+        tmax,
         picks=picks,
         preload=False,
         reject="foo",
@@ -555,7 +553,6 @@ def test_reject():
         return len(bad_idxs), reasons
 
     for val in (-1, -2):  # protect against older MNE-C types
-        # warning
         for kwarg in ("reject", "flat"):
             pytest.raises(
                 ValueError,
@@ -590,7 +587,7 @@ def test_reject():
 
     # Check if callable returns a tuple with reasons
     bad_types = [my_reject_2, ("HiHi"), (1, 1), None]
-    for val in bad_types:  # protect against bad typesb
+    for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             with pytest.raises(
                 TypeError,
