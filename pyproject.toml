@@ -11,6 +11,12 @@ doc = [
   "graphviz",
   "intersphinx_registry >= 0.2405.27",
   "ipython != 8.7.0",  # also in "full-no-qt" and "test"
+  # 0.8 is the Pyodide 314 line, whose matplotlib, scipy and numpy all satisfy
+  # MNE, and 0.23 raised jupyterlite-sphinx's jupyterlite-core cap to < 0.9 so
+  # the two resolve together. Below either, the browser drops to Pyodide 0.29
+  # and its matplotlib 3.8.4, a minor under the 3.9 MNE declares.
+  "jupyterlite-pyodide-kernel >= 0.8",
+  "jupyterlite-sphinx >= 0.23",
   "memory_profiler >= 0.16",
   "mne-bids",
   "mne-connectivity",
