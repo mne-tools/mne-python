@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO
@@ -20,6 +21,7 @@ from scipy.io import loadmat
 
 from mne import Annotations, pick_types
 from mne._fiff.pick import channel_indices_by_type, get_channel_type_constants
+from mne._fiff.utils import _blk_read_lims
 from mne.annotations import _ndarray_ch_names, events_from_annotations, read_annotations
 from mne.datasets import testing
 from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
@@ -64,6 +66,320 @@ edf_utf8_annotations = data_path / "EDF" / "test_utf8_annotations.edf"
 
 eog = ["REOG", "LEOG", "IEOG"]
 misc = ["EXG1", "EXG5", "EXG8", "M1", "M2"]
+
+
+def _repeat_edf_records(source, destination, n_records=6):
+    """Repeat a one-record EDF/BDF payload for boundary tests."""
+    blob = bytearray(source.read_bytes())
+    header_nbytes = int(blob[184:192])
+    assert int(blob[236:244]) == 1
+    blob[236:244] = f"{n_records:<8}".encode("ascii")
+    destination.write_bytes(blob[:header_nbytes] + blob[header_nbytes:] * n_records)
+
+
+def _assert_stride_matches_legacy(monkeypatch, raw, picks, start, stop):
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
+    want = raw.get_data(picks=picks, start=start, stop=stop)
+    used = []
+
+    def _record_use(*args, **kwargs):
+        result = helper(*args, **kwargs)
+        used.append(result)
+        return result
+
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+    got = raw.get_data(picks=picks, start=start, stop=stop)
+    assert used and all(used)
+    assert_array_equal(got, want)
+    return want
+
+
+def _assert_stride_falls_back(monkeypatch, read_data, *, expect_mult=False):
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
+    want = read_data()
+    used = []
+    mults = []
+
+    def _record_use(*args, **kwargs):
+        result = helper(*args, **kwargs)
+        used.append(result)
+        mults.append(args[-1] if args else kwargs["mult"])
+        return result
+
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+    got = read_data()
+    assert used and not any(used)
+    if expect_mult:
+        assert all(mult is not None for mult in mults)
+    assert_array_equal(got, want)
+
+
+@pytest.mark.parametrize(
+    "reader, source, suffix",
+    [
+        (read_raw_edf, edf_stim_channel_path, ".edf"),
+        (read_raw_bdf, bdf_path, ".bdf"),
+    ],
+)
+@pytest.mark.parametrize("pick_kind", ("all", "subset", "reversed", "permuted"))
+@pytest.mark.parametrize("window_kind", ("within", "boundary", "multiple"))
+def test_uniform_stride_decode(
+    reader, source, suffix, pick_kind, window_kind, monkeypatch, tmp_path
+):
+    """Test exact pure-NumPy stride decoding against legacy."""
+    repeated = tmp_path / f"uniform{suffix}"
+    _repeat_edf_records(source, repeated)
+    raw = reader(repeated, preload=False, verbose="error")
+    n_channels = len(raw.ch_names)
+    buf_len = int(raw._raw_extras[0]["max_samp"])
+    picks = {
+        "all": np.arange(n_channels),
+        "subset": np.array([0, n_channels // 2, n_channels - 1]),
+        "reversed": np.arange(n_channels - 1, -1, -1),
+        "permuted": np.array([n_channels - 1, 1, n_channels // 2, 0]),
+    }[pick_kind]
+    start, stop = {
+        "within": (7, buf_len - 5),
+        "boundary": (buf_len - 7, buf_len + 11),
+        "multiple": (buf_len // 2, 4 * buf_len + 13),
+    }[window_kind]
+    _assert_stride_matches_legacy(monkeypatch, raw, picks, start, stop)
+
+
+@pytest.mark.parametrize(
+    "reader, source, suffix",
+    (
+        (read_raw_edf, edf_stim_channel_path, ".edf"),
+        (read_raw_bdf, bdf_path, ".bdf"),
+    ),
+)
+def test_uniform_stride_multiple_chunks(reader, source, suffix, monkeypatch, tmp_path):
+    """Test reads that cross the internal record-chunk boundary."""
+    source_raw = reader(source, preload=False, verbose="error")
+    extras = source_raw._raw_extras[0]
+    record_nbytes = int(extras["n_samps"].sum() * extras["dtype_byte"])
+    n_per = max(10 * 1024 * 1024 // record_nbytes, 1)
+    repeated = tmp_path / f"multiple_chunks{suffix}"
+    _repeat_edf_records(source, repeated, n_records=n_per + 2)
+
+    raw = reader(repeated, preload=False, verbose="error")
+    buf_len = int(raw._raw_extras[0]["max_samp"])
+    start = buf_len // 2
+    stop = (n_per + 1) * buf_len + buf_len // 2
+    _, r_lims, _ = _blk_read_lims(start, stop, buf_len)
+    assert len(r_lims) > n_per
+    assert stop <= raw.n_times
+    picks = np.array([0, len(raw.ch_names) // 2])
+    output_nbytes = len(picks) * (stop - start) * np.dtype(np.float64).itemsize
+    assert output_nbytes < 4 * 1024**2
+    _assert_stride_matches_legacy(monkeypatch, raw, picks, start, stop)
+
+
+@pytest.mark.parametrize(
+    "reader, fname", ((read_raw_edf, edf_stim_channel_path), (read_raw_bdf, bdf_path))
+)
+def test_uniform_stride_preload(reader, fname, monkeypatch):
+    """Test that eligible initial eager decoding matches legacy."""
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
+    want = reader(fname, preload=True, verbose="error").get_data()
+    used = []
+
+    def _record_use(*args, **kwargs):
+        result = helper(*args, **kwargs)
+        used.append(result)
+        return result
+
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+    got = reader(fname, preload=True, verbose="error").get_data()
+    assert used and all(used)
+    assert_array_equal(got, want)
+
+
+@pytest.mark.parametrize(
+    "reader, fname, reader_kwargs",
+    (
+        pytest.param(
+            read_raw_edf,
+            edf_stim_channel_path,
+            {"stim_channel": -1},
+            id="edf",
+        ),
+        pytest.param(read_raw_bdf, bdf_path, {}, id="bdf"),
+    ),
+)
+def test_uniform_stride_stim_only(reader, fname, reader_kwargs, monkeypatch):
+    """Test exact stim scaling and masking on the stride path."""
+    raw = reader(fname, preload=False, verbose="error", **reader_kwargs)
+    picks = pick_types(raw.info, meg=False, stim=True)
+    assert len(picks) == 1
+    assert raw.get_channel_types(picks=picks) == ["stim"]
+    assert_array_equal(picks, raw._raw_extras[0]["stim_channel_idxs"])
+    if reader is read_raw_edf:
+        stim_idx = picks[0]
+        extras = raw._raw_extras[0]
+        assert extras["cal"][stim_idx] != 1.0
+        assert extras["offsets"][stim_idx] != 0.0
+    want = _assert_stride_matches_legacy(monkeypatch, raw, picks, 100, 900)
+    assert_array_equal(want, np.bitwise_and(want.astype(int), 2**17 - 1))
+    if reader is read_raw_edf:
+        assert_array_equal(np.unique(want), [0.0, 100.0])
+
+
+def test_uniform_stride_cals(monkeypatch):
+    """Test non-unit Raw calibrations on the stride path."""
+    raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+    picks = np.array([0, 17, 55])
+    raw._cals[picks] *= np.array([0.5, 2.0, 4.0])
+    assert np.all(raw._cals[picks] != 1.0)
+    _assert_stride_matches_legacy(monkeypatch, raw, picks, 100, 900)
+
+
+def test_uniform_stride_excluded_physical_channel(monkeypatch):
+    """Test logical picks after excluding a physical record row."""
+    raw = read_raw_bdf(bdf_path, exclude=["AF7"], preload=False, verbose="error")
+    physical_sel = raw._raw_extras[0]["sel"]
+    assert raw.ch_names[1] == "AF3"
+    assert physical_sel[1] == 2
+    assert not np.array_equal(physical_sel, np.arange(len(raw.ch_names)))
+    picks = np.array([0, 1, len(raw.ch_names) - 1])
+    _assert_stride_matches_legacy(monkeypatch, raw, picks, 100, 900)
+
+
+@pytest.mark.parametrize(
+    "fallback_kind",
+    (
+        "mixed_rate",
+        "tal",
+        "file_like",
+        "projection",
+        "output_limit",
+        "extra_limit",
+        "duplicate_picks",
+    ),
+)
+def test_uniform_stride_fallbacks(fallback_kind, monkeypatch):
+    """Test that unsafe stride layouts and transforms use legacy."""
+    cutoff = {
+        "output_limit": "_EDF_STRIDE_MAX_OUTPUT_BYTES",
+        "extra_limit": "_EDF_STRIDE_MAX_EXTRA_BYTES",
+    }.get(fallback_kind)
+    if cutoff is not None:
+        monkeypatch.setattr(edf.edf, cutoff, 0)
+
+    if fallback_kind == "file_like":
+        helper = edf.edf._read_uniform_segment
+        blob = bdf_path.read_bytes()
+        monkeypatch.setattr(
+            edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
+        )
+        want = read_raw_bdf(BytesIO(blob), preload=True, verbose="error").get_data()
+        used = []
+
+        def _record_use(*args, **kwargs):
+            result = helper(*args, **kwargs)
+            used.append(result)
+            return result
+
+        monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+        got = read_raw_bdf(BytesIO(blob), preload=True, verbose="error").get_data()
+        assert used and not any(used)
+        assert_array_equal(got, want)
+        return
+
+    raw = None
+    picks = None
+    start, stop = 100, 900
+    expect_mult = False
+    if fallback_kind == "mixed_rate":
+        raw = read_raw_edf(edf_uneven_path, preload=False, verbose="error")
+        extras = raw._raw_extras[0]
+        n_samps = extras["n_samps"]
+        assert np.unique(n_samps).size > 1
+        high_rate_physical = np.flatnonzero(n_samps == extras["max_samp"])[0]
+        picks = np.flatnonzero(extras["sel"] == high_rate_physical)
+        assert len(picks) == 1
+        assert n_samps[extras["sel"][picks[0]]] == extras["max_samp"]
+    elif fallback_kind == "tal":
+        raw = read_raw_edf(edf_path, preload=False, verbose="error")
+        extras = raw._raw_extras[0]
+        picks = np.array([0, len(raw.ch_names) - 1])
+        assert len(extras["tal_idx"]) > 0
+        assert np.all(extras["n_samps"][extras["sel"][picks]] == extras["max_samp"])
+    elif fallback_kind == "projection":
+        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+        raw.set_eeg_reference(projection=True, verbose="error").apply_proj(
+            verbose="error"
+        )
+        assert raw._projector is not None
+        expect_mult = True
+    elif fallback_kind in ("output_limit", "extra_limit"):
+        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+    else:
+        assert fallback_kind == "duplicate_picks"
+        helper = edf.edf._read_uniform_segment
+        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+        picks = [2, 0, 2]
+        monkeypatch.setattr(
+            edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
+        )
+        with pytest.raises(ValueError) as want_error:
+            raw.get_data(picks=picks, start=start, stop=stop)
+        used = []
+
+        def _record_use(*args, **kwargs):
+            result = helper(*args, **kwargs)
+            used.append(result)
+            return result
+
+        monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+        with pytest.raises(ValueError) as got_error:
+            raw.get_data(picks=picks, start=start, stop=stop)
+        assert used and not any(used)
+        assert str(got_error.value) == str(want_error.value)
+        return
+
+    _assert_stride_falls_back(
+        monkeypatch,
+        partial(raw.get_data, picks=picks, start=start, stop=stop),
+        expect_mult=expect_mult,
+    )
+
+
+@pytest.mark.parametrize(
+    "reader, source",
+    ((read_raw_edf, edf_stim_channel_path), (read_raw_bdf, bdf_path)),
+)
+def test_uniform_stride_concurrent(reader, source, monkeypatch):
+    """Test that stride reads share no seekable file handle."""
+    raw = reader(source, preload=False, verbose="error")
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
+    reference = reader(source, preload=True, verbose="error").get_data()
+    windows = [
+        (start, min(start + 64, raw.n_times)) for start in range(0, raw.n_times, 31)
+    ]
+    used = []
+
+    def _record_use(*args, **kwargs):
+        result = helper(*args, **kwargs)
+        used.append(result)
+        return result
+
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        got = list(
+            pool.map(
+                lambda limits: raw.get_data(start=limits[0], stop=limits[1]),
+                windows * 4,
+            )
+        )
+    assert len(used) == len(windows) * 4
+    assert all(used)
+    for data, (start, stop) in zip(got, windows * 4):
+        assert_array_equal(data, reference[:, start:stop])
 
 
 def test_orig_units():

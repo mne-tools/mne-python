@@ -608,8 +608,102 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
+_EDF_STRIDE_MAX_OUTPUT_BYTES = 32 * 1024**2
+_EDF_STRIDE_MAX_EXTRA_BYTES = 64 * 1024**2
+
+
+def _read_uniform_segment(
+    data, idx, start, stop, raw_extras, filenames, cals, mult
+) -> bool:
+    """Read a uniformly sampled EDF or BDF segment."""
+    subtype = raw_extras["subtype"]
+    if subtype not in ("edf", "bdf") or not isinstance(filenames, str | Path):
+        return False
+    if len(raw_extras.get("tal_idx", ())) != 0:
+        return False
+
+    idx_arr = (
+        np.arange(idx.start, idx.stop) if isinstance(idx, slice) else np.asarray(idx)
+    )
+    if len(idx_arr) == 0 or len(np.unique(idx_arr)) != len(idx_arr):
+        return False
+
+    n_samps = raw_extras["n_samps"]
+    buf_len = int(raw_extras["max_samp"])
+    if (
+        not np.all(n_samps == buf_len)
+        or mult is not None
+        or data.nbytes > _EDF_STRIDE_MAX_OUTPUT_BYTES
+    ):
+        return False
+
+    dtype = raw_extras["dtype_np"]
+    dtype_byte = raw_extras["dtype_byte"]
+    data_offset = raw_extras["data_offset"]
+    stim_channel_idxs = raw_extras["stim_channel_idxs"]
+    orig_sel = raw_extras["sel"]
+    cal = raw_extras["cal"]
+    offsets = raw_extras["offsets"]
+    gains = raw_extras["units"]
+    read_sel = orig_sel[idx_arr]
+
+    ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    max_records = min(len(r_lims), n_per)
+    n_values = len(idx_arr) * max_records * buf_len
+    estimated_incremental_bytes = n_values * np.dtype(np.float64).itemsize
+    physical_order = np.arange(len(n_samps))
+    if not np.array_equal(read_sel, physical_order):
+        gather_bytes_per_value = 2 if subtype == "edf" else 4
+        estimated_incremental_bytes += n_values * gather_bytes_per_value
+    if any(orig_idx in stim_channel_idxs for orig_idx in idx_arr):
+        estimated_incremental_bytes += max_records * buf_len * np.dtype(int).itemsize
+    if estimated_incremental_bytes > _EDF_STRIDE_MAX_EXTRA_BYTES:
+        return False
+
+    with _gdf_edf_get_fid(filenames, buffering=0) as fid:
+        start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
+        ones = np.zeros((len(orig_sel), data.shape[-1]), dtype=data.dtype)
+        for ai in range(0, len(r_lims), n_per):
+            block_offset = ai * ch_offsets[-1] * dtype_byte
+            n_read = min(len(r_lims) - ai, n_per)
+            fid.seek(start_offset + block_offset, 0)
+            many_chunk = _read_ch(
+                fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
+            )
+            record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
+            if np.array_equal(read_sel, physical_order):
+                view = record_grid.transpose(1, 0, 2)
+            else:
+                view = record_grid[:, read_sel, :].transpose(1, 0, 2)
+
+            one = np.empty(view.shape, dtype=np.float64)
+            np.multiply(view, cal[idx_arr, np.newaxis, np.newaxis], out=one)
+            one += offsets[idx_arr, np.newaxis, np.newaxis]
+            one *= gains[idx_arr, np.newaxis, np.newaxis]
+            r_sidx = r_lims[ai][0]
+            r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+            block = one.reshape(len(idx_arr), -1)[:, r_sidx:r_eidx]
+            for row, orig_idx in enumerate(idx_arr):
+                if orig_idx in stim_channel_idxs:
+                    stim = block[row].astype(int)
+                    np.bitwise_and(stim, 2**17 - 1, out=stim)
+                    block[row] = stim
+            d_start = d_lims[ai][0]
+            d_stop = d_lims[ai + n_read - 1][1]
+            assert d_stop - d_start == block.shape[1]
+            ones[idx_arr, d_start:d_stop] = block
+
+        _mult_cal_one(data, ones, idx, cals, mult)
+    return True
+
+
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
+    if _read_uniform_segment(data, idx, start, stop, raw_extras, filenames, cals, mult):
+        return []
+
     from scipy.interpolate import interp1d
 
     n_samps = raw_extras["n_samps"]

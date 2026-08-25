@@ -1,0 +1,1 @@
+Speed up eligible EDF and BDF window reads with a pure-NumPy record-stride decoder, by `Bruno Aristimunha`_.
