@@ -9,7 +9,7 @@ MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 # Internal variables.
 ALLSPHINXOPTS   = -d _build/doctrees $(SPHINXOPTS) .
 
-.PHONY: help clean html html-noplot html-pattern linkcheck linkcheck-grep doctest
+.PHONY: help clean html html-noplot html-pattern jupyterlite_wheel linkcheck linkcheck-grep doctest
 
 # make with no arguments will build the first target by default, i.e., build standalone HTML files
 first_target: html-noplot
@@ -28,29 +28,32 @@ help:
 	@echo "  view             to view the built HTML"
 
 clean:
-	-rm -rf _build sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
+	-rm -rf _build pypi sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
-html:
+jupyterlite_wheel:
+	@python sphinxext/build_lite_wheel.py
+
+html: jupyterlite_wheel
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
-html-memory:
+html-memory: jupyterlite_wheel
 	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
-html-pattern:
+html-pattern: jupyterlite_wheel
 	$(SPHINXBUILD) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
-html-pattern-memory:
+html-pattern-memory: jupyterlite_wheel
 	$(MPROF) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
-html-noplot:
+html-noplot: jupyterlite_wheel
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
