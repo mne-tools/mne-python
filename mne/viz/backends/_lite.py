@@ -11,7 +11,7 @@ and VTK cannot load in WebAssembly.
 Rather than reimplement those functions one by one, this module supplies a
 renderer that draws with `pyvista-js <https://github.com/tkoyama010/pyvista-js>`__
 (vtk.js). It is a 3D backend like ``_qt`` and ``_notebook`` are, selected with
-``mne.viz.set_3d_backend("jupyterlite")``, which is all a browser kernel has to
+``mne.viz.set_3d_backend("jupyterlite_notebook")``, which is all a browser kernel has to
 do. MNE keeps doing all of the transform math itself, which matters because
 getting a head/MRI/device transform subtly wrong produces a plausible-looking
 picture with the sensors in the wrong place.

@@ -12,12 +12,12 @@ module only exposes the few lines of notebook code that switch MNE over to it.
 # Copyright the MNE-Python contributors.
 
 LITE_RENDERER_CELL = """
-# Draw MNE's 3D figures with pyvista-js (vtk.js): VTK has no WebAssembly build.
+# Using pyvista-js (vtk.js) to draw MNE's 3D rendering in JupyterLite.
 # See mne/viz/backends/_lite.py for more details.
 try:
     import mne.viz
 
-    mne.viz.set_3d_backend("jupyterlite")
+    mne.viz.set_3d_backend("jupyterlite_notebook")
 except Exception as _e:
     print("[JupyterLite] could not select the pyvista-js renderer: " + repr(_e))
 """

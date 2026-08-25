@@ -755,7 +755,7 @@ def renderer_notebook(request, options_3d):
         yield renderer
 
 
-@pytest.fixture(params=[pytest.param("jupyterlite", marks=pytest.mark.pvtest)])
+@pytest.fixture(params=[pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest)])
 def renderer_lite(request, options_3d):
     """Yield the JupyterLite (vtk.js) renderer."""
     from mne.viz.backends import renderer as renderer_module
@@ -814,7 +814,7 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
 
-    if name == "jupyterlite":
+    if name == "jupyterlite_notebook":
         # draws with vtk.js in a browser: no VTK, no Qt, no ffmpeg
         pytest.importorskip("pyvista_js")
         return

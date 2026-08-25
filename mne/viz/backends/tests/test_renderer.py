@@ -283,7 +283,7 @@ def test_renderer(renderer, monkeypatch):
 
 def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'notebook', and 'jupyterlite'"
+    match = "Allowed values are 'pyvistaqt', 'notebook', and 'jupyterlite_notebook'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend("invalid")
 

@@ -22,8 +22,8 @@ _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 
 def test_is_a_registered_backend(renderer_lite):
-    """``set_3d_backend("jupyterlite")`` must hand out this renderer."""
-    assert renderer_lite.get_3d_backend() == "jupyterlite"
+    """``set_3d_backend("jupyterlite_notebook")`` must hand out this renderer."""
+    assert renderer_lite.get_3d_backend() == "jupyterlite_notebook"
     assert renderer_lite.backend._Renderer is _lite._LiteRenderer
     assert isinstance(renderer_lite._get_renderer(size=(200, 200)), _lite._LiteRenderer)
 
@@ -369,8 +369,8 @@ def test_renders_in_a_notebook_kernel(nbexec):
 
     from mne.viz.backends import renderer
 
-    renderer.set_3d_backend("jupyterlite")
-    assert renderer.get_3d_backend() == "jupyterlite"
+    renderer.set_3d_backend("jupyterlite_notebook")
+    assert renderer.get_3d_backend() == "jupyterlite_notebook"
     r = renderer._get_renderer(size=(200, 200), bgcolor="white")
     assert type(r).__name__ == "_LiteRenderer"
 
