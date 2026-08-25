@@ -222,7 +222,7 @@ class Contours(UIEvent):
 
     kind: str
     contours: list[str]
-    line_width: float | None
+    line_width: float | None = None
 
 
 @dataclass

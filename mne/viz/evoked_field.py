@@ -475,9 +475,9 @@ class EvokedField:
         def _set_contour_line_width(line_width):
             self.set_contour_line_width(line_width)
 
-        self._widgets["contours_line_width"] = r._dock_add_slider(
+        self._widgets["contour_line_width"] = r._dock_add_slider(
             name="Thickness",
-            value=1,
+            value=self._contour_line_width,
             rng=[0, 10],
             callback=_set_contour_line_width,
             double=True,
