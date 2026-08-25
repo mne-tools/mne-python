@@ -511,6 +511,37 @@ docdict["baseline_evoked"] = f"""{_baseline_rescale_base}
     2. Subtract this mean from the **entire** ``Evoked``.
 
 """
+_baseline_mode_desc = """\
+    Perform baseline correction by:
+
+    ``"mean"``
+      Subtracting the mean of baseline values
+    ``"ratio"``
+      Dividing by the mean of baseline values
+    ``"logratio"``
+      Dividing by the mean of baseline values and taking the log
+    ``"meanlogratio"``
+      Dividing by the mean of baseline values, taking the log and then
+      subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+      .. note:: this baseline mode has not been tested at the source-level!
+    ``"percent"``
+      Subtracting the mean of baseline values followed by dividing by
+      the mean of baseline values
+    ``"zscore"``
+      Subtracting the mean of baseline values and dividing by the
+      standard deviation of baseline values
+    ``"zlogratio"``
+      Dividing by the mean of baseline values, taking the log, and
+      dividing by the standard deviation of log baseline values
+"""
+
+docdict["baseline_mode"] = f"""\
+mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
+docdict["baseline_mode_mn"] = f"""\
+baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
 
 docdict["baseline_report"] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**
@@ -2823,23 +2854,6 @@ mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     * 'maxval' : PSFs/CTFs with maximum absolute value across vertices.
       Returns the n_comp largest PSFs/CTFs.
     * 'sum' : Sum of PSFs/CTFs across vertices.
-"""
-
-docdict["mode_tfr_plot"] = """
-mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-    Perform baseline correction by
-
-    - subtracting the mean of baseline values ('mean') (default)
-    - dividing by the mean of baseline values ('ratio')
-    - dividing by the mean of baseline values and taking the log
-      ('logratio')
-    - subtracting the mean of baseline values followed by dividing by
-      the mean of baseline values ('percent')
-    - subtracting the mean of baseline values and dividing by the
-      standard deviation of baseline values ('zscore')
-    - dividing by the mean of baseline values, taking the log, and
-      dividing by the standard deviation of log baseline values
-      ('zlogratio')
 """
 
 docdict["montage"] = """
