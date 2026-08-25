@@ -688,14 +688,14 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             sel_uni = [read_sel[ii] for ii in uni_list]
             idx_arr_uni = idx_arr[uni_list]
             k_u = len(uni_list)
-            cal_v = cal[idx_arr][:, np.newaxis, np.newaxis]
-            off_v = offsets[idx_arr][:, np.newaxis, np.newaxis]
-            gain_v = gains[idx_arr][:, np.newaxis, np.newaxis]
-            cal_u = cal[idx_arr_uni][:, np.newaxis, np.newaxis]
-            off_u = offsets[idx_arr_uni][:, np.newaxis, np.newaxis]
-            gain_u = gains[idx_arr_uni][:, np.newaxis, np.newaxis]
-            off_v = offsets[idx_arr][:, np.newaxis, np.newaxis]
-            gain_v = gains[idx_arr][:, np.newaxis, np.newaxis]
+            channel_calibration = cal[idx_arr][:, np.newaxis, np.newaxis]
+            channel_offset = offsets[idx_arr][:, np.newaxis, np.newaxis]
+            channel_gain = gains[idx_arr][:, np.newaxis, np.newaxis]
+            uniform_calibration = cal[idx_arr_uni][:, np.newaxis, np.newaxis]
+            uniform_offset = offsets[idx_arr_uni][:, np.newaxis, np.newaxis]
+            uniform_gain = gains[idx_arr_uni][:, np.newaxis, np.newaxis]
+            channel_offset = offsets[idx_arr][:, np.newaxis, np.newaxis]
+            channel_gain = gains[idx_arr][:, np.newaxis, np.newaxis]
             # With no projector/compensation and unit cals (always true for
             # EDF/BDF), decoded samples can go straight into the output.
             write_direct = (
@@ -710,9 +710,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 from ._edf_numba import decode_window_into
 
                 dec_into = decode_window_into
-                cal_1d = cal_u.ravel()
-                off_1d = off_u.ravel()
-                gain_1d = gain_u.ravel()
+                cal_1d = uniform_calibration.ravel()
+                off_1d = uniform_offset.ravel()
+                gain_1d = uniform_gain.ravel()
             # Uniform stim channels can stay on the fast path: legacy applies
             # a truncating bitmask (float -> int cast, mask 2**17-1) AFTER
             # calibration, which we replicate per row below.
@@ -729,7 +729,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 many_chunk = _read_ch(
                     fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
                 )
-                arr3 = many_chunk.reshape(n_read, len(n_samps), buf_len)
+                record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
                 r_sidx = r_lims[ai][0]
                 r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
                 # gather this call's channels as a strided view
@@ -737,11 +737,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 # when all channels are requested this is a zero-copy
                 # transpose
                 if not slow_ii and k == len(n_samps):
-                    view = arr3.transpose(1, 0, 2)
+                    view = record_grid.transpose(1, 0, 2)
                 elif slow_ii:
-                    view = arr3[:, sel_uni, :].transpose(1, 0, 2)
+                    view = record_grid[:, sel_uni, :].transpose(1, 0, 2)
                 else:
-                    view = arr3[:, read_sel, :].transpose(1, 0, 2)
+                    view = record_grid[:, read_sel, :].transpose(1, 0, 2)
                 # digital -> physical, preserving the legacy op order;
                 # when possible decode straight into the destination slice so
                 # the block never round-trips through a temporary
@@ -763,17 +763,17 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                     # no kernel and direct write: decode to a temp then copy
                     # once into the destination slice
                     one = np.empty((k, n_read, buf_len), dtype=np.float64)
-                    np.multiply(view, cal_v, out=one)
-                    one += off_v
-                    one *= gain_v
+                    np.multiply(view, channel_calibration, out=one)
+                    one += channel_offset
+                    one *= channel_gain
                     dst_full = data[:, pos : pos + width]
                     dst_full[...] = one.reshape(k, -1)[:, r_sidx:r_eidx]
                     block = None  # values already in place
                 else:
                     one = np.empty((k, n_read, buf_len), dtype=np.float64)
-                    np.multiply(view, cal_v, out=one)
-                    one += off_v
-                    one *= gain_v
+                    np.multiply(view, channel_calibration, out=one)
+                    one += channel_offset
+                    one *= channel_gain
                     block = one.reshape(k, -1)[:, r_sidx:r_eidx]
                 if stim_rows:
                     for ii in stim_rows:
