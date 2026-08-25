@@ -3771,6 +3771,11 @@ random_state : None | int | instance of ~numpy.random.RandomState
     NumPy's global :class:`~numpy.random.RandomState` is used.
 """
 
+docdict["random_state_rng_method_random"] = (
+    docdict["random_state_rng"].rstrip("\n")
+    + "\n    Used only if ``method='random'``.\n"
+)
+
 _rank_base = """
 rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
@@ -4052,6 +4057,13 @@ rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomSta
 
     .. versionadded:: 1.13
 """
+
+# The ``rng`` entry ends with a directive, so anything appended at the call site
+# would be swallowed by it; make the ``method='random'`` variant here instead.
+docdict["rng_method_random"] = docdict["rng"].replace(
+    "\n\n    .. versionadded",
+    "\n    Used only if ``method='random'``.\n\n    .. versionadded",
+)
 
 docdict["roll"] = """
 roll : float | None
