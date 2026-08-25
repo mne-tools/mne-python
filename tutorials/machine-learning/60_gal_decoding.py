@@ -53,22 +53,26 @@ from mne.io import concatenate_raws, read_raw_edf
 
 # %%
 # The ERDS example uses runs 6, 10, and 14 from participant 1. These runs
-# contain imagined hand and foot movements. We keep the same three motor
-# channels, C3, Cz, and C4, so the tutorial executes quickly in CI.
+# contain imagined hand and foot movements. We retain the complete EEG array:
+# each electrode is a possible training and test location.
 
 raw_fnames = eegbci.load_data(subjects=1, runs=(6, 10, 14))
 raw = concatenate_raws([read_raw_edf(fname, preload=True) for fname in raw_fnames])
 eegbci.standardize(raw)
 raw.set_montage(make_standard_montage("spherical_1005"))
 raw.annotations.rename(dict(T1="hands", T2="feet"))
-raw.set_eeg_reference(projection=True)
 raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
+raw.set_eeg_reference(projection=True).apply_proj()
+raw = mne.preprocessing.compute_current_source_density(raw)
 
 # %%
 # Prepare hand and foot motor-imagery epochs
 # -------------------------------------------
-# C3, Cz, and C4 are the features for time-resolved decoding. For GAL, the 1
-# to 3 s motor-imagery waveform becomes the feature vector at each location.
+# The surface Laplacian is a reference-free current-source-density (CSD)
+# transform. It suppresses broad, volume-conducted activity and sharpens local
+# sensor patterns, which can make the mu- and beta-band ERD/ERS contrast easier
+# to see. For GAL, the 1 to 3 s waveform becomes the feature vector at each
+# location.
 
 event_id = dict(hands=2, feet=3)
 epochs = mne.Epochs(
@@ -78,7 +82,6 @@ epochs = mne.Epochs(
     tmax=4,
     baseline=None,
     proj=True,
-    picks=("C3", "Cz", "C4"),
     preload=True,
     verbose=False,
 )
@@ -93,8 +96,8 @@ print(
 # Classical time-resolved decoding uses sensors as features
 # ---------------------------------------------------------
 # This is the temporal slice from the :ref:`temporal generalization example
-# <tut-mvpa>`: a model is fitted at every time point using all EEG channels as
-# features. GAL below swaps these two roles.
+# <tut-mvpa>`: a model is fitted at every time point using the full EEG array
+# as features. GAL below swaps these two roles.
 
 classifier = make_pipeline(
     StandardScaler(), LogisticRegression(solver="liblinear", random_state=0)
@@ -116,21 +119,24 @@ ax.set(
 # Inspect the condition waveforms
 # -------------------------------
 # The averages are a diagnostic view of the 1 to 3 s feature window. GAL fits
-# separate models at every sensor.
+# separate models at every sensor. C3 is used only as a familiar central-site
+# illustration; it is not selected for the analysis.
 
 fig, ax = plt.subplots(layout="constrained")
 time_mask = (epochs.times >= 1) & (epochs.times <= 3)
 for selection, label in ((y, "Hands"), (~y, "Feet")):
     ax.plot(
         epochs.times[time_mask],
-        epochs.get_data()[selection, 0][:, time_mask].mean(axis=0),
+        epochs.get_data()[selection, epochs.ch_names.index("C3")][:, time_mask].mean(
+            axis=0
+        ),
         label=label,
     )
 ax.axvline(0, color="k", linestyle=":", linewidth=1)
 ax.set(
-    title=f"Motor-imagery averages at {epochs.ch_names[0]}",
+    title="Motor-imagery averages at C3",
     xlabel="Time (s)",
-    ylabel="Voltage (V)",
+    ylabel="CSD (V/m²)",
 )
 ax.legend()
 
@@ -152,7 +158,7 @@ fig, axes = plt.subplots(
 )
 fig = hands_minus_feet.plot_topomap(
     times=[1.2, 1.8, 2.5],
-    ch_type="eeg",
+    ch_type="csd",
     time_unit="s",
     axes=axes,
     show=False,
@@ -185,7 +191,7 @@ image = ax.imshow(
 ax.set(
     title="Label--signal correlation (descriptive temporal pattern)",
     xlabel="Time (s)",
-    ylabel="Posterior magnetometer",
+    ylabel="EEG sensor",
 )
 fig.colorbar(image, ax=ax, label="Pearson r")
 
@@ -247,8 +253,8 @@ ax.set(
     xlabel="Test sensor",
     ylabel="Training sensor",
 )
-sensor_ticks = np.arange(len(epochs.ch_names))
-sensor_tick_labels = np.array(epochs.ch_names)[sensor_ticks]
+sensor_tick_labels = np.array(("C3", "Cz", "C4"))
+sensor_ticks = np.array([epochs.ch_names.index(name) for name in sensor_tick_labels])
 ax.set_xticks(sensor_ticks, sensor_tick_labels, rotation=45, ha="right")
 ax.set_yticks(sensor_ticks, sensor_tick_labels)
 fig.colorbar(image, ax=ax, label="Cross-validated AUC")
