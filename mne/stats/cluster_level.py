@@ -1757,8 +1757,6 @@ def cluster_test(
 ):
     """Run a cluster permutation test from a DataFrame and a formula.
 
-    Requires the Pandas and Formulaic Python packages to be installed.
-
     Parameters
     ----------
     df : pd.DataFrame
@@ -1809,14 +1807,14 @@ def cluster_test(
     %(n_jobs)s
     %(verbose)s
 
-    Notes
-    -----
-    %(threshold_clust_t_or_f_notes)s
-
     Returns
     -------
     ClusterResult
         Object containing the results of the cluster permutation test.
+
+    Notes
+    -----
+    %(threshold_clust_t_or_f_notes)s
     """
     # parse formula
     formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
